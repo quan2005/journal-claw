@@ -1,51 +1,101 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useState, useEffect, useCallback } from 'react'
+import { Menu, MenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu'
+import { TitleBar } from './components/TitleBar'
+import { RecordingList } from './components/RecordingList'
+import { RecordButton } from './components/RecordButton'
+import { useRecorder } from './hooks/useRecorder'
+import { listRecordings, deleteRecording, revealInFinder, playRecording } from './lib/tauri'
+import { formatYearMonth } from './lib/format'
+import type { RecordingItem } from './types'
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export default function App() {
+  const [recordings, setRecordings] = useState<RecordingItem[]>([])
+  const [activeItem, setActiveItem] = useState<RecordingItem | null>(null)
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const loadRecordings = useCallback(async () => {
+    const items = await listRecordings()
+    setRecordings(items)
+  }, [])
+
+  useEffect(() => { loadRecordings() }, [loadRecordings])
+
+  const handleStopped = useCallback((item: RecordingItem) => {
+    setActiveItem(null)
+    setRecordings(prev => [item, ...prev])
+  }, [])
+
+  const { status, elapsedSecs, start, stop } = useRecorder(handleStopped)
+
+  const handleRecordButton = useCallback(async () => {
+    if (status === 'idle') {
+      try {
+        await start()
+        const now = new Date()
+        const pad = (n: number) => String(n).padStart(2, '0')
+        const displayName = `录音 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+        setActiveItem({
+          filename: displayName + '.m4a',
+          path: '__active__',
+          display_name: displayName,
+          duration_secs: 0,
+          year_month: formatYearMonth(displayName),
+        })
+      } catch (err: unknown) {
+        if (typeof err === 'string' && err === 'permission_denied') {
+          alert('DayNote 需要麦克风权限。请前往「系统设置 → 隐私与安全性 → 麦克风」开启。')
+        }
+      }
+    } else {
+      await stop()
+    }
+  }, [status, start, stop])
+
+  const handleContextMenu = useCallback(async (e: React.MouseEvent, item: RecordingItem) => {
+    e.preventDefault()
+    if (item.path === '__active__') return
+
+    const playItem = await MenuItem.new({
+      id: 'play',
+      text: '播放',
+      action: async () => {
+        await playRecording(item.path).catch(() => {})
+      },
+    })
+
+    const revealItem = await MenuItem.new({
+      id: 'reveal',
+      text: '在 Finder 中显示',
+      action: async () => {
+        await revealInFinder(item.path).catch(() => {})
+      },
+    })
+
+    const separator = await PredefinedMenuItem.new({ item: 'Separator' })
+
+    const deleteItem = await MenuItem.new({
+      id: 'delete',
+      text: '删除',
+      action: async () => {
+        await deleteRecording(item.path).catch(() => {})
+        setRecordings(prev => prev.filter(r => r.path !== item.path))
+      },
+    })
+
+    const menu = await Menu.new({ items: [playItem, revealItem, separator, deleteItem] })
+    await menu.popup()
+  }, [])
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <TitleBar status={status} elapsedSecs={elapsedSecs} />
+      <RecordingList
+        recordings={recordings}
+        status={status}
+        activeItem={activeItem}
+        elapsedSecs={elapsedSecs}
+        onContextMenu={handleContextMenu}
+      />
+      <RecordButton status={status} onClick={handleRecordButton} />
+    </div>
+  )
 }
-
-export default App;

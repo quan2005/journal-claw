@@ -1,0 +1,18 @@
+/* Breathing glow on idle record button: 2.4s ease-in-out, 0 → 12px box-shadow */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%       { box-shadow: 0 0 0 12px rgba(255, 59, 48, 0.18); }
+}
+
+@media (prefers-color-scheme: dark) {
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50%       { box-shadow: 0 0 0 12px rgba(255, 55, 95, 0.18); }
+  }
+}
+
+/* Title bar recording dot blink: 1s ease-in-out */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}

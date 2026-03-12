@@ -4,7 +4,6 @@ mod recorder;
 
 fn main() {
     tauri::Builder::default()
-        // .plugin(tauri_plugin_context_menu::init())  // Re-enable in Task 5 with tauri-v2 compatible version
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             recordings::list_recordings,

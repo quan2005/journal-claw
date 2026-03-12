@@ -18,5 +18,5 @@ cpal = "0.17"
 hound = "3.5"
 chrono = { version = "0.4", features = ["clock"] }
 mp4ameta = "0.13"
-tauri-plugin-context-menu = "0.8"
+# tauri-plugin-context-menu = "0.8"  # Removed: all published 0.x versions require tauri v1; will add git dependency in Task 5
 

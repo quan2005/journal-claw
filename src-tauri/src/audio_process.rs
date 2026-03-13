@@ -176,7 +176,49 @@ fn remove_silence(samples: &[f32]) -> Vec<f32> {
     output
 }
 
-pub fn process_audio(_wav_path: &PathBuf) -> Result<(), String> {
+/// Read WAV → resample to 48kHz mono → denoise → remove silence → write back.
+/// Per-step graceful degradation: denoise_audio and remove_silence are infallible.
+/// Only returns Err if reading or writing the WAV fails (or resampling fails);
+/// caller discards the error, preserving the original WAV for afconvert.
+pub fn process_audio(wav_path: &PathBuf) -> Result<(), String> {
+    // 1. Read WAV
+    let mut reader = hound::WavReader::open(wav_path).map_err(|e| e.to_string())?;
+    let spec = reader.spec();
+    let src_rate = spec.sample_rate;
+    let channels = spec.channels;
+
+    let raw_samples: Vec<i16> = reader
+        .samples::<i16>()
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    // 2. Resample to 48kHz mono f32 — failure aborts (nothing to write back)
+    let resampled = resample_to_48k_mono(&raw_samples, src_rate, channels)?;
+
+    // 3. Denoise — infallible, best-effort
+    let denoised = denoise_audio(&resampled);
+
+    // 4. Remove silence — infallible, best-effort
+    let processed = remove_silence(&denoised);
+
+    // 5. Write back to the same path (atomic: write to .new, rename)
+    let tmp_out = wav_path.with_extension("wav.new");
+    {
+        let out_spec = hound::WavSpec {
+            channels: 1,
+            sample_rate: TARGET_RATE,
+            bits_per_sample: 32,
+            sample_format: hound::SampleFormat::Float,
+        };
+        let mut writer = hound::WavWriter::create(&tmp_out, out_spec)
+            .map_err(|e| e.to_string())?;
+        for &s in &processed {
+            writer.write_sample(s).map_err(|e| e.to_string())?;
+        }
+        writer.finalize().map_err(|e| e.to_string())?;
+    }
+    std::fs::rename(&tmp_out, wav_path).map_err(|e| e.to_string())?;
+
     Ok(())
 }
 
@@ -254,5 +296,56 @@ mod tests {
         let out = remove_silence(&input);
         assert!(!out.is_empty());
         assert!(out.len() <= 7200 + 1);
+    }
+
+    use std::path::PathBuf;
+
+    fn make_wav(path: &PathBuf, rate: u32, channels: u16, samples: &[i16]) {
+        let spec = hound::WavSpec {
+            channels,
+            sample_rate: rate,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut w = hound::WavWriter::create(path, spec).unwrap();
+        for &s in samples { w.write_sample(s).unwrap(); }
+        w.finalize().unwrap();
+    }
+
+    #[test]
+    fn test_process_audio_roundtrip() {
+        // 44.1 kHz stereo, ~0.5 s speech + 4 s silence + ~0.5 s speech
+        let rate = 44100u32;
+        let channels = 2u16;
+        let speech: Vec<i16> = (0..44100usize)
+            .map(|i| ((i as f32 * 0.1).sin() * 20000.0) as i16)
+            .collect();
+        let silence: Vec<i16> = vec![0i16; rate as usize * 4 * channels as usize];
+        let mut samples = Vec::new();
+        samples.extend_from_slice(&speech);
+        samples.extend_from_slice(&silence);
+        samples.extend_from_slice(&speech);
+
+        let tmp = std::env::temp_dir().join("test_process_audio.wav.tmp");
+        make_wav(&tmp, rate, channels, &samples);
+
+        let result = process_audio(&tmp);
+        // Should succeed (not care about exact output, just no error and file exists)
+        assert!(result.is_ok(), "process_audio failed: {:?}", result);
+        assert!(tmp.exists());
+
+        // Output WAV should be shorter (silence stripped) and at 48kHz mono
+        let mut reader = hound::WavReader::open(&tmp).unwrap();
+        let spec = reader.spec();
+        assert_eq!(spec.sample_rate, 48000);
+        assert_eq!(spec.channels, 1);
+        let out_samples: Vec<f32> = reader.samples::<f32>().map(|s| s.unwrap()).collect();
+        // Original ~1s speech + 4s silence + ~1s speech at 44.1kHz
+        // After processing at 48kHz: ~2s speech ≈ 96000 samples (silence removed)
+        // Allow generous range due to resampling and buffer keeping
+        assert!(out_samples.len() < 200000, "silence not stripped: {} samples", out_samples.len());
+        assert!(out_samples.len() > 50000, "too much removed: {} samples", out_samples.len());
+
+        let _ = std::fs::remove_file(&tmp);
     }
 }

@@ -136,6 +136,10 @@ pub fn stop_recording(
     }
 
     let wav_path = active.output_path.with_extension("wav.tmp");
+
+    // Post-process: denoise + silence removal. Errors are silently discarded.
+    let _ = crate::audio_process::process_audio(&wav_path);
+
     let status = std::process::Command::new("afconvert")
         .args(["-f", "m4af", "-d", "aac",
                wav_path.to_str().unwrap(),

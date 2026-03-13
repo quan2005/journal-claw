@@ -110,6 +110,72 @@ fn denoise_audio(samples: &[f32]) -> Vec<f32> {
     output
 }
 
+const WINDOW: usize = 4800;   // 100 ms
+const SILENT_RMS: f32 = 0.01;
+const MIN_SILENT_WINDOWS: usize = 30; // 3 s
+const BUFFER_SAMPLES: usize = 7200;   // 150 ms
+
+/// Remove gaps of ≥3 s of silence from 48 kHz mono f32 audio.
+fn remove_silence(samples: &[f32]) -> Vec<f32> {
+    let n = samples.len();
+    if n == 0 { return vec![]; }
+
+    // Classify each window as silent or not
+    let num_windows = (n + WINDOW - 1) / WINDOW;
+    let silent: Vec<bool> = (0..num_windows).map(|w| {
+        let start = w * WINDOW;
+        let end = (start + WINDOW).min(n);
+        let rms = (samples[start..end].iter().map(|&x| x * x).sum::<f32>()
+            / (end - start) as f32).sqrt();
+        rms < SILENT_RMS
+    }).collect();
+
+    // Find contiguous silent runs of ≥ MIN_SILENT_WINDOWS windows
+    // Build a list of (start_sample, end_sample) ranges to EXCLUDE
+    let mut exclude: Vec<(usize, usize)> = Vec::new();
+    let mut i = 0usize;
+    while i < num_windows {
+        if silent[i] {
+            let run_start = i;
+            while i < num_windows && silent[i] { i += 1; }
+            let run_end = i;
+            if run_end - run_start >= MIN_SILENT_WINDOWS {
+                // Shrink by buffer on each side
+                let sample_start = run_start * WINDOW;
+                let sample_end = (run_end * WINDOW).min(n);
+                let cut_start = (sample_start + BUFFER_SAMPLES).min(sample_end);
+                let cut_end = sample_end.saturating_sub(BUFFER_SAMPLES);
+                if cut_end > cut_start {
+                    exclude.push((cut_start, cut_end));
+                }
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    // Build output by copying non-excluded ranges
+    let mut output = Vec::with_capacity(n);
+    let mut pos = 0usize;
+    for (cut_start, cut_end) in &exclude {
+        if pos < *cut_start {
+            output.extend_from_slice(&samples[pos..*cut_start]);
+        }
+        pos = *cut_end;
+    }
+    if pos < n {
+        output.extend_from_slice(&samples[pos..]);
+    }
+
+    // Edge case: output is empty (whole clip was silent) → return tail
+    if output.is_empty() || silent.iter().all(|&s| s) {
+        let tail_start = n.saturating_sub(BUFFER_SAMPLES);
+        return samples[tail_start..].to_vec();
+    }
+
+    output
+}
+
 pub fn process_audio(_wav_path: &PathBuf) -> Result<(), String> {
     Ok(())
 }
@@ -149,5 +215,44 @@ mod tests {
         let input: Vec<f32> = vec![0.01f32; 100];
         let out = denoise_audio(&input);
         assert_eq!(out.len(), 100);
+    }
+
+    #[test]
+    fn test_remove_silence_keeps_speech() {
+        // Signal with RMS well above threshold throughout — nothing removed
+        let input: Vec<f32> = (0..48000).map(|i| (i as f32 * 0.1).sin() * 0.5).collect();
+        let out = remove_silence(&input);
+        // Should keep almost everything (only buffer trimming possible)
+        assert!(out.len() > 40000, "got {} samples", out.len());
+    }
+
+    #[test]
+    fn test_remove_silence_strips_long_gap() {
+        // 1s speech (48000) + 4s silence (192000) + 1s speech (48000) = 288000 total
+        let mut input = Vec::new();
+        // speech
+        for i in 0..48000usize {
+            input.push((i as f32 * 0.1).sin() * 0.5);
+        }
+        // silence
+        input.extend(vec![0.0f32; 192000]);
+        // speech
+        for i in 0..48000usize {
+            input.push((i as f32 * 0.1).sin() * 0.5);
+        }
+        let out = remove_silence(&input);
+        // Gap (4s) should be stripped; result should be noticeably shorter than input
+        // Each speech block ~48000 + 2×7200 buffer = ~110400; total ~200000 max
+        assert!(out.len() < 200000, "silence not stripped, got {} samples", out.len());
+        // But both speech blocks should survive
+        assert!(out.len() > 60000, "too much removed, got {} samples", out.len());
+    }
+
+    #[test]
+    fn test_remove_silence_all_silent_returns_tail() {
+        let input = vec![0.0f32; 48000];
+        let out = remove_silence(&input);
+        assert!(!out.is_empty());
+        assert!(out.len() <= 7200 + 1);
     }
 }

@@ -670,7 +670,7 @@ Expected: all tests still PASS.
 - [ ] **Step 4: Do a manual smoke test**
 
 ```bash
-cd /Users/yanwu/Projects/github/daynote && npm run tauri dev
+cd /Users/yanwu/Projects/github/journal && npm run tauri dev
 ```
 
 - Record a short clip (with some silence in the middle if possible)

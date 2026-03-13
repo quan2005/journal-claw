@@ -13,7 +13,7 @@
 ## File Structure
 
 ```
-daynote/
+journal/
 ├── src-tauri/
 │   ├── Cargo.toml                  # Rust dependencies
 │   ├── tauri.conf.json             # Tauri window config (320px wide, 480px tall, min 360px)
@@ -62,7 +62,7 @@ daynote/
 - [ ] **Step 1: Initialise git repository**
 
 ```bash
-cd /Users/yanwu/Projects/github/daynote
+cd /Users/yanwu/Projects/github/journal
 git init
 ```
 
@@ -74,7 +74,7 @@ Expected: `.git/` directory created.
 npx @tauri-apps/cli create . --template react-ts --manager npm
 ```
 
-When prompted: app name `daynote`, window title `DayNote`, identifier `com.daynote.app`.
+When prompted: app name `journal`, window title `DayNote`, identifier `com.journal.app`.
 
 Expected output: project files created, `src-tauri/` and `src/` directories present.
 
@@ -389,7 +389,7 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 
 /// Returns the recordings storage directory (App data dir), creating it if needed.
-/// On macOS: ~/Library/Application Support/daynote/
+/// On macOS: ~/Library/Application Support/journal/
 pub fn recordings_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()

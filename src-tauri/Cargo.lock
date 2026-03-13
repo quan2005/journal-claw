@@ -742,22 +742,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "daynote"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "cpal",
- "hound",
- "mp4ameta",
- "nnnoiseless",
- "rubato",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "deranged"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1884,6 +1868,22 @@ name = "jni-sys"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
+
+[[package]]
+name = "journal"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "cpal",
+ "hound",
+ "mp4ameta",
+ "nnnoiseless",
+ "rubato",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
 
 [[package]]
 name = "js-sys"

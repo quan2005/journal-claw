@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 /// Returns the recordings storage directory (App data dir), creating it if needed.
-/// On macOS: ~/Library/Application Support/daynote/
+/// On macOS: ~/Library/Application Support/journal/
 pub fn recordings_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()

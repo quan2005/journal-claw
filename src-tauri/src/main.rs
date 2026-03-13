@@ -1,6 +1,7 @@
 mod types;
 mod recordings;
 mod recorder;
+mod audio_process;
 
 fn main() {
     tauri::Builder::default()

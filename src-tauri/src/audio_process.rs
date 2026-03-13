@@ -203,7 +203,7 @@ pub fn process_audio(wav_path: &PathBuf) -> Result<(), String> {
 
     // 5. Write back to the same path (atomic: write to .new, rename)
     let tmp_out = wav_path.with_extension("wav.new");
-    {
+    let write_result = (|| -> Result<(), String> {
         let out_spec = hound::WavSpec {
             channels: 1,
             sample_rate: TARGET_RATE,
@@ -216,8 +216,12 @@ pub fn process_audio(wav_path: &PathBuf) -> Result<(), String> {
             writer.write_sample(s).map_err(|e| e.to_string())?;
         }
         writer.finalize().map_err(|e| e.to_string())?;
+        std::fs::rename(&tmp_out, wav_path).map_err(|e| e.to_string())
+    })();
+    if write_result.is_err() {
+        let _ = std::fs::remove_file(&tmp_out);
+        return write_result;
     }
-    std::fs::rename(&tmp_out, wav_path).map_err(|e| e.to_string())?;
 
     Ok(())
 }

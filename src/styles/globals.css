@@ -50,3 +50,11 @@ html, body, #root {
   display: flex;
   flex-direction: column;
 }
+
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+[data-tauri-drag-region] * {
+  -webkit-app-region: no-drag;
+}

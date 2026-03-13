@@ -23,28 +23,6 @@ export function TitleBar({ status, elapsedSecs }: TitleBarProps) {
         paddingRight: 16,
       }}
     >
-      {status === 'idle' ? (
-        <span style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--item-meta)',
-        }}>
-          DayNote
-        </span>
-      ) : (
-        <span style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--record-btn)',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
-          <span style={{ animation: 'blink 1s ease-in-out infinite' }}>●</span>
-          {formatTimer(elapsedSecs)}
-        </span>
-      )}
     </div>
   )
 }

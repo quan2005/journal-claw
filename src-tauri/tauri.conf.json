@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "daynote",
+  "productName": "Journal",
   "version": "0.1.0",
   "identifier": "com.daynote.app",
   "build": {
@@ -12,14 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "DayNote",
+        "title": "Journal",
         "width": 320,
         "height": 480,
-        "minWidth": 320,
-        "maxWidth": 320,
+        "minWidth": 280,
         "minHeight": 360,
         "resizable": true,
-        "decorations": false,
         "titleBarStyle": "Overlay"
       }
     ],

@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>DayNote needs microphone access to record audio.</string>
+  <string>Journal needs microphone access to record audio.</string>
 </dict>
 </plist>

@@ -42,7 +42,7 @@ export default function App() {
         })
       } catch (err: unknown) {
         if (typeof err === 'string' && err === 'permission_denied') {
-          alert('DayNote 需要麦克风权限。请前往「系统设置 → 隐私与安全性 → 麦克风」开启。')
+          alert('Journal 需要麦克风权限。请前往「系统设置 → 隐私与安全性 → 麦克风」开启。')
         }
       }
     } else {

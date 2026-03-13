@@ -84,6 +84,32 @@ fn resample_to_48k_mono(
     Ok(output)
 }
 
+use nnnoiseless::DenoiseState;
+
+const FRAME_SIZE: usize = DenoiseState::FRAME_SIZE; // 480
+
+/// Run nnnoiseless RNNoise on 48 kHz mono f32 samples. Returns same-length output.
+fn denoise_audio(samples: &[f32]) -> Vec<f32> {
+    let mut state = DenoiseState::new();
+    let mut output = Vec::with_capacity(samples.len());
+    let mut pos = 0usize;
+
+    while pos < samples.len() {
+        let end = (pos + FRAME_SIZE).min(samples.len());
+        let mut frame = [0.0f32; FRAME_SIZE];
+        frame[..end - pos].copy_from_slice(&samples[pos..end]);
+
+        let mut out_frame = [0.0f32; FRAME_SIZE];
+        state.process_frame(&mut out_frame, &frame);
+
+        let valid = end - pos;
+        output.extend_from_slice(&out_frame[..valid]);
+        pos += FRAME_SIZE;
+    }
+
+    output
+}
+
 pub fn process_audio(_wav_path: &PathBuf) -> Result<(), String> {
     Ok(())
 }
@@ -107,5 +133,21 @@ mod tests {
         let samples: Vec<i16> = vec![0i16; 4800];
         let out = resample_to_48k_mono(&samples, 48000, 1).unwrap();
         assert_eq!(out.len(), 4800);
+    }
+
+    #[test]
+    fn test_denoise_preserves_length() {
+        // 48kHz, 1 second of silence-ish signal
+        let input: Vec<f32> = vec![0.0f32; 48000];
+        let out = denoise_audio(&input);
+        assert_eq!(out.len(), input.len());
+    }
+
+    #[test]
+    fn test_denoise_short_clip() {
+        // Less than one frame (480 samples)
+        let input: Vec<f32> = vec![0.01f32; 100];
+        let out = denoise_audio(&input);
+        assert_eq!(out.len(), 100);
     }
 }

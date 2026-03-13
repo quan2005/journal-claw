@@ -9,6 +9,9 @@ fn resample_to_48k_mono(
     src_rate: u32,
     channels: u16,
 ) -> Result<Vec<f32>, String> {
+    if channels == 0 {
+        return Err("channels must be > 0".to_string());
+    }
     let channels = channels as usize;
 
     // Deinterleave into per-channel f32 buffers
@@ -44,6 +47,7 @@ fn resample_to_48k_mono(
 
     let mut output = Vec::new();
     let mut pos = 0usize;
+    let mut used_partial = false;
 
     while pos < input_frames {
         let end = (pos + chunk_size).min(input_frames);
@@ -55,6 +59,7 @@ fn resample_to_48k_mono(
             let tail = resampler.process_partial(Some(&[chunk]), None)
                 .map_err(|e| e.to_string())?;
             output.extend_from_slice(&tail[0]);
+            used_partial = true;
         } else {
             let chunk = mono[pos..end].to_vec();
             let out_chunk = resampler.process(&[chunk], None)
@@ -64,10 +69,14 @@ fn resample_to_48k_mono(
         pos += chunk_size;
     }
 
-    // Flush rubato's internal delay line (tail frames)
-    let tail = resampler.process_partial(None::<&[Vec<f32>]>, None)
-        .map_err(|e| e.to_string())?;
-    output.extend_from_slice(&tail[0]);
+    // Flush rubato's internal delay line only when no partial call was made.
+    // If process_partial(Some(...)) was already called above, calling
+    // process_partial(None) again would add an extra FFT cycle of near-silence artifacts.
+    if !used_partial {
+        let tail = resampler.process_partial(None::<&[Vec<f32>]>, None)
+            .map_err(|e| e.to_string())?;
+        output.extend_from_slice(&tail[0]);
+    }
 
     // Trim to expected length (rubato may produce a few extra frames due to buffering)
     output.truncate(expected_frames);

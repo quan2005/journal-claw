@@ -1,12 +1,4 @@
-import { formatTimer } from '../lib/format'
-import type { RecorderStatus } from '../hooks/useRecorder'
-
-interface TitleBarProps {
-  status: RecorderStatus
-  elapsedSecs: number
-}
-
-export function TitleBar({ status, elapsedSecs }: TitleBarProps) {
+export function TitleBar() {
   return (
     <div
       data-tauri-drag-region
@@ -18,7 +10,6 @@ export function TitleBar({ status, elapsedSecs }: TitleBarProps) {
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        // 70px left padding to clear the macOS traffic-light buttons
         paddingLeft: 70,
         paddingRight: 16,
       }}

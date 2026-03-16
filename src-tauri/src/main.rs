@@ -1,11 +1,29 @@
+mod config;
 mod types;
 mod recordings;
 mod recorder;
 mod audio_process;
+mod transcription;
+
+use tauri::menu::{Menu, MenuItem, Submenu};
 
 fn main() {
     tauri::Builder::default()
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
+        .setup(|app| {
+            let settings_item = MenuItem::with_id(app, "settings", "设置...", true, None::<&str>)?;
+            let journal_menu = Submenu::with_items(app, "Journal", true, &[&settings_item])?;
+            let menu = Menu::with_items(app, &[&journal_menu])?;
+            app.set_menu(menu)?;
+
+            let app_handle = app.handle().clone();
+            app.on_menu_event(move |_app, event| {
+                if event.id() == "settings" {
+                    let _ = config::open_settings(app_handle.clone());
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             recordings::list_recordings,
             recordings::delete_recording,
@@ -13,6 +31,11 @@ fn main() {
             recordings::play_recording,
             recorder::start_recording,
             recorder::stop_recording,
+            config::get_api_key,
+            config::set_api_key,
+            config::open_settings,
+            transcription::get_transcript,
+            transcription::retry_transcription,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

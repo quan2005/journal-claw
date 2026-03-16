@@ -45,6 +45,7 @@ pub(crate) fn parse_filename_pub(filename: &str) -> (String, String) {
 #[tauri::command]
 pub fn list_recordings(app: AppHandle) -> Result<Vec<RecordingItem>, String> {
     let dir = recordings_dir(&app)?;
+    let transcripts_dir = dir.join("transcripts");
     let mut items: Vec<RecordingItem> = std::fs::read_dir(&dir)
         .map_err(|e| e.to_string())?
         .filter_map(|entry| {
@@ -56,12 +57,29 @@ pub fn list_recordings(app: AppHandle) -> Result<Vec<RecordingItem>, String> {
             let path = entry.path();
             let (display_name, year_month) = parse_filename_pub(&filename);
             let duration_secs = read_duration_pub(&path);
+
+            // Check transcript status
+            let base = filename.trim_end_matches(".m4a");
+            let transcript_file = transcripts_dir.join(format!("{}.json", base));
+            let transcript_status = if transcript_file.exists() {
+                std::fs::read_to_string(&transcript_file)
+                    .ok()
+                    .and_then(|data| {
+                        serde_json::from_str::<serde_json::Value>(&data)
+                            .ok()
+                            .and_then(|v| v.get("status")?.as_str().map(String::from))
+                    })
+            } else {
+                None
+            };
+
             Some(RecordingItem {
                 filename,
                 path: path.to_string_lossy().into_owned(),
                 display_name,
                 duration_secs,
                 year_month,
+                transcript_status,
             })
         })
         .collect();

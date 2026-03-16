@@ -120,7 +120,7 @@ pub fn start_recording(
 
 #[tauri::command]
 pub fn stop_recording(
-    _app: AppHandle,
+    app: AppHandle,
     state: State<'_, RecorderState>,
 ) -> Result<RecordingItem, String> {
     let mut guard = state.0.lock().map_err(|e| e.to_string())?;
@@ -158,5 +158,22 @@ pub fn stop_recording(
     let (display_name, year_month) = parse_filename_pub(&filename);
     let duration_secs = read_duration_pub(&active.output_path);
 
-    Ok(RecordingItem { filename, path: active.output_path.to_string_lossy().into_owned(), display_name, duration_secs, year_month })
+    let result_item = RecordingItem {
+        filename: filename.clone(),
+        path: active.output_path.to_string_lossy().into_owned(),
+        display_name,
+        duration_secs,
+        year_month,
+        transcript_status: None,
+    };
+
+    // Auto-trigger transcription if duration > 30s
+    crate::transcription::start_transcription(
+        app,
+        filename,
+        active.output_path,
+        duration_secs,
+    );
+
+    Ok(result_item)
 }

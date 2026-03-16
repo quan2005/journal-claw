@@ -9,6 +9,9 @@ interface RecordingListProps {
   activeItem: RecordingItemType | null
   elapsedSecs: number
   onContextMenu: (e: React.MouseEvent, item: RecordingItemType) => void
+  onClick: (item: RecordingItemType) => void
+  selectedPath: string | null
+  transcriptionStates: Record<string, string>
 }
 
 type Group = { yearMonth: string; items: RecordingItemType[] }
@@ -19,13 +22,12 @@ export function RecordingList({
   activeItem,
   elapsedSecs,
   onContextMenu,
+  onClick,
+  selectedPath,
+  transcriptionStates,
 }: RecordingListProps) {
-  // Build month groups. The activeItem is merged into the correct month group
-  // (not prepended as a separate group), matching the spec requirement:
-  // "录制中的条目始终置顶，属于当前月份组".
   const groups: Group[] = []
 
-  // Add active item to its month group first
   if (status === 'recording' && activeItem) {
     groups.push({ yearMonth: activeItem.year_month, items: [activeItem] })
   }
@@ -39,7 +41,6 @@ export function RecordingList({
     }
   }
 
-  // Sort groups descending by yearMonth
   groups.sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))
 
   return (
@@ -52,8 +53,11 @@ export function RecordingList({
               key={item.path}
               item={item}
               isActive={status === 'recording' && activeItem?.path === item.path}
+              isSelected={item.path === selectedPath}
               elapsedSecs={elapsedSecs}
               onContextMenu={onContextMenu}
+              onClick={onClick}
+              transcriptionStatus={transcriptionStates[item.filename] || item.transcript_status}
             />
           ))}
         </div>

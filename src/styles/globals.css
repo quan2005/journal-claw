@@ -6,41 +6,47 @@
 
 :root {
   --bg: #ffffff;
-  --titlebar-bg: #f2f2f7;
+  --titlebar-bg: var(--bg);
   --divider: #e5e5ea;
-  --month-label: #c7c7cc;
+  --month-label: #8e8e93;
   --item-text: #1c1c1e;
   --item-meta: #aeaeb2;
   --duration-text: #c7c7cc;
   --record-btn: #ff3b30;
   --record-highlight: rgba(255, 59, 48, 0.06);
-  --record-highlight-icon: rgba(255, 59, 48, 0.15);
+  --record-highlight-bar: rgba(255, 59, 48, 1);
   --item-icon-bg: #f2f2f7;
-  --item-hover-bg: #f2f2f7;
-  --item-selected-bg: #007aff;
-  --item-selected-text: #ffffff;
-  --item-selected-meta: rgba(255,255,255,0.75);
-  --item-selected-icon-bg: rgba(255,255,255,0.2);
+  --item-hover-bg: rgba(0, 0, 0, 0.04);
+  --item-selected-bg: rgba(0, 0, 0, 0.06);
+  --item-selected-text: #1c1c1e;
+  --item-selected-meta: #aeaeb2;
+  --card-selected-bar: var(--record-btn);
+  --date-number: var(--item-text);
+  --date-secondary: var(--item-meta);
+  --sheet-overlay: rgba(0, 0, 0, 0.30);
+  --sheet-bg: #ffffff;
+  --sheet-handle: #d1d1d6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #1c1c1e;
-    --titlebar-bg: #2c2c2e;
+    --titlebar-bg: var(--bg);
     --divider: #3a3a3c;
-    --month-label: #48484a;
+    --month-label: #636366;
     --item-text: #e8e8e8;
     --item-meta: #636366;
     --duration-text: #48484a;
     --record-btn: #ff375f;
     --record-highlight: rgba(255, 55, 95, 0.06);
-    --record-highlight-icon: rgba(255, 55, 95, 0.15);
+    --record-highlight-bar: rgba(255, 55, 95, 1);
     --item-icon-bg: #2c2c2e;
-    --item-hover-bg: #2c2c2e;
-    --item-selected-bg: #0a84ff;
-    --item-selected-text: #ffffff;
-    --item-selected-meta: rgba(255,255,255,0.65);
-    --item-selected-icon-bg: rgba(255,255,255,0.15);
+    --item-hover-bg: rgba(255, 255, 255, 0.05);
+    --item-selected-bg: rgba(255, 255, 255, 0.08);
+    --item-selected-text: #e8e8e8;
+    --item-selected-meta: #636366;
+    --sheet-bg: #2c2c2e;
+    --sheet-handle: #48484a;
   }
 }
 

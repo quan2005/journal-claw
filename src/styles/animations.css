@@ -1,14 +1,28 @@
-/* Breathing glow on idle record button: 2.4s ease-in-out, 0 → 12px box-shadow */
+/* Breathing glow on idle FAB: 2.4s ease-in-out */
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50%       { box-shadow: 0 0 0 12px rgba(255, 59, 48, 0.18); }
+  0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+  50%       { box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 0 0 10px rgba(255, 59, 48, 0.18); }
 }
 
 @media (prefers-color-scheme: dark) {
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 transparent; }
-    50%       { box-shadow: 0 0 0 12px rgba(255, 55, 95, 0.18); }
+    0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
+    50%       { box-shadow: 0 4px 16px rgba(0,0,0,0.30), 0 0 0 10px rgba(255, 55, 95, 0.22); }
   }
+}
+
+/* FAB press release jolt — tactile "recorded" feedback */
+@keyframes jolt {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.88); }
+  60%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* New recording card enter from above */
+@keyframes card-enter {
+  from { transform: translateY(-12px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
 }
 
 /* Title bar recording dot blink: 1s ease-in-out */
@@ -17,8 +31,8 @@
   50%       { opacity: 0.25; }
 }
 
-/* Detail panel loading spinner */
+/* Spinner */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
+  0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }

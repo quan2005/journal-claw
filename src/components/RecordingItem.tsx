@@ -1,27 +1,58 @@
 import { useState } from 'react'
 import { formatDuration } from '../lib/format'
 import type { RecordingItem as RecordingItemType, TranscriptionProgress } from '../types'
+import { Spinner } from './Spinner'
 
 interface RecordingItemProps {
   item: RecordingItemType
+  showDate: boolean
   isActive?: boolean
   isSelected?: boolean
+  isProcessing?: boolean
   elapsedSecs?: number
   onContextMenu: (e: React.MouseEvent, item: RecordingItemType) => void
   onClick: (item: RecordingItemType) => void
-  transcriptionStatus?: TranscriptionProgress | string | null
+  transcriptionStatus?: TranscriptionProgress | null
+  isNew?: boolean
 }
 
-const MicIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <rect x="5" y="1" width="6" height="9" rx="3" />
-    <path d="M3 8a5 5 0 0 0 10 0M8 13v2" />
-  </svg>
-)
+function getWeekday(displayName: string): string {
+  const match = displayName.match(/(\d{4}-\d{2}-\d{2})/)
+  if (!match) return ''
+  const date = new Date(match[1])
+  return new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(date)
+}
+
+function getTimeStr(displayName: string): string {
+  const match = displayName.match(/(\d{2}:\d{2})$/)
+  return match ? match[1] : ''
+}
+
+function StatusIcon({ status }: { status: TranscriptionProgress | null | undefined }) {
+  if (!status) return null
+  if (status === 'completed') {
+    return (
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"
+        stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 8.5 6.5 12 13 4" />
+      </svg>
+    )
+  }
+  if (status === 'failed') {
+    return (
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"
+        stroke="var(--record-btn)" strokeWidth="2" strokeLinecap="round">
+        <line x1="4" y1="4" x2="12" y2="12" />
+        <line x1="12" y1="4" x2="4" y2="12" />
+      </svg>
+    )
+  }
+  return <Spinner size={9} borderWidth={1.5} />
+}
 
 export function RecordingItem({
-  item, isActive, isSelected, elapsedSecs, onContextMenu, onClick, transcriptionStatus
+  item, showDate, isActive, isSelected, isProcessing, elapsedSecs,
+  onContextMenu, onClick, transcriptionStatus, isNew,
 }: RecordingItemProps) {
   const [hovered, setHovered] = useState(false)
 
@@ -29,51 +60,15 @@ export function RecordingItem({
     ? formatDuration(elapsedSecs)
     : formatDuration(item.duration_secs)
 
-  const bg = isActive
-    ? 'var(--record-highlight)'
-    : isSelected
-      ? 'var(--item-selected-bg)'
-      : hovered ? 'var(--item-hover-bg)' : 'transparent'
+  const timeStr = getTimeStr(item.display_name)
+  const weekday = showDate ? getWeekday(item.display_name) : ''
+  const dayNum = showDate ? item.display_name.match(/\d{4}-\d{2}-(\d{2})/)?.[1] ?? '' : ''
 
-  const textColor = isActive
-    ? 'var(--record-btn)'
-    : isSelected
-      ? 'var(--item-selected-text)'
-      : 'var(--item-text)'
+  const bg = isSelected
+    ? 'var(--item-selected-bg)'
+    : hovered ? 'var(--item-hover-bg)' : 'transparent'
 
-  const metaColor = isSelected && !isActive ? 'var(--item-selected-meta)' : 'var(--item-meta)'
-  const durationColor = isActive ? 'var(--record-btn)' : isSelected ? 'var(--item-selected-meta)' : 'var(--duration-text)'
-
-  const statusIcon = (() => {
-    if (!transcriptionStatus) return null
-    if (transcriptionStatus === 'completed') {
-      return (
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"
-          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="3 8.5 6.5 12 13 4" />
-        </svg>
-      )
-    }
-    if (transcriptionStatus === 'failed') {
-      return (
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"
-          stroke="var(--record-btn)" strokeWidth="2" strokeLinecap="round">
-          <line x1="4" y1="4" x2="12" y2="12" />
-          <line x1="12" y1="4" x2="4" y2="12" />
-        </svg>
-      )
-    }
-    return (
-      <div style={{
-        width: 10,
-        height: 10,
-        border: '1.5px solid currentColor',
-        borderTopColor: 'transparent',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }} />
-    )
-  })()
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   return (
     <div
@@ -83,61 +78,105 @@ export function RecordingItem({
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
-        alignItems: 'center',
-        padding: '10px 16px',
-        gap: 10,
+        alignItems: 'stretch',
         cursor: 'default',
         background: bg,
-        color: textColor,
+        position: 'relative',
+        borderBottom: '1px solid var(--divider)',
+        animation: isNew
+          ? reducedMotion
+            ? 'card-enter 150ms ease forwards'
+            : 'card-enter 280ms ease-out forwards'
+          : undefined,
       }}
     >
+      {isSelected && (
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 2,
+          background: 'var(--card-selected-bar)',
+          borderRadius: '0 1px 1px 0',
+        }} />
+      )}
+
       <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: isActive
-          ? 'var(--record-highlight-icon)'
-          : isSelected
-            ? 'var(--item-selected-icon-bg)'
-            : 'var(--item-icon-bg)',
+        width: 52,
+        flexShrink: 0,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        flexShrink: 0,
-        color: isActive ? 'var(--record-btn)' : isSelected ? 'var(--item-selected-text)' : 'var(--item-meta)',
+        padding: '12px 0 12px 8px',
+        gap: 2,
       }}>
-        <MicIcon />
+        {showDate && dayNum ? (
+          <>
+            <span style={{
+              fontSize: 26,
+              fontWeight: 300,
+              color: 'var(--date-number)',
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {dayNum}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--date-secondary)', lineHeight: 1 }}>
+              {weekday}
+            </span>
+          </>
+        ) : null}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+
+      <div style={{
+        flex: 1,
+        minWidth: 0,
+        padding: '12px 16px 12px 8px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 4,
+      }}>
         <div style={{
           fontSize: 13,
-          color: textColor,
+          fontWeight: 500,
+          color: 'var(--item-text)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
         }}>
           {item.display_name}
         </div>
-        {isActive && (
-          <div style={{ fontSize: 11, color: metaColor, marginTop: 2 }}>
-            录制中…
-          </div>
-        )}
-      </div>
-      {statusIcon && (
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: metaColor }}>
-          {statusIcon}
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          fontSize: 12,
+          color: 'var(--item-meta)',
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {isActive ? (
+            <span style={{ color: 'var(--record-btn)', animation: 'blink 1s ease-in-out infinite' }}>
+              {duration}
+            </span>
+          ) : (
+            <>
+              {timeStr && <span>{timeStr}</span>}
+              {timeStr && <span>·</span>}
+              <span>{duration}</span>
+              {(transcriptionStatus || isProcessing) && (
+                <span style={{ display: 'flex', alignItems: 'center', color: 'var(--item-meta)' }}>
+                  <StatusIcon status={isProcessing ? 'uploading' : transcriptionStatus} />
+                </span>
+              )}
+            </>
+          )}
         </div>
-      )}
-      <div style={{
-        fontSize: 12,
-        color: durationColor,
-        fontVariantNumeric: 'tabular-nums',
-        flexShrink: 0,
-        animation: isActive ? 'blink 1s ease-in-out infinite' : 'none',
-      }}>
-        {duration}
       </div>
     </div>
   )
 }
+

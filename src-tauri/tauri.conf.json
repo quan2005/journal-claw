@@ -15,8 +15,8 @@
         "title": "Journal",
         "width": 320,
         "height": 480,
-        "minWidth": 320,
-        "minHeight": 360,
+        "minWidth": 280,
+        "minHeight": 400,
         "resizable": true,
         "titleBarStyle": "Overlay"
       }

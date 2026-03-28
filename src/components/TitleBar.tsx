@@ -4,16 +4,10 @@ export function TitleBar() {
       data-tauri-drag-region
       style={{
         height: 36,
-        background: 'var(--titlebar-bg)',
-        borderBottom: '1px solid var(--divider)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        background: 'var(--bg)',
         flexShrink: 0,
         paddingLeft: 70,
-        paddingRight: 16,
       }}
-    >
-    </div>
+    />
   )
 }

@@ -59,10 +59,10 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
 
     const onMove = (ev: MouseEvent) => {
       if (dragStartY.current === null) return
-      const offset = Math.max(0, ev.clientY - dragStartY.current)
+      const offset = Math.max(0, ev.clientX - dragStartY.current)
       dragCurrentOffset.current = offset
       if (sheetRef.current) {
-        sheetRef.current.style.transform = `translateY(${offset}px)`
+        sheetRef.current.style.transform = `translateX(${offset}px)`
         sheetRef.current.style.transition = 'none'
       }
     }
@@ -75,7 +75,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
       } else {
         if (sheetRef.current) {
           sheetRef.current.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)'
-          sheetRef.current.style.transform = 'translateY(0)'
+          sheetRef.current.style.transform = 'translateX(0)'
         }
       }
       dragStartY.current = null
@@ -98,7 +98,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
         inset: 0,
         background: 'var(--sheet-overlay)',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         justifyContent: 'flex-end',
         zIndex: 100,
       }}
@@ -108,57 +108,65 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--sheet-bg)',
-          borderRadius: '16px 16px 0 0',
-          maxHeight: 'min(85vh, 600px)',
+          width: 360,
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          transform: 'translateY(0)',
+          transform: 'translateX(0)',
           transition: 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)',
+          borderLeft: '1px solid var(--divider)',
         }}
       >
-        <div
-          onMouseDown={handleDragStart}
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            padding: '12px 0 8px',
-            cursor: 'grab',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{
-            width: 36,
-            height: 4,
-            borderRadius: 2,
-            background: 'var(--sheet-handle)',
-          }} />
-        </div>
-
         <div style={{
-          padding: '4px 20px 16px',
+          height: 52,
+          padding: '0 20px',
           borderBottom: '1px solid var(--divider)',
           flexShrink: 0,
           display: 'flex',
-          alignItems: 'baseline',
-          gap: 12,
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}>
           <span style={{
-            fontSize: 32,
-            fontWeight: 300,
-            color: 'var(--date-number)',
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight: 1,
+            fontSize: 15,
+            fontWeight: 600,
+            color: 'var(--item-text)',
           }}>
-            {day}
+            转写内容
           </span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>
-              {item.display_name}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--item-meta)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-              {time} · {duration}
-            </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--item-meta)',
+              cursor: 'pointer',
+              width: 24,
+              height: 24,
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <line x1="1" y1="1" x2="11" y2="11" />
+              <line x1="11" y1="1" x2="1" y2="11" />
+            </svg>
+          </button>
+        </div>
+
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--divider)',
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)', marginBottom: 4 }}>
+            {item.display_name}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>
+            {time} · {duration}
           </div>
         </div>
 

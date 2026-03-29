@@ -14,6 +14,8 @@ const SEGMENTS: { value: Theme; icon: string }[] = [
 export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
   return (
     <div
+      role="group"
+      aria-label="Theme"
       style={{
         display: 'flex',
         border: '1px solid var(--divider)',
@@ -24,7 +26,9 @@ export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
     >
       {SEGMENTS.map((seg, i) => (
         <button
+          type="button"
           key={seg.value}
+          aria-pressed={theme === seg.value}
           onClick={() => onChange(seg.value)}
           style={{
             width: 28,

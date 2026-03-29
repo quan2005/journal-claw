@@ -1,4 +1,4 @@
-type Theme = 'light' | 'dark' | 'system'
+import type { Theme } from '../types'
 
 interface ThemeToggleProps {
   theme: Theme

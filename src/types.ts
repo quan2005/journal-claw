@@ -1,3 +1,6 @@
+// ── UI 主题 ────────────────────────────────────────────
+export type Theme = 'light' | 'dark' | 'system'
+
 // ── 旧类型（保留，录音管道仍在使用）──────────────────────
 export type TranscriptionProgress = 'uploading' | 'transcribing' | 'completed' | 'failed'
 

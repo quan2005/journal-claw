@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-
-type Theme = 'light' | 'dark' | 'system'
+import type { Theme } from '../types'
 
 function applyTheme(theme: Theme) {
   if (theme === 'system') {

@@ -1,6 +1,5 @@
+import type { Theme } from '../types'
 import { ThemeToggle } from './ThemeToggle'
-
-type Theme = 'light' | 'dark' | 'system'
 
 interface TitleBarProps {
   theme: Theme

@@ -66,7 +66,7 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
         whiteSpace: 'nowrap',
       }}>
         {active
-          ? `整理中${lingerName ? ' · ' + lingerName : '…'}`
+          ? lingerName ? `${lingerName} · 整理中` : '整理中…'
           : 'Agent 待命中'}
       </span>
     </div>

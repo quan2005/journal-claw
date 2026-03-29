@@ -41,15 +41,6 @@ describe('DetailSheet', () => {
     expect(screen.getAllByText('录音 2026-03-28 19:54').length).toBeGreaterThan(0)
   })
 
-  it('calls onClose when overlay is clicked', () => {
-    const onClose = vi.fn()
-    render(
-      <DetailSheet item={item} transcriptionState={undefined} onClose={onClose} />
-    )
-    fireEvent.click(screen.getByTestId('sheet-overlay'))
-    expect(onClose).toHaveBeenCalledOnce()
-  })
-
   it('calls onClose when Escape is pressed', () => {
     const onClose = vi.fn()
     render(

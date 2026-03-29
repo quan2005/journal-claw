@@ -99,7 +99,7 @@ export default function App() {
               const result = await importFile(path)
               await triggerAiProcessing(result.path, result.year_month)
             } catch (err) {
-              console.error('[drop] importFile error:', err, 'path:', path)
+              console.error('[drop] error:', String(err), 'path:', path)
             }
           }
           refresh()

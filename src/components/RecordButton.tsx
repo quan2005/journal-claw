@@ -26,7 +26,8 @@ export function RecordButton({ status, onClick }: RecordButtonProps) {
       style={{
         position: 'absolute',
         bottom: 24,
-        right: 24,
+        right: '50%',
+        transform: jolting ? undefined : 'translateX(50%)',
         width: 56,
         height: 56,
         borderRadius: '50%',

@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import { startRecording, stopRecording } from '../lib/tauri'
-import type { RecordingItem } from '../types'
 
 export type RecorderStatus = 'idle' | 'recording'
 
@@ -11,9 +10,7 @@ interface UseRecorderReturn {
   stop: () => Promise<void>
 }
 
-export function useRecorder(
-  onStopped: (item: RecordingItem) => void
-): UseRecorderReturn {
+export function useRecorder(): UseRecorderReturn {
   const [status, setStatus] = useState<RecorderStatus>('idle')
   const [elapsedSecs, setElapsedSecs] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -32,11 +29,10 @@ export function useRecorder(
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    const item = await stopRecording()
+    await stopRecording()
     setStatus('idle')
     setElapsedSecs(0)
-    onStopped(item)
-  }, [onStopped])
+  }, [])
 
   return { status, elapsedSecs, start, stop }
 }

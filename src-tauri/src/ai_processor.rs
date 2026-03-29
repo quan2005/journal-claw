@@ -43,11 +43,17 @@ pub async fn process_material(
     });
 
     let args = build_command(&cli, &material_path, ym_dir.to_str().unwrap_or(""));
+    // Augment PATH so the CLI is found even when launched outside a shell
+    let path_env = std::env::var("PATH").unwrap_or_default();
+    let augmented_path = format!("{}:/usr/local/bin:/opt/homebrew/bin:{}/.local/bin",
+        path_env,
+        std::env::var("HOME").unwrap_or_default());
     let output = tokio::process::Command::new(&args[0])
         .args(&args[1..])
+        .env("PATH", &augmented_path)
         .output()
         .await
-        .map_err(|e| format!("启动 Claude CLI 失败: {}", e))?;
+        .map_err(|e| format!("启动 Claude CLI 失败 ({}): {}", &args[0], e))?;
 
     if output.status.success() {
         let _ = app.emit("ai-processing", ProcessingUpdate {

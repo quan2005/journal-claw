@@ -14,6 +14,16 @@ pub struct Config {
 }
 
 fn default_claude_cli() -> String {
+    // Try common install locations so the default works without shell PATH
+    for candidate in &[
+        "/Users/yanwu/.local/bin/claude",
+        "/usr/local/bin/claude",
+        "/opt/homebrew/bin/claude",
+    ] {
+        if std::path::Path::new(candidate).exists() {
+            return candidate.to_string();
+        }
+    }
     "claude".to_string()
 }
 

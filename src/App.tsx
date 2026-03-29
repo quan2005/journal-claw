@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { TitleBar } from './components/TitleBar'
-import { RecordButton } from './components/RecordButton'
 import { JournalList } from './components/JournalList'
 import { DetailPanel } from './components/DetailPanel'
-import { DropOverlay } from './components/DropOverlay'
+import { CommandDock } from './components/CommandDock'
+import { ProcessingQueue } from './components/ProcessingQueue'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, triggerAiProcessing } from './lib/tauri'
+import { importFile, triggerAiProcessing, submitPasteText } from './lib/tauri'
 import type { JournalEntry } from './types'
 
 const BASE_WIDTH = 320
@@ -16,12 +16,13 @@ const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { status, start, stop } = useRecorder()
-  const { entries, processingPaths, refresh } = useJournal()
+  const { entries, queueItems, isProcessing, dismissQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<string[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -62,17 +63,9 @@ export default function App() {
       } else if (type === 'drop') {
         setIsDragOver(false)
         const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
-        ;(async () => {
-          for (const path of paths) {
-            try {
-              const result = await importFile(path)
-              await triggerAiProcessing(result.path, result.year_month)
-            } catch (err) {
-              console.error('[drop] error:', String(err), 'path:', path)
-            }
-          }
-          refresh()
-        })()
+        if (paths.length > 0) {
+          setPendingFiles(prev => [...prev, ...paths])
+        }
       }
     }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
@@ -85,6 +78,47 @@ export default function App() {
     return () => window.removeEventListener('journal-entry-deleted', handler)
   }, [refresh])
 
+  // Zoom: Cmd+Plus / Cmd+Minus / Cmd+0
+  useEffect(() => {
+    let zoom = 1
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault()
+        zoom = Math.min(2, zoom + 0.1)
+        getCurrentWebview().setZoom(zoom)
+      } else if (e.key === '-') {
+        e.preventDefault()
+        zoom = Math.max(0.5, zoom - 0.1)
+        getCurrentWebview().setZoom(zoom)
+      } else if (e.key === '0') {
+        e.preventDefault()
+        zoom = 1
+        getCurrentWebview().setZoom(1)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  const handleFilesSubmit = async (paths: string[]) => {
+    setPendingFiles([])
+    for (const path of paths) {
+      try {
+        const result = await importFile(path)
+        await triggerAiProcessing(result.path, result.year_month)
+      } catch (err) {
+        console.error('[file-submit] error:', String(err), 'path:', path)
+      }
+    }
+    refresh()
+  }
+
+  const handleFilesCancel = () => setPendingFiles([])
+
+  const handleRemoveFile = (index: number) =>
+    setPendingFiles(prev => prev.filter((_, i) => i !== index))
+
   const handleRecord = async () => {
     if (status === 'idle') {
       await start()
@@ -94,42 +128,61 @@ export default function App() {
     }
   }
 
+  const handlePasteSubmit = async (text: string) => {
+    await submitPasteText(text)
+    refresh()
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden', position: 'relative' }}>
-      <TitleBar theme={theme} onThemeChange={setTheme} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+      <TitleBar theme={theme} onThemeChange={setTheme} isProcessing={isProcessing} />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left: Journal list */}
-        <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
           <JournalList
             entries={entries}
-            processingPaths={processingPaths}
             selectedPath={selectedEntry?.path ?? null}
             onSelect={setSelectedEntry}
           />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', paddingBottom: 24, pointerEvents: 'none' }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <RecordButton status={status} onClick={handleRecord} />
-            </div>
-          </div>
         </div>
 
         {/* Divider */}
         <div
           onMouseDown={onDividerMouseDown}
           style={{
-            width: DIVIDER_WIDTH, flexShrink: 0, background: 'var(--divider)',
+            width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
             cursor: 'col-resize',
           }}
         />
 
-        {/* Right: Detail panel — always visible, fills remaining space */}
+        {/* Right: Detail panel */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <DetailPanel entry={selectedEntry} onDeselect={() => setSelectedEntry(null)} />
         </div>
       </div>
 
-      <DropOverlay visible={isDragOver} />
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}>
+          <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} />
+        </div>
+        <CommandDock
+          isDragOver={isDragOver}
+          pendingFiles={pendingFiles}
+          onPasteSubmit={handlePasteSubmit}
+          onFilesSubmit={handleFilesSubmit}
+          onFilesCancel={handleFilesCancel}
+          onRemoveFile={handleRemoveFile}
+          recorderStatus={status}
+          onRecord={handleRecord}
+        />
+      </div>
     </div>
   )
 }

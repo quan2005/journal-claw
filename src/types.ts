@@ -40,6 +40,17 @@ export interface JournalEntry {
 
 export interface ProcessingUpdate {
   material_path: string
-  status: 'processing' | 'completed' | 'failed'
+  status: 'queued' | 'processing' | 'completed' | 'failed'
   error?: string
+}
+
+// ── Processing queue ────────────────────────────────────
+export type QueueItemStatus = 'queued' | 'processing' | 'completed' | 'failed'
+
+export interface QueueItem {
+  path: string
+  filename: string
+  status: QueueItemStatus
+  error?: string
+  addedAt: number
 }

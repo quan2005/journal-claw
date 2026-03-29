@@ -17,27 +17,22 @@ const entry: JournalEntry = {
 
 describe('JournalItem', () => {
   it('renders title', () => {
-    render(<JournalItem entry={entry} showDate={false} isSelected={false} onClick={vi.fn()} />)
+    render(<JournalItem entry={entry} isSelected={false} onClick={vi.fn()} />)
     expect(screen.getByText('AI平台产品会议纪要')).toBeTruthy()
   })
 
-  it('shows date when showDate=true', () => {
-    render(<JournalItem entry={entry} showDate={true} isSelected={false} onClick={vi.fn()} />)
-    expect(screen.getByText('28')).toBeTruthy()
-  })
-
-  it('hides date when showDate=false', () => {
-    render(<JournalItem entry={entry} showDate={false} isSelected={false} onClick={vi.fn()} />)
-    expect(screen.queryByText('28')).toBeNull()
-  })
-
   it('renders summary', () => {
-    render(<JournalItem entry={entry} showDate={false} isSelected={false} onClick={vi.fn()} />)
+    render(<JournalItem entry={entry} isSelected={false} onClick={vi.fn()} />)
     expect(screen.getByText('探索可继续，需同步做场景化表达')).toBeTruthy()
   })
 
-  it('renders meeting tag', () => {
-    render(<JournalItem entry={entry} showDate={false} isSelected={false} onClick={vi.fn()} />)
-    expect(screen.getByText('会议')).toBeTruthy()
+  it('renders tag badge', () => {
+    render(<JournalItem entry={entry} isSelected={false} onClick={vi.fn()} />)
+    expect(screen.getByText('meeting')).toBeTruthy()
+  })
+
+  it('renders time', () => {
+    render(<JournalItem entry={entry} isSelected={false} onClick={vi.fn()} />)
+    expect(screen.getByText('10:15')).toBeTruthy()
   })
 })

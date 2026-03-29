@@ -30,8 +30,9 @@ describe('useJournal', () => {
     expect(result.current.entries[0].title).toBe('AI平台产品会议纪要')
   })
 
-  it('starts with no processing items', () => {
+  it('starts with empty queue', () => {
     const { result } = renderHook(() => useJournal())
-    expect(result.current.processingPaths).toEqual([])
+    expect(result.current.queueItems).toEqual([])
+    expect(result.current.isProcessing).toBe(false)
   })
 })

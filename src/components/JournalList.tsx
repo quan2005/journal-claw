@@ -1,19 +1,33 @@
 import { useState } from 'react'
 import type { JournalEntry } from '../types'
 import { JournalItem } from './JournalItem'
-import { InboxStrip } from './InboxStrip'
 import { JournalContextMenu } from './JournalContextMenu'
 import { deleteJournalEntry } from '../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 
 interface JournalListProps {
   entries: JournalEntry[]
-  processingPaths: string[]
   selectedPath: string | null
   onSelect: (entry: JournalEntry) => void
 }
 
-export function JournalList({ entries, processingPaths, selectedPath, onSelect }: JournalListProps) {
+// Day of week from year_month + day
+function getDayOfWeek(yearMonth: string, day: number): string {
+  const year = 2000 + parseInt(yearMonth.slice(0, 2))
+  const month = parseInt(yearMonth.slice(2, 4)) - 1
+  const d = new Date(year, month, day)
+  return ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]
+}
+
+// Check if an entry's date is today
+function isToday(yearMonth: string, day: number): boolean {
+  const now = new Date()
+  const year = 2000 + parseInt(yearMonth.slice(0, 2))
+  const month = parseInt(yearMonth.slice(2, 4))
+  return year === now.getFullYear() && month === now.getMonth() + 1 && day === now.getDate()
+}
+
+export function JournalList({ entries, selectedPath, onSelect }: JournalListProps) {
   const [contextMenu, setContextMenu] = useState<{ entry: JournalEntry; x: number; y: number } | null>(null)
 
   // Group by year_month, then by day
@@ -33,50 +47,67 @@ export function JournalList({ entries, processingPaths, selectedPath, onSelect }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <InboxStrip processingPaths={processingPaths} />
-
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 72 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
         {months.map(ym => {
           const days = Object.keys(grouped[ym]).map(Number).sort((a, b) => b - a)
-          // Flatten all entries in this month for "last entry" detection
-          const allInMonth = days.flatMap(d => grouped[ym][d])
 
           return (
             <div key={ym}>
-              {/* Month divider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 6px' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#8e8e93', whiteSpace: 'nowrap' }}>
+              {/* Month label */}
+              <div style={{ padding: '14px 16px 6px' }}>
+                <span style={{
+                  fontSize: 10,
+                  color: 'var(--sidebar-month)',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase' as const,
+                }}>
                   {formatMonthLabel(ym)}
                 </span>
-                <div style={{ flex: 1, height: 1, background: 'var(--divider)' }} />
               </div>
 
               {days.map(day => {
                 const dayEntries = grouped[ym][day]
-                return dayEntries.map((entry, idx) => {
-                  const isLastInMonth = entry === allInMonth[allInMonth.length - 1]
-                  const isLastInDay = idx === dayEntries.length - 1
+                const today = isToday(ym, day)
 
-                  return (
-                    <div key={entry.path}>
+                return (
+                  <div key={day} style={{ marginBottom: 2 }}>
+                    {/* Date header — separate row */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: 6,
+                      padding: '10px 14px 4px',
+                    }}>
+                      <span style={{
+                        fontSize: 20,
+                        fontWeight: 500,
+                        lineHeight: 1,
+                        color: today ? 'var(--date-today-number)' : 'var(--item-meta)',
+                      }}>
+                        {day}
+                      </span>
+                      <span style={{
+                        fontSize: 10,
+                        letterSpacing: '0.08em',
+                        color: today ? 'var(--date-today-weekday)' : 'var(--item-meta)',
+                      }}>
+                        {getDayOfWeek(ym, day)}
+                      </span>
+                    </div>
+
+                    {/* Entries for this day */}
+                    {dayEntries.map(entry => (
                       <JournalItem
+                        key={entry.path}
                         entry={entry}
-                        showDate={idx === 0}
                         isSelected={entry.path === selectedPath}
                         onClick={onSelect}
                         onContextMenu={(e, x, y) => setContextMenu({ entry: e, x, y })}
                       />
-                      {/* Divider: between entries, but not after the last entry in a month */}
-                      {!isLastInMonth && isLastInDay && (
-                        <div style={{ height: 1, background: 'var(--divider)', margin: '0 16px' }} />
-                      )}
-                      {!isLastInDay && (
-                        <div style={{ height: 1, background: 'var(--divider)', margin: '0 16px' }} />
-                      )}
-                    </div>
-                  )
-                })
+                    ))}
+                  </div>
+                )
               })}
             </div>
           )

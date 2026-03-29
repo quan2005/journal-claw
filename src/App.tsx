@@ -137,9 +137,11 @@ export default function App() {
     refresh()
   }
 
+  const processingFilename = queueItems.find(i => i.status === 'processing')?.filename
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
-      <TitleBar theme={theme} onThemeChange={setTheme} isProcessing={isProcessing} />
+      <TitleBar theme={theme} onThemeChange={setTheme} isProcessing={isProcessing} processingFilename={processingFilename} />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left: Journal list */}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { JournalEntry, RawMaterial, ProcessingUpdate } from '../types'
+import type { JournalEntry } from '../types'
 
 describe('JournalEntry type', () => {
   it('accepts valid entry', () => {

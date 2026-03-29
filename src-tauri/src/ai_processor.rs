@@ -1,5 +1,5 @@
 use tauri::{AppHandle, Emitter};
-use crate::{config, workspace};
+use crate::config;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -105,6 +105,24 @@ fn augmented_path() -> String {
     )
 }
 
+fn parse_cli_output(stdout: &str) -> Result<(), String> {
+    let parsed: Result<serde_json::Value, _> = serde_json::from_str(stdout.trim());
+    match parsed {
+        Ok(val) => {
+            let is_error = val.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
+            if is_error {
+                let msg = val.get("result")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("AI 处理失败");
+                Err(msg.to_string())
+            } else {
+                Ok(())
+            }
+        }
+        Err(_) => Ok(())
+    }
+}
+
 // ── Queue consumer ───────────────────────────────────────
 
 /// Spawn a single-threaded consumer that processes tasks serially.
@@ -128,9 +146,9 @@ pub async fn process_material(
     } else {
         cfg.claude_cli_path.clone()
     };
-    let ym_dir = workspace::year_month_dir(&cfg.workspace_path, year_month);
 
-    // Emit "processing"
+    ensure_workspace_prompt(&cfg.workspace_path);
+
     let _ = app.emit("ai-processing", ProcessingUpdate {
         material_path: material_path.to_string(),
         status: "processing".to_string(),
@@ -140,28 +158,43 @@ pub async fn process_material(
     let args = build_args(material_path, year_month);
     let output = tokio::process::Command::new(&cli)
         .args(&args)
-        .current_dir(&ym_dir)
+        .current_dir(&cfg.workspace_path)
         .env("PATH", augmented_path())
         .output()
         .await
         .map_err(|e| format!("启动 Claude CLI 失败 ({}): {}", &cli, e))?;
 
-    if output.status.success() {
-        let _ = app.emit("ai-processing", ProcessingUpdate {
-            material_path: material_path.to_string(),
-            status: "completed".to_string(),
-            error: None,
-        });
-        let _ = app.emit("journal-updated", year_month);
-        Ok(())
-    } else {
-        let err = String::from_utf8_lossy(&output.stderr).to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if !output.status.success() {
+        let err = if stderr.is_empty() { stdout.clone() } else { stderr };
         let _ = app.emit("ai-processing", ProcessingUpdate {
             material_path: material_path.to_string(),
             status: "failed".to_string(),
             error: Some(err.clone()),
         });
-        Err(err)
+        return Err(err);
+    }
+
+    match parse_cli_output(&stdout) {
+        Ok(()) => {
+            let _ = app.emit("ai-processing", ProcessingUpdate {
+                material_path: material_path.to_string(),
+                status: "completed".to_string(),
+                error: None,
+            });
+            let _ = app.emit("journal-updated", year_month);
+            Ok(())
+        }
+        Err(err) => {
+            let _ = app.emit("ai-processing", ProcessingUpdate {
+                material_path: material_path.to_string(),
+                status: "failed".to_string(),
+                error: Some(err.clone()),
+            });
+            Err(err)
+        }
     }
 }
 
@@ -256,5 +289,24 @@ mod tests {
         assert_eq!(content2, "用户自定义内容");
 
         std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn parse_cli_output_success() {
+        let json = r#"{"type":"result","subtype":"success","is_error":false,"result":"done","total_cost_usd":0.05}"#;
+        assert!(parse_cli_output(json).is_ok());
+    }
+
+    #[test]
+    fn parse_cli_output_error() {
+        let json = r#"{"type":"result","subtype":"error","is_error":true,"result":"无法读取文件"}"#;
+        let result = parse_cli_output(json);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("无法读取文件"));
+    }
+
+    #[test]
+    fn parse_cli_output_non_json() {
+        assert!(parse_cli_output("some plain text").is_ok());
     }
 }

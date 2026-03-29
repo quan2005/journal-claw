@@ -1,5 +1,4 @@
-use crate::recordings::{parse_filename_pub, read_duration_pub};
-use crate::types::RecordingItem;
+use crate::recordings::read_duration_pub;
 use chrono::Local;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::path::PathBuf;
@@ -172,17 +171,7 @@ pub async fn stop_recording(
             }
         }
 
-        let (display_name, year_month) = parse_filename_pub(&filename);
         let duration_secs = read_duration_pub(&output_path);
-
-        let item = RecordingItem {
-            filename: filename.clone(),
-            path: output_path.to_string_lossy().into_owned(),
-            display_name,
-            duration_secs,
-            year_month,
-            transcript_status: None,
-        };
 
         let _ = app_clone.emit("recording-processed", serde_json::json!({
             "filename": filename,
@@ -201,7 +190,7 @@ pub async fn stop_recording(
         );
 
         tauri::async_runtime::spawn(async move {
-            let _ = crate::ai_processor::process_material(app_for_ai, path_for_ai, ym_for_ai).await;
+            let _ = crate::ai_processor::process_material(&app_for_ai, &path_for_ai, &ym_for_ai).await;
         });
     });
 

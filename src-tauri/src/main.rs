@@ -10,7 +10,7 @@ mod journal;
 mod materials;
 mod ai_processor;
 
-use tauri::menu::{Menu, MenuItem, Submenu};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 
 #[tauri::command]
 fn open_with_system(path: String) -> Result<(), String> {
@@ -22,12 +22,59 @@ fn open_with_system(path: String) -> Result<(), String> {
 }
 
 fn main() {
+    let (ai_tx, ai_rx) = tokio::sync::mpsc::channel::<ai_processor::QueueTask>(64);
+
     tauri::Builder::default()
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
+        .manage(ai_processor::AiQueue(ai_tx))
         .setup(|app| {
-            let settings_item = MenuItem::with_id(app, "settings", "设置...", true, None::<&str>)?;
-            let journal_menu = Submenu::with_items(app, "Journal", true, &[&settings_item])?;
-            let menu = Menu::with_items(app, &[&journal_menu])?;
+            ai_processor::start_queue_consumer(app.handle().clone(), ai_rx);
+            // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
+            let settings_item = MenuItem::with_id(app, "settings", "设置...", true, Some("CmdOrCtrl+,"))?;
+            let app_menu = Submenu::with_items(app, "Journal", true, &[
+                &PredefinedMenuItem::about(app, None, None)?,
+                &PredefinedMenuItem::separator(app)?,
+                &settings_item,
+                &PredefinedMenuItem::separator(app)?,
+                &PredefinedMenuItem::services(app, None)?,
+                &PredefinedMenuItem::separator(app)?,
+                &PredefinedMenuItem::hide(app, None)?,
+                &PredefinedMenuItem::hide_others(app, None)?,
+                &PredefinedMenuItem::show_all(app, None)?,
+                &PredefinedMenuItem::separator(app)?,
+                &PredefinedMenuItem::quit(app, None)?,
+            ])?;
+
+            // ── File menu (Cmd+W) ──
+            let file_menu = Submenu::with_items(app, "File", true, &[
+                &PredefinedMenuItem::close_window(app, None)?,
+            ])?;
+
+            // ── Edit menu (Cmd+Z, Cmd+X, Cmd+C, Cmd+V, Cmd+A) ──
+            let edit_menu = Submenu::with_items(app, "Edit", true, &[
+                &PredefinedMenuItem::undo(app, None)?,
+                &PredefinedMenuItem::redo(app, None)?,
+                &PredefinedMenuItem::separator(app)?,
+                &PredefinedMenuItem::cut(app, None)?,
+                &PredefinedMenuItem::copy(app, None)?,
+                &PredefinedMenuItem::paste(app, None)?,
+                &PredefinedMenuItem::select_all(app, None)?,
+            ])?;
+
+            // ── View menu (fullscreen) ──
+            let view_menu = Submenu::with_items(app, "View", true, &[
+                &PredefinedMenuItem::fullscreen(app, None)?,
+            ])?;
+
+            // ── Window menu (Cmd+M, zoom) ──
+            let window_menu = Submenu::with_items(app, "Window", true, &[
+                &PredefinedMenuItem::minimize(app, None)?,
+                &PredefinedMenuItem::maximize(app, None)?,
+            ])?;
+
+            let menu = Menu::with_items(app, &[
+                &app_menu, &file_menu, &edit_menu, &view_menu, &window_menu,
+            ])?;
             app.set_menu(menu)?;
 
             let app_handle = app.handle().clone();
@@ -60,6 +107,7 @@ fn main() {
             journal::save_journal_entry_content,
             journal::delete_journal_entry,
             materials::import_file,
+            materials::import_text,
             ai_processor::trigger_ai_processing,
             open_with_system,
             workspace_settings::get_workspace_theme,

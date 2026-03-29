@@ -26,6 +26,24 @@
   --sheet-overlay: rgba(0, 0, 0, 0.30);
   --sheet-bg: var(--bg);
   --sheet-handle: #d1d1d6;
+
+  /* Markdown typography */
+  --md-h1: #1c1c1e;
+  --md-h2: #1c1c1e;
+  --md-h3: #636366;
+  --md-text: #3a3a3c;
+  --md-strong: #1c1c1e;
+  --md-em: #3a3a3c;
+  --md-bullet: #8e8e93;
+  --md-code-bg: rgba(0,0,0,0.055);
+  --md-code-text: #2d6a9f;
+  --md-pre-bg: #f5f5f7;
+  --md-pre-text: #2d2d2d;
+  --md-quote-bar: #d1d1d6;
+  --md-quote-text: #8e8e93;
+  --md-checkbox-border: #c7c7cc;
+  --md-checkbox-checked: #007aff;
+  --md-checkbox-done-text: #aeaeb2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,6 +65,24 @@
     --item-selected-meta: #636366;
     --sheet-bg: var(--bg);
     --sheet-handle: #48484a;
+
+    /* Markdown typography — dark */
+    --md-h1: #e8e8e8;
+    --md-h2: #e0e0e0;
+    --md-h3: #636366;
+    --md-text: #c8c8c8;
+    --md-strong: #e8e8e8;
+    --md-em: #b0b0b0;
+    --md-bullet: #636366;
+    --md-code-bg: rgba(255,255,255,0.08);
+    --md-code-text: #88b4e0;
+    --md-pre-bg: #2c2c2e;
+    --md-pre-text: #d4d4d4;
+    --md-quote-bar: #48484a;
+    --md-quote-text: #636366;
+    --md-checkbox-border: #48484a;
+    --md-checkbox-checked: #0a84ff;
+    --md-checkbox-done-text: #48484a;
   }
 }
 
@@ -71,4 +107,168 @@ html, body, #root {
 
 [data-tauri-drag-region] * {
   -webkit-app-region: no-drag;
+}
+
+/* ── Markdown body — ordered list numbers ───────────────────── */
+.md-body ol li {
+  list-style: decimal;
+  display: list-item;
+  color: var(--md-text);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.md-body ol li::marker {
+  color: var(--md-bullet);
+  font-weight: 600;
+}
+
+/* ── Inline code only (not inside pre) ───────────────────────── */
+.md-body :not(pre) > code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ── Checklist checkbox alignment ───────────────────────────── */
+.md-body .task-list-item input[type="checkbox"] {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Table: auto layout — first column stays compact ────────── */
+.md-body table td:first-child {
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── highlight.js theme — atom-one-dark-ish, tuned for Bear style ── */
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--md-pre-bg);
+  color: var(--md-pre-text);
+  border-radius: 8px;
+}
+
+.hljs-comment,
+.hljs-quote         { color: #6a7385; font-style: italic; }
+.hljs-keyword,
+.hljs-selector-tag  { color: #c678dd; }
+.hljs-string,
+.hljs-attr          { color: #98c379; }
+.hljs-number,
+.hljs-literal       { color: #d19a66; }
+.hljs-built_in,
+.hljs-type          { color: #e5c07b; }
+.hljs-function,
+.hljs-title         { color: #61afef; }
+.hljs-variable,
+.hljs-name          { color: #e06c75; }
+.hljs-tag           { color: #e06c75; }
+.hljs-attribute     { color: #d19a66; }
+.hljs-params        { color: #abb2bf; }
+.hljs-meta          { color: #56b6c2; }
+.hljs-emphasis      { font-style: italic; }
+.hljs-strong        { font-weight: 700; }
+
+/* Light mode hljs overrides */
+@media (prefers-color-scheme: light) {
+  .hljs                 { background: #f5f5f7; color: #383a42; }
+  .hljs-comment         { color: #a0a1a7; }
+  .hljs-keyword         { color: #a626a4; }
+  .hljs-string          { color: #50a14f; }
+  .hljs-number          { color: #986801; }
+  .hljs-built_in        { color: #c18401; }
+  .hljs-function,
+  .hljs-title           { color: #4078f2; }
+  .hljs-variable,
+  .hljs-name            { color: #e45649; }
+  .hljs-tag             { color: #e45649; }
+  .hljs-attribute       { color: #986801; }
+  .hljs-meta            { color: #0184bc; }
+}
+
+/* ── Manual theme overrides ─────────────────────────────────── */
+/* Must appear AFTER the @media block — same specificity, last wins */
+
+[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --titlebar-bg: var(--bg);
+  --divider: #3a3a3c;
+  --month-label: #636366;
+  --item-text: #e8e8e8;
+  --item-meta: #636366;
+  --duration-text: #48484a;
+  --record-btn: #ff375f;
+  --record-highlight: rgba(255, 55, 95, 0.06);
+  --record-highlight-bar: rgba(255, 55, 95, 1);
+  --item-icon-bg: #2c2c2e;
+  --item-hover-bg: rgba(255, 255, 255, 0.05);
+  --item-selected-bg: rgba(255, 255, 255, 0.08);
+  --item-selected-text: #e8e8e8;
+  --item-selected-meta: #636366;
+  --sheet-bg: var(--bg);
+  --sheet-handle: #48484a;
+  --md-h1: #e8e8e8;
+  --md-h2: #e0e0e0;
+  --md-h3: #636366;
+  --md-text: #c8c8c8;
+  --md-strong: #e8e8e8;
+  --md-em: #b0b0b0;
+  --md-bullet: #636366;
+  --md-code-bg: rgba(255,255,255,0.08);
+  --md-code-text: #88b4e0;
+  --md-pre-bg: #2c2c2e;
+  --md-pre-text: #d4d4d4;
+  --md-quote-bar: #48484a;
+  --md-quote-text: #636366;
+  --md-checkbox-border: #48484a;
+  --md-checkbox-checked: #0a84ff;
+  --md-checkbox-done-text: #48484a;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --titlebar-bg: var(--bg);
+  --divider: #e5e5ea;
+  --month-label: #8e8e93;
+  --item-text: #1c1c1e;
+  --item-meta: #aeaeb2;
+  --duration-text: #c7c7cc;
+  --record-btn: #ff3b30;
+  --record-highlight: rgba(255, 59, 48, 0.06);
+  --record-highlight-bar: rgba(255, 59, 48, 1);
+  --item-icon-bg: #f2f2f7;
+  --item-hover-bg: rgba(0, 0, 0, 0.04);
+  --item-selected-bg: rgba(0, 0, 0, 0.06);
+  --item-selected-text: #1c1c1e;
+  --item-selected-meta: #aeaeb2;
+  --sheet-bg: var(--bg);
+  --sheet-handle: #d1d1d6;
+  --md-h1: #1c1c1e;
+  --md-h2: #1c1c1e;
+  --md-h3: #636366;
+  --md-text: #3a3a3c;
+  --md-strong: #1c1c1e;
+  --md-em: #3a3a3c;
+  --md-bullet: #8e8e93;
+  --md-code-bg: rgba(0,0,0,0.055);
+  --md-code-text: #2d6a9f;
+  --md-pre-bg: #f5f5f7;
+  --md-pre-text: #2d2d2d;
+  --md-quote-bar: #d1d1d6;
+  --md-quote-text: #8e8e93;
+  --md-checkbox-border: #c7c7cc;
+  --md-checkbox-checked: #007aff;
+  --md-checkbox-done-text: #aeaeb2;
 }

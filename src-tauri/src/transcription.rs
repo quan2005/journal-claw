@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 
 const UPLOAD_URL: &str = "https://dashscope.aliyuncs.com/api/v1/uploads";
 const TRANSCRIBE_URL: &str =
@@ -16,24 +16,12 @@ pub struct Transcript {
     pub text: String,
 }
 
-fn transcripts_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_data_dir().map_err(|e: tauri::Error| e.to_string())?;
-    let dir = dir.join("transcripts");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
-}
-
-fn transcript_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
-    let base = filename.trim_end_matches(".m4a");
-    Ok(transcripts_dir(app)?.join(format!("{}.json", base)))
-}
-
 fn emit_progress(app: &AppHandle, filename: &str, status: &str) {
     let payload = serde_json::json!({ "filename": filename, "status": status });
     let _ = app.emit("transcription-progress", payload);
 }
 
-/// Upload a local audio file to DashScope and return the file_url.
+/// Upload a local audio file to DashScope temporary storage and return the oss:// URL.
 async fn upload_file(
     client: &reqwest::Client,
     api_key: &str,
@@ -44,48 +32,92 @@ async fn upload_file(
         .ok_or("no filename")?
         .to_string_lossy()
         .to_string();
-    let file_bytes = fs::read(path).map_err(|e| e.to_string())?;
 
-    let part = reqwest::multipart::Part::bytes(file_bytes)
-        .file_name(file_name)
+    // Step 1: Get upload policy (OSS credentials)
+    let policy_resp = client
+        .get(UPLOAD_URL)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .query(&[("action", "getPolicy"), ("model", "qwen3-asr-flash-filetrans")])
+        .send()
+        .await
+        .map_err(|e| format!("Get policy failed: {}", e))?;
+
+    if !policy_resp.status().is_success() {
+        let status = policy_resp.status();
+        let body = policy_resp.text().await.unwrap_or_default();
+        return Err(format!("Get policy failed ({}): {}", status, body));
+    }
+
+    let policy_data: serde_json::Value = policy_resp.json().await.map_err(|e| e.to_string())?;
+    let data = policy_data.get("data").ok_or("No data in policy response")?;
+
+    let upload_host = data
+        .get("upload_host")
+        .and_then(|v| v.as_str())
+        .ok_or("No upload_host in policy response")?;
+    let upload_dir = data
+        .get("upload_dir")
+        .and_then(|v| v.as_str())
+        .ok_or("No upload_dir in policy response")?;
+    let oss_access_key_id = data
+        .get("oss_access_key_id")
+        .and_then(|v| v.as_str())
+        .ok_or("No oss_access_key_id")?;
+    let signature = data
+        .get("signature")
+        .and_then(|v| v.as_str())
+        .ok_or("No signature")?;
+    let policy = data
+        .get("policy")
+        .and_then(|v| v.as_str())
+        .ok_or("No policy")?;
+    let x_oss_object_acl = data
+        .get("x_oss_object_acl")
+        .and_then(|v| v.as_str())
+        .ok_or("No x_oss_object_acl")?;
+    let x_oss_forbid_overwrite = data
+        .get("x_oss_forbid_overwrite")
+        .and_then(|v| v.as_str())
+        .ok_or("No x_oss_forbid_overwrite")?;
+
+    // Step 2: Upload file to OSS via multipart POST
+    let key = format!("{}/{}", upload_dir, file_name);
+    let file_bytes = fs::read(path).map_err(|e| format!("Read file failed: {}", e))?;
+
+    let file_part = reqwest::multipart::Part::bytes(file_bytes)
+        .file_name(file_name.clone())
         .mime_str("audio/mp4")
         .map_err(|e| e.to_string())?;
 
-    let form = reqwest::multipart::Form::new().part("file", part);
+    let form = reqwest::multipart::Form::new()
+        .text("OSSAccessKeyId", oss_access_key_id.to_string())
+        .text("Signature", signature.to_string())
+        .text("policy", policy.to_string())
+        .text("x-oss-object-acl", x_oss_object_acl.to_string())
+        .text(
+            "x-oss-forbid-overwrite",
+            x_oss_forbid_overwrite.to_string(),
+        )
+        .text("key", key.clone())
+        .text("success_action_status", "200".to_string())
+        .part("file", file_part);
 
-    let resp = client
-        .post(UPLOAD_URL)
-        .header("Authorization", format!("Bearer {}", api_key))
+    let upload_resp = client
+        .post(upload_host)
         .multipart(form)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Upload to OSS failed: {}", e))?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Upload failed ({}): {}", status, body));
+    if !upload_resp.status().is_success() {
+        let status = upload_resp.status();
+        let body = upload_resp.text().await.unwrap_or_default();
+        return Err(format!("Upload to OSS failed ({}): {}", status, body));
     }
 
-    let data: serde_json::Value = resp.json().await.map_err(|e: reqwest::Error| e.to_string())?;
-    let output = data
-        .get("output")
-        .ok_or("No output in upload response")?;
-
-    // Try multiple response formats for file_url
-    let url = output
-        .get("uploaded_file")
-        .and_then(|f: &serde_json::Value| f.get("file_url"))
-        .or_else(|| output.get("file_url"))
-        .or_else(|| output.get("url"))
-        .and_then(|v: &serde_json::Value| v.as_str())
-        .ok_or_else(|| {
-            format!(
-                "No file_url in upload response: {}",
-                serde_json::to_string(&output).unwrap_or_default()
-            )
-        })?;
-    Ok(url.to_string())
+    // Step 3: Construct the oss:// URL
+    Ok(format!("oss://{}", key))
 }
 
 /// Submit a transcription task and return the task_id.
@@ -109,6 +141,7 @@ async fn submit_transcription(
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .header("X-DashScope-Async", "enable")
+        .header("X-DashScope-OssResourceResolve", "enable")
         .json(&body)
         .send()
         .await
@@ -120,11 +153,11 @@ async fn submit_transcription(
         return Err(format!("Submit failed ({}): {}", status, body));
     }
 
-    let data: serde_json::Value = resp.json().await.map_err(|e: reqwest::Error| e.to_string())?;
+    let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
     let task_id = data
         .get("output")
-        .and_then(|o: &serde_json::Value| o.get("task_id"))
-        .and_then(|v: &serde_json::Value| v.as_str())
+        .and_then(|o| o.get("task_id"))
+        .and_then(|v| v.as_str())
         .ok_or("No task_id in submit response")?;
     Ok(task_id.to_string())
 }
@@ -157,11 +190,11 @@ async fn poll_task(
             return Err(format!("Poll failed: {}", body));
         }
 
-        let data: serde_json::Value = resp.json().await.map_err(|e: reqwest::Error| e.to_string())?;
+        let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
         let status = data
             .get("output")
-            .and_then(|o: &serde_json::Value| o.get("task_status"))
-            .and_then(|v: &serde_json::Value| v.as_str())
+            .and_then(|o| o.get("task_status"))
+            .and_then(|v| v.as_str())
             .unwrap_or("UNKNOWN");
 
         match status {
@@ -171,12 +204,13 @@ async fn poll_task(
             "SUCCEEDED" => {
                 let transcription_url = data
                     .get("output")
-                    .and_then(|o: &serde_json::Value| o.get("results"))
-                    .and_then(|r: &serde_json::Value| r.as_array())
-                    .and_then(|arr: &Vec<serde_json::Value>| arr.first())
-                    .and_then(|r: &serde_json::Value| r.get("transcription_url"))
-                    .and_then(|v: &serde_json::Value| v.as_str())
+                    .and_then(|o| o.get("result"))
+                    .and_then(|r| r.get("transcription_url"))
+                    .and_then(|v| v.as_str())
                     .map(String::from);
+                if transcription_url.is_none() {
+                    return Err(format!("Task {}: SUCCEEDED but no transcription_url", task_id));
+                }
                 return Ok(transcription_url);
             }
             "FAILED" | "UNKNOWN" => {
@@ -201,39 +235,36 @@ async fn fetch_transcription_text(client: &reqwest::Client, url: &str) -> Result
         return Err(format!("Fetch transcription failed: {}", resp.status()));
     }
 
-    let body: serde_json::Value = resp.json().await.map_err(|e: reqwest::Error| e.to_string())?;
+    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
 
-    // Try multiple output formats
+    // Format: { "transcripts": [{ "text": "full text", "sentences": [...] }] }
     let text = body
-        .get("outputs")
-        .and_then(|o: &serde_json::Value| o.as_array())
-        .and_then(|arr: &Vec<serde_json::Value>| arr.first())
-        .and_then(|o: &serde_json::Value| o.get("text"))
-        .and_then(|v: &serde_json::Value| v.as_str())
-        .or_else(|| {
-            body.get("text")
-                .and_then(|v: &serde_json::Value| v.as_str())
-        })
-        .unwrap_or_default();
-    Ok(text.to_string())
+        .get("transcripts")
+        .and_then(|t| t.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|t| t.get("text"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    Ok(text)
 }
 
-fn save_transcript(app: &AppHandle, filename: &str, status: &str, text: &str) {
-    let transcript = Transcript {
-        status: status.to_string(),
-        text: text.to_string(),
-    };
-    let path = match transcript_path(app, filename) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("transcript_path error: {}", e);
-            return;
-        }
-    };
-    if let Ok(data) = serde_json::to_string_pretty(&transcript) {
-        let _ = fs::write(&path, data);
+fn save_transcript(app: &AppHandle, file_path: &PathBuf, status: &str, text: &str) {
+    // transcript 放在素材所在 raw/ 目录上一级的 transcripts/ 下
+    // raw/录音.m4a → ../transcripts/录音.json
+    let raw_dir = file_path.parent().unwrap_or(file_path.as_path());
+    let transcripts_dir = raw_dir.parent().unwrap_or(raw_dir).join("transcripts");
+    let _ = std::fs::create_dir_all(&transcripts_dir);
+    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
+    let json_path = transcripts_dir.join(format!("{}.json", base));
+    let transcript = Transcript { status: status.to_string(), text: text.to_string() };
+    if let Ok(data) = serde_json::to_string(&transcript) {
+        let _ = std::fs::write(&json_path, data);
     }
-    emit_progress(app, filename, status);
+    let filename = file_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let _ = app.emit("transcription-progress", serde_json::json!({
+        "filename": filename, "status": status
+    }));
 }
 
 /// Public entry point: start transcription in a background thread.
@@ -252,89 +283,88 @@ pub fn start_transcription(
         _ => return,
     };
 
-    std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let client = reqwest::Client::new();
+    tauri::async_runtime::spawn(async move {
+        let client = reqwest::Client::new();
 
-            emit_progress(&app, &filename, "uploading");
+        emit_progress(&app, &filename, "uploading");
 
-            let file_url = match upload_file(&client, &api_key, &file_path).await {
-                Ok(url) => url,
-                Err(e) => {
-                    eprintln!("Upload failed: {}", e);
-                    save_transcript(&app, &filename, "failed", &format!("上传失败: {}", e));
+        let file_url = match upload_file(&client, &api_key, &file_path).await {
+            Ok(url) => url,
+            Err(e) => {
+                eprintln!("Upload failed: {}", e);
+                save_transcript(&app, &file_path, "failed", &format!("上传失败: {}", e));
+                return;
+            }
+        };
+
+        emit_progress(&app, &filename, "transcribing");
+
+        let task_id = match submit_transcription(&client, &api_key, &file_url).await {
+            Ok(id) => id,
+            Err(e) => {
+                eprintln!("Submit failed: {}", e);
+                save_transcript(&app, &file_path, "failed", &format!("提交失败: {}", e));
+                return;
+            }
+        };
+
+        let transcription_url =
+            match poll_task(&client, &api_key, &task_id, &app, &filename).await {
+                Ok(Some(url)) => url,
+                Ok(None) => {
+                    save_transcript(&app, &file_path, "failed", "未获取到转写结果");
                     return;
                 }
-            };
-
-            emit_progress(&app, &filename, "transcribing");
-
-            let task_id = match submit_transcription(&client, &api_key, &file_url).await {
-                Ok(id) => id,
                 Err(e) => {
-                    eprintln!("Submit failed: {}", e);
-                    save_transcript(&app, &filename, "failed", &format!("提交失败: {}", e));
-                    return;
-                }
-            };
-
-            let transcription_url =
-                match poll_task(&client, &api_key, &task_id, &app, &filename).await {
-                    Ok(Some(url)) => url,
-                    Ok(None) => {
-                        save_transcript(&app, &filename, "failed", "未获取到转写结果");
-                        return;
-                    }
-                    Err(e) => {
-                        eprintln!("Poll failed: {}", e);
-                        save_transcript(
-                            &app,
-                            &filename,
-                            "failed",
-                            &format!("转写失败: {}", e),
-                        );
-                        return;
-                    }
-                };
-
-            let text = match fetch_transcription_text(&client, &transcription_url).await {
-                Ok(t) => t,
-                Err(e) => {
+                    eprintln!("Poll failed: {}", e);
                     save_transcript(
                         &app,
-                        &filename,
+                        &file_path,
                         "failed",
-                        &format!("获取转写文本失败: {}", e),
+                        &format!("转写失败: {}", e),
                     );
                     return;
                 }
             };
 
-            save_transcript(&app, &filename, "completed", &text);
-        });
+        let text = match fetch_transcription_text(&client, &transcription_url).await {
+            Ok(t) => t,
+            Err(e) => {
+                save_transcript(
+                    &app,
+                    &file_path,
+                    "failed",
+                    &format!("获取转写文本失败: {}", e),
+                );
+                return;
+            }
+        };
+
+        save_transcript(&app, &file_path, "completed", &text);
     });
 }
 
 #[tauri::command]
-pub fn get_transcript(app: AppHandle, filename: String) -> Result<Option<Transcript>, String> {
-    let path = transcript_path(&app, &filename)?;
-    if !path.exists() {
-        return Ok(None);
-    }
-    let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let transcript: Transcript = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    Ok(Some(transcript))
+pub fn get_transcript(path: String) -> Result<Option<Transcript>, String> {
+    let file_path = PathBuf::from(&path);
+    let raw_dir = file_path.parent().ok_or("invalid path")?;
+    let transcripts_dir = raw_dir.parent().ok_or("invalid path")?.join("transcripts");
+    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
+    let json_path = transcripts_dir.join(format!("{}.json", base));
+    if !json_path.exists() { return Ok(None); }
+    let data = std::fs::read_to_string(&json_path).map_err(|e| e.to_string())?;
+    let t: Transcript = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    Ok(Some(t))
 }
 
 #[tauri::command]
-pub fn retry_transcription(app: AppHandle, filename: String) -> Result<(), String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let file_path = dir.join(&filename);
+pub fn retry_transcription(app: AppHandle, path: String) -> Result<(), String> {
+    let file_path = PathBuf::from(&path);
     if !file_path.exists() {
-        return Err("file not found".to_string());
+        return Err(format!("文件不存在: {}", path));
     }
-    let duration_secs = crate::recordings::read_duration_pub(&file_path);
-    start_transcription(app, filename, file_path, duration_secs);
+    let filename = file_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let duration = crate::recordings::read_duration_pub(&file_path);
+    start_transcription(app, filename, file_path, duration);
     Ok(())
 }

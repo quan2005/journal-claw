@@ -1,10 +1,10 @@
-use crate::recordings::{recordings_dir, parse_filename_pub, read_duration_pub};
+use crate::recordings::{parse_filename_pub, read_duration_pub};
 use crate::types::RecordingItem;
 use chrono::Local;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 pub struct RecorderState(pub Mutex<Option<ActiveRecording>>);
 
@@ -36,7 +36,13 @@ pub fn start_recording(
         return Err("already_recording".to_string());
     }
 
-    let dir = recordings_dir(&app)?;
+    let cfg = crate::config::load_config(&app)?;
+    if cfg.workspace_path.is_empty() {
+        return Err("请先在设置中配置 Workspace 路径".to_string());
+    }
+    let ym = crate::workspace::current_year_month();
+    crate::workspace::ensure_dirs(&cfg.workspace_path, &ym)?;
+    let dir = crate::workspace::raw_dir(&cfg.workspace_path, &ym);
     let filename = unique_filename(&dir);
     let output_path = dir.join(&filename);
     let wav_path = output_path.with_extension("wav.tmp");
@@ -119,61 +125,77 @@ pub fn start_recording(
 }
 
 #[tauri::command]
-pub fn stop_recording(
+pub async fn stop_recording(
     app: AppHandle,
     state: State<'_, RecorderState>,
-) -> Result<RecordingItem, String> {
-    let mut guard = state.0.lock().map_err(|e| e.to_string())?;
-    let active = guard.take().ok_or("not_recording")?;
+) -> Result<(), String> {
+    // Fast path: stop stream + finalize WAV (sub-second)
+    let (wav_path, output_path, filename) = {
+        let mut guard = state.0.lock().map_err(|e| e.to_string())?;
+        let active = guard.take().ok_or("not_recording")?;
 
-    drop(active.stream);
+        drop(active.stream);
 
-    {
-        let mut wg = active.writer.lock().map_err(|e| e.to_string())?;
-        if let Some(w) = wg.take() {
-            w.finalize().map_err(|e| e.to_string())?;
+        {
+            let mut wg = active.writer.lock().map_err(|e| e.to_string())?;
+            if let Some(w) = wg.take() {
+                w.finalize().map_err(|e| e.to_string())?;
+            }
         }
-    }
 
-    let wav_path = active.output_path.with_extension("wav.tmp");
+        let filename = active.output_path
+            .file_name().unwrap()
+            .to_string_lossy().into_owned();
 
-    // Post-process: denoise + silence removal. Errors are silently discarded.
-    let _ = crate::audio_process::process_audio(&wav_path);
-
-    let status = std::process::Command::new("afconvert")
-        .args(["-f", "m4af", "-d", "aac",
-               wav_path.to_str().unwrap(),
-               active.output_path.to_str().unwrap()])
-        .status()
-        .map_err(|e| e.to_string())?;
-
-    if !status.success() {
-        return Err("afconvert_failed".to_string());
-    }
-    let _ = std::fs::remove_file(&wav_path);
-
-    let filename = active.output_path
-        .file_name().unwrap()
-        .to_string_lossy().into_owned();
-    let (display_name, year_month) = parse_filename_pub(&filename);
-    let duration_secs = read_duration_pub(&active.output_path);
-
-    let result_item = RecordingItem {
-        filename: filename.clone(),
-        path: active.output_path.to_string_lossy().into_owned(),
-        display_name,
-        duration_secs,
-        year_month,
-        transcript_status: None,
+        (active.output_path.with_extension("wav.tmp"),
+         active.output_path,
+         filename)
     };
 
-    // Auto-trigger transcription if duration > 30s
-    crate::transcription::start_transcription(
-        app,
-        filename,
-        active.output_path,
-        duration_secs,
-    );
+    // Notify frontend that processing has started
+    let _ = app.emit("recording-processing", &filename);
 
-    Ok(result_item)
+    // Heavy path: denoise + convert on a blocking thread
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let _ = crate::audio_process::process_audio(&wav_path);
+
+        let status = std::process::Command::new("afconvert")
+            .args(["-f", "m4af", "-d", "aac",
+                   wav_path.to_str().unwrap(),
+                   output_path.to_str().unwrap()])
+            .status();
+
+        if let Ok(s) = status {
+            if s.success() {
+                let _ = std::fs::remove_file(&wav_path);
+            }
+        }
+
+        let (display_name, year_month) = parse_filename_pub(&filename);
+        let duration_secs = read_duration_pub(&output_path);
+
+        let item = RecordingItem {
+            filename: filename.clone(),
+            path: output_path.to_string_lossy().into_owned(),
+            display_name,
+            duration_secs,
+            year_month,
+            transcript_status: None,
+        };
+
+        let _ = app_clone.emit("recording-processed", serde_json::json!({
+            "filename": filename,
+            "path": output_path.to_string_lossy().as_ref(),
+        }));
+
+        crate::transcription::start_transcription(
+            app_clone,
+            filename,
+            output_path,
+            duration_secs,
+        );
+    });
+
+    Ok(())
 }

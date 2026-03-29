@@ -22,11 +22,11 @@ export const playRecording = (path: string): Promise<void> =>
 export const openSettings = (): Promise<void> =>
   invoke('open_settings')
 
-export const getTranscript = (filename: string): Promise<Transcript | null> =>
-  invoke('get_transcript', { filename })
+export const getTranscript = (path: string): Promise<Transcript | null> =>
+  invoke('get_transcript', { path })
 
-export const retryTranscription = (filename: string): Promise<void> =>
-  invoke('retry_transcription', { filename })
+export const retryTranscription = (path: string): Promise<void> =>
+  invoke('retry_transcription', { path })
 
 export const getApiKey = (): Promise<string | null> =>
   invoke<string | null>('get_api_key')

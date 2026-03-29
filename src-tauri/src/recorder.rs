@@ -189,12 +189,20 @@ pub async fn stop_recording(
             "path": output_path.to_string_lossy().as_ref(),
         }));
 
+        let app_for_ai = app_clone.clone();
+        let path_for_ai = output_path.to_string_lossy().into_owned();
+        let ym_for_ai = crate::workspace::current_year_month();
+
         crate::transcription::start_transcription(
             app_clone,
             filename,
             output_path,
             duration_secs,
         );
+
+        tauri::async_runtime::spawn(async move {
+            let _ = crate::ai_processor::process_material(app_for_ai, path_for_ai, ym_for_ai).await;
+        });
     });
 
     Ok(())

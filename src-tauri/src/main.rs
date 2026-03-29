@@ -7,6 +7,7 @@ mod transcription;
 mod workspace;
 mod journal;
 mod materials;
+mod ai_processor;
 
 use tauri::menu::{Menu, MenuItem, Submenu};
 
@@ -48,6 +49,7 @@ fn main() {
             journal::get_journal_entry_content,
             journal::save_journal_entry_content,
             materials::import_file,
+            ai_processor::trigger_ai_processing,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

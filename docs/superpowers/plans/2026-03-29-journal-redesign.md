@@ -1289,9 +1289,6 @@ export const listAllJournalEntries = () =>
 export const getJournalEntryContent = (path: string) =>
   invoke<string>('get_journal_entry_content', { path })
 
-export const saveJournalEntryContent = (path: string, content: string) =>
-  invoke<void>('save_journal_entry_content', { path, content })
-
 // Materials
 export const importFile = (srcPath: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_file', { src_path: srcPath })
@@ -1841,7 +1838,7 @@ git commit -m "feat: add JournalList, InboxStrip, DropOverlay components"
 
 ---
 
-## Task 11: DetailPanel 组件（可编辑 markdown + 原始素材）
+## Task 11: DetailPanel 组件（只读 markdown + 原始素材）
 
 **Files:**
 - Create: `src/components/DetailPanel.tsx`
@@ -1851,7 +1848,8 @@ git commit -m "feat: add JournalList, InboxStrip, DropOverlay components"
 ```tsx
 import { useState, useEffect } from 'react'
 import type { JournalEntry } from '../types'
-import { getJournalEntryContent, saveJournalEntryContent } from '../lib/tauri'
+import { getJournalEntryContent } from '../lib/tauri'
+import { invoke } from '@tauri-apps/api/core'
 import { Spinner } from './Spinner'
 
 interface DetailPanelProps {
@@ -1863,233 +1861,184 @@ function kindIcon(kind: string): string {
   return kind === 'audio' ? '🎙' : kind === 'pdf' ? '📋' : kind === 'docx' ? '📝' : '📄'
 }
 
+function kindAction(kind: string): string {
+  return kind === 'audio' ? '▶ 播放' : '打开'
+}
+
+// Minimal markdown renderer — headings + paragraphs + lists
+function renderMarkdown(md: string): React.ReactNode[] {
+  // Strip frontmatter
+  const body = md.replace(/^---[\s\S]*?---\n?/, '').trim()
+  const lines = body.split('\n')
+  const nodes: React.ReactNode[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+    if (line.startsWith('## ')) {
+      nodes.push(
+        <h2 key={i} style={{ fontSize: 13, fontWeight: 600, color: '#1c1c1e', margin: '12px 0 4px' }}>
+          {line.slice(3)}
+        </h2>
+      )
+      i++
+    } else if (line.startsWith('- [ ] ') || line.startsWith('- [x] ')) {
+      const checked = line.startsWith('- [x] ')
+      nodes.push(
+        <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
+          <span style={{ width: 12, height: 12, border: '1.5px solid #c7c7cc', borderRadius: 3, flexShrink: 0, display: 'inline-block', background: checked ? '#c7c7cc' : 'none' }} />
+          <span style={{ fontSize: 13, color: '#3a3a3c' }}>{line.slice(6)}</span>
+        </div>
+      )
+      i++
+    } else if (line.startsWith('- ')) {
+      nodes.push(
+        <div key={i} style={{ fontSize: 13, color: '#3a3a3c', marginBottom: 2, paddingLeft: 12 }}>
+          · {line.slice(2)}
+        </div>
+      )
+      i++
+    } else if (line.trim() === '') {
+      i++
+    } else {
+      nodes.push(
+        <p key={i} style={{ fontSize: 13, color: '#3a3a3c', marginBottom: 4, lineHeight: 1.75 }}>
+          {line}
+        </p>
+      )
+      i++
+    }
+  }
+  return nodes
+}
+
+const TAG_DISPLAY: Record<string, { label: string; color: string; bg: string }> = {
+  meeting: { label: '会议', color: '#5856d6', bg: 'rgba(88,86,214,0.10)' },
+  reading: { label: '阅读', color: '#ff9500', bg: 'rgba(255,149,0,0.10)' },
+  design:  { label: '设计', color: '#30b0c7', bg: 'rgba(48,176,199,0.10)' },
+  report:  { label: '报告', color: '#34c759', bg: 'rgba(52,199,89,0.10)' },
+  goal:    { label: '目标', color: '#ff3b30', bg: 'rgba(255,59,48,0.10)' },
+  plan:    { label: '计划', color: '#007aff', bg: 'rgba(0,122,255,0.10)' },
+}
+
 export function DetailPanel({ entry, onClose }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setContent(null)
-    setEditing(false)
-    getJournalEntryContent(entry.path).then(c => {
-      setContent(c)
-      setDraft(c)
-    })
+    getJournalEntryContent(entry.path).then(setContent)
   }, [entry.path])
 
-  const handleSave = async () => {
-    setSaving(true)
-    await saveJournalEntryContent(entry.path, draft)
-    setContent(draft)
-    setSaving(false)
-    setEditing(false)
-  }
-
-  // Escape key
+  // Escape to close
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !editing) onClose()
-    }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [editing, onClose])
+  }, [onClose])
+
+  const displayTags = entry.tags.filter(t => t !== 'journal' && TAG_DISPLAY[t])
 
   return (
     <div style={{
       width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column',
-      borderLeft: '1px solid var(--divider)', background: 'var(--sheet-bg)',
-      height: '100%',
+      borderLeft: '1px solid var(--divider)', background: 'var(--sheet-bg)', height: '100%',
     }}>
       {/* Header */}
       <div style={{
-        height: 52, display: 'flex', alignItems: 'center',
+        height: 48, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 16px',
         borderBottom: '1px solid var(--divider)', flexShrink: 0,
       }}>
-        <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--item-text)' }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--item-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {entry.title}
         </span>
-        <button onClick={onClose} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: 18, color: 'var(--item-meta)', padding: '4px 8px',
-        }}>✕</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#c7c7cc', padding: '4px 8px' }}>✕</button>
       </div>
 
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-        {/* Meta */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--item-meta)' }}>{entry.created_time}</span>
-          {entry.tags.filter(t => t !== 'journal').map(t => (
-            <span key={t} style={{
-              fontSize: 11, color: '#8e8e93', background: '#f2f2f7',
-              borderRadius: 4, padding: '1px 6px',
-            }}>{t}</span>
-          ))}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Meta block — B3 style */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: '#aeaeb2' }}>{entry.created_time}</span>
+            {displayTags.map(t => {
+              const cfg = TAG_DISPLAY[t]
+              return (
+                <span key={t} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 500, color: cfg.color, background: cfg.bg }}>
+                  {cfg.label}
+                </span>
+              )
+            })}
+          </div>
+          {entry.summary && (
+            <div style={{ fontSize: 12, color: '#aeaeb2', fontStyle: 'italic', lineHeight: 1.5 }}>
+              {entry.summary}
+            </div>
+          )}
         </div>
 
-        {/* Content */}
+        {/* Thin divider */}
+        <div style={{ height: 1, background: '#f0f0f0' }} />
+
+        {/* Read-only markdown */}
         {content === null ? (
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
             <Spinner size={20} />
           </div>
-        ) : editing ? (
-          <textarea
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            style={{
-              width: '100%', minHeight: 300, fontSize: 13, lineHeight: 1.75,
-              color: 'var(--item-text)', border: '1px solid var(--divider)',
-              borderRadius: 6, padding: 10, fontFamily: 'inherit',
-              resize: 'vertical', background: 'var(--sheet-bg)', outline: 'none',
-            }}
-            autoFocus
-          />
         ) : (
-          <div
-            onClick={() => setEditing(true)}
-            title="点击编辑"
-            style={{
-              fontSize: 13, lineHeight: 1.75, color: 'var(--item-text)',
-              whiteSpace: 'pre-wrap', cursor: 'text', minHeight: 100,
-            }}
-          >
-            {content}
-          </div>
-        )}
-
-        {/* Edit actions */}
-        {editing && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button onClick={handleSave} disabled={saving} style={{
-              background: '#ff3b30', color: 'white', border: 'none',
-              borderRadius: 6, padding: '5px 14px', fontSize: 12,
-              fontWeight: 500, cursor: saving ? 'default' : 'pointer',
-            }}>
-              {saving ? '保存中...' : '保存'}
-            </button>
-            <button onClick={() => { setEditing(false); setDraft(content ?? '') }} style={{
-              background: '#f2f2f7', color: 'var(--item-text)', border: 'none',
-              borderRadius: 6, padding: '5px 14px', fontSize: 12, cursor: 'pointer',
-            }}>
-              取消
-            </button>
+          <div style={{ lineHeight: 1.8 }}>
+            {renderMarkdown(content)}
           </div>
         )}
 
         {/* Raw materials */}
         {entry.materials.length > 0 && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--divider)' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#8e8e93', textTransform: 'uppercase', marginBottom: 8 }}>
+          <div style={{ marginTop: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#c7c7cc', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
               原始素材
             </div>
             {entry.materials.map(m => (
-              <div key={m.path} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '7px 10px', borderRadius: 7, marginBottom: 4,
-                background: '#f9f9f9', cursor: 'pointer',
-              }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#f0f0f0'}
-                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = '#f9f9f9'}
+              <div
+                key={m.path}
+                onClick={() => invoke('open_with_system', { path: m.path })}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, background: '#f5f5f7', marginBottom: 4, cursor: 'pointer' }}
+                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#efefef'}
+                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = '#f5f5f7'}
               >
-                <span style={{ fontSize: 16 }}>{kindIcon(m.kind)}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--item-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {m.filename}
-                  </div>
-                </div>
+                <span style={{ fontSize: 15, flexShrink: 0 }}>{kindIcon(m.kind)}</span>
+                <span style={{ fontSize: 12, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1c1c1e' }}>
+                  {m.filename}
+                </span>
+                <span style={{ fontSize: 11, color: '#aeaeb2', flexShrink: 0 }}>{kindAction(m.kind)}</span>
               </div>
             ))}
           </div>
         )}
+
       </div>
     </div>
   )
 }
 ```
 
-- [ ] **Step 2: 构建确认**
-
-```bash
-npm run build 2>&1 | grep "error" | head -10
-```
-
-Expected: 无 error
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add src/components/DetailPanel.tsx
-git commit -m "feat: add DetailPanel with editable markdown content and raw materials list"
-```
-
----
-
-## Task 11b: DetailPanel — 添加"添加素材到此条目"按钮
-
-**Files:**
-- Modify: `src/components/DetailPanel.tsx`
-
-规格要求在详情面板中有"**添加素材到此条目** 按钮"，允许用户将额外文件关联到已选条目。
-
-- [ ] **Step 1: 在 DetailPanel.tsx 的原始素材区块下方新增按钮**
-
-找到 `{entry.materials.length > 0 && (` 区块末尾的闭合 `</div>)`，在其后、组件 `</div>` 之前插入：
-
-```tsx
-        {/* Add material button */}
-        <button
-          onClick={async () => {
-            // Use Tauri file dialog via dynamic import
-            const { open } = await import('@tauri-apps/plugin-dialog')
-            const selected = await open({
-              multiple: true,
-              filters: [{ name: '素材文件', extensions: ['m4a', 'wav', 'mp3', 'txt', 'md', 'pdf', 'docx'] }],
-            })
-            if (!selected) return
-            const paths = Array.isArray(selected) ? selected : [selected]
-            const { importFile, triggerAiProcessing } = await import('../lib/tauri')
-            for (const p of paths) {
-              const result = await importFile(p)
-              await triggerAiProcessing(result.path, result.year_month)
-            }
-          }}
-          style={{
-            marginTop: 12, width: '100%', background: 'none',
-            border: '1px dashed var(--divider)', borderRadius: 7,
-            padding: '8px 0', fontSize: 12, color: '#8e8e93',
-            cursor: 'pointer', textAlign: 'center',
-          }}
-          onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = '#f5f5f7'}
-          onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'none'}
-        >
-          + 添加素材到此条目
-        </button>
-```
-
-- [ ] **Step 2: 确认 @tauri-apps/plugin-dialog 已安装**
-
-```bash
-grep "plugin-dialog" src-tauri/Cargo.toml src-tauri/tauri.conf.json 2>/dev/null | head -5
-```
-
-如果没有结果，安装：
-
-```bash
-cd src-tauri && cargo add tauri-plugin-dialog
-```
-
-在 `src-tauri/src/main.rs` 的 `Builder` 中注册插件：
+- [ ] **Step 2: 在 main.rs 新增 open_with_system 命令**
 
 ```rust
-.plugin(tauri_plugin_dialog::init())
+#[tauri::command]
+pub fn open_with_system(path: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg(&path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
 ```
 
-并在前端 package.json 确认已有 `@tauri-apps/plugin-dialog`；如没有：
+在 `invoke_handler` 中注册：
 
-```bash
-npm install @tauri-apps/plugin-dialog
+```rust
+open_with_system,
 ```
 
 - [ ] **Step 3: 构建确认**
@@ -2104,12 +2053,12 @@ Expected: 无 error
 
 ```bash
 git add src/components/DetailPanel.tsx src-tauri/src/main.rs
-git commit -m "feat: add '添加素材到此条目' button in DetailPanel"
+git commit -m "feat: add DetailPanel — read-only markdown, B3 meta, system open for materials"
 ```
 
 ---
 
-## Task 11c: JournalItem — 右键菜单（播放 / Finder / 删除）
+## Task 11c: JournalItem — 右键菜单
 
 **Files:**
 - Create: `src/components/JournalContextMenu.tsx`
@@ -2550,6 +2499,6 @@ git commit -m "chore: ensure CSS variables cover all new components"
 6. **日期列** 首条目显示 15px 日数字 + 周几，同天后续条目空白
 7. **标签 pill** 内联在标题后，按类型着色
 8. **顶部处理条** 仅在 AI 处理中时显示，完成后消失
-9. **详情面板** 右滑出，显示 markdown 内容可点击编辑，"添加素材到此条目"按钮可导入文件
+9. **详情面板** 右滑出，meta 两行（时间+标签 / 斜体 summary），正文只读 markdown 渲染，素材点击调系统默认程序
 10. **右键菜单** 日志条目右键显示"在 Finder 中显示"和"删除"
 11. **所有现有测试** 仍然通过

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { LogicalSize } from '@tauri-apps/api/dpi'
 import { TitleBar } from './components/TitleBar'
 import { RecordButton } from './components/RecordButton'
@@ -83,21 +84,22 @@ export default function App() {
   // Drop handling via Tauri native file drop (browser DragEvent doesn't expose file paths)
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    getCurrentWindow().onDragDropEvent((event) => {
-      if (event.payload.type === 'over') {
+    getCurrentWebview().onDragDropEvent((event) => {
+      const type = event.payload.type
+      if (type === 'enter' || type === 'over') {
         setIsDragOver(true)
-      } else if (event.payload.type === 'leave') {
+      } else if (type === 'leave') {
         setIsDragOver(false)
-      } else if (event.payload.type === 'drop') {
+      } else if (type === 'drop') {
         setIsDragOver(false)
-        const paths: string[] = event.payload.paths ?? []
+        const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
         ;(async () => {
           for (const path of paths) {
             try {
               const result = await importFile(path)
               await triggerAiProcessing(result.path, result.year_month)
             } catch (err) {
-              console.error('Import failed:', err)
+              console.error('[drop] importFile error:', err, 'path:', path)
             }
           }
           refresh()

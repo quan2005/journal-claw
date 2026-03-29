@@ -95,7 +95,7 @@ export function JournalList({ entries, processingPaths, selectedPath, onSelect }
           y={contextMenu.y}
           entryPath={contextMenu.entry.path}
           onShowInFinder={async () => {
-            await invoke('show_in_finder', { path: contextMenu.entry.path })
+            await invoke('reveal_in_finder', { path: contextMenu.entry.path })
           }}
           onDelete={async () => {
             await deleteJournalEntry(contextMenu.entry.path)

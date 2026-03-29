@@ -48,7 +48,7 @@ fn augmented_path() -> String {
 /// Spawn a single-threaded consumer that processes tasks serially.
 /// Call once during app setup; pass the receiver half.
 pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         while let Some(task) = rx.recv().await {
             let _ = process_material(&app, &task.material_path, &task.year_month).await;
         }

@@ -312,6 +312,7 @@ export function CommandDock({
               onChange={(e) => setPasteText(e.target.value)}
               onKeyDown={handleTextareaKeyDown}
               placeholder="在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…"
+              className="dock-textarea"
               style={{
                 flex: 1,
                 width: '100%',

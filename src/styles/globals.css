@@ -257,6 +257,12 @@ html, body, #root {
   flex-shrink: 0;
 }
 
+/* ── Dock textarea placeholder ─────────────────────────── */
+.dock-textarea::placeholder {
+  color: var(--item-meta);
+  opacity: 0.35;
+}
+
 /* ── Table: auto layout — first column stays compact ────────── */
 .md-body table td:first-child {
   white-space: nowrap;

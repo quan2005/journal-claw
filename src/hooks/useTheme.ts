@@ -16,13 +16,17 @@ export function useTheme() {
   const [theme, setThemeState] = useState<Theme>('system')
 
   useEffect(() => {
+    let cancelled = false
     invoke<string>('get_workspace_theme')
       .then(saved => {
-        const t = (saved as Theme) ?? 'system'
+        if (cancelled) return
+        const valid: Theme[] = ['light', 'dark', 'system']
+        const t: Theme = valid.includes(saved as Theme) ? (saved as Theme) : 'system'
         setThemeState(t)
         applyTheme(t)
       })
-      .catch(() => applyTheme('system'))
+      .catch(() => { if (!cancelled) { setThemeState('system'); applyTheme('system') } })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {

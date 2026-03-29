@@ -5,6 +5,7 @@ mod recorder;
 mod audio_process;
 mod transcription;
 mod workspace;
+mod journal;
 
 use tauri::menu::{Menu, MenuItem, Submenu};
 
@@ -41,6 +42,10 @@ fn main() {
             config::set_claude_cli_path,
             transcription::get_transcript,
             transcription::retry_transcription,
+            journal::list_all_journal_entries,
+            journal::list_journal_entries,
+            journal::get_journal_entry_content,
+            journal::save_journal_entry_content,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

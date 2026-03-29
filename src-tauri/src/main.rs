@@ -6,6 +6,7 @@ mod audio_process;
 mod transcription;
 mod workspace;
 mod journal;
+mod materials;
 
 use tauri::menu::{Menu, MenuItem, Submenu};
 
@@ -46,6 +47,7 @@ fn main() {
             journal::list_journal_entries,
             journal::get_journal_entry_content,
             journal::save_journal_entry_content,
+            materials::import_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

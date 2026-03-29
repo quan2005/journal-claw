@@ -4,7 +4,7 @@
 
 **Goal:** 让 Claude CLI AI 引擎端到端跑通：用户拖入素材 → AI 自动生成/更新日志条目 → 前端刷新显示。
 
-**Architecture:** 在 workspace 根目录放置 CLAUDE.md 定义日志格式规范，Rust 端调用 Claude CLI 时 `current_dir` 设为 **workspace 根目录**（而非 yyMM/ 子目录），传入正确的 flags（`--tools "Read,Write,Glob"`、`--permission-mode bypassPermissions`、`--output-format json`、`--no-session-persistence`），解析 JSON 输出判断成功/失败。`@` 文件引用使用相对路径 `yyMM/raw/filename`（相对于 workspace 根目录）。首次启动时自动生成 CLAUDE.md。
+**Architecture:** 在 workspace 根目录放置 CLAUDE.md 定义日志格式规范（首次自动生成，用户可通过设置界面编辑），Rust 端调用 Claude CLI 时 `current_dir` 设为 **workspace 根目录**，传入 flags（`--permission-mode bypassPermissions`、`--output-format json`、`--no-session-persistence`），不限制 tools（使用 CLI 默认全部工具）。解析 JSON 输出判断成功/失败。`@` 文件引用使用相对路径 `yyMM/raw/filename`。
 
 **Tech Stack:** Rust (tokio process, serde_json), Claude CLI v2.x
 
@@ -14,8 +14,7 @@
 
 | 文件 | 职责 |
 |------|------|
-| `src-tauri/src/ai_processor.rs` | 修改：CLI args 构建、JSON 输出解析、系统提示词文件管理 |
-| `src-tauri/src/ai_processor/prompt.rs` | **不创建** — 提示词内容写在 CLAUDE.md 里，不在 Rust 里 |
+| `src-tauri/src/ai_processor.rs` | 修改：CLI args、JSON 输出解析、CLAUDE.md 管理（ensure + get/set 命令） |
 
 ---
 
@@ -114,11 +113,54 @@ fn ensure_workspace_prompt(workspace_path: &str) {
 Run: `cd src-tauri && cargo test ensure_workspace_prompt -- --nocapture`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 5: 添加 get/set_workspace_prompt Tauri 命令**
+
+在 `ai_processor.rs` 末尾（`#[cfg(test)]` 之前）添加：
+
+```rust
+#[tauri::command]
+pub fn get_workspace_prompt(app: AppHandle) -> Result<String, String> {
+    let cfg = config::load_config(&app)?;
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    if path.exists() {
+        std::fs::read_to_string(&path).map_err(|e| e.to_string())
+    } else {
+        Ok(WORKSPACE_PROMPT.to_string())
+    }
+}
+
+#[tauri::command]
+pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), String> {
+    let cfg = config::load_config(&app)?;
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+```
+
+- [ ] **Step 6: 在 main.rs 注册新命令**
+
+在 `main.rs` 的 `invoke_handler` 中添加：
+
+```rust
+            ai_processor::get_workspace_prompt,
+            ai_processor::set_workspace_prompt,
+```
+
+- [ ] **Step 7: 在 src/lib/tauri.ts 中添加前端 wrapper**
+
+```ts
+export const getWorkspacePrompt = () =>
+  invoke<string>('get_workspace_prompt')
+
+export const setWorkspacePrompt = (content: string) =>
+  invoke<void>('set_workspace_prompt', { content })
+```
+
+- [ ] **Step 8: 提交**
 
 ```bash
-git add src-tauri/src/ai_processor.rs
-git commit -m "feat(rust): 添加 workspace CLAUDE.md 自动生成"
+git add src-tauri/src/ai_processor.rs src-tauri/src/main.rs src/lib/tauri.ts
+git commit -m "feat: CLAUDE.md 自动生成 + get/set 命令供设置界面使用"
 ```
 
 ---
@@ -140,9 +182,8 @@ git commit -m "feat(rust): 添加 workspace CLAUDE.md 自动生成"
         assert!(args.contains(&"-p".to_string()));
         // @ 引用使用 yyMM/raw/filename 相对路径
         assert!(args[1].starts_with("@2603/raw/note.txt"));
-        // 必须包含 --tools
-        assert!(args.contains(&"--tools".to_string()));
-        assert!(args.contains(&"Read,Write,Glob".to_string()));
+        // 不限制 tools（使用 CLI 默认）
+        assert!(!args.contains(&"--tools".to_string()));
         // 必须包含 --permission-mode
         assert!(args.contains(&"--permission-mode".to_string()));
         assert!(args.contains(&"bypassPermissions".to_string()));
@@ -189,8 +230,6 @@ fn build_args(material_path: &str, year_month: &str) -> Vec<String> {
     vec![
         "-p".to_string(),
         format!("@{} {}", relative_ref, build_prompt(material_path)),
-        "--tools".to_string(),
-        "Read,Write,Glob".to_string(),
         "--permission-mode".to_string(),
         "bypassPermissions".to_string(),
         "--output-format".to_string(),

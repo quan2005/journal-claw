@@ -11,6 +11,7 @@ mod materials;
 mod ai_processor;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::Manager;
 
 #[tauri::command]
 fn open_with_system(path: String) -> Result<(), String> {
@@ -83,6 +84,12 @@ fn main() {
                     let _ = config::open_settings(app_handle.clone());
                 }
             });
+
+            // ── AI processing queue ──
+            let (tx, rx) = tokio::sync::mpsc::channel(32);
+            app.manage(ai_processor::AiQueue(tx));
+            ai_processor::start_queue_consumer(app.handle().clone(), rx);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

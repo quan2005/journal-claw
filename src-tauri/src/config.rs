@@ -14,12 +14,9 @@ pub struct Config {
 }
 
 fn default_claude_cli() -> String {
-    // Try common install locations so the default works without shell PATH
-    for candidate in &[
-        "/Users/yanwu/.local/bin/claude",
-        "/usr/local/bin/claude",
-        "/opt/homebrew/bin/claude",
-    ] {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let local_bin = format!("{}/.local/bin/claude", home);
+    for candidate in &[local_bin.as_str(), "/usr/local/bin/claude", "/opt/homebrew/bin/claude"] {
         if std::path::Path::new(candidate).exists() {
             return candidate.to_string();
         }
@@ -35,8 +32,6 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
 fn default_workspace_path() -> Result<String, String> {
     let home = std::env::var("HOME").map_err(|e| e.to_string())?;
     let path = PathBuf::from(home).join("Documents").join("journal");
-    fs::create_dir_all(&path)
-        .map_err(|e| format!("无法创建默认 workspace 目录: {}", e))?;
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -103,6 +98,8 @@ pub fn get_workspace_path(app: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 pub fn set_workspace_path(app: AppHandle, path: String) -> Result<(), String> {
+    fs::create_dir_all(&path)
+        .map_err(|e| format!("无法创建 workspace 目录: {}", e))?;
     let mut config = load_config(&app)?;
     config.workspace_path = path;
     save_config(&app, &config)

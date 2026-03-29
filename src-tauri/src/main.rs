@@ -48,6 +48,7 @@ fn main() {
             journal::list_journal_entries,
             journal::get_journal_entry_content,
             journal::save_journal_entry_content,
+            journal::delete_journal_entry,
             materials::import_file,
             ai_processor::trigger_ai_processing,
         ])

@@ -60,3 +60,6 @@ export const importFile = (srcPath: string) =>
 // AI Processing
 export const triggerAiProcessing = (materialPath: string, yearMonth: string) =>
   invoke<void>('trigger_ai_processing', { material_path: materialPath, year_month: yearMonth })
+
+export const deleteJournalEntry = (path: string) =>
+  invoke<void>('delete_journal_entry', { path })

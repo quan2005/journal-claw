@@ -191,6 +191,11 @@ pub fn save_journal_entry_content(path: String, content: String) -> Result<(), S
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn delete_journal_entry(path: String) -> Result<(), String> {
+    std::fs::remove_file(&path).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

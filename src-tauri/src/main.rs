@@ -11,6 +11,15 @@ mod ai_processor;
 
 use tauri::menu::{Menu, MenuItem, Submenu};
 
+#[tauri::command]
+fn open_with_system(path: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg(&path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
@@ -51,6 +60,7 @@ fn main() {
             journal::delete_journal_entry,
             materials::import_file,
             ai_processor::trigger_ai_processing,
+            open_with_system,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { getCurrentWindow } from '@tauri-apps/api/window'
+import { useState, useEffect, useRef } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import { LogicalSize } from '@tauri-apps/api/dpi'
 import { TitleBar } from './components/TitleBar'
 import { RecordButton } from './components/RecordButton'
 import { JournalList } from './components/JournalList'
@@ -9,20 +7,19 @@ import { DetailPanel } from './components/DetailPanel'
 import { DropOverlay } from './components/DropOverlay'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
+import { useTheme } from './hooks/useTheme'
 import { importFile, triggerAiProcessing } from './lib/tauri'
 import type { JournalEntry } from './types'
 
 const BASE_WIDTH = 320
-const PANEL_WIDTH = 340
 const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { status, start, stop } = useRecorder()
   const { entries, processingPaths, refresh } = useJournal()
+  const { theme, setTheme } = useTheme()
 
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [panelVisible, setPanelVisible] = useState(false)
-  const [slideOpen, setSlideOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
@@ -32,31 +29,6 @@ export default function App() {
 
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
-
-  // Window resize
-  const setWindowWidth = useCallback(async (width: number) => {
-    const win = getCurrentWindow()
-    const inner = await win.innerSize()
-    await win.setSize(new LogicalSize(width, inner.height / (window.devicePixelRatio || 1)))
-  }, [])
-
-  const openPanel = useCallback(async (entry: JournalEntry) => {
-    setSelectedEntry(entry)
-    if (!panelVisible) {
-      setPanelVisible(true)
-      await setWindowWidth(baseWidth + DIVIDER_WIDTH + PANEL_WIDTH)
-      requestAnimationFrame(() => setSlideOpen(true))
-    }
-  }, [panelVisible, baseWidth, setWindowWidth])
-
-  const closePanel = useCallback(async () => {
-    setSlideOpen(false)
-    setTimeout(async () => {
-      setPanelVisible(false)
-      setSelectedEntry(null)
-      await setWindowWidth(baseWidth)
-    }, 250)
-  }, [baseWidth, setWindowWidth])
 
   // Divider drag
   const onDividerMouseDown = (e: React.MouseEvent) => {
@@ -71,17 +43,14 @@ export default function App() {
       const newWidth = Math.max(220, Math.min(560, dragStartWidth.current + delta))
       setBaseWidth(newWidth)
       localStorage.setItem('journal_base_width', String(newWidth))
-      if (panelVisible) {
-        setWindowWidth(newWidth + DIVIDER_WIDTH + PANEL_WIDTH)
-      }
     }
     const onUp = () => setIsDragging(false)
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-  }, [isDragging, panelVisible, setWindowWidth])
+  }, [isDragging])
 
-  // Drop handling via Tauri native file drop (browser DragEvent doesn't expose file paths)
+  // Drop handling via Tauri native file drop
   useEffect(() => {
     let unlisten: (() => void) | null = null
     getCurrentWebview().onDragDropEvent((event) => {
@@ -127,7 +96,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden', position: 'relative' }}>
-      <TitleBar />
+      <TitleBar theme={theme} onThemeChange={setTheme} />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left: Journal list */}
@@ -136,7 +105,7 @@ export default function App() {
             entries={entries}
             processingPaths={processingPaths}
             selectedPath={selectedEntry?.path ?? null}
-            onSelect={openPanel}
+            onSelect={setSelectedEntry}
           />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', paddingBottom: 24, pointerEvents: 'none' }}>
             <div style={{ pointerEvents: 'auto' }}>
@@ -146,26 +115,18 @@ export default function App() {
         </div>
 
         {/* Divider */}
-        {panelVisible && (
-          <div
-            onMouseDown={onDividerMouseDown}
-            style={{
-              width: DIVIDER_WIDTH, flexShrink: 0, background: 'var(--divider)',
-              cursor: 'col-resize',
-            }}
-          />
-        )}
+        <div
+          onMouseDown={onDividerMouseDown}
+          style={{
+            width: DIVIDER_WIDTH, flexShrink: 0, background: 'var(--divider)',
+            cursor: 'col-resize',
+          }}
+        />
 
-        {/* Right: Detail panel */}
-        {panelVisible && selectedEntry && (
-          <div style={{
-            transform: slideOpen ? 'translateX(0)' : 'translateX(100%)',
-            transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
-            flexShrink: 0,
-          }}>
-            <DetailPanel entry={selectedEntry} onClose={closePanel} />
-          </div>
-        )}
+        {/* Right: Detail panel — always visible, fills remaining space */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <DetailPanel entry={selectedEntry} onDeselect={() => setSelectedEntry(null)} />
+        </div>
       </div>
 
       <DropOverlay visible={isDragOver} />

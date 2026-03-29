@@ -5,6 +5,7 @@ mod recorder;
 mod audio_process;
 mod transcription;
 mod workspace;
+mod workspace_settings;
 mod journal;
 mod materials;
 mod ai_processor;

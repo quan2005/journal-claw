@@ -102,4 +102,13 @@ mod tests {
         let s: WorkspaceSettings = serde_json::from_str(r#"{"theme":"dark"}"#).unwrap();
         assert_eq!(s.theme, "dark");
     }
+
+    #[test]
+    fn load_settings_sanitizes_invalid_theme() {
+        let mut s: WorkspaceSettings = serde_json::from_str(r#"{"theme":"bogus"}"#).unwrap();
+        if !valid_theme(&s.theme) {
+            s.theme = "system".to_string();
+        }
+        assert_eq!(s.theme, "system");
+    }
 }

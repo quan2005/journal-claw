@@ -22,13 +22,26 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("config.json"))
 }
 
+fn default_workspace_path() -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
+    let path = PathBuf::from(home).join("Documents").join("journal");
+    fs::create_dir_all(&path)
+        .map_err(|e| format!("无法创建默认 workspace 目录: {}", e))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
 pub fn load_config(app: &AppHandle) -> Result<Config, String> {
     let path = config_path(app)?;
-    if !path.exists() {
-        return Ok(Config::default());
+    let mut config = if !path.exists() {
+        Config::default()
+    } else {
+        let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&data).map_err(|e| e.to_string())?
+    };
+    if config.workspace_path.is_empty() {
+        config.workspace_path = default_workspace_path()?;
     }
-    let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&data).map_err(|e| e.to_string())
+    Ok(config)
 }
 
 pub fn save_config(app: &AppHandle, config: &Config) -> Result<(), String> {

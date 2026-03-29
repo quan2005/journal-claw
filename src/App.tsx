@@ -80,32 +80,31 @@ export default function App() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [isDragging, panelVisible, setWindowWidth])
 
-  // Drop handling
+  // Drop handling via Tauri native file drop (browser DragEvent doesn't expose file paths)
   useEffect(() => {
-    const onDragOver = (e: DragEvent) => { e.preventDefault(); setIsDragOver(true) }
-    const onDragLeave = () => setIsDragOver(false)
-    const onDrop = async (e: DragEvent) => {
-      e.preventDefault()
-      setIsDragOver(false)
-      const files = Array.from(e.dataTransfer?.files ?? [])
-      for (const file of files) {
-        try {
-          const result = await importFile((file as unknown as { path: string }).path)
-          await triggerAiProcessing(result.path, result.year_month)
-        } catch (err) {
-          console.error('Import failed:', err)
-        }
+    let unlisten: (() => void) | null = null
+    getCurrentWindow().onDragDropEvent((event) => {
+      if (event.payload.type === 'over') {
+        setIsDragOver(true)
+      } else if (event.payload.type === 'leave') {
+        setIsDragOver(false)
+      } else if (event.payload.type === 'drop') {
+        setIsDragOver(false)
+        const paths: string[] = event.payload.paths ?? []
+        ;(async () => {
+          for (const path of paths) {
+            try {
+              const result = await importFile(path)
+              await triggerAiProcessing(result.path, result.year_month)
+            } catch (err) {
+              console.error('Import failed:', err)
+            }
+          }
+          refresh()
+        })()
       }
-      refresh()
-    }
-    window.addEventListener('dragover', onDragOver)
-    window.addEventListener('dragleave', onDragLeave)
-    window.addEventListener('drop', onDrop)
-    return () => {
-      window.removeEventListener('dragover', onDragOver)
-      window.removeEventListener('dragleave', onDragLeave)
-      window.removeEventListener('drop', onDrop)
-    }
+    }).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
   }, [refresh])
 
   // journal-entry-deleted event

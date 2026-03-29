@@ -65,15 +65,34 @@ fn ensure_workspace_prompt(workspace_path: &str) {
     }
 }
 
-fn build_prompt(_material_path: &str) -> String {
-    "新增资料，请阅读并整理记录".to_string()
+fn build_prompt(material_path: &str) -> String {
+    let filename = std::path::PathBuf::from(material_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    format!(
+        "新增素材 @{}，请阅读内容并整理为日志条目。按 CLAUDE.md 中的规范输出，直接创建或更新 .md 文件。",
+        filename
+    )
 }
 
 /// Build CLI args (without --cwd — working dir set via .current_dir()).
-fn build_args(material_path: &str) -> Vec<String> {
+fn build_args(material_path: &str, year_month: &str) -> Vec<String> {
+    let filename = std::path::PathBuf::from(material_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let relative_ref = format!("{}/raw/{}", year_month, filename);
     vec![
         "-p".to_string(),
-        format!("@{} {}", material_path, build_prompt(material_path)),
+        format!("@{} {}", relative_ref, build_prompt(material_path)),
+        "--permission-mode".to_string(),
+        "bypassPermissions".to_string(),
+        "--output-format".to_string(),
+        "json".to_string(),
+        "--no-session-persistence".to_string(),
     ]
 }
 
@@ -118,7 +137,7 @@ pub async fn process_material(
         error: None,
     });
 
-    let args = build_args(material_path);
+    let args = build_args(material_path, year_month);
     let output = tokio::process::Command::new(&cli)
         .args(&args)
         .current_dir(&ym_dir)
@@ -194,10 +213,24 @@ mod tests {
 
     #[test]
     fn build_args_no_cwd() {
-        let args = build_args("/nb/2603/raw/note.txt");
-        assert_eq!(args[0], "-p");
-        assert!(args[1].starts_with("@/nb/2603/raw/note.txt"));
-        assert!(args[1].contains("新增资料"));
+        let args = build_args("/nb/2603/raw/note.txt", "2603");
+        assert!(args[0] == "-p");
+        assert!(args[1].starts_with("@2603/raw/note.txt"));
+        assert!(args[1].contains("新增素材"));
+        assert!(!args.iter().any(|a| a == "--cwd"));
+    }
+
+    #[test]
+    fn build_args_has_required_flags() {
+        let args = build_args("/nb/2603/raw/note.txt", "2603");
+        assert!(args.contains(&"-p".to_string()));
+        assert!(args[1].starts_with("@2603/raw/note.txt"));
+        assert!(!args.contains(&"--tools".to_string()));
+        assert!(args.contains(&"--permission-mode".to_string()));
+        assert!(args.contains(&"bypassPermissions".to_string()));
+        assert!(args.contains(&"--output-format".to_string()));
+        assert!(args.contains(&"json".to_string()));
+        assert!(args.contains(&"--no-session-persistence".to_string()));
         assert!(!args.iter().any(|a| a == "--cwd"));
     }
 

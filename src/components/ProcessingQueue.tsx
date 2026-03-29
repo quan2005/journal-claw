@@ -20,15 +20,15 @@ const kindEmoji: Record<string, string> = {
 function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () => void }) {
   if (item.status === 'queued') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 10 }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--item-meta)', opacity: 0.5 }} />
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 9, opacity: 0.7 }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--item-meta)', opacity: 0.4 }} />
         排队中
       </span>
     )
   }
   if (item.status === 'processing') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 10 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 9, opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
         处理中
       </span>
@@ -37,7 +37,7 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
   if (item.status === 'failed') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ color: '#ff453a', fontSize: 10 }}>失败</span>
+        <span style={{ color: '#ff453a', fontSize: 9 }}>失败</span>
         <button
           onClick={(e) => { e.stopPropagation(); onDismiss() }}
           style={{
@@ -52,7 +52,7 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
     )
   }
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 10 }}>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 9, opacity: 0.7 }}>
       <span style={{ fontSize: 11 }}>✓</span>
       完成
     </span>
@@ -67,7 +67,7 @@ export function ProcessingQueue({ items, onDismiss }: ProcessingQueueProps) {
       background: 'var(--queue-bg)',
       borderTop: '1px solid var(--queue-border)',
       borderRadius: '8px 8px 0 0',
-      maxHeight: 180,
+      maxHeight: 160,
       overflowY: 'auto',
       boxShadow: '0 -2px 12px var(--queue-shadow)',
     }}>
@@ -86,17 +86,17 @@ export function ProcessingQueue({ items, onDismiss }: ProcessingQueueProps) {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              height: 36,
+              height: 32,
               padding: '0 20px',
               borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
               ...animStyle,
             }}
           >
-            <span style={{ fontSize: 13, flexShrink: 0 }}>{emoji}</span>
+            <span style={{ fontSize: 11, flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
             <span style={{
               flex: 1,
-              fontSize: 11,
-              color: item.status === 'failed' ? '#ff453a' : 'var(--item-text)',
+              fontSize: 10,
+              color: item.status === 'failed' ? '#ff453a' : 'var(--item-meta)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

@@ -55,11 +55,25 @@ export const getJournalEntryContent = (path: string) =>
 
 // Materials
 export const importFile = (srcPath: string) =>
-  invoke<{ path: string; filename: string; year_month: string }>('import_file', { src_path: srcPath })
+  invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })
 
 // AI Processing
 export const triggerAiProcessing = (materialPath: string, yearMonth: string) =>
-  invoke<void>('trigger_ai_processing', { material_path: materialPath, year_month: yearMonth })
+  invoke<void>('trigger_ai_processing', { materialPath, yearMonth })
 
 export const deleteJournalEntry = (path: string) =>
   invoke<void>('delete_journal_entry', { path })
+
+// Paste text → save as raw material → trigger AI processing
+export const submitPasteText = async (text: string): Promise<void> => {
+  const result = await invoke<{ path: string; filename: string; year_month: string }>(
+    'import_text', { text }
+  )
+  await triggerAiProcessing(result.path, result.year_month)
+}
+
+export const getWorkspacePrompt = () =>
+  invoke<string>('get_workspace_prompt')
+
+export const setWorkspacePrompt = (content: string) =>
+  invoke<void>('set_workspace_prompt', { content })

@@ -22,6 +22,49 @@ pub struct AiQueue(pub mpsc::Sender<QueueTask>);
 
 // ── Helpers ──────────────────────────────────────────────
 
+const WORKSPACE_PROMPT: &str = r#"# Journal 秘书稿规范
+
+你是一个日志整理助手。用户会给你原始素材（录音转写、PDF、文档等），你需要整理成结构化的日志条目。
+
+## 输出格式
+
+每个日志条目是一个 Markdown 文件，格式：
+
+```markdown
+---
+tags: [标签1, 标签2]
+summary: "一句话摘要：先结论后背景"
+---
+
+# 标题
+
+## 背景
+## 关键讨论 / 核心内容
+## 结论
+## 行动项
+```
+
+## 规则
+
+1. 文件名格式：`DD-标题.md`（DD 是日期数字，如 `28-AI平台产品会议纪要.md`）
+2. frontmatter 只保留 `tags` 和 `summary` 两个字段
+3. `summary` 写 1-3 句，先结论后背景
+4. `tags` 使用小写中文或英文，常用标签：journal, meeting, reading, research, plan, design, guide
+5. 正文结构根据内容类型选用：会议用「关键讨论 + 结论 + 行动项」，阅读用「核心观点 + 启发」，日常用「记录 + 感想」
+6. 新素材可以创建新条目，也可以追加到当天已有条目（如同一天的多段录音合并为一篇会议纪要）
+7. 如果已有同主题条目，更新而不是新建，保留用户手动修改的部分
+8. 日志条目文件写在素材对应的 `yyMM/` 目录下（与 raw/ 同级，不要写到 raw/ 子目录里）
+9. 不要输出任何解释性文字，只创建/更新文件即可
+"#;
+
+/// 确保 workspace 根目录有 CLAUDE.md。仅在文件不存在时创建，不覆盖用户修改。
+fn ensure_workspace_prompt(workspace_path: &str) {
+    let path = std::path::PathBuf::from(workspace_path).join("CLAUDE.md");
+    if !path.exists() {
+        let _ = std::fs::write(&path, WORKSPACE_PROMPT);
+    }
+}
+
 fn build_prompt(_material_path: &str) -> String {
     "新增资料，请阅读并整理记录".to_string()
 }
@@ -127,6 +170,24 @@ pub async fn trigger_ai_processing(
     Ok(())
 }
 
+#[tauri::command]
+pub fn get_workspace_prompt(app: AppHandle) -> Result<String, String> {
+    let cfg = config::load_config(&app)?;
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    if path.exists() {
+        std::fs::read_to_string(&path).map_err(|e| e.to_string())
+    } else {
+        Ok(WORKSPACE_PROMPT.to_string())
+    }
+}
+
+#[tauri::command]
+pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), String> {
+    let cfg = config::load_config(&app)?;
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,5 +199,29 @@ mod tests {
         assert!(args[1].starts_with("@/nb/2603/raw/note.txt"));
         assert!(args[1].contains("新增资料"));
         assert!(!args.iter().any(|a| a == "--cwd"));
+    }
+
+    #[test]
+    fn ensure_workspace_prompt_creates_file() {
+        let tmp = std::env::temp_dir().join("journal_prompt_test");
+        std::fs::create_dir_all(&tmp).unwrap();
+        let prompt_path = tmp.join("CLAUDE.md");
+        let _ = std::fs::remove_file(&prompt_path);
+
+        ensure_workspace_prompt(tmp.to_str().unwrap());
+        assert!(prompt_path.exists());
+
+        let content = std::fs::read_to_string(&prompt_path).unwrap();
+        assert!(content.contains("tags"));
+        assert!(content.contains("summary"));
+        assert!(content.contains("DD-标题.md"));
+
+        // Second call should NOT overwrite
+        std::fs::write(&prompt_path, "用户自定义内容").unwrap();
+        ensure_workspace_prompt(tmp.to_str().unwrap());
+        let content2 = std::fs::read_to_string(&prompt_path).unwrap();
+        assert_eq!(content2, "用户自定义内容");
+
+        std::fs::remove_dir_all(&tmp).ok();
     }
 }

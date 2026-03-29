@@ -4,6 +4,7 @@ mod recordings;
 mod recorder;
 mod audio_process;
 mod transcription;
+mod workspace;
 
 use tauri::menu::{Menu, MenuItem, Submenu};
 

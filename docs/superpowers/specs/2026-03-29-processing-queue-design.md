@@ -16,7 +16,8 @@ status: draft
 
 ### 当前问题
 
-`trigger_ai_processing` 直接 `tokio::spawn`，多文件同时提交会并行启动多个 Claude CLI 进程，资源争抢且无排队概念。
+1. `trigger_ai_processing` 直接 `tokio::spawn`，多文件同时提交会并行启动多个 Claude CLI 进程，资源争抢且无排队概念。
+2. Claude CLI 通过 `--cwd` 参数指定工作目录，但进程本身未 `cd` 到 workspace。正确做法是用 `tokio::process::Command::current_dir()` 设置进程工作目录为 workspace `yyMM/` 目录，去掉 `--cwd` 参数。
 
 ### 改动
 
@@ -32,10 +33,26 @@ trigger_ai_processing()
   loop {
     recv task from mpsc::Receiver
     → emit "ai-processing" { status: "processing" }
-    → 调用 Claude CLI
+    → 调用 Claude CLI（用 .current_dir(ym_dir) 而非 --cwd）
     → emit "ai-processing" { status: "completed" | "failed" }
   }
 ```
+
+### Claude CLI 调用方式修正
+
+当前 `build_command` 生成 `claude --cwd <dir> -p ...`。改为：
+
+```rust
+// 去掉 --cwd 参数，改用 .current_dir()
+tokio::process::Command::new(&cli_path)
+    .args(&["-p", &format!("@{} {}", material_path, prompt)])
+    .current_dir(&ym_dir)    // cd 到 workspace/yyMM/ 目录
+    .env("PATH", &augmented_path)
+    .output()
+    .await
+```
+
+`build_command` 函数简化，不再需要 `workspace_ym_dir` 参数。工作目录由 Command 的 `.current_dir()` 负责。
 
 ### ProcessingUpdate 结构体
 

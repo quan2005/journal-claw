@@ -86,38 +86,20 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
   }, [onClose])
 
   const status = transcriptionState || item.transcript_status || undefined
-  const { day, time } = getDateParts(item.display_name)
+  const { time } = getDateParts(item.display_name)
   const duration = formatDuration(item.duration_secs)
 
   return (
     <div
-      data-testid="sheet-overlay"
-      onClick={onClose}
       style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'var(--sheet-overlay)',
+        width: '100%',
+        height: '100%',
         display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        zIndex: 100,
+        flexDirection: 'column',
+        overflow: 'hidden',
+        background: 'var(--sheet-bg)',
       }}
     >
-      <div
-        ref={sheetRef}
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: 'var(--sheet-bg)',
-          width: 360,
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          transform: 'translateX(0)',
-          transition: 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)',
-          borderLeft: '1px solid var(--divider)',
-        }}
-      >
         <div style={{
           height: 52,
           padding: '0 20px',
@@ -126,14 +108,16 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: 12,
         }}>
-          <span style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'var(--item-text)',
-          }}>
-            转写内容
-          </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--item-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {item.display_name}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>
+              {time} · {duration}
+            </div>
+          </div>
           <button
             onClick={onClose}
             style={{
@@ -148,6 +132,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
               alignItems: 'center',
               justifyContent: 'center',
               padding: 0,
+              flexShrink: 0,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -155,19 +140,6 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
               <line x1="11" y1="1" x2="1" y2="11" />
             </svg>
           </button>
-        </div>
-
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--divider)',
-          flexShrink: 0,
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)', marginBottom: 4 }}>
-            {item.display_name}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>
-            {time} · {duration}
-          </div>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
@@ -221,7 +193,6 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
             <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>暂无转写内容</span>
           )}
         </div>
-      </div>
     </div>
   )
 }

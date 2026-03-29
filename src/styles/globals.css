@@ -24,7 +24,7 @@
   --date-number: var(--item-text);
   --date-secondary: var(--item-meta);
   --sheet-overlay: rgba(0, 0, 0, 0.30);
-  --sheet-bg: #ffffff;
+  --sheet-bg: var(--bg);
   --sheet-handle: #d1d1d6;
 }
 
@@ -45,7 +45,7 @@
     --item-selected-bg: rgba(255, 255, 255, 0.08);
     --item-selected-text: #e8e8e8;
     --item-selected-meta: #636366;
-    --sheet-bg: #2c2c2e;
+    --sheet-bg: var(--bg);
     --sheet-handle: #48484a;
   }
 }

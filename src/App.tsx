@@ -64,7 +64,11 @@ export default function App() {
         setIsDragOver(false)
         const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
         if (paths.length > 0) {
-          setPendingFiles(prev => [...prev, ...paths])
+          setPendingFiles(prev => {
+            const existing = new Set(prev)
+            const newPaths = paths.filter(p => !existing.has(p))
+            return newPaths.length > 0 ? [...prev, ...newPaths] : prev
+          })
         }
       }
     }).then(fn => { unlisten = fn })

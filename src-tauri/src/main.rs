@@ -62,6 +62,8 @@ fn main() {
             materials::import_file,
             ai_processor::trigger_ai_processing,
             open_with_system,
+            workspace_settings::get_workspace_theme,
+            workspace_settings::set_workspace_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

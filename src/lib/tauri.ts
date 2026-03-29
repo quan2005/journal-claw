@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { RecordingItem, Transcript } from '../types'
+import type { RecordingItem, Transcript, JournalEntry } from '../types'
 
 export const listRecordings = (): Promise<RecordingItem[]> =>
   invoke('list_recordings')
@@ -45,3 +45,18 @@ export const getClaudeCliPath = () =>
 
 export const setClaudeCliPath = (path: string) =>
   invoke<void>('set_claude_cli_path', { path })
+
+// Journal
+export const listAllJournalEntries = () =>
+  invoke<JournalEntry[]>('list_all_journal_entries')
+
+export const getJournalEntryContent = (path: string) =>
+  invoke<string>('get_journal_entry_content', { path })
+
+// Materials
+export const importFile = (srcPath: string) =>
+  invoke<{ path: string; filename: string; year_month: string }>('import_file', { src_path: srcPath })
+
+// AI Processing
+export const triggerAiProcessing = (materialPath: string, yearMonth: string) =>
+  invoke<void>('trigger_ai_processing', { material_path: materialPath, year_month: yearMonth })

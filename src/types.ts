@@ -1,15 +1,42 @@
+// ── 旧类型（保留，录音管道仍在使用）──────────────────────
+export type TranscriptionProgress = 'uploading' | 'transcribing' | 'completed' | 'failed'
+
 export interface RecordingItem {
-  filename: string       // "录音 2026-03-12 22:41.m4a"
-  path: string           // absolute path
-  display_name: string   // "录音 2026-03-12 22:41"
-  duration_secs: number  // 0 if unreadable
-  year_month: string     // "202603"
-  transcript_status: string | null  // "completed" | "failed" | null
+  filename: string
+  path: string
+  display_name: string
+  duration_secs: number
+  year_month: string
+  transcript_status: TranscriptionProgress | null
 }
 
 export interface Transcript {
-  status: string
+  status: TranscriptionProgress
   text: string
 }
 
-export type TranscriptionProgress = 'uploading' | 'transcribing' | 'completed' | 'failed'
+// ── 新类型（日志平台）────────────────────────────────────
+export interface RawMaterial {
+  filename: string
+  path: string
+  kind: 'audio' | 'text' | 'markdown' | 'pdf' | 'docx' | 'other'
+  size_bytes: number
+}
+
+export interface JournalEntry {
+  filename: string        // "28-AI平台产品会议纪要.md"
+  path: string            // absolute path
+  title: string           // "AI平台产品会议纪要"
+  summary: string         // from frontmatter summary field
+  tags: string[]          // from frontmatter tags field
+  year_month: string      // "2603"
+  day: number             // 28
+  created_time: string    // "10:15"
+  materials: RawMaterial[]
+}
+
+export interface ProcessingUpdate {
+  material_path: string
+  status: 'processing' | 'completed' | 'failed'
+  error?: string
+}

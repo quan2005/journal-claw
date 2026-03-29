@@ -64,11 +64,12 @@ export function ProcessingQueue({ items, onDismiss }: ProcessingQueueProps) {
 
   return (
     <div style={{
-      background: 'var(--dock-bg)',
-      borderTop: '0.5px solid var(--dock-border)',
+      background: 'var(--queue-bg)',
+      borderTop: '1px solid var(--queue-border)',
       borderRadius: '8px 8px 0 0',
       maxHeight: 180,
       overflowY: 'auto',
+      boxShadow: '0 -2px 12px var(--queue-shadow)',
     }}>
       {items.map((item, idx) => {
         const emoji = kindEmoji[fileKindFromName(item.filename)] ?? '\uD83D\uDCC1'
@@ -87,7 +88,7 @@ export function ProcessingQueue({ items, onDismiss }: ProcessingQueueProps) {
               gap: 8,
               height: 36,
               padding: '0 20px',
-              borderBottom: isLast ? 'none' : '0.5px solid var(--dock-border)',
+              borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
               ...animStyle,
             }}
           >

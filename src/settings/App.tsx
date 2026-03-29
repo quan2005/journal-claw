@@ -1,75 +1,76 @@
-import '../styles/globals.css'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 
 export default function SettingsApp() {
-  const [key, setKey] = useState('')
+  const [apiKey, setApiKey] = useState('')
+  const [workspacePath, setWorkspacePath] = useState('')
+  const [claudeCli, setClaudeCli] = useState('claude')
   const [saved, setSaved] = useState(false)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    invoke<string | null>('get_api_key').then(k => {
-      setKey(k ?? '')
-      setLoading(false)
-    })
+    invoke<string | null>('get_api_key').then(k => setApiKey(k ?? ''))
+    invoke<string>('get_workspace_path').then(p => setWorkspacePath(p))
+    invoke<string>('get_claude_cli_path').then(p => setClaudeCli(p))
   }, [])
 
-  const handleSave = useCallback(async () => {
-    await invoke('set_api_key', { key })
+  const handleSave = async () => {
+    await invoke('set_api_key', { key: apiKey })
+    await invoke('set_workspace_path', { path: workspacePath })
+    await invoke('set_claude_cli_path', { path: claudeCli })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
-  }, [key])
+  }
 
-  if (loading) return null
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '6px 8px', fontSize: 13,
+    border: '1px solid #e5e5ea', borderRadius: 6,
+    fontFamily: 'inherit', outline: 'none', marginTop: 4,
+  }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12, fontWeight: 500, color: '#636366', display: 'block',
+  }
+  const sectionStyle: React.CSSProperties = { marginBottom: 16 }
 
   return (
-    <div style={{
-      padding: 24,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-      background: 'var(--bg)',
-      minHeight: '100vh',
-      color: 'var(--item-text)',
-    }}>
-      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: 'var(--item-text)' }}>
-        DashScope API Key
-      </h2>
-      <input
-        type="text"
-        value={key}
-        onChange={e => setKey(e.target.value)}
-        placeholder="sk-..."
-        style={{
-          width: '100%',
-          padding: '8px 12px',
-          fontSize: 14,
-          border: '1px solid var(--divider)',
-          borderRadius: 8,
-          outline: 'none',
-          background: 'var(--item-icon-bg)',
-          color: 'var(--item-text)',
-          boxSizing: 'border-box',
-        }}
-      />
-      <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, gap: 12 }}>
-        <button
-          onClick={handleSave}
-          style={{
-            padding: '6px 16px',
-            fontSize: 14,
-            background: 'var(--record-btn)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-          }}
-        >
-          保存
-        </button>
-        {saved && <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>已保存</span>}
+    <div style={{ padding: '20px 20px 16px', fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Text, sans-serif' }}>
+      <div style={sectionStyle}>
+        <label style={labelStyle}>Workspace 路径</label>
+        <input style={inputStyle} value={workspacePath}
+          onChange={e => setWorkspacePath(e.target.value)}
+          placeholder="/Users/you/notebook" />
+        <div style={{ fontSize: 11, color: '#aeaeb2', marginTop: 4 }}>
+          日志和素材的存储根目录（如 ~/Projects/github/notebook）
+        </div>
       </div>
-      <p style={{ fontSize: 12, color: 'var(--item-meta)', marginTop: 16, lineHeight: 1.5 }}>
-        配置后，超过 30 秒的录音将自动转写为文字。
-      </p>
+
+      <div style={sectionStyle}>
+        <label style={labelStyle}>Claude CLI 路径</label>
+        <input style={inputStyle} value={claudeCli}
+          onChange={e => setClaudeCli(e.target.value)}
+          placeholder="claude" />
+        <div style={{ fontSize: 11, color: '#aeaeb2', marginTop: 4 }}>
+          claude 可执行文件路径，默认直接填 claude
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <label style={labelStyle}>DashScope API Key</label>
+        <input style={inputStyle} value={apiKey}
+          onChange={e => setApiKey(e.target.value)}
+          placeholder="sk-..." type="password" />
+        <div style={{ fontSize: 11, color: '#aeaeb2', marginTop: 4 }}>
+          配置后，超过 30 秒的录音将自动转写为文字
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={handleSave} style={{
+          background: '#ff3b30', color: 'white', border: 'none',
+          borderRadius: 6, padding: '7px 18px', fontSize: 13,
+          fontWeight: 500, cursor: 'pointer',
+        }}>保存</button>
+        {saved && <span style={{ fontSize: 12, color: '#34c759' }}>已保存</span>}
+      </div>
     </div>
   )
 }

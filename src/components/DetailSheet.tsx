@@ -100,7 +100,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
         background: 'var(--sheet-bg)',
       }}
     >
-        <div style={{
+        <div onMouseDown={handleDragStart} style={{
           height: 52,
           padding: '0 20px',
           borderBottom: '1px solid var(--divider)',

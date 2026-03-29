@@ -3,10 +3,18 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     #[serde(default)]
     pub dashscope_api_key: String,
+    #[serde(default)]
+    pub workspace_path: String,
+    #[serde(default = "default_claude_cli")]
+    pub claude_cli_path: String,
+}
+
+fn default_claude_cli() -> String {
+    "claude".to_string()
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -23,7 +31,7 @@ pub fn load_config(app: &AppHandle) -> Result<Config, String> {
     serde_json::from_str(&data).map_err(|e| e.to_string())
 }
 
-fn save_config(app: &AppHandle, config: &Config) -> Result<(), String> {
+pub fn save_config(app: &AppHandle, config: &Config) -> Result<(), String> {
     let path = config_path(app)?;
     let data = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
     fs::write(&path, data).map_err(|e| e.to_string())
@@ -62,4 +70,56 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_workspace_path(app: AppHandle) -> Result<String, String> {
+    let config = load_config(&app)?;
+    Ok(config.workspace_path)
+}
+
+#[tauri::command]
+pub fn set_workspace_path(app: AppHandle, path: String) -> Result<(), String> {
+    let mut config = load_config(&app)?;
+    config.workspace_path = path;
+    save_config(&app, &config)
+}
+
+#[tauri::command]
+pub fn get_claude_cli_path(app: AppHandle) -> Result<String, String> {
+    let config = load_config(&app)?;
+    Ok(config.claude_cli_path)
+}
+
+#[tauri::command]
+pub fn set_claude_cli_path(app: AppHandle, path: String) -> Result<(), String> {
+    let mut config = load_config(&app)?;
+    config.claude_cli_path = path;
+    save_config(&app, &config)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_defaults() {
+        let c: Config = serde_json::from_str("{}").unwrap();
+        assert_eq!(c.workspace_path, "");
+        assert_eq!(c.claude_cli_path, "claude");
+        assert_eq!(c.dashscope_api_key, "");
+    }
+
+    #[test]
+    fn config_roundtrip() {
+        let c = Config {
+            dashscope_api_key: "key".into(),
+            workspace_path: "/Users/test/notebook".into(),
+            claude_cli_path: "claude".into(),
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let c2: Config = serde_json::from_str(&json).unwrap();
+        assert_eq!(c2.workspace_path, "/Users/test/notebook");
+        assert_eq!(c2.claude_cli_path, "claude");
+    }
 }

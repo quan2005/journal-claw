@@ -7,7 +7,7 @@ export const listRecordings = (): Promise<RecordingItem[]> =>
 export const startRecording = (): Promise<string> =>
   invoke('start_recording')
 
-export const stopRecording = (): Promise<RecordingItem> =>
+export const stopRecording = (): Promise<void> =>
   invoke('stop_recording')
 
 export const deleteRecording = (path: string): Promise<void> =>
@@ -27,3 +27,21 @@ export const getTranscript = (filename: string): Promise<Transcript | null> =>
 
 export const retryTranscription = (filename: string): Promise<void> =>
   invoke('retry_transcription', { filename })
+
+export const getApiKey = (): Promise<string | null> =>
+  invoke<string | null>('get_api_key')
+
+export const setApiKey = (key: string): Promise<void> =>
+  invoke('set_api_key', { key })
+
+export const getWorkspacePath = () =>
+  invoke<string>('get_workspace_path')
+
+export const setWorkspacePath = (path: string) =>
+  invoke<void>('set_workspace_path', { path })
+
+export const getClaudeCliPath = () =>
+  invoke<string>('get_claude_cli_path')
+
+export const setClaudeCliPath = (path: string) =>
+  invoke<void>('set_claude_cli_path', { path })

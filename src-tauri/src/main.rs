@@ -34,6 +34,10 @@ fn main() {
             config::get_api_key,
             config::set_api_key,
             config::open_settings,
+            config::get_workspace_path,
+            config::set_workspace_path,
+            config::get_claude_cli_path,
+            config::set_claude_cli_path,
             transcription::get_transcript,
             transcription::retry_transcription,
         ])

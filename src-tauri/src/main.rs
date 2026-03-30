@@ -170,6 +170,8 @@ fn main() {
             config::get_engine_config,
             config::set_engine_config,
             config::get_app_version,
+            config::get_asr_config,
+            config::set_asr_config,
             ai_processor::check_engine_installed,
             ai_processor::install_engine,
         ])

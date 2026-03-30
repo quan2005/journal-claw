@@ -8,7 +8,7 @@ import { ProcessingQueue } from './components/ProcessingQueue'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, triggerAiProcessing, submitPasteText, importText } from './lib/tauri'
+import { importFile, triggerAiProcessing, submitPasteText, importText, cancelAiProcessing } from './lib/tauri'
 import type { JournalEntry } from './types'
 
 const BASE_WIDTH = 320
@@ -197,7 +197,7 @@ export default function App() {
           right: 0,
           zIndex: 10,
         }}>
-          <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} />
+          <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} />
         </div>
         <CommandDock
           isDragOver={isDragOver}

@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
+import { AiLogModal } from './AiLogModal'
 
 interface ProcessingQueueProps {
   items: QueueItem[]
   onDismiss: (path: string) => void
+  onCancel: () => void
 }
 
 const kindEmoji: Record<string, string> = {
@@ -59,55 +62,74 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
   )
 }
 
-export function ProcessingQueue({ items, onDismiss }: ProcessingQueueProps) {
+export function ProcessingQueue({ items, onDismiss, onCancel }: ProcessingQueueProps) {
+  const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
+
   if (items.length === 0) return null
 
-  return (
-    <div style={{
-      background: 'var(--queue-bg)',
-      borderTop: '1px solid var(--queue-border)',
-      borderRadius: '8px 8px 0 0',
-      maxHeight: 160,
-      overflowY: 'auto',
-      boxShadow: '0 -2px 12px var(--queue-shadow)',
-    }}>
-      {items.map((item, idx) => {
-        const emoji = kindEmoji[fileKindFromName(item.filename)] ?? '\uD83D\uDCC1'
-        const isLast = idx === items.length - 1
-        const animStyle: React.CSSProperties =
-          item.status === 'completed'
-            ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
-            : { animation: 'queue-enter 0.2s ease-out' }
+  const activeItem = activeLogPath ? items.find(i => i.path === activeLogPath) : null
 
-        return (
-          <div
-            key={item.path}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              height: 32,
-              padding: '0 20px',
-              borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
-              ...animStyle,
-            }}
-          >
-            <span style={{ fontSize: 11, flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
-            <span style={{
-              flex: 1,
-              fontSize: 10,
-              color: item.status === 'failed' ? '#ff453a' : 'var(--item-meta)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              minWidth: 0,
-            }}>
-              {item.filename}
-            </span>
-            <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
-          </div>
-        )
-      })}
-    </div>
+  return (
+    <>
+      <div style={{
+        background: 'var(--queue-bg)',
+        borderTop: '1px solid var(--queue-border)',
+        borderRadius: '8px 8px 0 0',
+        maxHeight: 160,
+        overflowY: 'auto',
+        boxShadow: '0 -2px 12px var(--queue-shadow)',
+      }}>
+        {items.map((item, idx) => {
+          const emoji = kindEmoji[fileKindFromName(item.filename)] ?? '\uD83D\uDCC1'
+          const isLast = idx === items.length - 1
+          const animStyle: React.CSSProperties =
+            item.status === 'completed'
+              ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
+              : { animation: 'queue-enter 0.2s ease-out' }
+
+          return (
+            <div
+              key={item.path}
+              onClick={() => setActiveLogPath(item.path)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                height: 32,
+                padding: '0 20px',
+                borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
+                cursor: 'pointer',
+                ...animStyle,
+              }}
+            >
+              <span style={{ fontSize: 11, flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
+              <span style={{
+                flex: 1,
+                fontSize: 10,
+                color: item.status === 'failed' ? '#ff453a' : 'var(--item-meta)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
+              }}>
+                {item.filename}
+              </span>
+              <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
+            </div>
+          )
+        })}
+      </div>
+
+      {activeItem && (
+        <AiLogModal
+          item={activeItem}
+          onClose={() => setActiveLogPath(null)}
+          onCancel={() => {
+            onCancel()
+            setActiveLogPath(null)
+          }}
+        />
+      )}
+    </>
   )
 }

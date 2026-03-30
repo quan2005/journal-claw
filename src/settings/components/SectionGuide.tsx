@@ -3,7 +3,7 @@ import { getWorkspacePrompt, setWorkspacePrompt } from '../../lib/tauri'
 
 const sectionStyle: React.CSSProperties = {
   padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)',
-  display: 'flex', flexDirection: 'column', minHeight: 320,
+  display: 'flex', flexDirection: 'column',
 }
 
 function highlightMarkdown(text: string): React.ReactNode[] {
@@ -32,6 +32,8 @@ export default function SectionGuide() {
   const [content, setContent] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     getWorkspacePrompt().then(setContent)
@@ -51,7 +53,14 @@ export default function SectionGuide() {
     debounceRef.current = setTimeout(() => save(text), 800)
   }
 
+  const handleScroll = () => {
+    if (textareaRef.current && backdropRef.current) {
+      backdropRef.current.scrollTop = textareaRef.current.scrollTop
+    }
+  }
+
   const editorFont = "'IBM Plex Mono', ui-monospace, monospace"
+  const editorHeight = 420
 
   return (
     <div style={sectionStyle}>
@@ -60,21 +69,23 @@ export default function SectionGuide() {
         告诉 AI 你的工作习惯和偏好，它会在处理日志时参考这些引导。
       </div>
 
-      <div style={{ position: 'relative', flex: 1, minHeight: 200 }}>
+      <div style={{ position: 'relative', height: editorHeight }}>
         {/* Syntax-highlighted backdrop */}
-        <div aria-hidden style={{
+        <div ref={backdropRef} aria-hidden style={{
           position: 'absolute', inset: 0,
           background: 'var(--detail-case-bg)', border: '1px solid var(--divider)', borderRadius: 6,
           padding: '12px 14px', fontFamily: editorFont,
           fontSize: 11.5, lineHeight: 1.75, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          pointerEvents: 'none', overflow: 'hidden',
+          pointerEvents: 'none', overflowY: 'auto',
         }}>
           {highlightMarkdown(content)}
         </div>
         {/* Transparent textarea */}
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={handleChange}
+          onScroll={handleScroll}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
             background: 'transparent', border: '1px solid transparent', borderRadius: 6,
@@ -82,6 +93,7 @@ export default function SectionGuide() {
             fontSize: 11.5, lineHeight: 1.75,
             color: 'transparent', caretColor: 'var(--item-text)',
             resize: 'none', outline: 'none', boxSizing: 'border-box',
+            overflowY: 'auto',
           }}
           spellCheck={false}
         />

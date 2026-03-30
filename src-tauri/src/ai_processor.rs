@@ -16,6 +16,7 @@ pub struct QueueTask {
     material_path: String,
     year_month: String,
     note: Option<String>,
+    prompt_text: Option<String>,
 }
 
 /// Holds the sender half — stored in Tauri managed state.
@@ -88,6 +89,77 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
             }
         }
     }
+}
+
+/// Build CLI args and extra environment variables for a Claude Code invocation.
+/// Returns `(args, extra_envs)` where `extra_envs` only contains keys that were
+/// non-empty (caller merges into the child process environment).
+pub fn build_claude_args_with_creds(
+    material_path: &str,
+    year_month: &str,
+    note: Option<&str>,
+    prompt_text: Option<&str>,
+    model: &str,
+    api_key: &str,
+    base_url: &str,
+    _engine: &str,  // reserved for future multi-engine support
+) -> (Vec<String>, std::collections::HashMap<String, String>) {
+    let prompt = if let Some(pt) = prompt_text.filter(|s| !s.trim().is_empty()) {
+        pt.to_string()
+    } else {
+        let filename = std::path::PathBuf::from(material_path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        let relative_ref = format!("{}/raw/{}", year_month, filename);
+        let note_suffix = note
+            .filter(|n| !n.trim().is_empty())
+            .map(|n| format!("\n用户补充：{}", n.trim()))
+            .unwrap_or_default();
+        format!(
+            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+            relative_ref, year_month, note_suffix
+        )
+    };
+
+    let mut args = vec![
+        "-p".to_string(),
+        prompt,
+        "--permission-mode".to_string(),
+        "bypassPermissions".to_string(),
+        "--output-format".to_string(),
+        "stream-json".to_string(),
+        "--verbose".to_string(),
+        "--no-session-persistence".to_string(),
+        "--disallowed-tools".to_string(),
+        "AskUserQuestion".to_string(),
+    ];
+    if !model.is_empty() {
+        args.push("--model".to_string());
+        args.push(model.to_string());
+    }
+
+    let mut envs = std::collections::HashMap::new();
+    if !api_key.is_empty() {
+        envs.insert("ANTHROPIC_API_KEY".to_string(), api_key.to_string());
+    }
+    if !base_url.is_empty() {
+        envs.insert("ANTHROPIC_BASE_URL".to_string(), base_url.to_string());
+    }
+
+    (args, envs)
+}
+
+/// Simplified version without credential injection (uses CLI defaults).
+pub fn build_claude_args(
+    material_path: &str,
+    year_month: &str,
+    note: Option<&str>,
+    prompt_text: Option<&str>,
+    model: &str,
+) -> (Vec<String>, std::collections::HashMap<String, String>) {
+    build_claude_args_with_creds(material_path, year_month, note, prompt_text, model, "", "", "")
 }
 
 fn augmented_path() -> String {
@@ -232,7 +304,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
         while let Some(task) = rx.recv().await {
             eprintln!("[ai_queue] dequeued task: {} ({})", task.material_path, task.year_month);
             let current_task = app.state::<CurrentTask>();
-            let result = process_material(&app, &task.material_path, &task.year_month, task.note.as_deref(), &current_task).await;
+            let result = process_material(&app, &task.material_path, &task.year_month, task.note.as_deref(), task.prompt_text.as_deref(), &current_task).await;
             match &result {
                 Ok(()) => eprintln!("[ai_queue] task completed: {}", task.material_path),
                 Err(e) => eprintln!("[ai_queue] task failed: {} → {}", task.material_path, e),
@@ -247,6 +319,7 @@ pub async fn process_material(
     material_path: &str,
     year_month: &str,
     note: Option<&str>,
+    prompt_text: Option<&str>,
     current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let cfg = config::load_config(app)?;
@@ -267,33 +340,14 @@ pub async fn process_material(
         error: None,
     });
 
-    // Build args — switch to stream-json for real-time output
-    let filename = std::path::PathBuf::from(material_path)
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-    let relative_ref = format!("{}/raw/{}", year_month, filename);
-    let note_suffix = note
-        .filter(|n| !n.trim().is_empty())
-        .map(|n| format!("\n用户补充：{}", n.trim()))
-        .unwrap_or_default();
-    let prompt = format!(
-        "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
-        relative_ref, year_month, note_suffix
+    let (model, api_key, base_url) = (
+        cfg.claude_code_model.as_str(),
+        cfg.claude_code_api_key.as_str(),
+        cfg.claude_code_base_url.as_str(),
     );
-    let args = vec![
-        "-p".to_string(),
-        prompt,
-        "--permission-mode".to_string(),
-        "bypassPermissions".to_string(),
-        "--output-format".to_string(),
-        "stream-json".to_string(),
-        "--verbose".to_string(),
-        "--no-session-persistence".to_string(),
-        "--disallowed-tools".to_string(),
-        "AskUserQuestion".to_string(),
-    ];
+    let (args, extra_envs) = build_claude_args_with_creds(
+        material_path, year_month, note, prompt_text, model, api_key, base_url, &cfg.active_ai_engine,
+    );
 
     // Emit startup log
     let _ = app.emit("ai-log", AiLogLine {
@@ -306,13 +360,16 @@ pub async fn process_material(
 
     use tokio::io::AsyncBufReadExt;
 
-    let mut child = tokio::process::Command::new(&cli)
-        .args(&args)
+    let mut cmd = tokio::process::Command::new(&cli);
+    cmd.args(&args)
         .current_dir(&cfg.workspace_path)
         .env("PATH", augmented_path())
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
+        .stderr(std::process::Stdio::piped());
+    for (k, v) in &extra_envs {
+        cmd.env(k, v);
+    }
+    let mut child = cmd.spawn()
         .map_err(|e| format!("启动 Claude CLI 失败 ({}): {}", &cli, e))?;
 
     let stdout = child.stdout.take().unwrap();
@@ -443,6 +500,7 @@ pub async fn trigger_ai_processing(
         material_path,
         year_month,
         note,
+        prompt_text: None,
     }).await.map_err(|e| format!("队列发送失败: {}", e))?;
 
     Ok(())
@@ -660,6 +718,50 @@ mod tests {
     }
 
     #[test]
+    fn build_claude_args_includes_model_when_set() {
+        let (args, _envs) = build_claude_args(
+            "note.txt",
+            "2603",
+            None,
+            None,
+            "claude-sonnet-4-6",
+        );
+        let model_idx = args.iter().position(|a| a == "--model").expect("--model not found");
+        assert_eq!(args[model_idx + 1], "claude-sonnet-4-6");
+    }
+
+    #[test]
+    fn build_claude_args_omits_model_when_empty() {
+        let (args, _envs) = build_claude_args("note.txt", "2603", None, None, "");
+        assert!(!args.contains(&"--model".to_string()), "--model should be absent when empty");
+    }
+
+    #[test]
+    fn build_claude_args_injects_api_key_env() {
+        let (_args, envs) = build_claude_args_with_creds(
+            "note.txt", "2603", None, None, "", "sk-test-key", "", "",
+        );
+        assert_eq!(envs.get("ANTHROPIC_API_KEY").map(|s| s.as_str()), Some("sk-test-key"));
+    }
+
+    #[test]
+    fn build_claude_args_injects_base_url_env() {
+        let (_args, envs) = build_claude_args_with_creds(
+            "note.txt", "2603", None, None, "", "", "https://my-proxy.example.com", "",
+        );
+        assert_eq!(envs.get("ANTHROPIC_BASE_URL").map(|s| s.as_str()), Some("https://my-proxy.example.com"));
+    }
+
+    #[test]
+    fn build_claude_args_omits_env_when_empty() {
+        let (_args, envs) = build_claude_args_with_creds(
+            "note.txt", "2603", None, None, "", "", "", "",
+        );
+        assert!(!envs.contains_key("ANTHROPIC_API_KEY"), "should not set API key env when empty");
+        assert!(!envs.contains_key("ANTHROPIC_BASE_URL"), "should not set base URL env when empty");
+    }
+
+    #[test]
     fn cancel_with_no_task_is_noop() {
         let state = CurrentTask(std::sync::Mutex::new(None));
         // Should not panic when nothing is running
@@ -710,5 +812,29 @@ mod tests {
         assert!(settings_content.contains("recent-summaries"), "settings.json should reference recent-summaries");
 
         std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn prompt_text_used_directly_as_prompt() {
+        // When prompt_text is Some, the prompt should be the raw text
+        let prompt_text = "帮我整理今天的工作";
+        let prompt = prompt_text.to_string();
+        assert_eq!(prompt, "帮我整理今天的工作");
+        assert!(!prompt.contains("@"));
+        assert!(!prompt.contains("深入梳理"));
+    }
+
+    #[test]
+    fn prompt_text_none_falls_back_to_material_prompt() {
+        // When prompt_text is None, the prompt contains @file reference
+        let filename = "meeting.txt";
+        let year_month = "2603";
+        let relative_ref = format!("{}/raw/{}", year_month, filename);
+        let prompt = format!(
+            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
+            relative_ref, year_month
+        );
+        assert!(prompt.contains("@2603/raw/meeting.txt"));
+        assert!(prompt.contains("深入梳理"));
     }
 }

@@ -81,7 +81,7 @@ fn default_active_engine() -> String {
 }
 
 fn default_asr_engine() -> String {
-    "dashscope".to_string()
+    "whisperkit".to_string()
 }
 
 fn default_whisperkit_model() -> String {
@@ -259,6 +259,32 @@ pub fn set_asr_config(
     c.dashscope_api_key = dashscope_api_key;
     c.whisperkit_model = whisperkit_model;
     save_config(&app, &c)
+}
+
+#[tauri::command]
+pub fn get_whisperkit_models_dir(app: AppHandle) -> Result<String, String> {
+    let dir = app.path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("whisperkit-models");
+    Ok(dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn check_whisperkit_model_downloaded(app: AppHandle, model: String) -> bool {
+    let Ok(dir) = app.path().app_data_dir() else { return false; };
+    let models_dir = dir.join("whisperkit-models");
+    // whisperkit-cli stores models as subdirectories containing the model name
+    // e.g. "openai_whisper-base", "openai_whisper-small", "openai_whisper-large-v3-turbo"
+    let Ok(entries) = std::fs::read_dir(&models_dir) else { return false; };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_lowercase();
+        let model_key = model.to_lowercase().replace("_", "-");
+        if name.contains(&model_key) {
+            return true;
+        }
+    }
+    false
 }
 
 #[cfg(test)]

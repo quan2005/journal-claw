@@ -143,3 +143,9 @@ export const getAsrConfig = (): Promise<AsrConfig> =>
 
 export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
   invoke<void>('set_asr_config', { ...cfg })
+
+export const getWhisperkitModelsDir = (): Promise<string> =>
+  invoke<string>('get_whisperkit_models_dir')
+
+export const checkWhisperkitModelDownloaded = (model: string): Promise<boolean> =>
+  invoke<boolean>('check_whisperkit_model_downloaded', { model })

@@ -25,7 +25,6 @@ export function CommandDock({
   const [pasteText, setPasteText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [noteText, setNoteText] = useState('')
-  const [textExpanded, setTextExpanded] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const noteRef = useRef<HTMLTextAreaElement>(null)
   const isRecording = recorderStatus === 'recording'
@@ -65,7 +64,7 @@ export function CommandDock({
     const handler = (e: KeyboardEvent) => {
       // Escape: cancel files or paste
       if (e.key === 'Escape') {
-        if (hasFiles) { onFilesCancel(); setNoteText(''); setTextExpanded(false); return }
+        if (hasFiles) { onFilesCancel(); setNoteText(''); return }
         if (pasteMode) { exitPaste(); return }
       }
       // ⌘Enter: submit files
@@ -123,7 +122,6 @@ export function CommandDock({
     const note = noteText.trim() || undefined
     onFilesCancel()
     setNoteText('')
-    setTextExpanded(false)
     showToast('已提交，Agent 整理中…')
     try {
       await onFilesSubmit(paths, note)
@@ -260,8 +258,7 @@ export function CommandDock({
           <div style={{
             display: 'flex',
             alignItems: 'stretch',
-            minHeight: textExpanded ? 180 : 84,
-            transition: 'min-height 0.2s ease',
+            minHeight: 84,
           }}>
             {/* Left: attachment cards */}
             <div style={{
@@ -309,7 +306,7 @@ export function CommandDock({
                   备注（可选）
                 </span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button onClick={(e) => { e.stopPropagation(); onFilesCancel(); setNoteText(''); setTextExpanded(false) }} style={actionBtnCancel}>
+                  <button onClick={(e) => { e.stopPropagation(); onFilesCancel(); setNoteText('') }} style={actionBtnCancel}>
                     取消
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); handleFilesSubmitClick() }} style={actionBtnSubmit}>
@@ -318,62 +315,59 @@ export function CommandDock({
                 </div>
               </div>
 
-              <div style={{ flex: 1, marginTop: 7, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                <textarea
-                  ref={noteRef}
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                      e.preventDefault()
-                      handleFilesSubmitClick()
+              <textarea
+                ref={noteRef}
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault()
+                    handleFilesSubmitClick()
+                  }
+                }}
+                onPaste={(e) => {
+                  e.preventDefault()
+                  const rawText = e.clipboardData.getData('text')
+                  function handleNoteTextPaste(text: string) {
+                    if (text.length > 300) {
+                      importText(text).then((result) => {
+                        onPasteFiles([result.path])
+                      }).catch((err) => {
+                        console.error('[note-paste-import]', err)
+                        showToast('提交失败')
+                      })
+                    } else if (text) {
+                      setNoteText(prev => prev + text)
                     }
-                  }}
-                  placeholder="添加背景说明…"
-                  className="dock-textarea"
-                  style={{
-                    flex: 1,
-                    width: '100%',
-                    background: textExpanded ? 'var(--dock-paste-bg)' : 'transparent',
-                    border: textExpanded ? '0.5px solid var(--dock-paste-border)' : 'none',
-                    borderRadius: textExpanded ? 6 : 0,
-                    padding: textExpanded ? '6px 8px' : 0,
-                    outline: 'none',
-                    resize: 'none',
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: 11,
-                    color: 'var(--item-text)',
-                    lineHeight: 1.6,
-                    caretColor: 'var(--dock-paste-label)',
-                    minHeight: 20,
-                    userSelect: 'text',
-                    WebkitUserSelect: 'text',
-                    transition: 'background 0.15s, border 0.15s, padding 0.15s',
-                  } as React.CSSProperties}
-                />
-                <button
-                  onClick={(e) => { e.stopPropagation(); setTextExpanded(v => !v) }}
-                  title={textExpanded ? '收起' : '放大'}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    flexShrink: 0,
-                    borderRadius: 4,
-                    background: 'var(--dock-kbd-bg)',
-                    border: '0.5px solid var(--dock-kbd-border)',
-                    color: 'var(--item-meta)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    cursor: 'pointer',
-                    marginTop: 2,
-                    flexDirection: 'column' as const,
-                  }}
-                >
-                  {textExpanded ? '⤡' : '⤢'}
-                </button>
-              </div>
+                  }
+                  clipboard.readFiles().then((files) => {
+                    if (files && files.length > 0) {
+                      onPasteFiles(files)
+                    } else {
+                      handleNoteTextPaste(rawText)
+                    }
+                  }).catch(() => handleNoteTextPaste(rawText))
+                }}
+                placeholder="添加背景说明…"
+                className="dock-textarea"
+                style={{
+                  flex: 1,
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 11,
+                  color: 'var(--item-text)',
+                  lineHeight: 1.6,
+                  caretColor: 'var(--dock-paste-label)',
+                  minHeight: 20,
+                  marginTop: 7,
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text',
+                } as React.CSSProperties}
+              />
             </div>
           </div>
         )}

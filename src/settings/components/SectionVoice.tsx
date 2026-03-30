@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Cloud, Cpu, FolderOpen, Check } from 'lucide-react'
-import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, type AsrConfig } from '../../lib/tauri'
+import { listen } from '@tauri-apps/api/event'
+import { Cloud, Cpu, FolderOpen, Check, Download } from 'lucide-react'
+import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
 
@@ -31,23 +32,42 @@ export default function SectionVoice() {
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [modelsDir, setModelsDir] = useState('')
-  // track which whisper models are already downloaded
   const [downloadedModels, setDownloadedModels] = useState<Set<WhisperModel>>(new Set())
+  // which model is currently downloading
+  const [downloadingModel, setDownloadingModel] = useState<WhisperModel | null>(null)
+
+  const refreshDownloadedModels = () => {
+    const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
+    Promise.all(models.map(m =>
+      checkWhisperkitModelDownloaded(m).then(ok => ok ? m : null)
+    )).then(results => {
+      setDownloadedModels(new Set(results.filter(Boolean) as WhisperModel[]))
+    })
+  }
 
   useEffect(() => {
     Promise.all([
       getAsrConfig().then(setCfg),
-      getWhisperkitModelsDir().then(dir => {
-        setModelsDir(dir)
-        // check all three models
-        const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
-        return Promise.all(models.map(m =>
-          checkWhisperkitModelDownloaded(m).then(ok => ok ? m : null)
-        )).then(results => {
-          setDownloadedModels(new Set(results.filter(Boolean) as WhisperModel[]))
-        })
-      }),
-    ]).then(() => setLoading(false))
+      getWhisperkitModelsDir().then(setModelsDir),
+    ]).then(() => {
+      refreshDownloadedModels()
+      setLoading(false)
+    })
+
+    // listen for download progress events from Rust
+    let unlisten: (() => void) | null = null
+    listen<{ model: WhisperModel; status: 'downloading' | 'done' | 'error'; message?: string }>(
+      'whisperkit-download-progress',
+      ({ payload }) => {
+        if (payload.status === 'done') {
+          setDownloadingModel(null)
+          refreshDownloadedModels()
+        } else if (payload.status === 'error') {
+          setDownloadingModel(null)
+        }
+      }
+    ).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
   }, [])
 
   const handleSave = async () => {
@@ -60,9 +80,12 @@ export default function SectionVoice() {
     invoke('open_with_system', { path: modelsDir })
   }
 
-  // DashScope is "ready" if API key is set
+  const handleDownload = (model: WhisperModel) => {
+    setDownloadingModel(model)
+    downloadWhisperkitModel(model).catch(() => setDownloadingModel(null))
+  }
+
   const dashscopeReady = cfg.dashscope_api_key.trim().length > 0
-  // WhisperKit is "ready" if the selected model is downloaded
   const whisperkitReady = downloadedModels.has(cfg.whisperkit_model as WhisperModel)
 
   const ENGINES: { id: AsrEngineId; label: string; vendor: string; icon: typeof Cloud; ready: boolean }[] = [
@@ -127,29 +150,70 @@ export default function SectionVoice() {
           {cfg.asr_engine === 'whisperkit' && (
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>转写模型</label>
-              <select
-                style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' as const }}
-                value={cfg.whisperkit_model}
-                onChange={e => setCfg(prev => ({ ...prev, whisperkit_model: e.target.value as WhisperModel }))}
-              >
-                {WHISPER_MODELS.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {downloadedModels.has(m.id) ? '✓ ' : ''}{m.label} ({m.size})
-                  </option>
-                ))}
-              </select>
+              {/* 模型选择行：下拉框 + 下载按钮 */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                <select
+                  style={{ ...inputStyle, flex: 1, cursor: 'pointer', appearance: 'none' as const }}
+                  value={cfg.whisperkit_model}
+                  onChange={e => setCfg(prev => ({ ...prev, whisperkit_model: e.target.value as WhisperModel }))}
+                >
+                  {WHISPER_MODELS.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {downloadedModels.has(m.id) ? '✓ ' : ''}{m.label} ({m.size})
+                    </option>
+                  ))}
+                </select>
+                {/* 下载按钮 */}
+                {downloadedModels.has(cfg.whisperkit_model as WhisperModel) ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 34, flexShrink: 0,
+                    background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
+                    borderRadius: 6, color: '#27c93f',
+                  }}>
+                    <Check size={14} strokeWidth={2} />
+                  </div>
+                ) : downloadingModel === cfg.whisperkit_model ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 34, flexShrink: 0,
+                    background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
+                    borderRadius: 6,
+                  }}>
+                    <div style={{
+                      width: 12, height: 12,
+                      border: '2px solid var(--divider)', borderTopColor: 'var(--record-btn)',
+                      borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                    }} />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleDownload(cfg.whisperkit_model as WhisperModel)}
+                    title="下载模型"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 34, flexShrink: 0,
+                      background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
+                      borderRadius: 6, cursor: 'pointer', color: 'var(--item-meta)',
+                    }}
+                  >
+                    <Download size={13} strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
               <div style={hintStyle}>
                 {WHISPER_MODELS.find(m => m.id === cfg.whisperkit_model)?.hint}
+                {downloadingModel === cfg.whisperkit_model && (
+                  <span style={{ color: 'var(--record-btn)', marginLeft: 6 }}>下载中，请稍候…</span>
+                )}
               </div>
 
-              {/* 模型下载区域 */}
+              {/* 模型存放目录 */}
               <div style={{
                 marginTop: 12, background: 'var(--detail-case-bg)',
                 border: '1px solid var(--divider)', borderRadius: 8, padding: '10px 12px',
               }}>
-                <div style={{ fontSize: 10, color: 'var(--item-meta)', marginBottom: 6 }}>
-                  模型存放目录
-                </div>
+                <div style={{ fontSize: 10, color: 'var(--item-meta)', marginBottom: 6 }}>模型存放目录</div>
                 <div style={{
                   fontFamily: 'ui-monospace, monospace', fontSize: 9,
                   color: 'var(--duration-text)', wordBreak: 'break-all', lineHeight: 1.5,
@@ -157,22 +221,20 @@ export default function SectionVoice() {
                 }}>
                   {modelsDir}
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={handleOpenModelsDir}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      background: 'none', border: '1px solid var(--divider)',
-                      borderRadius: 4, padding: '4px 10px', fontSize: 10,
-                      color: 'var(--item-meta)', cursor: 'pointer',
-                    }}
-                  >
-                    <FolderOpen size={11} strokeWidth={1.5} />
-                    在 Finder 中打开
-                  </button>
-                </div>
+                <button
+                  onClick={handleOpenModelsDir}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    background: 'none', border: '1px solid var(--divider)',
+                    borderRadius: 4, padding: '4px 10px', fontSize: 10,
+                    color: 'var(--item-meta)', cursor: 'pointer',
+                  }}
+                >
+                  <FolderOpen size={11} strokeWidth={1.5} />
+                  在 Finder 中打开
+                </button>
                 <div style={{ ...hintStyle, marginTop: 8 }}>
-                  首次使用时自动从 HuggingFace 下载模型，之后离线可用。<br />
+                  点击下载按钮自动从 HuggingFace 下载，之后离线可用。<br />
                   也可手动将模型文件放入上方目录。
                 </div>
               </div>

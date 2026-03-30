@@ -174,6 +174,7 @@ fn main() {
             config::set_asr_config,
             config::get_whisperkit_models_dir,
             config::check_whisperkit_model_downloaded,
+            config::download_whisperkit_model,
             ai_processor::check_engine_installed,
             ai_processor::install_engine,
         ])

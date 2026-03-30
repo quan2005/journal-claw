@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct WindowState {
@@ -287,7 +287,89 @@ pub fn check_whisperkit_model_downloaded(app: AppHandle, model: String) -> bool 
     false
 }
 
-#[cfg(test)]
+/// 下载指定的 WhisperKit 模型（通过触发一次空白音频转录，whisperkit-cli 会先下载模型）。
+/// 通过 `whisperkit-download-progress` 事件推送状态：
+///   { model, status: "downloading" | "done" | "error", message? }
+#[tauri::command]
+pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<(), String> {
+    let model_cache_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("whisperkit-models");
+    let _ = std::fs::create_dir_all(&model_cache_dir);
+
+    // 找到 sidecar 二进制路径
+    let cli_path = app.path()
+        .resource_dir()
+        .ok()
+        .map(|d| d.join("binaries").join("whisperkit-cli-aarch64-apple-darwin"))
+        .filter(|p| p.exists())
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "whisperkit-cli".to_string());
+
+    // 生成一个最小合法 WAV 文件（静音，16 采样，16kHz mono 16-bit）供触发下载
+    let tmp_wav = std::env::temp_dir().join("whisperkit_download_trigger.wav");
+    {
+        let num_samples: u32 = 16;
+        let sample_rate: u32 = 16000;
+        let num_channels: u16 = 1;
+        let bits_per_sample: u16 = 16;
+        let byte_rate = sample_rate * num_channels as u32 * bits_per_sample as u32 / 8;
+        let block_align = num_channels * bits_per_sample / 8;
+        let data_size = num_samples * num_channels as u32 * bits_per_sample as u32 / 8;
+        let file_size = 36 + data_size;
+        let mut wav: Vec<u8> = Vec::new();
+        wav.extend_from_slice(b"RIFF");
+        wav.extend_from_slice(&file_size.to_le_bytes());
+        wav.extend_from_slice(b"WAVE");
+        wav.extend_from_slice(b"fmt ");
+        wav.extend_from_slice(&16u32.to_le_bytes());   // chunk size
+        wav.extend_from_slice(&1u16.to_le_bytes());    // PCM
+        wav.extend_from_slice(&num_channels.to_le_bytes());
+        wav.extend_from_slice(&sample_rate.to_le_bytes());
+        wav.extend_from_slice(&byte_rate.to_le_bytes());
+        wav.extend_from_slice(&block_align.to_le_bytes());
+        wav.extend_from_slice(&bits_per_sample.to_le_bytes());
+        wav.extend_from_slice(b"data");
+        wav.extend_from_slice(&data_size.to_le_bytes());
+        wav.extend(vec![0u8; data_size as usize]);
+        std::fs::write(&tmp_wav, wav).map_err(|e| e.to_string())?;
+    }
+
+    let _ = app.emit("whisperkit-download-progress", serde_json::json!({
+        "model": model, "status": "downloading"
+    }));
+
+    let output = tokio::process::Command::new(&cli_path)
+        .args([
+            "transcribe",
+            "--audio-path", tmp_wav.to_str().unwrap_or(""),
+            "--output-type", "json",
+            "--language", "zh",
+            "--model-cache-dir", model_cache_dir.to_str().unwrap_or(""),
+            "--model", &model,
+        ])
+        .output()
+        .await
+        .map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
+
+    let _ = std::fs::remove_file(&tmp_wav);
+
+    // 模型下载成功即可（即使转录空文件报错也无所谓）
+    let downloaded = check_whisperkit_model_downloaded(app.clone(), model.clone());
+    if downloaded || output.status.success() {
+        let _ = app.emit("whisperkit-download-progress", serde_json::json!({
+            "model": model, "status": "done"
+        }));
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let _ = app.emit("whisperkit-download-progress", serde_json::json!({
+            "model": model, "status": "error", "message": stderr
+        }));
+        Err(stderr)
+    }
+}
 mod tests {
     use super::*;
 

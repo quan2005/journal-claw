@@ -149,3 +149,6 @@ export const getWhisperkitModelsDir = (): Promise<string> =>
 
 export const checkWhisperkitModelDownloaded = (model: string): Promise<boolean> =>
   invoke<boolean>('check_whisperkit_model_downloaded', { model })
+
+export const downloadWhisperkitModel = (model: string): Promise<void> =>
+  invoke<void>('download_whisperkit_model', { model })

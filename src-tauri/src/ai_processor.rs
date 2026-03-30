@@ -365,7 +365,7 @@ pub async fn cancel_ai_processing(
     current_task: tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
-    if let Some(child) = guard.as_mut() {
+    if let Some(mut child) = guard.take() {
         child.start_kill().map_err(|e| e.to_string())?;
         eprintln!("[ai_processor] cancel: sent SIGKILL to child");
     } else {

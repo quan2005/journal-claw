@@ -21,29 +21,24 @@ export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
   onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
 }: CommandDockProps) {
-  const [pasteMode, setPasteMode] = useState(false)
-  const [pasteText, setPasteText] = useState('')
+  const [inputOpen, setInputOpen] = useState(false)
+  const [inputText, setInputText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
-  const [noteText, setNoteText] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const noteRef = useRef<HTMLTextAreaElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const isRecording = recorderStatus === 'recording'
   const hasFiles = pendingFiles.length > 0
 
-  // Exit paste mode when files arrive
+  // Auto-open input when files arrive; keep open while there are files
   useEffect(() => {
-    if (hasFiles && pasteMode) {
-      setPasteMode(false)
-      setPasteText('')
-    }
+    if (hasFiles) setInputOpen(true)
   }, [hasFiles])
 
-  // Auto-focus textarea when paste mode activates
+  // Auto-focus textarea when input area opens
   useEffect(() => {
-    if (pasteMode) {
-      setTimeout(() => textareaRef.current?.focus(), 40)
+    if (inputOpen) {
+      setTimeout(() => inputRef.current?.focus(), 40)
     }
-  }, [pasteMode])
+  }, [inputOpen])
 
   function handleTextClipboard(text: string) {
     if (text.length > 300) {
@@ -54,30 +49,61 @@ export function CommandDock({
         showToast('提交失败')
       })
     } else {
-      setPasteMode(true)
-      setPasteText(text)
+      setInputOpen(true)
+      setInputText(text)
+    }
+  }
+
+  function handleCancel() {
+    if (hasFiles) onFilesCancel()
+    setInputOpen(false)
+    setInputText('')
+  }
+
+  async function handleSubmit() {
+    if (hasFiles) {
+      const paths = [...pendingFiles]
+      const note = inputText.trim() || undefined
+      onFilesCancel()
+      setInputOpen(false)
+      setInputText('')
+      showToast('已提交，Agent 整理中…')
+      try {
+        await onFilesSubmit(paths, note)
+      } catch (err) {
+        console.error('[files-submit]', err)
+        showToast('提交失败')
+      }
+    } else {
+      const text = inputText.trim()
+      if (!text) return
+      setInputOpen(false)
+      setInputText('')
+      showToast('已提交，Agent 整理中…')
+      try {
+        await onPasteSubmit(text)
+      } catch (err) {
+        console.error('[paste-submit]', err)
+        showToast('提交失败')
+      }
     }
   }
 
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Escape: cancel files or paste
       if (e.key === 'Escape') {
-        if (hasFiles) { onFilesCancel(); setNoteText(''); return }
-        if (pasteMode) { exitPaste(); return }
+        if (inputOpen) { handleCancel(); return }
       }
-      // ⌘Enter: submit files
-      if (hasFiles && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        // If the note textarea is focused, let its own onKeyDown handle it
-        if (noteRef.current && document.activeElement === noteRef.current) return
+      if (inputOpen && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        if (inputRef.current && document.activeElement === inputRef.current) return
         e.preventDefault()
-        handleFilesSubmitClick()
+        handleSubmit()
         return
       }
       // ⌘V: 全局剪贴板路由
       if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
-        if (pasteMode) return
+        if (inputOpen && !hasFiles) return  // 纯文本模式：焦点在 textarea，放行原生粘贴
         e.preventDefault()
         clipboard.readFiles().then((files) => {
           if (files && files.length > 0) {
@@ -97,54 +123,15 @@ export function CommandDock({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [pasteMode, hasFiles, pendingFiles])
-
-  function exitPaste() {
-    setPasteMode(false)
-    setPasteText('')
-  }
-
-  async function handleSubmit() {
-    const text = pasteText.trim()
-    if (!text) return
-    exitPaste()
-    showToast('已提交，Agent 整理中…')
-    try {
-      await onPasteSubmit(text)
-    } catch (err) {
-      console.error('[paste-submit]', err)
-      showToast('提交失败')
-    }
-  }
-
-  async function handleFilesSubmitClick() {
-    const paths = [...pendingFiles]
-    const note = noteText.trim() || undefined
-    onFilesCancel()
-    setNoteText('')
-    showToast('已提交，Agent 整理中…')
-    try {
-      await onFilesSubmit(paths, note)
-    } catch (err) {
-      console.error('[files-submit]', err)
-      showToast('提交失败')
-    }
-  }
+  }, [inputOpen, hasFiles, pendingFiles])
 
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 2200)
   }
 
-  function handleTextareaKeyDown(e: React.KeyboardEvent) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault()
-      handleSubmit()
-    }
-  }
-
-  // Derived mode: files > paste > idle
-  const activeMode = hasFiles ? 'files' : pasteMode ? 'paste' : 'idle'
+  // Derived mode
+  const activeMode = inputOpen ? 'active' : 'idle'
 
   const dropZoneBorder = activeMode !== 'idle'
     ? `0.5px solid var(--dock-paste-border)`
@@ -202,7 +189,7 @@ export function CommandDock({
 
       {/* Drop Zone */}
       <div
-        onClick={() => { if (activeMode === 'idle') setPasteMode(true) }}
+        onClick={() => { if (activeMode === 'idle') setInputOpen(true) }}
         style={{
           flex: 1,
           borderRadius: 8,
@@ -253,42 +240,46 @@ export function CommandDock({
           </div>
         )}
 
-        {/* Files + Note mode */}
-        {activeMode === 'files' && (
+        {/* Active mode: unified container for files + note, or plain text input */}
+        {activeMode === 'active' && (
           <div style={{
             display: 'flex',
             alignItems: 'stretch',
             minHeight: 84,
           }}>
-            {/* Left: attachment cards */}
-            <div style={{
-              padding: '12px 12px 12px 14px',
-              display: 'flex',
-              flexDirection: 'row',
-              gap: 10,
-              flexWrap: 'wrap',
-              alignContent: 'flex-start',
-              alignItems: 'flex-start',
-              flexShrink: 0,
-            }}>
-              {pendingFiles.map((path, i) => {
-                const filename = path.split('/').pop() ?? path
-                return (
-                  <FileCard
-                    key={`${path}-${i}`}
-                    filename={filename}
-                    kind={fileKindFromName(filename)}
-                    onRemove={() => onRemoveFile(i)}
-                    onOpen={() => openFile(path).catch(err => console.error('[open-file]', err))}
-                  />
-                )
-              })}
-            </div>
+            {/* Left: attachment cards (only when files present) */}
+            {hasFiles && (
+              <div style={{
+                padding: '12px 12px 12px 14px',
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 10,
+                flexWrap: 'wrap',
+                alignContent: 'flex-start',
+                alignItems: 'flex-start',
+                flexShrink: 0,
+              }}>
+                {pendingFiles.map((path, i) => {
+                  const filename = path.split('/').pop() ?? path
+                  return (
+                    <FileCard
+                      key={`${path}-${i}`}
+                      filename={filename}
+                      kind={fileKindFromName(filename)}
+                      onRemove={() => onRemoveFile(i)}
+                      onOpen={() => openFile(path).catch(err => console.error('[open-file]', err))}
+                    />
+                  )
+                })}
+              </div>
+            )}
 
-            {/* Vertical divider */}
-            <div style={{ width: 1, background: 'var(--dock-border)', flexShrink: 0, alignSelf: 'stretch' }} />
+            {/* Vertical divider (only when files present) */}
+            {hasFiles && (
+              <div style={{ width: 1, background: 'var(--dock-border)', flexShrink: 0, alignSelf: 'stretch' }} />
+            )}
 
-            {/* Right: note textarea */}
+            {/* Right: label + buttons + textarea */}
             <div style={{
               flex: 1,
               display: 'flex',
@@ -303,52 +294,52 @@ export function CommandDock({
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase' as const,
                 }}>
-                  备注（可选）
+                  {hasFiles ? '备注（可选）' : '粘贴文本或文件'}
                 </span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button onClick={(e) => { e.stopPropagation(); onFilesCancel(); setNoteText('') }} style={actionBtnCancel}>
+                  <button onClick={(e) => { e.stopPropagation(); handleCancel() }} style={actionBtnCancel}>
                     取消
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleFilesSubmitClick() }} style={actionBtnSubmit}>
+                  <button onClick={(e) => { e.stopPropagation(); handleSubmit() }} style={actionBtnSubmit}>
                     提交 Agent 整理 ↗
                   </button>
                 </div>
               </div>
 
               <textarea
-                ref={noteRef}
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
+                ref={inputRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                     e.preventDefault()
-                    handleFilesSubmitClick()
+                    handleSubmit()
                   }
                 }}
                 onPaste={(e) => {
                   e.preventDefault()
                   const rawText = e.clipboardData.getData('text')
-                  function handleNoteTextPaste(text: string) {
+                  function handleTextFallback(text: string) {
                     if (text.length > 300) {
                       importText(text).then((result) => {
                         onPasteFiles([result.path])
                       }).catch((err) => {
-                        console.error('[note-paste-import]', err)
+                        console.error('[paste-import]', err)
                         showToast('提交失败')
                       })
                     } else if (text) {
-                      setNoteText(prev => prev + text)
+                      setInputText(prev => prev + text)
                     }
                   }
                   clipboard.readFiles().then((files) => {
                     if (files && files.length > 0) {
                       onPasteFiles(files)
                     } else {
-                      handleNoteTextPaste(rawText)
+                      handleTextFallback(rawText)
                     }
-                  }).catch(() => handleNoteTextPaste(rawText))
+                  }).catch(() => handleTextFallback(rawText))
                 }}
-                placeholder="添加背景说明…"
+                placeholder={hasFiles ? '添加背景说明…' : '在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…'}
                 className="dock-textarea"
                 style={{
                   flex: 1,
@@ -369,89 +360,6 @@ export function CommandDock({
                 } as React.CSSProperties}
               />
             </div>
-          </div>
-        )}
-
-        {/* Paste text mode */}
-        {activeMode === 'paste' && (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '8px 12px',
-            minHeight: 84,
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 5,
-            }}>
-              <span style={{
-                fontSize: 10,
-                color: 'var(--dock-paste-label)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase' as const,
-              }}>
-                粘贴文本或文件
-              </span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={(e) => { e.stopPropagation(); exitPaste() }} style={actionBtnCancel}>
-                  取消
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleSubmit() }} style={actionBtnSubmit}>
-                  提交 Agent 整理 ↗
-                </button>
-              </div>
-            </div>
-            <textarea
-              ref={textareaRef}
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              onKeyDown={handleTextareaKeyDown}
-              onPaste={(e) => {
-                const rawText = e.clipboardData.getData('text')
-                function handlePasteTextFallback(text: string) {
-                  if (text.length > 300) {
-                    e.preventDefault()
-                    exitPaste()
-                    importText(text).then((result) => {
-                      onPasteFiles([result.path])
-                    }).catch((err) => {
-                      console.error('[paste-textarea-import]', err)
-                      showToast('提交失败')
-                    })
-                  }
-                  // else: let native paste fill the textarea normally
-                }
-                clipboard.readFiles().then((files) => {
-                  if (files && files.length > 0) {
-                    e.preventDefault()
-                    exitPaste()
-                    onPasteFiles(files)
-                  } else {
-                    handlePasteTextFallback(rawText)
-                  }
-                }).catch(() => handlePasteTextFallback(rawText))
-              }}
-              placeholder="在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…"
-              className="dock-textarea"
-              style={{
-                flex: 1,
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 11,
-                color: 'var(--item-text)',
-                lineHeight: 1.6,
-                caretColor: 'var(--dock-paste-label)',
-                minHeight: 20,
-                userSelect: 'text',
-                WebkitUserSelect: 'text',
-              } as React.CSSProperties}
-            />
           </div>
         )}
       </div>

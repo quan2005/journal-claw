@@ -5,6 +5,7 @@ import {
   getEngineConfig, setEngineConfig,
   type EngineConfig,
 } from '../../lib/tauri'
+import SkeletonRow from './SkeletonRow'
 
 type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
 type EngineId = 'claude' | 'qwen'
@@ -22,17 +23,6 @@ const ENGINES: { id: EngineId; label: string; vendor: string; icon: string }[] =
   { id: 'claude', label: 'Claude Code', vendor: 'Anthropic', icon: '◈' },
   { id: 'qwen',   label: 'Qwen Code',   vendor: '阿里云',     icon: '◇' },
 ]
-
-function SkeletonRow({ width = '100%', height = 28, mb = 14 }: { width?: string | number; height?: number; mb?: number }) {
-  return (
-    <div style={{
-      width, height, borderRadius: 6, marginBottom: mb,
-      background: 'linear-gradient(90deg, var(--detail-case-bg) 25%, var(--divider) 50%, var(--detail-case-bg) 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.4s ease-in-out infinite',
-    }} />
-  )
-}
 
 export default function SectionAiEngine() {
   const [status, setStatus] = useState<Record<EngineId, InstallStatus>>({
@@ -273,18 +263,6 @@ export default function SectionAiEngine() {
         </div>
       )}
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes section-fadein {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-      `}</style>
     </div>
   )
 }

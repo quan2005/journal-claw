@@ -104,6 +104,11 @@
   --queue-bg: #f0f0f2;
   --queue-border: #d1d1d6;
   --queue-shadow: rgba(0,0,0,0.06);
+
+  /* Context menu */
+  --context-menu-bg: #ffffff;
+  --context-menu-border: #e5e5ea;
+  --context-menu-shadow: rgba(0,0,0,0.15);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -203,6 +208,11 @@
     --queue-bg: #1c1c1e;
     --queue-border: #333;
     --queue-shadow: rgba(0,0,0,0.3);
+
+    /* Context menu */
+    --context-menu-bg: #1e1e1e;
+    --context-menu-border: #333;
+    --context-menu-shadow: rgba(0,0,0,0.5);
   }
 }
 
@@ -506,3 +516,15 @@ html, body, #root {
 [data-theme="light"] .hljs-tag             { color: #e45649; }
 [data-theme="light"] .hljs-attribute       { color: #986801; }
 [data-theme="light"] .hljs-meta            { color: #0184bc; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes section-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes app-enter { from { opacity: 0; } to { opacity: 1; } }

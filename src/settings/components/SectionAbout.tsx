@@ -1,19 +1,9 @@
 import { useState, useEffect } from 'react'
 import { getAppVersion } from '../../lib/tauri'
 import qrCode from '../../assets/wechat-qrcode.png'
+import SkeletonRow from './SkeletonRow'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px' }
-
-function SkeletonRow({ width = '100%', height = 28, mb = 14 }: { width?: string | number; height?: number; mb?: number }) {
-  return (
-    <div style={{
-      width, height, borderRadius: 6, marginBottom: mb,
-      background: 'linear-gradient(90deg, var(--detail-case-bg) 25%, var(--divider) 50%, var(--detail-case-bg) 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.4s ease-in-out infinite',
-    }} />
-  )
-}
 
 const beliefs = [
   {
@@ -31,25 +21,13 @@ export default function SectionAbout() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getAppVersion().then(v => {
-      setVersion(v)
-      setLoading(false)
-    })
+    getAppVersion()
+      .then(v => { setVersion(v); setLoading(false) })
+      .catch(() => { setVersion('—'); setLoading(false) })
   }, [])
 
   return (
     <div style={sectionStyle}>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes section-fadein {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-      `}</style>
-
       <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>关于</div>
 
       {loading ? (

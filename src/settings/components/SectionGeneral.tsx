@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getWorkspacePath, setWorkspacePath, pickFolder } from '../../lib/tauri'
+import SkeletonRow from './SkeletonRow'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
@@ -8,17 +9,6 @@ const inputStyle: React.CSSProperties = {
   flex: 1, background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
   borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--item-text)',
   fontFamily: 'ui-monospace, monospace', outline: 'none',
-}
-
-function SkeletonRow({ width = '100%', height = 28, mb = 14 }: { width?: string | number; height?: number; mb?: number }) {
-  return (
-    <div style={{
-      width, height, borderRadius: 6, marginBottom: mb,
-      background: 'linear-gradient(90deg, var(--detail-case-bg) 25%, var(--divider) 50%, var(--detail-case-bg) 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.4s ease-in-out infinite',
-    }} />
-  )
 }
 
 export default function SectionGeneral() {
@@ -46,17 +36,6 @@ export default function SectionGeneral() {
 
   return (
     <div style={sectionStyle}>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes section-fadein {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-      `}</style>
-
       <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>通用</div>
 
       {loading ? (

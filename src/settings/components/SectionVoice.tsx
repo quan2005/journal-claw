@@ -1,3 +1,11 @@
+import { useState, useEffect } from 'react'
+import { Cloud, Cpu } from 'lucide-react'
+import { getAsrConfig, setAsrConfig, type AsrConfig } from '../../lib/tauri'
+import SkeletonRow from './SkeletonRow'
+
+type AsrEngineId = 'dashscope' | 'whisperkit'
+type WhisperModel = 'base' | 'small' | 'large-v3-turbo'
+
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
 const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
@@ -7,35 +15,128 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
+const WHISPER_MODELS: { id: WhisperModel; label: string; size: string; hint: string }[] = [
+  { id: 'base',           label: 'Base',           size: '~74MB',  hint: '默认，下载快，中文效果一般' },
+  { id: 'small',          label: 'Small',          size: '~244MB', hint: '中文效果好，适合会议记录' },
+  { id: 'large-v3-turbo', label: 'Large v3 Turbo', size: '~809MB', hint: '最佳中文效果，首次下载较慢' },
+]
+
 export default function SectionVoice() {
+  const [cfg, setCfg] = useState<AsrConfig>({
+    asr_engine: 'dashscope',
+    dashscope_api_key: '',
+    whisperkit_model: 'base',
+  })
+  const [loading, setLoading] = useState(true)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    getAsrConfig().then(c => {
+      setCfg(c)
+      setLoading(false)
+    })
+  }, [])
+
+  const handleSave = async () => {
+    await setAsrConfig(cfg)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const ENGINES: { id: AsrEngineId; label: string; vendor: string; icon: typeof Cloud }[] = [
+    { id: 'dashscope',  label: 'DashScope',  vendor: '阿里云 · 云端', icon: Cloud },
+    { id: 'whisperkit', label: 'WhisperKit', vendor: 'Argmax · 本地',  icon: Cpu  },
+  ]
+
   return (
-    <div style={{ ...sectionStyle, opacity: 0.45, pointerEvents: 'none' as const }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>语音转写</div>
-        <span style={{ fontSize: 9, color: 'var(--duration-text)', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.04em' }}>开发中</span>
-      </div>
+    <div style={sectionStyle}>
+      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>语音转写</div>
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>转写引擎</label>
-        <div style={{ ...inputStyle, color: 'var(--item-meta)', cursor: 'default' }}>阿里云 DashScope</div>
-        <div style={hintStyle}>当前仅支持 DashScope，更多引擎即将支持</div>
-      </div>
+      {loading ? (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+            <SkeletonRow height={90} mb={0} />
+            <SkeletonRow height={90} mb={0} />
+          </div>
+          <SkeletonRow height={32} mb={14} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <SkeletonRow height={30} width={60} mb={0} />
+          </div>
+        </>
+      ) : (
+        <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
+          {/* 引擎选择卡片 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+            {ENGINES.map(({ id, label, vendor, icon: Icon }) => {
+              const isActive = cfg.asr_engine === id
+              return (
+                <div
+                  key={id}
+                  onClick={() => setCfg(prev => ({ ...prev, asr_engine: id }))}
+                  style={{
+                    background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
+                    border: `1px solid ${isActive ? 'var(--record-btn)' : 'var(--divider)'}`,
+                    borderRadius: 10, padding: '14px 12px 12px',
+                    textAlign: 'center' as const, cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}>
+                    <Icon size={22} strokeWidth={1.5} />
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
+                </div>
+              )
+            })}
+          </div>
 
-      <div style={{ height: 1, background: 'var(--divider)', margin: '14px 0' }} />
+          <div style={{ height: 1, background: 'var(--divider)', margin: '0 0 14px' }} />
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>DashScope API Key</label>
-        <input type="password" style={inputStyle} placeholder="sk-…" disabled />
-        <div style={hintStyle}>配置后，超过 30 秒的录音将自动转写为文字</div>
-      </div>
+          {/* DashScope 配置 */}
+          {cfg.asr_engine === 'dashscope' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>DashScope API Key</label>
+              <input
+                type="password"
+                style={inputStyle}
+                placeholder="sk-…"
+                value={cfg.dashscope_api_key}
+                onChange={e => setCfg(prev => ({ ...prev, dashscope_api_key: e.target.value }))}
+              />
+              <div style={hintStyle}>配置后，录音将自动上传至阿里云转写</div>
+            </div>
+          )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-        <button disabled style={{
-          background: 'var(--record-btn)', border: 'none', borderRadius: 5,
-          padding: '6px 18px', fontSize: 12, fontWeight: 600,
-          color: 'var(--bg)', cursor: 'not-allowed',
-        }}>保存</button>
-      </div>
+          {/* WhisperKit 配置 */}
+          {cfg.asr_engine === 'whisperkit' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>转写模型</label>
+              <select
+                style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' as const }}
+                value={cfg.whisperkit_model}
+                onChange={e => setCfg(prev => ({ ...prev, whisperkit_model: e.target.value as WhisperModel }))}
+              >
+                {WHISPER_MODELS.map(m => (
+                  <option key={m.id} value={m.id}>{m.label} ({m.size})</option>
+                ))}
+              </select>
+              <div style={hintStyle}>
+                {WHISPER_MODELS.find(m => m.id === cfg.whisperkit_model)?.hint}
+                <br />模型首次使用时自动下载，存储在本机，之后离线可用。
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+            {saved && <span style={{ fontSize: 11, color: '#34c759' }}>已保存</span>}
+            <button onClick={handleSave} style={{
+              background: 'var(--record-btn)', border: 'none', borderRadius: 5,
+              padding: '6px 18px', fontSize: 12, fontWeight: 600,
+              color: 'var(--bg)', cursor: 'pointer',
+            }}>保存</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import type { RecorderStatus } from '../hooks/useRecorder'
-import { FileChip } from './FileChip'
+import { FileCard } from './FileCard'
 import { fileKindFromName } from '../lib/fileKind'
 import clipboard from 'tauri-plugin-clipboard-api'
-import { importText } from '../lib/tauri'
+import { importText, openFile } from '../lib/tauri'
 
 interface CommandDockProps {
   isDragOver: boolean
   pendingFiles: string[]
   onPasteSubmit: (text: string) => Promise<void>
-  onFilesSubmit: (paths: string[]) => Promise<void>
+  onFilesSubmit: (paths: string[], note?: string) => Promise<void>
   onFilesCancel: () => void
   onRemoveFile: (index: number) => void
   onPasteFiles: (paths: string[]) => void
@@ -24,7 +24,10 @@ export function CommandDock({
   const [pasteMode, setPasteMode] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
+  const [noteText, setNoteText] = useState('')
+  const [textExpanded, setTextExpanded] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
   const isRecording = recorderStatus === 'recording'
   const hasFiles = pendingFiles.length > 0
 
@@ -62,7 +65,7 @@ export function CommandDock({
     const handler = (e: KeyboardEvent) => {
       // Escape: cancel files or paste
       if (e.key === 'Escape') {
-        if (hasFiles) { onFilesCancel(); return }
+        if (hasFiles) { onFilesCancel(); setNoteText(''); setTextExpanded(false); return }
         if (pasteMode) { exitPaste(); return }
       }
       // ⌘Enter: submit files
@@ -115,10 +118,13 @@ export function CommandDock({
 
   async function handleFilesSubmitClick() {
     const paths = [...pendingFiles]
+    const note = noteText.trim() || undefined
     onFilesCancel()
+    setNoteText('')
+    setTextExpanded(false)
     showToast('已提交，Agent 整理中…')
     try {
-      await onFilesSubmit(paths)
+      await onFilesSubmit(paths, note)
     } catch (err) {
       console.error('[files-submit]', err)
       showToast('提交失败')
@@ -247,49 +253,125 @@ export function CommandDock({
           </div>
         )}
 
-        {/* Files preview mode */}
+        {/* Files + Note mode */}
         {activeMode === 'files' && (
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            padding: '8px 12px',
-            minHeight: 46,
+            alignItems: 'stretch',
+            minHeight: textExpanded ? 180 : 84,
+            transition: 'min-height 0.2s ease',
           }}>
+            {/* Left: attachment cards */}
             <div style={{
+              padding: '12px 12px 12px 14px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 8,
+              flexDirection: 'row',
+              gap: 10,
+              flexWrap: 'wrap',
+              alignContent: 'flex-start',
+              alignItems: 'flex-start',
+              flexShrink: 0,
             }}>
-              <span style={{
-                fontSize: 10,
-                color: 'var(--dock-paste-label)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase' as const,
-              }}>
-                待导入文件
-              </span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={(e) => { e.stopPropagation(); onFilesCancel() }} style={actionBtnCancel}>
-                  取消
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleFilesSubmitClick() }} style={actionBtnSubmit}>
-                  提交 Agent 整理 ↗
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {pendingFiles.map((path, i) => {
                 const filename = path.split('/').pop() ?? path
                 return (
-                  <FileChip
+                  <FileCard
                     key={`${path}-${i}`}
                     filename={filename}
                     kind={fileKindFromName(filename)}
                     onRemove={() => onRemoveFile(i)}
+                    onOpen={() => openFile(path).catch(err => console.error('[open-file]', err))}
                   />
                 )
               })}
+            </div>
+
+            {/* Vertical divider */}
+            <div style={{ width: 1, background: 'var(--dock-border)', flexShrink: 0, alignSelf: 'stretch' }} />
+
+            {/* Right: note textarea */}
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '10px 12px',
+              minWidth: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <span style={{
+                  fontSize: 10,
+                  color: 'var(--dock-paste-label)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase' as const,
+                }}>
+                  备注（可选）
+                </span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button onClick={(e) => { e.stopPropagation(); onFilesCancel(); setNoteText(''); setTextExpanded(false) }} style={actionBtnCancel}>
+                    取消
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleFilesSubmitClick() }} style={actionBtnSubmit}>
+                    提交 Agent 整理 ↗
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, marginTop: 7, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <textarea
+                  ref={noteRef}
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                      e.preventDefault()
+                      handleFilesSubmitClick()
+                    }
+                  }}
+                  placeholder="添加背景说明…"
+                  className="dock-textarea"
+                  style={{
+                    flex: 1,
+                    width: '100%',
+                    background: textExpanded ? 'var(--dock-paste-bg)' : 'transparent',
+                    border: textExpanded ? '0.5px solid var(--dock-paste-border)' : 'none',
+                    borderRadius: textExpanded ? 6 : 0,
+                    padding: textExpanded ? '6px 8px' : 0,
+                    outline: 'none',
+                    resize: 'none',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: 11,
+                    color: 'var(--item-text)',
+                    lineHeight: 1.6,
+                    caretColor: 'var(--dock-paste-label)',
+                    minHeight: 20,
+                    userSelect: 'text',
+                    WebkitUserSelect: 'text',
+                    transition: 'background 0.15s, border 0.15s, padding 0.15s',
+                  } as React.CSSProperties}
+                />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setTextExpanded(v => !v) }}
+                  title={textExpanded ? '收起' : '放大'}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    flexShrink: 0,
+                    borderRadius: 4,
+                    background: 'var(--dock-kbd-bg)',
+                    border: '0.5px solid var(--dock-kbd-border)',
+                    color: 'var(--item-meta)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    marginTop: 2,
+                    flexDirection: 'column' as const,
+                  }}
+                >
+                  {textExpanded ? '⤡' : '⤢'}
+                </button>
+              </div>
             </div>
           </div>
         )}

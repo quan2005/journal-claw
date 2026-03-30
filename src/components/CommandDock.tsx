@@ -293,6 +293,7 @@ export function CommandDock({
               flexDirection: 'column',
               padding: '10px 12px',
               minWidth: 0,
+              minHeight: 84,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <span style={{

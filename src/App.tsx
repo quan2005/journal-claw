@@ -10,7 +10,7 @@ import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, triggerAiProcessing, submitPasteText, importText, cancelAiProcessing } from './lib/tauri'
+import { importFile, triggerAiProcessing, submitPasteText, cancelAiProcessing } from './lib/tauri'
 import type { JournalEntry } from './types'
 
 const BASE_WIDTH = 320
@@ -127,19 +127,10 @@ export default function App() {
 
   const handleFilesSubmit = async (paths: string[], note?: string) => {
     setPendingFiles([])
-    const allPaths = [...paths]
-    if (note) {
-      try {
-        const noteResult = await importText(note)
-        allPaths.push(noteResult.path)
-      } catch (err) {
-        console.error('[note-import] error:', String(err))
-      }
-    }
-    for (const path of allPaths) {
+    for (const path of paths) {
       try {
         const result = await importFile(path)
-        await triggerAiProcessing(result.path, result.year_month)
+        await triggerAiProcessing(result.path, result.year_month, note)
       } catch (err) {
         console.error('[file-submit] error:', String(err), 'path:', path)
       }

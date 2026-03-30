@@ -58,11 +58,15 @@ export const importFile = (srcPath: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })
 
 // AI Processing
-export const triggerAiProcessing = (materialPath: string, yearMonth: string) =>
-  invoke<void>('trigger_ai_processing', { materialPath, yearMonth })
+export const triggerAiProcessing = (materialPath: string, yearMonth: string, note?: string) =>
+  invoke<void>('trigger_ai_processing', { materialPath, yearMonth, note: note ?? null })
 
 export const deleteJournalEntry = (path: string) =>
   invoke<void>('delete_journal_entry', { path })
+
+// 粘贴文本 → 写入系统 temp 目录 → 返回路径（不自动触发 AI，OS 自动清理）
+export const importTextTemp = (text: string) =>
+  invoke<{ path: string; filename: string; year_month: string }>('import_text_temp', { text })
 
 // 粘贴文本 → 保存为 raw 文件 → 返回路径（不自动触发 AI）
 export const importText = (text: string) =>

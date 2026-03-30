@@ -15,6 +15,7 @@ pub struct ProcessingUpdate {
 pub struct QueueTask {
     material_path: String,
     year_month: String,
+    note: Option<String>,
 }
 
 /// Holds the sender half — stored in Tauri managed state.
@@ -211,7 +212,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
         while let Some(task) = rx.recv().await {
             eprintln!("[ai_queue] dequeued task: {} ({})", task.material_path, task.year_month);
             let current_task = app.state::<CurrentTask>();
-            let result = process_material(&app, &task.material_path, &task.year_month, &current_task).await;
+            let result = process_material(&app, &task.material_path, &task.year_month, task.note.as_deref(), &current_task).await;
             match &result {
                 Ok(()) => eprintln!("[ai_queue] task completed: {}", task.material_path),
                 Err(e) => eprintln!("[ai_queue] task failed: {} → {}", task.material_path, e),
@@ -225,6 +226,7 @@ pub async fn process_material(
     app: &AppHandle,
     material_path: &str,
     year_month: &str,
+    note: Option<&str>,
     current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let cfg = config::load_config(app)?;
@@ -252,9 +254,13 @@ pub async fn process_material(
         .to_string_lossy()
         .to_string();
     let relative_ref = format!("{}/raw/{}", year_month, filename);
+    let note_suffix = note
+        .filter(|n| !n.trim().is_empty())
+        .map(|n| format!("\n用户补充：{}", n.trim()))
+        .unwrap_or_default();
     let prompt = format!(
-        "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
-        relative_ref, year_month
+        "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+        relative_ref, year_month, note_suffix
     );
     let args = vec![
         "-p".to_string(),
@@ -401,6 +407,7 @@ pub async fn trigger_ai_processing(
     queue: tauri::State<'_, AiQueue>,
     material_path: String,
     year_month: String,
+    note: Option<String>,
 ) -> Result<(), String> {
     eprintln!("[trigger_ai] material={} ym={}", material_path, year_month);
     // Emit "queued" immediately
@@ -413,6 +420,7 @@ pub async fn trigger_ai_processing(
     queue.0.send(QueueTask {
         material_path,
         year_month,
+        note,
     }).await.map_err(|e| format!("队列发送失败: {}", e))?;
 
     Ok(())
@@ -556,14 +564,27 @@ mod tests {
     fn prompt_contains_material_reference() {
         let filename = "note.txt";
         let year_month = "2603";
+        let relative_ref = format!("{}/raw/{}", year_month, filename);
+
+        // without note
+        let note_suffix = "";
         let prompt = format!(
-            "深入梳理 @{}/raw/{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
-            year_month, filename, year_month
+            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+            relative_ref, year_month, note_suffix
         );
         assert!(prompt.contains("@2603/raw/note.txt"));
         assert!(prompt.contains("深入梳理"));
         assert!(prompt.contains("DD-标题.md"));
         assert!(prompt.contains("2603/"));
+        assert!(!prompt.contains("用户补充"));
+
+        // with note
+        let note_suffix = "\n用户补充：这是会议记录";
+        let prompt_with_note = format!(
+            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+            relative_ref, year_month, note_suffix
+        );
+        assert!(prompt_with_note.contains("用户补充：这是会议记录"));
     }
 
     #[test]

@@ -21,7 +21,61 @@ const kindEmoji: Record<string, string> = {
   other: '\uD83D\uDCC1',
 }
 
+function AudioWaveform({ level }: { level: number }) {
+  // 9 bars with symmetric envelope — tallest in the center
+  const envelope = Array.from({ length: 64 }, (_, i) => {
+    const x = (i / 63) * Math.PI
+    return 0.15 + 0.85 * Math.sin(x)
+  })
+  const minH = 3
+  const maxH = 22
+  const clampedLevel = Math.min(1, Math.max(0, level))
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2.5,
+      height: maxH,
+      flex: 1,
+    }}>
+      {envelope.map((scale, i) => {
+        const h = minH + (maxH - minH) * clampedLevel * scale
+        return (
+          <span
+            key={i}
+            style={{
+              width: 3,
+              height: h,
+              borderRadius: 2,
+              background: 'var(--record-btn)',
+              opacity: 0.9,
+              transition: 'height 0.08s ease-out',
+              flexShrink: 0,
+            }}
+          />
+        )
+      })}
+    </span>
+  )
+}
+
+function formatElapsed(secs: number): string {
+  const m = Math.floor(secs / 60)
+  const s = secs % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () => void }) {
+  if (item.status === 'converting') {
+    return (
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 9, opacity: 0.8 }}>
+        <Spinner size={10} borderWidth={1.5} />
+        转换中
+      </span>
+    )
+  }
   if (item.status === 'queued') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 9, opacity: 0.7 }}>
@@ -79,8 +133,57 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
         boxShadow: '0 -2px 12px var(--queue-shadow)',
       }}>
         {items.map((item, idx) => {
-          const emoji = kindEmoji[fileKindFromName(item.filename)] ?? '\uD83D\uDCC1'
           const isLast = idx === items.length - 1
+
+          // ── Recording row ──────────────────────────────────
+          if (item.status === 'recording') {
+            return (
+              <div
+                key={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  height: 36,
+                  padding: '0 20px',
+                  borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
+                  animation: 'queue-enter 0.2s ease-out',
+                }}
+              >
+                <span style={{
+                  fontSize: 10,
+                  color: 'var(--record-btn)',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                  <span style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--record-btn)',
+                    flexShrink: 0,
+                    animation: 'recording-dot-pulse 1.2s ease-in-out infinite',
+                  }} />
+                  录音中
+                </span>
+                {/* Real-time audio waveform — centered, dominant */}
+                <AudioWaveform level={(item.audioLevel ?? 0) * 6} />
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 9,
+                  color: 'var(--record-btn)',
+                  flexShrink: 0,
+                }}>
+                  {formatElapsed(item.elapsedSecs ?? 0)}
+                </span>
+              </div>
+            )
+          }
+
+          // ── Normal queue row ───────────────────────────────
+          const emoji = kindEmoji[fileKindFromName(item.filename)] ?? '\uD83D\uDCC1'
           const animStyle: React.CSSProperties =
             item.status === 'completed'
               ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
@@ -119,7 +222,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
         })}
       </div>
 
-      {activeItem && (
+      {activeItem && activeItem.status !== 'recording' && (
         <AiLogModal
           item={activeItem}
           onClose={() => onSetActiveLogPath(null)}

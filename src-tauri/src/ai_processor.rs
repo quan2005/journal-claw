@@ -265,7 +265,6 @@ pub async fn process_material(
         "stream-json".to_string(),
         "--verbose".to_string(),
         "--no-session-persistence".to_string(),
-        "--bare".to_string(),
     ];
 
     // Emit startup log

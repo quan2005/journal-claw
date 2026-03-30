@@ -26,6 +26,10 @@ pub struct AiQueue(pub mpsc::Sender<QueueTask>);
 /// Wrapped in Mutex so the cancel command can reach in and kill it.
 pub struct CurrentTask(pub std::sync::Mutex<Option<tokio::process::Child>>);
 
+/// Paths that have been cancelled while still queued (not yet processing).
+/// The queue consumer checks this before starting each task.
+pub struct CancelledPaths(pub std::sync::Mutex<std::collections::HashSet<String>>);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiLogLine {
     pub material_path: String,
@@ -304,6 +308,18 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
         eprintln!("[ai_queue] consumer loop started");
         while let Some(task) = rx.recv().await {
             eprintln!("[ai_queue] dequeued task: {} ({})", task.material_path, task.year_month);
+
+            // Check if this task was cancelled while waiting in the queue
+            let was_cancelled = {
+                let cancelled = app.state::<CancelledPaths>();
+                let mut set = cancelled.0.lock().unwrap();
+                set.remove(&task.material_path)
+            };
+            if was_cancelled {
+                eprintln!("[ai_queue] skipping cancelled task: {}", task.material_path);
+                continue;
+            }
+
             let current_task = app.state::<CurrentTask>();
             let result = process_material(&app, &task.material_path, &task.year_month, task.note.as_deref(), task.prompt_text.as_deref(), &current_task).await;
             match &result {
@@ -366,7 +382,14 @@ pub async fn process_material(
         .current_dir(&cfg.workspace_path)
         .env("PATH", augmented_path())
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
+        .stderr(std::process::Stdio::piped())
+        .kill_on_drop(true);
+    #[cfg(unix)]
+    {
+        // Spawn in a new process group so cancel can kill the entire tree
+        // (claude CLI may spawn Node.js workers that inherit the stdout pipe)
+        cmd.process_group(0);
+    }
     for (k, v) in &extra_envs {
         cmd.env(k, v);
     }
@@ -535,11 +558,34 @@ pub async fn cancel_ai_processing(
 ) -> Result<(), String> {
     let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
     if let Some(mut child) = guard.take() {
-        child.start_kill().map_err(|e| e.to_string())?;
-        eprintln!("[ai_processor] cancel: sent SIGKILL to child");
+        // On Unix, kill the entire process group to ensure Node.js workers
+        // (spawned by claude CLI) are also terminated, closing the stdout pipe.
+        #[cfg(unix)]
+        {
+            if let Some(pid) = child.id() {
+                let pgid = pid as i32;
+                unsafe { libc::killpg(pgid, libc::SIGKILL); }
+                eprintln!("[ai_processor] cancel: sent SIGKILL to process group {}", pgid);
+            }
+        }
+        // Fallback / Windows: kill just the direct child
+        let _ = child.start_kill();
+        eprintln!("[ai_processor] cancel: sent kill to child process");
     } else {
         eprintln!("[ai_processor] cancel: no task running");
     }
+    Ok(())
+}
+
+/// No event is emitted — the frontend handles UI removal directly.
+#[tauri::command]
+pub async fn cancel_queued_item(
+    cancelled_paths: tauri::State<'_, CancelledPaths>,
+    material_path: String,
+) -> Result<(), String> {
+    let mut set = cancelled_paths.0.lock().map_err(|e| e.to_string())?;
+    set.insert(material_path.clone());
+    eprintln!("[ai_processor] cancel_queued: marked for skip: {}", material_path);
     Ok(())
 }
 

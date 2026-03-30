@@ -12,6 +12,7 @@
   --item-text: #1c1c1e;
   --item-meta: #6e6e73;
   --duration-text: #c7c7cc;
+  --accent: #ff3b30;
   --record-btn: #d9a44b;
   --record-btn-hover: #c8933a;
   --record-btn-icon: #ffffff;
@@ -120,6 +121,7 @@
     --item-text: #d8d8d8;
     --item-meta: #7a7a7a;
     --duration-text: #48484a;
+    --accent: #ff375f;
     --record-btn: #c8933a;
     --record-btn-hover: #d9a44b;
     --record-btn-icon: #0f0f0f;
@@ -270,6 +272,20 @@ html, body, #root {
   flex-shrink: 0;
 }
 
+/* ── Mic button hover ───────────────────────────────────────── */
+.mic-btn {
+  will-change: box-shadow, filter;
+  transition: box-shadow 0.4s ease-in-out, filter 0.2s;
+}
+.mic-btn:hover {
+  background: var(--record-btn-hover) !important;
+  animation: mic-glow-expand 0.25s ease-out forwards !important;
+  transition: background 0.2s;
+}
+.mic-btn:active {
+  filter: brightness(0.9);
+}
+
 /* ── Dock textarea placeholder ─────────────────────────── */
 .dock-textarea::placeholder {
   color: var(--item-meta);
@@ -346,7 +362,9 @@ html, body, #root {
   --item-text: #d8d8d8;
   --item-meta: #7a7a7a;
   --duration-text: #48484a;
+  --accent: #ff375f;
   --record-btn: #c8933a;
+  --record-btn-hover: #d9a44b;
   --record-btn-icon: #0f0f0f;
   --record-highlight: rgba(200,147,58,0.06);
   --record-highlight-bar: rgba(200,147,58,1);
@@ -427,6 +445,7 @@ html, body, #root {
   --item-text: #1c1c1e;
   --item-meta: #6e6e73;
   --duration-text: #c7c7cc;
+  --accent: #ff3b30;
   --record-btn: #d9a44b;
   --record-btn-hover: #c8933a;
   --record-btn-icon: #ffffff;
@@ -526,7 +545,6 @@ html, body, #root {
   to   { opacity: 1; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 @keyframes app-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes settings-fadein {
   from { opacity: 0; }

@@ -10,9 +10,9 @@ import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing } from './lib/tauri'
+import { importFile, importAudioFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
-import type { JournalEntry } from './types'
+import type { JournalEntry, QueueItem } from './types'
 
 const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
@@ -164,6 +164,15 @@ export default function App() {
     refresh()
   }
 
+  const handleCancelQueueItem = async (item: QueueItem) => {
+    if (item.status === 'processing') {
+      await cancelAiProcessing()
+    } else {
+      await cancelQueuedItem(item.path)
+    }
+    dismissQueueItem(item.path)
+  }
+
   const handlePasteFiles = (paths: string[]) => {
     setPendingFiles(prev => {
       const existing = new Set(prev)
@@ -173,8 +182,9 @@ export default function App() {
     })
   }
 
-  const processingFilename = queueItems.find(i => i.status === 'processing')?.filename
-  const processingPath = queueItems.find(i => i.status === 'processing')?.path
+  const processingItem = queueItems.find(i => i.status === 'processing')
+  const processingFilename = processingItem?.filename
+  const processingPath = processingItem?.path
 
   // Inject a virtual 'recording' item at the front of the queue when recording
   const visibleQueueItems = status === 'recording'
@@ -233,7 +243,7 @@ export default function App() {
               right: 0,
               zIndex: 10,
             }}>
-              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
+              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={handleCancelQueueItem} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
             </div>
             <CommandDock
               isDragOver={isDragOver}

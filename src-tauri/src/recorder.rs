@@ -5,12 +5,22 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 
+pub(crate) fn rms_f32(samples: &[f32]) -> f32 {
+    if samples.is_empty() { return 0.0; }
+    let sum_sq: f32 = samples.iter().map(|&s| s * s).sum();
+    (sum_sq / samples.len() as f32).sqrt()
+}
+
 pub struct RecorderState(pub Mutex<Option<ActiveRecording>>);
 
 pub struct ActiveRecording {
     stream: cpal::Stream,
     output_path: PathBuf,
     writer: Arc<Mutex<Option<hound::WavWriter<std::io::BufWriter<std::fs::File>>>>>,
+    /// Shared audio level (0.0–1.0 RMS), updated by stream callback, read by emitter task.
+    pub audio_level: Arc<Mutex<f32>>,
+    /// Set to true when stop_recording runs so the emitter task exits.
+    stop_emitter: Arc<std::sync::atomic::AtomicBool>,
 }
 
 /// Generate a unique filename for a new recording.
@@ -76,10 +86,16 @@ pub fn start_recording(
         hound::WavWriter::create(&wav_path, spec).map_err(|e| e.to_string())?,
     )));
 
+    let audio_level = Arc::new(Mutex::new(0.0f32));
+    // ~80ms window: sample_rate × 0.08 / channels (mono mix for level)
+    let window_size = (stream_config.sample_rate as f32 * 0.08) as usize;
+
     // Clone writer handle inside each match arm to avoid double-move
     let stream = match sample_format {
         cpal::SampleFormat::F32 => {
             let writer_clone = Arc::clone(&writer);
+            let level_clone = Arc::clone(&audio_level);
+            let mut accum: Vec<f32> = Vec::with_capacity(window_size);
             device
                 .build_input_stream(
                     &stream_config,
@@ -91,6 +107,18 @@ pub fn start_recording(
                                 }
                             }
                         }
+                        // Accumulate mono samples for RMS
+                        let channels = stream_config.channels as usize;
+                        let mut i = 0;
+                        while i < data.len() {
+                            accum.push(data[i]);  // use first channel
+                            i += channels;
+                            if accum.len() >= window_size {
+                                let level = rms_f32(&accum);
+                                if let Ok(mut l) = level_clone.lock() { *l = level; }
+                                accum.clear();
+                            }
+                        }
                     },
                     |err| eprintln!("stream error: {}", err),
                     None,
@@ -99,6 +127,8 @@ pub fn start_recording(
         }
         cpal::SampleFormat::I16 => {
             let writer_clone = Arc::clone(&writer);
+            let level_clone = Arc::clone(&audio_level);
+            let mut accum: Vec<f32> = Vec::with_capacity(window_size);
             device
                 .build_input_stream(
                     &stream_config,
@@ -106,6 +136,17 @@ pub fn start_recording(
                         if let Ok(mut g) = writer_clone.lock() {
                             if let Some(w) = g.as_mut() {
                                 for &s in data { let _ = w.write_sample(s); }
+                            }
+                        }
+                        let channels = stream_config.channels as usize;
+                        let mut i = 0;
+                        while i < data.len() {
+                            accum.push(data[i] as f32 / i16::MAX as f32);
+                            i += channels;
+                            if accum.len() >= window_size {
+                                let level = rms_f32(&accum);
+                                if let Ok(mut l) = level_clone.lock() { *l = level; }
+                                accum.clear();
                             }
                         }
                     },
@@ -119,7 +160,27 @@ pub fn start_recording(
 
     stream.play().map_err(|e| e.to_string())?;
 
-    *guard = Some(ActiveRecording { stream, output_path: output_path.clone(), writer });
+    // Spawn emitter: polls audio_level every 80ms and emits "audio-level" event
+    let level_for_emitter = Arc::clone(&audio_level);
+    let app_for_emitter = app.clone();
+    let stop_emitter = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let stop_flag = Arc::clone(&stop_emitter);
+    tauri::async_runtime::spawn(async move {
+        let mut last_emitted = -1.0f32;
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
+            if stop_flag.load(std::sync::atomic::Ordering::Relaxed) { break; }
+            if let Ok(l) = level_for_emitter.lock() {
+                let current = *l;
+                if (current - last_emitted).abs() > 0.001 {
+                    let _ = app_for_emitter.emit("audio-level", current);
+                    last_emitted = current;
+                }
+            }
+        }
+    });
+
+    *guard = Some(ActiveRecording { stream, output_path: output_path.clone(), writer, audio_level, stop_emitter });
     Ok(output_path.to_string_lossy().into_owned())
 }
 
@@ -134,6 +195,9 @@ pub async fn stop_recording(
         let active = guard.take().ok_or("not_recording")?;
 
         drop(active.stream);
+
+        // Signal emitter task to exit
+        active.stop_emitter.store(true, std::sync::atomic::Ordering::Relaxed);
 
         {
             let mut wg = active.writer.lock().map_err(|e| e.to_string())?;
@@ -182,12 +246,9 @@ pub async fn stop_recording(
         let path_for_ai = output_path.to_string_lossy().into_owned();
         let ym_for_ai = crate::workspace::current_year_month();
 
-        let asr_engine = crate::config::load_config(&app_clone)
-            .map(|c| c.asr_engine)
-            .unwrap_or_else(|_| "dashscope".to_string());
-        let whisperkit_model = crate::config::load_config(&app_clone)
-            .map(|c| c.whisperkit_model)
-            .unwrap_or_else(|_| "base".to_string());
+        let cfg2 = crate::config::load_config(&app_clone);
+        let asr_engine = cfg2.as_ref().map(|c| c.asr_engine.clone()).unwrap_or_else(|_| "dashscope".to_string());
+        let whisperkit_model = cfg2.map(|c| c.whisperkit_model).unwrap_or_else(|_| "base".to_string());
 
         if asr_engine == "whisperkit" {
             let app_wk = app_clone.clone();
@@ -232,4 +293,37 @@ pub async fn stop_recording(
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rms_silence_is_zero() {
+        let samples = vec![0.0f32; 512];
+        assert_eq!(rms_f32(&samples), 0.0);
+    }
+
+    #[test]
+    fn rms_full_scale_sine_approx_point_seven() {
+        // Full-scale sine wave RMS = 1/√2 ≈ 0.707
+        let samples: Vec<f32> = (0..512)
+            .map(|i| (i as f32 * std::f32::consts::TAU / 64.0).sin())
+            .collect();
+        let r = rms_f32(&samples);
+        assert!((r - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.01,
+            "expected ~0.707, got {}", r);
+    }
+
+    #[test]
+    fn rms_dc_offset_equals_amplitude() {
+        let samples = vec![0.5f32; 256];
+        assert!((rms_f32(&samples) - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn rms_empty_slice_is_zero() {
+        assert_eq!(rms_f32(&[]), 0.0);
+    }
 }

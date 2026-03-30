@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
@@ -118,6 +119,14 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
 }
 
 export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onSetActiveLogPath }: ProcessingQueueProps) {
+  const [confirmingPath, setConfirmingPath] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (confirmingPath && !items.some(i => i.path === confirmingPath)) {
+      setConfirmingPath(null)
+    }
+  }, [items, confirmingPath])
+
   if (items.length === 0) return null
 
   const activeItem = activeLogPath ? items.find(i => i.path === activeLogPath) : null
@@ -164,7 +173,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
                     borderRadius: '50%',
                     background: 'var(--record-btn)',
                     flexShrink: 0,
-                    animation: 'recording-dot-pulse 1.2s ease-in-out infinite',
+                    animation: 'ai-breathe 1.2s ease-in-out infinite',
                   }} />
                   录音中
                 </span>
@@ -190,11 +199,12 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
               : { animation: 'queue-enter 0.2s ease-out' }
           const isClickable = item.status === 'processing'
           const isCancellable = item.status === 'queued' || item.status === 'processing'
+          const isConfirming = confirmingPath === item.path
 
           return (
             <div
               key={item.path}
-              onClick={isClickable ? () => onSetActiveLogPath(item.path) : undefined}
+              onClick={isClickable && !isConfirming ? () => onSetActiveLogPath(item.path) : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -202,7 +212,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
                 height: 32,
                 padding: '0 20px',
                 borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
-                cursor: isClickable ? 'pointer' : 'default',
+                cursor: isClickable && !isConfirming ? 'pointer' : 'default',
                 ...animStyle,
               }}
             >
@@ -218,20 +228,40 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
               }}>
                 {item.filename}
               </span>
-              {isCancellable ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onCancel(item) }}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
-                    color: 'var(--item-meta)', fontSize: 12, lineHeight: 1, flexShrink: 0,
-                    opacity: 0.5,
-                  }}
-                  title="取消"
-                >
-                  ×
-                </button>
+
+              {isConfirming ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 9, color: 'var(--item-meta)', opacity: 0.7 }}>确认取消？</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirmingPath(null); onCancel(item) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 9, color: '#ff453a' }}
+                  >
+                    确认
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirmingPath(null) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 9, color: 'var(--item-meta)', opacity: 0.6 }}
+                  >
+                    返回
+                  </button>
+                </span>
               ) : (
-                <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
+                  {isCancellable && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmingPath(item.path) }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
+                        color: 'var(--item-meta)', fontSize: 12, lineHeight: 1, flexShrink: 0,
+                        opacity: 0.4,
+                      }}
+                      title="取消"
+                    >
+                      ×
+                    </button>
+                  )}
+                </span>
               )}
             </div>
           )

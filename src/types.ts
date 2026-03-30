@@ -44,6 +44,12 @@ export interface ProcessingUpdate {
   error?: string
 }
 
+export interface AiLogLine {
+  material_path: string
+  level: 'info' | 'error'
+  message: string
+}
+
 // ── Processing queue ────────────────────────────────────
 export type QueueItemStatus = 'queued' | 'processing' | 'completed' | 'failed'
 
@@ -53,4 +59,5 @@ export interface QueueItem {
   status: QueueItemStatus
   error?: string
   addedAt: number
+  logs: string[]
 }

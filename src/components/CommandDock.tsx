@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import type { RecorderStatus } from '../hooks/useRecorder'
 import { FileChip } from './FileChip'
 import { fileKindFromName } from '../lib/fileKind'
+import clipboard from 'tauri-plugin-clipboard-api'
+import { importText } from '../lib/tauri'
 
 interface CommandDockProps {
   isDragOver: boolean
@@ -10,13 +12,14 @@ interface CommandDockProps {
   onFilesSubmit: (paths: string[]) => Promise<void>
   onFilesCancel: () => void
   onRemoveFile: (index: number) => void
+  onPasteFiles: (paths: string[]) => void
   recorderStatus: RecorderStatus
   onRecord: () => void
 }
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
-  onFilesCancel, onRemoveFile, recorderStatus, onRecord,
+  onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
 }: CommandDockProps) {
   const [pasteMode, setPasteMode] = useState(false)
   const [pasteText, setPasteText] = useState('')
@@ -54,18 +57,39 @@ export function CommandDock({
         handleFilesSubmitClick()
         return
       }
-      // ⌘V to enter paste mode (only when no input is focused and no files pending)
-      if ((e.metaKey || e.ctrlKey) && e.key === 'v' && !pasteMode && !hasFiles) {
-        const active = document.activeElement
-        const isInput = active instanceof HTMLInputElement ||
-                        active instanceof HTMLTextAreaElement ||
-                        (active as HTMLElement)?.isContentEditable
-        if (!isInput) {
-          setPasteMode(true)
-          navigator.clipboard.readText().then((text) => {
-            if (text) setPasteText(text)
+      // ⌘V: 全局剪贴板路由
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        e.preventDefault()
+        clipboard.readFiles().then((files) => {
+          if (files && files.length > 0) {
+            onPasteFiles(files)
+            return
+          }
+          clipboard.readText().then((text) => {
+            if (!text) return
+            if (text.length > 100) {
+              importText(text).then((result) => {
+                onPasteFiles([result.path])
+              }).catch((err) => console.error('[import-text]', err))
+            } else {
+              setPasteMode(true)
+              setPasteText(text)
+            }
           }).catch(() => {})
-        }
+        }).catch(() => {
+          clipboard.readText().then((text) => {
+            if (!text) return
+            if (text.length > 100) {
+              importText(text).then((result) => {
+                onPasteFiles([result.path])
+              }).catch((err) => console.error('[import-text]', err))
+            } else {
+              setPasteMode(true)
+              setPasteText(text)
+            }
+          }).catch(() => {})
+        })
+        return
       }
       // Escape to cancel paste mode
       if (e.key === 'Escape' && pasteMode) {

@@ -11,7 +11,7 @@ mod materials;
 mod ai_processor;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[tauri::command]
 fn open_with_system(path: String) -> Result<(), String> {
@@ -85,7 +85,7 @@ fn main() {
             let app_handle = app.handle().clone();
             app.on_menu_event(move |_app, event| {
                 if event.id() == "settings" {
-                    let _ = config::open_settings(app_handle.clone());
+                    let _ = app_handle.emit_to("main", "open-settings", ());
                 }
             });
 
@@ -153,6 +153,7 @@ fn main() {
             journal::delete_journal_entry,
             materials::import_file,
             materials::import_text,
+            materials::import_text_temp,
             ai_processor::trigger_ai_processing,
             ai_processor::get_workspace_prompt,
             ai_processor::set_workspace_prompt,

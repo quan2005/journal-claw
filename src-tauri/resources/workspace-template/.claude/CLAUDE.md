@@ -25,7 +25,7 @@ bash .claude/scripts/journal-create "会议标题"
 ```markdown
 ---
 tags: [journal, meeting]
-summary: "结论。背景与约束。"
+summary: "关键摘要。"
 ---
 
 # 标题

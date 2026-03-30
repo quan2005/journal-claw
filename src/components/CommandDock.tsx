@@ -327,25 +327,34 @@ export function CommandDock({
                 onPaste={(e) => {
                   e.preventDefault()
                   const rawText = e.clipboardData.getData('text')
-                  function handleTextFallback(text: string) {
-                    if (text.length > 300) {
-                      importText(text).then((result) => {
+                  // 短文本：直接插入，不走文件路由
+                  if (rawText && rawText.length <= 300) {
+                    setInputText(prev => prev + rawText)
+                    return
+                  }
+                  // 无文本或长文本：尝试读文件，否则按文本处理
+                  clipboard.readFiles().then((files) => {
+                    if (files && files.length > 0) {
+                      onPasteFiles(files)
+                    } else if (rawText) {
+                      // 长文本转文件
+                      importText(rawText).then((result) => {
                         onPasteFiles([result.path])
                       }).catch((err) => {
                         console.error('[paste-import]', err)
                         showToast('提交失败')
                       })
-                    } else if (text) {
-                      setInputText(prev => prev + text)
                     }
-                  }
-                  clipboard.readFiles().then((files) => {
-                    if (files && files.length > 0) {
-                      onPasteFiles(files)
-                    } else {
-                      handleTextFallback(rawText)
+                  }).catch(() => {
+                    if (rawText) {
+                      importText(rawText).then((result) => {
+                        onPasteFiles([result.path])
+                      }).catch((err) => {
+                        console.error('[paste-import]', err)
+                        showToast('提交失败')
+                      })
                     }
-                  }).catch(() => handleTextFallback(rawText))
+                  })
                 }}
                 placeholder={hasFiles ? '补充说明…' : '在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…'}
                 className="dock-textarea"

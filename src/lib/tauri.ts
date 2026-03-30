@@ -64,6 +64,10 @@ export const triggerAiProcessing = (materialPath: string, yearMonth: string) =>
 export const deleteJournalEntry = (path: string) =>
   invoke<void>('delete_journal_entry', { path })
 
+// 粘贴文本 → 保存为 raw 文件 → 返回路径（不自动触发 AI）
+export const importText = (text: string) =>
+  invoke<{ path: string; filename: string; year_month: string }>('import_text', { text })
+
 // Paste text → save as raw material → trigger AI processing
 export const submitPasteText = async (text: string): Promise<void> => {
   const result = await invoke<{ path: string; filename: string; year_month: string }>(

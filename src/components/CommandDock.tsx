@@ -408,6 +408,31 @@ export function CommandDock({
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
               onKeyDown={handleTextareaKeyDown}
+              onPaste={(e) => {
+                const rawText = e.clipboardData.getData('text')
+                function handlePasteTextFallback(text: string) {
+                  if (text.length > 100) {
+                    e.preventDefault()
+                    exitPaste()
+                    importText(text).then((result) => {
+                      onPasteFiles([result.path])
+                    }).catch((err) => {
+                      console.error('[paste-textarea-import]', err)
+                      showToast('提交失败')
+                    })
+                  }
+                  // else: let native paste fill the textarea normally
+                }
+                clipboard.readFiles().then((files) => {
+                  if (files && files.length > 0) {
+                    e.preventDefault()
+                    exitPaste()
+                    onPasteFiles(files)
+                  } else {
+                    handlePasteTextFallback(rawText)
+                  }
+                }).catch(() => handlePasteTextFallback(rawText))
+              }}
               placeholder="在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…"
               className="dock-textarea"
               style={{

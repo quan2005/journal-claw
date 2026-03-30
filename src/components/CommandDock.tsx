@@ -43,6 +43,20 @@ export function CommandDock({
     }
   }, [pasteMode])
 
+  function handleTextClipboard(text: string) {
+    if (text.length > 100) {
+      importText(text).then((result) => {
+        onPasteFiles([result.path])
+      }).catch((err) => {
+        console.error('[import-text]', err)
+        showToast('提交失败')
+      })
+    } else {
+      setPasteMode(true)
+      setPasteText(text)
+    }
+  }
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -59,6 +73,7 @@ export function CommandDock({
       }
       // ⌘V: 全局剪贴板路由
       if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        if (pasteMode) return
         e.preventDefault()
         clipboard.readFiles().then((files) => {
           if (files && files.length > 0) {
@@ -66,34 +81,14 @@ export function CommandDock({
             return
           }
           clipboard.readText().then((text) => {
-            if (!text) return
-            if (text.length > 100) {
-              importText(text).then((result) => {
-                onPasteFiles([result.path])
-              }).catch((err) => console.error('[import-text]', err))
-            } else {
-              setPasteMode(true)
-              setPasteText(text)
-            }
+            if (text) handleTextClipboard(text)
           }).catch(() => {})
         }).catch(() => {
           clipboard.readText().then((text) => {
-            if (!text) return
-            if (text.length > 100) {
-              importText(text).then((result) => {
-                onPasteFiles([result.path])
-              }).catch((err) => console.error('[import-text]', err))
-            } else {
-              setPasteMode(true)
-              setPasteText(text)
-            }
+            if (text) handleTextClipboard(text)
           }).catch(() => {})
         })
         return
-      }
-      // Escape to cancel paste mode
-      if (e.key === 'Escape' && pasteMode) {
-        exitPaste()
       }
     }
     window.addEventListener('keydown', handler)

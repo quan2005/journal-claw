@@ -262,8 +262,9 @@ export function CommandDock({
                 flexDirection: 'row',
                 gap: 6,
                 flexWrap: 'wrap',
-                alignContent: 'flex-start',
-                alignItems: 'flex-start',
+                alignContent: 'center',
+                alignItems: 'center',
+                alignSelf: 'center',
                 flexShrink: 0,
               }}>
                 {pendingFiles.slice(0, 6).map((path, i) => {

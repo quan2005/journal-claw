@@ -182,17 +182,53 @@ pub async fn stop_recording(
         let path_for_ai = output_path.to_string_lossy().into_owned();
         let ym_for_ai = crate::workspace::current_year_month();
 
-        crate::transcription::start_transcription(
-            app_clone,
-            filename,
-            output_path,
-            duration_secs,
-        );
+        let asr_engine = crate::config::load_config(&app_clone)
+            .map(|c| c.asr_engine)
+            .unwrap_or_else(|_| "dashscope".to_string());
+        let whisperkit_model = crate::config::load_config(&app_clone)
+            .map(|c| c.whisperkit_model)
+            .unwrap_or_else(|_| "base".to_string());
 
-        tauri::async_runtime::spawn(async move {
-            let current_task = app_for_ai.state::<crate::ai_processor::CurrentTask>();
-            let _ = crate::ai_processor::process_material(&app_for_ai, &path_for_ai, &ym_for_ai, None, None, &current_task).await;
-        });
+        if asr_engine == "whisperkit" {
+            let app_wk = app_clone.clone();
+            let path_wk = output_path.clone();
+            let ym_wk = ym_for_ai.clone();
+            tauri::async_runtime::spawn(async move {
+                let markdown = match crate::transcription::transcribe_with_whisperkit(
+                    app_wk.clone(),
+                    path_wk.clone(),
+                    whisperkit_model,
+                ).await {
+                    Ok(md) => md,
+                    Err(e) => {
+                        eprintln!("[recorder] whisperkit failed: {}", e);
+                        return;
+                    }
+                };
+                let prompt_text = format!(
+                    "以下是一段录音的说话人转写内容：\n\n{}\n\n请整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
+                    markdown, ym_wk
+                );
+                let current_task = app_wk.state::<crate::ai_processor::CurrentTask>();
+                let path_str = path_wk.to_string_lossy().to_string();
+                let _ = crate::ai_processor::process_material(
+                    &app_wk, &path_str, &ym_wk, None, Some(&prompt_text), &current_task
+                ).await;
+            });
+        } else {
+            // 现有 DashScope 路径不变
+            crate::transcription::start_transcription(
+                app_clone,
+                filename,
+                output_path,
+                duration_secs,
+            );
+
+            tauri::async_runtime::spawn(async move {
+                let current_task = app_for_ai.state::<crate::ai_processor::CurrentTask>();
+                let _ = crate::ai_processor::process_material(&app_for_ai, &path_for_ai, &ym_for_ai, None, None, &current_task).await;
+            });
+        }
     });
 
     Ok(())

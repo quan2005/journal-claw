@@ -233,7 +233,7 @@ pub async fn process_material(
                 eprintln!("[ai_processor:stderr] {}", line);
                 let _ = app_stderr.emit("ai-log", AiLogLine {
                     material_path: mp_stderr.clone(),
-                    level: "error".to_string(),
+                    level: "info".to_string(),
                     message: line,
                 });
             }

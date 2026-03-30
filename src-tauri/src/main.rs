@@ -26,10 +26,12 @@ fn main() {
     let (ai_tx, ai_rx) = tokio::sync::mpsc::channel::<ai_processor::QueueTask>(64);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard::init())
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
         .manage(ai_processor::AiQueue(ai_tx))
         .setup(|app| {
             ai_processor::start_queue_consumer(app.handle().clone(), ai_rx);
+            eprintln!("[journal] AI queue consumer started");
             // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
             let settings_item = MenuItem::with_id(app, "settings", "设置...", true, Some("CmdOrCtrl+,"))?;
             let app_menu = Submenu::with_items(app, "谨迹", true, &[
@@ -84,11 +86,6 @@ fn main() {
                     let _ = config::open_settings(app_handle.clone());
                 }
             });
-
-            // ── AI processing queue ──
-            let (tx, rx) = tokio::sync::mpsc::channel(32);
-            app.manage(ai_processor::AiQueue(tx));
-            ai_processor::start_queue_consumer(app.handle().clone(), rx);
 
             Ok(())
         })

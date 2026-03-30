@@ -8,6 +8,8 @@
     "core:window:allow-start-dragging",
     "core:window:allow-set-size",
     "core:event:default",
-    "core:webview:allow-set-webview-zoom"
+    "core:webview:allow-set-webview-zoom",
+    "clipboard:allow-read-text",
+    "clipboard:allow-read-files"
   ]
 }

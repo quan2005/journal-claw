@@ -228,69 +228,83 @@
   </div>
 </div>
 
-<!-- ━━ STORY 3: 研发团队 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- ━━ SCENE 3: 办公会议 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
 <div class="wrap">
   <div class="sp2"></div>
   <div class="kicker">场景三</div>
-  <div class="h2">一次需求评审</div>
-  <div class="body">以前要提前读完需求文档，集中精力逐条核对。<br>现在只需要讨论。</div>
+  <div class="h2">每一场会议<br>都值得被<span style="color:var(--accent)">谨迹</span></div>
 
-  <div class="ba" style="margin-top:28px;">
-    <div class="ba-side">
-      <div class="ba-label" style="color:var(--red);">以前</div>
-      <ul class="ba-list">
-        <li class="gone">提前通读需求文档</li>
-        <li class="gone">逐条标注疑问</li>
-        <li class="gone">开会逐项确认细节</li>
-        <li class="gone">会后手动整理明确需求</li>
-        <li class="gone">开发人员理解偏差</li>
-        <li class="gone">反复沟通、返工</li>
-      </ul>
+  <!-- 子故事一：个人效率 -->
+  <div class="body" style="margin-top:8px;">一个人，一天，多场会。</div>
+  <div style="margin-top:24px;">
+    <div class="scene">
+      <div class="scene-time">09:30</div>
+      <div class="scene-text">晨会，本周排期</div>
     </div>
-    <div class="ba-side">
-      <div class="ba-label" style="color:var(--green);">现在</div>
-      <ul class="ba-list" style="color:var(--text);">
-        <li>把需求文档丢给 AI</li>
-        <li><strong>AI 自动标注不清晰的地方</strong></li>
-        <li>开会讨论，打开录音</li>
-        <li><strong>自动转化为可验证的明确需求</strong></li>
-        <li>AI 编码工具自动实现</li>
-        <li><strong>第二天直接验收</strong></li>
-      </ul>
+    <div class="scene">
+      <div class="scene-time">11:00</div>
+      <div class="scene-text">需求评审，47 分钟</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time">15:00</div>
+      <div class="scene-text">客户对齐，对方发来补充文档</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time" style="color:var(--accent);">18:01</div>
+      <div class="scene-text" style="color:var(--accent);">三段录音、一份文档，全部拖进谨迹。下班。</div>
+    </div>
+  </div>
+  <div style="height:20px;"></div>
+  <div style="border-top:1px dashed var(--border);padding-top:20px;">
+    <div class="scene">
+      <div class="scene-time" style="color:var(--green);">次日</div>
+      <div class="scene-text"><strong style="color:var(--green);">三篇结构化纪要、一份待办清单——全部就绪。</strong></div>
     </div>
   </div>
 
-  <div class="story">
-    <div class="story-label" style="color:var(--accent);">会前</div>
+  <!-- 子故事二：团队协作 -->
+  <div class="sp"></div>
+  <div class="body">一个团队，两次会，一份完整交付物。</div>
+
+  <div class="story" style="margin-top:28px;">
+    <div class="story-label" style="color:var(--accent);">第一次会议</div>
     <div class="story-step">
       <div class="story-num human">1</div>
-      <div class="story-body">把需求文档拖进谨迹</div>
+      <div class="story-body"><strong>打开谨迹录音</strong>，小组讨论方案框架、论点逻辑、资料分工</div>
     </div>
     <div class="story-step">
-      <div class="story-num ai">2</div>
-      <div class="story-body"><strong class="g">AI 自动梳理需求，标注模糊点</strong>："用户权限"具体包含哪些角色？"实时同步"的延迟容忍范围？</div>
+      <div class="story-num human">2</div>
+      <div class="story-body">散会。把所有私域资料拖进谨迹。</div>
     </div>
   </div>
   <div class="story" style="margin-top:2px;">
-    <div class="story-label" style="color:var(--accent);">评审会</div>
+    <div class="story-label" style="color:var(--green);">AI 工作中</div>
     <div class="story-step">
-      <div class="story-num human">3</div>
-      <div class="story-body"><strong>打开录音</strong>，团队针对 AI 标注的模糊点逐一讨论、确认细节</div>
+      <div class="story-num ai">3</div>
+      <div class="story-body"><strong class="g">会议纪要自动生成</strong>——讨论框架、分工、关键论点全部结构化</div>
     </div>
     <div class="story-step">
       <div class="story-num ai">4</div>
-      <div class="story-body"><strong class="g">讨论内容自动转化为独立、可验证的明确需求</strong>——每条需求有验收标准，无歧义</div>
+      <div class="story-body"><strong class="g">公域资料自动收集</strong>——行业数据、案例、文献</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">5</div>
+      <div class="story-body"><strong class="g">按讨论框架编写文稿和 PPT</strong></div>
     </div>
   </div>
   <div class="story" style="margin-top:2px;">
-    <div class="story-label" style="color:var(--green);">会后</div>
+    <div class="story-label" style="color:var(--accent);">第二次会议</div>
     <div class="story-step">
-      <div class="story-num ai">5</div>
-      <div class="story-body"><strong class="g">AI 编码工具接收需求，自动实现功能</strong></div>
+      <div class="story-num human">6</div>
+      <div class="story-body">大家过目初稿。<strong>再次打开录音</strong>，讨论优化意见。</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">7</div>
+      <div class="story-body"><strong class="g">AI 根据第二次讨论，自动优化文稿和 PPT 的每一处细节。</strong></div>
     </div>
     <div class="story-step">
       <div class="story-num done">✓</div>
-      <div class="story-body"><strong>第二天上班，直接验收。</strong>没有理解偏差。没有返工。</div>
+      <div class="story-body"><strong>完成。</strong>没有人熬夜。没有人拼稿。</div>
     </div>
   </div>
 </div>

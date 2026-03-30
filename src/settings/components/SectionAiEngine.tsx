@@ -9,7 +9,7 @@ import {
 type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
 type EngineId = 'claude' | 'qwen'
 
-const sectionStyle: React.CSSProperties = { padding: '28px 28px 120px', borderBottom: '1px solid var(--divider)' }
+const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
 const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
 const inputStyle: React.CSSProperties = {

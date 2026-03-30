@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getAppVersion } from '../../lib/tauri'
 
-const sectionStyle: React.CSSProperties = { padding: '20px 24px' }
+const sectionStyle: React.CSSProperties = { padding: '32px 28px' }
 
 export default function SectionAbout() {
   const [version, setVersion] = useState('…')

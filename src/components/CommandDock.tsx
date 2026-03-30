@@ -245,7 +245,7 @@ export function CommandDock({
           <div style={{
             display: 'flex',
             alignItems: 'stretch',
-            minHeight: 84,
+            height: 84,
           }}>
             {/* Left: attachment cards (only when files present) */}
             {hasFiles && (

@@ -41,6 +41,9 @@ pub struct AiLogLine {
 const WORKSPACE_CLAUDE_MD: &str =
     include_str!("../resources/workspace-template/.claude/CLAUDE.md");
 
+const WORKSPACE_SETTINGS_JSON: &str =
+    include_str!("../resources/workspace-template/.claude/settings.json");
+
 const SCRIPT_JOURNAL_CREATE: &str =
     include_str!("../resources/workspace-template/.claude/scripts/journal-create");
 const SCRIPT_RECENT_SUMMARIES: &str =
@@ -59,6 +62,12 @@ fn ensure_workspace_dot_claude(workspace_path: &str) {
     let claude_md = dot_claude.join("CLAUDE.md");
     if !claude_md.exists() {
         let _ = std::fs::write(&claude_md, WORKSPACE_CLAUDE_MD);
+    }
+
+    // Write settings.json (SessionStart hook to inject recent summaries)
+    let settings_json = dot_claude.join("settings.json");
+    if !settings_json.exists() {
+        let _ = std::fs::write(&settings_json, WORKSPACE_SETTINGS_JSON);
     }
 
     // Write scripts, set executable bit
@@ -690,6 +699,13 @@ mod tests {
         ensure_workspace_dot_claude(tmp.to_str().unwrap());
         let content2 = std::fs::read_to_string(&claude_md).unwrap();
         assert_eq!(content2, "用户自定义内容", "second call must not overwrite");
+
+        // settings.json exists and contains the SessionStart hook
+        let settings_json = dot_claude.join("settings.json");
+        assert!(settings_json.exists(), ".claude/settings.json should exist");
+        let settings_content = std::fs::read_to_string(&settings_json).unwrap();
+        assert!(settings_content.contains("SessionStart"), "settings.json should have SessionStart hook");
+        assert!(settings_content.contains("recent-summaries"), "settings.json should reference recent-summaries");
 
         std::fs::remove_dir_all(&tmp).ok();
     }

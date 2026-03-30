@@ -21,6 +21,21 @@ pub struct Config {
     pub claude_cli_path: String,
     #[serde(default)]
     pub window_state: Option<WindowState>,
+    // AI 引擎配置
+    #[serde(default = "default_active_engine")]
+    pub active_ai_engine: String,
+    #[serde(default)]
+    pub claude_code_api_key: String,
+    #[serde(default)]
+    pub claude_code_base_url: String,
+    #[serde(default)]
+    pub claude_code_model: String,
+    #[serde(default)]
+    pub qwen_code_api_key: String,
+    #[serde(default)]
+    pub qwen_code_base_url: String,
+    #[serde(default)]
+    pub qwen_code_model: String,
 }
 
 fn default_claude_cli() -> String {
@@ -33,6 +48,11 @@ fn default_claude_cli() -> String {
     }
     "claude".to_string()
 }
+
+fn default_active_engine() -> String {
+    "claude".to_string()
+}
+
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -128,6 +148,51 @@ pub fn set_claude_cli_path(app: AppHandle, path: String) -> Result<(), String> {
     save_config(&app, &config)
 }
 
+#[tauri::command]
+pub fn get_engine_config(app: AppHandle) -> Result<serde_json::Value, String> {
+    let c = load_config(&app)?;
+    Ok(serde_json::json!({
+        "active_ai_engine": c.active_ai_engine,
+        "claude_code_api_key": c.claude_code_api_key,
+        "claude_code_base_url": c.claude_code_base_url,
+        "claude_code_model": c.claude_code_model,
+        "qwen_code_api_key": c.qwen_code_api_key,
+        "qwen_code_base_url": c.qwen_code_base_url,
+        "qwen_code_model": c.qwen_code_model,
+    }))
+}
+
+#[tauri::command]
+pub fn set_engine_config(
+    app: AppHandle,
+    active_ai_engine: String,
+    claude_code_api_key: String,
+    claude_code_base_url: String,
+    claude_code_model: String,
+    qwen_code_api_key: String,
+    qwen_code_base_url: String,
+    qwen_code_model: String,
+) -> Result<(), String> {
+    let valid_engines = ["claude", "qwen"];
+    if !valid_engines.contains(&active_ai_engine.as_str()) {
+        return Err(format!("invalid engine: {}", active_ai_engine));
+    }
+    let mut c = load_config(&app)?;
+    c.active_ai_engine = active_ai_engine;
+    c.claude_code_api_key = claude_code_api_key;
+    c.claude_code_base_url = claude_code_base_url;
+    c.claude_code_model = claude_code_model;
+    c.qwen_code_api_key = qwen_code_api_key;
+    c.qwen_code_base_url = qwen_code_base_url;
+    c.qwen_code_model = qwen_code_model;
+    save_config(&app, &c)
+}
+
+#[tauri::command]
+pub fn get_app_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,7 +201,8 @@ mod tests {
     fn config_defaults() {
         let c: Config = serde_json::from_str("{}").unwrap();
         assert_eq!(c.workspace_path, "");
-        assert_eq!(c.claude_cli_path, "claude");
+        // claude_cli_path should be one of the default candidates or "claude" if none found
+        assert!(!c.claude_cli_path.is_empty());
         assert_eq!(c.dashscope_api_key, "");
     }
 
@@ -147,10 +213,32 @@ mod tests {
             workspace_path: "/Users/test/notebook".into(),
             claude_cli_path: "claude".into(),
             window_state: None,
+            ..Config::default()
         };
         let json = serde_json::to_string(&c).unwrap();
         let c2: Config = serde_json::from_str(&json).unwrap();
         assert_eq!(c2.workspace_path, "/Users/test/notebook");
         assert_eq!(c2.claude_cli_path, "claude");
+    }
+
+    #[test]
+    fn config_new_engine_fields_default() {
+        let c: Config = serde_json::from_str("{}").unwrap();
+        assert_eq!(c.active_ai_engine, "claude");
+        assert_eq!(c.claude_code_api_key, "");
+        assert_eq!(c.qwen_code_api_key, "");
+    }
+
+    #[test]
+    fn config_engine_fields_roundtrip() {
+        let c = Config {
+            active_ai_engine: "qwen".into(),
+            qwen_code_api_key: "sk-test".into(),
+            ..Config::default()
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let c2: Config = serde_json::from_str(&json).unwrap();
+        assert_eq!(c2.active_ai_engine, "qwen");
+        assert_eq!(c2.qwen_code_api_key, "sk-test");
     }
 }

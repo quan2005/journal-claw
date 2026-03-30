@@ -40,7 +40,7 @@ export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
             border: 'none',
             borderRight: i < SEGMENTS.length - 1 ? '1px solid var(--divider)' : 'none',
             background: theme === seg.value ? 'var(--item-selected-bg)' : 'transparent',
-            opacity: theme === seg.value ? 1 : 0.45,
+            color: theme === seg.value ? 'var(--item-text)' : 'var(--item-meta)',
             padding: 0,
           }}
           title={seg.value}

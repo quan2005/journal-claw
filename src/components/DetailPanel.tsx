@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { Check } from 'lucide-react'
 import type { JournalEntry } from '../types'
 import { getJournalEntryContent } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
@@ -10,6 +11,47 @@ import { Spinner } from './Spinner'
 interface DetailPanelProps {
   entry: JournalEntry | null
   onDeselect: () => void
+}
+
+// ── Detail context menu ───────────────────────────────────────────────────────
+function DetailContextMenu({ x, y, onCopy, onClose }: {
+  x: number; y: number
+  onCopy: () => void
+  onClose: () => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    window.addEventListener('mousedown', handler)
+    return () => window.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  const itemStyle: React.CSSProperties = {
+    padding: '8px 14px', fontSize: 13, cursor: 'pointer',
+    color: 'var(--item-text)',
+  }
+
+  return (
+    <div ref={ref} style={{
+      position: 'fixed', top: y, left: x, zIndex: 9999,
+      background: 'var(--context-menu-bg)',
+      border: '1px solid var(--context-menu-border)',
+      borderRadius: 8,
+      boxShadow: '0 4px 20px var(--context-menu-shadow)',
+      minWidth: 140, overflow: 'hidden',
+    }}>
+      <div style={itemStyle}
+        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
+        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+        onClick={() => { onCopy(); onClose() }}
+      >
+        复制原文
+      </div>
+    </div>
+  )
 }
 
 // ── Code block with copy button ───────────────────────────────────────────────
@@ -50,7 +92,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
             userSelect: 'none',
           }}
         >
-          {copied ? '已复制 ✓' : '复制'}
+          {copied ? <><Check size={12} strokeWidth={2} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />已复制</> : '复制'}
         </button>
       )}
       <pre style={{
@@ -73,6 +115,8 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 // ── Component ─────────────────────────────────────────────────────────────────
 export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!entry) { setContent(null); return }
@@ -85,6 +129,23 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [onDeselect])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 'a') return
+      if (!bodyRef.current) return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      e.preventDefault()
+      const sel = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(bodyRef.current)
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
 
@@ -115,7 +176,14 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
       background: 'var(--detail-bg)',
     }}>
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+      <div
+        ref={bodyRef}
+        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          setContextMenu({ x: e.clientX, y: e.clientY })
+        }}
+      >
 
         {/* Header: summary + tags */}
         <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid var(--divider)' }}>
@@ -293,6 +361,17 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
           </div>
         )}
       </div>
+
+      {contextMenu && (
+        <DetailContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onCopy={() => {
+            if (content) navigator.clipboard.writeText(content)
+          }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   )
 }

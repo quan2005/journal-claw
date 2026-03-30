@@ -411,11 +411,11 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
         .spawn()
         .map_err(|e| format!("failed to spawn: {}", e))?;
 
-    // Stream stdout
-    if let Some(stdout) = child.stdout.take() {
+    // Stream stdout and save handle
+    let stdout_handle = if let Some(stdout) = child.stdout.take() {
         let app_clone = app.clone();
         let engine_clone = engine.clone();
-        tokio::spawn(async move {
+        Some(tokio::spawn(async move {
             let reader = tokio::io::BufReader::new(stdout);
             let mut lines = reader.lines();
             while let Ok(Some(line)) = lines.next_line().await {
@@ -426,14 +426,16 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
                     "success": false,
                 }));
             }
-        });
-    }
+        }))
+    } else {
+        None
+    };
 
-    // Stream stderr
-    if let Some(stderr) = child.stderr.take() {
+    // Stream stderr and save handle
+    let stderr_handle = if let Some(stderr) = child.stderr.take() {
         let app_clone = app.clone();
         let engine_clone = engine.clone();
-        tokio::spawn(async move {
+        Some(tokio::spawn(async move {
             let reader = tokio::io::BufReader::new(stderr);
             let mut lines = reader.lines();
             while let Ok(Some(line)) = lines.next_line().await {
@@ -444,10 +446,21 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
                     "success": false,
                 }));
             }
-        });
-    }
+        }))
+    } else {
+        None
+    };
 
     let status = child.wait().await.map_err(|e| e.to_string())?;
+
+    // Await both handles to drain remaining output before emitting done
+    if let Some(h) = stdout_handle {
+        let _ = h.await;
+    }
+    if let Some(h) = stderr_handle {
+        let _ = h.await;
+    }
+
     let success = status.success();
     let _ = app.emit("engine-install-log", serde_json::json!({
         "engine": engine,

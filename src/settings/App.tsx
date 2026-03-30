@@ -57,7 +57,17 @@ export default function SettingsApp() {
   })
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', color: 'var(--item-text)', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}>
+    <>
+    <style>{`
+      @keyframes settings-fadein {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      .settings-root {
+        animation: settings-fadein 160ms ease-out both;
+      }
+    `}</style>
+    <div className="settings-root" style={{ display: 'flex', height: '100vh', background: 'var(--bg)', color: 'var(--item-text)', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}>
       {/* Left nav */}
       <nav style={{
         width: 140, flexShrink: 0,
@@ -89,5 +99,6 @@ export default function SettingsApp() {
         <section id="about"   ref={setRef('about')} style={{ paddingBottom: 40 }}><SectionAbout /></section>
       </div>
     </div>
+    </>
   )
 }

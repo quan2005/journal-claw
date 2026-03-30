@@ -31,6 +31,54 @@ struct FrontMatter {
     tags: Vec<String>,
 }
 
+/// Regex-based fallback for when gray_matter fails to parse malformed YAML frontmatter.
+/// Handles the common case of unescaped ASCII double-quotes inside a double-quoted
+/// YAML scalar (e.g. `summary: "创办"15餐厅"…"`), which is technically invalid YAML
+/// but produced by LLMs that don't escape embedded quotes.
+fn parse_frontmatter_fallback(content: &str) -> FrontMatter {
+    // Extract the raw frontmatter block between the first pair of `---` delimiters.
+    let inner = match content.strip_prefix("---") {
+        Some(rest) => match rest.find("\n---") {
+            Some(end) => &rest[..end],
+            None => return FrontMatter::default(),
+        },
+        None => return FrontMatter::default(),
+    };
+
+    let mut summary = String::new();
+    let mut tags: Vec<String> = vec![];
+
+    for line in inner.lines() {
+        if let Some(val) = line.strip_prefix("summary:") {
+            summary = extract_scalar_value(val.trim());
+        } else if let Some(val) = line.strip_prefix("tags:") {
+            tags = extract_inline_sequence(val.trim());
+        }
+    }
+
+    FrontMatter { summary, tags }
+}
+
+/// Strip outer single or double quotes from a YAML scalar value, returning the raw content.
+/// Does not validate or interpret escape sequences — intentionally lenient.
+fn extract_scalar_value(s: &str) -> String {
+    if (s.starts_with('"') && s.ends_with('"')) ||
+       (s.starts_with('\'') && s.ends_with('\'')) {
+        s[1..s.len() - 1].to_string()
+    } else {
+        s.to_string()
+    }
+}
+
+/// Parse a YAML inline sequence like `[journal, meeting]` into a Vec<String>.
+fn extract_inline_sequence(s: &str) -> Vec<String> {
+    let inner = s.trim_start_matches('[').trim_end_matches(']');
+    inner.split(',')
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .collect()
+}
+
 pub fn parse_entry_filename(filename: &str) -> Option<(u32, String)> {
     // "28-AI平台产品会议纪要.md" → Some((28, "AI平台产品会议纪要"))
     let stem = filename.strip_suffix(".md")?;
@@ -89,7 +137,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
         let fm: FrontMatter = matter
             .parse_with_struct::<FrontMatter>(&content)
             .map(|p| p.data)
-            .unwrap_or_default();
+            .unwrap_or_else(|| parse_frontmatter_fallback(&content));
 
         // mtime as HH:mm
         let created_time = entry.metadata().ok()
@@ -239,5 +287,61 @@ mod tests {
     #[test]
     fn material_kind_unknown() {
         assert_eq!(material_kind("image.png"), "other");
+    }
+
+    // ── fallback parser tests ─────────────────────────────────────────────────
+
+    #[test]
+    fn fallback_extracts_summary_with_unescaped_inner_double_quotes() {
+        // Exact pattern from 30-15餐厅的商业与慈善.md — gray_matter returns None for this
+        let content = "---\ntags: [journal, article]\nsummary: \"吉米·奥利弗创办\"15餐厅\"，实践\"授人以渔\"的慈善模式。\"\n---\n\n# 标题\n";
+        let fm = parse_frontmatter_fallback(content);
+        assert_eq!(fm.summary, "吉米·奥利弗创办\"15餐厅\"，实践\"授人以渔\"的慈善模式。");
+        assert_eq!(fm.tags, vec!["journal", "article"]);
+    }
+
+    #[test]
+    fn fallback_extracts_summary_single_quoted() {
+        // Single-quoted YAML: curly " inside is fine, no escaping needed
+        let content = concat!(
+            "---\ntags: [journal, meeting]\nsummary: '",
+            "单引号摘要，含\u{201c}书名号\u{201d}。",
+            "'\n---\n\n# 标题\n"
+        );
+        let fm = parse_frontmatter_fallback(content);
+        assert_eq!(fm.summary, "单引号摘要，含\u{201c}书名号\u{201d}。");
+        assert_eq!(fm.tags, vec!["journal", "meeting"]);
+    }
+
+    #[test]
+    fn fallback_extracts_summary_unquoted() {
+        let content = "---\ntags: [journal]\nsummary: 简单摘要没有引号\n---\n\n# 标题\n";
+        let fm = parse_frontmatter_fallback(content);
+        assert_eq!(fm.summary, "简单摘要没有引号");
+        assert_eq!(fm.tags, vec!["journal"]);
+    }
+
+    #[test]
+    fn fallback_returns_default_when_no_frontmatter() {
+        let content = "# 没有 frontmatter 的文件\n\n正文。\n";
+        let fm = parse_frontmatter_fallback(content);
+        assert_eq!(fm.summary, "");
+        assert!(fm.tags.is_empty());
+    }
+
+    #[test]
+    fn list_entries_uses_fallback_for_malformed_yaml() {
+        // gray_matter returns None for content with unescaped inner " — verify
+        // that list_entries produces non-empty summary via the fallback path
+        use gray_matter::{Matter, engine::YAML};
+        let content = "---\ntags: [journal, article]\nsummary: \"创办\"15餐厅\"实践。\"\n---\n\n# 标题\n";
+        // Confirm gray_matter actually fails on this
+        assert!(
+            Matter::<YAML>::new().parse_with_struct::<FrontMatter>(content).is_none(),
+            "test precondition: gray_matter should fail on unescaped inner quotes"
+        );
+        // Fallback must recover
+        let fm = parse_frontmatter_fallback(content);
+        assert!(!fm.summary.is_empty(), "fallback should recover non-empty summary");
     }
 }

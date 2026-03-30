@@ -8,8 +8,11 @@ export function useJournal() {
   const [loading, setLoading] = useState(true)
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const removalTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const refreshing = useRef(false)
 
   const refresh = useCallback(async () => {
+    if (refreshing.current) return
+    refreshing.current = true
     try {
       const result = await listAllJournalEntries()
       setEntries(result)
@@ -17,6 +20,7 @@ export function useJournal() {
       console.error('Failed to load journal entries:', e)
     } finally {
       setLoading(false)
+      refreshing.current = false
     }
   }, [])
 
@@ -29,6 +33,9 @@ export function useJournal() {
 
   useEffect(() => {
     refresh()
+
+    // Tauri watch events are not exhaustive; poll as safety net for manually-added files
+    const pollInterval = setInterval(refresh, 3000)
 
     const unlistenProcessing = listen<ProcessingUpdate>('ai-processing', (event) => {
       const { material_path, status, error } = event.payload
@@ -89,6 +96,7 @@ export function useJournal() {
     })
 
     return () => {
+      clearInterval(pollInterval)
       unlistenProcessing.then(fn => fn())
       unlistenLog.then(fn => fn())
       unlistenUpdated.then(fn => fn())

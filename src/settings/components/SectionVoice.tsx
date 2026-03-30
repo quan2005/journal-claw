@@ -1,6 +1,3 @@
-import { useState, useEffect } from 'react'
-import { getApiKey, setApiKey } from '../../lib/tauri'
-
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
 const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
@@ -11,22 +8,12 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function SectionVoice() {
-  const [apiKey, setApiKeyState] = useState('')
-  const [saved, setSaved] = useState(false)
-
-  useEffect(() => {
-    getApiKey().then(k => setApiKeyState(k ?? ''))
-  }, [])
-
-  const handleSave = async () => {
-    await setApiKey(apiKey)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   return (
-    <div style={sectionStyle}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>语音转写</div>
+    <div style={{ ...sectionStyle, opacity: 0.45, pointerEvents: 'none' as const }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>语音转写</div>
+        <span style={{ fontSize: 9, color: 'var(--duration-text)', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.04em' }}>开发中</span>
+      </div>
 
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>转写引擎</label>
@@ -38,17 +25,15 @@ export default function SectionVoice() {
 
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>DashScope API Key</label>
-        <input type="password" style={inputStyle} placeholder="sk-…"
-          value={apiKey} onChange={e => setApiKeyState(e.target.value)} />
+        <input type="password" style={inputStyle} placeholder="sk-…" disabled />
         <div style={hintStyle}>配置后，超过 30 秒的录音将自动转写为文字</div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-        {saved && <span style={{ fontSize: 11, color: '#34c759' }}>已保存</span>}
-        <button onClick={handleSave} style={{
+        <button disabled style={{
           background: 'var(--record-btn)', border: 'none', borderRadius: 5,
           padding: '6px 18px', fontSize: 12, fontWeight: 600,
-          color: 'var(--bg)', cursor: 'pointer',
+          color: 'var(--bg)', cursor: 'not-allowed',
         }}>保存</button>
       </div>
     </div>

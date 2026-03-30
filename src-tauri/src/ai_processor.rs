@@ -152,6 +152,7 @@ pub fn build_claude_args_with_creds(
 }
 
 /// Simplified version without credential injection (uses CLI defaults).
+#[cfg(test)]
 pub fn build_claude_args(
     material_path: &str,
     year_month: &str,

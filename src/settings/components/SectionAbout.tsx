@@ -46,11 +46,13 @@ export default function SectionAbout() {
 
           {/* 联系作者 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <img
-              src={qrCode}
-              alt="微信二维码"
-              style={{ width: 110, height: 150, borderRadius: 10, display: 'block', objectFit: 'cover', objectPosition: 'center 60%' }}
-            />
+            <div style={{ width: 140, height: 180, borderRadius: 10, overflow: 'hidden' }}>
+              <img
+                src={qrCode}
+                alt="微信二维码"
+                style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: 'center center', transform: 'scale(1.2) translateY(10px)', transformOrigin: 'center center' }}
+              />
+            </div>
             <div style={{ fontSize: 10, color: 'var(--duration-text)', letterSpacing: '0.03em' }}>扫码添加微信</div>
           </div>
 

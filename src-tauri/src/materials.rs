@@ -57,6 +57,27 @@ pub fn import_file(app: AppHandle, src_path: String) -> Result<ImportResult, Str
     })
 }
 
+fn write_paste_text(dest: &std::path::Path, text: &str) -> Result<(), String> {
+    std::fs::write(dest, text.as_bytes())
+        .map_err(|e| format!("写入文本失败: {}", e))
+}
+
+/// Write text to system temp dir immediately (no workspace needed).
+/// The returned path can later be passed to import_file to copy into raw/.
+/// Temp files are cleaned up automatically by the OS.
+#[tauri::command]
+pub fn import_text_temp(text: String) -> Result<ImportResult, String> {
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
+    let filename = format!("paste-{}.txt", ts);
+    let dest = std::env::temp_dir().join(&filename);
+    write_paste_text(&dest, &text)?;
+    Ok(ImportResult {
+        filename,
+        path: dest.to_string_lossy().to_string(),
+        year_month: String::new(),
+    })
+}
+
 #[tauri::command]
 pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String> {
     let cfg = config::load_config(&app)?;
@@ -69,8 +90,7 @@ pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String>
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let filename = format!("paste-{}.txt", ts);
     let dest = raw.join(&filename);
-    std::fs::write(&dest, text.as_bytes())
-        .map_err(|e| format!("写入粘贴文本失败: {}", e))?;
+    write_paste_text(&dest, &text)?;
     Ok(ImportResult {
         filename,
         path: dest.to_string_lossy().to_string(),

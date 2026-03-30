@@ -69,7 +69,9 @@ export function CommandDock({
         if (pasteMode) { exitPaste(); return }
       }
       // ⌘Enter: submit files
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && hasFiles) {
+      if (hasFiles && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        // If the note textarea is focused, let its own onKeyDown handle it
+        if (noteRef.current && document.activeElement === noteRef.current) return
         e.preventDefault()
         handleFilesSubmitClick()
         return
@@ -467,7 +469,7 @@ export function CommandDock({
         } as React.CSSProperties}
         onMouseEnter={(e) => {
           if (!isRecording) {
-            e.currentTarget.style.background = '#d9a44b'
+            e.currentTarget.style.background = 'var(--record-btn-hover)'
             e.currentTarget.style.transform = 'scale(1.06)'
           }
         }}

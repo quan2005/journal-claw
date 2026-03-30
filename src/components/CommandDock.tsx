@@ -3,7 +3,7 @@ import type { RecorderStatus } from '../hooks/useRecorder'
 import { FileCard } from './FileCard'
 import { fileKindFromName } from '../lib/fileKind'
 import clipboard from 'tauri-plugin-clipboard-api'
-import { importText, openFile } from '../lib/tauri'
+import { importTextTemp, openFile } from '../lib/tauri'
 
 interface CommandDockProps {
   isDragOver: boolean
@@ -19,14 +19,13 @@ interface CommandDockProps {
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
-  onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
+  onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus: _recorderStatus, onRecord: _onRecord,
 }: CommandDockProps) {
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const importedTexts = useRef<Set<string>>(new Set())
-  const isRecording = recorderStatus === 'recording'
   const hasFiles = pendingFiles.length > 0
 
   // Auto-open input when files arrive; keep open while there are files
@@ -45,11 +44,11 @@ export function CommandDock({
     if (text.length > 300) {
       if (importedTexts.current.has(text)) return  // 同内容不重复 import
       importedTexts.current.add(text)
-      importText(text).then((result) => {
+      importTextTemp(text).then((result) => {
         onPasteFiles([result.path])
       }).catch((err) => {
         importedTexts.current.delete(text)
-        console.error('[import-text]', err)
+        console.error('[import-text-temp]', err)
         showToast('提交失败')
       })
     } else {
@@ -230,7 +229,7 @@ export function CommandDock({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, color: 'var(--dock-dropzone-text)' }}>粘贴文本或拖入文件</div>
-              <div style={{ fontSize: 10, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>支持 txt · md · pdf · docx · 图片 · 音频</div>
+              <div style={{ fontSize: 10, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>支持 txt · md · pdf · docx · 图片</div>
             </div>
             <div style={{
               flexShrink: 0,
@@ -340,13 +339,12 @@ export function CommandDock({
                     })
                     return
                   }
-                  // 无文本或长文本：尝试读文件，否则按文本处理
+                  // 无文本或长文本：尝试读文件，否则写入 temp
                   clipboard.readFiles().then((files) => {
                     if (files && files.length > 0) {
                       onPasteFiles(files)
                     } else if (rawText) {
-                      // 长文本转文件
-                      importText(rawText).then((result) => {
+                      importTextTemp(rawText).then((result) => {
                         onPasteFiles([result.path])
                       }).catch((err) => {
                         console.error('[paste-import]', err)
@@ -355,7 +353,7 @@ export function CommandDock({
                     }
                   }).catch(() => {
                     if (rawText) {
-                      importText(rawText).then((result) => {
+                      importTextTemp(rawText).then((result) => {
                         onPasteFiles([result.path])
                       }).catch((err) => {
                         console.error('[paste-import]', err)
@@ -397,70 +395,46 @@ export function CommandDock({
         flexShrink: 0,
       }} />
 
-      {/* Mic Button */}
-      <button
-        onClick={onRecord}
-        title={isRecording ? "停止录音" : "点击录音"}
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: '50%',
-          background: 'var(--record-btn)',
-          border: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          flexShrink: 0,
-          position: 'relative',
-          outline: 'none',
-          margin: '0 16px',
-          WebkitAppRegion: 'no-drag',
-          animation: isRecording ? 'rec-pulse 1.2s ease-in-out infinite' : 'pulse 2.4s ease-in-out infinite',
-          transition: 'transform 0.15s ease',
-        } as React.CSSProperties}
-        onMouseEnter={(e) => {
-          if (!isRecording) {
-            e.currentTarget.style.background = 'var(--record-btn-hover)'
-            e.currentTarget.style.transform = 'scale(1.06)'
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--record-btn)'
-          e.currentTarget.style.transform = ''
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'scale(0.95)'
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = ''
-        }}
-      >
-        {isRecording ? (
-          <div style={{
-            width: 18,
-            height: 18,
-            borderRadius: 4,
-            background: 'var(--record-btn-icon)',
-          }} />
-        ) : (
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--record-btn-icon)">
-            <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-            <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" stroke="var(--record-btn-icon)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-          </svg>
-        )}
-        {!isRecording && (
-          <div style={{
-            position: 'absolute',
-            width: 58,
-            height: 58,
+      {/* Mic Button — 录音功能开发中，暂时置灰 */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <button
+          disabled
+          title="录音功能开发中，敬请期待"
+          style={{
+            width: 46,
+            height: 46,
             borderRadius: '50%',
-            border: `1px solid rgba(200,147,58,0.18)`,
-            animation: 'mic-ripple 2.5s ease-out infinite',
-            pointerEvents: 'none',
-          }} />
-        )}
-      </button>
+            background: 'var(--dock-kbd-bg)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'not-allowed',
+            flexShrink: 0,
+            position: 'relative',
+            outline: 'none',
+            margin: '0 16px',
+            WebkitAppRegion: 'no-drag',
+            opacity: 0.35,
+          } as React.CSSProperties}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--item-meta)">
+            <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+            <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+          </svg>
+        </button>
+        <div style={{
+          position: 'absolute',
+          bottom: -2,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: 8,
+          color: 'var(--duration-text)',
+          whiteSpace: 'nowrap',
+          letterSpacing: '0.03em',
+          pointerEvents: 'none',
+        }}>开发中</div>
+      </div>
 
       {/* Divider (right of mic) */}
       <div style={{

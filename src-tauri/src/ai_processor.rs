@@ -50,7 +50,7 @@ const SCRIPT_RECENT_SUMMARIES: &str =
     include_str!("../resources/workspace-template/.claude/scripts/recent-summaries");
 
 /// 确保 workspace/.claude/ 已初始化。仅在文件不存在时创建，不覆盖用户修改。
-fn ensure_workspace_dot_claude(workspace_path: &str) {
+pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
     let scripts_dir = dot_claude.join("scripts");
     if let Err(e) = std::fs::create_dir_all(&scripts_dir) {
@@ -291,6 +291,8 @@ pub async fn process_material(
         "stream-json".to_string(),
         "--verbose".to_string(),
         "--no-session-persistence".to_string(),
+        "--disallowed-tools".to_string(),
+        "AskUserQuestion".to_string(),
     ];
 
     // Emit startup log
@@ -683,7 +685,7 @@ mod tests {
         let content = std::fs::read_to_string(&claude_md).unwrap();
         assert!(content.contains("tags"), "CLAUDE.md should mention tags");
         assert!(content.contains("summary"), "CLAUDE.md should mention summary");
-        assert!(content.contains("DD-标题.md"), "CLAUDE.md should mention filename format");
+        assert!(content.contains("journal-create"), "CLAUDE.md should mention journal-create script");
 
         // Scripts exist and are executable
         use std::os::unix::fs::PermissionsExt;

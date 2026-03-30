@@ -34,6 +34,11 @@ fn main() {
         .setup(|app| {
             ai_processor::start_queue_consumer(app.handle().clone(), ai_rx);
             eprintln!("[journal] AI queue consumer started");
+
+            // ── Initialize workspace .claude/ on startup ──
+            if let Ok(cfg) = config::load_config(app.handle()) {
+                ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
+            }
             // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
             let settings_item = MenuItem::with_id(app, "settings", "设置...", true, Some("CmdOrCtrl+,"))?;
             let app_menu = Submenu::with_items(app, "谨迹", true, &[

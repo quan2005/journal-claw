@@ -145,8 +145,10 @@ pub fn set_workspace_path(app: AppHandle, path: String) -> Result<(), String> {
     fs::create_dir_all(&path)
         .map_err(|e| format!("无法创建 workspace 目录: {}", e))?;
     let mut config = load_config(&app)?;
-    config.workspace_path = path;
-    save_config(&app, &config)
+    config.workspace_path = path.clone();
+    save_config(&app, &config)?;
+    crate::ai_processor::ensure_workspace_dot_claude(&path);
+    Ok(())
 }
 
 #[tauri::command]

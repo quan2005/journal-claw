@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
+import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { JournalList } from './components/JournalList'
 import { DetailPanel } from './components/DetailPanel'
 import { CommandDock } from './components/CommandDock'
 import { ProcessingQueue } from './components/ProcessingQueue'
+import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
@@ -19,7 +21,7 @@ export default function App() {
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
-
+  const [view, setView] = useState<'journal' | 'settings'>('journal')
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
@@ -82,6 +84,13 @@ export default function App() {
     window.addEventListener('journal-entry-deleted', handler)
     return () => window.removeEventListener('journal-entry-deleted', handler)
   }, [refresh])
+
+  // Open settings from Rust menu (Cmd+,) or keyboard shortcut
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    listen('open-settings', () => setView('settings')).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
+  }, [])
 
   // Zoom: Cmd+Plus / Cmd+Minus / Cmd+0
   useEffect(() => {
@@ -161,56 +170,72 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
-      <TitleBar theme={theme} onThemeChange={setTheme} isProcessing={isProcessing} processingFilename={processingFilename} />
+      <TitleBar
+        theme={theme}
+        onThemeChange={setTheme}
+        isProcessing={isProcessing}
+        processingFilename={processingFilename}
+        view={view}
+        onOpenSettings={() => setView('settings')}
+        onCloseSettings={() => setView('journal')}
+      />
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left: Journal list */}
-        <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
-          <JournalList
-            entries={entries}
-            loading={loading}
-            selectedPath={selectedEntry?.path ?? null}
-            onSelect={setSelectedEntry}
-          />
+      {view === 'settings' ? (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <SettingsPanel />
         </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            {/* Left: Journal list */}
+            <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
+              <JournalList
+                entries={entries}
+                loading={loading}
+                selectedPath={selectedEntry?.path ?? null}
+                onSelect={setSelectedEntry}
+              />
+            </div>
 
-        {/* Divider */}
-        <div
-          onMouseDown={onDividerMouseDown}
-          style={{
-            width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
-            cursor: 'col-resize',
-          }}
-        />
+            {/* Divider */}
+            <div
+              onMouseDown={onDividerMouseDown}
+              style={{
+                width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
+                cursor: 'col-resize',
+              }}
+            />
 
-        {/* Right: Detail panel */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <DetailPanel entry={selectedEntry} onDeselect={() => setSelectedEntry(null)} />
-        </div>
-      </div>
+            {/* Right: Detail panel */}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <DetailPanel entry={selectedEntry} onDeselect={() => setSelectedEntry(null)} />
+            </div>
+          </div>
 
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <div style={{
-          position: 'absolute',
-          bottom: '100%',
-          left: 0,
-          right: 0,
-          zIndex: 10,
-        }}>
-          <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} />
-        </div>
-        <CommandDock
-          isDragOver={isDragOver}
-          pendingFiles={pendingFiles}
-          onPasteSubmit={handlePasteSubmit}
-          onFilesSubmit={handleFilesSubmit}
-          onFilesCancel={handleFilesCancel}
-          onRemoveFile={handleRemoveFile}
-          onPasteFiles={handlePasteFiles}
-          recorderStatus={status}
-          onRecord={handleRecord}
-        />
-      </div>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              right: 0,
+              zIndex: 10,
+            }}>
+              <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} />
+            </div>
+            <CommandDock
+              isDragOver={isDragOver}
+              pendingFiles={pendingFiles}
+              onPasteSubmit={handlePasteSubmit}
+              onFilesSubmit={handleFilesSubmit}
+              onFilesCancel={handleFilesCancel}
+              onRemoveFile={handleRemoveFile}
+              onPasteFiles={handlePasteFiles}
+              recorderStatus={status}
+              onRecord={handleRecord}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }

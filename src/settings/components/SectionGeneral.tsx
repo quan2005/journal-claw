@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
 import { getWorkspacePath, setWorkspacePath, pickFolder } from '../../lib/tauri'
-import { useTheme } from '../../hooks/useTheme'
-import type { Theme } from '../../types'
 
 const sectionStyle: React.CSSProperties = { padding: '20px 24px', borderBottom: '1px solid var(--divider)' }
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
@@ -15,7 +13,6 @@ const inputStyle: React.CSSProperties = {
 export default function SectionGeneral() {
   const [workspacePath, setWorkspacePathState] = useState('')
   const [saved, setSaved] = useState(false)
-  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     getWorkspacePath().then(setWorkspacePathState)
@@ -31,12 +28,6 @@ export default function SectionGeneral() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
-
-  const THEMES: { value: Theme; label: string; icon: string }[] = [
-    { value: 'light',  label: '浅色',   icon: '☀' },
-    { value: 'dark',   label: '深色',   icon: '◑' },
-    { value: 'system', label: '跟随系统', icon: '⊙' },
-  ]
 
   return (
     <div style={sectionStyle}>
@@ -64,30 +55,6 @@ export default function SectionGeneral() {
           </button>
         </div>
         <div style={hintStyle}>日志和素材的存储根目录</div>
-      </div>
-
-      <div style={{ height: 1, background: 'var(--divider)', margin: '14px 0' }} />
-
-      {/* 主题 */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>主题</label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {THEMES.map(({ value, label, icon }) => (
-            <button
-              key={value}
-              onClick={() => setTheme(value)}
-              style={{
-                flex: 1, background: theme === value ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
-                border: `1px solid ${theme === value ? 'var(--record-btn)' : 'var(--divider)'}`,
-                borderRadius: 6, padding: 8, cursor: 'pointer', textAlign: 'center',
-                color: theme === value ? 'var(--record-btn)' : 'var(--item-meta)', fontSize: 11,
-              }}
-            >
-              <div style={{ fontSize: 16, marginBottom: 3 }}>{icon}</div>
-              <div>{label}</div>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* 保存 */}

@@ -7,9 +7,12 @@ interface TitleBarProps {
   onThemeChange: (theme: Theme) => void
   isProcessing: boolean
   processingFilename?: string
+  view: 'journal' | 'settings'
+  onOpenSettings: () => void
+  onCloseSettings: () => void
 }
 
-export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename }: TitleBarProps) {
+export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, view, onOpenSettings, onCloseSettings }: TitleBarProps) {
   return (
     <div
       data-tauri-drag-region
@@ -25,18 +28,46 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
         borderBottom: '0.5px solid var(--divider)',
       }}
     >
-      {/* Left: spacer */}
+      {/* Left: back button when in settings */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {view === 'settings' && (
+          <button
+            onClick={onCloseSettings}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--item-meta)', fontSize: 12, padding: '2px 6px',
+              borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            ‹ 返回
+          </button>
+        )}
       </div>
 
-      {/* Center: AI status pill */}
+      {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} />
+        {view === 'settings'
+          ? <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
+          : <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} />
+        }
       </div>
 
-      {/* Right: theme toggle */}
-      <div style={{ justifySelf: 'end' }}>
-        <ThemeToggle theme={theme} onChange={onThemeChange} />
+      {/* Right: settings icon or theme toggle */}
+      <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8 }}>
+        {view === 'journal' && (
+          <>
+            <ThemeToggle theme={theme} onChange={onThemeChange} />
+            <button
+              onClick={onOpenSettings}
+              title="设置 (⌘,)"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--item-meta)', fontSize: 15, padding: '2px 4px',
+                borderRadius: 4, lineHeight: 1, opacity: 0.7,
+              }}
+            >⚙</button>
+          </>
+        )}
       </div>
     </div>
   )

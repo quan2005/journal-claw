@@ -107,7 +107,17 @@ export function useJournal() {
       refresh()
     })
 
-    const unlistenProcessed = listen('recording-processed', () => {
+    const unlistenProcessed = listen<{ filename: string; path: string }>('recording-processed', (event) => {
+      const { filename, path } = event.payload
+      setQueueItems(prev => {
+        const hasPlaceholder = prev.some(i => i.path === RECORDING_PLACEHOLDER)
+        if (!hasPlaceholder) return prev
+        return prev.map(i =>
+          i.path === RECORDING_PLACEHOLDER
+            ? { ...i, path, filename, status: 'queued' as const }
+            : i
+        )
+      })
       refresh()
     })
 

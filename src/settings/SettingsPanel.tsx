@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Settings2, Cpu, Mic, BookOpen, Puzzle, Info } from 'lucide-react'
+import { Settings2, Cpu, Mic, BookOpen, Puzzle, Info, type LucideIcon } from 'lucide-react'
 import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
@@ -9,7 +9,7 @@ import SectionAbout from './components/SectionAbout'
 
 type NavId = 'general' | 'ai' | 'voice' | 'guide' | 'plugins' | 'about'
 
-type NavItem = { id: NavId; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }
+type NavItem = { id: NavId; label: string; icon: LucideIcon }
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'general',  label: '通用',    icon: Settings2 },
@@ -76,6 +76,7 @@ export function SettingsPanel() {
           </button>
         ))}
         <div style={{ flex: 1 }} />
+        {/* 'about' is pinned to bottom, excluded from NAV_ITEMS scroll group */}
         <button onClick={() => jumpTo('about')} style={navBtnStyle('about')}>
           <span style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Info size={14} strokeWidth={1.5} />

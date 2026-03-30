@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+
+
+TYPE_PATTERNS = [
+    ("goal", ["目标", "okr", "kr", "绩效"]),
+    ("plan", ["计划", "规划", "路线图", "图谱", "战略"]),
+    ("meeting", ["会议", "纪要", "讨论", "对齐", "1on1", "会前梳理"]),
+    ("design", ["设计", "方案", "架构", "接口", "schema", "规范", "最佳实践"]),
+    ("guide", ["指南", "配置", "使用技巧", "手册", "教程", "模板"]),
+    ("research", ["调研", "研究", "启发", "分享", "总览", "分析"]),
+    ("report", ["报告", "检查", "review", "review报告"]),
+]
+
+KNOWN_TYPES = {item[0] for item in TYPE_PATTERNS} | {"note"}
+
+
+def iter_journal_files(root: Path, month: str | None, paths: list[str]) -> list[Path]:
+    if paths:
+        resolved = []
+        for raw in paths:
+            path = (root / raw).resolve() if not raw.startswith("/") else Path(raw)
+            if path.is_file() and path.suffix.lower() == ".md":
+                resolved.append(path)
+        return sorted(set(resolved))
+
+    months: list[Path] = []
+    if month:
+        months = [root / month]
+    else:
+        months = sorted(path for path in root.iterdir() if path.is_dir() and re.fullmatch(r"\d{4}", path.name))
+
+    files: list[Path] = []
+    for directory in months:
+        if not directory.is_dir():
+            continue
+        files.extend(sorted(directory.glob("*.md")))
+    return files
+
+
+def split_frontmatter(text: str) -> tuple[str, str]:
+    if text.startswith("---\n"):
+        end = text.find("\n---\n", 4)
+        if end != -1:
+            return text[4:end], text[end + 5 :].lstrip("\n")
+    return "", text.lstrip("\n")
+
+
+def parse_tags(block: str) -> list[str]:
+    lines = block.splitlines()
+    tags: list[str] = []
+    for index, line in enumerate(lines):
+        if not line.startswith("tags:"):
+            continue
+        tail = line[len("tags:") :].strip()
+        if tail.startswith("[") and tail.endswith("]"):
+            values = [item.strip().strip("'\"") for item in tail[1:-1].split(",")]
+            return [value for value in values if value]
+        probe = index + 1
+        while probe < len(lines) and re.match(r"^[ \t]+-\s+", lines[probe]):
+            tags.append(re.sub(r"^[ \t]+-\s+", "", lines[probe]).strip().strip("'\""))
+            probe += 1
+        if tags:
+            return tags
+    return []
+
+
+def parse_summary(block: str) -> str:
+    match = re.search(r'^summary:\s*(.+?)\s*$', block, re.M)
+    if not match:
+        return ""
+    value = match.group(1).strip()
+    if value in {'""', "''"}:
+        return ""
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        return value[1:-1]
+    return value
+
+
+def infer_type(path: Path, text: str) -> str:
+    title = path.stem.lower()
+    for doc_type, keywords in TYPE_PATTERNS:
+        if any(keyword.lower() in title for keyword in keywords):
+            return doc_type
+
+    head = "\n".join(text.splitlines()[:40]).lower()
+    haystack = f"{title}\n{head}"
+    for doc_type, keywords in TYPE_PATTERNS:
+        if any(keyword.lower() in haystack for keyword in keywords):
+            return doc_type
+    return "note"
+
+
+def infer_summary(title: str, doc_type: str) -> str:
+    templates = {
+        "meeting": "围绕《{title}》整理的会议笔记，归纳了背景、关键讨论、推理依据与后续动作。",
+        "report": "围绕《{title}》整理的报告文档，归纳了背景、核心发现、影响判断与建议。",
+        "goal": "围绕《{title}》整理的目标文档，概括了目标定义、衡量标准、阶段重点与风险。",
+        "design": "围绕《{title}》整理的方案文档，归纳了问题定义、核心设计、权衡依据与落地建议。",
+        "guide": "围绕《{title}》整理的指南文档，汇总了适用场景、关键步骤、验证方法与注意事项。",
+        "research": "围绕《{title}》整理的调研笔记，归纳了结论、关键证据、推理过程与后续启发。",
+        "plan": "围绕《{title}》整理的计划文档，概括了背景动因、阶段安排、关键判断与执行重点。",
+        "note": "围绕《{title}》整理的工作笔记，归纳了背景、事实、判断与后续关注点。",
+    }
+    return templates[doc_type].format(title=title)
+
+
+def title_from_body(path: Path, body: str) -> str:
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            return stripped[2:].strip()
+    return path.stem
+
+
+def clean_body(body: str) -> str:
+    cleaned = body.lstrip("\n")
+    while cleaned.startswith("---\n"):
+        cleaned = cleaned[4:].lstrip("\n")
+    return cleaned
+
+
+def normalize_file(path: Path) -> tuple[bool, str]:
+    original = path.read_text(encoding="utf-8", errors="ignore")
+    block, body = split_frontmatter(original)
+    body = clean_body(body)
+    title = title_from_body(path, body)
+    current_tags = parse_tags(block)
+    current_summary = parse_summary(block)
+    existing_type = next((tag for tag in current_tags if tag in KNOWN_TYPES), "")
+    doc_type = existing_type or infer_type(path, body)
+
+    extra_tags = [tag for tag in current_tags if tag and tag not in {"journal"} and tag not in KNOWN_TYPES]
+    tags = ["journal", doc_type, *extra_tags]
+    deduped_tags: list[str] = []
+    for tag in tags:
+        if tag not in deduped_tags:
+            deduped_tags.append(tag)
+
+    summary = current_summary or infer_summary(title, doc_type)
+    frontmatter = "---\n"
+    frontmatter += f"tags: [{', '.join(deduped_tags)}]\n"
+    frontmatter += f"summary: {json.dumps(summary, ensure_ascii=False)}\n"
+    frontmatter += "---\n\n"
+    normalized = frontmatter + body
+    return normalized != original, normalized
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Normalize journal frontmatter without rewriting正文语义。")
+    parser.add_argument("paths", nargs="*", help="可选：指定要处理的 Markdown 文件。")
+    parser.add_argument("--month", help="只处理某个月目录，例如 2603。")
+    parser.add_argument("--write", action="store_true", help="写回文件；默认只预览统计。")
+    args = parser.parse_args()
+
+    root = Path(__file__).resolve().parents[2]
+    files = iter_journal_files(root, args.month, args.paths)
+    changed = 0
+    for path in files:
+        dirty, normalized = normalize_file(path)
+        if dirty:
+            changed += 1
+            if args.write:
+                path.write_text(normalized, encoding="utf-8")
+
+    mode = "write" if args.write else "dry-run"
+    print(f"mode={mode}")
+    print(f"files={len(files)}")
+    print(f"changed={changed}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

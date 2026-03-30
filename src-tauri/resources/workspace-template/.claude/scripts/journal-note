@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: refs/scripts/journal-note \"<核心主题>\" [--date YYYY-MM-DD]" >&2
+  exit 1
+}
+
+if [[ $# -lt 1 ]]; then
+  usage
+fi
+
+title=""
+note_date=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --date)
+      shift
+      [[ $# -gt 0 ]] || usage
+      note_date="$1"
+      ;;
+    *)
+      if [[ -n "$title" ]]; then
+        usage
+      fi
+      title="$1"
+      ;;
+  esac
+  shift
+done
+
+[[ -n "$title" ]] || usage
+
+if [[ "$title" == *"/"* ]]; then
+  echo "Title cannot contain '/'." >&2
+  exit 1
+fi
+
+if [[ -n "$note_date" ]]; then
+  [[ "$note_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || {
+    echo "Date must be YYYY-MM-DD." >&2
+    exit 1
+  }
+else
+  note_date="$(date '+%Y-%m-%d')"
+fi
+
+year="${note_date:2:2}"
+month="${note_date:5:2}"
+day="${note_date:8:2}"
+folder="${year}${month}"
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/../.." && pwd)"
+target_dir="${repo_root}/${folder}"
+template_path="${repo_root}/refs/工作日记模版.md"
+
+mkdir -p "${target_dir}"
+
+base_name="${day}-${title}"
+target_path="${target_dir}/${base_name}.md"
+counter=2
+while [[ -e "${target_path}" ]]; do
+  suffix=$(printf '%02d' "${counter}")
+  target_path="${target_dir}/${base_name}-${suffix}.md"
+  counter=$((counter + 1))
+done
+
+created_at="$(date '+%Y-%m-%d %H:%M:%S %z')"
+
+if [[ -f "${template_path}" ]]; then
+  perl -0pe \
+    "s/\\{\\{title\\}\\}/${title}/g; s/\\{\\{created_at\\}\\}/${created_at}/g" \
+    "${template_path}" > "${target_path}"
+else
+  cat > "${target_path}" <<EOF
+---
+tags: [journal]
+summary: ""
+---
+
+# ${title}
+
+## 背景
+
+- 
+
+## 核心结论
+
+- 
+
+## 关键事实
+
+- 
+
+## 判断与推理
+
+- 
+
+## 行动与待确认
+
+- 
+
+## 关联记录
+
+- 
+
+*创建时间: ${created_at}*
+EOF
+fi
+
+echo "${target_path}"

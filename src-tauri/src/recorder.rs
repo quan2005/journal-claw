@@ -3,7 +3,7 @@ use chrono::Local;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 pub struct RecorderState(pub Mutex<Option<ActiveRecording>>);
 
@@ -190,7 +190,8 @@ pub async fn stop_recording(
         );
 
         tauri::async_runtime::spawn(async move {
-            let _ = crate::ai_processor::process_material(&app_for_ai, &path_for_ai, &ym_for_ai).await;
+            let current_task = app_for_ai.state::<crate::ai_processor::CurrentTask>();
+            let _ = crate::ai_processor::process_material(&app_for_ai, &path_for_ai, &ym_for_ai, &current_task).await;
         });
     });
 

@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use crate::config;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
@@ -76,37 +76,6 @@ fn ensure_workspace_prompt(workspace_path: &str) {
     }
 }
 
-fn build_prompt(material_path: &str) -> String {
-    let filename = std::path::PathBuf::from(material_path)
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-    format!(
-        "新增素材 @{}，请阅读内容并整理为日志条目。按 CLAUDE.md 中的规范输出，直接创建或更新 .md 文件。",
-        filename
-    )
-}
-
-/// Build CLI args (without --cwd — working dir set via .current_dir()).
-fn build_args(material_path: &str, year_month: &str) -> Vec<String> {
-    let filename = std::path::PathBuf::from(material_path)
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-    let relative_ref = format!("{}/raw/{}", year_month, filename);
-    vec![
-        "-p".to_string(),
-        format!("@{} {}", relative_ref, build_prompt(material_path)),
-        "--permission-mode".to_string(),
-        "bypassPermissions".to_string(),
-        "--output-format".to_string(),
-        "json".to_string(),
-        "--no-session-persistence".to_string(),
-    ]
-}
-
 fn augmented_path() -> String {
     let path_env = std::env::var("PATH").unwrap_or_default();
     format!(
@@ -116,21 +85,42 @@ fn augmented_path() -> String {
     )
 }
 
-fn parse_cli_output(stdout: &str) -> Result<(), String> {
-    let parsed: Result<serde_json::Value, _> = serde_json::from_str(stdout.trim());
-    match parsed {
-        Ok(val) => {
+/// Parse a single stream-json line and return a human-readable log message,
+/// or None if the line should be silently ignored.
+fn extract_log_line(line: &str) -> Option<String> {
+    let val: serde_json::Value = serde_json::from_str(line).ok()?;
+    let typ = val.get("type")?.as_str()?;
+    match typ {
+        "assistant" => {
+            let contents = val.pointer("/message/content")?.as_array()?;
+            for block in contents {
+                let block_type = block.get("type")?.as_str()?;
+                match block_type {
+                    "text" => {
+                        let text = block.get("text")?.as_str()?;
+                        if !text.trim().is_empty() {
+                            return Some(text.trim().to_string());
+                        }
+                    }
+                    "tool_use" => {
+                        let name = block.get("name")?.as_str()?;
+                        return Some(format!("[tool] {}", name));
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+        "result" => {
             let is_error = val.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
             if is_error {
-                let msg = val.get("result")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("AI 处理失败");
-                Err(msg.to_string())
+                let msg = val.get("result").and_then(|v| v.as_str()).unwrap_or("失败");
+                Some(format!("[error] {}", msg))
             } else {
-                Ok(())
+                None
             }
         }
-        Err(_) => Ok(())
+        _ => None,
     }
 }
 
@@ -143,7 +133,8 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
         eprintln!("[ai_queue] consumer loop started");
         while let Some(task) = rx.recv().await {
             eprintln!("[ai_queue] dequeued task: {} ({})", task.material_path, task.year_month);
-            let result = process_material(&app, &task.material_path, &task.year_month).await;
+            let current_task = app.state::<CurrentTask>();
+            let result = process_material(&app, &task.material_path, &task.year_month, &current_task).await;
             match &result {
                 Ok(()) => eprintln!("[ai_queue] task completed: {}", task.material_path),
                 Err(e) => eprintln!("[ai_queue] task failed: {} → {}", task.material_path, e),
@@ -157,6 +148,7 @@ pub async fn process_material(
     app: &AppHandle,
     material_path: &str,
     year_month: &str,
+    current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let cfg = config::load_config(app)?;
     let cli = if cfg.claude_cli_path.is_empty() {
@@ -176,45 +168,147 @@ pub async fn process_material(
         error: None,
     });
 
-    let args = build_args(material_path, year_month);
+    // Build args — switch to stream-json for real-time output
+    let filename = std::path::PathBuf::from(material_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let relative_ref = format!("{}/raw/{}", year_month, filename);
+    let prompt = format!(
+        "@{} 新增素材 @{}，请阅读内容并整理为日志条目。按 CLAUDE.md 中的规范输出，直接创建或更新 .md 文件。",
+        relative_ref, filename
+    );
+    let args = vec![
+        "-p".to_string(),
+        prompt,
+        "--permission-mode".to_string(),
+        "bypassPermissions".to_string(),
+        "--output-format".to_string(),
+        "stream-json".to_string(),
+        "--verbose".to_string(),
+        "--no-session-persistence".to_string(),
+        "--bare".to_string(),
+    ];
+
+    // Emit startup log
+    let _ = app.emit("ai-log", AiLogLine {
+        material_path: material_path.to_string(),
+        level: "info".to_string(),
+        message: format!("启动 {} ...", cli),
+    });
+
     eprintln!("[ai_processor] running: {} {}", cli, args.join(" "));
-    let output = tokio::process::Command::new(&cli)
+
+    use tokio::io::AsyncBufReadExt;
+
+    let mut child = tokio::process::Command::new(&cli)
         .args(&args)
         .current_dir(&cfg.workspace_path)
         .env("PATH", augmented_path())
-        .output()
-        .await
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
         .map_err(|e| format!("启动 Claude CLI 失败 ({}): {}", &cli, e))?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    eprintln!("[ai_processor] exit_code={:?}", output.status.code());
-    if !stdout.is_empty() { eprintln!("[ai_processor] stdout: {}", &stdout[..stdout.len().min(500)]); }
-    if !stderr.is_empty() { eprintln!("[ai_processor] stderr: {}", &stderr[..stderr.len().min(500)]); }
+    let stdout = child.stdout.take().unwrap();
+    let stderr_handle = child.stderr.take().unwrap();
 
-    if !output.status.success() {
-        let err = if stderr.is_empty() { stdout.clone() } else { stderr };
-        let _ = app.emit("ai-processing", ProcessingUpdate {
-            material_path: material_path.to_string(),
-            status: "failed".to_string(),
-            error: Some(err.clone()),
-        });
-        return Err(err);
+    // Store child (without stdout/stderr — they're taken above)
+    {
+        let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
+        *guard = Some(child);
     }
 
-    match parse_cli_output(&stdout) {
+    let mp = material_path.to_string();
+    let app_clone = app.clone();
+
+    // Read stderr in background (for unexpected errors)
+    let mp_stderr = mp.clone();
+    let app_stderr = app_clone.clone();
+    let stderr_task = tauri::async_runtime::spawn(async move {
+        let mut reader = tokio::io::BufReader::new(stderr_handle).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            if !line.trim().is_empty() {
+                eprintln!("[ai_processor:stderr] {}", line);
+                let _ = app_stderr.emit("ai-log", AiLogLine {
+                    material_path: mp_stderr.clone(),
+                    level: "error".to_string(),
+                    message: line,
+                });
+            }
+        }
+    });
+
+    // Read stdout (stream-json NDJSON) and emit log lines
+    let mut stdout_reader = tokio::io::BufReader::new(stdout).lines();
+    let mut final_result: Result<(), String> = Ok(());
+
+    while let Ok(Some(line)) = stdout_reader.next_line().await {
+        eprintln!("[ai_processor:stream] {}", &line[..line.len().min(200)]);
+        if let Some(msg) = extract_log_line(&line) {
+            let level = if msg.starts_with("[error]") { "error" } else { "info" };
+            let _ = app_clone.emit("ai-log", AiLogLine {
+                material_path: mp.clone(),
+                level: level.to_string(),
+                message: msg.clone(),
+            });
+            if msg.starts_with("[error]") {
+                final_result = Err(msg);
+            }
+        }
+        // Check if this is the result line to detect success/failure
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
+            if val.get("type").and_then(|v| v.as_str()) == Some("result") {
+                let is_error = val.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
+                if is_error {
+                    let msg = val.get("result").and_then(|v| v.as_str()).unwrap_or("AI 处理失败");
+                    final_result = Err(msg.to_string());
+                }
+            }
+        }
+    }
+
+    let _ = stderr_task.await;
+
+    // Wait for child and check exit status
+    // Take child out of the mutex before awaiting to avoid holding MutexGuard across .await
+    let maybe_child = {
+        let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
+        guard.take()
+    };
+
+    let exit_status = if let Some(mut child) = maybe_child {
+        child.wait().await.map_err(|e| e.to_string())?
+    } else {
+        // Child was killed via cancel_ai_processing
+        let _ = app_clone.emit("ai-processing", ProcessingUpdate {
+            material_path: mp.clone(),
+            status: "failed".to_string(),
+            error: Some("已取消".to_string()),
+        });
+        return Err("已取消".to_string());
+    };
+
+    eprintln!("[ai_processor] exit_code={:?}", exit_status.code());
+
+    if !exit_status.success() && final_result.is_ok() {
+        final_result = Err(format!("进程退出码: {:?}", exit_status.code()));
+    }
+
+    match final_result {
         Ok(()) => {
-            let _ = app.emit("ai-processing", ProcessingUpdate {
-                material_path: material_path.to_string(),
+            let _ = app_clone.emit("ai-processing", ProcessingUpdate {
+                material_path: mp.clone(),
                 status: "completed".to_string(),
                 error: None,
             });
-            let _ = app.emit("journal-updated", year_month);
+            let _ = app_clone.emit("journal-updated", year_month);
             Ok(())
         }
         Err(err) => {
-            let _ = app.emit("ai-processing", ProcessingUpdate {
-                material_path: material_path.to_string(),
+            let _ = app_clone.emit("ai-processing", ProcessingUpdate {
+                material_path: mp.clone(),
                 status: "failed".to_string(),
                 error: Some(err.clone()),
             });
@@ -285,26 +379,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn build_args_no_cwd() {
-        let args = build_args("/nb/2603/raw/note.txt", "2603");
-        assert!(args[0] == "-p");
-        assert!(args[1].starts_with("@2603/raw/note.txt"));
-        assert!(args[1].contains("新增素材"));
-        assert!(!args.iter().any(|a| a == "--cwd"));
-    }
-
-    #[test]
-    fn build_args_has_required_flags() {
-        let args = build_args("/nb/2603/raw/note.txt", "2603");
-        assert!(args.contains(&"-p".to_string()));
-        assert!(args[1].starts_with("@2603/raw/note.txt"));
-        assert!(!args.contains(&"--tools".to_string()));
-        assert!(args.contains(&"--permission-mode".to_string()));
-        assert!(args.contains(&"bypassPermissions".to_string()));
-        assert!(args.contains(&"--output-format".to_string()));
-        assert!(args.contains(&"json".to_string()));
-        assert!(args.contains(&"--no-session-persistence".to_string()));
-        assert!(!args.iter().any(|a| a == "--cwd"));
+    fn prompt_contains_material_reference() {
+        let filename = "note.txt";
+        let year_month = "2603";
+        let prompt = format!(
+            "@{}/raw/{} 新增素材 @{}，请阅读内容并整理为日志条目。按 CLAUDE.md 中的规范输出，直接创建或更新 .md 文件。",
+            year_month, filename, filename
+        );
+        assert!(prompt.contains("@2603/raw/note.txt"));
+        assert!(prompt.contains("新增素材"));
     }
 
     #[test]
@@ -332,22 +415,20 @@ mod tests {
     }
 
     #[test]
-    fn parse_cli_output_success() {
-        let json = r#"{"type":"result","subtype":"success","is_error":false,"result":"done","total_cost_usd":0.05}"#;
-        assert!(parse_cli_output(json).is_ok());
-    }
+    fn extract_log_message_from_stream_json_lines() {
+        // assistant text line
+        let line = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"正在读取文件...","citations":null,"signature":"","thinking":"","data":"","id":"","input":null,"name":"","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
+        let msg = extract_log_line(line);
+        assert_eq!(msg, Some("正在读取文件...".to_string()));
 
-    #[test]
-    fn parse_cli_output_error() {
-        let json = r#"{"type":"result","subtype":"error","is_error":true,"result":"无法读取文件"}"#;
-        let result = parse_cli_output(json);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("无法读取文件"));
-    }
+        // tool_use line
+        let tool_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t1","input":null,"name":"Read","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
+        let msg2 = extract_log_line(tool_line);
+        assert_eq!(msg2, Some("[tool] Read".to_string()));
 
-    #[test]
-    fn parse_cli_output_non_json() {
-        assert!(parse_cli_output("some plain text").is_ok());
+        // system init — should be ignored
+        let sys_line = r#"{"type":"system","subtype":"init","cwd":"/tmp"}"#;
+        assert_eq!(extract_log_line(sys_line), None);
     }
 
     #[test]

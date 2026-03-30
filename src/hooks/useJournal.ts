@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { listAllJournalEntries } from '../lib/tauri'
-import type { JournalEntry, ProcessingUpdate, QueueItem } from '../types'
+import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
 
 export function useJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
@@ -43,6 +43,7 @@ export function useJournal() {
             filename,
             status: 'queued',
             addedAt: Date.now(),
+            logs: [],
           }]
         })
       } else if (status === 'processing') {
@@ -68,6 +69,17 @@ export function useJournal() {
       }
     })
 
+    const unlistenLog = listen<AiLogLine>('ai-log', (event) => {
+      const { material_path, message } = event.payload
+      setQueueItems(prev =>
+        prev.map(i =>
+          i.path === material_path
+            ? { ...i, logs: [...(i.logs ?? []), message] }
+            : i
+        )
+      )
+    })
+
     const unlistenUpdated = listen<string>('journal-updated', () => {
       refresh()
     })
@@ -78,6 +90,7 @@ export function useJournal() {
 
     return () => {
       unlistenProcessing.then(fn => fn())
+      unlistenLog.then(fn => fn())
       unlistenUpdated.then(fn => fn())
       unlistenProcessed.then(fn => fn())
       removalTimers.current.forEach(t => clearTimeout(t))

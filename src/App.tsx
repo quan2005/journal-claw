@@ -8,9 +8,9 @@ import { CommandDock } from './components/CommandDock'
 import { ProcessingQueue } from './components/ProcessingQueue'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
-import { useJournal } from './hooks/useJournal'
+import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing } from './lib/tauri'
+import { importFile, importAudioFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry } from './types'
 
@@ -18,8 +18,8 @@ const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
 
 export default function App() {
-  const { status, start, stop } = useRecorder()
-  const { entries, loading, queueItems, isProcessing, dismissQueueItem, refresh } = useJournal()
+  const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
+  const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
   const [view, setView] = useState<'journal' | 'settings'>('journal')
@@ -69,10 +69,9 @@ export default function App() {
         setIsDragOver(false)
         const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
         if (paths.length > 0) {
-          const supported = paths.filter(p => fileKindFromName(p.split('/').pop() ?? p) !== 'audio')
           setPendingFiles(prev => {
             const existing = new Set(prev)
-            const newPaths = supported.filter(p => !existing.has(p))
+            const newPaths = paths.filter(p => !existing.has(p))
             return newPaths.length > 0 ? [...prev, ...newPaths] : prev
           })
         }
@@ -131,8 +130,14 @@ export default function App() {
     setPendingFiles([])
     for (const path of paths) {
       try {
-        const result = await importFile(path)
-        await triggerAiProcessing(result.path, result.year_month, note)
+        const kind = fileKindFromName(path.split('/').pop() ?? path)
+        if (kind === 'audio') {
+          const result = await importAudioFile(path)
+          addQueuedItem(result.path, result.filename)
+        } else {
+          const result = await importFile(path)
+          await triggerAiProcessing(result.path, result.year_month, note)
+        }
       } catch (err) {
         console.error('[file-submit] error:', String(err), 'path:', path)
       }
@@ -150,7 +155,7 @@ export default function App() {
       await start()
     } else {
       await stop()
-      refresh()
+      addConvertingItem(RECORDING_PLACEHOLDER, '录音处理中')
     }
   }
 
@@ -162,17 +167,19 @@ export default function App() {
   const handlePasteFiles = (paths: string[]) => {
     setPendingFiles(prev => {
       const existing = new Set(prev)
-      const newPaths = paths
-        .filter(p => fileKindFromName(p.split('/').pop() ?? p) !== 'audio')
-        .filter(p => !existing.has(p))
+      const newPaths = paths.filter(p => !existing.has(p))
       if (newPaths.length === 0) return prev
-      const merged = [...prev, ...newPaths]
-      return merged.slice(0, 6)
+      return [...prev, ...newPaths].slice(0, 6)
     })
   }
 
   const processingFilename = queueItems.find(i => i.status === 'processing')?.filename
   const processingPath = queueItems.find(i => i.status === 'processing')?.path
+
+  // Inject a virtual 'recording' item at the front of the queue when recording
+  const visibleQueueItems = status === 'recording'
+    ? [{ path: RECORDING_PLACEHOLDER, filename: '录音中', status: 'recording' as const, addedAt: Date.now(), logs: [], elapsedSecs, audioLevel }, ...queueItems]
+    : queueItems
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -226,7 +233,7 @@ export default function App() {
               right: 0,
               zIndex: 10,
             }}>
-              <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
+              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
             </div>
             <CommandDock
               isDragOver={isDragOver}

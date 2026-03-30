@@ -120,7 +120,7 @@ In `src-tauri/capabilities/default.json`, add event permission for transcription
 
 - [ ] **Step 4: Build to verify Rust compiles**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && cargo check --manifest-path src-tauri/Cargo.toml`
+Run: `cd /Users/yanwu/Projects/github/journal && cargo check --manifest-path src-tauri/Cargo.toml`
 Expected: Compiles successfully
 
 - [ ] **Step 5: Commit**
@@ -187,7 +187,7 @@ export default defineConfig(async () => ({
 
 - [ ] **Step 2: Create settings.html**
 
-In project root (`/Users/yanwu/Projects/github/daynote/settings.html`):
+In project root (`/Users/yanwu/Projects/github/journal/settings.html`):
 
 ```html
 <!doctype html>
@@ -310,7 +310,7 @@ export default function SettingsApp() {
 
 - [ ] **Step 3: Verify dev server starts with both entry points**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && npx vite build 2>&1 | head -20`
+Run: `cd /Users/yanwu/Projects/github/journal && npx vite build 2>&1 | head -20`
 Expected: Both `index.html` and `settings.html` are processed
 
 - [ ] **Step 4: Commit**
@@ -1818,12 +1818,12 @@ export default function App() {
 
 - [ ] **Step 2: Verify the app builds**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && npx vite build 2>&1 | tail -10`
+Run: `cd /Users/yanwu/Projects/github/journal && npx vite build 2>&1 | tail -10`
 Expected: Build succeeds
 
 - [ ] **Step 3: Full build test**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && npx tauri build --no-bundle 2>&1 | tail -20`
+Run: `cd /Users/yanwu/Projects/github/journal && npx tauri build --no-bundle 2>&1 | tail -20`
 Expected: Both Rust and frontend compile successfully
 
 - [ ] **Step 4: Commit**
@@ -1846,7 +1846,7 @@ Check if `src/App.tsx` imports `App.css`. The current App.tsx does not import it
 
 - [ ] **Step 2: Verify no unused imports remain**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && npx tsc --noEmit 2>&1`
+Run: `cd /Users/yanwu/Projects/github/journal && npx tsc --noEmit 2>&1`
 Expected: No errors
 
 - [ ] **Step 3: Final commit**
@@ -1865,7 +1865,7 @@ git commit -m "chore: clean up unused styles and imports"
 
 - [ ] **Step 1: Run frontend tests**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && npm test 2>&1`
+Run: `cd /Users/yanwu/Projects/github/journal && npm test 2>&1`
 Expected: All existing tests pass
 
 - [ ] **Step 2: Run Rust tests**
@@ -1879,7 +1879,7 @@ Expected: All existing tests pass
 
 - [ ] **Step 1: Launch dev mode**
 
-Run: `cd /Users/yanwu/Projects/github/daynote && npm run tauri dev`
+Run: `cd /Users/yanwu/Projects/github/journal && npm run tauri dev`
 
 - [ ] **Step 2: Verify settings window**
   - Click gear icon in title bar

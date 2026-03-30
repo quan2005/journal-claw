@@ -1,4 +1,4 @@
-# DayNote Recording App Implementation Plan
+# 谨迹 Recording App Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -74,7 +74,7 @@ Expected: `.git/` directory created.
 npx @tauri-apps/cli create . --template react-ts --manager npm
 ```
 
-When prompted: app name `journal`, window title `DayNote`, identifier `com.journal.app`.
+When prompted: app name `journal`, window title `谨迹`, identifier `com.journal.app`.
 
 Expected output: project files created, `src-tauri/` and `src/` directories present.
 
@@ -110,7 +110,7 @@ Find the `windows` array and replace its contents:
 ```json
 "windows": [
   {
-    "title": "DayNote",
+    "title": "谨迹",
     "width": 320,
     "height": 480,
     "minWidth": 320,
@@ -135,7 +135,7 @@ Create the file if it doesn't exist. Ensure this key is present:
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>DayNote needs microphone access to record audio.</string>
+  <string>谨迹 needs microphone access to record audio.</string>
 </dict>
 </plist>
 ```
@@ -1068,7 +1068,7 @@ export function TitleBar({ status, elapsedSecs }: TitleBarProps) {
           fontWeight: 500,
           color: 'var(--item-meta)',
         }}>
-          DayNote
+          谨迹
         </span>
       ) : (
         <span style={{
@@ -1443,7 +1443,7 @@ export default function App() {
         })
       } catch (err: unknown) {
         if (typeof err === 'string' && err === 'permission_denied') {
-          alert('DayNote 需要麦克风权限。请前往「系统设置 → 隐私与安全性 → 麦克风」开启。')
+          alert('谨迹 需要麦克风权限。请前往「系统设置 → 隐私与安全性 → 麦克风」开启。')
         }
       }
     } else {
@@ -1517,12 +1517,12 @@ git commit -m "feat: wire App.tsx — recording state, list, context menu integr
 npm run tauri dev
 ```
 
-Expected: DayNote window opens (320×480, traffic-light buttons visible, custom title bar showing "DayNote", record button at bottom with pulse animation).
+Expected: 谨迹 window opens (320×480, traffic-light buttons visible, custom title bar showing "谨迹", record button at bottom with pulse animation).
 
 - [ ] **Step 2: Verify idle state appearance**
 
 - Record button is visible at bottom, red circle with white dot, pulse animation running.
-- Title bar shows "DayNote".
+- Title bar shows "谨迹".
 - If no recordings exist, the list area is empty.
 - Drag the window by the title bar — it should move.
 
@@ -1534,7 +1534,7 @@ Expected: DayNote window opens (320×480, traffic-light buttons visible, custom 
 - [ ] **Step 4: Test stop flow**
 
 - Click the stop button after a few seconds.
-- Expected: button returns to record icon. Title bar returns to "DayNote". The in-progress row is replaced by the completed recording with real duration.
+- Expected: button returns to record icon. Title bar returns to "谨迹". The in-progress row is replaced by the completed recording with real duration.
 
 - [ ] **Step 5: Test right-click menu**
 
@@ -1556,7 +1556,7 @@ Expected: DayNote window opens (320×480, traffic-light buttons visible, custom 
 
 - [ ] **Step 8: Test permission-denied path (if possible)**
 
-- In System Settings → Privacy & Security → Microphone, revoke DayNote's permission.
+- In System Settings → Privacy & Security → Microphone, revoke 谨迹's permission.
 - Click the record button.
 - Expected: native alert dialog appears with the permission message.
 
@@ -1587,12 +1587,12 @@ Expected output includes `src-tauri/target/`. If missing, add it before proceedi
 npm run tauri build
 ```
 
-Expected: `src-tauri/target/release/bundle/macos/DayNote.app` created.
+Expected: `src-tauri/target/release/bundle/macos/谨迹.app` created.
 
 - [ ] **Step 3: Verify bundle size**
 
 ```bash
-du -sh src-tauri/target/release/bundle/macos/DayNote.app
+du -sh src-tauri/target/release/bundle/macos/谨迹.app
 ```
 
 Expected: under 20MB.
@@ -1600,7 +1600,7 @@ Expected: under 20MB.
 - [ ] **Step 4: Run the release build**
 
 ```bash
-open src-tauri/target/release/bundle/macos/DayNote.app
+open src-tauri/target/release/bundle/macos/谨迹.app
 ```
 
 Verify: microphone permission prompt appears on first launch if not already granted. App behaves identically to dev mode.

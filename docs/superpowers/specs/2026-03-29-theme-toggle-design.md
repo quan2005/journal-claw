@@ -4,7 +4,7 @@
 
 ## Overview
 
-Add a light/dark/system theme toggle button to the DayNote TitleBar. Theme preference is persisted per-workspace in `.setting.json` at the workspace root.
+Add a light/dark/system theme toggle button to the 谨迹 TitleBar. Theme preference is persisted per-workspace in `.setting.json` at the workspace root.
 
 ## UI
 

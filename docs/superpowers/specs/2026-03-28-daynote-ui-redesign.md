@@ -1,4 +1,4 @@
-# DayNote UI Redesign — 时间流 · 日志优先
+# 谨迹 UI Redesign — 时间流 · 日志优先
 
 Date: 2026-03-28
 Status: Approved

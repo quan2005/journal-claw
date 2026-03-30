@@ -22,7 +22,7 @@ pub struct AiQueue(pub mpsc::Sender<QueueTask>);
 
 // ── Helpers ──────────────────────────────────────────────
 
-const WORKSPACE_PROMPT: &str = r#"# Journal 秘书稿规范
+const WORKSPACE_PROMPT: &str = r#"# 谨迹秘书稿规范
 
 你是一个日志整理助手。用户会给你原始素材（录音转写、PDF、文档等），你需要整理成结构化的日志条目。
 

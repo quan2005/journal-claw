@@ -1,4 +1,4 @@
-# DayNote Settings & Speech-to-Text Design
+# 谨迹 Settings & Speech-to-Text Design
 
 > Date: 2026-03-13
 

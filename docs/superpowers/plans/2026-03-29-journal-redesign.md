@@ -267,7 +267,7 @@ export default function SettingsApp() {
 - [ ] **Step 8: 构建确认**
 
 ```bash
-cd /Users/yanwu/Projects/github/daynote && npm run build 2>&1 | tail -20
+cd /Users/yanwu/Projects/github/journal && npm run build 2>&1 | tail -20
 ```
 
 Expected: 无 TypeScript 错误，build 成功

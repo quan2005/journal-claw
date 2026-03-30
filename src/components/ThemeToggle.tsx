@@ -35,7 +35,7 @@ export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 12,
+            fontSize: 10,
             cursor: 'pointer',
             border: 'none',
             borderRight: i < SEGMENTS.length - 1 ? '1px solid var(--divider)' : 'none',

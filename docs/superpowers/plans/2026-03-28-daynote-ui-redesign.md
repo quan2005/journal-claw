@@ -1,8 +1,8 @@
-# DayNote UI Redesign — 时间流·日志优先 Implementation Plan
+# 谨迹 UI Redesign — 时间流·日志优先 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 DayNote 的视觉语言从"文件管理器"转向"日志型记录工具"，采用时间流卡片列表、底部滑入 DetailSheet、悬浮 FAB 录音按钮，参考 Day One 的日记气质。
+**Goal:** 将 谨迹 的视觉语言从"文件管理器"转向"日志型记录工具"，采用时间流卡片列表、底部滑入 DetailSheet、悬浮 FAB 录音按钮，参考 Day One 的日记气质。
 
 **Architecture:** 整个布局改为单栏（固定宽度，用户可调），用 `position: absolute` 的 DetailSheet 覆盖列表，不再触发窗口 resize。RecordButton 改为 absolute FAB，不再占用底部固定区域。RecordingItem 改为左日期大字 + 右内容的双列卡片布局。
 

@@ -32,7 +32,7 @@ fn main() {
             ai_processor::start_queue_consumer(app.handle().clone(), ai_rx);
             // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
             let settings_item = MenuItem::with_id(app, "settings", "设置...", true, Some("CmdOrCtrl+,"))?;
-            let app_menu = Submenu::with_items(app, "Journal", true, &[
+            let app_menu = Submenu::with_items(app, "谨迹", true, &[
                 &PredefinedMenuItem::about(app, None, None)?,
                 &PredefinedMenuItem::separator(app)?,
                 &settings_item,

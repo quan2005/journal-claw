@@ -12,6 +12,13 @@ pub struct WindowState {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AsrConfig {
+    pub asr_engine: String,
+    pub dashscope_api_key: String,
+    pub whisperkit_model: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EngineConfig {
     pub active_ai_engine: String,
     pub claude_code_api_key: String,
@@ -47,6 +54,11 @@ pub struct Config {
     pub qwen_code_base_url: String,
     #[serde(default)]
     pub qwen_code_model: String,
+    // ASR 引擎配置
+    #[serde(default = "default_asr_engine")]
+    pub asr_engine: String,          // "dashscope" | "whisperkit"
+    #[serde(default = "default_whisperkit_model")]
+    pub whisperkit_model: String,    // "base" | "small" | "large-v3-turbo"
 }
 
 fn default_claude_cli() -> String {
@@ -66,6 +78,14 @@ fn default_claude_cli() -> String {
 
 fn default_active_engine() -> String {
     "claude".to_string()
+}
+
+fn default_asr_engine() -> String {
+    "dashscope".to_string()
+}
+
+fn default_whisperkit_model() -> String {
+    "base".to_string()
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -209,6 +229,38 @@ pub fn get_app_version(app: AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
+#[tauri::command]
+pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
+    let c = load_config(&app)?;
+    Ok(AsrConfig {
+        asr_engine: c.asr_engine,
+        dashscope_api_key: c.dashscope_api_key,
+        whisperkit_model: c.whisperkit_model,
+    })
+}
+
+#[tauri::command]
+pub fn set_asr_config(
+    app: AppHandle,
+    asr_engine: String,
+    dashscope_api_key: String,
+    whisperkit_model: String,
+) -> Result<(), String> {
+    let valid_engines = ["dashscope", "whisperkit"];
+    if !valid_engines.contains(&asr_engine.as_str()) {
+        return Err(format!("invalid asr_engine: {}", asr_engine));
+    }
+    let valid_models = ["base", "small", "large-v3-turbo"];
+    if !valid_models.contains(&whisperkit_model.as_str()) {
+        return Err(format!("invalid whisperkit_model: {}", whisperkit_model));
+    }
+    let mut c = load_config(&app)?;
+    c.asr_engine = asr_engine;
+    c.dashscope_api_key = dashscope_api_key;
+    c.whisperkit_model = whisperkit_model;
+    save_config(&app, &c)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,5 +308,25 @@ mod tests {
         let c2: Config = serde_json::from_str(&json).unwrap();
         assert_eq!(c2.active_ai_engine, "qwen");
         assert_eq!(c2.qwen_code_api_key, "sk-test");
+    }
+
+    #[test]
+    fn config_asr_fields_default() {
+        let c: Config = serde_json::from_str("{}").unwrap();
+        assert_eq!(c.asr_engine, "dashscope");
+        assert_eq!(c.whisperkit_model, "base");
+    }
+
+    #[test]
+    fn config_asr_fields_roundtrip() {
+        let c = Config {
+            asr_engine: "whisperkit".into(),
+            whisperkit_model: "small".into(),
+            ..Config::default()
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let c2: Config = serde_json::from_str(&json).unwrap();
+        assert_eq!(c2.asr_engine, "whisperkit");
+        assert_eq!(c2.whisperkit_model, "small");
     }
 }

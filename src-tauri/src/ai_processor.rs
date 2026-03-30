@@ -449,7 +449,9 @@ pub async fn trigger_ai_processing(
 #[tauri::command]
 pub fn get_workspace_prompt(app: AppHandle) -> Result<String, String> {
     let cfg = config::load_config(&app)?;
-    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    let path = std::path::PathBuf::from(&cfg.workspace_path)
+        .join(".claude")
+        .join("CLAUDE.md");
     if path.exists() {
         std::fs::read_to_string(&path).map_err(|e| e.to_string())
     } else {
@@ -460,7 +462,9 @@ pub fn get_workspace_prompt(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), String> {
     let cfg = config::load_config(&app)?;
-    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    let dot_claude = std::path::PathBuf::from(&cfg.workspace_path).join(".claude");
+    let _ = std::fs::create_dir_all(&dot_claude);
+    let path = dot_claude.join("CLAUDE.md");
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 

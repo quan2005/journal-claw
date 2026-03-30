@@ -119,4 +119,23 @@ describe('useJournal', () => {
     // placeholder must be gone
     expect(result.current.queueItems.some(i => i.path === '__recording__')).toBe(false)
   })
+
+  it('recording-processed is a no-op when no placeholder exists', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+
+    // No addConvertingItem call — queue is empty
+    expect(result.current.queueItems).toHaveLength(0)
+
+    // Fire recording-processed anyway
+    act(() => {
+      fireEvent('recording-processed', {
+        filename: '录音 2026-03-30 10:00.m4a',
+        path: '/ws/2603/raw/录音 2026-03-30 10:00.m4a',
+      })
+    })
+
+    // Queue must still be empty — event is ignored
+    expect(result.current.queueItems).toHaveLength(0)
+  })
 })

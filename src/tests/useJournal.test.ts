@@ -35,4 +35,51 @@ describe('useJournal', () => {
     expect(result.current.queueItems).toEqual([])
     expect(result.current.isProcessing).toBe(false)
   })
+
+  it('addConvertingItem inserts a converting item at head', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+    act(() => {
+      result.current.addConvertingItem('__recording__', '录音处理中')
+    })
+    expect(result.current.queueItems).toHaveLength(1)
+    expect(result.current.queueItems[0]).toMatchObject({
+      path: '__recording__',
+      filename: '录音处理中',
+      status: 'converting',
+    })
+  })
+
+  it('addConvertingItem is idempotent', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+    act(() => {
+      result.current.addConvertingItem('__recording__', '录音处理中')
+      result.current.addConvertingItem('__recording__', '录音处理中')
+    })
+    expect(result.current.queueItems).toHaveLength(1)
+  })
+
+  it('addQueuedItem inserts a queued item with real path', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+    act(() => {
+      result.current.addQueuedItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+    })
+    expect(result.current.queueItems[0]).toMatchObject({
+      path: '/ws/2603/raw/meeting.m4a',
+      filename: 'meeting.m4a',
+      status: 'queued',
+    })
+  })
+
+  it('addQueuedItem is idempotent (deduplicates by path)', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+    act(() => {
+      result.current.addQueuedItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+      result.current.addQueuedItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+    })
+    expect(result.current.queueItems).toHaveLength(1)
+  })
 })

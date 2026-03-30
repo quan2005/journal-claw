@@ -3,6 +3,8 @@ import { listen } from '@tauri-apps/api/event'
 import { listAllJournalEntries } from '../lib/tauri'
 import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
 
+export const RECORDING_PLACEHOLDER = '__recording__'
+
 export function useJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,6 +31,20 @@ export function useJournal() {
     if (timer) clearTimeout(timer)
     removalTimers.current.delete(path)
     setQueueItems(prev => prev.filter(i => i.path !== path))
+  }, [])
+
+  const addConvertingItem = useCallback((placeholderPath: string, filename: string) => {
+    setQueueItems(prev => {
+      if (prev.some(i => i.path === placeholderPath)) return prev
+      return [{ path: placeholderPath, filename, status: 'converting' as const, addedAt: Date.now(), logs: [] }, ...prev]
+    })
+  }, [])
+
+  const addQueuedItem = useCallback((path: string, filename: string) => {
+    setQueueItems(prev => {
+      if (prev.some(i => i.path === path)) return prev
+      return [{ path, filename, status: 'queued' as const, addedAt: Date.now(), logs: [] }, ...prev]
+    })
   }, [])
 
   useEffect(() => {
@@ -110,5 +126,5 @@ export function useJournal() {
     i => i.status === 'processing' || i.status === 'queued'
   )
 
-  return { entries, loading, queueItems, isProcessing, dismissQueueItem, refresh }
+  return { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh }
 }

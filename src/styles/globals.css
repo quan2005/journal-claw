@@ -528,3 +528,11 @@ html, body, #root {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 @keyframes app-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes settings-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.settings-root {
+  animation: settings-fadein 160ms ease-out both;
+}

@@ -24,3 +24,4 @@ src-tauri/target/
 *.njsproj
 *.sln
 *.sw?
+src-tauri/resources/workspace-template/.claude/scripts/__pycache__/

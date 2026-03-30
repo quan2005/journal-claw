@@ -1,60 +1,49 @@
-#!/usr/bin/env python3
+#!/usr/bin/env bash
+set -euo pipefail
 
-from __future__ import annotations
+LIMIT=10
 
-import argparse
-import re
-from pathlib import Path
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -n|--limit) LIMIT="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-def split_frontmatter(text: str) -> tuple[str, str]:
-    if text.startswith("---\n"):
-        end = text.find("\n---\n", 4)
-        if end != -1:
-            return text[4:end], text[end + 5 :]
-    return "", text
+# Collect: mtime, path, summary
+declare -a entries=()
 
+while IFS= read -r -d '' file; do
+  summary=$(awk '
+    /^---$/ { count++; next }
+    count == 1 && /^summary:/ {
+      sub(/^summary:[[:space:]]*/, "")
+      gsub(/^["'"'"']|["'"'"']$/, "")
+      print
+      exit
+    }
+  ' "$file")
+  mtime=$(stat -f "%m" "$file" 2>/dev/null || stat -c "%Y" "$file")
+  entries+=("${mtime}	${file}	${summary:-[缺少 summary]}")
+done < <(find "$REPO_ROOT" -maxdepth 2 -mindepth 2 -name "*.md" \
+  -not -path "$REPO_ROOT/.claude/*" \
+  -regex ".*/[0-9][0-9][0-9][0-9]/.*" \
+  -print0)
 
-def parse_summary(block: str) -> str:
-    match = re.search(r"^summary:\s*(.+?)\s*$", block, re.M)
-    if not match:
-        return ""
-    value = match.group(1).strip()
-    if value in {"", '""', "''"}:
-        return ""
-    return value.strip("'\"")
+# Sort by mtime descending
+IFS=$'\n' sorted=($(printf '%s\n' "${entries[@]}" | sort -rn))
+unset IFS
 
-def iter_journal_files(root: Path) -> list[Path]:
-    month_dirs = sorted(path for path in root.iterdir() if path.is_dir() and re.fullmatch(r"\d{4}", path.name))
-    files: list[Path] = []
-    for month_dir in month_dirs:
-        files.extend(path for path in month_dir.glob("*.md") if path.is_file())
-    return files
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="列出最近更新的 journal 文档 summary。")
-    parser.add_argument("-n", "--limit", type=int, default=10, help="输出条数，默认 10。")
-    args = parser.parse_args()
-
-    repo_root = Path(__file__).resolve().parents[2]
-    entries = []
-    for path in iter_journal_files(repo_root):
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        block, _ = split_frontmatter(text)
-        summary = parse_summary(block)
-        stat = path.stat()
-        entries.append((stat.st_mtime, path, summary))
-
-    entries.sort(key=lambda item: item[0], reverse=True)
-
-    for index, (_, path, summary) in enumerate(entries[: max(args.limit, 0)], start=1):
-        rel_path = path.relative_to(repo_root)
-        print(f"{index}. {rel_path}")
-        print(f"   > {summary if summary else '[缺少 summary]'}")
-
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+count=0
+for entry in "${sorted[@]}"; do
+  [[ $count -ge $LIMIT ]] && break
+  mtime="${entry%%	*}"
+  rest="${entry#*	}"
+  file="${rest%%	*}"
+  summary="${rest#*	}"
+  rel="${file#$REPO_ROOT/}"
+  printf "%d. %s\n   > %s\n" "$((count+1))" "$rel" "$summary"
+  count=$((count+1))
+done

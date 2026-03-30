@@ -6,7 +6,7 @@ import { AiLogModal } from './AiLogModal'
 interface ProcessingQueueProps {
   items: QueueItem[]
   onDismiss: (path: string) => void
-  onCancel: () => void
+  onCancel: (item: QueueItem) => void
   activeLogPath: string | null
   onSetActiveLogPath: (path: string | null) => void
 }
@@ -188,11 +188,13 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
             item.status === 'completed'
               ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
               : { animation: 'queue-enter 0.2s ease-out' }
+          const isClickable = item.status === 'processing'
+          const isCancellable = item.status === 'queued' || item.status === 'processing'
 
           return (
             <div
               key={item.path}
-              onClick={() => onSetActiveLogPath(item.path)}
+              onClick={isClickable ? () => onSetActiveLogPath(item.path) : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -200,7 +202,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
                 height: 32,
                 padding: '0 20px',
                 borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
-                cursor: 'pointer',
+                cursor: isClickable ? 'pointer' : 'default',
                 ...animStyle,
               }}
             >
@@ -216,7 +218,21 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
               }}>
                 {item.filename}
               </span>
-              <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
+              {isCancellable ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onCancel(item) }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
+                    color: 'var(--item-meta)', fontSize: 12, lineHeight: 1, flexShrink: 0,
+                    opacity: 0.5,
+                  }}
+                  title="取消"
+                >
+                  ×
+                </button>
+              ) : (
+                <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
+              )}
             </div>
           )
         })}
@@ -227,7 +243,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
           item={activeItem}
           onClose={() => onSetActiveLogPath(null)}
           onCancel={() => {
-            onCancel()
+            onCancel(activeItem)
             onSetActiveLogPath(null)
           }}
         />

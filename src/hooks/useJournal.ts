@@ -133,7 +133,7 @@ export function useJournal() {
   }, [refresh])
 
   const isProcessing = queueItems.some(
-    i => i.status === 'processing' || i.status === 'queued'
+    i => i.status === 'processing' || i.status === 'queued' || i.status === 'converting'
   )
 
   return { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh }

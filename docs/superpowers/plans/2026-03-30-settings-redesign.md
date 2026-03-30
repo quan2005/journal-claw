@@ -862,7 +862,7 @@ export default function SectionAiEngine() {
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={labelStyle}>Model</label>
-                <input style={inputStyle} placeholder="claude-sonnet-4-5"
+                <input style={inputStyle} placeholder="claude-sonnet-4-6"
                   value={cfg.claude_code_model}
                   onChange={e => setCfg(prev => ({ ...prev, claude_code_model: e.target.value }))} />
                 <div style={hintStyle}>留空使用 CLI 默认模型</div>

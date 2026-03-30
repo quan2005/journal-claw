@@ -84,3 +84,6 @@ export const setWorkspacePrompt = (content: string) =>
 
 export const openFile = (path: string): Promise<void> =>
   invoke('open_with_system', { path })
+
+export const cancelAiProcessing = () =>
+  invoke<void>('cancel_ai_processing')

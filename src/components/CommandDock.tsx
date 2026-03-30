@@ -25,6 +25,7 @@ export function CommandDock({
   const [inputText, setInputText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const importedTexts = useRef<Set<string>>(new Set())
   const isRecording = recorderStatus === 'recording'
   const hasFiles = pendingFiles.length > 0
 
@@ -42,9 +43,12 @@ export function CommandDock({
 
   function handleTextClipboard(text: string) {
     if (text.length > 300) {
+      if (importedTexts.current.has(text)) return  // 同内容不重复 import
+      importedTexts.current.add(text)
       importText(text).then((result) => {
         onPasteFiles([result.path])
       }).catch((err) => {
+        importedTexts.current.delete(text)
         console.error('[import-text]', err)
         showToast('提交失败')
       })
@@ -58,6 +62,7 @@ export function CommandDock({
     if (hasFiles) onFilesCancel()
     setInputOpen(false)
     setInputText('')
+    importedTexts.current.clear()
   }
 
   async function handleSubmit() {
@@ -67,6 +72,7 @@ export function CommandDock({
       onFilesCancel()
       setInputOpen(false)
       setInputText('')
+      importedTexts.current.clear()
       showToast('已提交，Agent 整理中…')
       try {
         await onFilesSubmit(paths, note)
@@ -79,6 +85,7 @@ export function CommandDock({
       if (!text) return
       setInputOpen(false)
       setInputText('')
+      importedTexts.current.clear()
       showToast('已提交，Agent 整理中…')
       try {
         await onPasteSubmit(text)
@@ -197,7 +204,7 @@ export function CommandDock({
           background: dropZoneBg,
           cursor: activeMode === 'idle' ? 'pointer' : 'default',
           transition: 'border-color 0.2s, background 0.2s',
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {/* Idle state */}
@@ -245,7 +252,7 @@ export function CommandDock({
           <div style={{
             display: 'flex',
             alignItems: 'stretch',
-            height: 84,
+            minHeight: 84,
           }}>
             {/* Left: attachment cards (only when files present) */}
             {hasFiles && (
@@ -339,7 +346,7 @@ export function CommandDock({
                     }
                   }).catch(() => handleTextFallback(rawText))
                 }}
-                placeholder={hasFiles ? '添加背景说明…' : '在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…'}
+                placeholder={hasFiles ? '补充说明…' : '在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…'}
                 className="dock-textarea"
                 style={{
                   flex: 1,

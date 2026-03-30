@@ -37,6 +37,9 @@ export default function SectionGuide() {
 
   useEffect(() => {
     getWorkspacePrompt().then(setContent)
+    const onFocus = () => getWorkspacePrompt().then(setContent)
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   const save = useCallback(async (text: string) => {
@@ -60,6 +63,8 @@ export default function SectionGuide() {
   }
 
   const editorFont = "'IBM Plex Mono', ui-monospace, monospace"
+  const editorFontSize = 12
+  const editorLineHeight = 1.7
   const editorHeight = 420
 
   return (
@@ -75,7 +80,7 @@ export default function SectionGuide() {
           position: 'absolute', inset: 0,
           background: 'var(--detail-case-bg)', border: '1px solid var(--divider)', borderRadius: 6,
           padding: '12px 14px', fontFamily: editorFont,
-          fontSize: 11.5, lineHeight: 1.75, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          fontSize: editorFontSize, lineHeight: editorLineHeight, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           pointerEvents: 'none', overflowY: 'auto',
         }}>
           {highlightMarkdown(content)}
@@ -90,8 +95,8 @@ export default function SectionGuide() {
             position: 'absolute', inset: 0, width: '100%', height: '100%',
             background: 'transparent', border: '1px solid transparent', borderRadius: 6,
             padding: '12px 14px', fontFamily: editorFont,
-            fontSize: 11.5, lineHeight: 1.75,
-            color: 'transparent', caretColor: 'var(--item-text)',
+            fontSize: editorFontSize, lineHeight: editorLineHeight,
+            color: 'transparent', caretColor: 'var(--item-text)', cursor: 'text',
             resize: 'none', outline: 'none', boxSizing: 'border-box',
             overflowY: 'auto',
           }}

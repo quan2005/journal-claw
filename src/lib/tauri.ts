@@ -87,3 +87,38 @@ export const openFile = (path: string): Promise<void> =>
 
 export const cancelAiProcessing = () =>
   invoke<void>('cancel_ai_processing')
+
+// Folder picker
+export const pickFolder = (): Promise<string | null> => {
+  return import('@tauri-apps/plugin-dialog').then(({ open }) =>
+    open({ directory: true, multiple: false }) as Promise<string | null>
+  )
+}
+
+// Engine install/check
+export const checkEngineInstalled = (engine: 'claude' | 'qwen'): Promise<boolean> =>
+  invoke<boolean>('check_engine_installed', { engine })
+
+export const installEngine = (engine: 'claude' | 'qwen'): Promise<void> =>
+  invoke<void>('install_engine', { engine })
+
+// App version
+export const getAppVersion = (): Promise<string> =>
+  invoke<string>('get_app_version')
+
+// Engine config
+export interface EngineConfig {
+  active_ai_engine: 'claude' | 'qwen'
+  claude_code_api_key: string
+  claude_code_base_url: string
+  claude_code_model: string
+  qwen_code_api_key: string
+  qwen_code_base_url: string
+  qwen_code_model: string
+}
+
+export const getEngineConfig = (): Promise<EngineConfig> =>
+  invoke<EngineConfig>('get_engine_config')
+
+export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
+  invoke<void>('set_engine_config', { ...cfg })

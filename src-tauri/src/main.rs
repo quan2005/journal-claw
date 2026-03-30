@@ -27,6 +27,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
         .manage(ai_processor::AiQueue(ai_tx))
         .manage(ai_processor::CurrentTask(std::sync::Mutex::new(None)))

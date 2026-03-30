@@ -125,7 +125,7 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 
     WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App("settings.html".into()))
         .title("设置 - 谨迹")
-        .inner_size(400.0, 250.0)
+        .inner_size(600.0, 500.0)
         .resizable(true)
         .center()
         .build()

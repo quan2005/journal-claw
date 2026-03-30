@@ -113,6 +113,14 @@
 
   .footer { text-align: center; padding: 32px 0 52px; font-size: 0.72em; color: var(--dim); letter-spacing: 0.08em; }
 
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 18px; font-size: 0.84em; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; letter-spacing: 0.02em; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .scene-content { display: none; }
+  .scene-content.active { display: block; }
+
   .theme-btn {
     position: fixed; bottom: 22px; right: 22px; z-index: 200;
     width: 34px; height: 34px; border-radius: 50%;
@@ -212,78 +220,147 @@
   <div class="sp2"></div>
   <div class="kicker">场景三</div>
   <div class="h2">每一场会议<br>都值得被<span style="color:var(--accent)">谨迹</span></div>
+  <div class="body" style="margin-top:8px;">一个团队，两次会，一份完整交付物。</div>
 
-  <!-- 子故事一：个人效率 -->
-  <div class="body" style="margin-top:8px;">一个人，一天，多场会。</div>
-  <div style="margin-top:24px;">
-    <div class="scene">
-      <div class="scene-time">09:30</div>
-      <div class="scene-text">晨会，本周排期</div>
-    </div>
-    <div class="scene">
-      <div class="scene-time">11:00</div>
-      <div class="scene-text">需求评审，47 分钟</div>
-    </div>
-    <div class="scene">
-      <div class="scene-time">15:00</div>
-      <div class="scene-text">客户对齐，对方发来补充文档</div>
-    </div>
-    <div class="scene">
-      <div class="scene-time" style="color:var(--accent);">18:01</div>
-      <div class="scene-text" style="color:var(--accent);">三段录音、一份文档，全部拖进谨迹。下班。</div>
-    </div>
-  </div>
-  <div style="height:20px;"></div>
-  <div style="border-top:1px dashed var(--border);padding-top:20px;">
-    <div class="scene">
-      <div class="scene-time" style="color:var(--green);">次日</div>
-      <div class="scene-text"><strong style="color:var(--green);">三篇结构化纪要、一份待办清单——全部就绪。</strong></div>
-    </div>
+  <!-- Tab 栏 -->
+  <div class="tabs" style="margin-top:32px;">
+    <div class="tab active" onclick="switchTab('product', this)">产品团队</div>
+    <div class="tab" onclick="switchTab('student', this)">学生小组</div>
+    <div class="tab" onclick="switchTab('ops', this)">运营团队</div>
   </div>
 
-  <!-- 子故事二：团队协作 -->
-  <div class="sp"></div>
-  <div class="body">一个团队，两次会，一份完整交付物。</div>
+  <!-- 产品团队 -->
+  <div class="scene-content active" id="tab-product">
+    <div class="story">
+      <div class="story-label" style="color:var(--accent);">第一次会议</div>
+      <div class="story-step">
+        <div class="story-num human">1</div>
+        <div class="story-body">产品、研发、设计、运营 4 人开会。<strong>打开录音。</strong>讨论 Q2 功能排期——各方优先级不一致</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num human">2</div>
+        <div class="story-body">散会。各自把参考资料、竞品截图拖进谨迹。</div>
+      </div>
+    </div>
+    <div class="story" style="margin-top:2px;">
+      <div class="story-label" style="color:var(--green);">AI 工作中</div>
+      <div class="story-step">
+        <div class="story-num ai">3</div>
+        <div class="story-body"><strong class="g">会议纪要自动生成</strong>：每人立场、分歧点、最终倾向，全部结构化</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">4</div>
+        <div class="story-body"><strong class="g">AI 自动补充竞品数据</strong>：同类功能上线时间、用户评价、市场覆盖率</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">5</div>
+        <div class="story-body"><strong class="g">PRD 初稿自动生成</strong>，含优先级建议和竞品对比</div>
+      </div>
+    </div>
+    <div class="story" style="margin-top:2px;">
+      <div class="story-label" style="color:var(--accent);">第二次会议</div>
+      <div class="story-step">
+        <div class="story-num human">6</div>
+        <div class="story-body">对着 PRD 初稿逐条确认。<strong>再次打开录音</strong>，拍板每个决策。</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">7</div>
+        <div class="story-body"><strong class="g">AI 更新 PRD</strong>，输出研发可直接使用的需求文档</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num done">✓</div>
+        <div class="story-body"><strong>研发拿到文档，直接排期。</strong>没有二义性，没有返工。</div>
+      </div>
+    </div>
+  </div>
 
-  <div class="story" style="margin-top:28px;">
-    <div class="story-label" style="color:var(--accent);">第一次会议</div>
-    <div class="story-step">
-      <div class="story-num human">1</div>
-      <div class="story-body"><strong>打开谨迹录音</strong>，小组讨论方案框架、论点逻辑、资料分工</div>
+  <!-- 学生小组 -->
+  <div class="scene-content" id="tab-student">
+    <div class="story">
+      <div class="story-label" style="color:var(--accent);">第一次碰头</div>
+      <div class="story-step">
+        <div class="story-num human">1</div>
+        <div class="story-body">5 人小组第一次碰头，<strong>打开录音</strong>。讨论选题角度、各章节负责人、资料方向</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num human">2</div>
+        <div class="story-body">散会。把各自手上的参考资料拖进谨迹。</div>
+      </div>
     </div>
-    <div class="story-step">
-      <div class="story-num human">2</div>
-      <div class="story-body">散会。把所有私域资料拖进谨迹。</div>
+    <div class="story" style="margin-top:2px;">
+      <div class="story-label" style="color:var(--green);">AI 工作中</div>
+      <div class="story-step">
+        <div class="story-num ai">3</div>
+        <div class="story-body"><strong class="g">分工清单和报告框架自动生成</strong>，基于讨论内容</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">4</div>
+        <div class="story-body"><strong class="g">AI 自动收集公开资料</strong>：学术文献、行业数据、政策文件</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">5</div>
+        <div class="story-body"><strong class="g">报告初稿和答辩 PPT 自动生成</strong></div>
+      </div>
+    </div>
+    <div class="story" style="margin-top:2px;">
+      <div class="story-label" style="color:var(--accent);">第二次碰头</div>
+      <div class="story-step">
+        <div class="story-num human">6</div>
+        <div class="story-body">大家对着初稿逐段提意见。<strong>再次打开录音</strong>，把修改方向说清楚。</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">7</div>
+        <div class="story-body"><strong class="g">AI 按讨论意见逐处修改</strong>，输出终稿</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num done">✓</div>
+        <div class="story-body"><strong>没有人熬夜拼稿。</strong>答辩前一天，完整稿子已经就位。</div>
+      </div>
     </div>
   </div>
-  <div class="story" style="margin-top:2px;">
-    <div class="story-label" style="color:var(--green);">AI 工作中</div>
-    <div class="story-step">
-      <div class="story-num ai">3</div>
-      <div class="story-body"><strong class="g">会议纪要自动生成</strong>——讨论框架、分工、关键论点全部结构化</div>
+
+  <!-- 运营团队 -->
+  <div class="scene-content" id="tab-ops">
+    <div class="story">
+      <div class="story-label" style="color:var(--accent);">内部碰头</div>
+      <div class="story-step">
+        <div class="story-num human">1</div>
+        <div class="story-body">3 人团队，<strong>打开录音</strong>。讨论客户需求、活动形式、预算分配</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num human">2</div>
+        <div class="story-body">散会。把客户简报、往期活动数据拖进谨迹。</div>
+      </div>
     </div>
-    <div class="story-step">
-      <div class="story-num ai">4</div>
-      <div class="story-body"><strong class="g">公域资料自动收集</strong>——行业数据、案例、文献</div>
+    <div class="story" style="margin-top:2px;">
+      <div class="story-label" style="color:var(--green);">AI 工作中</div>
+      <div class="story-step">
+        <div class="story-num ai">3</div>
+        <div class="story-body"><strong class="g">需求清单和待确认事项自动生成</strong></div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">4</div>
+        <div class="story-body"><strong class="g">AI 自动调研同类活动案例</strong>：行业标杆数据、ROI 参考、风险点</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">5</div>
+        <div class="story-body"><strong class="g">活动方案初稿自动生成</strong>：流程、预算明细、预期效果</div>
+      </div>
     </div>
-    <div class="story-step">
-      <div class="story-num ai">5</div>
-      <div class="story-body"><strong class="g">按讨论框架编写文稿和 PPT</strong></div>
-    </div>
-  </div>
-  <div class="story" style="margin-top:2px;">
-    <div class="story-label" style="color:var(--accent);">第二次会议</div>
-    <div class="story-step">
-      <div class="story-num human">6</div>
-      <div class="story-body">大家过目初稿。<strong>再次打开录音</strong>，讨论优化意见。</div>
-    </div>
-    <div class="story-step">
-      <div class="story-num ai">7</div>
-      <div class="story-body"><strong class="g">AI 根据第二次讨论，自动优化文稿和 PPT 的每一处细节。</strong></div>
-    </div>
-    <div class="story-step">
-      <div class="story-num done">✓</div>
-      <div class="story-body"><strong>完成。</strong>没有人熬夜。没有人拼稿。</div>
+    <div class="story" style="margin-top:2px;">
+      <div class="story-label" style="color:var(--accent);">复盘优化</div>
+      <div class="story-step">
+        <div class="story-num human">6</div>
+        <div class="story-body">复盘会，<strong>再次录音</strong>。讨论客户可能的异议点，调整方案角度。</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num ai">7</div>
+        <div class="story-body"><strong class="g">AI 更新方案</strong>，加入异议应对，打磨提案逻辑</div>
+      </div>
+      <div class="story-step">
+        <div class="story-num done">✓</div>
+        <div class="story-body"><strong>提案当天，带着打磨过的方案去见客户。</strong></div>
+      </div>
     </div>
   </div>
 </div>
@@ -401,6 +478,12 @@ document.documentElement.dataset.theme=s;b.textContent=s==='light'?'🌙':'☀';
 b.onclick=()=>{const n=document.documentElement.dataset.theme==='light'?'dark':'light';
 document.documentElement.dataset.theme=n;localStorage.setItem('theme',n);
 b.textContent=n==='light'?'🌙':'☀';};
+function switchTab(id,tabEl){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.scene-content').forEach(c=>c.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
 </script>
 </body>
 </html>

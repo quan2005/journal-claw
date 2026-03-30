@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { getWorkspacePrompt, setWorkspacePrompt } from '../../lib/tauri'
 
 const sectionStyle: React.CSSProperties = {
-  padding: '0 12px 120px', borderBottom: '1px solid var(--divider)',
+  padding: '28px 28px 120px', borderBottom: '1px solid var(--divider)',
   display: 'flex', flexDirection: 'column', minHeight: 320,
 }
 

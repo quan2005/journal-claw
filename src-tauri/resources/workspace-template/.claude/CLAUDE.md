@@ -16,8 +16,8 @@ bash .claude/scripts/journal-create "会议标题"
 ## 输出规范
 
 - frontmatter 只保留 `tags` 和 `summary` 两个字段
-- `tags`：第一个必须是 `journal`，后跟内容类型，如 `[journal, meeting]`
-- `summary`：1-3句，先结论后背景
+- `tags`：第一个必须是 `journal`，后跟内容类型，如 `[journal, meeting]`；全部小写
+- `summary`：1-3句，关键概括
 - 不输出任何解释性文字，直接操作文件
 
 ## 格式模板

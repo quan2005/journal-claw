@@ -327,9 +327,16 @@ export function CommandDock({
                 onPaste={(e) => {
                   e.preventDefault()
                   const rawText = e.clipboardData.getData('text')
-                  // 短文本：直接插入，不走文件路由
+                  // 短文本：在光标位置插入（正确处理选区）
                   if (rawText && rawText.length <= 300) {
-                    setInputText(prev => prev + rawText)
+                    const el = e.currentTarget
+                    const start = el.selectionStart ?? inputText.length
+                    const end = el.selectionEnd ?? inputText.length
+                    setInputText(prev => prev.slice(0, start) + rawText + prev.slice(end))
+                    // 恢复光标到插入点末尾
+                    requestAnimationFrame(() => {
+                      el.selectionStart = el.selectionEnd = start + rawText.length
+                    })
                     return
                   }
                   // 无文本或长文本：尝试读文件，否则按文本处理

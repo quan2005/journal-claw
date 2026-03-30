@@ -1,4 +1,4 @@
-const sectionStyle: React.CSSProperties = { padding: '48px 28px', borderBottom: '1px solid var(--divider)' }
+const sectionStyle: React.CSSProperties = { padding: '120px 12px', borderBottom: '1px solid var(--divider)' }
 
 const PLUGINS = [
   {

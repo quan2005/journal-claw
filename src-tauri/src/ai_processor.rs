@@ -176,8 +176,8 @@ pub async fn process_material(
         .to_string();
     let relative_ref = format!("{}/raw/{}", year_month, filename);
     let prompt = format!(
-        "@{} 新增素材 @{}，请阅读内容并整理为日志条目。按 CLAUDE.md 中的规范输出，直接创建或更新 .md 文件。",
-        relative_ref, filename
+        "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
+        relative_ref, year_month
     );
     let args = vec![
         "-p".to_string(),
@@ -481,11 +481,13 @@ mod tests {
         let filename = "note.txt";
         let year_month = "2603";
         let prompt = format!(
-            "@{}/raw/{} 新增素材 @{}，请阅读内容并整理为日志条目。按 CLAUDE.md 中的规范输出，直接创建或更新 .md 文件。",
-            year_month, filename, filename
+            "深入梳理 @{}/raw/{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
+            year_month, filename, year_month
         );
         assert!(prompt.contains("@2603/raw/note.txt"));
-        assert!(prompt.contains("新增素材"));
+        assert!(prompt.contains("深入梳理"));
+        assert!(prompt.contains("DD-标题.md"));
+        assert!(prompt.contains("2603/"));
     }
 
     #[test]

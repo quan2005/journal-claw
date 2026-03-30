@@ -86,18 +86,6 @@
   .story-body strong { color: var(--text); font-weight: 600; }
   .story-body .g { color: var(--green); }
 
-  /* ── Flip ── */
-  .flip {
-    text-align: center; padding: 64px 0;
-    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  }
-  .flip-word {
-    font-family: "Noto Serif SC", serif;
-    font-size: clamp(1.5em, 3.5vw, 2.2em);
-    font-weight: 900; line-height: 1.35;
-  }
-  .flip-sub { font-size: 0.88em; color: var(--muted); margin-top: 12px; line-height: 1.8; }
-
   /* ── Before/After ── */
   .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 36px 0; }
   .ba-side { background: var(--surface); padding: 24px 20px; }
@@ -112,20 +100,6 @@
     .ba-side:first-child { border-radius: 8px 8px 0 0!important; }
     .ba-side:last-child  { border-radius: 0 0 8px 8px!important; }
   }
-
-  /* ── Permission ── */
-  .perm {
-    display: grid; grid-template-columns: 1fr auto auto; font-size: 0.82em;
-    border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 32px 0;
-  }
-  .perm .ph { padding: 7px 14px; color: var(--muted); font-weight: 600; font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--surface); }
-  .perm .pr { padding: 6px 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
-  .perm .pr:nth-child(3n+1) { color: var(--text); }
-  .perm .hi { background: var(--accent-soft); color: var(--text); font-weight: 600; }
-  .perm .yes { color: var(--green); font-weight: 700; text-align: center; }
-  .perm .no  { color: var(--dim); text-align: center; }
-  .perm .ban { color: var(--red); font-weight: 700; text-align: center; }
-  .perm .own { color: var(--green); font-weight: 700; text-align: center; }
 
   /* ── Quote ── */
   .bq { border-left: 2px solid var(--accent); padding: 16px 22px; margin: 36px 0; font-size: 0.95em; line-height: 1.95; color: var(--text); }

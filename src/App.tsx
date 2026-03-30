@@ -92,6 +92,15 @@ export default function App() {
     return () => { unlisten?.() }
   }, [])
 
+  // Esc closes settings
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setView('journal')
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   // Zoom: Cmd+Plus / Cmd+Minus / Cmd+0
   useEffect(() => {
     let zoom = 1
@@ -176,8 +185,7 @@ export default function App() {
         isProcessing={isProcessing}
         processingFilename={processingFilename}
         view={view}
-        onOpenSettings={() => setView('settings')}
-        onCloseSettings={() => setView('journal')}
+        onToggleSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
       />
 
       {view === 'settings' ? (

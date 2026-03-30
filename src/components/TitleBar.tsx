@@ -8,11 +8,10 @@ interface TitleBarProps {
   isProcessing: boolean
   processingFilename?: string
   view: 'journal' | 'settings'
-  onOpenSettings: () => void
-  onCloseSettings: () => void
+  onToggleSettings: () => void
 }
 
-export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, view, onOpenSettings, onCloseSettings }: TitleBarProps) {
+export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, view, onToggleSettings }: TitleBarProps) {
   return (
     <div
       data-tauri-drag-region
@@ -28,21 +27,8 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
         borderBottom: '0.5px solid var(--divider)',
       }}
     >
-      {/* Left: back button when in settings */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {view === 'settings' && (
-          <button
-            onClick={onCloseSettings}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--item-meta)', fontSize: 12, padding: '2px 6px',
-              borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            ‹ 返回
-          </button>
-        )}
-      </div>
+      {/* Left: empty */}
+      <div />
 
       {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -52,22 +38,21 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
         }
       </div>
 
-      {/* Right: settings icon or theme toggle */}
+      {/* Right: theme toggle + settings toggle button (always visible) */}
       <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8 }}>
-        {view === 'journal' && (
-          <>
-            <ThemeToggle theme={theme} onChange={onThemeChange} />
-            <button
-              onClick={onOpenSettings}
-              title="设置 (⌘,)"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--item-meta)', fontSize: 15, padding: '2px 4px',
-                borderRadius: 4, lineHeight: 1, opacity: 0.7,
-              }}
-            >⚙</button>
-          </>
-        )}
+        {view === 'journal' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
+        <button
+          onClick={onToggleSettings}
+          title={view === 'settings' ? '返回 (Esc)' : '设置 (⌘,)'}
+          style={{
+            background: view === 'settings' ? 'rgba(200,147,58,0.12)' : 'none',
+            border: 'none', cursor: 'pointer',
+            color: view === 'settings' ? 'var(--record-btn)' : 'var(--item-meta)',
+            fontSize: 15, padding: '2px 4px',
+            borderRadius: 4, lineHeight: 1,
+            opacity: view === 'settings' ? 1 : 0.7,
+          }}
+        >⚙</button>
       </div>
     </div>
   )

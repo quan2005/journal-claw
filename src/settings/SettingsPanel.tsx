@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Settings2, Cpu, Mic, BookOpen, Puzzle, Info } from 'lucide-react'
 import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
@@ -8,12 +9,14 @@ import SectionAbout from './components/SectionAbout'
 
 type NavId = 'general' | 'ai' | 'voice' | 'guide' | 'plugins' | 'about'
 
-const NAV_ITEMS: { id: NavId; label: string; icon: string }[] = [
-  { id: 'general',  label: '通用',    icon: '⚙' },
-  { id: 'ai',       label: 'AI 引擎', icon: '◈' },
-  { id: 'voice',    label: '语音转写', icon: '◎' },
-  { id: 'guide',    label: '工作引导', icon: '✦' },
-  { id: 'plugins',  label: '技能插件', icon: '⬡' },
+type NavItem = { id: NavId; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'general',  label: '通用',    icon: Settings2 },
+  { id: 'ai',       label: 'AI 引擎', icon: Cpu },
+  { id: 'voice',    label: '语音转写', icon: Mic },
+  { id: 'guide',    label: '工作引导', icon: BookOpen },
+  { id: 'plugins',  label: '技能插件', icon: Puzzle },
 ]
 
 export function SettingsPanel() {
@@ -64,15 +67,19 @@ export function SettingsPanel() {
         padding: '12px 8px',
         display: 'flex', flexDirection: 'column', gap: 2,
       }}>
-        {NAV_ITEMS.map(({ id, label, icon }) => (
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => jumpTo(id)} style={navBtnStyle(id)}>
-            <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{icon}</span>
+            <span style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon size={14} strokeWidth={1.5} />
+            </span>
             {label}
           </button>
         ))}
         <div style={{ flex: 1 }} />
         <button onClick={() => jumpTo('about')} style={navBtnStyle('about')}>
-          <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>◌</span>
+          <span style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Info size={14} strokeWidth={1.5} />
+          </span>
           关于
         </button>
       </nav>

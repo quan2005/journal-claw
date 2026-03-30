@@ -5,6 +5,7 @@ import {
   getEngineConfig, setEngineConfig,
   type EngineConfig,
 } from '../../lib/tauri'
+import { Terminal, Sparkles, Check, type LucideIcon } from 'lucide-react'
 import SkeletonRow from './SkeletonRow'
 
 type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
@@ -19,9 +20,9 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
-const ENGINES: { id: EngineId; label: string; vendor: string; icon: string }[] = [
-  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic', icon: '◈' },
-  { id: 'qwen',   label: 'Qwen Code',   vendor: '阿里云',     icon: '◇' },
+const ENGINES: { id: EngineId; label: string; vendor: string; icon: LucideIcon }[] = [
+  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic', icon: Terminal },
+  { id: 'qwen',   label: 'Qwen Code',   vendor: '阿里云',     icon: Sparkles },
 ]
 
 export default function SectionAiEngine() {
@@ -111,7 +112,7 @@ export default function SectionAiEngine() {
         <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
           {/* Engine cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-            {ENGINES.map(({ id, label, vendor, icon }) => {
+            {ENGINES.map(({ id, label, vendor, icon: Icon }) => {
               const s = status[id]
               const isActive = active === id
               const isComingSoon = id === 'qwen'
@@ -151,10 +152,11 @@ export default function SectionAiEngine() {
                       position: 'absolute', top: 8, right: 8,
                       width: 16, height: 16, background: '#27c93f', borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, color: '#fff', fontWeight: 700,
-                    }}>✓</div>
+                    }}><Check size={9} strokeWidth={2.5} color="#fff" /></div>
                   )}
-                  <div style={{ fontSize: 22, marginBottom: 6, opacity: (!isComingSoon && (s === 'not_installed' || s === 'installing')) ? 0.5 : 1 }}>{icon}</div>
+                  <div style={{ marginBottom: 6, opacity: (!isComingSoon && (s === 'not_installed' || s === 'installing')) ? 0.5 : 1, display: 'flex', justifyContent: 'center' }}>
+                    <Icon size={22} strokeWidth={1.5} />
+                  </div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
                   <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
                   {!isComingSoon && s === 'not_installed' && (
@@ -216,7 +218,7 @@ export default function SectionAiEngine() {
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
-                    <input style={inputStyle} placeholder="claude-sonnet-4-5"
+                    <input style={inputStyle} placeholder="claude-sonnet-4-6"
                       value={cfg.claude_code_model}
                       onChange={e => setCfg(prev => ({ ...prev, claude_code_model: e.target.value }))} />
                     <div style={hintStyle}>留空使用 CLI 默认模型</div>

@@ -4,6 +4,14 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct WindowState {
+    pub width: f64,
+    pub height: f64,
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     #[serde(default)]
     pub dashscope_api_key: String,
@@ -11,6 +19,8 @@ pub struct Config {
     pub workspace_path: String,
     #[serde(default = "default_claude_cli")]
     pub claude_cli_path: String,
+    #[serde(default)]
+    pub window_state: Option<WindowState>,
 }
 
 fn default_claude_cli() -> String {

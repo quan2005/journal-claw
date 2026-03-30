@@ -219,6 +219,7 @@ html, body, #root {
 #root {
   display: flex;
   flex-direction: column;
+  animation: app-enter 0.18s ease-out;
 }
 
 [data-tauri-drag-region] {

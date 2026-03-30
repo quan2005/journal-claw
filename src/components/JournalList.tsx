@@ -12,11 +12,18 @@ interface JournalListProps {
   onSelect: (entry: JournalEntry) => void
 }
 
-function SkeletonItem({ width }: { width: number }) {
+function SkeletonItem({ width, delay }: { width: number; delay: number }) {
+  const shimmer: React.CSSProperties = {
+    background: 'linear-gradient(90deg, var(--skeleton-base, rgba(128,128,128,0.10)) 25%, var(--skeleton-shine, rgba(128,128,128,0.20)) 50%, var(--skeleton-base, rgba(128,128,128,0.10)) 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.6s ease-in-out infinite',
+    animationDelay: `${delay}ms`,
+    borderRadius: 3,
+  }
   return (
     <div style={{ padding: '7px 14px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div style={{ height: 13, width: `${width}%`, borderRadius: 3, background: 'var(--skeleton-bg, rgba(128,128,128,0.12))' }} />
-      <div style={{ height: 11, width: `${Math.round(width * 0.65)}%`, borderRadius: 3, background: 'var(--skeleton-bg, rgba(128,128,128,0.08))' }} />
+      <div style={{ height: 13, width: `${width}%`, ...shimmer }} />
+      <div style={{ height: 11, width: `${Math.round(width * 0.65)}%`, ...shimmer, opacity: 0.7 }} />
     </div>
   )
 }
@@ -25,7 +32,7 @@ function ListSkeleton() {
   return (
     <div style={{ paddingBottom: 12 }}>
       {[80, 60, 75, 55, 70].map((w, i) => (
-        <SkeletonItem key={i} width={w} />
+        <SkeletonItem key={i} width={w} delay={i * 80} />
       ))}
     </div>
   )
@@ -77,7 +84,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)', animation: 'content-enter 0.2s ease-out' }}>
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
         {months.map(ym => {
           const days = Object.keys(grouped[ym]).map(Number).sort((a, b) => b - a)

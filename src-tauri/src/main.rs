@@ -87,6 +87,45 @@ fn main() {
                 }
             });
 
+            // ── Restore window size/position ──
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(cfg) = config::load_config(app.handle()) {
+                    if let Some(ws) = cfg.window_state {
+                        let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+                            width: ws.width as u32,
+                            height: ws.height as u32,
+                        }));
+                        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                            x: ws.x as i32,
+                            y: ws.y as i32,
+                        }));
+                    }
+                }
+            }
+
+            // ── Save window state on close ──
+            let save_handle = app.handle().clone();
+            if let Some(window) = app.get_webview_window("main") {
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                        let h = save_handle.clone();
+                        if let Some(w) = h.get_webview_window("main") {
+                            if let (Ok(size), Ok(pos)) = (w.outer_size(), w.outer_position()) {
+                                if let Ok(mut cfg) = config::load_config(&h) {
+                                    cfg.window_state = Some(config::WindowState {
+                                        width: size.width as f64,
+                                        height: size.height as f64,
+                                        x: pos.x as f64,
+                                        y: pos.y as f64,
+                                    });
+                                    let _ = config::save_config(&h, &cfg);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

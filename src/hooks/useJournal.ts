@@ -70,9 +70,19 @@ export function useJournal() {
           }]
         })
       } else if (status === 'processing') {
-        setQueueItems(prev =>
-          prev.map(i => i.path === material_path ? { ...i, status: 'processing' } : i)
-        )
+        setQueueItems(prev => {
+          // If placeholder is still in queue (recording-processed hasn't fired yet),
+          // upgrade it directly to processing with the real path.
+          const hasPlaceholder = prev.some(i => i.path === RECORDING_PLACEHOLDER)
+          if (hasPlaceholder) {
+            return prev.map(i =>
+              i.path === RECORDING_PLACEHOLDER
+                ? { ...i, path: material_path, filename: material_path.split('/').pop() ?? material_path, status: 'processing' as const }
+                : i
+            )
+          }
+          return prev.map(i => i.path === material_path ? { ...i, status: 'processing' } : i)
+        })
       } else if (status === 'completed') {
         setQueueItems(prev =>
           prev.map(i => i.path === material_path ? { ...i, status: 'completed' } : i)

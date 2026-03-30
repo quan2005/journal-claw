@@ -66,7 +66,7 @@ pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String>
     let ym = ws::current_year_month();
     ws::ensure_dirs(&cfg.workspace_path, &ym)?;
     let raw = ws::raw_dir(&cfg.workspace_path, &ym);
-    let ts = chrono::Local::now().format("%H%M%S").to_string();
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let filename = format!("paste-{}.txt", ts);
     let dest = raw.join(&filename);
     std::fs::write(&dest, text.as_bytes())

@@ -253,13 +253,13 @@ export function CommandDock({
                 padding: '12px 12px 12px 14px',
                 display: 'flex',
                 flexDirection: 'row',
-                gap: 10,
+                gap: 6,
                 flexWrap: 'wrap',
                 alignContent: 'flex-start',
                 alignItems: 'flex-start',
                 flexShrink: 0,
               }}>
-                {pendingFiles.map((path, i) => {
+                {pendingFiles.slice(0, 6).map((path, i) => {
                   const filename = path.split('/').pop() ?? path
                   return (
                     <FileCard

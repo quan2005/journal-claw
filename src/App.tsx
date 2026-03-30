@@ -151,7 +151,9 @@ export default function App() {
     setPendingFiles(prev => {
       const existing = new Set(prev)
       const newPaths = paths.filter(p => !existing.has(p))
-      return newPaths.length > 0 ? [...prev, ...newPaths] : prev
+      if (newPaths.length === 0) return prev
+      const merged = [...prev, ...newPaths]
+      return merged.slice(0, 6)
     })
   }
 

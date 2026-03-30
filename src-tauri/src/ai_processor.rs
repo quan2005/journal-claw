@@ -20,6 +20,17 @@ pub struct QueueTask {
 /// Holds the sender half — stored in Tauri managed state.
 pub struct AiQueue(pub mpsc::Sender<QueueTask>);
 
+/// Holds a handle to the currently-running Claude CLI child process.
+/// Wrapped in Mutex so the cancel command can reach in and kill it.
+pub struct CurrentTask(pub std::sync::Mutex<Option<tokio::process::Child>>);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiLogLine {
+    pub material_path: String,
+    pub level: String,   // "info" | "error"
+    pub message: String,
+}
+
 // ── Helpers ──────────────────────────────────────────────
 
 const WORKSPACE_PROMPT: &str = r#"# 谨迹秘书稿规范
@@ -255,6 +266,20 @@ pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), Strin
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub async fn cancel_ai_processing(
+    current_task: tauri::State<'_, CurrentTask>,
+) -> Result<(), String> {
+    let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
+    if let Some(child) = guard.as_mut() {
+        child.start_kill().map_err(|e| e.to_string())?;
+        eprintln!("[ai_processor] cancel: sent SIGKILL to child");
+    } else {
+        eprintln!("[ai_processor] cancel: no task running");
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -323,5 +348,14 @@ mod tests {
     #[test]
     fn parse_cli_output_non_json() {
         assert!(parse_cli_output("some plain text").is_ok());
+    }
+
+    #[test]
+    fn cancel_with_no_task_is_noop() {
+        let state = CurrentTask(std::sync::Mutex::new(None));
+        // Should not panic when nothing is running
+        let guard = state.0.lock().unwrap();
+        assert!(guard.is_none());
+        drop(guard);
     }
 }

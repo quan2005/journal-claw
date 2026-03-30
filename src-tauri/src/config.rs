@@ -146,6 +146,7 @@ mod tests {
             dashscope_api_key: "key".into(),
             workspace_path: "/Users/test/notebook".into(),
             claude_cli_path: "claude".into(),
+            window_state: None,
         };
         let json = serde_json::to_string(&c).unwrap();
         let c2: Config = serde_json::from_str(&json).unwrap();

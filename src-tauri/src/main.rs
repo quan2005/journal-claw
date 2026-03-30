@@ -29,6 +29,7 @@ fn main() {
         .plugin(tauri_plugin_clipboard::init())
         .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
         .manage(ai_processor::AiQueue(ai_tx))
+        .manage(ai_processor::CurrentTask(std::sync::Mutex::new(None)))
         .setup(|app| {
             ai_processor::start_queue_consumer(app.handle().clone(), ai_rx);
             eprintln!("[journal] AI queue consumer started");
@@ -154,6 +155,7 @@ fn main() {
             ai_processor::trigger_ai_processing,
             ai_processor::get_workspace_prompt,
             ai_processor::set_workspace_prompt,
+            ai_processor::cancel_ai_processing,
             open_with_system,
             workspace_settings::get_workspace_theme,
             workspace_settings::set_workspace_theme,

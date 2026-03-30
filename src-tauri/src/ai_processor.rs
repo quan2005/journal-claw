@@ -34,39 +34,56 @@ pub struct AiLogLine {
 
 // ── Helpers ──────────────────────────────────────────────
 
-const WORKSPACE_PROMPT: &str = r##"# 谨迹
+// ── Embedded workspace template ──────────────────────────
+// Source files live in src-tauri/resources/workspace-template/.claude/
+// Edit those files to update the template; include_str! embeds at compile time.
 
-你叫谨迹，是一名智能日志助理。你负责把用户的原始素材整理成 journal 条目。素材可能是录音转写、PDF、文档或粘贴的文字。
+const WORKSPACE_CLAUDE_MD: &str =
+    include_str!("../resources/workspace-template/.claude/CLAUDE.md");
 
-整理时，直接在 `yyMM/` 目录下创建或更新 `DD-标题.md` 文件。frontmatter 只写 `tags` 和 `summary`，summary 先结论后背景。同一天同主题的内容合并到已有条目里，不要另起新文件。
+const SCRIPT_JOURNAL_NOTE: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/journal-note");
+const SCRIPT_JOURNAL_AUDIT: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/journal-audit");
+const SCRIPT_JOURNAL_NORMALIZE: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/journal-normalize-frontmatter");
+const SCRIPT_JOURNALIZE_CATEGORIES: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/journalize-categories");
+const SCRIPT_RECENT_SUMMARIES: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/recent-summaries");
 
-## 输出规范
+/// 确保 workspace/.claude/ 已初始化。仅在文件不存在时创建，不覆盖用户修改。
+fn ensure_workspace_dot_claude(workspace_path: &str) {
+    let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
+    let scripts_dir = dot_claude.join("scripts");
+    let _ = std::fs::create_dir_all(&scripts_dir);
 
-- 文件名：`DD-标题.md`，放在对应的 `yyMM/` 目录下
-- frontmatter 只保留 `tags` 和 `summary` 两个字段
-- `summary`：1-3句，先结论后背景
-- 同一天同主题的素材追加到已有条目，不要重复新建
-- 不输出任何解释性文字，直接写文件
+    // Write CLAUDE.md
+    let claude_md = dot_claude.join("CLAUDE.md");
+    if !claude_md.exists() {
+        let _ = std::fs::write(&claude_md, WORKSPACE_CLAUDE_MD);
+    }
 
-## 格式模板
-
-```markdown
----
-tags: [meeting, ai]
-summary: "结论。背景与约束。"
----
-
-# 标题
-
-正文内容
-```
-"##;
-
-/// 确保 workspace 根目录有 CLAUDE.md。仅在文件不存在时创建，不覆盖用户修改。
-fn ensure_workspace_prompt(workspace_path: &str) {
-    let path = std::path::PathBuf::from(workspace_path).join("CLAUDE.md");
-    if !path.exists() {
-        let _ = std::fs::write(&path, WORKSPACE_PROMPT);
+    // Write scripts, set executable bit
+    let scripts: &[(&str, &str)] = &[
+        ("journal-note",                    SCRIPT_JOURNAL_NOTE),
+        ("journal-audit",                   SCRIPT_JOURNAL_AUDIT),
+        ("journal-normalize-frontmatter",   SCRIPT_JOURNAL_NORMALIZE),
+        ("journalize-categories",           SCRIPT_JOURNALIZE_CATEGORIES),
+        ("recent-summaries",               SCRIPT_RECENT_SUMMARIES),
+    ];
+    for (name, content) in scripts {
+        let path = scripts_dir.join(name);
+        if !path.exists() {
+            if std::fs::write(&path, content).is_ok() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = std::fs::set_permissions(&path,
+                        std::fs::Permissions::from_mode(0o755));
+                }
+            }
+        }
     }
 }
 
@@ -239,7 +256,7 @@ pub async fn process_material(
     eprintln!("[ai_processor] start — material={} ym={}", material_path, year_month);
     eprintln!("[ai_processor] cli={} workspace={}", cli, cfg.workspace_path);
 
-    ensure_workspace_prompt(&cfg.workspace_path);
+    ensure_workspace_dot_claude(&cfg.workspace_path);
 
     let _ = app.emit("ai-processing", ProcessingUpdate {
         material_path: material_path.to_string(),
@@ -433,7 +450,7 @@ pub fn get_workspace_prompt(app: AppHandle) -> Result<String, String> {
     if path.exists() {
         std::fs::read_to_string(&path).map_err(|e| e.to_string())
     } else {
-        Ok(WORKSPACE_PROMPT.to_string())
+        Ok(WORKSPACE_CLAUDE_MD.to_string())
     }
 }
 
@@ -588,27 +605,10 @@ mod tests {
     }
 
     #[test]
-    fn ensure_workspace_prompt_creates_file() {
-        let tmp = std::env::temp_dir().join("journal_prompt_test");
-        std::fs::create_dir_all(&tmp).unwrap();
-        let prompt_path = tmp.join("CLAUDE.md");
-        let _ = std::fs::remove_file(&prompt_path);
-
-        ensure_workspace_prompt(tmp.to_str().unwrap());
-        assert!(prompt_path.exists());
-
-        let content = std::fs::read_to_string(&prompt_path).unwrap();
-        assert!(content.contains("tags"));
-        assert!(content.contains("summary"));
-        assert!(content.contains("DD-标题.md"));
-
-        // Second call should NOT overwrite
-        std::fs::write(&prompt_path, "用户自定义内容").unwrap();
-        ensure_workspace_prompt(tmp.to_str().unwrap());
-        let content2 = std::fs::read_to_string(&prompt_path).unwrap();
-        assert_eq!(content2, "用户自定义内容");
-
-        std::fs::remove_dir_all(&tmp).ok();
+    fn get_workspace_prompt_returns_default_when_no_file() {
+        assert!(!WORKSPACE_CLAUDE_MD.is_empty());
+        assert!(WORKSPACE_CLAUDE_MD.contains("tags"));
+        assert!(WORKSPACE_CLAUDE_MD.contains("summary"));
     }
 
     #[test]
@@ -657,5 +657,42 @@ mod tests {
         let guard = state.0.lock().unwrap();
         assert!(guard.is_none());
         drop(guard);
+    }
+
+    #[test]
+    fn ensure_workspace_dot_claude_creates_structure() {
+        let tmp = std::env::temp_dir().join("journal_dot_claude_test");
+        std::fs::create_dir_all(&tmp).unwrap();
+        // Clean slate
+        let dot_claude = tmp.join(".claude");
+        let _ = std::fs::remove_dir_all(&dot_claude);
+
+        ensure_workspace_dot_claude(tmp.to_str().unwrap());
+
+        // CLAUDE.md exists and has expected content
+        let claude_md = dot_claude.join("CLAUDE.md");
+        assert!(claude_md.exists(), ".claude/CLAUDE.md should exist");
+        let content = std::fs::read_to_string(&claude_md).unwrap();
+        assert!(content.contains("tags"), "CLAUDE.md should mention tags");
+        assert!(content.contains("summary"), "CLAUDE.md should mention summary");
+        assert!(content.contains("DD-标题.md"), "CLAUDE.md should mention filename format");
+
+        // Scripts exist and are executable
+        use std::os::unix::fs::PermissionsExt;
+        for script in &["journal-note", "journal-audit", "journal-normalize-frontmatter",
+                        "journalize-categories", "recent-summaries"] {
+            let p = dot_claude.join("scripts").join(script);
+            assert!(p.exists(), "script {} should exist", script);
+            let mode = std::fs::metadata(&p).unwrap().permissions().mode();
+            assert!(mode & 0o111 != 0, "script {} should be executable", script);
+        }
+
+        // Second call should NOT overwrite existing files
+        std::fs::write(&claude_md, "用户自定义内容").unwrap();
+        ensure_workspace_dot_claude(tmp.to_str().unwrap());
+        let content2 = std::fs::read_to_string(&claude_md).unwrap();
+        assert_eq!(content2, "用户自定义内容", "second call must not overwrite");
+
+        std::fs::remove_dir_all(&tmp).ok();
     }
 }

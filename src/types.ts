@@ -59,7 +59,7 @@ export interface AiLogLine {
 }
 
 // ── Processing queue ────────────────────────────────────
-export type QueueItemStatus = 'queued' | 'processing' | 'completed' | 'failed'
+export type QueueItemStatus = 'recording' | 'converting' | 'queued' | 'processing' | 'completed' | 'failed'
 
 export interface QueueItem {
   path: string
@@ -68,4 +68,6 @@ export interface QueueItem {
   error?: string
   addedAt: number
   logs: string[]
+  elapsedSecs?: number   // only for 'recording' status
+  audioLevel?: number    // only for 'recording' status, 0.0–1.0 RMS
 }

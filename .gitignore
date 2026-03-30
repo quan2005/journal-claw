@@ -25,3 +25,4 @@ src-tauri/target/
 *.sln
 *.sw?
 src-tauri/resources/workspace-template/.claude/scripts/__pycache__/
+src-tauri/binaries/whisperkit-cli-aarch64-apple-darwin

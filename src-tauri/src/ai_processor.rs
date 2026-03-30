@@ -56,7 +56,10 @@ const SCRIPT_RECENT_SUMMARIES: &str =
 fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
     let scripts_dir = dot_claude.join("scripts");
-    let _ = std::fs::create_dir_all(&scripts_dir);
+    if let Err(e) = std::fs::create_dir_all(&scripts_dir) {
+        eprintln!("[ai_processor] warn: failed to create .claude/scripts dir: {}", e);
+        return;
+    }
 
     // Write CLAUDE.md
     let claude_md = dot_claude.join("CLAUDE.md");
@@ -659,6 +662,7 @@ mod tests {
         drop(guard);
     }
 
+    #[cfg(unix)]
     #[test]
     fn ensure_workspace_dot_claude_creates_structure() {
         let tmp = std::env::temp_dir().join("journal_dot_claude_test");

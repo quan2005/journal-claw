@@ -41,14 +41,8 @@ pub struct AiLogLine {
 const WORKSPACE_CLAUDE_MD: &str =
     include_str!("../resources/workspace-template/.claude/CLAUDE.md");
 
-const SCRIPT_JOURNAL_NOTE: &str =
-    include_str!("../resources/workspace-template/.claude/scripts/journal-note");
-const SCRIPT_JOURNAL_AUDIT: &str =
-    include_str!("../resources/workspace-template/.claude/scripts/journal-audit");
-const SCRIPT_JOURNAL_NORMALIZE: &str =
-    include_str!("../resources/workspace-template/.claude/scripts/journal-normalize-frontmatter");
-const SCRIPT_JOURNALIZE_CATEGORIES: &str =
-    include_str!("../resources/workspace-template/.claude/scripts/journalize-categories");
+const SCRIPT_JOURNAL_CREATE: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/journal-create");
 const SCRIPT_RECENT_SUMMARIES: &str =
     include_str!("../resources/workspace-template/.claude/scripts/recent-summaries");
 
@@ -69,11 +63,8 @@ fn ensure_workspace_dot_claude(workspace_path: &str) {
 
     // Write scripts, set executable bit
     let scripts: &[(&str, &str)] = &[
-        ("journal-note",                    SCRIPT_JOURNAL_NOTE),
-        ("journal-audit",                   SCRIPT_JOURNAL_AUDIT),
-        ("journal-normalize-frontmatter",   SCRIPT_JOURNAL_NORMALIZE),
-        ("journalize-categories",           SCRIPT_JOURNALIZE_CATEGORIES),
-        ("recent-summaries",               SCRIPT_RECENT_SUMMARIES),
+        ("journal-create",  SCRIPT_JOURNAL_CREATE),
+        ("recent-summaries", SCRIPT_RECENT_SUMMARIES),
     ];
     for (name, content) in scripts {
         let path = scripts_dir.join(name);
@@ -687,8 +678,7 @@ mod tests {
 
         // Scripts exist and are executable
         use std::os::unix::fs::PermissionsExt;
-        for script in &["journal-note", "journal-audit", "journal-normalize-frontmatter",
-                        "journalize-categories", "recent-summaries"] {
+        for script in &["journal-create", "recent-summaries"] {
             let p = dot_claude.join("scripts").join(script);
             assert!(p.exists(), "script {} should exist", script);
             let mode = std::fs::metadata(&p).unwrap().permissions().mode();

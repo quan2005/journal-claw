@@ -4,6 +4,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::Command;
 
 const UPLOAD_URL: &str = "https://dashscope.aliyuncs.com/api/v1/uploads";
 const TRANSCRIBE_URL: &str =
@@ -460,50 +462,115 @@ pub async fn transcribe_with_whisperkit(
         "filename": filename, "status": "transcribing"
     }));
 
-    let output = tokio::process::Command::new(&cli_path)
-        .args([
-            "transcribe",
-            "--audio-path", file_path.to_str().unwrap_or(""),
-            "--diarization",
-            "--output-type", "verbose_json",
-            "--language", "zh",
-            "--model-cache-dir", model_cache_dir.to_str().unwrap_or(""),
-            "--model", &model,
-        ])
-        .output()
-        .await
-        .map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
+    // 模型目录：如果 model_cache_dir 下有匹配的子目录，直接用 --model-path 指向它；
+    // 否则用 --download-model-path + --download-tokenizer-path 让 whisperkit-cli 下载
+    let model_dir = {
+        let mut found: Option<PathBuf> = None;
+        if let Ok(entries) = std::fs::read_dir(&model_cache_dir) {
+            let model_key = model.to_lowercase().replace("_", "-");
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_lowercase();
+                if name.contains(&model_key) {
+                    found = Some(entry.path());
+                    break;
+                }
+            }
+        }
+        found
+    };
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        save_transcript(&app, &file_path, "failed", &format!("whisperkit 失败: {}", stderr));
-        return Err(format!("whisperkit-cli 退出码非零: {}", stderr));
+    let mut cmd = Command::new(&cli_path);
+    cmd.args([
+        "transcribe",
+        "--audio-path", file_path.to_str().unwrap_or(""),
+        "--diarization",
+        "--verbose",
+        "--language", "zh",
+    ]);
+    if let Some(ref dir) = model_dir {
+        cmd.args(["--model-path", dir.to_str().unwrap_or("")]);
+    } else {
+        cmd.args([
+            "--download-model-path", model_cache_dir.to_str().unwrap_or(""),
+            "--download-tokenizer-path", model_cache_dir.to_str().unwrap_or(""),
+            "--model", &model,
+        ]);
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    use std::process::Stdio;
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = cmd.spawn().map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
 
-    // 解析 verbose_json 输出
-    let parsed: serde_json::Value = serde_json::from_str(&stdout)
-        .map_err(|e| format!("解析 whisperkit 输出失败: {}", e))?;
+    // 流式读取 stderr（whisperkit-cli 的进度/日志输出在 stderr）
+    let stderr_handle = if let Some(stderr) = child.stderr.take() {
+        let app_clone = app.clone();
+        let fname = filename.clone();
+        Some(tokio::spawn(async move {
+            let mut reader = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                // whisperkit-cli 下载进度行格式举例：
+                //   "Downloading model: 45.2 MB / 147.0 MB"
+                //   "Initializing models..."
+                //   "Starting transcription process..."
+                let msg = if line.contains("Downloading") || line.contains("MB") {
+                    line.clone()
+                } else if line.contains("Initializing") {
+                    "正在初始化模型…".to_string()
+                } else if line.contains("Starting transcription") {
+                    "正在转录…".to_string()
+                } else {
+                    continue;
+                };
+                let _ = app_clone.emit("transcription-progress", serde_json::json!({
+                    "filename": fname, "status": "transcribing", "message": msg
+                }));
+            }
+        }))
+    } else {
+        None
+    };
 
-    let segments: Vec<WhisperSegment> = parsed
-        .get("segments")
-        .and_then(|s| s.as_array())
-        .map(|arr| arr.iter().filter_map(|item| {
-            Some(WhisperSegment {
-                speaker: item.get("speaker").and_then(|v| v.as_str()).map(String::from),
-                start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                text: item.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            })
-        }).collect())
-        .unwrap_or_default();
+    // 收集 stdout（最终 JSON 输出）
+    let stdout_bytes = if let Some(stdout) = child.stdout.take() {
+        let mut reader = BufReader::new(stdout);
+        let mut buf = String::new();
+        use tokio::io::AsyncReadExt;
+        reader.read_to_string(&mut buf).await.ok();
+        buf
+    } else {
+        String::new()
+    };
 
-    // 全文拼接（向后兼容 UI 展示）
-    let full_text: String = segments.iter()
-        .map(|s| s.text.trim())
-        .collect::<Vec<_>>()
-        .join(" ");
+    let status = child.wait().await.map_err(|e| e.to_string())?;
+    if let Some(h) = stderr_handle { let _ = h.await; }
+
+    if !status.success() {
+        save_transcript(&app, &file_path, "failed", "whisperkit 转录失败");
+        return Err("whisperkit-cli 退出码非零".to_string());
+    }
+
+    // whisperkit-cli 默认输出纯文本，--verbose 会在 stderr 输出详情
+    // stdout 是转录文本；尝试解析为 JSON，失败则整体当作 text
+    let (segments, full_text) = if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&stdout_bytes) {
+        let segs: Vec<WhisperSegment> = parsed
+            .get("segments")
+            .and_then(|s| s.as_array())
+            .map(|arr| arr.iter().filter_map(|item| {
+                Some(WhisperSegment {
+                    speaker: item.get("speaker").and_then(|v| v.as_str()).map(String::from),
+                    start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                    end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                    text: item.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                })
+            }).collect())
+            .unwrap_or_default();
+        let text = segs.iter().map(|s| s.text.trim()).collect::<Vec<_>>().join(" ");
+        (segs, text)
+    } else {
+        // 纯文本输出 — 整体作为无说话人单段
+        let text = stdout_bytes.trim().to_string();
+        (vec![], text)
+    };
 
     // 写 sidecar
     let raw_dir = file_path.parent().unwrap_or(file_path.as_path());

@@ -337,37 +337,62 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
     }
 
     let _ = app.emit("whisperkit-download-progress", serde_json::json!({
-        "model": model, "status": "downloading"
+        "model": model, "status": "downloading", "message": "正在启动下载…"
     }));
 
-    let output = tokio::process::Command::new(&cli_path)
-        .args([
-            "transcribe",
-            "--audio-path", tmp_wav.to_str().unwrap_or(""),
-            "--output-type", "json",
-            "--language", "zh",
-            "--model-cache-dir", model_cache_dir.to_str().unwrap_or(""),
-            "--model", &model,
-        ])
-        .output()
-        .await
-        .map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
+    use std::process::Stdio;
+    use tokio::io::{AsyncBufReadExt, BufReader};
 
+    let mut cmd = tokio::process::Command::new(&cli_path);
+    cmd.args([
+        "transcribe",
+        "--audio-path", tmp_wav.to_str().unwrap_or(""),
+        "--verbose",
+        "--language", "zh",
+        "--download-model-path", model_cache_dir.to_str().unwrap_or(""),
+        "--download-tokenizer-path", model_cache_dir.to_str().unwrap_or(""),
+        "--model", &model,
+    ]);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| {
+        let _ = std::fs::remove_file(&tmp_wav);
+        format!("启动 whisperkit-cli 失败: {}", e)
+    })?;
+
+    // 流式读取 stderr，逐行 emit 进度
+    if let Some(stderr) = child.stderr.take() {
+        let app_clone = app.clone();
+        let model_clone = model.clone();
+        tokio::spawn(async move {
+            let mut reader = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                if line.trim().is_empty() { continue; }
+                let _ = app_clone.emit("whisperkit-download-progress", serde_json::json!({
+                    "model": model_clone,
+                    "status": "downloading",
+                    "message": line.trim(),
+                }));
+            }
+        });
+    }
+
+    let status = child.wait().await;
     let _ = std::fs::remove_file(&tmp_wav);
 
-    // 模型下载成功即可（即使转录空文件报错也无所谓）
+    // 判断模型是否已落盘（即使转录失败，只要模型下载了就算成功）
     let downloaded = check_whisperkit_model_downloaded(app.clone(), model.clone());
-    if downloaded || output.status.success() {
+    if downloaded || status.map(|s| s.success()).unwrap_or(false) {
         let _ = app.emit("whisperkit-download-progress", serde_json::json!({
             "model": model, "status": "done"
         }));
         Ok(())
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let msg = "下载失败，请检查网络连接后重试".to_string();
         let _ = app.emit("whisperkit-download-progress", serde_json::json!({
-            "model": model, "status": "error", "message": stderr
+            "model": model, "status": "error", "message": msg
         }));
-        Err(stderr)
+        Err(msg)
     }
 }
 mod tests {

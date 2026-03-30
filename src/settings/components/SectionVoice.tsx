@@ -35,6 +35,8 @@ export default function SectionVoice() {
   const [downloadedModels, setDownloadedModels] = useState<Set<WhisperModel>>(new Set())
   // which model is currently downloading
   const [downloadingModel, setDownloadingModel] = useState<WhisperModel | null>(null)
+  // last progress message from Rust stderr stream
+  const [downloadMessage, setDownloadMessage] = useState('')
 
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
@@ -59,11 +61,16 @@ export default function SectionVoice() {
     listen<{ model: WhisperModel; status: 'downloading' | 'done' | 'error'; message?: string }>(
       'whisperkit-download-progress',
       ({ payload }) => {
-        if (payload.status === 'done') {
+        if (payload.status === 'downloading' && payload.message) {
+          setDownloadingModel(payload.model)
+          setDownloadMessage(payload.message)
+        } else if (payload.status === 'done') {
           setDownloadingModel(null)
+          setDownloadMessage('')
           refreshDownloadedModels()
         } else if (payload.status === 'error') {
           setDownloadingModel(null)
+          setDownloadMessage(payload.message ?? '下载失败')
         }
       }
     ).then(fn => { unlisten = fn })
@@ -117,7 +124,11 @@ export default function SectionVoice() {
               return (
                 <div
                   key={id}
-                  onClick={() => setCfg(prev => ({ ...prev, asr_engine: id }))}
+                  onClick={async () => {
+                    const next = { ...cfg, asr_engine: id }
+                    setCfg(next)
+                    await setAsrConfig(next)
+                  }}
                   style={{
                     background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
                     border: `1px solid ${isActive ? 'var(--record-btn)' : 'var(--divider)'}`,
@@ -155,7 +166,11 @@ export default function SectionVoice() {
                 <select
                   style={{ ...inputStyle, flex: 1, cursor: 'pointer', appearance: 'none' as const }}
                   value={cfg.whisperkit_model}
-                  onChange={e => setCfg(prev => ({ ...prev, whisperkit_model: e.target.value as WhisperModel }))}
+                  onChange={async e => {
+                    const next = { ...cfg, whisperkit_model: e.target.value as WhisperModel }
+                    setCfg(next)
+                    await setAsrConfig(next)
+                  }}
                 >
                   {WHISPER_MODELS.map(m => (
                     <option key={m.id} value={m.id}>
@@ -204,7 +219,9 @@ export default function SectionVoice() {
               <div style={hintStyle}>
                 {WHISPER_MODELS.find(m => m.id === cfg.whisperkit_model)?.hint}
                 {downloadingModel === cfg.whisperkit_model && (
-                  <span style={{ color: 'var(--record-btn)', marginLeft: 6 }}>下载中，请稍候…</span>
+                  <div style={{ marginTop: 4, color: 'var(--item-meta)', fontFamily: 'ui-monospace, monospace', fontSize: 9, lineHeight: 1.6 }}>
+                    {downloadMessage || '下载中，请稍候…'}
+                  </div>
                 )}
               </div>
 

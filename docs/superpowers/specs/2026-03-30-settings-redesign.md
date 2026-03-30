@@ -35,7 +35,7 @@
 | 顺序 | 分组名 | 图标 | 内容 |
 |------|--------|------|------|
 | 1 | 通用 | ⚙ | Workspace 路径、主题选择 |
-| 2 | AI 引擎 | ◈ | 引擎选择（只读，当前仅 Claude CLI）、Claude CLI 路径 |
+| 2 | AI 引擎 | ◈ | 引擎选择卡片（Claude Code / Qwen Code）+ 对应配置字段 |
 | 3 | 语音转写 | ◎ | 转写引擎（只读，当前仅 DashScope）、DashScope API Key |
 | 4 | 工作引导 | ✦ | CLAUDE.md 编辑器 |
 | 5 | 技能插件 | ⬡ | 插件预告列表 |
@@ -60,13 +60,45 @@
 
 ### 2. AI 引擎
 
-**引擎**
-- 只读显示框，当前值：`Claude CLI`
-- 提示文字：「当前仅支持 Claude CLI，更多引擎即将支持」
+**引擎选择卡片**
+- 2×1 方形大按钮网格，与主题选择器交互一致
+- 选中态：accent 色边框 + 背景；未选中态：半透明降低
+- 每张卡片右上角显示安装状态角标：
+  - **检测中**（窗口打开时）：旋转圆环动画
+  - **已安装**：绿色实心圆 ✓
+  - **未安装**：卡片右下角「安装」按钮
 
-**Claude CLI 路径**
-- 可编辑文本框，等宽字体
-- 提示文字：「claude 可执行文件的绝对路径」
+**安装流程**
+- 点击「安装」按钮后，卡片下方展开安装进度区域（不跳转页面）
+- 进度区域包含：动态进度条 + 终端日志滚动输出
+- 安装成功后角标切换为绿色 ✓，进度区域收起
+- 安装命令（Rust 端 `tokio::process::Command` 执行）：
+  - Claude Code：`npm install -g @anthropic-ai/claude-code`
+  - Qwen Code：`bash -c "$(curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh)" -s --source qwenchat`
+- 检测是否已安装：`which claude` / `which qwen`
+
+**选中引擎后的配置字段**
+
+Claude Code（已安装时显示）：
+- API Key（password 输入框）：Anthropic API Key，留空使用 CLI 默认配置
+- Base URL（文本输入框）：自定义 API 端点，留空使用默认值，适用于代理场景
+- Model（文本输入框）：指定模型名称，留空使用 CLI 默认模型
+
+Qwen Code（已安装时显示）：
+- API Key（password 输入框）：DashScope API Key（**独立于语音转写分组的 Key**）
+- Base URL（文本输入框）：自定义 API 端点
+- Model（文本输入框）：指定模型名称
+
+**Config 存储字段（新增）**
+```
+claude_code_api_key: String
+claude_code_base_url: String
+claude_code_model: String
+qwen_code_api_key: String
+qwen_code_base_url: String
+qwen_code_model: String
+active_ai_engine: "claude" | "qwen"
+```
 
 ---
 
@@ -158,7 +190,10 @@
 | `read_workspace_guide` | 新增 | 读取 `{workspace}/CLAUDE.md` |
 | `save_workspace_guide` | 新增 | 写入 `{workspace}/CLAUDE.md` |
 | `get_app_version` | 新增 | 返回 `app.package_info().version` |
-| 现有 config 命令 | 保持不变 | get/set workspace_path、api_key、claude_cli_path |
+| `check_engine_installed` | 新增 | 执行 `which claude` / `which qwen`，返回是否已安装 |
+| `install_engine` | 新增 | 执行对应安装命令，通过事件流推送进度日志到前端 |
+| 现有 config 命令 | 保持不变 | get/set workspace_path、dashscope_api_key、claude_cli_path |
+| config 新增字段 | 扩展 | claude_code_api_key、claude_code_base_url、claude_code_model、qwen_code_api_key、qwen_code_base_url、qwen_code_model、active_ai_engine |
 
 ---
 

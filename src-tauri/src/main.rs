@@ -163,6 +163,7 @@ fn main() {
             ai_processor::get_workspace_prompt,
             ai_processor::set_workspace_prompt,
             ai_processor::cancel_ai_processing,
+            ai_processor::trigger_ai_prompt,
             open_with_system,
             workspace_settings::get_workspace_theme,
             workspace_settings::set_workspace_theme,

@@ -542,6 +542,39 @@ pub async fn cancel_ai_processing(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn trigger_ai_prompt(
+    app: AppHandle,
+    queue: tauri::State<'_, AiQueue>,
+    prompt: String,
+) -> Result<(), String> {
+    // Use first 20 chars of prompt as display label in ProcessingQueue
+    let label: String = prompt.chars().take(20).collect();
+    let material_path = if prompt.chars().count() > 20 {
+        format!("{}…", label)
+    } else {
+        label
+    };
+    let year_month = crate::workspace::current_year_month();
+
+    eprintln!("[trigger_ai_prompt] prompt_label={}", material_path);
+
+    let _ = app.emit("ai-processing", ProcessingUpdate {
+        material_path: material_path.clone(),
+        status: "queued".to_string(),
+        error: None,
+    });
+
+    queue.0.send(QueueTask {
+        material_path,
+        year_month,
+        note: None,
+        prompt_text: Some(prompt),
+    }).await.map_err(|e| format!("队列发送失败: {}", e))?;
+
+    Ok(())
+}
+
 /// 检测引擎是否已安装。engine: "claude" | "qwen"
 #[tauri::command]
 pub fn check_engine_installed(engine: String) -> Result<bool, String> {
@@ -836,5 +869,32 @@ mod tests {
         );
         assert!(prompt.contains("@2603/raw/meeting.txt"));
         assert!(prompt.contains("深入梳理"));
+    }
+
+    #[test]
+    fn prompt_label_truncates_at_20_chars() {
+        let prompt = "帮我把今天所有的会议记录整理成日志条目，按重要程度排序";
+        let label: String = prompt.chars().take(20).collect();
+        let material_path = if prompt.chars().count() > 20 {
+            format!("{}…", label)
+        } else {
+            label
+        };
+        assert!(material_path.ends_with('…'));
+        let char_count = material_path.chars().count();
+        assert_eq!(char_count, 21); // 20 chars + ellipsis
+    }
+
+    #[test]
+    fn prompt_label_no_truncation_when_short() {
+        let prompt = "你好";
+        let label: String = prompt.chars().take(20).collect();
+        let material_path = if prompt.chars().count() > 20 {
+            format!("{}…", label)
+        } else {
+            label
+        };
+        assert_eq!(material_path, "你好");
+        assert!(!material_path.ends_with('…'));
     }
 }

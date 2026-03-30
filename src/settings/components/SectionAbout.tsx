@@ -49,7 +49,7 @@ export default function SectionAbout() {
             </div>
           </div>
           <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <SkeletonRow height={120} width={120} mb={0} />
+            <SkeletonRow height={150} width={110} mb={0} />
             <SkeletonRow height={10} width={72} mb={0} />
           </div>
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
@@ -89,7 +89,7 @@ export default function SectionAbout() {
               <img
                 src={qrCode}
                 alt="微信二维码"
-                style={{ width: 120, height: 120, borderRadius: 10, display: 'block' }}
+                style={{ width: 110, height: 150, borderRadius: 10, display: 'block', objectFit: 'cover', objectPosition: 'center 60%' }}
               />
               <div style={{ fontSize: 10, color: 'var(--duration-text)', letterSpacing: '0.03em' }}>扫码添加微信</div>
             </div>

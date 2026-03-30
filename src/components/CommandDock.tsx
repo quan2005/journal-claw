@@ -257,7 +257,7 @@ export function CommandDock({
             {/* Left: attachment cards (only when files present) */}
             {hasFiles && (
               <div style={{
-                padding: '12px 12px 12px 14px',
+                padding: '6px 8px 6px 12px',
                 display: 'flex',
                 flexDirection: 'row',
                 gap: 6,

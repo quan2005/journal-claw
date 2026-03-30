@@ -40,9 +40,9 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 5,
-        width: 60,
-        padding: '6px 4px',
+        gap: 4,
+        width: 56,
+        padding: '4px 4px',
         borderRadius: 8,
         position: 'relative',
         flexShrink: 0,
@@ -54,8 +54,8 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
         data-testid="file-card-icon"
         onClick={onOpen}
         style={{
-          width: 48,
-          height: 52,
+          width: 44,
+          height: 46,
           borderRadius: 9,
           background: iconGradient(kind),
           display: 'flex',

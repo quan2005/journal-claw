@@ -1,6 +1,7 @@
 import type { Theme } from '../types'
 import { ThemeToggle } from './ThemeToggle'
 import { AiStatusPill } from './AiStatusPill'
+import { Settings2 } from 'lucide-react'
 
 interface TitleBarProps {
   theme: Theme
@@ -53,7 +54,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
             borderRadius: 4, lineHeight: 1,
             opacity: view === 'settings' ? 1 : 0.7,
           }}
-        >⚙</button>
+        ><Settings2 size={15} strokeWidth={1.5} /></button>
       </div>
     </div>
   )

@@ -71,17 +71,22 @@ export function useJournal() {
         })
       } else if (status === 'processing') {
         setQueueItems(prev => {
-          // If placeholder is still in queue (recording-processed hasn't fired yet),
-          // upgrade it directly to processing with the real path.
+          const filename = material_path.split('/').pop() ?? material_path
+          // Case 1: recording placeholder still present — upgrade it directly
           const hasPlaceholder = prev.some(i => i.path === RECORDING_PLACEHOLDER)
           if (hasPlaceholder) {
             return prev.map(i =>
               i.path === RECORDING_PLACEHOLDER
-                ? { ...i, path: material_path, filename: material_path.split('/').pop() ?? material_path, status: 'processing' as const }
+                ? { ...i, path: material_path, filename, status: 'processing' as const }
                 : i
             )
           }
-          return prev.map(i => i.path === material_path ? { ...i, status: 'processing' } : i)
+          // Case 2: item already in queue (normal path) — just update status
+          if (prev.some(i => i.path === material_path)) {
+            return prev.map(i => i.path === material_path ? { ...i, status: 'processing' as const } : i)
+          }
+          // Case 3: processing event arrived before addQueuedItem (race) — insert directly
+          return [{ path: material_path, filename, status: 'processing' as const, addedAt: Date.now(), logs: [] }, ...prev]
         })
       } else if (status === 'completed') {
         setQueueItems(prev =>

@@ -1,10 +1,11 @@
+import { FileText, Music, Image, X, type LucideIcon } from 'lucide-react'
 import type { FileKind } from '../lib/fileKind'
 
 interface FileCardProps {
   filename: string
   kind: FileKind
   onRemove: () => void
-  onOpen: () => void
+  onOpen?: () => void
 }
 
 function iconGradient(kind: FileKind): string {
@@ -19,20 +20,17 @@ function iconGradient(kind: FileKind): string {
   }
 }
 
-function iconEmoji(kind: FileKind): string {
+function iconLucide(kind: FileKind): LucideIcon {
   switch (kind) {
-    case 'pdf':      return '📕'
-    case 'docx':     return '📘'
-    case 'text':     return '📄'
-    case 'markdown': return '📝'
-    case 'audio':    return '🎵'
-    case 'image':    return '🖼'
-    default:         return '📄'
+    case 'audio': return Music
+    case 'image': return Image
+    default:      return FileText
   }
 }
 
 export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
+  const Icon = iconLucide(kind)
 
   return (
     <div
@@ -61,14 +59,13 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 20,
-          cursor: 'pointer',
+          cursor: onOpen ? 'pointer' : 'default',
           position: 'relative',
           flexShrink: 0,
           userSelect: 'none',
         }}
       >
-        {iconEmoji(kind)}
+        <Icon size={20} strokeWidth={1.5} color="#fff" />
         {ext && (
           <span style={{
             position: 'absolute',
@@ -119,13 +116,12 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 9,
           cursor: 'pointer',
           lineHeight: 1,
           userSelect: 'none',
         }}
       >
-        ×
+        <X size={8} strokeWidth={2} />
       </span>
     </div>
   )

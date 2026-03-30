@@ -10,7 +10,8 @@ import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, triggerAiProcessing, submitPasteText, cancelAiProcessing } from './lib/tauri'
+import { importFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing } from './lib/tauri'
+import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry } from './types'
 
 const BASE_WIDTH = 320
@@ -68,9 +69,10 @@ export default function App() {
         setIsDragOver(false)
         const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
         if (paths.length > 0) {
+          const supported = paths.filter(p => fileKindFromName(p.split('/').pop() ?? p) !== 'audio')
           setPendingFiles(prev => {
             const existing = new Set(prev)
-            const newPaths = paths.filter(p => !existing.has(p))
+            const newPaths = supported.filter(p => !existing.has(p))
             return newPaths.length > 0 ? [...prev, ...newPaths] : prev
           })
         }
@@ -153,14 +155,16 @@ export default function App() {
   }
 
   const handlePasteSubmit = async (text: string) => {
-    await submitPasteText(text)
+    await triggerAiPrompt(text)
     refresh()
   }
 
   const handlePasteFiles = (paths: string[]) => {
     setPendingFiles(prev => {
       const existing = new Set(prev)
-      const newPaths = paths.filter(p => !existing.has(p))
+      const newPaths = paths
+        .filter(p => fileKindFromName(p.split('/').pop() ?? p) !== 'audio')
+        .filter(p => !existing.has(p))
       if (newPaths.length === 0) return prev
       const merged = [...prev, ...newPaths]
       return merged.slice(0, 6)

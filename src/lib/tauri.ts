@@ -72,6 +72,10 @@ export const importTextTemp = (text: string) =>
 export const importText = (text: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_text', { text })
 
+// Pure prompt → send text directly as Claude CLI -p argument (no file written)
+export const triggerAiPrompt = (prompt: string): Promise<void> =>
+  invoke<void>('trigger_ai_prompt', { prompt })
+
 // Paste text → save as raw material → trigger AI processing
 export const submitPasteText = async (text: string): Promise<void> => {
   const result = await invoke<{ path: string; filename: string; year_month: string }>(

@@ -114,3 +114,15 @@ button {
     background-color: #0f0f0f69;
   }
 }
+
+/* FileCard hover styles */
+.file-card-remove {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.file-card-wrap:hover .file-card-remove {
+  opacity: 1;
+}
+.file-card-wrap:hover {
+  background: rgba(255, 255, 255, 0.06);
+}

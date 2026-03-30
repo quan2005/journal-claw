@@ -137,6 +137,14 @@ export default function App() {
     refresh()
   }
 
+  const handlePasteFiles = (paths: string[]) => {
+    setPendingFiles(prev => {
+      const existing = new Set(prev)
+      const newPaths = paths.filter(p => !existing.has(p))
+      return newPaths.length > 0 ? [...prev, ...newPaths] : prev
+    })
+  }
+
   const processingFilename = queueItems.find(i => i.status === 'processing')?.filename
 
   return (
@@ -185,6 +193,7 @@ export default function App() {
           onFilesSubmit={handleFilesSubmit}
           onFilesCancel={handleFilesCancel}
           onRemoveFile={handleRemoveFile}
+          onPasteFiles={handlePasteFiles}
           recorderStatus={status}
           onRecord={handleRecord}
         />

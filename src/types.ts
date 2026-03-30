@@ -13,9 +13,17 @@ export interface RecordingItem {
   transcript_status: TranscriptionProgress | null
 }
 
+export interface TranscriptSegment {
+  speaker: string | null
+  start: number
+  end: number
+  text: string
+}
+
 export interface Transcript {
   status: TranscriptionProgress
   text: string
+  segments?: TranscriptSegment[]
 }
 
 // ── 新类型（日志平台）────────────────────────────────────

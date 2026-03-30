@@ -130,3 +130,16 @@ export const getEngineConfig = (): Promise<EngineConfig> =>
 
 export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
   invoke<void>('set_engine_config', { ...cfg })
+
+// ASR config
+export interface AsrConfig {
+  asr_engine: 'dashscope' | 'whisperkit'
+  dashscope_api_key: string
+  whiskerkit_model: 'base' | 'small' | 'large-v3-turbo'
+}
+
+export const getAsrConfig = (): Promise<AsrConfig> =>
+  invoke<AsrConfig>('get_asr_config')
+
+export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
+  invoke<void>('set_asr_config', { ...cfg })

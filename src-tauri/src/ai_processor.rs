@@ -374,6 +374,91 @@ pub async fn cancel_ai_processing(
     Ok(())
 }
 
+/// 检测引擎是否已安装。engine: "claude" | "qwen"
+#[tauri::command]
+pub fn check_engine_installed(engine: String) -> Result<bool, String> {
+    let bin = match engine.as_str() {
+        "claude" => "claude",
+        "qwen" => "qwen",
+        _ => return Err(format!("unknown engine: {}", engine)),
+    };
+    let output = std::process::Command::new("which")
+        .arg(bin)
+        .output()
+        .map_err(|e| e.to_string())?;
+    Ok(output.status.success())
+}
+
+/// 安装引擎，通过 Tauri 事件流式推送日志。
+/// 事件名："engine-install-log"，payload: { engine, line, done, success }
+#[tauri::command]
+pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(), String> {
+    use tokio::io::AsyncBufReadExt;
+
+    let (program, args): (&str, Vec<&str>) = match engine.as_str() {
+        "claude" => ("npm", vec!["install", "-g", "@anthropic-ai/claude-code"]),
+        "qwen" => ("bash", vec![
+            "-c",
+            "bash <(curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh) -s --source qwenchat",
+        ]),
+        _ => return Err(format!("unknown engine: {}", engine)),
+    };
+
+    let mut child = tokio::process::Command::new(program)
+        .args(&args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("failed to spawn: {}", e))?;
+
+    // Stream stdout
+    if let Some(stdout) = child.stdout.take() {
+        let app_clone = app.clone();
+        let engine_clone = engine.clone();
+        tokio::spawn(async move {
+            let reader = tokio::io::BufReader::new(stdout);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let _ = app_clone.emit("engine-install-log", serde_json::json!({
+                    "engine": engine_clone,
+                    "line": line,
+                    "done": false,
+                    "success": false,
+                }));
+            }
+        });
+    }
+
+    // Stream stderr
+    if let Some(stderr) = child.stderr.take() {
+        let app_clone = app.clone();
+        let engine_clone = engine.clone();
+        tokio::spawn(async move {
+            let reader = tokio::io::BufReader::new(stderr);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let _ = app_clone.emit("engine-install-log", serde_json::json!({
+                    "engine": engine_clone,
+                    "line": line,
+                    "done": false,
+                    "success": false,
+                }));
+            }
+        });
+    }
+
+    let status = child.wait().await.map_err(|e| e.to_string())?;
+    let success = status.success();
+    let _ = app.emit("engine-install-log", serde_json::json!({
+        "engine": engine,
+        "line": if success { "安装完成" } else { "安装失败" },
+        "done": true,
+        "success": success,
+    }));
+
+    if success { Ok(()) } else { Err("installation failed".to_string()) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

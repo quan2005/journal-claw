@@ -159,6 +159,11 @@ fn main() {
             open_with_system,
             workspace_settings::get_workspace_theme,
             workspace_settings::set_workspace_theme,
+            config::get_engine_config,
+            config::set_engine_config,
+            config::get_app_version,
+            ai_processor::check_engine_installed,
+            ai_processor::install_engine,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

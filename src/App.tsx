@@ -8,7 +8,7 @@ import { ProcessingQueue } from './components/ProcessingQueue'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, triggerAiProcessing, submitPasteText } from './lib/tauri'
+import { importFile, triggerAiProcessing, submitPasteText, importText } from './lib/tauri'
 import type { JournalEntry } from './types'
 
 const BASE_WIDTH = 320
@@ -16,8 +16,10 @@ const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { status, start, stop } = useRecorder()
-  const { entries, queueItems, isProcessing, dismissQueueItem, refresh } = useJournal()
+  const { entries, loading, queueItems, isProcessing, dismissQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
+
+  console.log(`[App] render — loading=${loading} entries=${entries.length} theme=${theme}`)
 
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -105,9 +107,18 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const handleFilesSubmit = async (paths: string[]) => {
+  const handleFilesSubmit = async (paths: string[], note?: string) => {
     setPendingFiles([])
-    for (const path of paths) {
+    const allPaths = [...paths]
+    if (note) {
+      try {
+        const noteResult = await importText(note)
+        allPaths.push(noteResult.path)
+      } catch (err) {
+        console.error('[note-import] error:', String(err))
+      }
+    }
+    for (const path of allPaths) {
       try {
         const result = await importFile(path)
         await triggerAiProcessing(result.path, result.year_month)
@@ -156,6 +167,7 @@ export default function App() {
         <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
           <JournalList
             entries={entries}
+            loading={loading}
             selectedPath={selectedEntry?.path ?? null}
             onSelect={setSelectedEntry}
           />

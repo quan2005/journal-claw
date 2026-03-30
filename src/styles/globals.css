@@ -12,10 +12,11 @@
   --item-text: #1c1c1e;
   --item-meta: #6e6e73;
   --duration-text: #c7c7cc;
-  --record-btn: #b07e2e;
+  --record-btn: #d9a44b;
+  --record-btn-hover: #c8933a;
   --record-btn-icon: #ffffff;
-  --record-highlight: rgba(176,126,46,0.06);
-  --record-highlight-bar: rgba(176,126,46,1);
+  --record-highlight: rgba(217,164,75,0.06);
+  --record-highlight-bar: rgba(217,164,75,1);
   --item-icon-bg: #f2f2f7;
   --item-hover-bg: rgba(0, 0, 0, 0.04);
   --item-selected-bg: rgba(0, 0, 0, 0.06);
@@ -115,6 +116,7 @@
     --item-meta: #7a7a7a;
     --duration-text: #48484a;
     --record-btn: #c8933a;
+    --record-btn-hover: #d9a44b;
     --record-btn-icon: #0f0f0f;
     --record-highlight: rgba(200,147,58,0.06);
     --record-highlight-bar: rgba(200,147,58,1);
@@ -414,10 +416,11 @@ html, body, #root {
   --item-text: #1c1c1e;
   --item-meta: #6e6e73;
   --duration-text: #c7c7cc;
-  --record-btn: #b07e2e;
+  --record-btn: #d9a44b;
+  --record-btn-hover: #c8933a;
   --record-btn-icon: #ffffff;
-  --record-highlight: rgba(176,126,46,0.06);
-  --record-highlight-bar: rgba(176,126,46,1);
+  --record-highlight: rgba(217,164,75,0.06);
+  --record-highlight-bar: rgba(217,164,75,1);
   --item-icon-bg: #f2f2f7;
   --item-hover-bg: rgba(0, 0, 0, 0.04);
   --item-selected-bg: rgba(0, 0, 0, 0.06);

@@ -5,6 +5,7 @@ import type { JournalEntry, ProcessingUpdate, QueueItem } from '../types'
 
 export function useJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const removalTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
@@ -14,6 +15,8 @@ export function useJournal() {
       setEntries(result)
     } catch (e) {
       console.error('Failed to load journal entries:', e)
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -86,5 +89,5 @@ export function useJournal() {
     i => i.status === 'processing' || i.status === 'queued'
   )
 
-  return { entries, queueItems, isProcessing, dismissQueueItem, refresh }
+  return { entries, loading, queueItems, isProcessing, dismissQueueItem, refresh }
 }

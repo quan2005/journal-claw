@@ -19,7 +19,6 @@ export default function App() {
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
-  console.log(`[App] render — loading=${loading} entries=${entries.length} theme=${theme}`)
 
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)

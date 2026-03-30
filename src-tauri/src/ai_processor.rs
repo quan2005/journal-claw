@@ -129,9 +129,16 @@ fn parse_cli_output(stdout: &str) -> Result<(), String> {
 /// Call once during app setup; pass the receiver half.
 pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
     tauri::async_runtime::spawn(async move {
+        eprintln!("[ai_queue] consumer loop started");
         while let Some(task) = rx.recv().await {
-            let _ = process_material(&app, &task.material_path, &task.year_month).await;
+            eprintln!("[ai_queue] dequeued task: {} ({})", task.material_path, task.year_month);
+            let result = process_material(&app, &task.material_path, &task.year_month).await;
+            match &result {
+                Ok(()) => eprintln!("[ai_queue] task completed: {}", task.material_path),
+                Err(e) => eprintln!("[ai_queue] task failed: {} → {}", task.material_path, e),
+            }
         }
+        eprintln!("[ai_queue] consumer loop ended (channel closed)");
     });
 }
 
@@ -147,6 +154,9 @@ pub async fn process_material(
         cfg.claude_cli_path.clone()
     };
 
+    eprintln!("[ai_processor] start — material={} ym={}", material_path, year_month);
+    eprintln!("[ai_processor] cli={} workspace={}", cli, cfg.workspace_path);
+
     ensure_workspace_prompt(&cfg.workspace_path);
 
     let _ = app.emit("ai-processing", ProcessingUpdate {
@@ -156,6 +166,7 @@ pub async fn process_material(
     });
 
     let args = build_args(material_path, year_month);
+    eprintln!("[ai_processor] running: {} {}", cli, args.join(" "));
     let output = tokio::process::Command::new(&cli)
         .args(&args)
         .current_dir(&cfg.workspace_path)
@@ -166,6 +177,9 @@ pub async fn process_material(
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    eprintln!("[ai_processor] exit_code={:?}", output.status.code());
+    if !stdout.is_empty() { eprintln!("[ai_processor] stdout: {}", &stdout[..stdout.len().min(500)]); }
+    if !stderr.is_empty() { eprintln!("[ai_processor] stderr: {}", &stderr[..stderr.len().min(500)]); }
 
     if !output.status.success() {
         let err = if stderr.is_empty() { stdout.clone() } else { stderr };
@@ -207,6 +221,7 @@ pub async fn trigger_ai_processing(
     material_path: String,
     year_month: String,
 ) -> Result<(), String> {
+    eprintln!("[trigger_ai] material={} ym={}", material_path, year_month);
     // Emit "queued" immediately
     let _ = app.emit("ai-processing", ProcessingUpdate {
         material_path: material_path.clone(),

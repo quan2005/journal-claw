@@ -149,36 +149,39 @@ pub fn list_journal_entries(
 }
 
 #[tauri::command]
-pub fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry>, String> {
+pub async fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry>, String> {
     let cfg = config::load_config(&app)?;
     if cfg.workspace_path.is_empty() {
         return Ok(vec![]);
     }
-    let workspace = &cfg.workspace_path;
-    let ws_path = std::path::PathBuf::from(workspace);
-    if !ws_path.exists() {
-        return Ok(vec![]);
-    }
-
-    let mut all: Vec<JournalEntry> = vec![];
-    let read_dir = std::fs::read_dir(&ws_path)
-        .map_err(|e| e.to_string())?;
-
-    for entry in read_dir.flatten() {
-        let name = entry.file_name().to_string_lossy().to_string();
-        // yyMM dirs: 4 digits
-        if name.len() == 4 && name.chars().all(|c| c.is_ascii_digit()) {
-            let mut batch = list_entries(workspace, &name)?;
-            all.append(&mut batch);
+    let workspace = cfg.workspace_path.clone();
+    tokio::task::spawn_blocking(move || {
+        let ws_path = std::path::PathBuf::from(&workspace);
+        if !ws_path.exists() {
+            return Ok(vec![]);
         }
-    }
 
-    all.sort_by(|a, b| {
-        b.year_month.cmp(&a.year_month)
-            .then(b.day.cmp(&a.day))
-            .then(b.filename.cmp(&a.filename))
-    });
-    Ok(all)
+        let mut all: Vec<JournalEntry> = vec![];
+        let read_dir = std::fs::read_dir(&ws_path)
+            .map_err(|e| e.to_string())?;
+
+        for entry in read_dir.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.len() == 4 && name.chars().all(|c| c.is_ascii_digit()) {
+                let mut batch = list_entries(&workspace, &name)?;
+                all.append(&mut batch);
+            }
+        }
+
+        all.sort_by(|a, b| {
+            b.year_month.cmp(&a.year_month)
+                .then(b.day.cmp(&a.day))
+                .then(b.filename.cmp(&a.filename))
+        });
+        Ok(all)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

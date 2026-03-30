@@ -7,8 +7,28 @@ import { invoke } from '@tauri-apps/api/core'
 
 interface JournalListProps {
   entries: JournalEntry[]
+  loading?: boolean
   selectedPath: string | null
   onSelect: (entry: JournalEntry) => void
+}
+
+function SkeletonItem({ width }: { width: number }) {
+  return (
+    <div style={{ padding: '7px 14px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ height: 13, width: `${width}%`, borderRadius: 3, background: 'var(--skeleton-bg, rgba(128,128,128,0.12))' }} />
+      <div style={{ height: 11, width: `${Math.round(width * 0.65)}%`, borderRadius: 3, background: 'var(--skeleton-bg, rgba(128,128,128,0.08))' }} />
+    </div>
+  )
+}
+
+function ListSkeleton() {
+  return (
+    <div style={{ paddingBottom: 12 }}>
+      {[80, 60, 75, 55, 70].map((w, i) => (
+        <SkeletonItem key={i} width={w} />
+      ))}
+    </div>
+  )
 }
 
 // Day of week from year_month + day
@@ -27,8 +47,18 @@ function isToday(yearMonth: string, day: number): boolean {
   return year === now.getFullYear() && month === now.getMonth() + 1 && day === now.getDate()
 }
 
-export function JournalList({ entries, selectedPath, onSelect }: JournalListProps) {
+export function JournalList({ entries, loading, selectedPath, onSelect }: JournalListProps) {
   const [contextMenu, setContextMenu] = useState<{ entry: JournalEntry; x: number; y: number } | null>(null)
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <ListSkeleton />
+        </div>
+      </div>
+    )
+  }
 
   // Group by year_month, then by day
   const grouped: Record<string, Record<number, JournalEntry[]>> = {}

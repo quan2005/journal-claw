@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>谨迹 Journal — 你负责思考，AI 负责剩下的</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0c; --text: #e8eaed; --muted: #6b7280; --dim: #2e3138;
+    --surface: #131416; --border: #232730;
+    --accent: #c8933a; --accent-soft: rgba(200,147,58,0.10);
+    --green: #34d399; --green-soft: rgba(52,211,153,0.08);
+    --red: #f87171;
+  }
+  [data-theme="light"] {
+    --bg: #fafafa; --text: #18181b; --muted: #71717a; --dim: #d4d4d8;
+    --surface: #ffffff; --border: #e4e4e7;
+    --accent: #92690d; --accent-soft: rgba(146,105,13,0.07);
+    --green: #059669; --green-soft: rgba(5,150,105,0.06);
+    --red: #dc2626;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Noto Serif SC", system-ui, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+
+  .wrap { max-width: 680px; margin: 0 auto; padding: 0 28px; }
+  .wrap-wide { max-width: 820px; margin: 0 auto; padding: 0 28px; }
+
+  .hero { padding: 22vh 0 6vh; text-align: center; }
+  .hero-pain { font-size: 0.88em; color: var(--muted); line-height: 2; margin-bottom: 40px; }
+  .hero-pain s { color: var(--dim); }
+  .hero h1 {
+    font-family: "Noto Serif SC", serif;
+    font-size: clamp(2em, 5.5vw, 3.2em);
+    font-weight: 900; line-height: 1.2; letter-spacing: -0.03em; margin-bottom: 20px;
+  }
+  .hero h1 .a { color: var(--accent); }
+  .hero-sub { font-size: 1.05em; color: var(--muted); line-height: 2; max-width: 420px; margin: 0 auto; }
+  .hero-sub strong { color: var(--text); font-weight: 600; }
+
+  .sp { height: 100px; }
+  .sp2 { height: 140px; }
+  .line { width: 32px; height: 1px; background: var(--border); margin: 0 auto; }
+
+  .kicker { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .h2 {
+    font-family: "Noto Serif SC", serif;
+    font-size: clamp(1.3em, 3vw, 1.75em);
+    font-weight: 700; line-height: 1.35; margin-bottom: 14px;
+  }
+  .body { font-size: 0.9em; color: var(--muted); line-height: 1.9; max-width: 520px; }
+
+  /* ── Scene timeline ── */
+  .scene { display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: start; margin-bottom: 18px; }
+  .scene-time { font-size: 0.78em; color: var(--dim); font-weight: 600; text-align: right; padding-top: 2px; font-variant-numeric: tabular-nums; }
+  .scene-text { font-size: 0.88em; color: var(--muted); line-height: 1.7; }
+  .scene-text strong { color: var(--text); font-weight: 600; }
+
+  /* ── Story card ── */
+  .story {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 28px 24px; margin: 32px 0;
+  }
+  .story-label {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-weight: 700; margin-bottom: 16px;
+  }
+  .story-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+  .story-step:last-child { margin-bottom: 0; }
+  .story-num {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68em; font-weight: 700; margin-top: 1px;
+  }
+  .story-num.human { border: 1.5px solid var(--accent); color: var(--accent); background: var(--bg); }
+  .story-num.ai { background: var(--green); color: var(--bg); border: none; }
+  .story-num.done { background: var(--text); color: var(--bg); border: none; }
+  .story-body { font-size: 0.86em; color: var(--muted); line-height: 1.7; }
+  .story-body strong { color: var(--text); font-weight: 600; }
+  .story-body .g { color: var(--green); }
+
+  /* ── Flip ── */
+  .flip {
+    text-align: center; padding: 64px 0;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .flip-word {
+    font-family: "Noto Serif SC", serif;
+    font-size: clamp(1.5em, 3.5vw, 2.2em);
+    font-weight: 900; line-height: 1.35;
+  }
+  .flip-sub { font-size: 0.88em; color: var(--muted); margin-top: 12px; line-height: 1.8; }
+
+  /* ── Before/After ── */
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 36px 0; }
+  .ba-side { background: var(--surface); padding: 24px 20px; }
+  .ba-side:first-child { border-radius: 8px 0 0 8px; }
+  .ba-side:last-child  { border-radius: 0 8px 8px 0; }
+  .ba-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; margin-bottom: 14px; }
+  .ba-list { list-style: none; padding: 0; font-size: 0.84em; line-height: 2.2; }
+  .ba-list .gone { text-decoration: line-through; opacity: 0.35; color: var(--muted); }
+  @media(max-width:500px){
+    .ba { grid-template-columns: 1fr; }
+    .ba-side { border-radius: 0!important; }
+    .ba-side:first-child { border-radius: 8px 8px 0 0!important; }
+    .ba-side:last-child  { border-radius: 0 0 8px 8px!important; }
+  }
+
+  /* ── Permission ── */
+  .perm {
+    display: grid; grid-template-columns: 1fr auto auto; font-size: 0.82em;
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 32px 0;
+  }
+  .perm .ph { padding: 7px 14px; color: var(--muted); font-weight: 600; font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .perm .pr { padding: 6px 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
+  .perm .pr:nth-child(3n+1) { color: var(--text); }
+  .perm .hi { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+  .perm .yes { color: var(--green); font-weight: 700; text-align: center; }
+  .perm .no  { color: var(--dim); text-align: center; }
+  .perm .ban { color: var(--red); font-weight: 700; text-align: center; }
+  .perm .own { color: var(--green); font-weight: 700; text-align: center; }
+
+  /* ── Quote ── */
+  .bq { border-left: 2px solid var(--accent); padding: 16px 22px; margin: 36px 0; font-size: 0.95em; line-height: 1.95; color: var(--text); }
+  .bq .a { color: var(--accent); }
+
+  .closing { text-align: center; padding: 80px 0 48px; }
+  .closing p { font-family: "Noto Serif SC", serif; font-size: clamp(1em, 2.2vw, 1.35em); line-height: 2.2; color: var(--muted); max-width: 460px; margin: 0 auto; }
+  .closing .a { color: var(--accent); font-weight: 700; }
+  .closing .g { color: var(--green); font-weight: 700; }
+  .closing .w { color: var(--text); font-weight: 700; }
+
+  .footer { text-align: center; padding: 32px 0 52px; font-size: 0.72em; color: var(--dim); letter-spacing: 0.08em; }
+
+  .theme-btn {
+    position: fixed; bottom: 22px; right: 22px; z-index: 200;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9em; transition: background 0.2s;
+  }
+  .theme-btn:hover { background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ━━ HERO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-pain">
+      每天 3 场会，录音攒了一堆<br>
+      <s>整理笔记又花 2 小时</s><br>
+      <s>待办散落在三个 App 里</s>
+    </div>
+    <h1>每一次思考<br>都值得被<span class="a">谨迹</span></h1>
+    <p class="hero-sub">
+      录音、文件、文本丢进来<br>
+      <strong>日志、待办、方案自动生成</strong>
+    </p>
+  </div>
+</div>
+
+<!-- ━━ STORY 1: 个人日常 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp"></div>
+  <div class="kicker">场景一</div>
+  <div class="h2">你的一天</div>
+
+  <div style="margin-top:24px;">
+    <div class="scene">
+      <div class="scene-time">09:30</div>
+      <div class="scene-text">晨会，讨论本周优先级</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time">10:00</div>
+      <div class="scene-text">产品评审会，录了 47 分钟</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time">14:00</div>
+      <div class="scene-text">客户访谈，对方发来会议纪要 PDF</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time">16:30</div>
+      <div class="scene-text">技术方案讨论，你在便签上记了几行</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time">18:00</div>
+      <div class="scene-text"><strong>4 条录音、2 份文件、1 段文字。还没整理。</strong></div>
+    </div>
+    <div class="scene">
+      <div class="scene-time" style="color:var(--accent);">18:01</div>
+      <div class="scene-text" style="color:var(--accent);">全部拖进谨迹。下班。</div>
+    </div>
+  </div>
+  <div style="height:20px;"></div>
+  <div style="border-top:1px dashed var(--border);padding-top:20px;">
+    <div class="scene">
+      <div class="scene-time" style="color:var(--green);">次日</div>
+      <div class="scene-text" style="color:var(--green);">打开谨迹——</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time" style="color:var(--green);">09:00</div>
+      <div class="scene-text"><strong style="color:var(--green);">4 篇结构化会议纪要已生成</strong></div>
+    </div>
+    <div class="scene">
+      <div class="scene-time"></div>
+      <div class="scene-text"><strong style="color:var(--green);">待办清单已提炼</strong>：跟进张总方案、更新 Q2 排期、准备技术选型文档</div>
+    </div>
+    <div class="scene">
+      <div class="scene-time"></div>
+      <div class="scene-text"><strong style="color:var(--green);">产品选型方案初稿已生成</strong>，基于昨天评审会讨论内容</div>
+    </div>
+  </div>
+</div>
+
+<!-- ━━ STORY 2: 小组协作 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp2"></div>
+  <div class="kicker">场景二</div>
+  <div class="h2">一次小组作业</div>
+  <div class="body">以前要分工、各写各的、熬夜拼稿。<br>现在只需要开两次会。</div>
+
+  <div class="ba" style="margin-top:28px;">
+    <div class="ba-side">
+      <div class="ba-label" style="color:var(--red);">以前</div>
+      <ul class="ba-list">
+        <li class="gone">分工：一人一章节</li>
+        <li class="gone">有人收集资料</li>
+        <li class="gone">有人写文稿</li>
+        <li class="gone">有人做 PPT</li>
+        <li class="gone">各自熬夜苦干</li>
+        <li class="gone">拼稿、对齐格式</li>
+        <li class="gone">再开会讨论修改</li>
+        <li class="gone">改完再拼一遍</li>
+      </ul>
+    </div>
+    <div class="ba-side">
+      <div class="ba-label" style="color:var(--green);">现在</div>
+      <ul class="ba-list" style="color:var(--text);">
+        <li><strong>开会讨论</strong>，打开录音</li>
+        <li>把思路聊透</li>
+        <li>拖入私域资料</li>
+        <li>AI 自动收集公域资料</li>
+        <li><strong>文稿和 PPT 自动生成</strong></li>
+        <li>大家过目，开二次讨论</li>
+        <li><strong>AI 根据讨论自动优化</strong></li>
+        <li>完成</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label" style="color:var(--accent);">第一次会议</div>
+    <div class="story-step">
+      <div class="story-num human">1</div>
+      <div class="story-body"><strong>打开谨迹录音</strong>，小组讨论方案框架、论点逻辑、资料分工</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num human">2</div>
+      <div class="story-body">讨论中标注：<strong>私域资料</strong>（内部数据、调研报告）由人类提供；<strong>公域资料</strong>（行业报告、公开数据）让 AI 去收集</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num human">3</div>
+      <div class="story-body">散会。把所有私域资料拖进谨迹。</div>
+    </div>
+  </div>
+  <div class="story" style="margin-top:2px;">
+    <div class="story-label" style="color:var(--green);">AI 工作中</div>
+    <div class="story-step">
+      <div class="story-num ai">4</div>
+      <div class="story-body"><strong class="g">会议纪要自动生成</strong>——讨论框架、分工、关键论点全部结构化</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">5</div>
+      <div class="story-body"><strong class="g">公域资料自动收集</strong>——根据讨论内容搜索行业数据、案例、文献</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">6</div>
+      <div class="story-body"><strong class="g">按讨论框架组织资料，编写文稿和 PPT</strong></div>
+    </div>
+  </div>
+  <div class="story" style="margin-top:2px;">
+    <div class="story-label" style="color:var(--accent);">第二次会议</div>
+    <div class="story-step">
+      <div class="story-num human">7</div>
+      <div class="story-body">大家一起过目初稿。<strong>再次打开录音</strong>，讨论优化意见。</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">8</div>
+      <div class="story-body"><strong class="g">AI 根据第二次讨论，自动优化文稿和 PPT 的每一处细节。</strong></div>
+    </div>
+    <div class="story-step">
+      <div class="story-num done">✓</div>
+      <div class="story-body"><strong>完成。</strong>没有人熬夜。没有人拼稿。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ━━ STORY 3: 研发团队 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp2"></div>
+  <div class="kicker">场景三</div>
+  <div class="h2">一次需求评审</div>
+  <div class="body">以前要提前读完需求文档，集中精力逐条核对。<br>现在只需要讨论。</div>
+
+  <div class="ba" style="margin-top:28px;">
+    <div class="ba-side">
+      <div class="ba-label" style="color:var(--red);">以前</div>
+      <ul class="ba-list">
+        <li class="gone">提前通读需求文档</li>
+        <li class="gone">逐条标注疑问</li>
+        <li class="gone">开会逐项确认细节</li>
+        <li class="gone">会后手动整理明确需求</li>
+        <li class="gone">开发人员理解偏差</li>
+        <li class="gone">反复沟通、返工</li>
+      </ul>
+    </div>
+    <div class="ba-side">
+      <div class="ba-label" style="color:var(--green);">现在</div>
+      <ul class="ba-list" style="color:var(--text);">
+        <li>把需求文档丢给 AI</li>
+        <li><strong>AI 自动标注不清晰的地方</strong></li>
+        <li>开会讨论，打开录音</li>
+        <li><strong>自动转化为可验证的明确需求</strong></li>
+        <li>AI 编码工具自动实现</li>
+        <li><strong>第二天直接验收</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label" style="color:var(--accent);">会前</div>
+    <div class="story-step">
+      <div class="story-num human">1</div>
+      <div class="story-body">把需求文档拖进谨迹</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">2</div>
+      <div class="story-body"><strong class="g">AI 自动梳理需求，标注模糊点</strong>："用户权限"具体包含哪些角色？"实时同步"的延迟容忍范围？</div>
+    </div>
+  </div>
+  <div class="story" style="margin-top:2px;">
+    <div class="story-label" style="color:var(--accent);">评审会</div>
+    <div class="story-step">
+      <div class="story-num human">3</div>
+      <div class="story-body"><strong>打开录音</strong>，团队针对 AI 标注的模糊点逐一讨论、确认细节</div>
+    </div>
+    <div class="story-step">
+      <div class="story-num ai">4</div>
+      <div class="story-body"><strong class="g">讨论内容自动转化为独立、可验证的明确需求</strong>——每条需求有验收标准，无歧义</div>
+    </div>
+  </div>
+  <div class="story" style="margin-top:2px;">
+    <div class="story-label" style="color:var(--green);">会后</div>
+    <div class="story-step">
+      <div class="story-num ai">5</div>
+      <div class="story-body"><strong class="g">AI 编码工具接收需求，自动实现功能</strong></div>
+    </div>
+    <div class="story-step">
+      <div class="story-num done">✓</div>
+      <div class="story-body"><strong>第二天上班，直接验收。</strong>没有理解偏差。没有返工。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ━━ THE FLIP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp"></div>
+  <div class="flip">
+    <div class="flip-word">
+      工作方式<span class="a">变了</span>
+    </div>
+    <div class="flip-sub">不是"用更好的工具做同样的事"<br>是"用完全不同的方式完成工作"</div>
+  </div>
+</div>
+
+<!-- ━━ UI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap-wide">
+  <div class="sp"></div>
+  <div class="wrap">
+    <div class="kicker">界面</div>
+    <div class="h2">打开就是这样。没了。</div>
+  </div>
+  <div style="max-width:640px;margin:40px auto 0;padding:0 28px;">
+    <svg viewBox="0 0 640 400" style="width:100%;display:block;">
+      <rect x="1" y="1" width="638" height="398" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+      <rect x="1" y="1" width="638" height="32" rx="10" fill="var(--surface)"/>
+      <rect x="1" y="23" width="638" height="10" fill="var(--surface)"/>
+      <line x1="1" y1="33" x2="639" y2="33" stroke="var(--border)" stroke-width="0.5"/>
+      <circle cx="18" cy="17" r="4.5" fill="#ff5f56"/>
+      <circle cx="32" cy="17" r="4.5" fill="#ffbd2e"/>
+      <circle cx="46" cy="17" r="4.5" fill="#27c93f"/>
+      <rect x="272" y="9" width="96" height="16" rx="8" fill="var(--green-soft)"/>
+      <circle cx="284" cy="17" r="2.5" fill="var(--green)"/>
+      <text x="294" y="21" fill="var(--green)" font-size="8" font-weight="600">Agent 整理中</text>
+      <rect x="1" y="33" width="180" height="318" fill="var(--surface)"/>
+      <line x1="181" y1="33" x2="181" y2="351" stroke="var(--border)" stroke-width="0.5"/>
+      <text x="16" y="56" fill="var(--dim)" font-size="8" font-weight="600" letter-spacing="0.1em">2026年3月</text>
+      <text x="16" y="82" fill="var(--accent)" font-size="17" font-weight="800">29</text>
+      <text x="16" y="94" fill="var(--muted)" font-size="7">周六</text>
+      <rect x="42" y="68" width="132" height="38" rx="4" fill="var(--bg)"/>
+      <line x1="42" y1="68" x2="42" y2="106" stroke="var(--accent)" stroke-width="2"/>
+      <text x="52" y="83" fill="var(--text)" font-size="9" font-weight="600">AI 平台产品会议</text>
+      <text x="52" y="96" fill="var(--muted)" font-size="7">产品能力升级方案讨论</text>
+      <text x="52" y="122" fill="var(--text)" font-size="9">周报整理</text>
+      <text x="52" y="134" fill="var(--muted)" font-size="7">本周项目进度汇总</text>
+      <text x="16" y="166" fill="var(--muted)" font-size="17" font-weight="800">28</text>
+      <text x="16" y="178" fill="var(--muted)" font-size="7">周五</text>
+      <text x="52" y="168" fill="var(--text)" font-size="9">需求评审会记录</text>
+      <text x="52" y="180" fill="var(--muted)" font-size="7">Q2 功能排期讨论</text>
+      <text x="52" y="204" fill="var(--text)" font-size="9">客户访谈录音</text>
+      <text x="52" y="216" fill="var(--muted)" font-size="7">张总反馈产品体验问题</text>
+      <rect x="185" y="33" width="454" height="318" fill="var(--bg)"/>
+      <text x="208" y="60" fill="var(--muted)" font-size="8.5">产品能力升级方案讨论，涵盖三个核心议题</text>
+      <rect x="208" y="68" width="34" height="13" rx="3" fill="var(--accent-soft)"/>
+      <text x="225" y="78" text-anchor="middle" fill="var(--accent)" font-size="7" font-weight="600">会议</text>
+      <rect x="248" y="68" width="22" height="13" rx="3" fill="var(--green-soft)"/>
+      <text x="259" y="78" text-anchor="middle" fill="var(--green)" font-size="7" font-weight="600">AI</text>
+      <line x1="208" y1="90" x2="616" y2="90" stroke="var(--border)" stroke-width="0.5"/>
+      <text x="208" y="116" fill="var(--text)" font-size="15" font-weight="700" font-family="'Noto Serif SC',serif">AI 平台产品会议纪要</text>
+      <rect x="208" y="128" width="320" height="5" rx="2.5" fill="var(--border)" opacity="0.5"/>
+      <rect x="208" y="140" width="380" height="5" rx="2.5" fill="var(--border)" opacity="0.4"/>
+      <rect x="208" y="152" width="260" height="5" rx="2.5" fill="var(--border)" opacity="0.3"/>
+      <text x="208" y="182" fill="var(--muted)" font-size="10.5" font-weight="600">议题一：模型选型</text>
+      <rect x="208" y="192" width="360" height="5" rx="2.5" fill="var(--border)" opacity="0.4"/>
+      <rect x="208" y="204" width="340" height="5" rx="2.5" fill="var(--border)" opacity="0.35"/>
+      <rect x="208" y="216" width="390" height="5" rx="2.5" fill="var(--border)" opacity="0.3"/>
+      <text x="208" y="248" fill="var(--muted)" font-size="10.5" font-weight="600">议题二：数据安全</text>
+      <rect x="208" y="258" width="350" height="5" rx="2.5" fill="var(--border)" opacity="0.4"/>
+      <rect x="208" y="270" width="300" height="5" rx="2.5" fill="var(--border)" opacity="0.3"/>
+      <rect x="1" y="351" width="638" height="48" fill="var(--surface)"/>
+      <rect x="1" y="389" width="638" height="10" rx="10" fill="var(--surface)"/>
+      <line x1="1" y1="351" x2="639" y2="351" stroke="var(--border)" stroke-width="0.5"/>
+      <rect x="16" y="360" width="520" height="30" rx="6" fill="none" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,2"/>
+      <text x="276" y="379" text-anchor="middle" fill="var(--dim)" font-size="8">拖入文件或粘贴文本</text>
+      <circle cx="584" cy="375" r="16" fill="var(--accent)"/>
+      <rect x="582" y="369" width="4" height="8" rx="2" fill="var(--bg)"/>
+      <circle cx="584" cy="375" r="5" fill="none" stroke="var(--bg)" stroke-width="1"/>
+      <text x="90" y="346" text-anchor="middle" fill="var(--muted)" font-size="7">浏览</text>
+      <text x="410" y="300" text-anchor="middle" fill="var(--green)" font-size="7.5" font-weight="600">← AI 生成，只读</text>
+      <text x="276" y="400" text-anchor="middle" fill="var(--accent)" font-size="7.5" font-weight="600">↑ 唯一输入入口</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ━━ DIFFERENTIATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp2"></div>
+  <div class="kicker">差异化</div>
+  <div class="h2">别的笔记软件给你编辑器<br>谨迹连编辑按钮都没有</div>
+  <div class="body" style="margin-top:8px;">
+    写权限属于 AI Agent，不属于人类。<br>
+    日志的创建、修改、重新整理——全部由 AI 完成。
+  </div>
+
+  <div class="perm">
+    <div class="ph">操作</div>
+    <div class="ph" style="min-width:60px;">人类</div>
+    <div class="ph" style="min-width:60px;">AI</div>
+    <div class="pr">投入素材</div>     <div class="pr yes">✓</div> <div class="pr no">—</div>
+    <div class="pr">阅读 / 删除</div>  <div class="pr yes">✓</div> <div class="pr no">—</div>
+    <div class="pr hi">编辑日志</div>   <div class="pr hi ban">✗</div> <div class="pr hi own">独占</div>
+    <div class="pr">摘要 / 标签 / 归档</div> <div class="pr no">—</div> <div class="pr own">独占</div>
+  </div>
+</div>
+
+<!-- ━━ WHY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp"></div>
+  <div class="kicker">信念</div>
+  <div class="h2">为什么这样做</div>
+
+  <div class="bq" style="margin-top:32px;">
+    <strong>你的时间应该花在决策上，不是整理上。</strong><br>
+    <span class="a">整理录音、提炼待办、起草方案——这些不该是你的活。</span>
+  </div>
+  <div class="bq">
+    <strong>它记住你说过的每一句话。</strong><br>
+    <span class="a">跨会议、跨日期，从历史素材中主动产出你需要的东西。</span>
+  </div>
+  <div class="bq">
+    <strong>功能越少，产品越锋利。</strong><br>
+    <span class="a">没有编辑器、没有工具栏——你只管投喂和阅读。</span>
+  </div>
+</div>
+
+<!-- ━━ CLOSING ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="wrap">
+  <div class="sp2"></div>
+  <div class="line"></div>
+  <div class="closing">
+    <p>
+      <span class="w">谨迹</span><br><br>
+      <span class="a">每一次思考</span><br>
+      <span class="g">都值得被谨迹</span>
+    </p>
+  </div>
+</div>
+
+<div class="footer">谨迹 Journal · macOS · Tauri v2 · React · Rust · Claude</div>
+
+<button class="theme-btn" id="themeBtn">☀</button>
+<script>
+const b=document.getElementById('themeBtn'),s=localStorage.getItem('theme')||'dark';
+document.documentElement.dataset.theme=s;b.textContent=s==='light'?'🌙':'☀';
+b.onclick=()=>{const n=document.documentElement.dataset.theme==='light'?'dark':'light';
+document.documentElement.dataset.theme=n;localStorage.setItem('theme',n);
+b.textContent=n==='light'?'🌙':'☀';};
+</script>
+</body>
+</html>

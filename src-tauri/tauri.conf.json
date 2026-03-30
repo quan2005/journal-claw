@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "谨迹",
+  "productName": "Jinji",
   "version": "0.4.1",
   "identifier": "com.journal.app",
   "build": {

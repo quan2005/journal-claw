@@ -7,11 +7,12 @@ interface TitleBarProps {
   onThemeChange: (theme: Theme) => void
   isProcessing: boolean
   processingFilename?: string
+  onLogClick?: () => void
   view: 'journal' | 'settings'
   onToggleSettings: () => void
 }
 
-export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, view, onToggleSettings }: TitleBarProps) {
+export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, onLogClick, view, onToggleSettings }: TitleBarProps) {
   return (
     <div
       data-tauri-drag-region
@@ -34,7 +35,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         {view === 'settings'
           ? <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
-          : <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} />
+          : <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} onLogClick={onLogClick} />
         }
       </div>
 

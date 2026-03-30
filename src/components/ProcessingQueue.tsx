@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
@@ -8,6 +7,8 @@ interface ProcessingQueueProps {
   items: QueueItem[]
   onDismiss: (path: string) => void
   onCancel: () => void
+  activeLogPath: string | null
+  onSetActiveLogPath: (path: string | null) => void
 }
 
 const kindEmoji: Record<string, string> = {
@@ -62,9 +63,7 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
   )
 }
 
-export function ProcessingQueue({ items, onDismiss, onCancel }: ProcessingQueueProps) {
-  const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
-
+export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onSetActiveLogPath }: ProcessingQueueProps) {
   if (items.length === 0) return null
 
   const activeItem = activeLogPath ? items.find(i => i.path === activeLogPath) : null
@@ -90,7 +89,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel }: ProcessingQueueP
           return (
             <div
               key={item.path}
-              onClick={() => setActiveLogPath(item.path)}
+              onClick={() => onSetActiveLogPath(item.path)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -123,10 +122,10 @@ export function ProcessingQueue({ items, onDismiss, onCancel }: ProcessingQueueP
       {activeItem && (
         <AiLogModal
           item={activeItem}
-          onClose={() => setActiveLogPath(null)}
+          onClose={() => onSetActiveLogPath(null)}
           onCancel={() => {
             onCancel()
-            setActiveLogPath(null)
+            onSetActiveLogPath(null)
           }}
         />
       )}

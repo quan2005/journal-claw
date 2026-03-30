@@ -78,12 +78,65 @@ fn augmented_path() -> String {
     )
 }
 
+/// Extract a concise label from a tool_use input object.
+/// e.g. Bash("ls -la"), Read("src/main.rs"), Write("output.md")
+fn tool_input_label(name: &str, input: &serde_json::Value) -> String {
+    let arg = match name {
+        "Bash" => input.get("command")
+            .or_else(|| input.get("cmd"))
+            .and_then(|v| v.as_str())
+            .map(|s| {
+                // Trim to first line, max 60 chars
+                let first = s.lines().next().unwrap_or(s);
+                if first.len() > 60 { format!("{}…", &first[..60]) } else { first.to_string() }
+            }),
+        "Read" | "Write" | "Edit" | "Glob" => {
+            input.get("file_path")
+                .or_else(|| input.get("path"))
+                .or_else(|| input.get("pattern"))
+                .and_then(|v| v.as_str())
+                .map(|s| {
+                    // Show only filename for readability
+                    std::path::Path::new(s)
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or(s)
+                        .to_string()
+                })
+        },
+        "Grep" => input.get("pattern").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        _ => None,
+    };
+    match arg {
+        Some(a) => format!("[{}] {}", name, a),
+        None => format!("[{}]", name),
+    }
+}
+
 /// Parse a single stream-json line and return a human-readable log message,
 /// or None if the line should be silently ignored.
 fn extract_log_line(line: &str) -> Option<String> {
     let val: serde_json::Value = serde_json::from_str(line).ok()?;
     let typ = val.get("type")?.as_str()?;
     match typ {
+        "system" => {
+            let subtype = val.get("subtype").and_then(|v| v.as_str()).unwrap_or("");
+            if subtype == "init" {
+                let model = val.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+                let tools: Vec<&str> = val.get("tools")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| arr.iter().filter_map(|t| t.as_str()).collect())
+                    .unwrap_or_default();
+                let tool_str = if tools.is_empty() {
+                    String::new()
+                } else {
+                    format!(" · 工具: {}", tools.join(", "))
+                };
+                Some(format!("模型: {}{}", model, tool_str))
+            } else {
+                None
+            }
+        }
         "assistant" => {
             let contents = val.pointer("/message/content")?.as_array()?;
             for block in contents {
@@ -91,13 +144,22 @@ fn extract_log_line(line: &str) -> Option<String> {
                 match block_type {
                     "text" => {
                         let text = block.get("text")?.as_str()?;
-                        if !text.trim().is_empty() {
-                            return Some(text.trim().to_string());
+                        let trimmed = text.trim();
+                        if !trimmed.is_empty() {
+                            // Truncate long text blocks to first line + 120 chars
+                            let first = trimmed.lines().next().unwrap_or(trimmed);
+                            let display = if first.len() > 120 {
+                                format!("{}…", &first[..120])
+                            } else {
+                                first.to_string()
+                            };
+                            return Some(display);
                         }
                     }
                     "tool_use" => {
                         let name = block.get("name")?.as_str()?;
-                        return Some(format!("[tool] {}", name));
+                        let input = block.get("input").unwrap_or(&serde_json::Value::Null);
+                        return Some(tool_input_label(name, input));
                     }
                     _ => {}
                 }
@@ -110,7 +172,29 @@ fn extract_log_line(line: &str) -> Option<String> {
                 let msg = val.get("result").and_then(|v| v.as_str()).unwrap_or("失败");
                 Some(format!("[error] {}", msg))
             } else {
-                None
+                // Show duration and cost on success
+                let duration_s = val.get("duration_ms")
+                    .and_then(|v| v.as_f64())
+                    .map(|ms| format!("{:.1}s", ms / 1000.0))
+                    .unwrap_or_default();
+                let cost = val.get("total_cost_usd")
+                    .and_then(|v| v.as_f64())
+                    .map(|c| format!("${:.4}", c))
+                    .unwrap_or_default();
+                let turns = val.get("num_turns")
+                    .and_then(|v| v.as_u64())
+                    .map(|t| format!("{} turns", t))
+                    .unwrap_or_default();
+                let parts: Vec<&str> = [&duration_s, &cost, &turns]
+                    .iter()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.as_str())
+                    .collect();
+                if parts.is_empty() {
+                    Some("完成".to_string())
+                } else {
+                    Some(format!("完成 · {}", parts.join(" · ")))
+                }
             }
         }
         _ => None,
@@ -514,14 +598,36 @@ mod tests {
         let msg = extract_log_line(line);
         assert_eq!(msg, Some("正在读取文件...".to_string()));
 
-        // tool_use line
-        let tool_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t1","input":null,"name":"Read","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
-        let msg2 = extract_log_line(tool_line);
-        assert_eq!(msg2, Some("[tool] Read".to_string()));
+        // tool_use Bash with command
+        let tool_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t1","input":{"command":"ls -la"},"name":"Bash","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
+        assert_eq!(extract_log_line(tool_line), Some("[Bash] ls -la".to_string()));
 
-        // system init — should be ignored
-        let sys_line = r#"{"type":"system","subtype":"init","cwd":"/tmp"}"#;
-        assert_eq!(extract_log_line(sys_line), None);
+        // tool_use Read with file_path
+        let read_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t2","input":{"file_path":"src/main.rs"},"name":"Read","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
+        assert_eq!(extract_log_line(read_line), Some("[Read] main.rs".to_string()));
+
+        // system init
+        let sys_line = r#"{"type":"system","subtype":"init","cwd":"/tmp","model":"claude-sonnet-4-6","tools":["Bash","Read"]}"#;
+        let sys_msg = extract_log_line(sys_line).unwrap();
+        assert!(sys_msg.contains("claude-sonnet-4-6"), "expected model name in: {}", sys_msg);
+        assert!(sys_msg.contains("Bash"), "expected tools in: {}", sys_msg);
+
+        // system non-init — should be ignored
+        let hook_line = r#"{"type":"system","subtype":"hook_started"}"#;
+        assert_eq!(extract_log_line(hook_line), None);
+
+        // result success with duration and cost
+        let result_ok = r#"{"type":"result","subtype":"success","is_error":false,"duration_ms":5000,"num_turns":3,"total_cost_usd":0.012}"#;
+        let ok_msg = extract_log_line(result_ok).unwrap();
+        assert!(ok_msg.contains("完成"), "expected 完成 in: {}", ok_msg);
+        assert!(ok_msg.contains("5.0s"), "expected duration in: {}", ok_msg);
+        assert!(ok_msg.contains("$0.0120"), "expected cost in: {}", ok_msg);
+
+        // result error
+        let result_err = r#"{"type":"result","subtype":"error","is_error":true,"result":"无法读取文件"}"#;
+        let err_msg = extract_log_line(result_err).unwrap();
+        assert!(err_msg.starts_with("[error]"), "expected [error] prefix in: {}", err_msg);
+        assert!(err_msg.contains("无法读取文件"), "expected error text in: {}", err_msg);
     }
 
     #[test]

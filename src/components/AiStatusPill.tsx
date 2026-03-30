@@ -3,9 +3,10 @@ import { useState, useEffect, useRef } from 'react'
 interface AiStatusPillProps {
   isProcessing: boolean
   processingFilename?: string
+  onLogClick?: () => void
 }
 
-export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillProps) {
+export function AiStatusPill({ isProcessing, processingFilename, onLogClick }: AiStatusPillProps) {
   // Track visual state separately to implement 2s linger after processing ends
   const [showActive, setShowActive] = useState(false)
   const [lingerName, setLingerName] = useState<string | undefined>(undefined)
@@ -33,6 +34,7 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
 
   return (
     <div
+      onClick={active && onLogClick ? onLogClick : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -41,12 +43,13 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
         border: `0.5px solid ${active ? 'var(--ai-pill-active-border)' : 'var(--ai-pill-border)'}`,
         borderRadius: 20,
         padding: '3px 11px',
-        fontSize: 9,
+        fontSize: 11,
         color: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-text)',
         letterSpacing: '0.05em',
         userSelect: 'none',
         transition: 'background 0.3s, color 0.3s, border-color 0.3s',
         WebkitAppRegion: 'no-drag',
+        cursor: active && onLogClick ? 'pointer' : 'default',
       } as React.CSSProperties}
     >
       <div

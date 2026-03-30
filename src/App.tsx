@@ -26,6 +26,7 @@ export default function App() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
+  const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -176,6 +177,7 @@ export default function App() {
   }
 
   const processingFilename = queueItems.find(i => i.status === 'processing')?.filename
+  const processingPath = queueItems.find(i => i.status === 'processing')?.path
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -184,6 +186,7 @@ export default function App() {
         onThemeChange={setTheme}
         isProcessing={isProcessing}
         processingFilename={processingFilename}
+        onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
         onToggleSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
       />
@@ -228,7 +231,7 @@ export default function App() {
               right: 0,
               zIndex: 10,
             }}>
-              <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} />
+              <ProcessingQueue items={queueItems} onDismiss={dismissQueueItem} onCancel={cancelAiProcessing} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
             </div>
             <CommandDock
               isDragOver={isDragOver}

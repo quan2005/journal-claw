@@ -849,26 +849,17 @@ mod tests {
 
     #[test]
     fn prompt_text_used_directly_as_prompt() {
-        // When prompt_text is Some, the prompt should be the raw text
-        let prompt_text = "帮我整理今天的工作";
-        let prompt = prompt_text.to_string();
-        assert_eq!(prompt, "帮我整理今天的工作");
-        assert!(!prompt.contains("@"));
-        assert!(!prompt.contains("深入梳理"));
+        let (args, _) = build_claude_args("note.txt", "2603", None, Some("帮我整理今天的工作"), "");
+        assert_eq!(args[1], "帮我整理今天的工作");
+        assert!(!args[1].contains('@'));
+        assert!(!args[1].contains("深入梳理"));
     }
 
     #[test]
     fn prompt_text_none_falls_back_to_material_prompt() {
-        // When prompt_text is None, the prompt contains @file reference
-        let filename = "meeting.txt";
-        let year_month = "2603";
-        let relative_ref = format!("{}/raw/{}", year_month, filename);
-        let prompt = format!(
-            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
-            relative_ref, year_month
-        );
-        assert!(prompt.contains("@2603/raw/meeting.txt"));
-        assert!(prompt.contains("深入梳理"));
+        let (args, _) = build_claude_args("meeting.txt", "2603", None, None, "");
+        assert!(args[1].contains("@2603/raw/meeting.txt"));
+        assert!(args[1].contains("深入梳理"));
     }
 
     #[test]

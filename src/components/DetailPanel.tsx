@@ -1,174 +1,313 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import type { JournalEntry } from '../types'
 import { getJournalEntryContent } from '../lib/tauri'
-import { invoke } from '@tauri-apps/api/core'
+import { pickDisplayTags } from '../lib/tags'
 import { Spinner } from './Spinner'
 
 interface DetailPanelProps {
-  entry: JournalEntry
-  onClose: () => void
+  entry: JournalEntry | null
+  onDeselect: () => void
 }
 
-function kindIcon(kind: string): string {
-  return kind === 'audio' ? '🎙' : kind === 'pdf' ? '📋' : kind === 'docx' ? '📝' : '📄'
-}
+// ── Code block with copy button ───────────────────────────────────────────────
+function CodeBlock({ children, rawText }: { className?: string; children?: React.ReactNode; rawText?: string }) {
+  const [copied, setCopied] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
-function kindAction(kind: string): string {
-  return kind === 'audio' ? '▶ 播放' : '打开'
-}
-
-// Minimal markdown renderer — headings + paragraphs + lists
-function renderMarkdown(md: string): React.ReactNode[] {
-  // Strip frontmatter
-  const body = md.replace(/^---[\s\S]*?---\n?/, '').trim()
-  const lines = body.split('\n')
-  const nodes: React.ReactNode[] = []
-  let i = 0
-
-  while (i < lines.length) {
-    const line = lines[i]
-    if (line.startsWith('## ')) {
-      nodes.push(
-        <h2 key={i} style={{ fontSize: 13, fontWeight: 600, color: '#1c1c1e', margin: '12px 0 4px' }}>
-          {line.slice(3)}
-        </h2>
-      )
-      i++
-    } else if (line.startsWith('- [ ] ') || line.startsWith('- [x] ')) {
-      const checked = line.startsWith('- [x] ')
-      nodes.push(
-        <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
-          <span style={{ width: 12, height: 12, border: '1.5px solid #c7c7cc', borderRadius: 3, flexShrink: 0, display: 'inline-block', background: checked ? '#c7c7cc' : 'none' }} />
-          <span style={{ fontSize: 13, color: '#3a3a3c' }}>{line.slice(6)}</span>
-        </div>
-      )
-      i++
-    } else if (line.startsWith('- ')) {
-      nodes.push(
-        <div key={i} style={{ fontSize: 13, color: '#3a3a3c', marginBottom: 2, paddingLeft: 12 }}>
-          · {line.slice(2)}
-        </div>
-      )
-      i++
-    } else if (line.trim() === '') {
-      i++
-    } else {
-      nodes.push(
-        <p key={i} style={{ fontSize: 13, color: '#3a3a3c', marginBottom: 4, lineHeight: 1.75 }}>
-          {line}
-        </p>
-      )
-      i++
-    }
+  const handleCopy = () => {
+    navigator.clipboard.writeText(rawText ?? '').then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
   }
-  return nodes
+
+  return (
+    <div
+      style={{ position: 'relative', margin: '12px 0' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {(hovered || copied) && (
+        <button
+          onClick={handleCopy}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 1,
+            background: copied ? 'rgba(52,199,89,0.15)' : 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: copied ? '#34c759' : 'var(--item-meta)',
+            fontSize: 11,
+            padding: '2px 8px',
+            borderRadius: 5,
+            cursor: 'pointer',
+            fontFamily: "'IBM Plex Mono', monospace",
+            transition: 'color 0.15s, background 0.15s',
+            userSelect: 'none',
+          }}
+        >
+          {copied ? '已复制 ✓' : '复制'}
+        </button>
+      )}
+      <pre style={{
+        margin: 0,
+        background: 'var(--md-pre-bg)',
+        borderRadius: 8,
+        padding: '10px 14px',
+        overflowX: 'auto',
+        fontSize: 12,
+        lineHeight: 1.7,
+        color: 'var(--md-pre-text)',
+        fontFamily: "'IBM Plex Mono', ui-monospace, Menlo, monospace",
+      }}>
+        {children}
+      </pre>
+    </div>
+  )
 }
 
-const TAG_DISPLAY: Record<string, { label: string; color: string; bg: string }> = {
-  meeting: { label: '会议', color: '#5856d6', bg: 'rgba(88,86,214,0.10)' },
-  reading: { label: '阅读', color: '#ff9500', bg: 'rgba(255,149,0,0.10)' },
-  design:  { label: '设计', color: '#30b0c7', bg: 'rgba(48,176,199,0.10)' },
-  report:  { label: '报告', color: '#34c759', bg: 'rgba(52,199,89,0.10)' },
-  goal:    { label: '目标', color: '#ff3b30', bg: 'rgba(255,59,48,0.10)' },
-  plan:    { label: '计划', color: '#007aff', bg: 'rgba(0,122,255,0.10)' },
-}
-
-export function DetailPanel({ entry, onClose }: DetailPanelProps) {
+// ── Component ─────────────────────────────────────────────────────────────────
+export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!entry) { setContent(null); return }
     setContent(null)
     getJournalEntryContent(entry.path).then(setContent)
-  }, [entry.path])
+  }, [entry?.path])
 
-  // Escape to close
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onDeselect() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+  }, [onDeselect])
 
-  const displayTags = entry.tags.filter(t => t !== 'journal' && TAG_DISPLAY[t])
+  const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
+
+  if (!entry) {
+    return (
+      <div style={{
+        width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: 'var(--detail-bg)', gap: 8,
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.15, color: 'var(--item-text)' }}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+        <span style={{ fontSize: 13, color: 'var(--item-meta)', textAlign: 'center', lineHeight: 1.6 }}>
+          从左侧选择一条日志<br />或将文件拖入窗口
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div style={{
-      width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column',
-      borderLeft: '1px solid var(--divider)', background: 'var(--sheet-bg)', height: '100%',
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+      background: 'var(--detail-bg)',
     }}>
-      {/* Header */}
-      <div style={{
-        height: 48, display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', padding: '0 16px',
-        borderBottom: '1px solid var(--divider)', flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--item-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {entry.title}
-        </span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#c7c7cc', padding: '4px 8px' }}>✕</button>
-      </div>
-
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
 
-        {/* Meta block — B3 style */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: '#aeaeb2' }}>{entry.created_time}</span>
-            {displayTags.map(t => {
-              const cfg = TAG_DISPLAY[t]
-              return (
-                <span key={t} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 500, color: cfg.color, background: cfg.bg }}>
+        {/* Header: summary + tags */}
+        <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid var(--divider)' }}>
+          {/* Summary */}
+          {entry.summary && (
+            <div style={{
+              fontSize: 12,
+              color: 'var(--detail-summary)',
+              lineHeight: 1.8,
+              marginBottom: displayTags.length > 0 ? 10 : 0,
+            }}>
+              {entry.summary}
+            </div>
+          )}
+
+          {displayTags.length > 0 && (
+            <div style={{
+              display: 'flex',
+              gap: 6,
+              flexWrap: 'wrap',
+            }}>
+              {displayTags.map((cfg, i) => (
+                <span key={i} style={{
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontWeight: 500,
+                  color: cfg.color,
+                  background: cfg.bg,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  whiteSpace: 'nowrap',
+                }}>
                   {cfg.label}
                 </span>
-              )
-            })}
-          </div>
-          {entry.summary && (
-            <div style={{ fontSize: 12, color: '#aeaeb2', fontStyle: 'italic', lineHeight: 1.5 }}>
-              {entry.summary}
+              ))}
             </div>
           )}
         </div>
 
-        {/* Thin divider */}
-        <div style={{ height: 1, background: '#f0f0f0' }} />
-
-        {/* Read-only markdown */}
+        {/* Markdown content */}
         {content === null ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
             <Spinner size={20} />
           </div>
         ) : (
-          <div style={{ lineHeight: 1.8 }}>
-            {renderMarkdown(content)}
+          <div className="md-body">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[[rehypeHighlight, { detect: false }]]}
+              components={{
+                // Headings
+                h1: ({ children }) => (
+                  <h1 style={{
+                    fontFamily: "'Noto Serif SC', serif",
+                    fontSize: 18, fontWeight: 500, color: 'var(--md-h1)', margin: '0 0 14px',
+                  }}>{children}</h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 style={{
+                    fontFamily: "'Noto Serif SC', serif",
+                    fontSize: 14, fontWeight: 500, color: 'var(--md-h2)', margin: '24px 0 12px',
+                  }}>{children}</h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 style={{
+                    fontFamily: "'Noto Serif SC', serif",
+                    fontSize: 13, fontWeight: 500, color: 'var(--md-h2)', margin: '18px 0 6px',
+                  }}>{children}</h3>
+                ),
+                h4: ({ children }) => (
+                  <h4 style={{ fontSize: 11, fontWeight: 700, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
+                ),
+                h5: ({ children }) => (
+                  <h5 style={{ fontSize: 12, fontWeight: 600, color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
+                ),
+                h6: ({ children }) => (
+                  <h6 style={{ fontSize: 11, fontWeight: 500, color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
+                ),
+                // Paragraph
+                p: ({ children }) => (
+                  <p style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
+                ),
+                // Lists
+                ul: ({ children }) => (
+                  <ul style={{ paddingLeft: 0, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3, listStyle: 'none' }}>{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol style={{ paddingLeft: 20, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>{children}</ol>
+                ),
+                li: ({ children, ...liProps }) => {
+                  const ordered = (liProps as { ordered?: boolean }).ordered
+                  if (ordered) {
+                    return <li style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.75 }}>{children}</li>
+                  }
+                  const isTask = (liProps as { className?: string }).className?.includes('task-list-item')
+                  if (isTask) {
+                    const childArray = React.Children.toArray(children)
+                    const checkbox = childArray[0]
+                    const rest = childArray.slice(1)
+                    return (
+                      <li style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none' }}>
+                        <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 5 }}>{checkbox}</span>
+                        <span style={{ flex: 1 }}>{rest}</span>
+                      </li>
+                    )
+                  }
+                  return (
+                    <li style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start' }}>
+                      <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 8 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: 'var(--md-bullet)' }} />
+                      </span>
+                      <span>{children}</span>
+                    </li>
+                  )
+                },
+                // Inline
+                strong: ({ children }) => (
+                  <strong style={{ fontWeight: 600, color: 'var(--md-strong)' }}>{children}</strong>
+                ),
+                em: ({ children }) => (
+                  <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
+                ),
+                code: ({ className, children }) => {
+                  return <code className={className}>{children}</code>
+                },
+                pre: ({ children }) => {
+                  const codeEl = children as React.ReactElement<{ className?: string; children?: React.ReactNode }>
+                  const rawText = extractCodeText(codeEl?.props?.children)
+                  return (
+                    <CodeBlock className={codeEl?.props?.className} rawText={rawText}>
+                      {children}
+                    </CodeBlock>
+                  )
+                },
+                // Blockquote
+                blockquote: ({ children }) => (
+                  <blockquote style={{
+                    borderLeft: '3px solid var(--md-quote-bar)',
+                    paddingLeft: 12,
+                    margin: '8px 0',
+                    color: 'var(--md-quote-text)',
+                  }}>
+                    {children}
+                  </blockquote>
+                ),
+                // HR
+                hr: () => (
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }} />
+                ),
+                // Table
+                table: ({ children }) => (
+                  <div style={{ overflowX: 'auto', margin: '10px 0' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>{children}</table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th style={{
+                    padding: '6px 10px', textAlign: 'left', fontWeight: 600,
+                    fontSize: 11, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+                    borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap',
+                    minWidth: 72,
+                  }}>{children}</th>
+                ),
+                td: ({ children }) => (
+                  <td style={{
+                    padding: '5px 10px', color: 'var(--md-text)', lineHeight: 1.6,
+                    verticalAlign: 'top', borderBottom: '1px solid var(--divider)',
+                    minWidth: 72,
+                  }}>{children}</td>
+                ),
+              }}
+            >
+              {stripFrontmatter(content)}
+            </ReactMarkdown>
           </div>
         )}
-
-        {/* Raw materials */}
-        {entry.materials.length > 0 && (
-          <div style={{ marginTop: 4 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#c7c7cc', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-              原始素材
-            </div>
-            {entry.materials.map(m => (
-              <div
-                key={m.path}
-                onClick={() => invoke('open_with_system', { path: m.path })}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, background: '#f5f5f7', marginBottom: 4, cursor: 'pointer' }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#efefef'}
-                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = '#f5f5f7'}
-              >
-                <span style={{ fontSize: 15, flexShrink: 0 }}>{kindIcon(m.kind)}</span>
-                <span style={{ fontSize: 12, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1c1c1e' }}>
-                  {m.filename}
-                </span>
-                <span style={{ fontSize: 11, color: '#aeaeb2', flexShrink: 0 }}>{kindAction(m.kind)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
       </div>
     </div>
   )
+}
+
+function stripFrontmatter(md: string): string {
+  return md.replace(/^---[\s\S]*?---\n?/, '').trim()
+}
+
+// Extract plain text from React children (used for clipboard copy)
+function extractCodeText(children: React.ReactNode): string {
+  if (typeof children === 'string') return children
+  if (Array.isArray(children)) return children.map(extractCodeText).join('')
+  if (children && typeof children === 'object' && 'props' in (children as object)) {
+    const el = children as React.ReactElement<{ children?: React.ReactNode }>
+    return extractCodeText(el.props.children)
+  }
+  return ''
 }

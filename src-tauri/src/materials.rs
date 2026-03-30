@@ -57,6 +57,27 @@ pub fn import_file(app: AppHandle, src_path: String) -> Result<ImportResult, Str
     })
 }
 
+#[tauri::command]
+pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String> {
+    let cfg = config::load_config(&app)?;
+    if cfg.workspace_path.is_empty() {
+        return Err("请先在设置中配置 Workspace 路径".to_string());
+    }
+    let ym = ws::current_year_month();
+    ws::ensure_dirs(&cfg.workspace_path, &ym)?;
+    let raw = ws::raw_dir(&cfg.workspace_path, &ym);
+    let ts = chrono::Local::now().format("%H%M%S").to_string();
+    let filename = format!("paste-{}.txt", ts);
+    let dest = raw.join(&filename);
+    std::fs::write(&dest, text.as_bytes())
+        .map_err(|e| format!("写入粘贴文本失败: {}", e))?;
+    Ok(ImportResult {
+        filename,
+        path: dest.to_string_lossy().to_string(),
+        year_month: ym,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

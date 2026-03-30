@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { Theme } from '../types'
 
 function applyTheme(theme: Theme) {
-  if (theme === 'system') {
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
-  } else {
-    document.documentElement.setAttribute('data-theme', theme)
-  }
+  const resolved = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme
+  document.documentElement.setAttribute('data-theme', resolved)
+  // Sync macOS native chrome (traffic light buttons) with the webview theme
+  getCurrentWindow().setTheme(resolved).catch(() => {})
 }
 
 export function useTheme() {

@@ -46,7 +46,7 @@ export function CommandDock({
   }, [pasteMode])
 
   function handleTextClipboard(text: string) {
-    if (text.length > 100) {
+    if (text.length > 300) {
       importText(text).then((result) => {
         onPasteFiles([result.path])
       }).catch((err) => {
@@ -378,7 +378,7 @@ export function CommandDock({
             display: 'flex',
             flexDirection: 'column',
             padding: '8px 12px',
-            minHeight: 46,
+            minHeight: 84,
           }}>
             <div style={{
               display: 'flex',
@@ -411,7 +411,7 @@ export function CommandDock({
               onPaste={(e) => {
                 const rawText = e.clipboardData.getData('text')
                 function handlePasteTextFallback(text: string) {
-                  if (text.length > 100) {
+                  if (text.length > 300) {
                     e.preventDefault()
                     exitPaste()
                     importText(text).then((result) => {

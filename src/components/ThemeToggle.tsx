@@ -1,3 +1,4 @@
+import { Sun, Moon, Monitor, type LucideIcon } from 'lucide-react'
 import type { Theme } from '../types'
 
 interface ThemeToggleProps {
@@ -5,10 +6,10 @@ interface ThemeToggleProps {
   onChange: (theme: Theme) => void
 }
 
-const SEGMENTS: { value: Theme; icon: string }[] = [
-  { value: 'light', icon: '☀️' },
-  { value: 'dark',  icon: '🌙' },
-  { value: 'system', icon: '🖥️' },
+const SEGMENTS: { value: Theme; icon: LucideIcon }[] = [
+  { value: 'light',  icon: Sun },
+  { value: 'dark',   icon: Moon },
+  { value: 'system', icon: Monitor },
 ]
 
 export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
@@ -35,7 +36,6 @@ export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 10,
             cursor: 'pointer',
             border: 'none',
             borderRight: i < SEGMENTS.length - 1 ? '1px solid var(--divider)' : 'none',
@@ -45,7 +45,7 @@ export function ThemeToggle({ theme, onChange }: ThemeToggleProps) {
           }}
           title={seg.value}
         >
-          {seg.icon}
+          <seg.icon size={12} strokeWidth={1.5} />
         </button>
       ))}
     </div>

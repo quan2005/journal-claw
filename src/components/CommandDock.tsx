@@ -252,7 +252,7 @@ export function CommandDock({
           <div style={{
             display: 'flex',
             alignItems: 'stretch',
-            minHeight: 84,
+            minHeight: 99,
           }}>
             {/* Left: attachment cards (only when files present) */}
             {hasFiles && (
@@ -293,7 +293,7 @@ export function CommandDock({
               flexDirection: 'column',
               padding: '10px 12px',
               minWidth: 0,
-              minHeight: 84,
+              minHeight: 99,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <span style={{

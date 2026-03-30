@@ -62,6 +62,9 @@ export default function SectionAbout() {
             <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 5, letterSpacing: '0.02em' }}>
               macOS · Tauri · React · Rust · Claude
             </div>
+            <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 8, lineHeight: 1.6 }}>
+              内置 WhisperKit（MIT License）by Argmax, Inc. — 本地语音识别引擎
+            </div>
           </div>
 
         </div>

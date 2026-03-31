@@ -173,3 +173,6 @@ export const checkWhisperkitCliInstalled = (): Promise<boolean> =>
 
 export const installWhisperkitCli = (): Promise<void> =>
   invoke<void>('install_whisperkit_cli')
+
+export const createSampleEntryIfNeeded = (): Promise<boolean> =>
+  invoke<boolean>('create_sample_entry_if_needed')

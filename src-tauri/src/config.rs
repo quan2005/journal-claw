@@ -59,6 +59,9 @@ pub struct Config {
     pub asr_engine: String, // "dashscope" | "whisperkit"
     #[serde(default = "default_whisperkit_model")]
     pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
+    // 首次启动引导
+    #[serde(default)]
+    pub sample_entry_created: bool,
 }
 
 pub fn augmented_path() -> String {
@@ -760,5 +763,22 @@ mod tests {
         };
         sanitize_engine_config(&mut c);
         assert_eq!(c.whisperkit_model, "large-v3-turbo");
+    }
+
+    #[test]
+    fn sample_entry_created_defaults_to_false() {
+        let c: Config = serde_json::from_str("{}").unwrap();
+        assert!(!c.sample_entry_created);
+    }
+
+    #[test]
+    fn sample_entry_created_roundtrip() {
+        let c = Config {
+            sample_entry_created: true,
+            ..Config::default()
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let c2: Config = serde_json::from_str(&json).unwrap();
+        assert!(c2.sample_entry_created);
     }
 }

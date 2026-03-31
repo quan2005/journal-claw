@@ -204,10 +204,14 @@ pub async fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String>
     let mut child = tokio::process::Command::new("brew")
         .args(["install", "whisperkit-cli"])
         .env("PATH", augmented_path())
+        .env("HOMEBREW_NO_AUTO_UPDATE", "1")
+        .env("HOMEBREW_NO_ENV_HINTS", "1")
+        .env("HOMEBREW_NO_ANALYTICS", "1")
+        .env("CI", "1")
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("启动 brew 失败: {}", e))?;
+        .map_err(|e| format!("启动 brew 失败（请确认已安装 Homebrew）: {}", e))?;
 
     let emit_line = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
         let _ = app.emit(

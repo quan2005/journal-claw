@@ -195,7 +195,9 @@ export default function SectionVoice() {
             setCliInstallLog(prev => [...prev, payload.line])
           }
         } else {
-          setCliInstallLog(prev => [...prev.slice(-20), payload.line])
+          if (payload.line.trim()) {
+            setCliInstallLog(prev => [...prev.slice(-20), payload.line.trim()])
+          }
         }
       }
     ).then(fn => { unlistenCliInstall = fn })

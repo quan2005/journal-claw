@@ -6,6 +6,7 @@ export type RecorderStatus = 'idle' | 'recording'
 interface UseRecorderReturn {
   status: RecorderStatus
   elapsedSecs: number
+  audioLevel: number
   start: () => Promise<void>
   stop: () => Promise<void>
 }
@@ -13,6 +14,7 @@ interface UseRecorderReturn {
 export function useRecorder(): UseRecorderReturn {
   const [status, setStatus] = useState<RecorderStatus>('idle')
   const [elapsedSecs, setElapsedSecs] = useState(0)
+  const [audioLevel] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const start = useCallback(async () => {
@@ -34,5 +36,5 @@ export function useRecorder(): UseRecorderReturn {
     setElapsedSecs(0)
   }, [])
 
-  return { status, elapsedSecs, start, stop }
+  return { status, elapsedSecs, audioLevel, start, stop }
 }

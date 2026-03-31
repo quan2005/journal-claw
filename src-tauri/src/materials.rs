@@ -10,22 +10,33 @@ pub fn dest_filename(src_path: &str) -> String {
         .to_string()
 }
 
+fn file_hash(path: &std::path::Path) -> Option<u64> {
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
+    let data = std::fs::read(path).ok()?;
+    let mut h = DefaultHasher::new();
+    data.hash(&mut h);
+    Some(h.finish())
+}
+
 pub fn copy_to_raw(src_path: &str, workspace: &str, year_month: &str) -> Result<PathBuf, String> {
     workspace::ensure_dirs(workspace, year_month)?;
     let raw = workspace::raw_dir(workspace, year_month);
+    let src = std::path::Path::new(src_path);
+    let hash_str = file_hash(src)
+        .map(|h| format!("{:x}", h))
+        .unwrap_or_else(|| "unknown".to_string());
+    let hash8 = &hash_str[..8.min(hash_str.len())];
     let filename = dest_filename(src_path);
-    let dest = raw.join(&filename);
-    // If dest exists, add timestamp suffix
-    let dest = if dest.exists() {
-        let stem = PathBuf::from(&filename)
-            .file_stem().unwrap_or_default().to_string_lossy().to_string();
-        let ext = PathBuf::from(&filename)
-            .extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
-        let ts = chrono::Local::now().format("%H%M%S").to_string();
-        raw.join(format!("{}-{}{}", stem, ts, ext))
-    } else {
-        dest
-    };
+    let stem = PathBuf::from(&filename)
+        .file_stem().unwrap_or_default().to_string_lossy().to_string();
+    let ext = PathBuf::from(&filename)
+        .extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let dest_name = format!("{}-{}{}", stem, hash8, ext);
+    let dest = raw.join(&dest_name);
+    if dest.exists() {
+        return Ok(dest);
+    }
     std::fs::copy(src_path, &dest)
         .map_err(|e| format!("复制文件失败: {}", e))?;
     Ok(dest)

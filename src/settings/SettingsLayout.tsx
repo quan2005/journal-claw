@@ -18,10 +18,11 @@ interface SettingsLayoutProps {
   height: string
   initialSection?: string
   onSectionConsumed?: () => void
+  onClose?: () => void
 }
 
 type NavItem = {
-  id: Exclude<NavId, 'about'>
+  id: NavId
   label: string
   icon: LucideIcon
 }
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'ai', label: 'AI 引擎', icon: Cpu },
   { id: 'voice', label: '语音转写', icon: Mic },
   { id: 'plugins', label: '技能插件', icon: Puzzle },
+  { id: 'about', label: '关于', icon: Info },
 ]
 
 const navIconStyle: React.CSSProperties = {
@@ -58,7 +60,7 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
   )
 })
 
-export function SettingsLayout({ height, initialSection, onSectionConsumed }: SettingsLayoutProps) {
+export function SettingsLayout({ height, initialSection, onSectionConsumed, onClose }: SettingsLayoutProps) {
   const [activeNav, setActiveNav] = useState<NavId>('general')
   const scrollRef = useRef<HTMLDivElement>(null)
   const sectionRefs = useRef<Partial<Record<NavId, HTMLElement>>>({})
@@ -289,16 +291,37 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed }: Se
             <span style={{ minWidth: 0 }}>{label}</span>
           </button>
         ))}
-        <div style={{ flex: 1 }} />
-        <button onClick={() => jumpTo('about')} style={navBtnStyle('about')}>
-          <span style={navIconStyle}>
-            <Info size={14} strokeWidth={1.5} />
-          </span>
-          <span style={{ minWidth: 0 }}>关于</span>
-        </button>
+        {onClose && (
+          <>
+            <div style={{ flex: 1 }} />
+            <button onClick={onClose} style={{
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: '16px minmax(0, 1fr)',
+              alignItems: 'center',
+              columnGap: 10,
+              padding: '8px 10px',
+              borderRadius: 8,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+              textAlign: 'left',
+              background: 'transparent',
+              color: 'var(--item-meta)',
+            }}>
+              <span style={navIconStyle}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+              <span style={{ minWidth: 0 }}>返回</span>
+            </button>
+          </>
+        )}
       </nav>
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         <SettingsContent registerSectionRef={registerSectionRef} />
       </div>
     </div>

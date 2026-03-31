@@ -248,6 +248,7 @@ fn main() {
             config::get_whisperkit_models_dir,
             config::check_whisperkit_model_downloaded,
             config::check_whisperkit_cli_installed,
+            config::install_whisperkit_cli,
             config::download_whisperkit_model,
             ai_processor::check_engine_installed,
             ai_processor::install_engine,

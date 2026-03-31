@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, PackageCheck, RefreshCw } from 'lucide-react'
-import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, type AsrConfig } from '../../lib/tauri'
+import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
 
@@ -111,6 +111,8 @@ export default function SectionVoice() {
   const [downloadedModels, setDownloadedModels] = useState<Set<WhisperModel>>(new Set())
   const [downloadSession, setDownloadSession] = useState<WhisperDownloadSession | null>(null)
   const [cliInstalled, setCliInstalled] = useState<boolean | null>(null)
+  const [cliInstalling, setCliInstalling] = useState(false)
+  const [cliInstallLog, setCliInstallLog] = useState<string[]>([])
 
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
@@ -185,7 +187,28 @@ export default function SectionVoice() {
         }
       }
     ).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
+
+    // listen for whisperkit-cli install events
+    let unlistenCliInstall: (() => void) | null = null
+    listen<{ engine: string; line: string; done: boolean; success: boolean }>(
+      'engine-install-log',
+      ({ payload }) => {
+        if (payload.engine !== 'whisperkit-cli') return
+        if (payload.done) {
+          setCliInstalling(false)
+          if (payload.success) {
+            setCliInstalled(true)
+            setCliInstallLog(prev => [...prev, payload.line])
+          } else {
+            setCliInstallLog(prev => [...prev, payload.line])
+          }
+        } else {
+          setCliInstallLog(prev => [...prev.slice(-20), payload.line])
+        }
+      }
+    ).then(fn => { unlistenCliInstall = fn })
+
+    return () => { unlisten?.(); unlistenCliInstall?.() }
   }, [])
 
   const handleSave = async () => {
@@ -203,6 +226,15 @@ export default function SectionVoice() {
 
   const handleOpenModelsDir = () => {
     invoke('open_with_system', { path: modelsDir })
+  }
+
+  const handleInstallCli = () => {
+    if (cliInstalling) return
+    setCliInstalling(true)
+    setCliInstallLog([])
+    installWhisperkitCli().catch(() => {
+      setCliInstalling(false)
+    })
   }
 
   const handleDownload = (model: WhisperModel) => {
@@ -342,24 +374,64 @@ export default function SectionVoice() {
                   color: 'var(--item-meta)',
                   lineHeight: 1.6,
                 }}>
-                  <div style={{ fontWeight: 600, color: '#ff9f0a', marginBottom: 4 }}>未检测到 whisperkit-cli</div>
-                  <div>请在终端运行以下命令安装：</div>
-                  <code style={{
-                    display: 'block',
-                    marginTop: 6,
-                    padding: '5px 8px',
-                    background: 'rgba(0,0,0,0.2)',
-                    borderRadius: 5,
-                    fontFamily: 'ui-monospace, monospace',
-                    fontSize: 10,
-                    color: 'var(--item-text)',
-                    userSelect: 'text' as const,
-                  }}>
-                    brew install argmaxinc/whisperkit/whisperkit-cli
-                  </code>
-                  <div style={{ marginTop: 6, color: 'var(--duration-text)' }}>
-                    安装完成后重新打开设置页面即可刷新检测状态。
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: '#ff9f0a' }}>未检测到 whisperkit-cli</div>
+                    <button
+                      onClick={handleInstallCli}
+                      disabled={cliInstalling}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                        border: '1px solid rgba(255,159,10,0.4)',
+                        background: cliInstalling ? 'rgba(255,159,10,0.06)' : 'rgba(255,159,10,0.14)',
+                        color: cliInstalling ? 'rgba(255,159,10,0.5)' : '#ff9f0a',
+                        cursor: cliInstalling ? 'default' : 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {cliInstalling ? (
+                        <>
+                          <div style={{
+                            width: 10, height: 10,
+                            border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
+                            borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                          }} />
+                          安装中…
+                        </>
+                      ) : (
+                        <>
+                          <Download size={11} strokeWidth={1.8} />
+                          一键安装
+                        </>
+                      )}
+                    </button>
                   </div>
+                  {!cliInstalling && cliInstallLog.length === 0 && (
+                    <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
+                      需要已安装 <span style={{ fontFamily: 'ui-monospace, monospace' }}>Homebrew</span>。点击一键安装，或手动运行：
+                      <code style={{
+                        display: 'block', marginTop: 5, padding: '4px 8px',
+                        background: 'rgba(0,0,0,0.2)', borderRadius: 4,
+                        fontFamily: 'ui-monospace, monospace', fontSize: 10,
+                        color: 'var(--item-text)', userSelect: 'text' as const,
+                      }}>
+                        brew install argmaxinc/whisperkit/whisperkit-cli
+                      </code>
+                    </div>
+                  )}
+                  {cliInstallLog.length > 0 && (
+                    <div style={{
+                      marginTop: 6, padding: '6px 8px',
+                      background: 'rgba(0,0,0,0.2)', borderRadius: 5,
+                      fontFamily: 'ui-monospace, monospace', fontSize: 9,
+                      color: 'var(--item-meta)', lineHeight: 1.6,
+                      maxHeight: 80, overflowY: 'auto',
+                    }}>
+                      {cliInstallLog.map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               <label style={labelStyle}>转写模型</label>

@@ -194,6 +194,69 @@ pub fn check_whisperkit_cli_installed() -> bool {
     find_whisperkit_cli_path().is_some()
 }
 
+/// 通过 `brew install argmaxinc/whisperkit/whisperkit-cli` 安装 whisperkit-cli。
+/// 流式推送日志到 "engine-install-log" 事件（engine: "whisperkit-cli"）。
+#[tauri::command]
+pub async fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Emitter;
+    use tokio::io::AsyncBufReadExt;
+
+    let mut child = tokio::process::Command::new("brew")
+        .args(["install", "argmaxinc/whisperkit/whisperkit-cli"])
+        .env("PATH", augmented_path())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("启动 brew 失败: {}", e))?;
+
+    let emit_line = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
+        let _ = app.emit(
+            "engine-install-log",
+            serde_json::json!({
+                "engine": "whisperkit-cli",
+                "line": line,
+                "done": done,
+                "success": success,
+            }),
+        );
+    };
+
+    let stdout_handle = child.stdout.take().map(|stdout| {
+        let app_clone = app.clone();
+        tokio::spawn(async move {
+            let mut lines = tokio::io::BufReader::new(stdout).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let _ = app_clone.emit(
+                    "engine-install-log",
+                    serde_json::json!({ "engine": "whisperkit-cli", "line": line, "done": false, "success": false }),
+                );
+            }
+        })
+    });
+
+    let stderr_handle = child.stderr.take().map(|stderr| {
+        let app_clone = app.clone();
+        tokio::spawn(async move {
+            let mut lines = tokio::io::BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let _ = app_clone.emit(
+                    "engine-install-log",
+                    serde_json::json!({ "engine": "whisperkit-cli", "line": line, "done": false, "success": false }),
+                );
+            }
+        })
+    });
+
+    let status = child.wait().await.map_err(|e| e.to_string())?;
+    if let Some(h) = stdout_handle { let _ = h.await; }
+    if let Some(h) = stderr_handle { let _ = h.await; }
+
+    let success = status.success();
+    emit_line(&app, if success { "安装完成" } else { "安装失败" }, true, success);
+
+    if success { Ok(()) } else { Err("安装失败".to_string()) }
+}
+
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(dir.join("config.json"))

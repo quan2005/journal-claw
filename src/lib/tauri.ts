@@ -170,3 +170,6 @@ export const downloadWhisperkitModel = (model: string): Promise<void> =>
 
 export const checkWhisperkitCliInstalled = (): Promise<boolean> =>
   invoke<boolean>('check_whisperkit_cli_installed')
+
+export const installWhisperkitCli = (): Promise<void> =>
+  invoke<void>('install_whisperkit_cli')

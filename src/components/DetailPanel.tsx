@@ -238,19 +238,19 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
                 h1: ({ children }) => (
                   <h1 style={{
                     fontFamily: "'Noto Serif SC', serif",
-                    fontSize: 18, fontWeight: 500, color: 'var(--md-h1)', margin: '0 0 14px',
+                    fontSize: 20, fontWeight: 600, color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
                   }}>{children}</h1>
                 ),
                 h2: ({ children }) => (
                   <h2 style={{
                     fontFamily: "'Noto Serif SC', serif",
-                    fontSize: 14, fontWeight: 500, color: 'var(--md-h2)', margin: '24px 0 12px',
+                    fontSize: 15, fontWeight: 600, color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
                   }}>{children}</h2>
                 ),
                 h3: ({ children }) => (
                   <h3 style={{
                     fontFamily: "'Noto Serif SC', serif",
-                    fontSize: 13, fontWeight: 500, color: 'var(--md-h2)', margin: '18px 0 6px',
+                    fontSize: 13, fontWeight: 600, color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
                   }}>{children}</h3>
                 ),
                 h4: ({ children }) => (

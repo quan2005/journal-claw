@@ -231,14 +231,16 @@ export function CommandDock({
               <div style={{ fontSize: 11, color: 'var(--dock-dropzone-text)' }}>粘贴文本或拖入文件</div>
               <div style={{ fontSize: 10, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>支持 txt · md · pdf · docx · 图片</div>
             </div>
-            <div style={{
+            <div
+              className="dock-kbd-pulse"
+              style={{
               flexShrink: 0,
-              fontSize: 10,
+              fontSize: 11,
               color: 'var(--dock-kbd-text)',
               background: 'var(--dock-kbd-bg)',
               border: `0.5px solid var(--dock-kbd-border)`,
-              borderRadius: 4,
-              padding: '2px 6px',
+              borderRadius: 5,
+              padding: '3px 8px',
               letterSpacing: '0.05em',
             }}>
               ⌘V

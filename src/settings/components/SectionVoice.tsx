@@ -70,7 +70,7 @@ function resolvePanelStatus(message?: string): WhisperDownloadPanelStatus {
 
 function panelStatusCopy(status: WhisperDownloadPanelStatus) {
   if (status === 'starting') {
-    return { label: '准备下载', color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
+    return { label: '下载中', color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
   }
   if (status === 'downloading') {
     return { label: '下载中', color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
@@ -245,10 +245,10 @@ export default function SectionVoice() {
       return
     }
 
-    const startMessage = `已开始下载 ${getModelDisplayLabel(model)}，下载会在后台继续进行`
+    const startMessage = `正在下载 ${getModelDisplayLabel(model)} 模型…`
     setDownloadSession({
       model,
-      status: 'starting',
+      status: 'downloading',
       latestMessage: startMessage,
       history: [startMessage],
     })

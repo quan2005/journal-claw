@@ -45,10 +45,20 @@ describe('empty state guidance cards', () => {
     expect(screen.queryByText('看示例条目')).toBeNull()
   })
 
-  it('hides guide cards when entries is non-empty', () => {
+  it('shows recording and paste cards whenever no entry is selected', () => {
     render(<DetailPanel {...baseProps} entries={[fakeEntry]} />)
-    expect(screen.queryByText('录音记录')).toBeNull()
-    expect(screen.queryByText('粘贴 / 拖文件')).toBeNull()
+    expect(screen.getByText('录音记录')).toBeTruthy()
+    expect(screen.getByText('粘贴 / 拖文件')).toBeTruthy()
+  })
+
+  it('shows sample card when sample entry exists', () => {
+    const sampleEntry: JournalEntry = {
+      filename: '01-产品评审示例.md', path: '/ws/2604/01-产品评审示例.md',
+      title: '产品评审示例', summary: '', tags: [], year_month: '2604',
+      day: 1, created_time: '10:00', mtime_secs: 0, materials: [],
+    }
+    render(<DetailPanel {...baseProps} entries={[sampleEntry]} />)
+    expect(screen.getByText('看示例条目')).toBeTruthy()
   })
 
   it('calls onRecord when 录音记录 card is clicked', () => {

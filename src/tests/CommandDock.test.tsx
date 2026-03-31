@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { CommandDock } from '../components/CommandDock'
 
@@ -52,5 +52,50 @@ describe('CommandDock', () => {
     renderDock('recording')
 
     expect(screen.getByRole('button', { name: '停止录音' })).toBeTruthy()
+  })
+
+  it('opens input when externalOpen becomes true', async () => {
+    const consumed = vi.fn()
+    const { rerender } = render(
+      <CommandDock
+        isDragOver={false}
+        pendingFiles={[]}
+        onPasteSubmit={vi.fn()}
+        onFilesSubmit={vi.fn()}
+        onFilesCancel={vi.fn()}
+        onRemoveFile={vi.fn()}
+        onPasteFiles={vi.fn()}
+        recorderStatus="idle"
+        onRecord={vi.fn()}
+        asrReady={true}
+        onOpenSettings={vi.fn()}
+        externalOpen={false}
+        onExternalOpenConsumed={consumed}
+      />
+    )
+    // Initially no cancel button (dock closed)
+    expect(screen.queryByText('取消')).toBeNull()
+
+    rerender(
+      <CommandDock
+        isDragOver={false}
+        pendingFiles={[]}
+        onPasteSubmit={vi.fn()}
+        onFilesSubmit={vi.fn()}
+        onFilesCancel={vi.fn()}
+        onRemoveFile={vi.fn()}
+        onPasteFiles={vi.fn()}
+        recorderStatus="idle"
+        onRecord={vi.fn()}
+        asrReady={true}
+        onOpenSettings={vi.fn()}
+        externalOpen={true}
+        onExternalOpenConsumed={consumed}
+      />
+    )
+    await waitFor(() => {
+      expect(screen.getByText('取消')).toBeTruthy()
+    })
+    expect(consumed).toHaveBeenCalled()
   })
 })

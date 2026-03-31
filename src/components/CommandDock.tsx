@@ -18,12 +18,14 @@ interface CommandDockProps {
   asrReady: boolean | null
   audioRejected?: boolean
   onOpenSettings: () => void
+  externalOpen?: boolean
+  onExternalOpenConsumed?: () => void
 }
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
   onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
-  asrReady, audioRejected, onOpenSettings,
+  asrReady, audioRejected, onOpenSettings, externalOpen, onExternalOpenConsumed,
 }: CommandDockProps) {
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
@@ -47,6 +49,14 @@ export function CommandDock({
   useEffect(() => {
     if (audioRejected) showToast('语音转写未配置，音频文件已忽略')
   }, [audioRejected])
+
+  // 外部触发打开 dock
+  useEffect(() => {
+    if (externalOpen) {
+      setInputOpen(true)
+      onExternalOpenConsumed?.()
+    }
+  }, [externalOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextClipboard(text: string) {
     if (text.length > 300) {
@@ -206,9 +216,10 @@ export function CommandDock({
           padding: 0,
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
 
@@ -242,21 +253,21 @@ export function CommandDock({
             padding: '10px 14px',
           }}>
             <div style={{
-              width: 30, height: 30,
-              background: 'var(--dock-paste-bg)',
+              width: 32, height: 32,
+              background: 'rgba(255,255,255,0.06)',
               borderRadius: 6,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--dock-dropzone-hover-border)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--dock-dropzone-hover-border)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, color: 'var(--dock-dropzone-text)' }}>粘贴文本或拖入文件</div>
-              <div style={{ fontSize: 10, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>支持 txt · md · pdf · docx · 图片</div>
+              <div style={{ fontSize: 12, color: 'var(--dock-dropzone-text)' }}>粘贴会议记录、文章、随手笔记</div>
+              <div style={{ fontSize: 10, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>AI 帮你归档 · 支持 txt · md · pdf · docx · 图片</div>
             </div>
             <div
               className="dock-kbd-pulse"

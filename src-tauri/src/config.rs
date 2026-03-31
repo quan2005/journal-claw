@@ -423,23 +423,19 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
     let model_cache_dir = whisperkit_models_dir(&app)?;
     let _ = std::fs::create_dir_all(&model_cache_dir);
 
-    // 找到 sidecar 二进制路径（bundle 模式用 Tauri resource 路径，dev 模式用 target/debug/）
-    let cli_path = app
-        .path()
-        .resource_dir()
-        .ok()
-        .map(|d| {
-            d.join("binaries")
-                .join("whisperkit-cli-aarch64-apple-darwin")
-        })
-        .filter(|p| p.exists())
-        .or_else(|| {
-            let p = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("target/debug/whisperkit-cli");
-            if p.exists() { Some(p) } else { None }
-        })
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "whisperkit-cli".to_string());
+    let cli_path = match find_whisperkit_cli_path() {
+        Some(path) => path,
+        None => {
+            let msg = "未找到 whisperkit-cli，请先安装：brew install argmaxinc/whisperkit/whisperkit-cli".to_string();
+            let _ = app.emit(
+                "whisperkit-download-progress",
+                serde_json::json!({
+                    "model": model, "status": "error", "message": msg
+                }),
+            );
+            return Err(msg);
+        }
+    };
 
     // 生成一个最小合法 WAV 文件（静音，16 采样，16kHz mono 16-bit）供触发下载
     let tmp_wav = std::env::temp_dir().join("whisperkit_download_trigger.wav");

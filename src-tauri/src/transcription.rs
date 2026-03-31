@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
@@ -815,23 +815,14 @@ pub async fn transcribe_with_whisperkit(
     let model_cache_dir = config::whisperkit_models_dir(&app)?;
     let _ = std::fs::create_dir_all(&model_cache_dir);
 
-    // 找到 sidecar 二进制路径（bundle 模式用 Tauri resource 路径，dev 模式用 target/debug/）
-    let cli_path = app
-        .path()
-        .resource_dir()
-        .ok()
-        .map(|d| {
-            d.join("binaries")
-                .join("whisperkit-cli-aarch64-apple-darwin")
-        })
-        .filter(|p| p.exists())
-        .or_else(|| {
-            let p = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("target/debug/whisperkit-cli");
-            if p.exists() { Some(p) } else { None }
-        })
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "whisperkit-cli".to_string());
+    let cli_path = match config::find_whisperkit_cli_path() {
+        Some(path) => path,
+        None => {
+            let message = "未找到 whisperkit-cli，请先安装：brew install argmaxinc/whisperkit/whisperkit-cli".to_string();
+            save_transcript(&app, &file_path, "failed", &message);
+            return Err(message);
+        }
+    };
 
     let _ = app.emit(
         "transcription-progress",

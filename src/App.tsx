@@ -258,9 +258,18 @@ export default function App() {
 
   const handleRetryQueueItem = async (item: QueueItem) => {
     const yearMonth = item.path.split('/').slice(-2, -1)[0] ?? ''
+    const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
+    const isAudioSourceFile = audioExts.some(ext => item.path.toLowerCase().endsWith(ext))
+
     retryQueueItem(item.path)
     try {
-      await triggerAiProcessing(item.path, yearMonth)
+      if (isAudioSourceFile) {
+        // Audio source file: need full pipeline (transcription + AI)
+        await prepareAudioForAi(item.path, yearMonth)
+      } else {
+        // Already-transcribed material or non-audio: go directly to AI
+        await triggerAiProcessing(item.path, yearMonth)
+      }
     } catch (err) {
       markItemFailed(item.path, String(err))
     }

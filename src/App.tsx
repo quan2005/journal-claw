@@ -147,10 +147,14 @@ export default function App() {
     return () => { unlisten?.() }
   }, [])
 
-  // Esc closes settings
+  // Esc closes settings; Cmd+, toggles settings
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setView('journal')
+      if (e.key === 'Escape') { setView('journal'); return }
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault()
+        setView(v => v === 'settings' ? 'journal' : 'settings')
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

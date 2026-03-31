@@ -194,7 +194,7 @@ pub fn check_whisperkit_cli_installed() -> bool {
     find_whisperkit_cli_path().is_some()
 }
 
-/// 通过 `brew install argmaxinc/whisperkit/whisperkit-cli` 安装 whisperkit-cli。
+/// 通过 `brew install whisperkit-cli` 安装 whisperkit-cli。
 /// 流式推送日志到 "engine-install-log" 事件（engine: "whisperkit-cli"）。
 #[tauri::command]
 pub async fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String> {
@@ -202,7 +202,7 @@ pub async fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String>
     use tokio::io::AsyncBufReadExt;
 
     let mut child = tokio::process::Command::new("brew")
-        .args(["install", "argmaxinc/whisperkit/whisperkit-cli"])
+        .args(["install", "whisperkit-cli"])
         .env("PATH", augmented_path())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -489,7 +489,7 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
     let cli_path = match find_whisperkit_cli_path() {
         Some(path) => path,
         None => {
-            let msg = "未找到 whisperkit-cli，请先安装：brew install argmaxinc/whisperkit/whisperkit-cli".to_string();
+            let msg = "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
             let _ = app.emit(
                 "whisperkit-download-progress",
                 serde_json::json!({

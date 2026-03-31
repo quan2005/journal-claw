@@ -366,35 +366,52 @@ export default function SectionVoice() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: '#ff9f0a' }}>未检测到 whisperkit-cli</div>
-                    <button
-                      onClick={handleInstallCli}
-                      disabled={cliInstalling}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
-                        border: '1px solid rgba(255,159,10,0.4)',
-                        background: cliInstalling ? 'rgba(255,159,10,0.06)' : 'rgba(255,159,10,0.14)',
-                        color: cliInstalling ? 'rgba(255,159,10,0.5)' : '#ff9f0a',
-                        cursor: cliInstalling ? 'default' : 'pointer',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {cliInstalling ? (
-                        <>
-                          <div style={{
-                            width: 10, height: 10,
-                            border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
-                            borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-                          }} />
-                          安装中…
-                        </>
-                      ) : (
-                        <>
-                          <Download size={11} strokeWidth={1.8} />
-                          一键安装
-                        </>
-                      )}
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={() => checkWhisperkitCliInstalled().then(setCliInstalled)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                          border: '1px solid var(--divider)',
+                          background: 'transparent',
+                          color: 'var(--item-meta)',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <RefreshCw size={10} strokeWidth={1.8} />
+                        重新检测
+                      </button>
+                      <button
+                        onClick={handleInstallCli}
+                        disabled={cliInstalling}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                          border: '1px solid rgba(255,159,10,0.4)',
+                          background: cliInstalling ? 'rgba(255,159,10,0.06)' : 'rgba(255,159,10,0.14)',
+                          color: cliInstalling ? 'rgba(255,159,10,0.5)' : '#ff9f0a',
+                          cursor: cliInstalling ? 'default' : 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cliInstalling ? (
+                          <>
+                            <div style={{
+                              width: 10, height: 10,
+                              border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
+                              borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                            }} />
+                            安装中…
+                          </>
+                        ) : (
+                          <>
+                            <Download size={11} strokeWidth={1.8} />
+                            一键安装
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   {!cliInstalling && cliInstallLog.length === 0 && (
                     <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
@@ -405,7 +422,7 @@ export default function SectionVoice() {
                         fontFamily: 'ui-monospace, monospace', fontSize: 10,
                         color: 'var(--item-text)', userSelect: 'text' as const,
                       }}>
-                        brew install argmaxinc/whisperkit/whisperkit-cli
+                        brew install whisperkit-cli
                       </code>
                     </div>
                   )}

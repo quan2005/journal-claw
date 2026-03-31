@@ -818,7 +818,7 @@ pub async fn transcribe_with_whisperkit(
     let cli_path = match config::find_whisperkit_cli_path() {
         Some(path) => path,
         None => {
-            let message = "未找到 whisperkit-cli，请先安装：brew install argmaxinc/whisperkit/whisperkit-cli".to_string();
+            let message = "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
             save_transcript(&app, &file_path, "failed", &message);
             return Err(message);
         }

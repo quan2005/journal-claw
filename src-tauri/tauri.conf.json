@@ -37,11 +37,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "resources/whisperkit-models/"
-    ],
-    "externalBin": [
-      "binaries/whisperkit-cli"
-    ]
+    "resources": [],
+    "externalBin": []
   }
 }

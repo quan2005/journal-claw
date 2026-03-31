@@ -29,6 +29,7 @@ function renderDock(recorderStatus: 'idle' | 'recording' = 'idle', asrReady: boo
       recorderStatus={recorderStatus}
       onRecord={onRecord}
       asrReady={asrReady}
+      onOpenSettings={vi.fn()}
     />,
   )
 

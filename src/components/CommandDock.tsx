@@ -17,12 +17,13 @@ interface CommandDockProps {
   onRecord: () => void
   asrReady: boolean | null
   audioRejected?: boolean
+  onOpenSettings: () => void
 }
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
   onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
-  asrReady, audioRejected,
+  asrReady, audioRejected, onOpenSettings,
 }: CommandDockProps) {
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
@@ -192,6 +193,25 @@ export function CommandDock({
       minHeight: 68,
       position: 'relative',
     }}>
+      {/* Settings button */}
+      <button
+        onClick={onOpenSettings}
+        title="设置 (⌘,)"
+        style={{
+          width: 34, height: 34, borderRadius: 8,
+          border: '0.5px solid var(--divider)',
+          background: 'var(--item-hover-bg)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, color: 'var(--item-meta)', cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/>
+        </svg>
+      </button>
+
       {/* Divider (left of drop zone) */}
       <div style={{
         width: 0.5,

@@ -1,7 +1,6 @@
 import type { Theme } from '../types'
 import { ThemeToggle } from './ThemeToggle'
 import { AiStatusPill } from './AiStatusPill'
-import { Settings2 } from 'lucide-react'
 
 interface TitleBarProps {
   theme: Theme
@@ -9,11 +8,13 @@ interface TitleBarProps {
   isProcessing: boolean
   processingFilename?: string
   onLogClick?: () => void
-  view: 'journal' | 'settings'
-  onToggleSettings: () => void
+  view: 'journal' | 'settings' | 'soul'
+  onToggleSoul: () => void
 }
 
-export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, onLogClick, view, onToggleSettings }: TitleBarProps) {
+export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, onLogClick, view, onToggleSoul }: TitleBarProps) {
+  const soulActive = view === 'soul'
+
   return (
     <div
       data-tauri-drag-region
@@ -34,32 +35,47 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
 
       {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        {view === 'settings'
-          ? <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
-          : <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} onLogClick={onLogClick} />
-        }
+        {view === 'soul' ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'rgba(90,154,106,0.08)',
+            border: '0.5px solid rgba(90,154,106,0.2)',
+            borderRadius: 5, padding: '3px 10px',
+            fontSize: 11, color: 'var(--soul-color, #5a9a6a)',
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
+              <path d="M9 21h6M10 17h4"/>
+            </svg>
+            Agent 灵魂
+          </div>
+        ) : view === 'settings' ? (
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
+        ) : (
+          <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} onLogClick={onLogClick} />
+        )}
       </div>
 
-      {/* Right: theme toggle + settings toggle button (always visible) */}
+      {/* Right: theme toggle (journal only) + soul button */}
       <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8 }}>
         {view === 'journal' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
         <button
-          onClick={onToggleSettings}
-          title={view === 'settings' ? '返回 (Esc)' : '设置 (⌘,)'}
+          onClick={onToggleSoul}
+          title={soulActive ? '返回 (Esc)' : 'Agent 灵魂 (⌘P)'}
           style={{
-            background: view === 'settings' ? 'rgba(200,147,58,0.12)' : 'none',
+            background: soulActive ? 'rgba(90,154,106,0.12)' : 'none',
             border: 'none', cursor: 'pointer',
-            color: view === 'settings' ? 'var(--record-btn)' : 'var(--item-meta)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 24,
-            height: 24,
-            padding: 0,
-            borderRadius: 4, lineHeight: 1,
-            opacity: view === 'settings' ? 1 : 0.7,
+            color: soulActive ? 'var(--soul-color, #5a9a6a)' : 'var(--item-meta)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 24, height: 24, padding: 0, borderRadius: 4, lineHeight: 1,
+            opacity: soulActive ? 1 : 0.6,
           }}
-        ><Settings2 size={15} strokeWidth={1.5} /></button>
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
+            <path d="M9 21h6M10 17h4"/>
+          </svg>
+        </button>
       </div>
     </div>
   )

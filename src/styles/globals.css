@@ -286,6 +286,26 @@ html, body, #root {
   filter: brightness(0.9);
 }
 
+/* ── Scrollbar ───────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--divider) transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 /* ── Cmd+V kbd button glow pulse ────────────────────────── */
 @keyframes kbd-glow-pulse {
   0%, 100% { border-color: rgba(200, 147, 58, 0.1); }

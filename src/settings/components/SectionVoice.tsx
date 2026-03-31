@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, PackageCheck, RefreshCw } from 'lucide-react'
-import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, type AsrConfig } from '../../lib/tauri'
+import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
 
@@ -35,7 +35,7 @@ const WHISPER_MODELS: {
   hint: string
   bundled?: boolean
 }[] = [
-  { id: 'base',           label: 'Base',           size: '内置',    hint: '默认模型，已随应用打包，开箱即用', bundled: true },
+  { id: 'base',           label: 'Base',           size: '~142MB', hint: '默认模型，中文效果稳定，适合日常会议记录' },
   { id: 'small',          label: 'Small',          size: '~244MB', hint: '中文效果更好，适合会议记录' },
   { id: 'large-v3-turbo', label: 'Large v3 Turbo', size: '~809MB', hint: '最佳中文效果，首次下载较慢' },
 ]
@@ -110,6 +110,7 @@ export default function SectionVoice() {
   const [modelsDir, setModelsDir] = useState('')
   const [downloadedModels, setDownloadedModels] = useState<Set<WhisperModel>>(new Set())
   const [downloadSession, setDownloadSession] = useState<WhisperDownloadSession | null>(null)
+  const [cliInstalled, setCliInstalled] = useState<boolean | null>(null)
 
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
@@ -127,6 +128,7 @@ export default function SectionVoice() {
         setPersistedCfg(loadedConfig)
       }),
       getWhisperkitModelsDir().then(setModelsDir),
+      checkWhisperkitCliInstalled().then(setCliInstalled),
     ]).then(() => {
       refreshDownloadedModels()
       setLoading(false)
@@ -243,7 +245,7 @@ export default function SectionVoice() {
   }
 
   const dashscopeReady = cfg.dashscope_api_key.trim().length > 0
-  const whisperkitReady = downloadedModels.has(cfg.whisperkit_model as WhisperModel)
+  const whisperkitReady = cliInstalled === true && downloadedModels.has(cfg.whisperkit_model as WhisperModel)
   const selectedWhisperModel = WHISPER_MODELS.find(model => model.id === cfg.whisperkit_model)
   const isBundledModel = Boolean(selectedWhisperModel?.bundled)
   const activeDownloadModel = downloadSession && ['starting', 'downloading'].includes(downloadSession.status)
@@ -329,6 +331,37 @@ export default function SectionVoice() {
           {/* WhisperKit 配置 */}
           {cfg.asr_engine === 'whisperkit' && (
             <div style={{ marginBottom: 16 }}>
+              {cliInstalled === false && (
+                <div style={{
+                  marginBottom: 14,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  background: 'rgba(255,159,10,0.08)',
+                  border: '1px solid rgba(255,159,10,0.3)',
+                  fontSize: 11,
+                  color: 'var(--item-meta)',
+                  lineHeight: 1.6,
+                }}>
+                  <div style={{ fontWeight: 600, color: '#ff9f0a', marginBottom: 4 }}>未检测到 whisperkit-cli</div>
+                  <div>请在终端运行以下命令安装：</div>
+                  <code style={{
+                    display: 'block',
+                    marginTop: 6,
+                    padding: '5px 8px',
+                    background: 'rgba(0,0,0,0.2)',
+                    borderRadius: 5,
+                    fontFamily: 'ui-monospace, monospace',
+                    fontSize: 10,
+                    color: 'var(--item-text)',
+                    userSelect: 'text' as const,
+                  }}>
+                    brew install argmaxinc/whisperkit/whisperkit-cli
+                  </code>
+                  <div style={{ marginTop: 6, color: 'var(--duration-text)' }}>
+                    安装完成后重新打开设置页面即可刷新检测状态。
+                  </div>
+                </div>
+              )}
               <label style={labelStyle}>转写模型</label>
               {/* 模型选择行：下拉框 + 下载按钮 */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>

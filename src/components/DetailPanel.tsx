@@ -122,7 +122,7 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
     if (!entry) { setContent(null); return }
     setContent(null)
     getJournalEntryContent(entry.path).then(setContent)
-  }, [entry?.path])
+  }, [entry?.path, entry?.mtime_secs])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onDeselect() }

@@ -1,6 +1,6 @@
-use tauri::{AppHandle, Emitter, Manager};
 use crate::config;
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 
 // ── Types ────────────────────────────────────────────────
@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessingUpdate {
     pub material_path: String,
-    pub status: String,        // "queued" | "processing" | "completed" | "failed"
+    pub status: String, // "queued" | "processing" | "completed" | "failed"
     pub error: Option<String>,
 }
 
@@ -33,8 +33,37 @@ pub struct CancelledPaths(pub std::sync::Mutex<std::collections::HashSet<String>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiLogLine {
     pub material_path: String,
-    pub level: String,   // "info" | "error"
+    pub level: String, // "info" | "error"
     pub message: String,
+}
+
+pub async fn enqueue_material(
+    app: &AppHandle,
+    material_path: String,
+    year_month: String,
+    note: Option<String>,
+    prompt_text: Option<String>,
+) -> Result<(), String> {
+    let _ = app.emit(
+        "ai-processing",
+        ProcessingUpdate {
+            material_path: material_path.clone(),
+            status: "queued".to_string(),
+            error: None,
+        },
+    );
+
+    let tx = app.state::<AiQueue>().0.clone();
+    tx.send(QueueTask {
+        material_path,
+        year_month,
+        note,
+        prompt_text,
+    })
+    .await
+    .map_err(|e| format!("队列发送失败: {}", e))?;
+
+    Ok(())
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -43,8 +72,7 @@ pub struct AiLogLine {
 // Source files live in src-tauri/resources/workspace-template/.claude/
 // Edit those files to update the template; include_str! embeds at compile time.
 
-const WORKSPACE_CLAUDE_MD: &str =
-    include_str!("../resources/workspace-template/.claude/CLAUDE.md");
+const WORKSPACE_CLAUDE_MD: &str = include_str!("../resources/workspace-template/.claude/CLAUDE.md");
 
 const WORKSPACE_SETTINGS_JSON: &str =
     include_str!("../resources/workspace-template/.claude/settings.json");
@@ -59,7 +87,10 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
     let scripts_dir = dot_claude.join("scripts");
     if let Err(e) = std::fs::create_dir_all(&scripts_dir) {
-        eprintln!("[ai_processor] warn: failed to create .claude/scripts dir: {}", e);
+        eprintln!(
+            "[ai_processor] warn: failed to create .claude/scripts dir: {}",
+            e
+        );
         return;
     }
 
@@ -77,19 +108,16 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
 
     // Write scripts, set executable bit
     let scripts: &[(&str, &str)] = &[
-        ("journal-create",  SCRIPT_JOURNAL_CREATE),
+        ("journal-create", SCRIPT_JOURNAL_CREATE),
         ("recent-summaries", SCRIPT_RECENT_SUMMARIES),
     ];
     for (name, content) in scripts {
         let path = scripts_dir.join(name);
-        if !path.exists() {
-            if std::fs::write(&path, content).is_ok() {
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let _ = std::fs::set_permissions(&path,
-                        std::fs::Permissions::from_mode(0o755));
-                }
+        if !path.exists() && std::fs::write(&path, content).is_ok() {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755));
             }
         }
     }
@@ -106,7 +134,6 @@ pub fn build_claude_args_with_creds(
     model: &str,
     api_key: &str,
     base_url: &str,
-    _engine: &str,  // reserved for future multi-engine support
 ) -> (Vec<String>, std::collections::HashMap<String, String>) {
     let prompt = if let Some(pt) = prompt_text.filter(|s| !s.trim().is_empty()) {
         pt.to_string()
@@ -164,7 +191,7 @@ pub fn build_claude_args(
     prompt_text: Option<&str>,
     model: &str,
 ) -> (Vec<String>, std::collections::HashMap<String, String>) {
-    build_claude_args_with_creds(material_path, year_month, note, prompt_text, model, "", "", "")
+    build_claude_args_with_creds(material_path, year_month, note, prompt_text, model, "", "")
 }
 
 fn augmented_path() -> String {
@@ -177,33 +204,143 @@ fn augmented_path() -> String {
 }
 
 /// Extract a concise label from a tool_use input object.
-/// e.g. Bash("ls -la"), Read("src/main.rs"), Write("output.md")
+/// e.g. Bash("ls -la"), Read("src/main.rs"), Task("review auth flow")
+fn normalize_log_text(input: &str) -> String {
+    input.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn truncate_for_log(input: &str, max_chars: usize) -> String {
+    let normalized = normalize_log_text(input);
+    let truncated: String = normalized.chars().take(max_chars).collect();
+    if normalized.chars().count() > max_chars {
+        format!("{}…", truncated)
+    } else {
+        truncated
+    }
+}
+
+fn shell_escape_for_display(arg: &str) -> String {
+    let normalized = normalize_log_text(arg);
+    if normalized.is_empty() {
+        return "''".to_string();
+    }
+
+    if normalized.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | '/' | ':' | '@' | '=')
+    }) {
+        normalized
+    } else {
+        format!("'{}'", normalized.replace('\'', r"'\''"))
+    }
+}
+
+fn build_command_display(program: &str, args: &[String]) -> String {
+    std::iter::once(program.to_string())
+        .chain(args.iter().map(|arg| shell_escape_for_display(arg)))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn json_preview(input: &serde_json::Value) -> Option<String> {
+    match input {
+        serde_json::Value::Null => None,
+        serde_json::Value::String(s) => Some(truncate_for_log(s, 120)),
+        serde_json::Value::Array(arr) => {
+            let joined = arr
+                .iter()
+                .filter_map(|v| match v {
+                    serde_json::Value::String(s) => Some(s.as_str()),
+                    _ => None,
+                })
+                .take(4)
+                .collect::<Vec<_>>()
+                .join(", ");
+            if joined.is_empty() {
+                serde_json::to_string(input)
+                    .ok()
+                    .map(|s| truncate_for_log(&s, 120))
+            } else {
+                Some(truncate_for_log(&joined, 120))
+            }
+        }
+        _ => serde_json::to_string(input)
+            .ok()
+            .map(|s| truncate_for_log(&s, 120)),
+    }
+}
+
+fn input_string_field(input: &serde_json::Value, keys: &[&str]) -> Option<String> {
+    for key in keys {
+        let Some(value) = input.get(*key) else {
+            continue;
+        };
+        match value {
+            serde_json::Value::String(s) if !s.trim().is_empty() => {
+                return Some(truncate_for_log(s, 120));
+            }
+            serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
+                if let Some(preview) = json_preview(value) {
+                    return Some(preview);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 fn tool_input_label(name: &str, input: &serde_json::Value) -> String {
     let arg = match name {
-        "Bash" => input.get("command")
+        "Bash" => input
+            .get("command")
             .or_else(|| input.get("cmd"))
             .and_then(|v| v.as_str())
+            .map(|s| truncate_for_log(s, 120))
+            .or_else(|| input_string_field(input, &["description"])),
+        "Read" | "Write" | "Edit" | "NotebookEdit" | "Glob" => input
+            .get("file_path")
+            .or_else(|| input.get("path"))
+            .or_else(|| input.get("pattern"))
+            .and_then(|v| v.as_str())
             .map(|s| {
-                // Trim to first line, max 60 chars
-                let first = s.lines().next().unwrap_or(s);
-                if first.len() > 60 { format!("{}…", &first[..60]) } else { first.to_string() }
-            }),
-        "Read" | "Write" | "Edit" | "Glob" => {
-            input.get("file_path")
-                .or_else(|| input.get("path"))
-                .or_else(|| input.get("pattern"))
-                .and_then(|v| v.as_str())
-                .map(|s| {
-                    // Show only filename for readability
-                    std::path::Path::new(s)
-                        .file_name()
-                        .and_then(|f| f.to_str())
-                        .unwrap_or(s)
-                        .to_string()
-                })
-        },
-        "Grep" => input.get("pattern").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        _ => None,
+                std::path::Path::new(s)
+                    .file_name()
+                    .and_then(|f| f.to_str())
+                    .unwrap_or(s)
+                    .to_string()
+            })
+            .map(|s| truncate_for_log(&s, 120)),
+        "Grep" => input_string_field(input, &["pattern", "query"]),
+        "Task" => input_string_field(input, &["description", "prompt", "subagent_type"]),
+        "Skill" => input_string_field(input, &["command", "skill", "name", "args"]),
+        "WebSearch" => input_string_field(input, &["query", "q"]),
+        "WebFetch" => input_string_field(input, &["url", "prompt"]),
+        "ReadMcpResourceTool" => input_string_field(input, &["server", "uri"]),
+        "ListMcpResourcesTool" => input_string_field(input, &["server", "cursor"]),
+        "RemoteTrigger" => input_string_field(input, &["trigger", "name", "url"]),
+        "TodoWrite" => input_string_field(input, &["todos", "content", "items"]),
+        "TaskOutput" => input_string_field(input, &["task_id", "summary", "content"]),
+        "TaskStop" => input_string_field(input, &["task_id", "reason"]),
+        "CronCreate" | "CronDelete" | "CronList" | "EnterPlanMode" | "EnterWorktree"
+        | "ExitPlanMode" | "ExitWorktree" | "LSP" => json_preview(input),
+        _ => input_string_field(
+            input,
+            &[
+                "command",
+                "cmd",
+                "description",
+                "prompt",
+                "query",
+                "pattern",
+                "path",
+                "file_path",
+                "url",
+                "uri",
+                "name",
+                "message",
+            ],
+        )
+        .or_else(|| json_preview(input)),
     };
     match arg {
         Some(a) => format!("[{}] {}", name, a),
@@ -220,17 +357,11 @@ fn extract_log_line(line: &str) -> Option<String> {
         "system" => {
             let subtype = val.get("subtype").and_then(|v| v.as_str()).unwrap_or("");
             if subtype == "init" {
-                let model = val.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
-                let tools: Vec<&str> = val.get("tools")
-                    .and_then(|v| v.as_array())
-                    .map(|arr| arr.iter().filter_map(|t| t.as_str()).collect())
-                    .unwrap_or_default();
-                let tool_str = if tools.is_empty() {
-                    String::new()
-                } else {
-                    format!(" · 工具: {}", tools.join(", "))
-                };
-                Some(format!("模型: {}{}", model, tool_str))
+                let model = val
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                Some(format!("模型: {}", model))
             } else {
                 None
             }
@@ -265,21 +396,27 @@ fn extract_log_line(line: &str) -> Option<String> {
             None
         }
         "result" => {
-            let is_error = val.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
+            let is_error = val
+                .get("is_error")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             if is_error {
                 let msg = val.get("result").and_then(|v| v.as_str()).unwrap_or("失败");
                 Some(format!("[error] {}", msg))
             } else {
                 // Show duration and cost on success
-                let duration_s = val.get("duration_ms")
+                let duration_s = val
+                    .get("duration_ms")
                     .and_then(|v| v.as_f64())
                     .map(|ms| format!("{:.1}s", ms / 1000.0))
                     .unwrap_or_default();
-                let cost = val.get("total_cost_usd")
+                let cost = val
+                    .get("total_cost_usd")
                     .and_then(|v| v.as_f64())
                     .map(|c| format!("${:.4}", c))
                     .unwrap_or_default();
-                let turns = val.get("num_turns")
+                let turns = val
+                    .get("num_turns")
                     .and_then(|v| v.as_u64())
                     .map(|t| format!("{} turns", t))
                     .unwrap_or_default();
@@ -307,7 +444,10 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
     tauri::async_runtime::spawn(async move {
         eprintln!("[ai_queue] consumer loop started");
         while let Some(task) = rx.recv().await {
-            eprintln!("[ai_queue] dequeued task: {} ({})", task.material_path, task.year_month);
+            eprintln!(
+                "[ai_queue] dequeued task: {} ({})",
+                task.material_path, task.year_month
+            );
 
             // Check if this task was cancelled while waiting in the queue
             let was_cancelled = {
@@ -321,7 +461,15 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
             }
 
             let current_task = app.state::<CurrentTask>();
-            let result = process_material(&app, &task.material_path, &task.year_month, task.note.as_deref(), task.prompt_text.as_deref(), &current_task).await;
+            let result = process_material(
+                &app,
+                &task.material_path,
+                &task.year_month,
+                task.note.as_deref(),
+                task.prompt_text.as_deref(),
+                &current_task,
+            )
+            .await;
             match &result {
                 Ok(()) => eprintln!("[ai_queue] task completed: {}", task.material_path),
                 Err(e) => eprintln!("[ai_queue] task failed: {} → {}", task.material_path, e),
@@ -339,23 +487,41 @@ pub async fn process_material(
     prompt_text: Option<&str>,
     current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
-    let cfg = config::load_config(app)?;
+    let cfg = config::load_config(app).inspect_err(|e| {
+        let _ = app.emit(
+            "ai-processing",
+            ProcessingUpdate {
+                material_path: material_path.to_string(),
+                status: "failed".to_string(),
+                error: Some(e.clone()),
+            },
+        );
+    })?;
     let cli = if cfg.claude_cli_path.is_empty() {
         "claude".to_string()
     } else {
         cfg.claude_cli_path.clone()
     };
 
-    eprintln!("[ai_processor] start — material={} ym={}", material_path, year_month);
-    eprintln!("[ai_processor] cli={} workspace={}", cli, cfg.workspace_path);
+    eprintln!(
+        "[ai_processor] start — material={} ym={}",
+        material_path, year_month
+    );
+    eprintln!(
+        "[ai_processor] cli={} workspace={}",
+        cli, cfg.workspace_path
+    );
 
     ensure_workspace_dot_claude(&cfg.workspace_path);
 
-    let _ = app.emit("ai-processing", ProcessingUpdate {
-        material_path: material_path.to_string(),
-        status: "processing".to_string(),
-        error: None,
-    });
+    let _ = app.emit(
+        "ai-processing",
+        ProcessingUpdate {
+            material_path: material_path.to_string(),
+            status: "processing".to_string(),
+            error: None,
+        },
+    );
 
     let (model, api_key, base_url) = (
         cfg.claude_code_model.as_str(),
@@ -363,15 +529,33 @@ pub async fn process_material(
         cfg.claude_code_base_url.as_str(),
     );
     let (args, extra_envs) = build_claude_args_with_creds(
-        material_path, year_month, note, prompt_text, model, api_key, base_url, &cfg.active_ai_engine,
+        material_path,
+        year_month,
+        note,
+        prompt_text,
+        model,
+        api_key,
+        base_url,
     );
+    let command_display = build_command_display(&cli, &args);
 
     // Emit startup log
-    let _ = app.emit("ai-log", AiLogLine {
-        material_path: material_path.to_string(),
-        level: "info".to_string(),
-        message: format!("启动 {} ...", cli),
-    });
+    let _ = app.emit(
+        "ai-log",
+        AiLogLine {
+            material_path: material_path.to_string(),
+            level: "info".to_string(),
+            message: format!("启动 {} ...", cli),
+        },
+    );
+    let _ = app.emit(
+        "ai-log",
+        AiLogLine {
+            material_path: material_path.to_string(),
+            level: "info".to_string(),
+            message: format!("命令: {}", command_display),
+        },
+    );
 
     eprintln!("[ai_processor] running: {} {}", cli, args.join(" "));
 
@@ -393,8 +577,18 @@ pub async fn process_material(
     for (k, v) in &extra_envs {
         cmd.env(k, v);
     }
-    let mut child = cmd.spawn()
-        .map_err(|e| format!("启动 Claude CLI 失败 ({}): {}", &cli, e))?;
+    let mut child = cmd.spawn().map_err(|e| {
+        let msg = format!("启动 Claude CLI 失败 ({}): {}", &cli, e);
+        let _ = app.emit(
+            "ai-processing",
+            ProcessingUpdate {
+                material_path: material_path.to_string(),
+                status: "failed".to_string(),
+                error: Some(msg.clone()),
+            },
+        );
+        msg
+    })?;
 
     let stdout = child.stdout.take().unwrap();
     let stderr_handle = child.stderr.take().unwrap();
@@ -416,11 +610,14 @@ pub async fn process_material(
         while let Ok(Some(line)) = reader.next_line().await {
             if !line.trim().is_empty() {
                 eprintln!("[ai_processor:stderr] {}", line);
-                let _ = app_stderr.emit("ai-log", AiLogLine {
-                    material_path: mp_stderr.clone(),
-                    level: "info".to_string(),
-                    message: line,
-                });
+                let _ = app_stderr.emit(
+                    "ai-log",
+                    AiLogLine {
+                        material_path: mp_stderr.clone(),
+                        level: "info".to_string(),
+                        message: line,
+                    },
+                );
             }
         }
     });
@@ -432,12 +629,19 @@ pub async fn process_material(
     while let Ok(Some(line)) = stdout_reader.next_line().await {
         eprintln!("[ai_processor:stream] {}", &line[..line.len().min(200)]);
         if let Some(msg) = extract_log_line(&line) {
-            let level = if msg.starts_with("[error]") { "error" } else { "info" };
-            let _ = app_clone.emit("ai-log", AiLogLine {
-                material_path: mp.clone(),
-                level: level.to_string(),
-                message: msg.clone(),
-            });
+            let level = if msg.starts_with("[error]") {
+                "error"
+            } else {
+                "info"
+            };
+            let _ = app_clone.emit(
+                "ai-log",
+                AiLogLine {
+                    material_path: mp.clone(),
+                    level: level.to_string(),
+                    message: msg.clone(),
+                },
+            );
             if msg.starts_with("[error]") {
                 final_result = Err(msg);
             }
@@ -445,9 +649,15 @@ pub async fn process_material(
         // Check if this is the result line to detect success/failure
         if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
             if val.get("type").and_then(|v| v.as_str()) == Some("result") {
-                let is_error = val.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
+                let is_error = val
+                    .get("is_error")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
                 if is_error {
-                    let msg = val.get("result").and_then(|v| v.as_str()).unwrap_or("AI 处理失败");
+                    let msg = val
+                        .get("result")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("AI 处理失败");
                     final_result = Err(msg.to_string());
                 }
             }
@@ -467,11 +677,14 @@ pub async fn process_material(
         child.wait().await.map_err(|e| e.to_string())?
     } else {
         // Child was killed via cancel_ai_processing
-        let _ = app_clone.emit("ai-processing", ProcessingUpdate {
-            material_path: mp.clone(),
-            status: "failed".to_string(),
-            error: Some("已取消".to_string()),
-        });
+        let _ = app_clone.emit(
+            "ai-processing",
+            ProcessingUpdate {
+                material_path: mp.clone(),
+                status: "failed".to_string(),
+                error: Some("已取消".to_string()),
+            },
+        );
         return Err("已取消".to_string());
     };
 
@@ -483,20 +696,26 @@ pub async fn process_material(
 
     match final_result {
         Ok(()) => {
-            let _ = app_clone.emit("ai-processing", ProcessingUpdate {
-                material_path: mp.clone(),
-                status: "completed".to_string(),
-                error: None,
-            });
+            let _ = app_clone.emit(
+                "ai-processing",
+                ProcessingUpdate {
+                    material_path: mp.clone(),
+                    status: "completed".to_string(),
+                    error: None,
+                },
+            );
             let _ = app_clone.emit("journal-updated", year_month);
             Ok(())
         }
         Err(err) => {
-            let _ = app_clone.emit("ai-processing", ProcessingUpdate {
-                material_path: mp.clone(),
-                status: "failed".to_string(),
-                error: Some(err.clone()),
-            });
+            let _ = app_clone.emit(
+                "ai-processing",
+                ProcessingUpdate {
+                    material_path: mp.clone(),
+                    status: "failed".to_string(),
+                    error: Some(err.clone()),
+                },
+            );
             Err(err)
         }
     }
@@ -507,27 +726,12 @@ pub async fn process_material(
 #[tauri::command]
 pub async fn trigger_ai_processing(
     app: AppHandle,
-    queue: tauri::State<'_, AiQueue>,
     material_path: String,
     year_month: String,
     note: Option<String>,
 ) -> Result<(), String> {
     eprintln!("[trigger_ai] material={} ym={}", material_path, year_month);
-    // Emit "queued" immediately
-    let _ = app.emit("ai-processing", ProcessingUpdate {
-        material_path: material_path.clone(),
-        status: "queued".to_string(),
-        error: None,
-    });
-
-    queue.0.send(QueueTask {
-        material_path,
-        year_month,
-        note,
-        prompt_text: None,
-    }).await.map_err(|e| format!("队列发送失败: {}", e))?;
-
-    Ok(())
+    enqueue_material(&app, material_path, year_month, note, None).await
 }
 
 #[tauri::command]
@@ -564,8 +768,13 @@ pub async fn cancel_ai_processing(
         {
             if let Some(pid) = child.id() {
                 let pgid = pid as i32;
-                unsafe { libc::killpg(pgid, libc::SIGKILL); }
-                eprintln!("[ai_processor] cancel: sent SIGKILL to process group {}", pgid);
+                unsafe {
+                    libc::killpg(pgid, libc::SIGKILL);
+                }
+                eprintln!(
+                    "[ai_processor] cancel: sent SIGKILL to process group {}",
+                    pgid
+                );
             }
         }
         // Fallback / Windows: kill just the direct child
@@ -586,16 +795,15 @@ pub async fn cancel_queued_item(
 ) -> Result<(), String> {
     let mut set = cancelled_paths.0.lock().map_err(|e| e.to_string())?;
     set.insert(material_path.clone());
-    eprintln!("[ai_processor] cancel_queued: marked for skip: {}", material_path);
+    eprintln!(
+        "[ai_processor] cancel_queued: marked for skip: {}",
+        material_path
+    );
     Ok(())
 }
 
 #[tauri::command]
-pub async fn trigger_ai_prompt(
-    app: AppHandle,
-    queue: tauri::State<'_, AiQueue>,
-    prompt: String,
-) -> Result<(), String> {
+pub async fn trigger_ai_prompt(app: AppHandle, prompt: String) -> Result<(), String> {
     // Use first 20 chars of prompt as display label in ProcessingQueue
     let label: String = prompt.chars().take(20).collect();
     let material_path = if prompt.chars().count() > 20 {
@@ -607,20 +815,7 @@ pub async fn trigger_ai_prompt(
 
     eprintln!("[trigger_ai_prompt] prompt_label={}", material_path);
 
-    let _ = app.emit("ai-processing", ProcessingUpdate {
-        material_path: material_path.clone(),
-        status: "queued".to_string(),
-        error: None,
-    });
-
-    queue.0.send(QueueTask {
-        material_path,
-        year_month,
-        note: None,
-        prompt_text: Some(prompt),
-    }).await.map_err(|e| format!("队列发送失败: {}", e))?;
-
-    Ok(())
+    enqueue_material(&app, material_path, year_month, None, Some(prompt)).await
 }
 
 /// 检测引擎是否已安装。engine: "claude" | "qwen"
@@ -669,12 +864,15 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
             let reader = tokio::io::BufReader::new(stdout);
             let mut lines = reader.lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app_clone.emit("engine-install-log", serde_json::json!({
-                    "engine": engine_clone,
-                    "line": line,
-                    "done": false,
-                    "success": false,
-                }));
+                let _ = app_clone.emit(
+                    "engine-install-log",
+                    serde_json::json!({
+                        "engine": engine_clone,
+                        "line": line,
+                        "done": false,
+                        "success": false,
+                    }),
+                );
             }
         }))
     } else {
@@ -689,12 +887,15 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
             let reader = tokio::io::BufReader::new(stderr);
             let mut lines = reader.lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app_clone.emit("engine-install-log", serde_json::json!({
-                    "engine": engine_clone,
-                    "line": line,
-                    "done": false,
-                    "success": false,
-                }));
+                let _ = app_clone.emit(
+                    "engine-install-log",
+                    serde_json::json!({
+                        "engine": engine_clone,
+                        "line": line,
+                        "done": false,
+                        "success": false,
+                    }),
+                );
             }
         }))
     } else {
@@ -712,14 +913,21 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
     }
 
     let success = status.success();
-    let _ = app.emit("engine-install-log", serde_json::json!({
-        "engine": engine,
-        "line": if success { "安装完成" } else { "安装失败" },
-        "done": true,
-        "success": success,
-    }));
+    let _ = app.emit(
+        "engine-install-log",
+        serde_json::json!({
+            "engine": engine,
+            "line": if success { "安装完成" } else { "安装失败" },
+            "done": true,
+            "success": success,
+        }),
+    );
 
-    if success { Ok(()) } else { Err("installation failed".to_string()) }
+    if success {
+        Ok(())
+    } else {
+        Err("installation failed".to_string())
+    }
 }
 
 #[cfg(test)]
@@ -755,7 +963,6 @@ mod tests {
 
     #[test]
     fn get_workspace_prompt_returns_default_when_no_file() {
-        assert!(!WORKSPACE_CLAUDE_MD.is_empty());
         assert!(WORKSPACE_CLAUDE_MD.contains("tags"));
         assert!(WORKSPACE_CLAUDE_MD.contains("summary"));
     }
@@ -769,17 +976,31 @@ mod tests {
 
         // tool_use Bash with command
         let tool_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t1","input":{"command":"ls -la"},"name":"Bash","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
-        assert_eq!(extract_log_line(tool_line), Some("[Bash] ls -la".to_string()));
+        assert_eq!(
+            extract_log_line(tool_line),
+            Some("[Bash] ls -la".to_string())
+        );
 
         // tool_use Read with file_path
         let read_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t2","input":{"file_path":"src/main.rs"},"name":"Read","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
-        assert_eq!(extract_log_line(read_line), Some("[Read] main.rs".to_string()));
+        assert_eq!(
+            extract_log_line(read_line),
+            Some("[Read] main.rs".to_string())
+        );
 
         // system init
         let sys_line = r#"{"type":"system","subtype":"init","cwd":"/tmp","model":"claude-sonnet-4-6","tools":["Bash","Read"]}"#;
         let sys_msg = extract_log_line(sys_line).unwrap();
-        assert!(sys_msg.contains("claude-sonnet-4-6"), "expected model name in: {}", sys_msg);
-        assert!(sys_msg.contains("Bash"), "expected tools in: {}", sys_msg);
+        assert!(
+            sys_msg.contains("claude-sonnet-4-6"),
+            "expected model name in: {}",
+            sys_msg
+        );
+        assert!(
+            !sys_msg.contains("工具"),
+            "expected no tool list in: {}",
+            sys_msg
+        );
 
         // system non-init — should be ignored
         let hook_line = r#"{"type":"system","subtype":"hook_started"}"#;
@@ -793,54 +1014,140 @@ mod tests {
         assert!(ok_msg.contains("$0.0120"), "expected cost in: {}", ok_msg);
 
         // result error
-        let result_err = r#"{"type":"result","subtype":"error","is_error":true,"result":"无法读取文件"}"#;
+        let result_err =
+            r#"{"type":"result","subtype":"error","is_error":true,"result":"无法读取文件"}"#;
         let err_msg = extract_log_line(result_err).unwrap();
-        assert!(err_msg.starts_with("[error]"), "expected [error] prefix in: {}", err_msg);
-        assert!(err_msg.contains("无法读取文件"), "expected error text in: {}", err_msg);
+        assert!(
+            err_msg.starts_with("[error]"),
+            "expected [error] prefix in: {}",
+            err_msg
+        );
+        assert!(
+            err_msg.contains("无法读取文件"),
+            "expected error text in: {}",
+            err_msg
+        );
     }
 
     #[test]
     fn build_claude_args_includes_model_when_set() {
-        let (args, _envs) = build_claude_args(
-            "note.txt",
-            "2603",
-            None,
-            None,
-            "claude-sonnet-4-6",
-        );
-        let model_idx = args.iter().position(|a| a == "--model").expect("--model not found");
+        let (args, _envs) = build_claude_args("note.txt", "2603", None, None, "claude-sonnet-4-6");
+        let model_idx = args
+            .iter()
+            .position(|a| a == "--model")
+            .expect("--model not found");
         assert_eq!(args[model_idx + 1], "claude-sonnet-4-6");
     }
 
     #[test]
     fn build_claude_args_omits_model_when_empty() {
         let (args, _envs) = build_claude_args("note.txt", "2603", None, None, "");
-        assert!(!args.contains(&"--model".to_string()), "--model should be absent when empty");
+        assert!(
+            !args.contains(&"--model".to_string()),
+            "--model should be absent when empty"
+        );
     }
 
     #[test]
     fn build_claude_args_injects_api_key_env() {
-        let (_args, envs) = build_claude_args_with_creds(
-            "note.txt", "2603", None, None, "", "sk-test-key", "", "",
+        let (_args, envs) =
+            build_claude_args_with_creds("note.txt", "2603", None, None, "", "sk-test-key", "");
+        assert_eq!(
+            envs.get("ANTHROPIC_API_KEY").map(|s| s.as_str()),
+            Some("sk-test-key")
         );
-        assert_eq!(envs.get("ANTHROPIC_API_KEY").map(|s| s.as_str()), Some("sk-test-key"));
     }
 
     #[test]
     fn build_claude_args_injects_base_url_env() {
         let (_args, envs) = build_claude_args_with_creds(
-            "note.txt", "2603", None, None, "", "", "https://my-proxy.example.com", "",
+            "note.txt",
+            "2603",
+            None,
+            None,
+            "",
+            "",
+            "https://my-proxy.example.com",
         );
-        assert_eq!(envs.get("ANTHROPIC_BASE_URL").map(|s| s.as_str()), Some("https://my-proxy.example.com"));
+        assert_eq!(
+            envs.get("ANTHROPIC_BASE_URL").map(|s| s.as_str()),
+            Some("https://my-proxy.example.com")
+        );
     }
 
     #[test]
     fn build_claude_args_omits_env_when_empty() {
-        let (_args, envs) = build_claude_args_with_creds(
-            "note.txt", "2603", None, None, "", "", "", "",
+        let (_args, envs) =
+            build_claude_args_with_creds("note.txt", "2603", None, None, "", "", "");
+        assert!(
+            !envs.contains_key("ANTHROPIC_API_KEY"),
+            "should not set API key env when empty"
         );
-        assert!(!envs.contains_key("ANTHROPIC_API_KEY"), "should not set API key env when empty");
-        assert!(!envs.contains_key("ANTHROPIC_BASE_URL"), "should not set base URL env when empty");
+        assert!(
+            !envs.contains_key("ANTHROPIC_BASE_URL"),
+            "should not set base URL env when empty"
+        );
+    }
+
+    #[test]
+    fn build_command_display_shows_engine_invocation() {
+        let args = vec![
+            "-p".to_string(),
+            "深入梳理 @2603/raw/note.txt，整理为日志条目。".to_string(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+        ];
+        let command = build_command_display("claude", &args);
+        assert!(
+            command.starts_with("claude -p "),
+            "expected command prefix in: {}",
+            command
+        );
+        assert!(
+            command.contains("--output-format stream-json"),
+            "expected output flag in: {}",
+            command
+        );
+        assert!(
+            command.contains("深入梳理 @2603/raw/note.txt"),
+            "expected prompt in: {}",
+            command
+        );
+    }
+
+    #[test]
+    fn tool_input_label_prefers_input_command_preview() {
+        let task_input = serde_json::json!({
+            "description": "review authentication flow and identify the main entrypoint"
+        });
+        assert_eq!(
+            tool_input_label("Task", &task_input),
+            "[Task] review authentication flow and identify the main entrypoint"
+        );
+
+        let web_fetch_input = serde_json::json!({
+            "url": "https://example.com/some/really/long/path"
+        });
+        assert_eq!(
+            tool_input_label("WebFetch", &web_fetch_input),
+            "[WebFetch] https://example.com/some/really/long/path"
+        );
+
+        let cron_input = serde_json::json!({
+            "schedule": "0 9 * * 1",
+            "command": "run-weekly-report"
+        });
+        let cron_label = tool_input_label("CronCreate", &cron_input);
+        assert!(
+            cron_label.starts_with("[CronCreate] "),
+            "unexpected label: {}",
+            cron_label
+        );
+        assert!(
+            cron_label.contains("run-weekly-report"),
+            "expected compact JSON preview: {}",
+            cron_label
+        );
     }
 
     #[test]
@@ -868,8 +1175,14 @@ mod tests {
         assert!(claude_md.exists(), ".claude/CLAUDE.md should exist");
         let content = std::fs::read_to_string(&claude_md).unwrap();
         assert!(content.contains("tags"), "CLAUDE.md should mention tags");
-        assert!(content.contains("summary"), "CLAUDE.md should mention summary");
-        assert!(content.contains("journal-create"), "CLAUDE.md should mention journal-create script");
+        assert!(
+            content.contains("summary"),
+            "CLAUDE.md should mention summary"
+        );
+        assert!(
+            content.contains("journal-create"),
+            "CLAUDE.md should mention journal-create script"
+        );
 
         // Scripts exist and are executable
         use std::os::unix::fs::PermissionsExt;
@@ -890,8 +1203,14 @@ mod tests {
         let settings_json = dot_claude.join("settings.json");
         assert!(settings_json.exists(), ".claude/settings.json should exist");
         let settings_content = std::fs::read_to_string(&settings_json).unwrap();
-        assert!(settings_content.contains("SessionStart"), "settings.json should have SessionStart hook");
-        assert!(settings_content.contains("recent-summaries"), "settings.json should reference recent-summaries");
+        assert!(
+            settings_content.contains("SessionStart"),
+            "settings.json should have SessionStart hook"
+        );
+        assert!(
+            settings_content.contains("recent-summaries"),
+            "settings.json should reference recent-summaries"
+        );
 
         std::fs::remove_dir_all(&tmp).ok();
     }

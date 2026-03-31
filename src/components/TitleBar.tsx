@@ -50,7 +50,12 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
             background: view === 'settings' ? 'rgba(200,147,58,0.12)' : 'none',
             border: 'none', cursor: 'pointer',
             color: view === 'settings' ? 'var(--record-btn)' : 'var(--item-meta)',
-            fontSize: 15, padding: '2px 4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 24,
+            height: 24,
+            padding: 0,
             borderRadius: 4, lineHeight: 1,
             opacity: view === 'settings' ? 1 : 0.7,
           }}

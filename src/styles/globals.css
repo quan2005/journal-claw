@@ -274,16 +274,23 @@ html, body, #root {
 
 /* ── Mic button hover ───────────────────────────────────────── */
 .mic-btn {
-  will-change: box-shadow, filter;
-  transition: box-shadow 0.4s ease-in-out, filter 0.2s;
+  will-change: box-shadow, filter, background-color;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
-.mic-btn:hover {
+.mic-btn[data-recording="false"]:hover {
   background: var(--record-btn-hover) !important;
-  animation: mic-glow-expand 0.25s ease-out forwards !important;
-  transition: background 0.2s;
+  animation: mic-glow-expand 0.18s ease-out forwards !important;
+  filter: brightness(1.02) saturate(1.03);
 }
 .mic-btn:active {
-  filter: brightness(0.9);
+  filter: brightness(0.96);
+}
+.mic-btn[data-recording="true"]:hover {
+  filter: brightness(1.04);
+}
+.mic-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--record-btn) 68%, white);
+  outline-offset: 3px;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */

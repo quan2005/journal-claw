@@ -1,12 +1,14 @@
 use crate::recordings::read_duration_pub;
 use chrono::Local;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
 pub(crate) fn rms_f32(samples: &[f32]) -> f32 {
-    if samples.is_empty() { return 0.0; }
+    if samples.is_empty() {
+        return 0.0;
+    }
     let sum_sq: f32 = samples.iter().map(|&s| s * s).sum();
     (sum_sq / samples.len() as f32).sqrt()
 }
@@ -26,7 +28,7 @@ pub struct ActiveRecording {
 
 /// Generate a unique filename for a new recording.
 /// Format: "录音 YYYY-MM-DD HH:mm.m4a", with ":SS" appended if that file already exists.
-fn unique_filename(dir: &PathBuf) -> String {
+fn unique_filename(dir: &Path) -> String {
     let now = Local::now();
     let base = format!("录音 {}", now.format("%Y-%m-%d %H:%M"));
     let candidate = format!("{}.m4a", base);
@@ -37,10 +39,7 @@ fn unique_filename(dir: &PathBuf) -> String {
 }
 
 #[tauri::command]
-pub fn start_recording(
-    app: AppHandle,
-    state: State<'_, RecorderState>,
-) -> Result<String, String> {
+pub fn start_recording(app: AppHandle, state: State<'_, RecorderState>) -> Result<String, String> {
     let mut guard = state.0.lock().map_err(|e| e.to_string())?;
     if guard.is_some() {
         return Err("already_recording".to_string());
@@ -61,17 +60,15 @@ pub fn start_recording(
     let device = host
         .default_input_device()
         .ok_or_else(|| "no_input_device".to_string())?;
-    let config = device
-        .default_input_config()
-        .map_err(|e| {
-            // Map macOS permission-denied error to a recognisable string for the frontend
-            let msg = e.to_string();
-            if msg.contains("PermissionDenied") || msg.contains("permission") {
-                "permission_denied".to_string()
-            } else {
-                msg
-            }
-        })?;
+    let config = device.default_input_config().map_err(|e| {
+        // Map macOS permission-denied error to a recognisable string for the frontend
+        let msg = e.to_string();
+        if msg.contains("PermissionDenied") || msg.contains("permission") {
+            "permission_denied".to_string()
+        } else {
+            msg
+        }
+    })?;
 
     // Convert config once — config.into() consumes the value, so do it before the match
     let sample_format = config.sample_format();
@@ -112,11 +109,13 @@ pub fn start_recording(
                         let channels = stream_config.channels as usize;
                         let mut i = 0;
                         while i < data.len() {
-                            accum.push(data[i]);  // use first channel
+                            accum.push(data[i]); // use first channel
                             i += channels;
                             if accum.len() >= window_size {
                                 let level = rms_f32(&accum);
-                                if let Ok(mut l) = level_clone.lock() { *l = level; }
+                                if let Ok(mut l) = level_clone.lock() {
+                                    *l = level;
+                                }
                                 accum.clear();
                             }
                         }
@@ -136,7 +135,9 @@ pub fn start_recording(
                     move |data: &[i16], _| {
                         if let Ok(mut g) = writer_clone.lock() {
                             if let Some(w) = g.as_mut() {
-                                for &s in data { let _ = w.write_sample(s); }
+                                for &s in data {
+                                    let _ = w.write_sample(s);
+                                }
                             }
                         }
                         let channels = stream_config.channels as usize;
@@ -146,7 +147,9 @@ pub fn start_recording(
                             i += channels;
                             if accum.len() >= window_size {
                                 let level = rms_f32(&accum);
-                                if let Ok(mut l) = level_clone.lock() { *l = level; }
+                                if let Ok(mut l) = level_clone.lock() {
+                                    *l = level;
+                                }
                                 accum.clear();
                             }
                         }
@@ -170,7 +173,9 @@ pub fn start_recording(
         let mut last_emitted = -1.0f32;
         loop {
             tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
-            if stop_flag.load(std::sync::atomic::Ordering::Relaxed) { break; }
+            if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
+                break;
+            }
             if let Ok(l) = level_for_emitter.lock() {
                 let current = *l;
                 if (current - last_emitted).abs() > 0.001 {
@@ -181,15 +186,18 @@ pub fn start_recording(
         }
     });
 
-    *guard = Some(ActiveRecording { stream, output_path: output_path.clone(), writer, audio_level, stop_emitter });
+    *guard = Some(ActiveRecording {
+        stream,
+        output_path: output_path.clone(),
+        writer,
+        audio_level,
+        stop_emitter,
+    });
     Ok(output_path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
-pub async fn stop_recording(
-    app: AppHandle,
-    state: State<'_, RecorderState>,
-) -> Result<(), String> {
+pub async fn stop_recording(app: AppHandle, state: State<'_, RecorderState>) -> Result<(), String> {
     // Fast path: stop stream + finalize WAV (sub-second)
     let (wav_path, output_path, filename) = {
         let mut guard = state.0.lock().map_err(|e| e.to_string())?;
@@ -198,7 +206,9 @@ pub async fn stop_recording(
         drop(active.stream);
 
         // Signal emitter task to exit
-        active.stop_emitter.store(true, std::sync::atomic::Ordering::Relaxed);
+        active
+            .stop_emitter
+            .store(true, std::sync::atomic::Ordering::Relaxed);
 
         {
             let mut wg = active.writer.lock().map_err(|e| e.to_string())?;
@@ -207,13 +217,18 @@ pub async fn stop_recording(
             }
         }
 
-        let filename = active.output_path
-            .file_name().unwrap()
-            .to_string_lossy().into_owned();
+        let filename = active
+            .output_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
 
-        (active.output_path.with_extension("wav.tmp"),
-         active.output_path,
-         filename)
+        (
+            active.output_path.with_extension("wav.tmp"),
+            active.output_path,
+            filename,
+        )
     };
 
     // Notify frontend that processing has started
@@ -225,9 +240,14 @@ pub async fn stop_recording(
         let _ = crate::audio_process::process_audio(&wav_path);
 
         let status = std::process::Command::new("afconvert")
-            .args(["-f", "m4af", "-d", "aac",
-                   wav_path.to_str().unwrap(),
-                   output_path.to_str().unwrap()])
+            .args([
+                "-f",
+                "m4af",
+                "-d",
+                "aac",
+                wav_path.to_str().unwrap(),
+                output_path.to_str().unwrap(),
+            ])
             .status();
 
         if let Ok(s) = status {
@@ -238,59 +258,17 @@ pub async fn stop_recording(
 
         let duration_secs = read_duration_pub(&output_path);
 
-        let _ = app_clone.emit("recording-processed", serde_json::json!({
-            "filename": filename,
-            "path": output_path.to_string_lossy().as_ref(),
-        }));
+        let _ = app_clone.emit(
+            "recording-processed",
+            serde_json::json!({
+                "filename": filename,
+                "path": output_path.to_string_lossy().as_ref(),
+            }),
+        );
 
-        let app_for_ai = app_clone.clone();
-        let path_for_ai = output_path.to_string_lossy().into_owned();
         let ym_for_ai = crate::workspace::current_year_month();
-
-        let cfg2 = crate::config::load_config(&app_clone);
-        let asr_engine = cfg2.as_ref().map(|c| c.asr_engine.clone()).unwrap_or_else(|_| "dashscope".to_string());
-        let whisperkit_model = cfg2.map(|c| c.whisperkit_model).unwrap_or_else(|_| "base".to_string());
-
-        if asr_engine == "whisperkit" {
-            let app_wk = app_clone.clone();
-            let path_wk = output_path.clone();
-            let ym_wk = ym_for_ai.clone();
-            tauri::async_runtime::spawn(async move {
-                let markdown = match crate::transcription::transcribe_with_whisperkit(
-                    app_wk.clone(),
-                    path_wk.clone(),
-                    whisperkit_model,
-                ).await {
-                    Ok(md) => md,
-                    Err(e) => {
-                        eprintln!("[recorder] whisperkit failed: {}", e);
-                        return;
-                    }
-                };
-                let prompt_text = format!(
-                    "以下是一段录音的说话人转写内容：\n\n{}\n\n请整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。",
-                    markdown, ym_wk
-                );
-                let current_task = app_wk.state::<crate::ai_processor::CurrentTask>();
-                let path_str = path_wk.to_string_lossy().to_string();
-                let _ = crate::ai_processor::process_material(
-                    &app_wk, &path_str, &ym_wk, None, Some(&prompt_text), &current_task
-                ).await;
-            });
-        } else {
-            // 现有 DashScope 路径不变
-            crate::transcription::start_transcription(
-                app_clone,
-                filename,
-                output_path,
-                duration_secs,
-            );
-
-            tauri::async_runtime::spawn(async move {
-                let current_task = app_for_ai.state::<crate::ai_processor::CurrentTask>();
-                let _ = crate::ai_processor::process_material(&app_for_ai, &path_for_ai, &ym_for_ai, None, None, &current_task).await;
-            });
-        }
+        let _ = duration_secs;
+        crate::audio_pipeline::start_audio_pipeline(app_clone, output_path, ym_for_ai, true, None);
     });
 
     Ok(())
@@ -313,8 +291,11 @@ mod tests {
             .map(|i| (i as f32 * std::f32::consts::TAU / 64.0).sin())
             .collect();
         let r = rms_f32(&samples);
-        assert!((r - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.01,
-            "expected ~0.707, got {}", r);
+        assert!(
+            (r - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.01,
+            "expected ~0.707, got {}",
+            r
+        );
     }
 
     #[test]

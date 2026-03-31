@@ -1,25 +1,25 @@
+use crate::config;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
-use crate::config;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawMaterial {
     pub filename: String,
     pub path: String,
-    pub kind: String,    // "audio" | "text" | "pdf" | "docx" | "markdown" | "other"
+    pub kind: String, // "audio" | "text" | "pdf" | "docx" | "markdown" | "other"
     pub size_bytes: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalEntry {
-    pub filename: String,       // "28-AI平台产品会议纪要.md"
-    pub path: String,           // absolute path
-    pub title: String,          // "AI平台产品会议纪要"
-    pub summary: String,        // from frontmatter
-    pub tags: Vec<String>,      // from frontmatter
-    pub year_month: String,     // "2603"
-    pub day: u32,               // 28
-    pub created_time: String,   // "10:15" (from file mtime)
+    pub filename: String,     // "28-AI平台产品会议纪要.md"
+    pub path: String,         // absolute path
+    pub title: String,        // "AI平台产品会议纪要"
+    pub summary: String,      // from frontmatter
+    pub tags: Vec<String>,    // from frontmatter
+    pub year_month: String,   // "2603"
+    pub day: u32,             // 28
+    pub created_time: String, // "10:15" (from file mtime)
     pub materials: Vec<RawMaterial>,
 }
 
@@ -62,8 +62,7 @@ fn parse_frontmatter_fallback(content: &str) -> FrontMatter {
 /// Strip outer single or double quotes from a YAML scalar value, returning the raw content.
 /// Does not validate or interpret escape sequences — intentionally lenient.
 fn extract_scalar_value(s: &str) -> String {
-    if (s.starts_with('"') && s.ends_with('"')) ||
-       (s.starts_with('\'') && s.ends_with('\'')) {
+    if (s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
         s[1..s.len() - 1].to_string()
     } else {
         s.to_string()
@@ -73,7 +72,8 @@ fn extract_scalar_value(s: &str) -> String {
 /// Parse a YAML inline sequence like `[journal, meeting]` into a Vec<String>.
 fn extract_inline_sequence(s: &str) -> Vec<String> {
     let inner = s.trim_start_matches('[').trim_end_matches(']');
-    inner.split(',')
+    inner
+        .split(',')
         .map(|item| item.trim().to_string())
         .filter(|item| !item.is_empty())
         .collect()
@@ -85,7 +85,9 @@ pub fn parse_entry_filename(filename: &str) -> Option<(u32, String)> {
     let dash_pos = stem.find('-')?;
     let day_str = &stem[..dash_pos];
     let title = &stem[dash_pos + 1..];
-    if title.is_empty() { return None; }
+    if title.is_empty() {
+        return None;
+    }
     let day: u32 = day_str.parse().ok()?;
     Some((day, title.to_string()))
 }
@@ -103,12 +105,17 @@ pub fn material_kind(filename: &str) -> String {
         "pdf" => "pdf",
         "docx" | "doc" => "docx",
         _ => "other",
-    }.to_string()
+    }
+    .to_string()
+}
+
+fn is_internal_material(filename: &str) -> bool {
+    filename.ends_with(".audio-ai.md") || filename.ends_with(".transcript.json")
 }
 
 pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntry>, String> {
-    use gray_matter::{Matter, engine::YAML};
     use crate::workspace;
+    use gray_matter::{engine::YAML, Matter};
 
     let ym_dir = workspace::year_month_dir(workspace, year_month);
     if !ym_dir.exists() {
@@ -118,13 +125,16 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
     let raw_dir = workspace::raw_dir(workspace, year_month);
     let mut entries: Vec<JournalEntry> = vec![];
 
-    let read_dir = std::fs::read_dir(&ym_dir)
-        .map_err(|e| format!("读取目录失败: {}", e))?;
+    let read_dir = std::fs::read_dir(&ym_dir).map_err(|e| format!("读取目录失败: {}", e))?;
 
     for entry in read_dir {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
-        let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let filename = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         let (day, title) = match parse_entry_filename(&filename) {
             Some(v) => v,
@@ -140,7 +150,9 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .unwrap_or_else(|| parse_frontmatter_fallback(&content));
 
         // mtime as HH:mm
-        let created_time = entry.metadata().ok()
+        let created_time = entry
+            .metadata()
+            .ok()
             .and_then(|m| m.modified().ok())
             .map(|t| {
                 let dt: chrono::DateTime<chrono::Local> = t.into();
@@ -154,7 +166,14 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             if let Ok(rdir) = std::fs::read_dir(&raw_dir) {
                 for rentry in rdir.flatten() {
                     let rpath = rentry.path();
-                    let rname = rpath.file_name().unwrap_or_default().to_string_lossy().to_string();
+                    let rname = rpath
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
+                    if is_internal_material(&rname) {
+                        continue;
+                    }
                     let size = rentry.metadata().map(|m| m.len()).unwrap_or(0);
                     materials.push(RawMaterial {
                         filename: rname.clone(),
@@ -210,8 +229,7 @@ pub async fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry
         }
 
         let mut all: Vec<JournalEntry> = vec![];
-        let read_dir = std::fs::read_dir(&ws_path)
-            .map_err(|e| e.to_string())?;
+        let read_dir = std::fs::read_dir(&ws_path).map_err(|e| e.to_string())?;
 
         for entry in read_dir.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
@@ -222,7 +240,8 @@ pub async fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry
         }
 
         all.sort_by(|a, b| {
-            b.year_month.cmp(&a.year_month)
+            b.year_month
+                .cmp(&a.year_month)
                 .then(b.day.cmp(&a.day))
                 .then(b.filename.cmp(&a.filename))
         });
@@ -296,7 +315,10 @@ mod tests {
         // Exact pattern from 30-15餐厅的商业与慈善.md — gray_matter returns None for this
         let content = "---\ntags: [journal, article]\nsummary: \"吉米·奥利弗创办\"15餐厅\"，实践\"授人以渔\"的慈善模式。\"\n---\n\n# 标题\n";
         let fm = parse_frontmatter_fallback(content);
-        assert_eq!(fm.summary, "吉米·奥利弗创办\"15餐厅\"，实践\"授人以渔\"的慈善模式。");
+        assert_eq!(
+            fm.summary,
+            "吉米·奥利弗创办\"15餐厅\"，实践\"授人以渔\"的慈善模式。"
+        );
         assert_eq!(fm.tags, vec!["journal", "article"]);
     }
 
@@ -333,15 +355,21 @@ mod tests {
     fn list_entries_uses_fallback_for_malformed_yaml() {
         // gray_matter returns None for content with unescaped inner " — verify
         // that list_entries produces non-empty summary via the fallback path
-        use gray_matter::{Matter, engine::YAML};
-        let content = "---\ntags: [journal, article]\nsummary: \"创办\"15餐厅\"实践。\"\n---\n\n# 标题\n";
+        use gray_matter::{engine::YAML, Matter};
+        let content =
+            "---\ntags: [journal, article]\nsummary: \"创办\"15餐厅\"实践。\"\n---\n\n# 标题\n";
         // Confirm gray_matter actually fails on this
         assert!(
-            Matter::<YAML>::new().parse_with_struct::<FrontMatter>(content).is_none(),
+            Matter::<YAML>::new()
+                .parse_with_struct::<FrontMatter>(content)
+                .is_none(),
             "test precondition: gray_matter should fail on unescaped inner quotes"
         );
         // Fallback must recover
         let fm = parse_frontmatter_fallback(content);
-        assert!(!fm.summary.is_empty(), "fallback should recover non-empty summary");
+        assert!(
+            !fm.summary.is_empty(),
+            "fallback should recover non-empty summary"
+        );
     }
 }

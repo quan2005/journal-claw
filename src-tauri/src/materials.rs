@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::workspace;
+use std::path::PathBuf;
 
 pub fn dest_filename(src_path: &str) -> String {
     // 保留原文件名，若同名则加时间戳后缀
@@ -11,8 +11,8 @@ pub fn dest_filename(src_path: &str) -> String {
 }
 
 fn file_hash(path: &std::path::Path) -> Option<u64> {
-    use std::hash::{Hash, Hasher};
     use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
     let data = std::fs::read(path).ok()?;
     let mut h = DefaultHasher::new();
     data.hash(&mut h);
@@ -29,22 +29,26 @@ pub fn copy_to_raw(src_path: &str, workspace: &str, year_month: &str) -> Result<
     let hash8 = &hash_str[..8.min(hash_str.len())];
     let filename = dest_filename(src_path);
     let stem = PathBuf::from(&filename)
-        .file_stem().unwrap_or_default().to_string_lossy().to_string();
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
     let ext = PathBuf::from(&filename)
-        .extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
     let dest_name = format!("{}-{}{}", stem, hash8, ext);
     let dest = raw.join(&dest_name);
     if dest.exists() {
         return Ok(dest);
     }
-    std::fs::copy(src_path, &dest)
-        .map_err(|e| format!("复制文件失败: {}", e))?;
+    std::fs::copy(src_path, &dest).map_err(|e| format!("复制文件失败: {}", e))?;
     Ok(dest)
 }
 
-use tauri::AppHandle;
-use serde::{Deserialize, Serialize};
 use crate::{config, workspace as ws};
+use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImportResult {
@@ -62,15 +66,18 @@ pub fn import_file(app: AppHandle, src_path: String) -> Result<ImportResult, Str
     let ym = ws::current_year_month();
     let dest = copy_to_raw(&src_path, &cfg.workspace_path, &ym)?;
     Ok(ImportResult {
-        filename: dest.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        filename: dest
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
         path: dest.to_string_lossy().to_string(),
         year_month: ym,
     })
 }
 
 fn write_paste_text(dest: &std::path::Path, text: &str) -> Result<(), String> {
-    std::fs::write(dest, text.as_bytes())
-        .map_err(|e| format!("写入文本失败: {}", e))
+    std::fs::write(dest, text.as_bytes()).map_err(|e| format!("写入文本失败: {}", e))
 }
 
 /// Write text to system temp dir immediately (no workspace needed).
@@ -115,7 +122,10 @@ mod tests {
 
     #[test]
     fn dest_filename_extracts_name() {
-        assert_eq!(dest_filename("/tmp/meeting notes.docx"), "meeting notes.docx");
+        assert_eq!(
+            dest_filename("/tmp/meeting notes.docx"),
+            "meeting notes.docx"
+        );
         assert_eq!(dest_filename("/Users/x/note.txt"), "note.txt");
     }
 

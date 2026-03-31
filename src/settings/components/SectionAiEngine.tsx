@@ -10,6 +10,7 @@ import SkeletonRow from './SkeletonRow'
 
 type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
 type EngineId = 'claude' | 'qwen'
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
@@ -25,6 +26,18 @@ const ENGINES: { id: EngineId; label: string; vendor: string; icon: LucideIcon }
   { id: 'qwen',   label: 'Qwen Code',   vendor: '阿里云',     icon: Sparkles },
 ]
 
+function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
+  return (
+    a.active_ai_engine === b.active_ai_engine &&
+    a.claude_code_api_key === b.claude_code_api_key &&
+    a.claude_code_base_url === b.claude_code_base_url &&
+    a.claude_code_model === b.claude_code_model &&
+    a.qwen_code_api_key === b.qwen_code_api_key &&
+    a.qwen_code_base_url === b.qwen_code_base_url &&
+    a.qwen_code_model === b.qwen_code_model
+  )
+}
+
 export default function SectionAiEngine() {
   const [status, setStatus] = useState<Record<EngineId, InstallStatus>>({
     claude: 'checking', qwen: 'checking',
@@ -32,12 +45,14 @@ export default function SectionAiEngine() {
   const [installLogs, setInstallLogs] = useState<Record<EngineId, string[]>>({
     claude: [], qwen: [],
   })
-  const [cfg, setCfg] = useState<EngineConfig>({
+  const defaultConfig: EngineConfig = {
     active_ai_engine: 'claude',
     claude_code_api_key: '', claude_code_base_url: '', claude_code_model: '',
     qwen_code_api_key: '', qwen_code_base_url: '', qwen_code_model: '',
-  })
-  const [saved, setSaved] = useState(false)
+  }
+  const [cfg, setCfg] = useState<EngineConfig>(defaultConfig)
+  const [persistedCfg, setPersistedCfg] = useState<EngineConfig>(defaultConfig)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [loading, setLoading] = useState(true)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
@@ -48,7 +63,10 @@ export default function SectionAiEngine() {
           setStatus(prev => ({ ...prev, [id]: installed ? 'installed' : 'not_installed' }))
         })
       ),
-      getEngineConfig().then(setCfg),
+      getEngineConfig().then(loadedConfig => {
+        setCfg(loadedConfig)
+        setPersistedCfg(loadedConfig)
+      }),
     ]).then(() => setLoading(false))
   }, [])
 
@@ -80,12 +98,30 @@ export default function SectionAiEngine() {
   }
 
   const handleSave = async () => {
-    await setEngineConfig(cfg)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setSaveStatus('saving')
+    try {
+      await setEngineConfig(cfg)
+      setPersistedCfg(cfg)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus(current => current === 'saved' ? 'idle' : current), 2000)
+    } catch (error) {
+      console.error('[settings/ai-engine] save failed', error)
+      setSaveStatus('error')
+    }
   }
 
   const active = cfg.active_ai_engine as EngineId
+  const hasUnsavedChanges = !isEngineConfigEqual(cfg, persistedCfg)
+  const saveHint = saveStatus === 'saving'
+    ? '保存中…'
+    : saveStatus === 'saved'
+      ? '已保存'
+      : saveStatus === 'error'
+        ? '保存失败，请重试'
+        : hasUnsavedChanges
+          ? '有未保存修改'
+          : ''
+  const canSave = hasUnsavedChanges && saveStatus !== 'saving'
 
   return (
     <div style={sectionStyle}>
@@ -119,7 +155,12 @@ export default function SectionAiEngine() {
               return (
                 <div
                   key={id}
-                  onClick={() => !isComingSoon && s === 'installed' && setCfg(prev => ({ ...prev, active_ai_engine: id }))}
+                  onClick={() => {
+                    if (!isComingSoon && s === 'installed') {
+                      setCfg(prev => ({ ...prev, active_ai_engine: id }))
+                      setSaveStatus('idle')
+                    }
+                  }}
                   title={isComingSoon ? '开发中，敬请期待' : undefined}
                   style={{
                     background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
@@ -206,21 +247,30 @@ export default function SectionAiEngine() {
                     <label style={labelStyle}>API Key</label>
                     <input type="password" style={inputStyle} placeholder="sk-ant-…"
                       value={cfg.claude_code_api_key}
-                      onChange={e => setCfg(prev => ({ ...prev, claude_code_api_key: e.target.value }))} />
+                      onChange={e => {
+                        setCfg(prev => ({ ...prev, claude_code_api_key: e.target.value }))
+                        setSaveStatus('idle')
+                      }} />
                     <div style={hintStyle}>留空则使用 CLI 默认配置</div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>Base URL</label>
                     <input style={inputStyle} placeholder="https://api.anthropic.com"
                       value={cfg.claude_code_base_url}
-                      onChange={e => setCfg(prev => ({ ...prev, claude_code_base_url: e.target.value }))} />
+                      onChange={e => {
+                        setCfg(prev => ({ ...prev, claude_code_base_url: e.target.value }))
+                        setSaveStatus('idle')
+                      }} />
                     <div style={hintStyle}>自定义 API 端点，留空使用默认值（代理场景）</div>
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
                     <input style={inputStyle} placeholder="claude-sonnet-4-6"
                       value={cfg.claude_code_model}
-                      onChange={e => setCfg(prev => ({ ...prev, claude_code_model: e.target.value }))} />
+                      onChange={e => {
+                        setCfg(prev => ({ ...prev, claude_code_model: e.target.value }))
+                        setSaveStatus('idle')
+                      }} />
                     <div style={hintStyle}>留空使用 CLI 默认模型</div>
                   </div>
                 </>
@@ -232,33 +282,52 @@ export default function SectionAiEngine() {
                     <label style={labelStyle}>API Key</label>
                     <input type="password" style={inputStyle} placeholder="sk-…"
                       value={cfg.qwen_code_api_key}
-                      onChange={e => setCfg(prev => ({ ...prev, qwen_code_api_key: e.target.value }))} />
+                      onChange={e => {
+                        setCfg(prev => ({ ...prev, qwen_code_api_key: e.target.value }))
+                        setSaveStatus('idle')
+                      }} />
                     <div style={hintStyle}>阿里云 DashScope API Key（独立于语音转写配置）</div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>Base URL</label>
                     <input style={inputStyle} placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
                       value={cfg.qwen_code_base_url}
-                      onChange={e => setCfg(prev => ({ ...prev, qwen_code_base_url: e.target.value }))} />
+                      onChange={e => {
+                        setCfg(prev => ({ ...prev, qwen_code_base_url: e.target.value }))
+                        setSaveStatus('idle')
+                      }} />
                     <div style={hintStyle}>自定义 API 端点，留空使用默认值</div>
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
                     <input style={inputStyle} placeholder="qwen-coder-plus"
                       value={cfg.qwen_code_model}
-                      onChange={e => setCfg(prev => ({ ...prev, qwen_code_model: e.target.value }))} />
+                      onChange={e => {
+                        setCfg(prev => ({ ...prev, qwen_code_model: e.target.value }))
+                        setSaveStatus('idle')
+                      }} />
                     <div style={hintStyle}>留空使用默认模型</div>
                   </div>
                 </>
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-                {saved && <span style={{ fontSize: 11, color: '#34c759' }}>已保存</span>}
-                <button onClick={handleSave} style={{
-                  background: 'var(--record-btn)', border: 'none', borderRadius: 5,
+                <span style={{
+                  fontSize: 11,
+                  color: saveStatus === 'error'
+                    ? '#ff9f0a'
+                    : saveStatus === 'saved'
+                      ? '#34c759'
+                      : 'var(--duration-text)',
+                  minHeight: 16,
+                }}>
+                  {saveHint}
+                </span>
+                <button onClick={handleSave} disabled={!canSave} style={{
+                  background: canSave ? 'var(--record-btn)' : 'var(--divider)', border: 'none', borderRadius: 5,
                   padding: '6px 18px', fontSize: 12, fontWeight: 600,
-                  color: 'var(--bg)', cursor: 'pointer',
-                }}>保存</button>
+                  color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
+                }}>{saveStatus === 'saving' ? '保存中…' : '保存'}</button>
               </div>
             </>
           )}

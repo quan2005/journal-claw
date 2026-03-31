@@ -102,6 +102,9 @@ export const cancelQueuedItem = (materialPath: string) =>
 export const importAudioFile = (srcPath: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })
 
+export const prepareAudioForAi = (audioPath: string, yearMonth: string, note?: string) =>
+  invoke<void>('prepare_audio_for_ai', { audioPath, yearMonth, note: note ?? null })
+
 // Folder picker
 export const pickFolder = (): Promise<string | null> => {
   return import('@tauri-apps/plugin-dialog').then(({ open }) =>
@@ -135,7 +138,9 @@ export const getEngineConfig = (): Promise<EngineConfig> =>
   invoke<EngineConfig>('get_engine_config')
 
 export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
-  invoke<void>('set_engine_config', { ...cfg })
+  invoke<void>('set_engine_config', {
+    config: cfg,
+  })
 
 // ASR config
 export interface AsrConfig {
@@ -148,7 +153,11 @@ export const getAsrConfig = (): Promise<AsrConfig> =>
   invoke<AsrConfig>('get_asr_config')
 
 export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
-  invoke<void>('set_asr_config', { ...cfg })
+  invoke<void>('set_asr_config', {
+    asrEngine: cfg.asr_engine,
+    dashscopeApiKey: cfg.dashscope_api_key,
+    whisperkitModel: cfg.whisperkit_model,
+  })
 
 export const getWhisperkitModelsDir = (): Promise<string> =>
   invoke<string>('get_whisperkit_models_dir')

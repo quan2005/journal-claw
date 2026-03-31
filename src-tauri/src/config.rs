@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -56,9 +56,9 @@ pub struct Config {
     pub qwen_code_model: String,
     // ASR 引擎配置
     #[serde(default = "default_asr_engine")]
-    pub asr_engine: String,          // "dashscope" | "whisperkit"
+    pub asr_engine: String, // "dashscope" | "whisperkit"
     #[serde(default = "default_whisperkit_model")]
-    pub whisperkit_model: String,    // "base" | "small" | "large-v3-turbo"
+    pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
 }
 
 fn augmented_path() -> String {
@@ -74,7 +74,11 @@ fn default_claude_cli() -> String {
     if cfg!(test) {
         return "claude".to_string();
     }
-    if let Ok(output) = std::process::Command::new("which").arg("claude").env("PATH", augmented_path()).output() {
+    if let Ok(output) = std::process::Command::new("which")
+        .arg("claude")
+        .env("PATH", augmented_path())
+        .output()
+    {
         if output.status.success() {
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !path.is_empty() {
@@ -95,6 +99,77 @@ fn default_asr_engine() -> String {
 
 fn default_whisperkit_model() -> String {
     "base".to_string()
+}
+
+pub fn normalize_whisperkit_model(model: &str) -> Option<&'static str> {
+    match model {
+        "base" => Some("base"),
+        "small" => Some("small"),
+        "large-v3-turbo" | "large-v3_turbo" => Some("large-v3-turbo"),
+        _ => None,
+    }
+}
+
+pub fn whisperkit_cli_model_name(model: &str) -> String {
+    match normalize_whisperkit_model(model) {
+        Some("large-v3-turbo") => "large-v3_turbo".to_string(),
+        Some(normalized) => normalized.to_string(),
+        None => model.to_string(),
+    }
+}
+
+fn sanitize_engine_config(config: &mut Config) {
+    let valid_engines = ["claude", "qwen"];
+    if !valid_engines.contains(&config.active_ai_engine.as_str()) {
+        config.active_ai_engine = default_active_engine();
+    }
+
+    let valid_asr_engines = ["dashscope", "whisperkit"];
+    if !valid_asr_engines.contains(&config.asr_engine.as_str()) {
+        config.asr_engine = default_asr_engine();
+    }
+
+    config.whisperkit_model = normalize_whisperkit_model(&config.whisperkit_model)
+        .unwrap_or("base")
+        .to_string();
+}
+
+pub fn whisperkit_models_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())
+        .map(|dir| dir.join("whisperkit-models"))
+}
+
+pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf> {
+    let model_key = whisperkit_cli_model_name(model);
+    let relative = PathBuf::from("models")
+        .join("argmaxinc")
+        .join("whisperkit-coreml")
+        .join(format!("openai_whisper-{}", model_key));
+
+    let bundled = app
+        .path()
+        .resource_dir()
+        .ok()
+        .map(|dir| dir.join("whisperkit-models").join(&relative))
+        .filter(|path| path.exists());
+    if bundled.is_some() {
+        return bundled;
+    }
+
+    let source_resource = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join("whisperkit-models")
+        .join(&relative);
+    if source_resource.exists() {
+        return Some(source_resource);
+    }
+
+    whisperkit_models_dir(app)
+        .ok()
+        .map(|dir| dir.join(relative))
+        .filter(|path| path.exists())
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -119,13 +194,21 @@ pub fn load_config(app: &AppHandle) -> Result<Config, String> {
     if config.workspace_path.is_empty() {
         config.workspace_path = default_workspace_path()?;
     }
+    sanitize_engine_config(&mut config);
     Ok(config)
+}
+
+fn write_config_file(path: &Path, config: &Config) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let data = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+    fs::write(path, data).map_err(|e| e.to_string())
 }
 
 pub fn save_config(app: &AppHandle, config: &Config) -> Result<(), String> {
     let path = config_path(app)?;
-    let data = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
-    fs::write(&path, data).map_err(|e| e.to_string())
+    write_config_file(&path, config)
 }
 
 #[tauri::command]
@@ -171,8 +254,7 @@ pub fn get_workspace_path(app: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 pub fn set_workspace_path(app: AppHandle, path: String) -> Result<(), String> {
-    fs::create_dir_all(&path)
-        .map_err(|e| format!("无法创建 workspace 目录: {}", e))?;
+    fs::create_dir_all(&path).map_err(|e| format!("无法创建 workspace 目录: {}", e))?;
     let mut config = load_config(&app)?;
     config.workspace_path = path.clone();
     save_config(&app, &config)?;
@@ -213,11 +295,11 @@ pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
 
     let resolved = match c.active_ai_engine.as_str() {
         "claude" if claude_ok => "claude",
-        "qwen"   if qwen_ok   => "qwen",
+        "qwen" if qwen_ok => "qwen",
         // saved engine not available — pick best available
-        _ if claude_ok        => "claude",
-        _ if qwen_ok          => "qwen",
-        _                     => c.active_ai_engine.as_str(),
+        _ if claude_ok => "claude",
+        _ if qwen_ok => "qwen",
+        _ => c.active_ai_engine.as_str(),
     };
 
     if resolved != c.active_ai_engine.as_str() {
@@ -238,28 +320,19 @@ pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
 }
 
 #[tauri::command]
-pub fn set_engine_config(
-    app: AppHandle,
-    active_ai_engine: String,
-    claude_code_api_key: String,
-    claude_code_base_url: String,
-    claude_code_model: String,
-    qwen_code_api_key: String,
-    qwen_code_base_url: String,
-    qwen_code_model: String,
-) -> Result<(), String> {
+pub fn set_engine_config(app: AppHandle, config: EngineConfig) -> Result<(), String> {
     let valid_engines = ["claude", "qwen"];
-    if !valid_engines.contains(&active_ai_engine.as_str()) {
-        return Err(format!("invalid engine: {}", active_ai_engine));
+    if !valid_engines.contains(&config.active_ai_engine.as_str()) {
+        return Err(format!("invalid engine: {}", config.active_ai_engine));
     }
     let mut c = load_config(&app)?;
-    c.active_ai_engine = active_ai_engine;
-    c.claude_code_api_key = claude_code_api_key;
-    c.claude_code_base_url = claude_code_base_url;
-    c.claude_code_model = claude_code_model;
-    c.qwen_code_api_key = qwen_code_api_key;
-    c.qwen_code_base_url = qwen_code_base_url;
-    c.qwen_code_model = qwen_code_model;
+    c.active_ai_engine = config.active_ai_engine;
+    c.claude_code_api_key = config.claude_code_api_key;
+    c.claude_code_base_url = config.claude_code_base_url;
+    c.claude_code_model = config.claude_code_model;
+    c.qwen_code_api_key = config.qwen_code_api_key;
+    c.qwen_code_base_url = config.qwen_code_base_url;
+    c.qwen_code_model = config.qwen_code_model;
     save_config(&app, &c)
 }
 
@@ -289,41 +362,25 @@ pub fn set_asr_config(
     if !valid_engines.contains(&asr_engine.as_str()) {
         return Err(format!("invalid asr_engine: {}", asr_engine));
     }
-    let valid_models = ["base", "small", "large-v3-turbo"];
-    if !valid_models.contains(&whisperkit_model.as_str()) {
+    let Some(normalized_model) = normalize_whisperkit_model(&whisperkit_model) else {
         return Err(format!("invalid whisperkit_model: {}", whisperkit_model));
-    }
+    };
     let mut c = load_config(&app)?;
     c.asr_engine = asr_engine;
     c.dashscope_api_key = dashscope_api_key;
-    c.whisperkit_model = whisperkit_model;
+    c.whisperkit_model = normalized_model.to_string();
     save_config(&app, &c)
 }
 
 #[tauri::command]
 pub fn get_whisperkit_models_dir(app: AppHandle) -> Result<String, String> {
-    let dir = app.path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("whisperkit-models");
+    let dir = whisperkit_models_dir(&app)?;
     Ok(dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]
 pub fn check_whisperkit_model_downloaded(app: AppHandle, model: String) -> bool {
-    let Ok(dir) = app.path().app_data_dir() else { return false; };
-    let models_dir = dir.join("whisperkit-models");
-    // whisperkit-cli stores models as subdirectories containing the model name
-    // e.g. "openai_whisper-base", "openai_whisper-small", "openai_whisper-large-v3-turbo"
-    let Ok(entries) = std::fs::read_dir(&models_dir) else { return false; };
-    for entry in entries.flatten() {
-        let name = entry.file_name().to_string_lossy().to_lowercase();
-        let model_key = model.to_lowercase().replace("_", "-");
-        if name.contains(&model_key) {
-            return true;
-        }
-    }
-    false
+    find_whisperkit_model_dir(&app, &model).is_some()
 }
 
 /// 下载指定的 WhisperKit 模型（通过触发一次空白音频转录，whisperkit-cli 会先下载模型）。
@@ -331,17 +388,28 @@ pub fn check_whisperkit_model_downloaded(app: AppHandle, model: String) -> bool 
 ///   { model, status: "downloading" | "done" | "error", message? }
 #[tauri::command]
 pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<(), String> {
-    let model_cache_dir = app.path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("whisperkit-models");
+    if find_whisperkit_model_dir(&app, &model).is_some() {
+        let _ = app.emit(
+            "whisperkit-download-progress",
+            serde_json::json!({
+                "model": model, "status": "done"
+            }),
+        );
+        return Ok(());
+    }
+
+    let model_cache_dir = whisperkit_models_dir(&app)?;
     let _ = std::fs::create_dir_all(&model_cache_dir);
 
     // 找到 sidecar 二进制路径
-    let cli_path = app.path()
+    let cli_path = app
+        .path()
         .resource_dir()
         .ok()
-        .map(|d| d.join("binaries").join("whisperkit-cli-aarch64-apple-darwin"))
+        .map(|d| {
+            d.join("binaries")
+                .join("whisperkit-cli-aarch64-apple-darwin")
+        })
         .filter(|p| p.exists())
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| "whisperkit-cli".to_string());
@@ -362,8 +430,8 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
         wav.extend_from_slice(&file_size.to_le_bytes());
         wav.extend_from_slice(b"WAVE");
         wav.extend_from_slice(b"fmt ");
-        wav.extend_from_slice(&16u32.to_le_bytes());   // chunk size
-        wav.extend_from_slice(&1u16.to_le_bytes());    // PCM
+        wav.extend_from_slice(&16u32.to_le_bytes()); // chunk size
+        wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
         wav.extend_from_slice(&num_channels.to_le_bytes());
         wav.extend_from_slice(&sample_rate.to_le_bytes());
         wav.extend_from_slice(&byte_rate.to_le_bytes());
@@ -375,9 +443,13 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
         std::fs::write(&tmp_wav, wav).map_err(|e| e.to_string())?;
     }
 
-    let _ = app.emit("whisperkit-download-progress", serde_json::json!({
-        "model": model, "status": "downloading", "message": "正在启动下载…"
-    }));
+    let _ = app.emit(
+        "whisperkit-download-progress",
+        serde_json::json!({
+            "model": model, "status": "downloading", "message": "正在启动下载…"
+        }),
+    );
+    let cli_model = whisperkit_cli_model_name(&model);
 
     use std::process::Stdio;
     use tokio::io::{AsyncBufReadExt, BufReader};
@@ -385,18 +457,34 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
     let mut cmd = tokio::process::Command::new(&cli_path);
     cmd.args([
         "transcribe",
-        "--audio-path", tmp_wav.to_str().unwrap_or(""),
+        "--audio-path",
+        tmp_wav.to_str().unwrap_or(""),
         "--verbose",
-        "--language", "zh",
-        "--download-model-path", model_cache_dir.to_str().unwrap_or(""),
-        "--download-tokenizer-path", model_cache_dir.to_str().unwrap_or(""),
-        "--model", &model,
+        "--language",
+        "zh",
+        "--download-model-path",
+        model_cache_dir.to_str().unwrap_or(""),
+        "--download-tokenizer-path",
+        model_cache_dir.to_str().unwrap_or(""),
+        "--model",
+        &cli_model,
     ]);
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
+    let app_for_spawn_error = app.clone();
+    let model_for_spawn_error = model.clone();
     let mut child = cmd.spawn().map_err(|e| {
         let _ = std::fs::remove_file(&tmp_wav);
-        format!("启动 whisperkit-cli 失败: {}", e)
+        let msg = format!("启动 whisperkit-cli 失败: {}", e);
+        let _ = app_for_spawn_error.emit(
+            "whisperkit-download-progress",
+            serde_json::json!({
+                "model": model_for_spawn_error,
+                "status": "error",
+                "message": msg,
+            }),
+        );
+        msg
     })?;
 
     // 流式读取 stderr，逐行 emit 进度
@@ -406,12 +494,17 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
         tokio::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
-                if line.trim().is_empty() { continue; }
-                let _ = app_clone.emit("whisperkit-download-progress", serde_json::json!({
-                    "model": model_clone,
-                    "status": "downloading",
-                    "message": line.trim(),
-                }));
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let _ = app_clone.emit(
+                    "whisperkit-download-progress",
+                    serde_json::json!({
+                        "model": model_clone,
+                        "status": "downloading",
+                        "message": line.trim(),
+                    }),
+                );
             }
         });
     }
@@ -421,16 +514,27 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
 
     // 判断模型是否已落盘（即使转录失败，只要模型下载了就算成功）
     let downloaded = check_whisperkit_model_downloaded(app.clone(), model.clone());
-    if downloaded || status.map(|s| s.success()).unwrap_or(false) {
-        let _ = app.emit("whisperkit-download-progress", serde_json::json!({
-            "model": model, "status": "done"
-        }));
+    let finished_successfully = status.as_ref().map(|s| s.success()).unwrap_or(false);
+    if downloaded || finished_successfully {
+        let _ = app.emit(
+            "whisperkit-download-progress",
+            serde_json::json!({
+                "model": model, "status": "done"
+            }),
+        );
         Ok(())
     } else {
-        let msg = "下载失败，请检查网络连接后重试".to_string();
-        let _ = app.emit("whisperkit-download-progress", serde_json::json!({
-            "model": model, "status": "error", "message": msg
-        }));
+        let detail = match status {
+            Ok(exit_status) => format!("whisperkit-cli 退出状态: {}", exit_status),
+            Err(error) => format!("等待 whisperkit-cli 结束失败: {}", error),
+        };
+        let msg = format!("下载失败，请检查网络连接后重试。{}", detail);
+        let _ = app.emit(
+            "whisperkit-download-progress",
+            serde_json::json!({
+                "model": model, "status": "error", "message": msg
+            }),
+        );
         Err(msg)
     }
 }
@@ -463,6 +567,25 @@ mod tests {
     }
 
     #[test]
+    fn write_config_file_creates_missing_parent_dirs() {
+        let temp_root = std::env::temp_dir().join(format!(
+            "journal-config-test-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let path = temp_root.join("nested").join("config.json");
+
+        let result = write_config_file(&path, &Config::default());
+
+        assert!(result.is_ok(), "write_config_file failed: {:?}", result);
+        assert!(path.exists(), "config file should exist after save");
+
+        let _ = fs::remove_dir_all(temp_root);
+    }
+
+    #[test]
     fn config_new_engine_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
         assert_eq!(c.active_ai_engine, "claude");
@@ -486,7 +609,7 @@ mod tests {
     #[test]
     fn config_asr_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.asr_engine, "dashscope");
+        assert_eq!(c.asr_engine, "whisperkit");
         assert_eq!(c.whisperkit_model, "base");
     }
 
@@ -501,5 +624,46 @@ mod tests {
         let c2: Config = serde_json::from_str(&json).unwrap();
         assert_eq!(c2.asr_engine, "whisperkit");
         assert_eq!(c2.whisperkit_model, "small");
+    }
+
+    #[test]
+    fn whisperkit_model_normalization_supports_turbo_aliases() {
+        assert_eq!(
+            normalize_whisperkit_model("large-v3_turbo"),
+            Some("large-v3-turbo")
+        );
+        assert_eq!(
+            normalize_whisperkit_model("large-v3-turbo"),
+            Some("large-v3-turbo")
+        );
+        assert_eq!(
+            whisperkit_cli_model_name("large-v3-turbo"),
+            "large-v3_turbo"
+        );
+        assert_eq!(whisperkit_cli_model_name("small"), "small");
+    }
+
+    #[test]
+    fn sanitize_engine_config_recovers_empty_strings() {
+        let mut c = Config {
+            active_ai_engine: "".into(),
+            asr_engine: "".into(),
+            whisperkit_model: "".into(),
+            ..Config::default()
+        };
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.active_ai_engine, "claude");
+        assert_eq!(c.asr_engine, "whisperkit");
+        assert_eq!(c.whisperkit_model, "base");
+    }
+
+    #[test]
+    fn sanitize_engine_config_normalizes_legacy_turbo_name() {
+        let mut c = Config {
+            whisperkit_model: "large-v3_turbo".into(),
+            ..Config::default()
+        };
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.whisperkit_model, "large-v3-turbo");
     }
 }

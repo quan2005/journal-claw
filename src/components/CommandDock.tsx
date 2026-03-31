@@ -19,7 +19,7 @@ interface CommandDockProps {
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
-  onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus: _recorderStatus, onRecord: _onRecord,
+  onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
 }: CommandDockProps) {
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
@@ -397,45 +397,48 @@ export function CommandDock({
         flexShrink: 0,
       }} />
 
-      {/* Mic Button — 录音功能开发中，暂时置灰 */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
+      {/* Mic Button */}
+      <div style={{ flexShrink: 0 }}>
         <button
-          disabled
-          title="录音功能开发中，敬请期待"
+          onClick={onRecord}
+          title={recorderStatus === 'recording' ? '停止录音' : '开始录音'}
+          aria-label={recorderStatus === 'recording' ? '停止录音' : '开始录音'}
+          className="mic-btn"
+          data-recording={recorderStatus === 'recording' ? 'true' : 'false'}
           style={{
-            width: 46,
-            height: 46,
+            width: 44,
+            height: 44,
             borderRadius: '50%',
-            background: 'var(--dock-kbd-bg)',
+            background: recorderStatus === 'recording' ? 'var(--accent)' : 'var(--record-btn)',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'not-allowed',
+            cursor: 'pointer',
             flexShrink: 0,
             position: 'relative',
             outline: 'none',
             margin: '0 16px',
             WebkitAppRegion: 'no-drag',
-            opacity: 0.35,
+            boxShadow: recorderStatus === 'recording'
+              ? '0 6px 18px rgba(255,59,48,0.24)'
+              : '0 6px 18px rgba(200,147,58,0.22)',
+            animation: recorderStatus === 'recording'
+              ? 'rec-pulse 1.2s ease-in-out infinite'
+              : 'pulse 3.2s ease-in-out infinite',
+            transition: 'background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
           } as React.CSSProperties}
         >
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--item-meta)">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="var(--record-btn-icon)"
+          >
             <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-            <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+            <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" stroke="var(--record-btn-icon)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
           </svg>
         </button>
-        <div style={{
-          position: 'absolute',
-          bottom: -2,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontSize: 8,
-          color: 'var(--duration-text)',
-          whiteSpace: 'nowrap',
-          letterSpacing: '0.03em',
-          pointerEvents: 'none',
-        }}>开发中</div>
       </div>
 
       {/* Divider (right of mic) */}

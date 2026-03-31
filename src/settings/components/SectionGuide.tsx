@@ -30,7 +30,7 @@ function highlightMarkdown(text: string): React.ReactNode[] {
 
 export default function SectionGuide() {
   const [content, setContent] = useState('')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -44,14 +44,20 @@ export default function SectionGuide() {
 
   const save = useCallback(async (text: string) => {
     setSaveStatus('saving')
-    await setWorkspacePrompt(text)
-    setSaveStatus('saved')
-    setTimeout(() => setSaveStatus('idle'), 2000)
+    try {
+      await setWorkspacePrompt(text)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus(current => current === 'saved' ? 'idle' : current), 2000)
+    } catch (error) {
+      console.error('[settings/guide] save failed', error)
+      setSaveStatus('error')
+    }
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value
     setContent(text)
+    setSaveStatus('idle')
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => save(text), 800)
   }
@@ -106,13 +112,19 @@ export default function SectionGuide() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
         <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>
-          {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '已自动保存' : ''}
+          {saveStatus === 'saving'
+            ? '保存中…'
+            : saveStatus === 'saved'
+              ? '已自动保存'
+              : saveStatus === 'error'
+                ? '保存失败，请重试'
+                : ''}
         </span>
-        <button onClick={() => save(content)} style={{
-          background: 'var(--record-btn)', border: 'none', borderRadius: 5,
+        <button onClick={() => save(content)} disabled={saveStatus === 'saving'} style={{
+          background: saveStatus === 'saving' ? 'var(--divider)' : 'var(--record-btn)', border: 'none', borderRadius: 5,
           padding: '6px 18px', fontSize: 12, fontWeight: 600,
-          color: 'var(--bg)', cursor: 'pointer',
-        }}>保存</button>
+          color: saveStatus === 'saving' ? 'var(--duration-text)' : 'var(--bg)', cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+        }}>{saveStatus === 'saving' ? '保存中…' : '保存'}</button>
       </div>
     </div>
   )

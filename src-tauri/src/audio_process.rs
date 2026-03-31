@@ -1,14 +1,10 @@
-use std::path::PathBuf;
 use rubato::{FftFixedIn, Resampler};
+use std::path::PathBuf;
 
 const TARGET_RATE: u32 = 48000;
 
 /// Convert i16 PCM (any rate, any channels) to 48 kHz mono f32.
-fn resample_to_48k_mono(
-    samples: &[i16],
-    src_rate: u32,
-    channels: u16,
-) -> Result<Vec<f32>, String> {
+fn resample_to_48k_mono(samples: &[i16], src_rate: u32, channels: u16) -> Result<Vec<f32>, String> {
     if channels == 0 {
         return Err("channels must be > 0".to_string());
     }
@@ -33,13 +29,9 @@ fn resample_to_48k_mono(
 
     // Resample with rubato FftFixedIn
     let chunk_size = 1024usize;
-    let mut resampler = FftFixedIn::<f32>::new(
-        src_rate as usize,
-        TARGET_RATE as usize,
-        chunk_size,
-        2,
-        1,
-    ).map_err(|e| e.to_string())?;
+    let mut resampler =
+        FftFixedIn::<f32>::new(src_rate as usize, TARGET_RATE as usize, chunk_size, 2, 1)
+            .map_err(|e| e.to_string())?;
 
     let input_frames = mono.len();
     // Expected output length (before tail flush)
@@ -56,13 +48,15 @@ fn resample_to_48k_mono(
         if actual_chunk_len < chunk_size {
             // Last partial chunk: use process_partial to avoid over-producing
             let chunk = mono[pos..end].to_vec();
-            let tail = resampler.process_partial(Some(&[chunk]), None)
+            let tail = resampler
+                .process_partial(Some(&[chunk]), None)
                 .map_err(|e| e.to_string())?;
             output.extend_from_slice(&tail[0]);
             used_partial = true;
         } else {
             let chunk = mono[pos..end].to_vec();
-            let out_chunk = resampler.process(&[chunk], None)
+            let out_chunk = resampler
+                .process(&[chunk], None)
                 .map_err(|e| e.to_string())?;
             output.extend_from_slice(&out_chunk[0]);
         }
@@ -73,7 +67,8 @@ fn resample_to_48k_mono(
     // If process_partial(Some(...)) was already called above, calling
     // process_partial(None) again would add an extra FFT cycle of near-silence artifacts.
     if !used_partial {
-        let tail = resampler.process_partial(None::<&[Vec<f32>]>, None)
+        let tail = resampler
+            .process_partial(None::<&[Vec<f32>]>, None)
             .map_err(|e| e.to_string())?;
         output.extend_from_slice(&tail[0]);
     }
@@ -110,25 +105,30 @@ fn denoise_audio(samples: &[f32]) -> Vec<f32> {
     output
 }
 
-const WINDOW: usize = 4800;   // 100 ms
+const WINDOW: usize = 4800; // 100 ms
 const SILENT_RMS: f32 = 0.01;
 const MIN_SILENT_WINDOWS: usize = 30; // 3 s
-const BUFFER_SAMPLES: usize = 7200;   // 150 ms
+const BUFFER_SAMPLES: usize = 7200; // 150 ms
 
 /// Remove gaps of ≥3 s of silence from 48 kHz mono f32 audio.
 fn remove_silence(samples: &[f32]) -> Vec<f32> {
     let n = samples.len();
-    if n == 0 { return vec![]; }
+    if n == 0 {
+        return vec![];
+    }
 
     // Classify each window as silent or not
-    let num_windows = (n + WINDOW - 1) / WINDOW;
-    let silent: Vec<bool> = (0..num_windows).map(|w| {
-        let start = w * WINDOW;
-        let end = (start + WINDOW).min(n);
-        let rms = (samples[start..end].iter().map(|&x| x * x).sum::<f32>()
-            / (end - start) as f32).sqrt();
-        rms < SILENT_RMS
-    }).collect();
+    let num_windows = n.div_ceil(WINDOW);
+    let silent: Vec<bool> = (0..num_windows)
+        .map(|w| {
+            let start = w * WINDOW;
+            let end = (start + WINDOW).min(n);
+            let rms = (samples[start..end].iter().map(|&x| x * x).sum::<f32>()
+                / (end - start) as f32)
+                .sqrt();
+            rms < SILENT_RMS
+        })
+        .collect();
 
     // Find contiguous silent runs of ≥ MIN_SILENT_WINDOWS windows
     // Build a list of (start_sample, end_sample) ranges to EXCLUDE
@@ -137,7 +137,9 @@ fn remove_silence(samples: &[f32]) -> Vec<f32> {
     while i < num_windows {
         if silent[i] {
             let run_start = i;
-            while i < num_windows && silent[i] { i += 1; }
+            while i < num_windows && silent[i] {
+                i += 1;
+            }
             let run_end = i;
             if run_end - run_start >= MIN_SILENT_WINDOWS {
                 // Shrink by buffer on each side
@@ -210,8 +212,7 @@ pub fn process_audio(wav_path: &PathBuf) -> Result<(), String> {
             bits_per_sample: 32,
             sample_format: hound::SampleFormat::Float,
         };
-        let mut writer = hound::WavWriter::create(&tmp_out, out_spec)
-            .map_err(|e| e.to_string())?;
+        let mut writer = hound::WavWriter::create(&tmp_out, out_spec).map_err(|e| e.to_string())?;
         for &s in &processed {
             writer.write_sample(s).map_err(|e| e.to_string())?;
         }
@@ -236,7 +237,11 @@ mod tests {
         let samples: Vec<i16> = (0..8820).map(|i| (i % 1000) as i16).collect();
         let out = resample_to_48k_mono(&samples, 44100, 2).unwrap();
         // 0.1 s at 48000 Hz = 4800 samples (allow generous range for rubato buffering + tail flush)
-        assert!(out.len() >= 4700 && out.len() <= 5000, "got {} samples", out.len());
+        assert!(
+            out.len() >= 4700 && out.len() <= 5000,
+            "got {} samples",
+            out.len()
+        );
     }
 
     #[test]
@@ -289,9 +294,17 @@ mod tests {
         let out = remove_silence(&input);
         // Gap (4s) should be stripped; result should be noticeably shorter than input
         // Each speech block ~48000 + 2×7200 buffer = ~110400; total ~200000 max
-        assert!(out.len() < 200000, "silence not stripped, got {} samples", out.len());
+        assert!(
+            out.len() < 200000,
+            "silence not stripped, got {} samples",
+            out.len()
+        );
         // But both speech blocks should survive
-        assert!(out.len() > 60000, "too much removed, got {} samples", out.len());
+        assert!(
+            out.len() > 60000,
+            "too much removed, got {} samples",
+            out.len()
+        );
     }
 
     #[test]
@@ -312,7 +325,9 @@ mod tests {
             sample_format: hound::SampleFormat::Int,
         };
         let mut w = hound::WavWriter::create(path, spec).unwrap();
-        for &s in samples { w.write_sample(s).unwrap(); }
+        for &s in samples {
+            w.write_sample(s).unwrap();
+        }
         w.finalize().unwrap();
     }
 
@@ -347,8 +362,16 @@ mod tests {
         // Original ~1s speech + 4s silence + ~1s speech at 44.1kHz
         // After processing at 48kHz: ~2s speech ≈ 96000 samples (silence removed)
         // Allow generous range due to resampling and buffer keeping
-        assert!(out_samples.len() < 200000, "silence not stripped: {} samples", out_samples.len());
-        assert!(out_samples.len() > 50000, "too much removed: {} samples", out_samples.len());
+        assert!(
+            out_samples.len() < 200000,
+            "silence not stripped: {} samples",
+            out_samples.len()
+        );
+        assert!(
+            out_samples.len() > 50000,
+            "too much removed: {} samples",
+            out_samples.len()
+        );
 
         let _ = std::fs::remove_file(&tmp);
     }

@@ -1,7 +1,7 @@
 use crate::config;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -28,16 +28,62 @@ pub struct Transcript {
     pub segments: Vec<WhisperSegment>,
 }
 
+pub fn transcript_json_path_for_audio(file_path: &std::path::Path) -> PathBuf {
+    let raw_dir = file_path.parent().unwrap_or(file_path);
+    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
+    raw_dir.join(format!("{}.transcript.json", base))
+}
+
+pub fn audio_ai_markdown_path_for_audio(file_path: &std::path::Path) -> PathBuf {
+    let raw_dir = file_path.parent().unwrap_or(file_path);
+    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
+    raw_dir.join(format!("{}.audio-ai.md", base))
+}
+
+fn resolve_audio_path(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
+    let candidate = PathBuf::from(path);
+    if candidate.exists() {
+        return Ok(candidate);
+    }
+
+    if candidate.parent().is_none()
+        || candidate
+            .parent()
+            .is_some_and(|parent| parent.as_os_str().is_empty())
+    {
+        return crate::recordings::recordings_dir(app).map(|dir| dir.join(path));
+    }
+
+    Ok(candidate)
+}
+
 fn emit_progress(app: &AppHandle, filename: &str, status: &str) {
     let payload = serde_json::json!({ "filename": filename, "status": status });
     let _ = app.emit("transcription-progress", payload);
+}
+
+fn audio_mime_type(path: &Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
+        "wav" => "audio/wav",
+        "mp3" => "audio/mpeg",
+        "ogg" => "audio/ogg",
+        "flac" => "audio/flac",
+        "aac" | "m4a" | "mp4" => "audio/mp4",
+        _ => "application/octet-stream",
+    }
 }
 
 /// Upload a local audio file to DashScope temporary storage and return the oss:// URL.
 async fn upload_file(
     client: &reqwest::Client,
     api_key: &str,
-    path: &PathBuf,
+    path: &Path,
 ) -> Result<String, String> {
     let file_name = path
         .file_name()
@@ -50,7 +96,10 @@ async fn upload_file(
         .get(UPLOAD_URL)
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .query(&[("action", "getPolicy"), ("model", "qwen3-asr-flash-filetrans")])
+        .query(&[
+            ("action", "getPolicy"),
+            ("model", "qwen3-asr-flash-filetrans"),
+        ])
         .send()
         .await
         .map_err(|e| format!("Get policy failed: {}", e))?;
@@ -62,7 +111,9 @@ async fn upload_file(
     }
 
     let policy_data: serde_json::Value = policy_resp.json().await.map_err(|e| e.to_string())?;
-    let data = policy_data.get("data").ok_or("No data in policy response")?;
+    let data = policy_data
+        .get("data")
+        .ok_or("No data in policy response")?;
 
     let upload_host = data
         .get("upload_host")
@@ -99,7 +150,7 @@ async fn upload_file(
 
     let file_part = reqwest::multipart::Part::bytes(file_bytes)
         .file_name(file_name.clone())
-        .mime_str("audio/mp4")
+        .mime_str(audio_mime_type(path))
         .map_err(|e| e.to_string())?;
 
     let form = reqwest::multipart::Form::new()
@@ -107,10 +158,7 @@ async fn upload_file(
         .text("Signature", signature.to_string())
         .text("policy", policy.to_string())
         .text("x-oss-object-acl", x_oss_object_acl.to_string())
-        .text(
-            "x-oss-forbid-overwrite",
-            x_oss_forbid_overwrite.to_string(),
-        )
+        .text("x-oss-forbid-overwrite", x_oss_forbid_overwrite.to_string())
         .text("key", key.clone())
         .text("success_action_status", "200".to_string())
         .part("file", file_part);
@@ -182,10 +230,7 @@ async fn poll_task(
     app: &AppHandle,
     filename: &str,
 ) -> Result<Option<String>, String> {
-    let url = format!(
-        "https://dashscope.aliyuncs.com/api/v1/tasks/{}",
-        task_id
-    );
+    let url = format!("https://dashscope.aliyuncs.com/api/v1/tasks/{}", task_id);
 
     loop {
         tokio::time::sleep(Duration::from_secs(3)).await;
@@ -221,7 +266,10 @@ async fn poll_task(
                     .and_then(|v| v.as_str())
                     .map(String::from);
                 if transcription_url.is_none() {
-                    return Err(format!("Task {}: SUCCEEDED but no transcription_url", task_id));
+                    return Err(format!(
+                        "Task {}: SUCCEEDED but no transcription_url",
+                        task_id
+                    ));
                 }
                 return Ok(transcription_url);
             }
@@ -237,11 +285,7 @@ async fn poll_task(
 
 /// Fetch transcription text from a transcription_url.
 async fn fetch_transcription_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
 
     if !resp.status().is_success() {
         return Err(format!("Fetch transcription failed: {}", resp.status()));
@@ -263,6 +307,7 @@ async fn fetch_transcription_text(client: &reqwest::Client, url: &str) -> Result
 
 /// 将说话人分段列表格式化为 markdown 纯文本。
 /// 相邻同说话人段落合并；时间戳格式 M:SS。
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn format_diarized_markdown(segments: &[WhisperSegment]) -> String {
     if segments.is_empty() {
         return String::new();
@@ -282,7 +327,8 @@ pub fn format_diarized_markdown(segments: &[WhisperSegment]) -> String {
 
     let label_for = |speaker: &Option<String>| -> String {
         match speaker {
-            Some(sp) => speaker_map.get(sp)
+            Some(sp) => speaker_map
+                .get(sp)
                 .map(|c| format!("Speaker {}", c))
                 .unwrap_or_else(|| "Speaker ?".to_string()),
             None => "Speaker ?".to_string(),
@@ -338,99 +384,408 @@ pub fn format_diarized_markdown(segments: &[WhisperSegment]) -> String {
     result.trim_end().to_string()
 }
 
-fn save_transcript(app: &AppHandle, file_path: &PathBuf, status: &str, text: &str) {
-    // transcript 放在素材所在 raw/ 目录上一级的 transcripts/ 下
-    // raw/录音.m4a → ../transcripts/录音.json
-    let raw_dir = file_path.parent().unwrap_or(file_path.as_path());
-    let transcripts_dir = raw_dir.parent().unwrap_or(raw_dir).join("transcripts");
-    let _ = std::fs::create_dir_all(&transcripts_dir);
-    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
-    let json_path = transcripts_dir.join(format!("{}.json", base));
-    let transcript = Transcript { status: status.to_string(), text: text.to_string(), segments: vec![] };
-    if let Ok(data) = serde_json::to_string(&transcript) {
+fn save_transcript_data(file_path: &Path, transcript: &Transcript) {
+    let json_path = transcript_json_path_for_audio(file_path);
+    if let Ok(data) = serde_json::to_string(transcript) {
         let _ = std::fs::write(&json_path, data);
     }
-    let filename = file_path.file_name().unwrap_or_default().to_string_lossy().to_string();
-    let _ = app.emit("transcription-progress", serde_json::json!({
-        "filename": filename, "status": status
-    }));
+}
+
+fn save_transcript(app: &AppHandle, file_path: &Path, status: &str, text: &str) {
+    let transcript = Transcript {
+        status: status.to_string(),
+        text: text.to_string(),
+        segments: vec![],
+    };
+    save_transcript_data(file_path, &transcript);
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let _ = app.emit(
+        "transcription-progress",
+        serde_json::json!({
+            "filename": filename, "status": status
+        }),
+    );
+}
+
+fn format_ai_speaker_label(
+    speaker_map: &mut std::collections::HashMap<String, char>,
+    speaker: &Option<String>,
+    next_label: &mut u8,
+) -> String {
+    match speaker {
+        Some(sp) => {
+            let label = speaker_map.entry(sp.clone()).or_insert_with(|| {
+                let current = *next_label as char;
+                *next_label += 1;
+                current
+            });
+            format!("发言人 {}", label)
+        }
+        None => "发言内容".to_string(),
+    }
+}
+
+fn normalize_text_line(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn strip_ansi_and_progress(text: &str) -> String {
+    let mut output = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\u{1b}' => {
+                if matches!(chars.peek(), Some('[')) {
+                    chars.next();
+                    for ansi_ch in chars.by_ref() {
+                        if ('@'..='~').contains(&ansi_ch) {
+                            break;
+                        }
+                    }
+                }
+            }
+            '\r' => {
+                output.push('\n');
+            }
+            _ => output.push(ch),
+        }
+    }
+
+    output
+}
+
+fn truncate_at_first_marker<'a>(text: &'a str, markers: &[&str]) -> &'a str {
+    let end = markers
+        .iter()
+        .filter_map(|marker| text.find(marker))
+        .min()
+        .unwrap_or(text.len());
+    &text[..end]
+}
+
+fn extract_whisperkit_transcription_text(stdout_text: &str) -> String {
+    if let Some(start_idx) = stdout_text.find("Transcription of ") {
+        let suffix = &stdout_text[start_idx..];
+        if let Some(colon_idx) = suffix.find(':') {
+            let body = truncate_at_first_marker(
+                &suffix[colon_idx + 1..],
+                &[
+                    "Preparing diarization models...",
+                    "---- Speaker Diarization Results ----",
+                    "Transcription Performance:",
+                    "Processing transcription result for:",
+                ],
+            );
+            let cleaned = normalize_text_line(body);
+            if !cleaned.is_empty() {
+                return cleaned;
+            }
+        }
+    }
+
+    stdout_text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .filter(|line| !line.starts_with("Starting transcription process"))
+        .filter(|line| !line.starts_with("Resolved audio paths:"))
+        .filter(|line| !line.starts_with("Using transcription task"))
+        .filter(|line| !line.starts_with("Task:"))
+        .filter(|line| !line.starts_with("Initializing models"))
+        .filter(|line| !line.starts_with("Model initialization complete"))
+        .filter(|line| !line.starts_with("- Model folder:"))
+        .filter(|line| !line.starts_with("- Tokenizer folder:"))
+        .filter(|line| !line.starts_with("- Total load time:"))
+        .filter(|line| !line.starts_with("- Encoder load time:"))
+        .filter(|line| !line.starts_with("- Decoder load time:"))
+        .filter(|line| !line.starts_with("- Tokenizer load time:"))
+        .filter(|line| !line.starts_with("Configuring decoding options"))
+        .filter(|line| !line.starts_with("Starting transcription with progress tracking"))
+        .filter(|line| !line.starts_with("Transcription Performance:"))
+        .filter(|line| !line.starts_with("- Tokens per second:"))
+        .filter(|line| !line.starts_with("- Real-time factor:"))
+        .filter(|line| !line.starts_with("- Speed factor:"))
+        .filter(|line| !line.starts_with("Processing transcription result for:"))
+        .filter(|line| !line.starts_with("Preparing diarization models..."))
+        .filter(|line| !line.starts_with("Diarization model initialization complete"))
+        .filter(|line| !line.starts_with("---- Speaker Diarization Results ----"))
+        .filter(|line| !line.starts_with("SPEAKER "))
+        .filter(|line| !line.contains("Elapsed Time:"))
+        .map(normalize_text_line)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn parse_whisperkit_diarization_line(line: &str) -> Option<WhisperSegment> {
+    let tokens: Vec<&str> = line.split_whitespace().collect();
+    if tokens.len() < 9 || tokens.first().copied() != Some("SPEAKER") {
+        return None;
+    }
+
+    let speaker_idx = tokens.len().checked_sub(3)?;
+    let text_end_idx = speaker_idx.checked_sub(1)?;
+    if text_end_idx == 0 {
+        return None;
+    }
+
+    let mut float_indices = tokens
+        .iter()
+        .enumerate()
+        .skip(1)
+        .filter(|(_, token)| token.contains('.') && token.parse::<f64>().is_ok())
+        .map(|(idx, _)| idx);
+
+    let start_idx = float_indices.next()?;
+    let duration_idx = float_indices.next()?;
+    if duration_idx + 1 > text_end_idx {
+        return None;
+    }
+
+    let start = tokens[start_idx].parse::<f64>().ok()?;
+    let duration = tokens[duration_idx].parse::<f64>().ok()?;
+    let text = normalize_text_line(&tokens[duration_idx + 1..text_end_idx].join(" "));
+    if text.is_empty() {
+        return None;
+    }
+
+    Some(WhisperSegment {
+        speaker: Some(tokens[speaker_idx].to_string()),
+        start,
+        end: start + duration,
+        text,
+    })
+}
+
+fn extract_whisperkit_segments(stdout_text: &str) -> Vec<WhisperSegment> {
+    let diarization_section = match stdout_text.find("---- Speaker Diarization Results ----") {
+        Some(idx) => &stdout_text[idx..],
+        None => return vec![],
+    };
+
+    diarization_section
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with("SPEAKER "))
+        .filter_map(parse_whisperkit_diarization_line)
+        .collect()
+}
+
+fn parse_whisperkit_stdout(stdout_bytes: &str) -> Transcript {
+    let cleaned = strip_ansi_and_progress(stdout_bytes);
+    let segments = extract_whisperkit_segments(&cleaned);
+    let text = {
+        let extracted = extract_whisperkit_transcription_text(&cleaned);
+        if !extracted.is_empty() {
+            extracted
+        } else {
+            segments
+                .iter()
+                .map(|segment| segment.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        }
+    };
+
+    Transcript {
+        status: "completed".to_string(),
+        text,
+        segments,
+    }
+}
+
+fn format_ai_body(transcript: &Transcript) -> String {
+    if transcript.segments.is_empty() {
+        return normalize_text_line(&transcript.text);
+    }
+
+    let mut speaker_map: std::collections::HashMap<String, char> = std::collections::HashMap::new();
+    let mut next_label = b'A';
+    let mut blocks: Vec<(Option<String>, String)> = Vec::new();
+
+    for segment in &transcript.segments {
+        let cleaned = normalize_text_line(segment.text.trim());
+        if cleaned.is_empty() {
+            continue;
+        }
+
+        match blocks.last_mut() {
+            Some((speaker, content)) if *speaker == segment.speaker => {
+                if !content.is_empty() {
+                    content.push(' ');
+                }
+                content.push_str(&cleaned);
+            }
+            _ => blocks.push((segment.speaker.clone(), cleaned)),
+        }
+    }
+
+    blocks
+        .into_iter()
+        .map(|(speaker, content)| {
+            let label = format_ai_speaker_label(&mut speaker_map, &speaker, &mut next_label);
+            format!("**{}**\n{}", label, content)
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+fn render_audio_ai_markdown(
+    audio_filename: &str,
+    asr_engine: &str,
+    transcript: &Transcript,
+) -> String {
+    let has_speaker = transcript
+        .segments
+        .iter()
+        .any(|segment| segment.speaker.is_some());
+    let body = format_ai_body(transcript);
+    format!(
+        "# 音频素材\n\n- 来源音频: {}\n- 转写引擎: {}\n- 语言: zh\n- 说话人分离: {}\n\n## 转写内容\n\n{}\n",
+        audio_filename,
+        asr_engine,
+        if has_speaker { "是" } else { "否" },
+        body,
+    )
+}
+
+async fn transcribe_with_dashscope(
+    app: &AppHandle,
+    file_path: &Path,
+    duration_secs: f64,
+) -> Result<Transcript, String> {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    if duration_secs > 0.0 && duration_secs <= MIN_DURATION_SECS {
+        let message = format!(
+            "DashScope 文件转写仅支持大于 {:.0} 秒的音频",
+            MIN_DURATION_SECS
+        );
+        save_transcript(app, file_path, "failed", &message);
+        return Err(message);
+    }
+
+    let api_key = match config::load_config(app) {
+        Ok(cfg) if !cfg.dashscope_api_key.is_empty() => cfg.dashscope_api_key,
+        Ok(_) => {
+            let message = "请先配置 DashScope API Key".to_string();
+            save_transcript(app, file_path, "failed", &message);
+            return Err(message);
+        }
+        Err(error) => {
+            save_transcript(app, file_path, "failed", &error);
+            return Err(error);
+        }
+    };
+
+    let client = reqwest::Client::new();
+    emit_progress(app, &filename, "uploading");
+
+    let file_url = match upload_file(&client, &api_key, file_path).await {
+        Ok(url) => url,
+        Err(error) => {
+            eprintln!("Upload failed: {}", error);
+            let message = format!("上传失败: {}", error);
+            save_transcript(app, file_path, "failed", &message);
+            return Err(message);
+        }
+    };
+
+    emit_progress(app, &filename, "transcribing");
+
+    let task_id = match submit_transcription(&client, &api_key, &file_url).await {
+        Ok(id) => id,
+        Err(error) => {
+            eprintln!("Submit failed: {}", error);
+            let message = format!("提交失败: {}", error);
+            save_transcript(app, file_path, "failed", &message);
+            return Err(message);
+        }
+    };
+
+    let transcription_url = match poll_task(&client, &api_key, &task_id, app, &filename).await {
+        Ok(Some(url)) => url,
+        Ok(None) => {
+            let message = "未获取到转写结果".to_string();
+            save_transcript(app, file_path, "failed", &message);
+            return Err(message);
+        }
+        Err(error) => {
+            eprintln!("Poll failed: {}", error);
+            let message = format!("转写失败: {}", error);
+            save_transcript(app, file_path, "failed", &message);
+            return Err(message);
+        }
+    };
+
+    let text = match fetch_transcription_text(&client, &transcription_url).await {
+        Ok(value) => value,
+        Err(error) => {
+            let message = format!("获取转写文本失败: {}", error);
+            save_transcript(app, file_path, "failed", &message);
+            return Err(message);
+        }
+    };
+
+    let transcript = Transcript {
+        status: "completed".to_string(),
+        text,
+        segments: vec![],
+    };
+    save_transcript_data(file_path, &transcript);
+    emit_progress(app, &filename, "completed");
+    Ok(transcript)
 }
 
 /// Public entry point: start transcription in a background thread.
 pub fn start_transcription(
     app: AppHandle,
-    filename: String,
+    _filename: String,
     file_path: PathBuf,
     duration_secs: f64,
 ) {
-    if duration_secs <= MIN_DURATION_SECS {
-        return;
-    }
+    tauri::async_runtime::spawn(async move {
+        let _ = transcribe_audio_to_ai_markdown(app, file_path, duration_secs).await;
+    });
+}
 
-    let api_key = match config::load_config(&app) {
-        Ok(cfg) if !cfg.dashscope_api_key.is_empty() => cfg.dashscope_api_key,
-        _ => return,
+pub async fn transcribe_audio_to_ai_markdown(
+    app: AppHandle,
+    file_path: PathBuf,
+    duration_secs: f64,
+) -> Result<PathBuf, String> {
+    let cfg = config::load_config(&app).inspect_err(|error| {
+        save_transcript(&app, &file_path, "failed", error);
+    })?;
+    let asr_engine = cfg.asr_engine.clone();
+
+    let transcript = if asr_engine == "whisperkit" {
+        transcribe_with_whisperkit(app.clone(), file_path.clone(), cfg.whisperkit_model).await?
+    } else {
+        transcribe_with_dashscope(&app, &file_path, duration_secs).await?
     };
 
-    tauri::async_runtime::spawn(async move {
-        let client = reqwest::Client::new();
+    let audio_filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let markdown = render_audio_ai_markdown(&audio_filename, &asr_engine, &transcript);
+    let markdown_path = audio_ai_markdown_path_for_audio(file_path.as_path());
 
-        emit_progress(&app, &filename, "uploading");
+    std::fs::write(&markdown_path, markdown.as_bytes())
+        .map_err(|e| format!("写入音频 AI markdown 失败: {}", e))?;
 
-        let file_url = match upload_file(&client, &api_key, &file_path).await {
-            Ok(url) => url,
-            Err(e) => {
-                eprintln!("Upload failed: {}", e);
-                save_transcript(&app, &file_path, "failed", &format!("上传失败: {}", e));
-                return;
-            }
-        };
-
-        emit_progress(&app, &filename, "transcribing");
-
-        let task_id = match submit_transcription(&client, &api_key, &file_url).await {
-            Ok(id) => id,
-            Err(e) => {
-                eprintln!("Submit failed: {}", e);
-                save_transcript(&app, &file_path, "failed", &format!("提交失败: {}", e));
-                return;
-            }
-        };
-
-        let transcription_url =
-            match poll_task(&client, &api_key, &task_id, &app, &filename).await {
-                Ok(Some(url)) => url,
-                Ok(None) => {
-                    save_transcript(&app, &file_path, "failed", "未获取到转写结果");
-                    return;
-                }
-                Err(e) => {
-                    eprintln!("Poll failed: {}", e);
-                    save_transcript(
-                        &app,
-                        &file_path,
-                        "failed",
-                        &format!("转写失败: {}", e),
-                    );
-                    return;
-                }
-            };
-
-        let text = match fetch_transcription_text(&client, &transcription_url).await {
-            Ok(t) => t,
-            Err(e) => {
-                save_transcript(
-                    &app,
-                    &file_path,
-                    "failed",
-                    &format!("获取转写文本失败: {}", e),
-                );
-                return;
-            }
-        };
-
-        save_transcript(&app, &file_path, "completed", &text);
-    });
+    Ok(markdown_path)
 }
 
 /// WhisperKit 转录：调用 whisperkit-cli sidecar，返回格式化 markdown 文本。
@@ -439,67 +794,69 @@ pub async fn transcribe_with_whisperkit(
     app: AppHandle,
     file_path: PathBuf,
     model: String,
-) -> Result<String, String> {
-    let filename = file_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+) -> Result<Transcript, String> {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
 
     // 模型缓存目录：app_data_dir/whisperkit-models/
-    let model_cache_dir = app.path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("whisperkit-models");
+    let model_cache_dir = config::whisperkit_models_dir(&app)?;
     let _ = std::fs::create_dir_all(&model_cache_dir);
 
     // 找到 sidecar 二进制路径（dev 模式用系统 PATH，bundle 模式用 Tauri resource 路径）
-    let cli_path = app.path()
+    let cli_path = app
+        .path()
         .resource_dir()
         .ok()
-        .map(|d| d.join("binaries").join("whisperkit-cli-aarch64-apple-darwin"))
+        .map(|d| {
+            d.join("binaries")
+                .join("whisperkit-cli-aarch64-apple-darwin")
+        })
         .filter(|p| p.exists())
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| "whisperkit-cli".to_string());
 
-    let _ = app.emit("transcription-progress", serde_json::json!({
-        "filename": filename, "status": "transcribing"
-    }));
+    let _ = app.emit(
+        "transcription-progress",
+        serde_json::json!({
+            "filename": filename, "status": "transcribing"
+        }),
+    );
 
-    // 模型目录：如果 model_cache_dir 下有匹配的子目录，直接用 --model-path 指向它；
-    // 否则用 --download-model-path + --download-tokenizer-path 让 whisperkit-cli 下载
-    let model_dir = {
-        let mut found: Option<PathBuf> = None;
-        if let Ok(entries) = std::fs::read_dir(&model_cache_dir) {
-            let model_key = model.to_lowercase().replace("_", "-");
-            for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().to_lowercase();
-                if name.contains(&model_key) {
-                    found = Some(entry.path());
-                    break;
-                }
-            }
-        }
-        found
-    };
+    // 优先复用内置或已下载的模型目录；只有本机和应用资源里都不存在时才触发下载。
+    let model_dir = config::find_whisperkit_model_dir(&app, &model);
+    let cli_model = config::whisperkit_cli_model_name(&model);
 
     let mut cmd = Command::new(&cli_path);
     cmd.args([
         "transcribe",
-        "--audio-path", file_path.to_str().unwrap_or(""),
+        "--audio-path",
+        file_path.to_str().unwrap_or(""),
         "--diarization",
         "--verbose",
-        "--language", "zh",
+        "--language",
+        "zh",
     ]);
     if let Some(ref dir) = model_dir {
         cmd.args(["--model-path", dir.to_str().unwrap_or("")]);
     } else {
         cmd.args([
-            "--download-model-path", model_cache_dir.to_str().unwrap_or(""),
-            "--download-tokenizer-path", model_cache_dir.to_str().unwrap_or(""),
-            "--model", &model,
+            "--download-model-path",
+            model_cache_dir.to_str().unwrap_or(""),
+            "--download-tokenizer-path",
+            model_cache_dir.to_str().unwrap_or(""),
+            "--model",
+            &cli_model,
         ]);
     }
 
     use std::process::Stdio;
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = cmd.spawn().map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
 
     // 流式读取 stderr（whisperkit-cli 的进度/日志输出在 stderr）
     let stderr_handle = if let Some(stderr) = child.stderr.take() {
@@ -521,9 +878,12 @@ pub async fn transcribe_with_whisperkit(
                 } else {
                     continue;
                 };
-                let _ = app_clone.emit("transcription-progress", serde_json::json!({
-                    "filename": fname, "status": "transcribing", "message": msg
-                }));
+                let _ = app_clone.emit(
+                    "transcription-progress",
+                    serde_json::json!({
+                        "filename": fname, "status": "transcribing", "message": msg
+                    }),
+                );
             }
         }))
     } else {
@@ -542,66 +902,69 @@ pub async fn transcribe_with_whisperkit(
     };
 
     let status = child.wait().await.map_err(|e| e.to_string())?;
-    if let Some(h) = stderr_handle { let _ = h.await; }
+    if let Some(h) = stderr_handle {
+        let _ = h.await;
+    }
 
     if !status.success() {
         save_transcript(&app, &file_path, "failed", "whisperkit 转录失败");
         return Err("whisperkit-cli 退出码非零".to_string());
     }
 
-    // whisperkit-cli 默认输出纯文本，--verbose 会在 stderr 输出详情
-    // stdout 是转录文本；尝试解析为 JSON，失败则整体当作 text
-    let (segments, full_text) = if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&stdout_bytes) {
-        let segs: Vec<WhisperSegment> = parsed
+    let transcript = if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&stdout_bytes) {
+        let segments: Vec<WhisperSegment> = parsed
             .get("segments")
             .and_then(|s| s.as_array())
-            .map(|arr| arr.iter().filter_map(|item| {
-                Some(WhisperSegment {
-                    speaker: item.get("speaker").and_then(|v| v.as_str()).map(String::from),
-                    start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                    end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                    text: item.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                })
-            }).collect())
+            .map(|arr| {
+                arr.iter()
+                    .map(|item| WhisperSegment {
+                        speaker: item
+                            .get("speaker")
+                            .and_then(|v| v.as_str())
+                            .map(String::from),
+                        start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                        end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                        text: item
+                            .get("text")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                    .collect()
+            })
             .unwrap_or_default();
-        let text = segs.iter().map(|s| s.text.trim()).collect::<Vec<_>>().join(" ");
-        (segs, text)
+        let text = segments
+            .iter()
+            .map(|segment| segment.text.trim())
+            .collect::<Vec<_>>()
+            .join(" ");
+        Transcript {
+            status: "completed".to_string(),
+            text,
+            segments,
+        }
     } else {
-        // 纯文本输出 — 整体作为无说话人单段
-        let text = stdout_bytes.trim().to_string();
-        (vec![], text)
+        parse_whisperkit_stdout(&stdout_bytes)
     };
+    save_transcript_data(&file_path, &transcript);
 
-    // 写 sidecar
-    let raw_dir = file_path.parent().unwrap_or(file_path.as_path());
-    let transcripts_dir = raw_dir.parent().unwrap_or(raw_dir).join("transcripts");
-    let _ = std::fs::create_dir_all(&transcripts_dir);
-    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
-    let json_path = transcripts_dir.join(format!("{}.json", base));
-    let transcript = Transcript {
-        status: "completed".to_string(),
-        text: full_text,
-        segments: segments.clone(),
-    };
-    if let Ok(data) = serde_json::to_string(&transcript) {
-        let _ = std::fs::write(&json_path, data);
-    }
+    let _ = app.emit(
+        "transcription-progress",
+        serde_json::json!({
+            "filename": filename, "status": "completed"
+        }),
+    );
 
-    let _ = app.emit("transcription-progress", serde_json::json!({
-        "filename": filename, "status": "completed"
-    }));
-
-    Ok(format_diarized_markdown(&segments))
+    Ok(transcript)
 }
 
 #[tauri::command]
-pub fn get_transcript(path: String) -> Result<Option<Transcript>, String> {
-    let file_path = PathBuf::from(&path);
-    let raw_dir = file_path.parent().ok_or("invalid path")?;
-    let transcripts_dir = raw_dir.parent().ok_or("invalid path")?.join("transcripts");
-    let base = file_path.file_stem().unwrap_or_default().to_string_lossy();
-    let json_path = transcripts_dir.join(format!("{}.json", base));
-    if !json_path.exists() { return Ok(None); }
+pub fn get_transcript(app: AppHandle, path: String) -> Result<Option<Transcript>, String> {
+    let file_path = resolve_audio_path(&app, &path)?;
+    let json_path = transcript_json_path_for_audio(file_path.as_path());
+    if !json_path.exists() {
+        return Ok(None);
+    }
     let data = std::fs::read_to_string(&json_path).map_err(|e| e.to_string())?;
     let t: Transcript = serde_json::from_str(&data).map_err(|e| e.to_string())?;
     Ok(Some(t))
@@ -609,11 +972,15 @@ pub fn get_transcript(path: String) -> Result<Option<Transcript>, String> {
 
 #[tauri::command]
 pub fn retry_transcription(app: AppHandle, path: String) -> Result<(), String> {
-    let file_path = PathBuf::from(&path);
+    let file_path = resolve_audio_path(&app, &path)?;
     if !file_path.exists() {
         return Err(format!("文件不存在: {}", path));
     }
-    let filename = file_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
     let duration = crate::recordings::read_duration_pub(&file_path);
     start_transcription(app, filename, file_path, duration);
     Ok(())
@@ -626,12 +993,28 @@ mod tests {
     #[test]
     fn format_segments_as_markdown_basic() {
         let segments = vec![
-            WhisperSegment { speaker: Some("SPEAKER_00".into()), start: 0.0, end: 3.0, text: "大家好".into() },
-            WhisperSegment { speaker: Some("SPEAKER_01".into()), start: 3.5, end: 7.0, text: "你好".into() },
+            WhisperSegment {
+                speaker: Some("SPEAKER_00".into()),
+                start: 0.0,
+                end: 3.0,
+                text: "大家好".into(),
+            },
+            WhisperSegment {
+                speaker: Some("SPEAKER_01".into()),
+                start: 3.5,
+                end: 7.0,
+                text: "你好".into(),
+            },
         ];
         let md = format_diarized_markdown(&segments);
-        assert!(md.contains("**Speaker A**"), "should map SPEAKER_00 to Speaker A");
-        assert!(md.contains("**Speaker B**"), "should map SPEAKER_01 to Speaker B");
+        assert!(
+            md.contains("**Speaker A**"),
+            "should map SPEAKER_00 to Speaker A"
+        );
+        assert!(
+            md.contains("**Speaker B**"),
+            "should map SPEAKER_01 to Speaker B"
+        );
         assert!(md.contains("(0:00)"), "should format start time");
         assert!(md.contains("大家好"));
         assert!(md.contains("你好"));
@@ -640,9 +1023,24 @@ mod tests {
     #[test]
     fn format_segments_merges_adjacent_same_speaker() {
         let segments = vec![
-            WhisperSegment { speaker: Some("SPEAKER_00".into()), start: 0.0, end: 2.0, text: "第一句".into() },
-            WhisperSegment { speaker: Some("SPEAKER_00".into()), start: 2.1, end: 4.0, text: "第二句".into() },
-            WhisperSegment { speaker: Some("SPEAKER_01".into()), start: 4.5, end: 6.0, text: "回应".into() },
+            WhisperSegment {
+                speaker: Some("SPEAKER_00".into()),
+                start: 0.0,
+                end: 2.0,
+                text: "第一句".into(),
+            },
+            WhisperSegment {
+                speaker: Some("SPEAKER_00".into()),
+                start: 2.1,
+                end: 4.0,
+                text: "第二句".into(),
+            },
+            WhisperSegment {
+                speaker: Some("SPEAKER_01".into()),
+                start: 4.5,
+                end: 6.0,
+                text: "回应".into(),
+            },
         ];
         let md = format_diarized_markdown(&segments);
         // SPEAKER_00 header should appear only once
@@ -652,19 +1050,63 @@ mod tests {
 
     #[test]
     fn format_segments_time_format() {
-        let segments = vec![
-            WhisperSegment { speaker: Some("SPEAKER_00".into()), start: 65.0, end: 70.0, text: "一分钟后".into() },
-        ];
+        let segments = vec![WhisperSegment {
+            speaker: Some("SPEAKER_00".into()),
+            start: 65.0,
+            end: 70.0,
+            text: "一分钟后".into(),
+        }];
         let md = format_diarized_markdown(&segments);
         assert!(md.contains("(1:05)"), "65 seconds should format as 1:05");
     }
 
     #[test]
     fn format_segments_no_speaker_fallback() {
-        let segments = vec![
-            WhisperSegment { speaker: None, start: 0.0, end: 2.0, text: "无说话人".into() },
-        ];
+        let segments = vec![WhisperSegment {
+            speaker: None,
+            start: 0.0,
+            end: 2.0,
+            text: "无说话人".into(),
+        }];
         let md = format_diarized_markdown(&segments);
-        assert!(md.contains("无说话人"), "text should be present even without speaker");
+        assert!(
+            md.contains("无说话人"),
+            "text should be present even without speaker"
+        );
+    }
+
+    #[test]
+    fn parse_whisperkit_stdout_strips_runtime_noise_and_keeps_transcript() {
+        let raw = r#"Starting transcription process...
+Resolved audio paths:
+- /tmp/test.m4a
+Initializing models...
+Processing transcription result for: /tmp/test.m4a
+Transcription of test.m4a: 喂喂喂 你好 现在测试录音
+Preparing diarization models...
+"#;
+
+        let transcript = parse_whisperkit_stdout(raw);
+        assert_eq!(transcript.text, "喂喂喂 你好 现在测试录音");
+        assert!(transcript.segments.is_empty());
+    }
+
+    #[test]
+    fn parse_whisperkit_stdout_extracts_diarization_segments() {
+        let raw = r#"Transcription of test.m4a: 喂喂喂 你好 现在测试录音
+---- Speaker Diarization Results ----
+SPEAKER test 1 5.200 6.000 喂喂喂 你好 <NA> A <NA> <NA>
+SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
+"#;
+
+        let transcript = parse_whisperkit_stdout(raw);
+        assert_eq!(transcript.text, "喂喂喂 你好 现在测试录音");
+        assert_eq!(transcript.segments.len(), 2);
+        assert_eq!(transcript.segments[0].speaker.as_deref(), Some("A"));
+        assert_eq!(transcript.segments[0].start, 5.2);
+        assert_eq!(transcript.segments[0].end, 11.2);
+        assert_eq!(transcript.segments[0].text, "喂喂喂 你好");
+        assert_eq!(transcript.segments[1].speaker.as_deref(), Some("B"));
+        assert_eq!(transcript.segments[1].text, "现在测试录音");
     }
 }

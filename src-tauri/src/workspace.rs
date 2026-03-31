@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use chrono::Local;
+use std::path::PathBuf;
 
 pub fn year_month_dir(workspace: &str, year_month: &str) -> PathBuf {
     PathBuf::from(workspace).join(year_month)
@@ -11,8 +11,7 @@ pub fn raw_dir(workspace: &str, year_month: &str) -> PathBuf {
 
 pub fn ensure_dirs(workspace: &str, year_month: &str) -> Result<(), String> {
     let raw = raw_dir(workspace, year_month);
-    std::fs::create_dir_all(&raw)
-        .map_err(|e| format!("创建目录失败 {}: {}", raw.display(), e))
+    std::fs::create_dir_all(&raw).map_err(|e| format!("创建目录失败 {}: {}", raw.display(), e))
 }
 
 pub fn current_year_month() -> String {

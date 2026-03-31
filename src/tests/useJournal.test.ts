@@ -58,6 +58,7 @@ describe('useJournal', () => {
       filename: '录音处理中',
       status: 'converting',
     })
+    expect(result.current.isProcessing).toBe(false)
   })
 
   it('addConvertingItem is idempotent', async () => {
@@ -81,6 +82,34 @@ describe('useJournal', () => {
       filename: 'meeting.m4a',
       status: 'queued',
     })
+    expect(result.current.isProcessing).toBe(true)
+  })
+
+  it('sets isProcessing only after AI queue starts, not during converting', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+
+    act(() => {
+      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+    })
+    expect(result.current.isProcessing).toBe(false)
+
+    act(() => {
+      fireEvent('audio-ai-material-ready', {
+        source_path: '/ws/2603/raw/meeting.m4a',
+        material_path: '/ws/2603/raw/meeting.audio-ai.md',
+        filename: 'meeting.m4a',
+      })
+    })
+    expect(result.current.isProcessing).toBe(true)
+
+    act(() => {
+      fireEvent('ai-processing', {
+        material_path: '/ws/2603/raw/meeting.audio-ai.md',
+        status: 'completed',
+      })
+    })
+    expect(result.current.queueItems[0]?.status).toBe('completed')
   })
 
   it('addQueuedItem is idempotent (deduplicates by path)', async () => {
@@ -93,7 +122,7 @@ describe('useJournal', () => {
     expect(result.current.queueItems).toHaveLength(1)
   })
 
-  it('recording-processed upgrades placeholder item to queued with real path', async () => {
+  it('recording-processed upgrades placeholder item to converting with real audio path', async () => {
     const { result } = renderHook(() => useJournal())
     await act(async () => {})
 
@@ -114,10 +143,57 @@ describe('useJournal', () => {
     expect(result.current.queueItems[0]).toMatchObject({
       path: '/ws/2603/raw/录音 2026-03-30 10:00.m4a',
       filename: '录音 2026-03-30 10:00.m4a',
-      status: 'queued',
+      status: 'converting',
     })
     // placeholder must be gone
     expect(result.current.queueItems.some(i => i.path === '__recording__')).toBe(false)
+  })
+
+  it('audio-ai-material-ready upgrades converting audio item to queued markdown item', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+
+    act(() => {
+      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+    })
+
+    act(() => {
+      fireEvent('audio-ai-material-ready', {
+        source_path: '/ws/2603/raw/meeting.m4a',
+        material_path: '/ws/2603/raw/meeting.audio-ai.md',
+        filename: 'meeting.m4a',
+      })
+    })
+
+    expect(result.current.queueItems[0]).toMatchObject({
+      path: '/ws/2603/raw/meeting.audio-ai.md',
+      filename: 'meeting.m4a',
+      status: 'queued',
+    })
+  })
+
+  it('audio-ai-material-failed upgrades converting item to failed', async () => {
+    const { result } = renderHook(() => useJournal())
+    await act(async () => {})
+
+    act(() => {
+      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+    })
+
+    act(() => {
+      fireEvent('audio-ai-material-failed', {
+        source_path: '/ws/2603/raw/meeting.m4a',
+        filename: 'meeting.m4a',
+        error: '转写失败',
+      })
+    })
+
+    expect(result.current.queueItems[0]).toMatchObject({
+      path: '/ws/2603/raw/meeting.m4a',
+      filename: 'meeting.m4a',
+      status: 'failed',
+      error: '转写失败',
+    })
   })
 
   it('recording-processed is a no-op when no placeholder exists', async () => {

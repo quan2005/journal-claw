@@ -10,7 +10,7 @@ import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled } from './lib/tauri'
+import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
 
@@ -19,7 +19,7 @@ const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
-  const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh } = useJournal()
+  const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
@@ -150,7 +150,8 @@ export default function App() {
         const kind = fileKindFromName(path.split('/').pop() ?? path)
         if (kind === 'audio') {
           const result = await importAudioFile(path)
-          addQueuedItem(result.path, result.filename)
+          addConvertingItem(result.path, result.filename)
+          await prepareAudioForAi(result.path, result.year_month, note)
         } else {
           const result = await importFile(path)
           await triggerAiProcessing(result.path, result.year_month, note)

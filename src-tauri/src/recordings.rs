@@ -5,10 +5,7 @@ use tauri::{AppHandle, Manager};
 /// Returns the recordings storage directory (App data dir), creating it if needed.
 /// On macOS: ~/Library/Application Support/journal/
 pub fn recordings_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
 }
@@ -32,7 +29,11 @@ pub(crate) fn parse_filename_pub(filename: &str) -> (String, String) {
             let mut it = part.splitn(3, '-');
             let y = it.next()?;
             let m = it.next()?;
-            if y.len() == 4 && m.len() == 2 && y.chars().all(|c| c.is_ascii_digit()) && m.chars().all(|c| c.is_ascii_digit()) {
+            if y.len() == 4
+                && m.len() == 2
+                && y.chars().all(|c| c.is_ascii_digit())
+                && m.chars().all(|c| c.is_ascii_digit())
+            {
                 Some(format!("{}{}", y, m))
             } else {
                 None
@@ -45,7 +46,6 @@ pub(crate) fn parse_filename_pub(filename: &str) -> (String, String) {
 #[tauri::command]
 pub async fn list_recordings(app: AppHandle) -> Result<Vec<RecordingItem>, String> {
     let dir = recordings_dir(&app)?;
-    let transcripts_dir = dir.join("transcripts");
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut items: Vec<RecordingItem> = std::fs::read_dir(&dir)
@@ -61,8 +61,8 @@ pub async fn list_recordings(app: AppHandle) -> Result<Vec<RecordingItem>, Strin
                 let duration_secs = read_duration_pub(&path);
 
                 // Check transcript status
-                let base = filename.trim_end_matches(".m4a");
-                let transcript_file = transcripts_dir.join(format!("{}.json", base));
+                let transcript_file =
+                    crate::transcription::transcript_json_path_for_audio(path.as_path());
                 let transcript_status = if transcript_file.exists() {
                     std::fs::read_to_string(&transcript_file)
                         .ok()

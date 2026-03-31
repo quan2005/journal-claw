@@ -129,11 +129,42 @@ export function useJournal() {
         if (!hasPlaceholder) return prev
         return prev.map(i =>
           i.path === RECORDING_PLACEHOLDER
-            ? { ...i, path, filename, status: 'queued' as const }
+            ? { ...i, path, filename, status: 'converting' as const }
             : i
         )
       })
       refresh()
+    })
+
+    const unlistenAudioReady = listen<{ source_path: string; material_path: string; filename: string }>('audio-ai-material-ready', (event) => {
+      const { source_path, material_path, filename } = event.payload
+      setQueueItems(prev => {
+        if (prev.some(i => i.path === source_path)) {
+          return prev.map(i =>
+            i.path === source_path
+              ? { ...i, path: material_path, filename, status: 'queued' as const }
+              : i
+          )
+        }
+        if (prev.some(i => i.path === material_path)) {
+          return prev
+        }
+        return [{ path: material_path, filename, status: 'queued' as const, addedAt: Date.now(), logs: [] }, ...prev]
+      })
+    })
+
+    const unlistenAudioFailed = listen<{ source_path: string; filename: string; error: string }>('audio-ai-material-failed', (event) => {
+      const { source_path, filename, error } = event.payload
+      setQueueItems(prev => {
+        if (prev.some(i => i.path === source_path)) {
+          return prev.map(i =>
+            i.path === source_path
+              ? { ...i, filename, status: 'failed' as const, error }
+              : i
+          )
+        }
+        return [{ path: source_path, filename, status: 'failed' as const, error, addedAt: Date.now(), logs: [] }, ...prev]
+      })
     })
 
     return () => {
@@ -142,13 +173,15 @@ export function useJournal() {
       unlistenLog.then(fn => fn())
       unlistenUpdated.then(fn => fn())
       unlistenProcessed.then(fn => fn())
+      unlistenAudioReady.then(fn => fn())
+      unlistenAudioFailed.then(fn => fn())
       removalTimers.current.forEach(t => clearTimeout(t))
       removalTimers.current.clear()
     }
   }, [refresh])
 
   const isProcessing = queueItems.some(
-    i => i.status === 'processing' || i.status === 'queued' || i.status === 'converting'
+    i => i.status === 'processing' || i.status === 'queued'
   )
 
   return { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh }

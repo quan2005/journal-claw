@@ -15,11 +15,14 @@ interface CommandDockProps {
   onPasteFiles: (paths: string[]) => void
   recorderStatus: RecorderStatus
   onRecord: () => void
+  asrReady: boolean | null
+  audioRejected?: boolean
 }
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
   onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
+  asrReady, audioRejected,
 }: CommandDockProps) {
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
@@ -39,6 +42,10 @@ export function CommandDock({
       setTimeout(() => inputRef.current?.focus(), 40)
     }
   }, [inputOpen])
+
+  useEffect(() => {
+    if (audioRejected) showToast('语音转写未配置，音频文件已忽略')
+  }, [audioRejected])
 
   function handleTextClipboard(text: string) {
     if (text.length > 300) {
@@ -311,7 +318,7 @@ export function CommandDock({
                     取消
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); handleSubmit() }} style={actionBtnSubmit}>
-                    提交 Agent 整理 ↗
+                    提交 Agent 整理
                   </button>
                 </div>
               </div>
@@ -401,7 +408,12 @@ export function CommandDock({
       <div style={{ flexShrink: 0 }}>
         <button
           onClick={onRecord}
-          title={recorderStatus === 'recording' ? '停止录音' : '开始录音'}
+          disabled={recorderStatus !== 'recording' && asrReady === false}
+          title={
+            recorderStatus !== 'recording' && asrReady === false
+              ? '请先在设置中配置语音转写'
+              : recorderStatus === 'recording' ? '停止录音' : '开始录音'
+          }
           aria-label={recorderStatus === 'recording' ? '停止录音' : '开始录音'}
           className="mic-btn"
           data-recording={recorderStatus === 'recording' ? 'true' : 'false'}
@@ -414,7 +426,8 @@ export function CommandDock({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
+            cursor: recorderStatus !== 'recording' && asrReady === false ? 'not-allowed' : 'pointer',
+            opacity: recorderStatus !== 'recording' && asrReady === false ? 0.4 : 1,
             flexShrink: 0,
             position: 'relative',
             outline: 'none',

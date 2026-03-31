@@ -10,7 +10,7 @@ import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled } from './lib/tauri'
+import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
 
@@ -23,6 +23,8 @@ export default function App() {
   const { theme, setTheme } = useTheme()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
+  const [asrReady, setAsrReady] = useState<boolean | null>(null)
+  const [audioRejected, setAudioRejected] = useState(false)
   const [view, setView] = useState<'journal' | 'settings'>('journal')
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
@@ -45,6 +47,22 @@ export default function App() {
       checkEngineInstalled(cfg.active_ai_engine as 'claude' | 'qwen').then(setAiReady)
     ).catch(() => setAiReady(false))
   }, [view]) // re-check after user closes settings
+
+  // Check ASR readiness on mount and after settings are closed
+  useEffect(() => {
+    getAsrConfig().then(async cfg => {
+      if (cfg.asr_engine === 'dashscope') {
+        setAsrReady(cfg.dashscope_api_key.trim().length > 0)
+        return
+      }
+      // whisperkit: need both CLI installed and model downloaded
+      const [cliOk, modelOk] = await Promise.all([
+        checkWhisperkitCliInstalled(),
+        checkWhisperkitModelDownloaded(cfg.whisperkit_model),
+      ])
+      setAsrReady(cliOk && modelOk)
+    }).catch(() => setAsrReady(false))
+  }, [view]) // re-check after settings closed
 
   // Immediately clear overlay when an engine finishes installing successfully
   useEffect(() => {
@@ -249,9 +267,22 @@ export default function App() {
   }
 
   const handlePasteFiles = (paths: string[]) => {
+    const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
+    const isAudio = (p: string) => audioExts.some(ext => p.toLowerCase().endsWith(ext))
+
+    let filteredPaths = paths
+    if (asrReady === false) {
+      const audioCount = paths.filter(isAudio).length
+      if (audioCount > 0) {
+        filteredPaths = paths.filter(p => !isAudio(p))
+        setAudioRejected(true)
+        setTimeout(() => setAudioRejected(false), 2500)
+      }
+    }
+
     setPendingFiles(prev => {
       const existing = new Set(prev)
-      const newPaths = paths.filter(p => !existing.has(p))
+      const newPaths = filteredPaths.filter(p => !existing.has(p))
       if (newPaths.length === 0) return prev
       return [...prev, ...newPaths].slice(0, 6)
     })
@@ -330,6 +361,8 @@ export default function App() {
               onPasteFiles={handlePasteFiles}
               recorderStatus={status}
               onRecord={handleRecord}
+              asrReady={asrReady}
+              audioRejected={audioRejected}
             />
             {aiReady === false && (
               <div

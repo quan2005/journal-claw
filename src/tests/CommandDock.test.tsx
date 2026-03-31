@@ -14,7 +14,7 @@ vi.mock('../lib/tauri', () => ({
   openFile: vi.fn(),
 }))
 
-function renderDock(recorderStatus: 'idle' | 'recording' = 'idle') {
+function renderDock(recorderStatus: 'idle' | 'recording' = 'idle', asrReady: boolean | null = true) {
   const onRecord = vi.fn()
 
   render(
@@ -28,6 +28,7 @@ function renderDock(recorderStatus: 'idle' | 'recording' = 'idle') {
       onPasteFiles={vi.fn()}
       recorderStatus={recorderStatus}
       onRecord={onRecord}
+      asrReady={asrReady}
     />,
   )
 

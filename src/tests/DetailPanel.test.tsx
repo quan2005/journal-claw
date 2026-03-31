@@ -32,21 +32,23 @@ describe('empty state guidance cards', () => {
     onSelectSample: vi.fn(),
   }
 
-  it('shows guidance cards when entries is empty', () => {
+  const fakeEntry: JournalEntry = {
+    filename: '01-test.md', path: '/ws/2604/01-test.md',
+    title: 'test', summary: '', tags: [], year_month: '2604',
+    day: 1, created_time: '10:00', mtime_secs: 0, materials: [],
+  }
+
+  it('shows recording and paste cards when entries is empty', () => {
     render(<DetailPanel {...baseProps} entries={[]} />)
     expect(screen.getByText('录音记录')).toBeTruthy()
     expect(screen.getByText('粘贴 / 拖文件')).toBeTruthy()
-    expect(screen.getByText('看示例条目')).toBeTruthy()
+    expect(screen.queryByText('看示例条目')).toBeNull()
   })
 
-  it('hides guidance cards when entries exist', () => {
-    const fakeEntry: JournalEntry = {
-      filename: '01-test.md', path: '/ws/2604/01-test.md',
-      title: 'test', summary: '', tags: [], year_month: '2604',
-      day: 1, created_time: '10:00', mtime_secs: 0, materials: [],
-    }
+  it('hides guide cards when entries is non-empty', () => {
     render(<DetailPanel {...baseProps} entries={[fakeEntry]} />)
     expect(screen.queryByText('录音记录')).toBeNull()
+    expect(screen.queryByText('粘贴 / 拖文件')).toBeNull()
   })
 
   it('calls onRecord when 录音记录 card is clicked', () => {
@@ -63,10 +65,8 @@ describe('empty state guidance cards', () => {
     expect(onOpenDock).toHaveBeenCalledOnce()
   })
 
-  it('calls onSelectSample when sample card is clicked', () => {
-    const onSelectSample = vi.fn()
-    render(<DetailPanel {...baseProps} entries={[]} onSelectSample={onSelectSample} />)
-    fireEvent.click(screen.getByText('看示例条目').closest('button')!)
-    expect(onSelectSample).toHaveBeenCalledOnce()
+  it('does not show sample card when entries is empty (sample not available)', () => {
+    render(<DetailPanel {...baseProps} entries={[]} onSelectSample={vi.fn()} />)
+    expect(screen.queryByText('看示例条目')).toBeNull()
   })
 })

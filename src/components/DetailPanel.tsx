@@ -155,6 +155,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
 
   if (!entry) {
     const isEmpty = entries.length === 0
+    const hasSample = entries.some(e => e.title === '产品评审示例')
     return (
       <div style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
@@ -228,21 +229,24 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
               </button>
 
-              {/* 看示例卡片 */}
-              <button
-                onClick={onSelectSample}
-                style={{
-                  flex: 1, background: 'var(--detail-bg)', border: '1px dashed var(--divider)',
-                  borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
-              >
-                <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
-                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>看示例条目</div>
-                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>先了解 AI 整理<br/>结果长什么样</div>
-              </button>
+              {/* 看示例卡片：只在示例条目实际存在时显示 */}
+              {hasSample && (
+                <button
+                  onClick={onSelectSample}
+                  style={{
+                    flex: 1, background: 'var(--detail-bg)',
+                    border: '1px dashed var(--divider)', borderStyle: 'dashed',
+                    borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                    transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+                >
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+                  <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>看示例条目</div>
+                  <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>先了解 AI 整理<br/>结果长什么样</div>
+                </button>
+              )}
             </div>
           </div>
         )}

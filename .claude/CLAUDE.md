@@ -131,4 +131,4 @@ Filename: `DD-title.md` (e.g. `28-AI平台产品会议纪要.md`). The `DD` pref
 
 - **Context menu**: Use Tauri v2 `@tauri-apps/api/menu` (`Menu`, `MenuItem`). `tauri-plugin-context-menu` is v1-only — do not use it.
 - **Theme**: Stored per-workspace via `workspace_settings` Rust commands, not in localStorage (except panel width).
-- **AI processing**: Claude CLI is called as an external process. The path defaults to `~/.local/bin/claude`, `/usr/local/bin/claude`, or `/opt/homebrew/bin/claude`.
+- **AI processing**: Claude CLI is called as an external process. The path is detected via `which claude` at startup; falls back to the bare `claude` command if not found.

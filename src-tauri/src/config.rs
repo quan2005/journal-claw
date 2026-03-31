@@ -62,15 +62,15 @@ pub struct Config {
 }
 
 fn default_claude_cli() -> String {
-    let home = std::env::var("HOME").unwrap_or_default();
-    let local_bin = format!("{}/.local/bin/claude", home);
-    for candidate in &[local_bin.as_str(), "/usr/local/bin/claude", "/opt/homebrew/bin/claude"] {
-        if cfg!(test) {
-            // In tests, skip file existence checks to ensure deterministic behavior
-            continue;
-        }
-        if std::path::Path::new(candidate).exists() {
-            return candidate.to_string();
+    if cfg!(test) {
+        return "claude".to_string();
+    }
+    if let Ok(output) = std::process::Command::new("which").arg("claude").output() {
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() {
+                return path;
+            }
         }
     }
     "claude".to_string()
@@ -186,7 +186,36 @@ pub fn set_claude_cli_path(app: AppHandle, path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
-    let c = load_config(&app)?;
+    let mut c = load_config(&app)?;
+
+    // Auto-select: if the saved engine is not installed, pick the first available one.
+    // Priority: claude > qwen. If neither is installed, keep the saved value.
+    let engine_available = |name: &str| -> bool {
+        std::process::Command::new("which")
+            .arg(name)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    };
+
+    let claude_ok = engine_available("claude");
+    let qwen_ok = engine_available("qwen");
+
+    let resolved = match c.active_ai_engine.as_str() {
+        "claude" if claude_ok => "claude",
+        "qwen"   if qwen_ok   => "qwen",
+        // saved engine not available — pick best available
+        _ if claude_ok        => "claude",
+        _ if qwen_ok          => "qwen",
+        _                     => c.active_ai_engine.as_str(),
+    };
+
+    if resolved != c.active_ai_engine.as_str() {
+        c.active_ai_engine = resolved.to_string();
+        // Persist the auto-selected engine so it stays consistent
+        let _ = save_config(&app, &c);
+    }
+
     Ok(EngineConfig {
         active_ai_engine: c.active_ai_engine,
         claude_code_api_key: c.claude_code_api_key,

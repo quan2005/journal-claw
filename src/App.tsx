@@ -10,7 +10,7 @@ import { SettingsPanel } from './settings/SettingsPanel'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem } from './lib/tauri'
+import { importFile, importAudioFile, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
 
@@ -22,6 +22,7 @@ export default function App() {
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
+  const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [view, setView] = useState<'journal' | 'settings'>('journal')
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -35,6 +36,22 @@ export default function App() {
 
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
+
+  // Check AI engine availability on mount
+  useEffect(() => {
+    getEngineConfig().then(cfg =>
+      checkEngineInstalled(cfg.active_ai_engine as 'claude' | 'qwen').then(setAiReady)
+    ).catch(() => setAiReady(false))
+  }, [view]) // re-check after user closes settings
+
+  // Immediately clear overlay when an engine finishes installing successfully
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    listen<{ engine: string; done: boolean; success: boolean }>('engine-install-log', ({ payload }) => {
+      if (payload.done && payload.success) setAiReady(true)
+    }).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
+  }, [])
 
   // Divider drag
   const onDividerMouseDown = (e: React.MouseEvent) => {
@@ -256,6 +273,42 @@ export default function App() {
               recorderStatus={status}
               onRecord={handleRecord}
             />
+            {aiReady === false && (
+              <div
+                onClick={() => setView('settings')}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'var(--bg)',
+                  opacity: 0.93,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  cursor: 'pointer',
+                  zIndex: 20,
+                  borderTop: '1px solid var(--divider)',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span style={{ fontSize: 12, color: 'var(--item-meta)', letterSpacing: '0.03em' }}>
+                  AI 引擎未配置
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  color: 'var(--dock-paste-label)',
+                  background: 'var(--dock-paste-bg)',
+                  border: '0.5px solid var(--dock-paste-border)',
+                  borderRadius: 5,
+                  padding: '2px 8px',
+                  letterSpacing: '0.04em',
+                }}>
+                  前往设置 →
+                </span>
+              </div>
+            )}
           </div>
         </>
       )}

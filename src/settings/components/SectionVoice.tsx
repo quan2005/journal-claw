@@ -228,10 +228,11 @@ export default function SectionVoice() {
     setCliInstallLog([])
     try {
       await installWhisperkitCli()
+      // Command returned immediately (fire-and-forget).
+      // cliInstalling stays true until engine-install-log done event arrives.
     } catch (e) {
       console.error('[install-whisperkit-cli]', e)
       setCliInstallLog(prev => [...prev, `错误: ${String(e)}`])
-    } finally {
       setCliInstalling(false)
     }
   }

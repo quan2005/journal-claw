@@ -7,6 +7,7 @@ import { DetailPanel } from './components/DetailPanel'
 import { CommandDock } from './components/CommandDock'
 import { ProcessingQueue } from './components/ProcessingQueue'
 import { SettingsPanel } from './settings/SettingsPanel'
+import SoulView from './components/SoulView'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
@@ -25,7 +26,7 @@ export default function App() {
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [asrReady, setAsrReady] = useState<boolean | null>(null)
   const [audioRejected, setAudioRejected] = useState(false)
-  const [view, setView] = useState<'journal' | 'settings'>('journal')
+  const [view, setView] = useState<'journal' | 'settings' | 'soul'>('journal')
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -154,6 +155,10 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault()
         setView(v => v === 'settings' ? 'journal' : 'settings')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault()
+        setView(v => v === 'soul' ? 'journal' : 'soul')
       }
     }
     window.addEventListener('keydown', handler)
@@ -315,12 +320,16 @@ export default function App() {
         processingFilename={processingFilename}
         onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
-        onToggleSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
+        onToggleSoul={() => setView(v => v === 'soul' ? 'journal' : 'soul')}
       />
 
       {view === 'settings' ? (
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} />
+        </div>
+      ) : view === 'soul' ? (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <SoulView />
         </div>
       ) : (
         <>
@@ -372,6 +381,7 @@ export default function App() {
               onRecord={handleRecord}
               asrReady={asrReady}
               audioRejected={audioRejected}
+              onOpenSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
             />
             {aiReady === false && (
               <div

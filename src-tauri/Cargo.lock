@@ -2405,6 +2405,7 @@ dependencies = [
  "cpal",
  "gray_matter",
  "hound",
+ "libc",
  "mp4ameta",
  "nnnoiseless",
  "reqwest 0.12.28",

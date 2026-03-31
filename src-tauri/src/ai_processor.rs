@@ -578,6 +578,7 @@ pub async fn cancel_ai_processing(
 }
 
 /// No event is emitted — the frontend handles UI removal directly.
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn cancel_queued_item(
     cancelled_paths: tauri::State<'_, CancelledPaths>,

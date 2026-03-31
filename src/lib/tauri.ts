@@ -96,6 +96,12 @@ export const openFile = (path: string): Promise<void> =>
 export const cancelAiProcessing = () =>
   invoke<void>('cancel_ai_processing')
 
+export const cancelQueuedItem = (materialPath: string) =>
+  invoke<void>('cancel_queued_item', { materialPath })
+
+export const importAudioFile = (srcPath: string) =>
+  invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })
+
 // Folder picker
 export const pickFolder = (): Promise<string | null> => {
   return import('@tauri-apps/plugin-dialog').then(({ open }) =>

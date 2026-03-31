@@ -18,6 +18,7 @@ pub struct ActiveRecording {
     output_path: PathBuf,
     writer: Arc<Mutex<Option<hound::WavWriter<std::io::BufWriter<std::fs::File>>>>>,
     /// Shared audio level (0.0–1.0 RMS), updated by stream callback, read by emitter task.
+    #[allow(dead_code)]
     pub audio_level: Arc<Mutex<f32>>,
     /// Set to true when stop_recording runs so the emitter task exits.
     stop_emitter: Arc<std::sync::atomic::AtomicBool>,

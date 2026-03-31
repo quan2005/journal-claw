@@ -395,6 +395,7 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
         Err(msg)
     }
 }
+#[cfg(test)]
 mod tests {
     use super::*;
 

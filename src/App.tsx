@@ -11,7 +11,7 @@ import SoulView from './components/SoulView'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded } from './lib/tauri'
+import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, listAllJournalEntries } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
 
@@ -75,10 +75,14 @@ export default function App() {
     return () => { unlisten?.() }
   }, [])
 
-  // 首次启动：写入示例条目
+  // 首次启动：写入示例条目并自动选中
   useEffect(() => {
-    createSampleEntryIfNeeded().then(created => {
-      if (created) refresh()
+    createSampleEntryIfNeeded().then(async created => {
+      if (!created) return
+      await refresh()
+      const all = await listAllJournalEntries()
+      const sample = all.find(e => e.title === '产品评审示例')
+      if (sample) setSelectedEntry(sample)
     }).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

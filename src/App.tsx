@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
@@ -92,30 +92,6 @@ export default function App() {
     window.addEventListener('mouseup', onUp)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [isDragging])
-
-  // Drop handling via Tauri native file drop
-  useEffect(() => {
-    let unlisten: (() => void) | null = null
-    getCurrentWebview().onDragDropEvent((event) => {
-      const type = event.payload.type
-      if (type === 'enter' || type === 'over') {
-        setIsDragOver(true)
-      } else if (type === 'leave') {
-        setIsDragOver(false)
-      } else if (type === 'drop') {
-        setIsDragOver(false)
-        const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
-        if (paths.length > 0) {
-          setPendingFiles(prev => {
-            const existing = new Set(prev)
-            const newPaths = paths.filter(p => !existing.has(p))
-            return newPaths.length > 0 ? [...prev, ...newPaths] : prev
-          })
-        }
-      }
-    }).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
-  }, [refresh])
 
   // journal-entry-deleted event
   useEffect(() => {
@@ -275,7 +251,7 @@ export default function App() {
     }
   }
 
-  const handlePasteFiles = (paths: string[]) => {
+  const handlePasteFiles = useCallback((paths: string[]) => {
     const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
     const isAudio = (p: string) => audioExts.some(ext => p.toLowerCase().endsWith(ext))
 
@@ -295,7 +271,27 @@ export default function App() {
       if (newPaths.length === 0) return prev
       return [...prev, ...newPaths].slice(0, 6)
     })
-  }
+  }, [asrReady])
+
+  // Drop handling via Tauri native file drop
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    getCurrentWebview().onDragDropEvent((event) => {
+      const type = event.payload.type
+      if (type === 'enter' || type === 'over') {
+        setIsDragOver(true)
+      } else if (type === 'leave') {
+        setIsDragOver(false)
+      } else if (type === 'drop') {
+        setIsDragOver(false)
+        const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
+        if (paths.length > 0) {
+          handlePasteFiles(paths)
+        }
+      }
+    }).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
+  }, [refresh, handlePasteFiles])
 
   const processingItem = queueItems.find(i => i.status === 'processing')
   const processingFilename = processingItem?.filename

@@ -172,6 +172,28 @@ pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf
         .filter(|path| path.exists())
 }
 
+/// 在 PATH（含 /usr/local/bin, /opt/homebrew/bin）中查找 whisperkit-cli。
+/// 返回绝对路径，若未找到返回 None。
+pub fn find_whisperkit_cli_path() -> Option<String> {
+    let output = std::process::Command::new("which")
+        .arg("whisperkit-cli")
+        .env("PATH", augmented_path())
+        .output()
+        .ok()?;
+    if output.status.success() {
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !path.is_empty() {
+            return Some(path);
+        }
+    }
+    None
+}
+
+#[tauri::command]
+pub fn check_whisperkit_cli_installed() -> bool {
+    find_whisperkit_cli_path().is_some()
+}
+
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(dir.join("config.json"))

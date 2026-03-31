@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, PackageCheck, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, RefreshCw } from 'lucide-react'
 import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
@@ -50,14 +50,6 @@ function getModelDisplayLabel(model: WhisperModel) {
   return getModelMeta(model)?.label ?? model
 }
 
-function buildModelOptionLabel(model: typeof WHISPER_MODELS[number], downloadedModels: Set<WhisperModel>) {
-  if (model.bundled) {
-    return `${model.label} (${model.size})`
-  }
-  return downloadedModels.has(model.id)
-    ? `${model.label} (${model.size}，已下载)`
-    : `${model.label} (${model.size})`
-}
 
 function appendHistory(history: string[], message: string) {
   if (!message.trim()) {
@@ -285,8 +277,6 @@ export default function SectionVoice() {
     : null
   const hasActiveDownload = activeDownloadModel !== null
   const isCurrentModelDownloading = activeDownloadModel === cfg.whisperkit_model
-  const isAnotherModelDownloading = hasActiveDownload && activeDownloadModel !== cfg.whisperkit_model
-  const isCurrentModelDownloaded = downloadedModels.has(cfg.whisperkit_model as WhisperModel)
   const panelCopy = downloadSession ? panelStatusCopy(downloadSession.status) : null
   const hasUnsavedChanges = !isAsrConfigEqual(cfg, persistedCfg)
   const saveHint = saveStatus === 'saving'
@@ -435,110 +425,92 @@ export default function SectionVoice() {
                 </div>
               )}
               <label style={labelStyle}>转写模型</label>
-              {/* 模型选择行：下拉框 + 下载按钮 */}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-                <select
-                  style={{ ...inputStyle, flex: 1, cursor: 'pointer', appearance: 'none' as const }}
-                  value={cfg.whisperkit_model}
-                  onChange={e => {
-                    const next = { ...cfg, whisperkit_model: e.target.value as WhisperModel }
-                    setCfg(next)
-                    setSaveStatus('idle')
-                  }}
-                >
-                  {WHISPER_MODELS.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {buildModelOptionLabel(m, downloadedModels)}
-                    </option>
-                  ))}
-                </select>
-                {/* 下载按钮 */}
-                {isBundledModel ? (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    minWidth: 82, flexShrink: 0, padding: '0 12px',
-                    background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                    borderRadius: 6, color: 'var(--record-btn)',
-                  }}>
-                    <PackageCheck size={14} strokeWidth={1.8} />
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>内置</span>
-                  </div>
-                ) : isCurrentModelDownloaded ? (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    minWidth: 82, flexShrink: 0, padding: '0 12px',
-                    background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                    borderRadius: 6, color: '#27c93f',
-                  }}>
-                    <Check size={14} strokeWidth={2} />
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>已下载</span>
-                  </div>
-                ) : isCurrentModelDownloading ? (
-                  <button
-                    disabled
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      minWidth: 96, flexShrink: 0, padding: '0 12px',
-                      background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                      borderRadius: 6, opacity: 0.9, color: 'var(--record-btn)', cursor: 'default',
-                    }}
-                  >
-                    <div style={{
-                      width: 12, height: 12,
-                      border: '2px solid var(--divider)', borderTopColor: 'var(--record-btn)',
-                      borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-                    }} />
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>下载中</span>
-                  </button>
-                ) : isAnotherModelDownloading ? (
-                  <button
-                    disabled
-                    title={`当前正在下载 ${getModelDisplayLabel(activeDownloadModel as WhisperModel)}`}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      minWidth: 96, flexShrink: 0, padding: '0 12px',
-                      background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                      borderRadius: 6, opacity: 0.75, color: 'var(--duration-text)', cursor: 'not-allowed',
-                    }}
-                  >
-                    <Download size={13} strokeWidth={1.5} />
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>稍候下载</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleDownload(cfg.whisperkit_model as WhisperModel)}
-                    title="下载模型"
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      minWidth: 96, flexShrink: 0, padding: '0 12px',
-                      background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                      borderRadius: 6, cursor: 'pointer', color: 'var(--item-meta)',
-                    }}
-                  >
-                    <Download size={13} strokeWidth={1.5} />
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>下载模型</span>
-                  </button>
-                )}
+              {/* 平铺式模型选择卡片 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {WHISPER_MODELS.map(m => {
+                  const isSelected = cfg.whisperkit_model === m.id
+                  const isDownloaded = downloadedModels.has(m.id)
+                  const isThisDownloading = activeDownloadModel === m.id
+                  const canDownload = !isDownloaded && !isThisDownloading && !hasActiveDownload
+
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => {
+                        setCfg(prev => ({ ...prev, whisperkit_model: m.id }))
+                        setSaveStatus('idle')
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                        background: isSelected ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
+                        border: `1px solid ${isSelected ? 'var(--record-btn)' : 'var(--divider)'}`,
+                        transition: 'border-color 0.15s, background 0.15s',
+                      }}
+                    >
+                      {/* 选中指示点 */}
+                      <div style={{
+                        width: 14, height: 14, borderRadius: '50%', flexShrink: 0,
+                        border: `2px solid ${isSelected ? 'var(--record-btn)' : 'var(--divider)'}`,
+                        background: isSelected ? 'var(--record-btn)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {isSelected && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
+                      </div>
+
+                      {/* 模型信息 */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: isSelected ? 'var(--record-btn)' : 'var(--item-text)' }}>
+                          {m.label}
+                          <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 400, color: 'var(--duration-text)' }}>{m.size}</span>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 1 }}>{m.hint}</div>
+                      </div>
+
+                      {/* 下载状态 / 按钮 */}
+                      <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                        {isDownloaded ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#27c93f', fontSize: 10 }}>
+                            <Check size={12} strokeWidth={2.5} />已下载
+                          </span>
+                        ) : isThisDownloading ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--record-btn)', fontSize: 10 }}>
+                            <div style={{
+                              width: 10, height: 10,
+                              border: '1.5px solid var(--divider)', borderTopColor: 'var(--record-btn)',
+                              borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                            }} />
+                            下载中
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleDownload(m.id)}
+                            disabled={!canDownload}
+                            title={hasActiveDownload && !isThisDownloading ? `正在下载 ${getModelDisplayLabel(activeDownloadModel as WhisperModel)}，请稍候` : '下载模型'}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 5,
+                              padding: '3px 9px', borderRadius: 5, fontSize: 10,
+                              border: '1px solid var(--divider)',
+                              background: 'var(--bg)',
+                              color: canDownload ? 'var(--item-meta)' : 'var(--duration-text)',
+                              cursor: canDownload ? 'pointer' : 'not-allowed',
+                              opacity: canDownload ? 1 : 0.5,
+                            }}
+                          >
+                            <Download size={10} strokeWidth={1.8} />
+                            下载
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-              <div style={hintStyle}>
-                {selectedWhisperModel?.hint}
-                {isBundledModel && (
-                  <div style={{ marginTop: 4 }}>录音结束后直接走本地转写，无需首次下载。</div>
-                )}
-                {!isBundledModel && isCurrentModelDownloaded && (
-                  <div style={{ marginTop: 4 }}>当前模型已下载，录音时会直接走本地转写。</div>
-                )}
-                {!isBundledModel && isCurrentModelDownloading && (
-                  <div style={{ marginTop: 4, color: 'var(--item-meta)' }}>
-                    下载已在后台继续，切换模型或滚动页面都不会中断。
-                  </div>
-                )}
-                {!isBundledModel && isAnotherModelDownloading && (
-                  <div style={{ marginTop: 4, color: 'var(--item-meta)' }}>
-                    当前正在下载 {getModelDisplayLabel(activeDownloadModel as WhisperModel)}，完成后再下载其他模型。
-                  </div>
-                )}
-              </div>
+              {isCurrentModelDownloading && (
+                <div style={{ ...hintStyle, color: 'var(--item-meta)', marginTop: 8 }}>
+                  下载已在后台继续，切换模型或滚动页面都不会中断。
+                </div>
+              )}
 
               {downloadSession && panelCopy && (
                 <div style={{ position: 'sticky', bottom: 16, zIndex: 2, marginTop: 14 }}>

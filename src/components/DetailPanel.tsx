@@ -154,18 +154,45 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
       <div style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        background: 'var(--detail-bg)', gap: 8,
+        background: 'var(--detail-bg)',
+        userSelect: 'none',
+        overflow: 'hidden',
+        position: 'relative',
       }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.15, color: 'var(--item-text)' }}>
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <polyline points="10 9 9 9 8 9" />
-        </svg>
-        <span style={{ fontSize: 13, color: 'var(--item-meta)', textAlign: 'center', lineHeight: 1.6 }}>
-          从左侧选择一条日志<br />或将文件拖入窗口
+        {/* Watermark — intentionally overflows */}
+        <span style={{
+          fontSize: '84vh',
+          fontWeight: 900,
+          letterSpacing: '0.06em',
+          color: 'var(--item-text)',
+          opacity: 0.035,
+          lineHeight: 1,
+          fontFamily: '"Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "Songti SC", serif',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          position: 'absolute',
+        }}>
+          谨迹
         </span>
+        {/* Hint — pinned to bottom */}
+        <div style={{
+          position: 'absolute',
+          bottom: 32,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 14,
+          color: 'var(--item-meta)',
+          letterSpacing: '0.04em',
+          opacity: 0.5,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="3 3" />
+            <path d="M12 8v8" />
+            <polyline points="8 12 12 16 16 12" />
+          </svg>
+          直接粘贴文本，或拖入文件（txt/md/pdf/docx 等）
+        </div>
       </div>
     )
   }

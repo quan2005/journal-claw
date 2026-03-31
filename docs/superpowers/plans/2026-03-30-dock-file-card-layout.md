@@ -431,7 +431,7 @@ if (hasFiles) { onFilesCancel(); setNoteText(''); setTextExpanded(false); return
                   取消
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); handleFilesSubmitClick() }} style={actionBtnSubmit}>
-                  提交 Agent 整理 ↗
+                  提交 Agent 整理
                 </button>
               </div>
             </div>
@@ -513,7 +513,7 @@ if (hasFiles) { onFilesCancel(); setNoteText(''); setTextExpanded(false); return
                     取消
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); handleFilesSubmitClick() }} style={actionBtnSubmit}>
-                    提交 Agent 整理 ↗
+                    提交 Agent 整理
                   </button>
                 </div>
               </div>

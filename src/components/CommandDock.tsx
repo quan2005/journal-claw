@@ -411,7 +411,7 @@ export function CommandDock({
           disabled={recorderStatus !== 'recording' && asrReady === false}
           title={
             recorderStatus !== 'recording' && asrReady === false
-              ? '请先在设置中配置语音转写'
+              ? '语音转写未就绪，请前往设置 → 语音转写'
               : recorderStatus === 'recording' ? '停止录音' : '开始录音'
           }
           aria-label={recorderStatus === 'recording' ? '停止录音' : '开始录音'}

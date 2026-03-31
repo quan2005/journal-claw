@@ -11,7 +11,7 @@ import SoulView from './components/SoulView'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded } from './lib/tauri'
+import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
 
@@ -33,6 +33,7 @@ export default function App() {
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
+  const [dockOpen, setDockOpen] = useState(false)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -73,6 +74,13 @@ export default function App() {
     }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
   }, [])
+
+  // 首次启动：写入示例条目
+  useEffect(() => {
+    createSampleEntryIfNeeded().then(created => {
+      if (created) refresh()
+    }).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Divider drag
   const onDividerMouseDown = (e: React.MouseEvent) => {
@@ -325,7 +333,7 @@ export default function App() {
 
       {view === 'settings' ? (
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} />
+          <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} onClose={() => setView('journal')} />
         </div>
       ) : view === 'soul' ? (
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -355,7 +363,17 @@ export default function App() {
 
             {/* Right: Detail panel */}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <DetailPanel entry={selectedEntry} onDeselect={() => setSelectedEntry(null)} />
+              <DetailPanel
+                  entry={selectedEntry}
+                  entries={entries}
+                  onDeselect={() => setSelectedEntry(null)}
+                  onRecord={handleRecord}
+                  onOpenDock={() => setDockOpen(true)}
+                  onSelectSample={() => {
+                    const sample = entries.find(e => e.title === '产品评审示例')
+                    if (sample) setSelectedEntry(sample)
+                  }}
+                />
             </div>
           </div>
 
@@ -382,6 +400,8 @@ export default function App() {
               asrReady={asrReady}
               audioRejected={audioRejected}
               onOpenSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
+              externalOpen={dockOpen}
+              onExternalOpenConsumed={() => setDockOpen(false)}
             />
             {aiReady === false && (
               <div

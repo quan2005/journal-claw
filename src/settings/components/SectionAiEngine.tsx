@@ -75,6 +75,7 @@ export default function SectionAiEngine() {
     listen<{ engine: EngineId; line: string; done: boolean; success: boolean }>(
       'engine-install-log',
       ({ payload }) => {
+        if (payload.engine !== 'claude' && payload.engine !== 'qwen') return
         setInstallLogs(prev => ({
           ...prev,
           [payload.engine]: [...prev[payload.engine], payload.line],

@@ -107,7 +107,15 @@ export default function App() {
   }, [refresh])
 
   // Keep entriesRef in sync so navigate handler always sees latest entries
-  useEffect(() => { entriesRef.current = entries }, [entries])
+  // Also sync selectedEntry so DetailPanel sees updated mtime_secs after file changes
+  useEffect(() => {
+    entriesRef.current = entries
+    setSelectedEntry(prev => {
+      if (!prev) return prev
+      const updated = entries.find(e => e.path === prev.path)
+      return updated && updated.mtime_secs !== prev.mtime_secs ? updated : prev
+    })
+  }, [entries])
 
   // Navigate to a journal entry via .md link click
   useEffect(() => {

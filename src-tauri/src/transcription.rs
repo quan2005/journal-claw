@@ -815,7 +815,7 @@ pub async fn transcribe_with_whisperkit(
     let model_cache_dir = config::whisperkit_models_dir(&app)?;
     let _ = std::fs::create_dir_all(&model_cache_dir);
 
-    // 找到 sidecar 二进制路径（bundle 模式用 Tauri resource 路径，dev 模式用源码 binaries/ 目录）
+    // 找到 sidecar 二进制路径（bundle 模式用 Tauri resource 路径，dev 模式用 target/debug/）
     let cli_path = app
         .path()
         .resource_dir()
@@ -827,8 +827,7 @@ pub async fn transcribe_with_whisperkit(
         .filter(|p| p.exists())
         .or_else(|| {
             let p = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("binaries")
-                .join("whisperkit-cli-aarch64-apple-darwin");
+                .join("target/debug/whisperkit-cli");
             if p.exists() { Some(p) } else { None }
         })
         .map(|p| p.to_string_lossy().to_string())

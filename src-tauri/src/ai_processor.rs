@@ -953,14 +953,14 @@ pub fn check_engine_installed(engine: String) -> Result<bool, String> {
     Ok(output.status.success())
 }
 
-/// 安装引擎，通过 Tauri 事件流式推送日志。
-/// 事件名："engine-install-log"，payload: { engine, line, done, success }
+/// 安装引擎，立即返回，通过 "engine-install-log" 事件流式推送日志。
+/// payload: { engine, line, done, success }
 #[tauri::command]
-pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(), String> {
-    use tokio::io::AsyncBufReadExt;
+pub fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(), String> {
+    use crate::config::augmented_path;
 
     let (program, args): (&str, Vec<&str>) = match engine.as_str() {
-        "claude" => ("npm", vec!["install", "-g", "@anthropic-ai/claude-code"]),
+        "claude" => ("brew", vec!["install", "--cask", "claude-code"]),
         "qwen" => ("bash", vec![
             "-c",
             "bash <(curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh) -s --source qwenchat",
@@ -968,85 +968,62 @@ pub async fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(),
         _ => return Err(format!("unknown engine: {}", engine)),
     };
 
-    let mut child = tokio::process::Command::new(program)
+    let mut child = std::process::Command::new(program)
         .args(&args)
+        .env("PATH", augmented_path())
+        .env("HOMEBREW_NO_AUTO_UPDATE", "1")
+        .env("HOMEBREW_NO_ENV_HINTS", "1")
+        .env("HOMEBREW_NO_ANALYTICS", "1")
+        .env("CI", "1")
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("failed to spawn: {}", e))?;
+        .map_err(|e| format!("启动安装失败: {}", e))?;
 
-    // Stream stdout and save handle
-    let stdout_handle = if let Some(stdout) = child.stdout.take() {
-        let app_clone = app.clone();
-        let engine_clone = engine.clone();
-        Some(tokio::spawn(async move {
-            let reader = tokio::io::BufReader::new(stdout);
-            let mut lines = reader.lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app_clone.emit(
-                    "engine-install-log",
-                    serde_json::json!({
-                        "engine": engine_clone,
-                        "line": line,
-                        "done": false,
-                        "success": false,
-                    }),
-                );
-            }
-        }))
-    } else {
-        None
-    };
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::io::{BufRead, BufReader};
+        use tauri::Emitter;
 
-    // Stream stderr and save handle
-    let stderr_handle = if let Some(stderr) = child.stderr.take() {
-        let app_clone = app.clone();
-        let engine_clone = engine.clone();
-        Some(tokio::spawn(async move {
-            let reader = tokio::io::BufReader::new(stderr);
-            let mut lines = reader.lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app_clone.emit(
-                    "engine-install-log",
-                    serde_json::json!({
-                        "engine": engine_clone,
-                        "line": line,
-                        "done": false,
-                        "success": false,
-                    }),
-                );
-            }
-        }))
-    } else {
-        None
-    };
+        let emit = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
+            let _ = app.emit("engine-install-log", serde_json::json!({
+                "engine": engine, "line": line, "done": done, "success": success,
+            }));
+        };
 
-    let status = child.wait().await.map_err(|e| e.to_string())?;
+        if let Some(stderr) = child.stderr.take() {
+            let app_c = app.clone();
+            let eng = engine.clone();
+            std::thread::spawn(move || {
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    let t = line.trim().to_string();
+                    if !t.is_empty() {
+                        let _ = app_c.emit("engine-install-log", serde_json::json!({
+                            "engine": eng, "line": t, "done": false, "success": false,
+                        }));
+                    }
+                }
+            });
+        }
+        if let Some(stdout) = child.stdout.take() {
+            let app_c = app.clone();
+            let eng = engine.clone();
+            std::thread::spawn(move || {
+                for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                    let t = line.trim().to_string();
+                    if !t.is_empty() {
+                        let _ = app_c.emit("engine-install-log", serde_json::json!({
+                            "engine": eng, "line": t, "done": false, "success": false,
+                        }));
+                    }
+                }
+            });
+        }
 
-    // Await both handles to drain remaining output before emitting done
-    if let Some(h) = stdout_handle {
-        let _ = h.await;
-    }
-    if let Some(h) = stderr_handle {
-        let _ = h.await;
-    }
+        let success = child.wait().map(|s| s.success()).unwrap_or(false);
+        emit(&app, if success { "安装完成" } else { "安装失败" }, true, success);
+    });
 
-    let success = status.success();
-    let _ = app.emit(
-        "engine-install-log",
-        serde_json::json!({
-            "engine": engine,
-            "line": if success { "安装完成" } else { "安装失败" },
-            "done": true,
-            "success": success,
-        }),
-    );
-
-    if success {
-        Ok(())
-    } else {
-        Err("installation failed".to_string())
-    }
+    Ok(())
 }
 
 #[cfg(test)]

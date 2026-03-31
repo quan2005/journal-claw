@@ -7,6 +7,10 @@ vi.mock('../lib/tauri', () => ({
   stopRecording: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(() => Promise.resolve(() => {})),
+}))
+
 describe('useRecorder', () => {
   beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers() })

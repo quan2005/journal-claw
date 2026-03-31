@@ -61,7 +61,7 @@ pub struct Config {
     pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
 }
 
-fn augmented_path() -> String {
+pub fn augmented_path() -> String {
     let path_env = std::env::var("PATH").unwrap_or_default();
     format!(
         "{}:/usr/local/bin:/opt/homebrew/bin:{}/.local/bin",

@@ -19,12 +19,17 @@ const mockInvoke = vi.fn()
 let downloadedModels = new Set<WhisperModel>(['base'])
 let downloadListener: ((event: { payload: DownloadPayload }) => void) | null = null
 
+const mockCheckWhisperkitCliInstalled = vi.fn()
+const mockInstallWhisperkitCli = vi.fn()
+
 vi.mock('../lib/tauri', () => ({
   getAsrConfig: (...args: unknown[]) => mockGetAsrConfig(...args),
   setAsrConfig: (...args: unknown[]) => mockSetAsrConfig(...args),
   getWhisperkitModelsDir: (...args: unknown[]) => mockGetWhisperkitModelsDir(...args),
   checkWhisperkitModelDownloaded: (...args: unknown[]) => mockCheckWhisperkitModelDownloaded(...args),
   downloadWhisperkitModel: (...args: unknown[]) => mockDownloadWhisperkitModel(...args),
+  checkWhisperkitCliInstalled: (...args: unknown[]) => mockCheckWhisperkitCliInstalled(...args),
+  installWhisperkitCli: (...args: unknown[]) => mockInstallWhisperkitCli(...args),
 }))
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -64,6 +69,8 @@ describe('SectionVoice', () => {
     mockSetAsrConfig.mockResolvedValue(undefined)
     mockGetWhisperkitModelsDir.mockResolvedValue('/tmp/whisperkit-models')
     mockCheckWhisperkitModelDownloaded.mockImplementation(async (model: WhisperModel) => downloadedModels.has(model))
+    mockCheckWhisperkitCliInstalled.mockResolvedValue(true)
+    mockInstallWhisperkitCli.mockResolvedValue(undefined)
     mockDownloadWhisperkitModel.mockResolvedValue(undefined)
     mockInvoke.mockResolvedValue(undefined)
   })

@@ -5,7 +5,7 @@ import {
   getEngineConfig, setEngineConfig,
   type EngineConfig,
 } from '../../lib/tauri'
-import { Terminal, Sparkles, Check, type LucideIcon } from 'lucide-react'
+import { Terminal, Sparkles, Check, Download, type LucideIcon } from 'lucide-react'
 import SkeletonRow from './SkeletonRow'
 
 type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
@@ -201,31 +201,61 @@ export default function SectionAiEngine() {
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
                   <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
-                  {!isComingSoon && s === 'not_installed' && (
-                    <button
-                      onClick={e => { e.stopPropagation(); handleInstall(id) }}
-                      style={{
-                        position: 'absolute', bottom: 8, right: 8,
-                        background: 'var(--record-btn)', border: 'none', borderRadius: 4,
-                        padding: '3px 8px', fontSize: 10, color: 'var(--bg)',
-                        fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >安装</button>
-                  )}
                 </div>
               )
             })}
           </div>
 
+          {/* Claude not installed — install banner */}
+          {status['claude'] === 'not_installed' && (
+            <div style={{
+              marginBottom: 16, padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.3)',
+              fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ fontWeight: 600, color: '#ff9f0a' }}>未检测到 Claude Code</div>
+                <button
+                  onClick={() => handleInstall('claude')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                    border: '1px solid rgba(255,159,10,0.4)',
+                    background: 'rgba(255,159,10,0.14)', color: '#ff9f0a', cursor: 'pointer',
+                  }}
+                >
+                  <Download size={11} strokeWidth={1.8} />
+                  一键安装
+                </button>
+              </div>
+              <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
+                需要已安装 <span style={{ fontFamily: 'ui-monospace, monospace' }}>Homebrew</span>。点击一键安装，或手动运行：
+                <code style={{
+                  display: 'block', marginTop: 5, padding: '4px 8px',
+                  background: 'rgba(0,0,0,0.2)', borderRadius: 4,
+                  fontFamily: 'ui-monospace, monospace', fontSize: 10,
+                  color: 'var(--item-text)', userSelect: 'text' as const,
+                }}>
+                  brew install --cask claude-code
+                </code>
+              </div>
+            </div>
+          )}
+
           {/* Install progress */}
           {ENGINES.filter(({ id }) => status[id] === 'installing').map(({ id, label }) => (
             <div key={id} style={{
-              background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-              borderRadius: 8, padding: '12px 14px', marginBottom: 16,
+              marginBottom: 16, padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.3)',
+              fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--record-btn)', animation: 'pulse 1s ease-in-out infinite' }} />
-                <span style={{ fontSize: 11, color: 'var(--item-meta)' }}>正在安装 {label}…</span>
+                <div style={{
+                  width: 10, height: 10, flexShrink: 0,
+                  border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
+                  borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                }} />
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#ff9f0a' }}>正在安装 {label}…</span>
               </div>
               <div style={{
                 fontFamily: 'ui-monospace, monospace', fontSize: 10,

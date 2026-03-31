@@ -61,11 +61,20 @@ pub struct Config {
     pub whisperkit_model: String,    // "base" | "small" | "large-v3-turbo"
 }
 
+fn augmented_path() -> String {
+    let path_env = std::env::var("PATH").unwrap_or_default();
+    format!(
+        "{}:/usr/local/bin:/opt/homebrew/bin:{}/.local/bin",
+        path_env,
+        std::env::var("HOME").unwrap_or_default()
+    )
+}
+
 fn default_claude_cli() -> String {
     if cfg!(test) {
         return "claude".to_string();
     }
-    if let Ok(output) = std::process::Command::new("which").arg("claude").output() {
+    if let Ok(output) = std::process::Command::new("which").arg("claude").env("PATH", augmented_path()).output() {
         if output.status.success() {
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !path.is_empty() {
@@ -193,6 +202,7 @@ pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
     let engine_available = |name: &str| -> bool {
         std::process::Command::new("which")
             .arg(name)
+            .env("PATH", augmented_path())
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false)

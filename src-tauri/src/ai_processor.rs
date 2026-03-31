@@ -633,6 +633,7 @@ pub fn check_engine_installed(engine: String) -> Result<bool, String> {
     };
     let output = std::process::Command::new("which")
         .arg(bin)
+        .env("PATH", augmented_path())
         .output()
         .map_err(|e| e.to_string())?;
     Ok(output.status.success())

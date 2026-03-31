@@ -10,7 +10,11 @@ import { Spinner } from './Spinner'
 
 interface DetailPanelProps {
   entry: JournalEntry | null
+  entries: JournalEntry[]
   onDeselect: () => void
+  onRecord: () => void
+  onOpenDock: () => void
+  onSelectSample: () => void
 }
 
 // ── Detail context menu ───────────────────────────────────────────────────────
@@ -113,7 +117,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
+export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -150,6 +154,7 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
   const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
 
   if (!entry) {
+    const isEmpty = entries.length === 0
     return (
       <div style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
@@ -159,7 +164,7 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
         overflow: 'hidden',
         position: 'relative',
       }}>
-        {/* Watermark — intentionally overflows */}
+        {/* Watermark */}
         <span style={{
           fontSize: '84vh',
           fontWeight: 900,
@@ -174,25 +179,94 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
         }}>
           谨迹
         </span>
-        {/* Hint — pinned to bottom */}
-        <div style={{
-          position: 'absolute',
-          bottom: 32,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 14,
-          color: 'var(--item-meta)',
-          letterSpacing: '0.04em',
-          opacity: 0.5,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="3 3" />
-            <path d="M12 8v8" />
-            <polyline points="8 12 12 16 16 12" />
-          </svg>
-          直接粘贴文本，或拖入文件（txt/md/pdf/docx 等）
-        </div>
+
+        {isEmpty && (
+          <div style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
+            padding: '0 32px',
+            width: '100%',
+            maxWidth: 520,
+          }}>
+            <div style={{ fontSize: 12, color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
+              通过以下方式开始记录
+            </div>
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              {/* 录音卡片 */}
+              <button
+                onClick={onRecord}
+                style={{
+                  flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
+                  borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+              >
+                <div style={{ fontSize: 24, marginBottom: 8 }}>🎙️</div>
+                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
+                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
+              </button>
+
+              {/* 粘贴卡片 */}
+              <button
+                onClick={onOpenDock}
+                style={{
+                  flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
+                  borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+              >
+                <div style={{ fontSize: 24, marginBottom: 8 }}>📄</div>
+                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
+                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
+              </button>
+
+              {/* 看示例卡片 */}
+              <button
+                onClick={onSelectSample}
+                style={{
+                  flex: 1, background: 'var(--detail-bg)', border: '1px dashed var(--divider)',
+                  borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+              >
+                <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>看示例条目</div>
+                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>先了解 AI 整理<br/>结果长什么样</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isEmpty && (
+          <div style={{
+            position: 'absolute',
+            bottom: 32,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 14,
+            color: 'var(--item-meta)',
+            letterSpacing: '0.04em',
+            opacity: 0.5,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="3 3" />
+              <path d="M12 8v8" />
+              <polyline points="8 12 12 16 16 12" />
+            </svg>
+            直接粘贴文本，或拖入文件（txt/md/pdf/docx 等）
+          </div>
+        )}
       </div>
     )
   }

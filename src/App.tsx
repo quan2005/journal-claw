@@ -19,11 +19,12 @@ const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
-  const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, refresh } = useJournal()
+  const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [view, setView] = useState<'journal' | 'settings'>('journal')
+  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
@@ -36,6 +37,7 @@ export default function App() {
 
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
+  const entriesRef = useRef(entries)
 
   // Check AI engine availability on mount
   useEffect(() => {
@@ -104,10 +106,42 @@ export default function App() {
     return () => window.removeEventListener('journal-entry-deleted', handler)
   }, [refresh])
 
+  // Keep entriesRef in sync so navigate handler always sees latest entries
+  useEffect(() => { entriesRef.current = entries }, [entries])
+
+  // Navigate to a journal entry via .md link click
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { path: targetPath, filename: targetFilename } = (e as CustomEvent).detail ?? {}
+      if (!targetPath && !targetFilename) return
+      const current = entriesRef.current
+      let match = targetPath ? current.find(entry => entry.path === targetPath) : undefined
+      if (!match && targetFilename) {
+        match = current.find(entry => entry.filename === targetFilename)
+      }
+      if (match) setSelectedEntry(match)
+    }
+    window.addEventListener('journal-entry-navigate', handler)
+    return () => window.removeEventListener('journal-entry-navigate', handler)
+  }, [])
+
   // Open settings from Rust menu (Cmd+,) or keyboard shortcut
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    listen('open-settings', () => setView('settings')).then(fn => { unlisten = fn })
+    listen('open-settings', () => {
+      setSettingsInitialSection(undefined)
+      setView('settings')
+    }).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
+  }, [])
+
+  // Open settings → about section from Rust menu
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    listen('open-settings-about', () => {
+      setSettingsInitialSection('about')
+      setView('settings')
+    }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
   }, [])
 
@@ -146,18 +180,23 @@ export default function App() {
   const handleFilesSubmit = async (paths: string[], note?: string) => {
     setPendingFiles([])
     for (const path of paths) {
+      let materialPath = path
       try {
         const kind = fileKindFromName(path.split('/').pop() ?? path)
         if (kind === 'audio') {
           const result = await importAudioFile(path)
+          materialPath = result.path
           addConvertingItem(result.path, result.filename)
           await prepareAudioForAi(result.path, result.year_month, note)
         } else {
           const result = await importFile(path)
+          materialPath = result.path
+          addQueuedItem(result.path, result.filename)
           await triggerAiProcessing(result.path, result.year_month, note)
         }
       } catch (err) {
-        console.error('[file-submit] error:', String(err), 'path:', path)
+        console.error('[file-submit] error:', String(err), 'path:', materialPath)
+        markItemFailed(materialPath, String(err))
       }
     }
     refresh()
@@ -189,6 +228,16 @@ export default function App() {
       await cancelQueuedItem(item.path)
     }
     dismissQueueItem(item.path)
+  }
+
+  const handleRetryQueueItem = async (item: QueueItem) => {
+    const yearMonth = item.path.split('/').slice(-2, -1)[0] ?? ''
+    retryQueueItem(item.path)
+    try {
+      await triggerAiProcessing(item.path, yearMonth)
+    } catch (err) {
+      markItemFailed(item.path, String(err))
+    }
   }
 
   const handlePasteFiles = (paths: string[]) => {
@@ -223,7 +272,7 @@ export default function App() {
 
       {view === 'settings' ? (
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <SettingsPanel />
+          <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} />
         </div>
       ) : (
         <>
@@ -261,7 +310,7 @@ export default function App() {
               right: 0,
               zIndex: 10,
             }}>
-              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={handleCancelQueueItem} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
+              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={handleCancelQueueItem} onRetry={handleRetryQueueItem} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
             </div>
             <CommandDock
               isDragOver={isDragOver}

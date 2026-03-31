@@ -47,6 +47,15 @@ export function useJournal() {
     })
   }, [])
 
+  const markItemFailed = useCallback((path: string, error: string) => {
+    setQueueItems(prev => {
+      if (prev.some(i => i.path === path)) {
+        return prev.map(i => i.path === path ? { ...i, status: 'failed' as const, error } : i)
+      }
+      return prev
+    })
+  }, [])
+
   useEffect(() => {
     refresh()
 
@@ -180,9 +189,15 @@ export function useJournal() {
     }
   }, [refresh])
 
+  const retryQueueItem = useCallback((path: string) => {
+    setQueueItems(prev =>
+      prev.map(i => i.path === path ? { ...i, status: 'queued' as const, error: undefined, logs: [] } : i)
+    )
+  }, [])
+
   const isProcessing = queueItems.some(
     i => i.status === 'processing' || i.status === 'queued'
   )
 
-  return { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, refresh }
+  return { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh }
 }

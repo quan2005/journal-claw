@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import type { QueueItem } from '../types'
 import { Spinner } from './Spinner'
+
+const ANIM_DURATION = 180
 
 interface AiLogModalProps {
   item: QueueItem
@@ -10,6 +12,12 @@ interface AiLogModalProps {
 
 export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [closing, setClosing] = useState(false)
+
+  const handleClose = useCallback(() => {
+    setClosing(true)
+    setTimeout(onClose, ANIM_DURATION)
+  }, [onClose])
 
   // Auto-scroll to bottom as new lines arrive
   useEffect(() => {
@@ -23,11 +31,12 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
     <>
       {/* Backdrop */}
       <div
-        onClick={onClose}
+        onClick={handleClose}
         style={{
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.4)',
           zIndex: 100,
+          animation: `${closing ? 'modal-backdrop-out' : 'modal-backdrop-in'} ${ANIM_DURATION}ms ease-out both`,
         }}
       />
       {/* Modal */}
@@ -38,6 +47,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           transform: 'translate(-50%, -50%)',
           width: 520,
           maxWidth: 'calc(100vw - 48px)',
+          height: '70vh',
           background: 'var(--queue-bg)',
           border: '0.5px solid var(--queue-border)',
           borderRadius: 10,
@@ -46,7 +56,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          maxHeight: '70vh',
+          animation: `${closing ? 'modal-panel-out' : 'modal-panel-in'} ${ANIM_DURATION}ms ease-out both`,
         }}
       >
         {/* Header */}
@@ -55,6 +65,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           padding: '10px 16px',
           borderBottom: '0.5px solid var(--queue-border)',
           flexShrink: 0,
+          color: 'var(--item-meta)',
         }}>
           {isActive && <Spinner size={12} borderWidth={1.5} />}
           <span style={{ flex: 1, fontSize: 11, color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -67,13 +78,12 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
               : 'var(--ai-pill-active-text)',
             opacity: 0.8,
           }}>
-            {item.status === 'queued' ? '排队中'
-              : item.status === 'processing' ? '处理中'
+            {item.status === 'failed' ? '失败'
               : item.status === 'completed' ? '已完成'
-              : '失败'}
+              : null}
           </span>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--item-meta)', fontSize: 16, lineHeight: 1, padding: '0 2px' }}
           >
             ×
@@ -94,14 +104,16 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           }}
         >
           {item.logs.length === 0 ? (
-            <span style={{ opacity: 0.4 }}>等待输出...</span>
+            item.error
+              ? <span style={{ color: '#ff453a', whiteSpace: 'pre-wrap' }}>{item.error}</span>
+              : <span style={{ opacity: 0.4 }}>等待输出...</span>
           ) : (
             item.logs.map((line, i) => (
               <div
                 key={i}
                 style={{
                   color: line.startsWith('[error]') ? '#ff453a' : 'var(--item-meta)',
-                  wordBreak: 'break-all',
+                  whiteSpace: 'pre-wrap',
                   marginBottom: 1,
                 }}
               >
@@ -121,7 +133,10 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
             flexShrink: 0,
           }}>
             <button
-              onClick={onCancel}
+              onClick={() => {
+                onCancel()
+                handleClose()
+              }}
               style={{
                 background: 'none',
                 border: '0.5px solid var(--queue-border)',

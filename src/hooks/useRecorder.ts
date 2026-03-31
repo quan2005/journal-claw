@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { listen } from '@tauri-apps/api/event'
 import { startRecording, stopRecording } from '../lib/tauri'
 
 export type RecorderStatus = 'idle' | 'recording'
@@ -14,8 +15,16 @@ interface UseRecorderReturn {
 export function useRecorder(): UseRecorderReturn {
   const [status, setStatus] = useState<RecorderStatus>('idle')
   const [elapsedSecs, setElapsedSecs] = useState(0)
-  const [audioLevel] = useState(0)
+  const [audioLevel, setAudioLevel] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+    listen<number>('audio-level', (event) => {
+      setAudioLevel(event.payload)
+    }).then(fn => { unlisten = fn })
+    return () => { unlisten?.() }
+  }, [])
 
   const start = useCallback(async () => {
     await startRecording()

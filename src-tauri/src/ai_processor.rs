@@ -1,5 +1,7 @@
 use crate::config;
+use futures::FutureExt;
 use serde::{Deserialize, Serialize};
+use std::panic::AssertUnwindSafe;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 
@@ -149,7 +151,13 @@ pub fn build_claude_args_with_creds(
             .map(|n| format!("\n用户补充：{}", n.trim()))
             .unwrap_or_default();
         format!(
-            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+            "你是我的个人知识助手，负责将素材整理进我的日志笔记本。\n\
+\n\
+阅读 @{}，理解其核心内容，然后：\n\
+- 若与已有条目高度相关，追加或更新那个文件；\n\
+- 否则新建 {}/DD-标题.md。\n\
+\n\
+直接写文件，不要输出解释。{}",
             relative_ref, year_month, note_suffix
         )
     };
@@ -343,8 +351,8 @@ fn tool_input_label(name: &str, input: &serde_json::Value) -> String {
         .or_else(|| json_preview(input)),
     };
     match arg {
-        Some(a) => format!("[{}] {}", name, a),
-        None => format!("[{}]", name),
+        Some(a) => format!("{}: {}", name, a),
+        None => format!("{}", name),
     }
 }
 
@@ -369,28 +377,48 @@ fn extract_log_line(line: &str) -> Option<String> {
         "assistant" => {
             let contents = val.pointer("/message/content")?.as_array()?;
             for block in contents {
-                let block_type = block.get("type")?.as_str()?;
+                let Some(block_type) = block.get("type").and_then(|v| v.as_str()) else {
+                    continue;
+                };
                 match block_type {
                     "text" => {
-                        let text = block.get("text")?.as_str()?;
-                        let trimmed = text.trim();
-                        if !trimmed.is_empty() {
-                            // Truncate long text blocks to first line + 120 chars
-                            let first = trimmed.lines().next().unwrap_or(trimmed);
-                            let display = if first.len() > 120 {
-                                format!("{}…", &first[..120])
-                            } else {
-                                first.to_string()
-                            };
-                            return Some(display);
+                        if let Some(text) = block.get("text").and_then(|v| v.as_str()) {
+                            let trimmed = text.trim();
+                            if !trimmed.is_empty() {
+                                return Some(trimmed.to_string());
+                            }
                         }
                     }
                     "tool_use" => {
-                        let name = block.get("name")?.as_str()?;
-                        let input = block.get("input").unwrap_or(&serde_json::Value::Null);
-                        return Some(tool_input_label(name, input));
+                        if let Some(name) = block.get("name").and_then(|v| v.as_str()) {
+                            let input = block.get("input").unwrap_or(&serde_json::Value::Null);
+                            return Some(tool_input_label(name, input));
+                        }
                     }
                     _ => {}
+                }
+            }
+            None
+        }
+        "user" => {
+            // Tool results — show the output content
+            let contents = val.pointer("/message/content")?.as_array()?;
+            for block in contents {
+                if block.get("type").and_then(|v| v.as_str()) == Some("tool_result") {
+                    let text = match block.get("content") {
+                        Some(serde_json::Value::String(s)) => s.trim().to_string(),
+                        Some(serde_json::Value::Array(arr)) => arr
+                            .iter()
+                            .filter_map(|v| v.get("text").and_then(|t| t.as_str()))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                            .trim()
+                            .to_string(),
+                        _ => continue,
+                    };
+                    if !text.is_empty() {
+                        return Some(text);
+                    }
                 }
             }
             None
@@ -438,6 +466,51 @@ fn extract_log_line(line: &str) -> Option<String> {
 
 // ── Queue consumer ───────────────────────────────────────
 
+/// Extract a human-readable message from a catch_unwind panic payload.
+fn extract_panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        s.to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "unknown panic".to_string()
+    }
+}
+
+/// Lock the CurrentTask mutex, recovering from poisoning if necessary.
+/// The inner `Option<Child>` has no complex invariants, so accessing
+/// through a poisoned mutex is safe.
+fn lock_current_task(
+    mutex: &std::sync::Mutex<Option<tokio::process::Child>>,
+) -> std::sync::MutexGuard<'_, Option<tokio::process::Child>> {
+    mutex.lock().unwrap_or_else(|poisoned| {
+        eprintln!("[ai_queue] CurrentTask mutex poisoned, recovering");
+        poisoned.into_inner()
+    })
+}
+
+/// After a panic inside process_material, the CurrentTask mutex may be
+/// poisoned and may still hold a child process handle. This function
+/// recovers the mutex and kills any leftover child process.
+fn cleanup_current_task_after_panic(app: &AppHandle) {
+    let current_task = app.state::<CurrentTask>();
+    let maybe_child = lock_current_task(&current_task.0).take();
+    if let Some(mut child) = maybe_child {
+        #[cfg(unix)]
+        {
+            if let Some(pid) = child.id() {
+                let pgid = pid as i32;
+                unsafe {
+                    libc::killpg(pgid, libc::SIGKILL);
+                }
+                eprintln!("[ai_queue] panic cleanup: killed process group {}", pgid);
+            }
+        }
+        let _ = child.start_kill();
+        eprintln!("[ai_queue] panic cleanup: killed leftover child process");
+    }
+}
+
 /// Spawn a single-threaded consumer that processes tasks serially.
 /// Call once during app setup; pass the receiver half.
 pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
@@ -452,7 +525,10 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
             // Check if this task was cancelled while waiting in the queue
             let was_cancelled = {
                 let cancelled = app.state::<CancelledPaths>();
-                let mut set = cancelled.0.lock().unwrap();
+                let mut set = cancelled.0.lock().unwrap_or_else(|e| {
+                    eprintln!("[ai_queue] CancelledPaths mutex poisoned, recovering");
+                    e.into_inner()
+                });
                 set.remove(&task.material_path)
             };
             if was_cancelled {
@@ -460,19 +536,56 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                 continue;
             }
 
+            let material_path = task.material_path.clone();
+
             let current_task = app.state::<CurrentTask>();
-            let result = process_material(
+            let result = AssertUnwindSafe(process_material(
                 &app,
                 &task.material_path,
                 &task.year_month,
                 task.note.as_deref(),
                 task.prompt_text.as_deref(),
                 &current_task,
-            )
+            ))
+            .catch_unwind()
             .await;
-            match &result {
-                Ok(()) => eprintln!("[ai_queue] task completed: {}", task.material_path),
-                Err(e) => eprintln!("[ai_queue] task failed: {} → {}", task.material_path, e),
+
+            match result {
+                Ok(Ok(())) => {
+                    eprintln!("[ai_queue] task completed: {}", material_path);
+                }
+                Ok(Err(e)) => {
+                    eprintln!("[ai_queue] task failed: {} → {}", material_path, e);
+                }
+                Err(panic_payload) => {
+                    let panic_msg = extract_panic_message(&panic_payload);
+                    eprintln!(
+                        "[ai_queue] PANIC in process_material for {}: {}",
+                        material_path, panic_msg
+                    );
+
+                    cleanup_current_task_after_panic(&app);
+
+                    let error_msg = format!("内部错误 (panic): {}", panic_msg);
+                    let _ = app.emit(
+                        "ai-processing",
+                        ProcessingUpdate {
+                            material_path: material_path.clone(),
+                            status: "failed".to_string(),
+                            error: Some(error_msg.clone()),
+                        },
+                    );
+                    let _ = app.emit(
+                        "ai-log",
+                        AiLogLine {
+                            material_path: material_path.clone(),
+                            level: "error".to_string(),
+                            message: format!("处理器崩溃: {}", panic_msg),
+                        },
+                    );
+
+                    eprintln!("[ai_queue] recovered from panic, continuing consumer loop");
+                }
             }
         }
         eprintln!("[ai_queue] consumer loop ended (channel closed)");
@@ -590,12 +703,12 @@ pub async fn process_material(
         msg
     })?;
 
-    let stdout = child.stdout.take().unwrap();
-    let stderr_handle = child.stderr.take().unwrap();
+    let stdout = child.stdout.take().ok_or_else(|| "无法获取 stdout".to_string())?;
+    let stderr_handle = child.stderr.take().ok_or_else(|| "无法获取 stderr".to_string())?;
 
     // Store child (without stdout/stderr — they're taken above)
     {
-        let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
+        let mut guard = lock_current_task(&current_task.0);
         *guard = Some(child);
     }
 
@@ -627,7 +740,7 @@ pub async fn process_material(
     let mut final_result: Result<(), String> = Ok(());
 
     while let Ok(Some(line)) = stdout_reader.next_line().await {
-        eprintln!("[ai_processor:stream] {}", &line[..line.len().min(200)]);
+        eprintln!("[ai_processor:stream] {}", truncate_for_log(&line, 200));
         if let Some(msg) = extract_log_line(&line) {
             let level = if msg.starts_with("[error]") {
                 "error"
@@ -660,16 +773,22 @@ pub async fn process_material(
                         .unwrap_or("AI 处理失败");
                     final_result = Err(msg.to_string());
                 }
+                // result 行是 stream-json 的最后一条，主动 break 避免等待
+                // Node worker 继承 stdout fd 导致 pipe 不关闭而卡死
+                break;
             }
         }
     }
 
-    let _ = stderr_task.await;
+    // stderr 仅用于日志，不参与结果判断。
+    // Claude CLI 会 spawn Node worker 并继承 stderr fd，导致 stderr pipe 在主进程退出后
+    // 仍未关闭。直接 drop task，让它在后台自然结束，避免卡死。
+    drop(stderr_task);
 
     // Wait for child and check exit status
     // Take child out of the mutex before awaiting to avoid holding MutexGuard across .await
     let maybe_child = {
-        let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
+        let mut guard = lock_current_task(&current_task.0);
         guard.take()
     };
 
@@ -760,7 +879,7 @@ pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), Strin
 pub async fn cancel_ai_processing(
     current_task: tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
-    let mut guard = current_task.0.lock().map_err(|e| e.to_string())?;
+    let mut guard = lock_current_task(&current_task.0);
     if let Some(mut child) = guard.take() {
         // On Unix, kill the entire process group to ensure Node.js workers
         // (spawned by claude CLI) are also terminated, closing the stdout pipe.
@@ -943,11 +1062,16 @@ mod tests {
         // without note
         let note_suffix = "";
         let prompt = format!(
-            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+            "你是我的个人知识助手，负责将素材整理进我的日志笔记本。\n\
+\n\
+阅读 @{}，理解其核心内容，然后：\n\
+- 若与已有条目高度相关，追加或更新那个文件；\n\
+- 否则新建 {}/DD-标题.md。\n\
+\n\
+直接写文件，不要输出解释。{}",
             relative_ref, year_month, note_suffix
         );
         assert!(prompt.contains("@2603/raw/note.txt"));
-        assert!(prompt.contains("深入梳理"));
         assert!(prompt.contains("DD-标题.md"));
         assert!(prompt.contains("2603/"));
         assert!(!prompt.contains("用户补充"));
@@ -955,7 +1079,13 @@ mod tests {
         // with note
         let note_suffix = "\n用户补充：这是会议记录";
         let prompt_with_note = format!(
-            "深入梳理 @{}，整理为日志条目并直接写文件，不要输出任何解释。\n文件名格式：DD-标题.md，写在 {}/ 目录下（不要写到 raw/ 里）。{}",
+            "你是我的个人知识助手，负责将素材整理进我的日志笔记本。\n\
+\n\
+阅读 @{}，理解其核心内容，然后：\n\
+- 若与已有条目高度相关，追加或更新那个文件；\n\
+- 否则新建 {}/DD-标题.md。\n\
+\n\
+直接写文件，不要输出解释。{}",
             relative_ref, year_month, note_suffix
         );
         assert!(prompt_with_note.contains("用户补充：这是会议记录"));
@@ -978,14 +1108,14 @@ mod tests {
         let tool_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t1","input":{"command":"ls -la"},"name":"Bash","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
         assert_eq!(
             extract_log_line(tool_line),
-            Some("[Bash] ls -la".to_string())
+            Some("Bash: ls -la".to_string())
         );
 
         // tool_use Read with file_path
         let read_line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","text":"","citations":null,"signature":"","thinking":"","data":"","id":"t2","input":{"file_path":"src/main.rs"},"name":"Read","content":{"OfWebSearchResultBlockArray":null,"error_code":"","type":"web_search_tool_result_error"},"tool_use_id":""}],"id":"","model":"","role":"assistant","stop_reason":"","stop_sequence":"","type":"message","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":""},"context_management":null},"parent_tool_use_id":null,"session_id":"","uuid":""}"#;
         assert_eq!(
             extract_log_line(read_line),
-            Some("[Read] main.rs".to_string())
+            Some("Read: main.rs".to_string())
         );
 
         // system init
@@ -1122,7 +1252,7 @@ mod tests {
         });
         assert_eq!(
             tool_input_label("Task", &task_input),
-            "[Task] review authentication flow and identify the main entrypoint"
+            "Task: review authentication flow and identify the main entrypoint"
         );
 
         let web_fetch_input = serde_json::json!({
@@ -1130,7 +1260,7 @@ mod tests {
         });
         assert_eq!(
             tool_input_label("WebFetch", &web_fetch_input),
-            "[WebFetch] https://example.com/some/really/long/path"
+            "WebFetch: https://example.com/some/really/long/path"
         );
 
         let cron_input = serde_json::json!({
@@ -1139,7 +1269,7 @@ mod tests {
         });
         let cron_label = tool_input_label("CronCreate", &cron_input);
         assert!(
-            cron_label.starts_with("[CronCreate] "),
+            cron_label.starts_with("CronCreate: "),
             "unexpected label: {}",
             cron_label
         );
@@ -1227,7 +1357,7 @@ mod tests {
     fn prompt_text_none_falls_back_to_material_prompt() {
         let (args, _) = build_claude_args("meeting.txt", "2603", None, None, "");
         assert!(args[1].contains("@2603/raw/meeting.txt"));
-        assert!(args[1].contains("深入梳理"));
+        assert!(args[1].contains("知识助手"));
     }
 
     #[test]
@@ -1255,5 +1385,48 @@ mod tests {
         };
         assert_eq!(material_path, "你好");
         assert!(!material_path.ends_with('…'));
+    }
+
+    #[test]
+    fn extract_panic_message_from_str() {
+        let payload: Box<dyn std::any::Any + Send> = Box::new("something went wrong");
+        assert_eq!(
+            super::extract_panic_message(&payload),
+            "something went wrong"
+        );
+    }
+
+    #[test]
+    fn extract_panic_message_from_string() {
+        let payload: Box<dyn std::any::Any + Send> =
+            Box::new("formatted error".to_string());
+        assert_eq!(
+            super::extract_panic_message(&payload),
+            "formatted error"
+        );
+    }
+
+    #[test]
+    fn extract_panic_message_unknown_type() {
+        let payload: Box<dyn std::any::Any + Send> = Box::new(42i32);
+        assert_eq!(super::extract_panic_message(&payload), "unknown panic");
+    }
+
+    #[test]
+    fn lock_current_task_recovers_from_poisoning() {
+        let mutex = std::sync::Mutex::new(None::<tokio::process::Child>);
+
+        // Poison the mutex by panicking while holding the lock
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = mutex.lock().unwrap();
+            panic!("intentional poison");
+        }));
+
+        // Verify it's poisoned
+        assert!(mutex.lock().is_err());
+
+        // Verify our helper recovers
+        let guard = super::lock_current_task(&mutex);
+        assert!(guard.is_none());
     }
 }

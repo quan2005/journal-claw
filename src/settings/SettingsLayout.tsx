@@ -18,6 +18,8 @@ import { ALL_NAV_IDS, SECTION_TOP_GUTTER, type NavId, resolveActiveNav } from '.
 
 interface SettingsLayoutProps {
   height: string
+  initialSection?: string
+  onSectionConsumed?: () => void
 }
 
 type NavItem = {
@@ -60,7 +62,7 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
   )
 })
 
-export function SettingsLayout({ height }: SettingsLayoutProps) {
+export function SettingsLayout({ height, initialSection, onSectionConsumed }: SettingsLayoutProps) {
   const [activeNav, setActiveNav] = useState<NavId>('general')
   const scrollRef = useRef<HTMLDivElement>(null)
   const sectionRefs = useRef<Partial<Record<NavId, HTMLElement>>>({})
@@ -230,6 +232,18 @@ export function SettingsLayout({ height }: SettingsLayoutProps) {
 
     navigationFrameRef.current = window.requestAnimationFrame(step)
   }
+
+  // Jump to initial section when requested (e.g. from "About" menu)
+  useEffect(() => {
+    if (!initialSection || !ALL_NAV_IDS.includes(initialSection as NavId)) return
+    // Wait for section refs to be measured
+    const frame = requestAnimationFrame(() => {
+      refreshSectionTops()
+      jumpTo(initialSection as NavId)
+      onSectionConsumed?.()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [initialSection]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const navBtnStyle = (id: NavId): React.CSSProperties => ({
     width: '100%',

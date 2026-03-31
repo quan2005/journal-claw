@@ -8,21 +8,23 @@
   --bg: #ffffff;
   --titlebar-bg: rgba(0,0,0,0.04);
   --divider: #e5e5ea;
+  --scrollbar-thumb: rgba(0,0,0,0.12);
+  --scrollbar-thumb-hover: rgba(0,0,0,0.22);
   --month-label: #8e8e93;
   --item-text: #1c1c1e;
-  --item-meta: #6e6e73;
+  --item-meta: #86868b;
   --duration-text: #c7c7cc;
   --accent: #ff3b30;
-  --record-btn: #d9a44b;
-  --record-btn-hover: #c8933a;
+  --record-btn: #4a6a7a;
+  --record-btn-hover: #3a5a6a;
   --record-btn-icon: #ffffff;
-  --record-highlight: rgba(217,164,75,0.06);
-  --record-highlight-bar: rgba(217,164,75,1);
+  --record-highlight: rgba(58,90,106,0.06);
+  --record-highlight-bar: rgba(74,106,122,1);
   --item-icon-bg: #f2f2f7;
   --item-hover-bg: rgba(0, 0, 0, 0.04);
-  --item-selected-bg: rgba(0, 0, 0, 0.06);
-  --item-selected-text: #1c1c1e;
-  --item-selected-meta: #86868b;
+  --item-selected-bg: rgba(58,90,106,0.05);
+  --item-selected-text: #3a5a6a;
+  --item-selected-meta: #5a7a8a;
   --card-selected-bar: var(--record-btn);
   --date-number: var(--item-text);
   --date-secondary: var(--item-meta);
@@ -31,21 +33,21 @@
   --sheet-handle: #d1d1d6;
 
   /* Active day (today) */
-  --date-today-number: #c8933a;
-  --date-today-weekday: #9a6a20;
+  --date-today-number: #3a5a6a;
+  --date-today-weekday: #5a7a8a;
 
   /* Sidebar */
   --sidebar-bg: #f8f8f8;
   --sidebar-month: #8e8e93;
 
   /* AI Status Pill */
-  --ai-pill-bg: #e8f5e8;
-  --ai-pill-border: #b8d8b8;
-  --ai-pill-text: #2a7a2a;
-  --ai-pill-dot: #2a7a2a;
-  --ai-pill-active-text: #1a6a1a;
-  --ai-pill-active-bg: #d4f0d4;
-  --ai-pill-active-border: #8ac88a;
+  --ai-pill-bg: #f0f4f6;
+  --ai-pill-border: #c8d8e0;
+  --ai-pill-text: #3a5a6a;
+  --ai-pill-dot: #5a7a8a;
+  --ai-pill-active-text: #2a4a5a;
+  --ai-pill-active-bg: #e4ecf0;
+  --ai-pill-active-border: #4a6a7a;
 
   /* Command Dock */
   --dock-bg: #f8f8f8;
@@ -53,32 +55,36 @@
   --dock-dropzone-border: #b0b0b4;
   --dock-dropzone-text: #8e8e93;
   --dock-dropzone-hint: #aeaeb2;
-  --dock-dropzone-hover-border: #4a8ac8;
-  --dock-dropzone-hover-bg: rgba(74,138,200,0.06);
-  --dock-paste-border: #7a7ac8;
-  --dock-paste-bg: #f0f0fa;
-  --dock-paste-label: #7a7ac8;
+  --dock-dropzone-hover-border: #4a6a7a;
+  --dock-dropzone-hover-bg: rgba(58,90,106,0.06);
+  --dock-paste-border: #4a6a7a;
+  --dock-paste-bg: #f0f4f6;
+  --dock-paste-label: #3a5a6a;
   --dock-kbd-bg: #e8e8e8;
-  --dock-kbd-text: #8e8e93;
-  --dock-kbd-border: #c7c7cc;
+  --dock-kbd-text: #3a5a6a;
+  --dock-kbd-border: #c8d8e0;
 
   /* Markdown typography */
-  --md-h1: #1c1c1e;
-  --md-h2: #1c1c1e;
-  --md-h3: #636366;
-  --md-text: #3a3a3c;
-  --md-strong: #1c1c1e;
-  --md-em: #3a3a3c;
-  --md-bullet: #8e8e93;
+  --md-h1: #3a5a6a;
+  --md-h2: #3a5a6a;
+  --md-h3: #48484a;
+  --md-text: #2c2c2e;
+  --md-strong: #3a5a6a;
+  --md-em: #2c2c2e;
+  --md-bullet: #636366;
   --md-code-bg: rgba(0,0,0,0.055);
   --md-code-text: #2d6a9f;
   --md-pre-bg: #f5f5f7;
   --md-pre-text: #2d2d2d;
   --md-quote-bar: #d1d1d6;
-  --md-quote-text: #8e8e93;
+  --md-quote-text: #6e6e73;
   --md-checkbox-border: #c7c7cc;
   --md-checkbox-checked: #5a8ab5;
   --md-checkbox-done-text: #aeaeb2;
+
+  /* Markdown links */
+  --md-link: #2d6a9f;
+  --md-link-hover: #1a5080;
 
   /* Detail panel */
   --detail-bg: var(--bg);
@@ -91,9 +97,9 @@
   --detail-case-val: #3a3a3c;
 
   /* Source badges */
-  --badge-voice-bg: #fef4e6;
-  --badge-voice-text: #9a6a20;
-  --badge-voice-border: #e8d5b0;
+  --badge-voice-bg: #f0f4f6;
+  --badge-voice-text: #4a6a7a;
+  --badge-voice-border: #c8d8e0;
   --badge-doc-bg: #e8f0fa;
   --badge-doc-text: #3a6a9a;
   --badge-doc-border: #c0d4ea;
@@ -113,30 +119,32 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0f0f0f;
     --titlebar-bg: #161616;
     --divider: #222;
+    --scrollbar-thumb: rgba(255,255,255,0.10);
+    --scrollbar-thumb-hover: rgba(255,255,255,0.18);
     --month-label: #3a3a3a;
-    --item-text: #d8d8d8;
-    --item-meta: #7a7a7a;
+    --item-text: #e8e8e8;
+    --item-meta: #aaaaaa;
     --duration-text: #48484a;
     --accent: #ff375f;
-    --record-btn: #c8933a;
+    --record-btn: #C8933B;
     --record-btn-hover: #d9a44b;
     --record-btn-icon: #0f0f0f;
-    --record-highlight: rgba(200,147,58,0.06);
-    --record-highlight-bar: rgba(200,147,58,1);
+    --record-highlight: rgba(200,147,59,0.06);
+    --record-highlight-bar: rgba(200,147,59,1);
     --item-icon-bg: #2c2c2e;
     --item-hover-bg: rgba(255, 255, 255, 0.03);
     --item-selected-bg: #1c1c1c;
-    --item-selected-text: #e8e8e8;
-    --item-selected-meta: #aaaaaa;
+    --item-selected-text: #C8933B;
+    --item-selected-meta: #a07830;
     --sheet-bg: var(--bg);
     --sheet-handle: #48484a;
 
     /* Active day (today) */
-    --date-today-number: #c8933a;
+    --date-today-number: #C8933B;
     --date-today-weekday: #9a6a20;
 
     /* Sidebar */
@@ -144,13 +152,13 @@
     --sidebar-month: #3a3a3a;
 
     /* AI Status Pill */
-    --ai-pill-bg: #1a2a1a;
-    --ai-pill-border: #2a4a2a;
-    --ai-pill-text: #4a9a4a;
-    --ai-pill-dot: #4a9a4a;
-    --ai-pill-active-text: #6adf6a;
-    --ai-pill-active-bg: #0a2a0a;
-    --ai-pill-active-border: #3a8a3a;
+    --ai-pill-bg: #1a1708;
+    --ai-pill-border: #3a3018;
+    --ai-pill-text: #C8933B;
+    --ai-pill-dot: #C8933B;
+    --ai-pill-active-text: #d9a44b;
+    --ai-pill-active-bg: #1a1408;
+    --ai-pill-active-border: #6a4f20;
 
     /* Command Dock */
     --dock-bg: #141414;
@@ -158,32 +166,36 @@
     --dock-dropzone-border: #282828;
     --dock-dropzone-text: #aaaaaa;
     --dock-dropzone-hint: #888888;
-    --dock-dropzone-hover-border: #4a8ac8;
-    --dock-dropzone-hover-bg: #0e141d;
-    --dock-paste-border: #7a7ac8;
-    --dock-paste-bg: #10101a;
-    --dock-paste-label: #7a7ac8;
+    --dock-dropzone-hover-border: #C8933B;
+    --dock-dropzone-hover-bg: #1a1408;
+    --dock-paste-border: #C8933B;
+    --dock-paste-bg: #1a1408;
+    --dock-paste-label: #C8933B;
     --dock-kbd-bg: #1a1a1a;
-    --dock-kbd-text: #2a2a2a;
-    --dock-kbd-border: #252525;
+    --dock-kbd-text: #C8933B;
+    --dock-kbd-border: #6a4f20;
 
     /* Markdown typography — dark */
-    --md-h1: #ddd;
-    --md-h2: #888;
-    --md-h3: #636366;
-    --md-text: #808080;
-    --md-strong: #bbb;
-    --md-em: #b0b0b0;
-    --md-bullet: #636366;
+    --md-h1: #C8933B;
+    --md-h2: #C8933B;
+    --md-h3: #909090;
+    --md-text: #b0b0b0;
+    --md-strong: #C8933B;
+    --md-em: #cccccc;
+    --md-bullet: #888888;
     --md-code-bg: rgba(255,255,255,0.08);
     --md-code-text: #88b4e0;
     --md-pre-bg: #141414;
     --md-pre-text: #d4d4d4;
     --md-quote-bar: #48484a;
-    --md-quote-text: #aaaaaa;
+    --md-quote-text: #c0c0c0;
     --md-checkbox-border: #48484a;
     --md-checkbox-checked: #4a6a8a;
     --md-checkbox-done-text: #48484a;
+
+    /* Markdown links — dark */
+    --md-link: #6cb6ff;
+    --md-link-hover: #8cc8ff;
 
     /* Detail panel */
     --detail-bg: var(--bg);
@@ -216,6 +228,97 @@
     --context-menu-border: #333;
     --context-menu-shadow: rgba(0,0,0,0.5);
   }
+}
+
+/* Explicit dark theme (overrides @media for manual theme selection) */
+[data-theme="dark"] {
+  --bg: #0f0f0f;
+  --titlebar-bg: #161616;
+  --divider: #222;
+  --scrollbar-thumb: rgba(255,255,255,0.10);
+  --scrollbar-thumb-hover: rgba(255,255,255,0.18);
+  --month-label: #3a3a3a;
+  --item-text: #e8e8e8;
+  --item-meta: #aaaaaa;
+  --duration-text: #48484a;
+  --accent: #ff375f;
+  --record-btn: #C8933B;
+  --record-btn-hover: #d9a44b;
+  --record-btn-icon: #0f0f0f;
+  --record-highlight: rgba(200,147,59,0.06);
+  --record-highlight-bar: rgba(200,147,59,1);
+  --item-icon-bg: #2c2c2e;
+  --item-hover-bg: rgba(255, 255, 255, 0.03);
+  --item-selected-bg: #1c1c1c;
+  --item-selected-text: #C8933B;
+  --item-selected-meta: #a07830;
+  --sheet-bg: var(--bg);
+  --sheet-handle: #48484a;
+  --date-today-number: #C8933B;
+  --date-today-weekday: #9a6a20;
+  --sidebar-bg: #141414;
+  --sidebar-month: #3a3a3a;
+  --ai-pill-bg: #1a1708;
+  --ai-pill-border: #3a3018;
+  --ai-pill-text: #C8933B;
+  --ai-pill-dot: #C8933B;
+  --ai-pill-active-text: #d9a44b;
+  --ai-pill-active-bg: #1a1408;
+  --ai-pill-active-border: #6a4f20;
+  --dock-bg: #141414;
+  --dock-border: #252525;
+  --dock-dropzone-border: #282828;
+  --dock-dropzone-text: #aaaaaa;
+  --dock-dropzone-hint: #888888;
+  --dock-dropzone-hover-border: #C8933B;
+  --dock-dropzone-hover-bg: #1a1408;
+  --dock-paste-border: #C8933B;
+  --dock-paste-bg: #1a1408;
+  --dock-paste-label: #C8933B;
+  --dock-kbd-bg: #1a1a1a;
+  --dock-kbd-text: #C8933B;
+  --dock-kbd-border: #6a4f20;
+  --md-h1: #C8933B;
+  --md-h2: #C8933B;
+  --md-h3: #909090;
+  --md-text: #b0b0b0;
+  --md-strong: #C8933B;
+  --md-em: #cccccc;
+  --md-bullet: #888888;
+  --md-code-bg: rgba(255,255,255,0.08);
+  --md-code-text: #88b4e0;
+  --md-pre-bg: #141414;
+  --md-pre-text: #d4d4d4;
+  --md-quote-bar: #48484a;
+  --md-quote-text: #c0c0c0;
+  --md-checkbox-border: #48484a;
+  --md-checkbox-checked: #4a6a8a;
+  --md-checkbox-done-text: #48484a;
+  --md-link: #6cb6ff;
+  --md-link-hover: #8cc8ff;
+  --detail-bg: var(--bg);
+  --detail-section-label: #3a3a3a;
+  --detail-summary: #606060;
+  --detail-case-bg: #141414;
+  --detail-case-border: #222;
+  --detail-case-title: #bbb;
+  --detail-case-key: #404040;
+  --detail-case-val: #808080;
+  --badge-voice-bg: #2a1f0f;
+  --badge-voice-text: #c8933a;
+  --badge-voice-border: #4a3010;
+  --badge-doc-bg: #0f1a2a;
+  --badge-doc-text: #4a8ac8;
+  --badge-doc-border: #1a3050;
+  --badge-ai-bg: #1a1a2a;
+  --badge-ai-text: #7a7ac8;
+  --badge-ai-border: #2a2a50;
+  --queue-bg: #1c1c1e;
+  --queue-border: #333;
+  --queue-shadow: rgba(0,0,0,0.3);
+  --context-menu-bg: #1e1e1e;
+  --context-menu-border: #333;
+  --context-menu-shadow: rgba(0,0,0,0.5);
 }
 
 html, body, #root {
@@ -266,6 +369,18 @@ html, body, #root {
   border-radius: 4px;
 }
 
+/* ── Markdown links ────────────────────────────────────────────── */
+.md-body .md-link {
+  color: var(--md-link);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.md-body .md-link:hover {
+  color: var(--md-link-hover);
+  border-bottom-color: var(--md-link-hover);
+}
+
 /* ── Checklist checkbox alignment ───────────────────────────── */
 .md-body .task-list-item input[type="checkbox"] {
   display: block;
@@ -296,7 +411,7 @@ html, body, #root {
 /* ── Scrollbar ───────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--divider) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 *::-webkit-scrollbar {
   width: 4px;
@@ -306,11 +421,11 @@ html, body, #root {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ── Cmd+V kbd button glow pulse ────────────────────────── */
@@ -394,63 +509,67 @@ html, body, #root {
   --bg: #0f0f0f;
   --titlebar-bg: #161616;
   --divider: #222;
+  --scrollbar-thumb: rgba(255,255,255,0.10);
+  --scrollbar-thumb-hover: rgba(255,255,255,0.18);
   --month-label: #3a3a3a;
-  --item-text: #d8d8d8;
-  --item-meta: #7a7a7a;
+  --item-text: #e8e8e8;
+  --item-meta: #aaaaaa;
   --duration-text: #48484a;
   --accent: #ff375f;
-  --record-btn: #c8933a;
+  --record-btn: #C8933B;
   --record-btn-hover: #d9a44b;
   --record-btn-icon: #0f0f0f;
-  --record-highlight: rgba(200,147,58,0.06);
-  --record-highlight-bar: rgba(200,147,58,1);
+  --record-highlight: rgba(200,147,59,0.06);
+  --record-highlight-bar: rgba(200,147,59,1);
   --item-icon-bg: #2c2c2e;
   --item-hover-bg: rgba(255, 255, 255, 0.03);
   --item-selected-bg: #1c1c1c;
-  --item-selected-text: #e8e8e8;
-  --item-selected-meta: #aaaaaa;
+  --item-selected-text: #C8933B;
+  --item-selected-meta: #a07830;
   --sheet-bg: var(--bg);
   --sheet-handle: #48484a;
-  --date-today-number: #c8933a;
+  --date-today-number: #C8933B;
   --date-today-weekday: #9a6a20;
   --sidebar-bg: #141414;
   --sidebar-month: #3a3a3a;
-  --ai-pill-bg: #1a2a1a;
-  --ai-pill-border: #2a4a2a;
-  --ai-pill-text: #4a9a4a;
-  --ai-pill-dot: #4a9a4a;
-  --ai-pill-active-text: #6adf6a;
-  --ai-pill-active-bg: #0a2a0a;
-  --ai-pill-active-border: #3a8a3a;
+  --ai-pill-bg: #1a1708;
+  --ai-pill-border: #3a3018;
+  --ai-pill-text: #C8933B;
+  --ai-pill-dot: #C8933B;
+  --ai-pill-active-text: #d9a44b;
+  --ai-pill-active-bg: #1a1408;
+  --ai-pill-active-border: #6a4f20;
   --dock-bg: #141414;
   --dock-border: #252525;
   --dock-dropzone-border: #282828;
   --dock-dropzone-text: #aaaaaa;
   --dock-dropzone-hint: #606060;
-  --dock-dropzone-hover-border: #4a8ac8;
-  --dock-dropzone-hover-bg: #0e141d;
-  --dock-paste-border: #7a7ac8;
-  --dock-paste-bg: #10101a;
-  --dock-paste-label: #7a7ac8;
+  --dock-dropzone-hover-border: #C8933B;
+  --dock-dropzone-hover-bg: #1a1408;
+  --dock-paste-border: #C8933B;
+  --dock-paste-bg: #1a1408;
+  --dock-paste-label: #C8933B;
   --dock-kbd-bg: #1a1a1a;
-  --dock-kbd-text: #c8933a;
+  --dock-kbd-text: #C8933B;
   --dock-kbd-border: #6a4f20;
-  --md-h1: #f5f5f5;
-  --md-h2: #d8d8d8;
-  --md-h3: #b0b0b0;
-  --md-text: #909090;
-  --md-strong: #d0d0d0;
-  --md-em: #a0a0a0;
-  --md-bullet: #707070;
+  --md-h1: #C8933B;
+  --md-h2: #C8933B;
+  --md-h3: #b8b8b8;
+  --md-text: #b0b0b0;
+  --md-strong: #C8933B;
+  --md-em: #c0c0c0;
+  --md-bullet: #888888;
   --md-code-bg: rgba(255,255,255,0.08);
   --md-code-text: #88b4e0;
   --md-pre-bg: #141414;
   --md-pre-text: #d4d4d4;
   --md-quote-bar: #48484a;
-  --md-quote-text: #909090;
+  --md-quote-text: #b0b0b0;
   --md-checkbox-border: #48484a;
   --md-checkbox-checked: #0a84ff;
   --md-checkbox-done-text: #48484a;
+  --md-link: #6cb6ff;
+  --md-link-hover: #8cc8ff;
   --detail-bg: var(--bg);
   --detail-section-label: #3a3a3a;
   --detail-summary: #606060;
@@ -477,63 +596,67 @@ html, body, #root {
   --bg: #ffffff;
   --titlebar-bg: rgba(0,0,0,0.04);
   --divider: #e5e5ea;
+  --scrollbar-thumb: rgba(0,0,0,0.12);
+  --scrollbar-thumb-hover: rgba(0,0,0,0.22);
   --month-label: #8e8e93;
   --item-text: #1c1c1e;
-  --item-meta: #6e6e73;
+  --item-meta: #86868b;
   --duration-text: #c7c7cc;
   --accent: #ff3b30;
-  --record-btn: #d9a44b;
-  --record-btn-hover: #c8933a;
+  --record-btn: #4a6a7a;
+  --record-btn-hover: #3a5a6a;
   --record-btn-icon: #ffffff;
-  --record-highlight: rgba(217,164,75,0.06);
-  --record-highlight-bar: rgba(217,164,75,1);
+  --record-highlight: rgba(58,90,106,0.06);
+  --record-highlight-bar: rgba(74,106,122,1);
   --item-icon-bg: #f2f2f7;
   --item-hover-bg: rgba(0, 0, 0, 0.04);
-  --item-selected-bg: rgba(0, 0, 0, 0.06);
-  --item-selected-text: #1c1c1e;
-  --item-selected-meta: #86868b;
+  --item-selected-bg: rgba(58,90,106,0.05);
+  --item-selected-text: #3a5a6a;
+  --item-selected-meta: #5a7a8a;
   --sheet-bg: var(--bg);
   --sheet-handle: #d1d1d6;
-  --date-today-number: #c8933a;
-  --date-today-weekday: #9a6a20;
+  --date-today-number: #3a5a6a;
+  --date-today-weekday: #5a7a8a;
   --sidebar-bg: #f8f8f8;
   --sidebar-month: #8e8e93;
-  --ai-pill-bg: #e8f5e8;
-  --ai-pill-border: #b8d8b8;
-  --ai-pill-text: #2a7a2a;
-  --ai-pill-dot: #2a7a2a;
-  --ai-pill-active-text: #1a6a1a;
-  --ai-pill-active-bg: #d4f0d4;
-  --ai-pill-active-border: #8ac88a;
+  --ai-pill-bg: #f0f4f6;
+  --ai-pill-border: #c8d8e0;
+  --ai-pill-text: #3a5a6a;
+  --ai-pill-dot: #5a7a8a;
+  --ai-pill-active-text: #2a4a5a;
+  --ai-pill-active-bg: #e4ecf0;
+  --ai-pill-active-border: #4a6a7a;
   --dock-bg: #f8f8f8;
   --dock-border: #e5e5ea;
   --dock-dropzone-border: #b0b0b4;
   --dock-dropzone-text: #8e8e93;
   --dock-dropzone-hint: #aeaeb2;
-  --dock-dropzone-hover-border: #4a8ac8;
-  --dock-dropzone-hover-bg: rgba(74,138,200,0.06);
-  --dock-paste-border: #7a7ac8;
-  --dock-paste-bg: #f0f0fa;
-  --dock-paste-label: #7a7ac8;
+  --dock-dropzone-hover-border: #4a6a7a;
+  --dock-dropzone-hover-bg: rgba(58,90,106,0.06);
+  --dock-paste-border: #4a6a7a;
+  --dock-paste-bg: #f0f4f6;
+  --dock-paste-label: #3a5a6a;
   --dock-kbd-bg: #e8e8e8;
-  --dock-kbd-text: #8e8e93;
-  --dock-kbd-border: #c7c7cc;
-  --md-h1: #1c1c1e;
-  --md-h2: #1c1c1e;
-  --md-h3: #636366;
-  --md-text: #3a3a3c;
-  --md-strong: #1c1c1e;
-  --md-em: #3a3a3c;
-  --md-bullet: #8e8e93;
+  --dock-kbd-text: #3a5a6a;
+  --dock-kbd-border: #c8d8e0;
+  --md-h1: #3a5a6a;
+  --md-h2: #3a5a6a;
+  --md-h3: #48484a;
+  --md-text: #2c2c2e;
+  --md-strong: #3a5a6a;
+  --md-em: #2c2c2e;
+  --md-bullet: #636366;
   --md-code-bg: rgba(0,0,0,0.055);
   --md-code-text: #2d6a9f;
   --md-pre-bg: #f5f5f7;
   --md-pre-text: #2d2d2d;
   --md-quote-bar: #d1d1d6;
-  --md-quote-text: #8e8e93;
+  --md-quote-text: #6e6e73;
   --md-checkbox-border: #c7c7cc;
   --md-checkbox-checked: #5a8ab5;
   --md-checkbox-done-text: #aeaeb2;
+  --md-link: #2d6a9f;
+  --md-link-hover: #1a5080;
   --detail-bg: var(--bg);
   --detail-section-label: #8e8e93;
   --detail-summary: #636366;
@@ -542,9 +665,9 @@ html, body, #root {
   --detail-case-title: #1c1c1e;
   --detail-case-key: #8e8e93;
   --detail-case-val: #3a3a3c;
-  --badge-voice-bg: #fef4e6;
-  --badge-voice-text: #9a6a20;
-  --badge-voice-border: #e8d5b0;
+  --badge-voice-bg: #f0f4f6;
+  --badge-voice-text: #4a6a7a;
+  --badge-voice-border: #c8d8e0;
   --badge-doc-bg: #e8f0fa;
   --badge-doc-text: #3a6a9a;
   --badge-doc-border: #c0d4ea;

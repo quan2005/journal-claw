@@ -207,7 +207,7 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
             }}>
               {displayTags.map((cfg, i) => (
                 <span key={i} style={{
-                  fontSize: 11,
+                  fontSize: 10,
                   padding: '2px 8px',
                   borderRadius: 4,
                   fontWeight: 500,
@@ -316,6 +316,30 @@ export function DetailPanel({ entry, onDeselect }: DetailPanelProps) {
                     <CodeBlock className={codeEl?.props?.className} rawText={rawText}>
                       {children}
                     </CodeBlock>
+                  )
+                },
+                // Links
+                a: ({ href, children }) => {
+                  const isMdLink = href && /\.md$/i.test(href) && !href.startsWith('http')
+                  return (
+                    <a
+                      href={isMdLink ? undefined : href}
+                      target={isMdLink ? undefined : '_blank'}
+                      rel={isMdLink ? undefined : 'noopener noreferrer'}
+                      className="md-link"
+                      onClick={isMdLink ? (e) => {
+                        e.preventDefault()
+                        const targetFilename = decodeURIComponent(href!.replace(/^\.\//, ''))
+                        const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
+                        const targetPath = `${entryDir}/${targetFilename}`
+                        window.dispatchEvent(new CustomEvent('journal-entry-navigate', {
+                          detail: { path: targetPath, filename: targetFilename },
+                        }))
+                      } : undefined}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {children}
+                    </a>
                   )
                 },
                 // Blockquote

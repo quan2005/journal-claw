@@ -1,5 +1,10 @@
 import { SettingsLayout } from './SettingsLayout'
 
-export function SettingsPanel() {
-  return <SettingsLayout height="100%" />
+interface SettingsPanelProps {
+  initialSection?: string
+  onSectionConsumed?: () => void
+}
+
+export function SettingsPanel({ initialSection, onSectionConsumed }: SettingsPanelProps) {
+  return <SettingsLayout height="100%" initialSection={initialSection} onSectionConsumed={onSectionConsumed} />
 }

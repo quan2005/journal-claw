@@ -18,6 +18,7 @@ use std::sync::{
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
 
+const MENU_ABOUT_ID: &str = "about";
 const MENU_SETTINGS_ID: &str = "settings";
 const MENU_QUIT_ID: &str = "quit";
 
@@ -78,6 +79,8 @@ fn main() {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
                 }
                 // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
+                let about_item =
+                    MenuItem::with_id(app, MENU_ABOUT_ID, "关于谨迹", true, None::<&str>)?;
                 let settings_item =
                     MenuItem::with_id(app, MENU_SETTINGS_ID, "设置...", true, Some("CmdOrCtrl+,"))?;
                 let quit_item =
@@ -87,7 +90,7 @@ fn main() {
                     "谨迹",
                     true,
                     &[
-                        &PredefinedMenuItem::about(app, None, None)?,
+                        &about_item,
                         &PredefinedMenuItem::separator(app)?,
                         &settings_item,
                         &PredefinedMenuItem::separator(app)?,
@@ -153,7 +156,9 @@ fn main() {
                 let menu_handle = app.handle().clone();
                 let menu_allow_exit = Arc::clone(&allow_exit);
                 app.on_menu_event(move |_app, event| {
-                    if event.id() == MENU_SETTINGS_ID {
+                    if event.id() == MENU_ABOUT_ID {
+                        let _ = menu_handle.emit_to("main", "open-settings-about", ());
+                    } else if event.id() == MENU_SETTINGS_ID {
                         let _ = menu_handle.emit_to("main", "open-settings", ());
                     } else if event.id() == MENU_QUIT_ID {
                         save_main_window_state(&menu_handle);

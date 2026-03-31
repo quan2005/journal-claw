@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>亮色模式 Accent 配色方案对比</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, sans-serif;
+    background: #f0f0f0;
+    color: #1c1c1e;
+    padding: 40px 24px;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 14px;
+    color: #86868b;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .page-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #aeaeb2;
+    margin-bottom: 48px;
+  }
+
+  .schemes {
+    display: flex;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .scheme {
+    flex: 1;
+    min-width: 380px;
+    max-width: 440px;
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #e5e5ea;
+  }
+
+  .scheme-header {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid #f2f2f7;
+  }
+
+  .scheme-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .scheme-name {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .scheme-desc {
+    font-size: 13px;
+    color: #86868b;
+    line-height: 1.5;
+  }
+
+  .scheme-body {
+    padding: 20px 24px 24px;
+  }
+
+  /* --- Swatch row --- */
+  .swatches {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .swatch-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+
+  .swatch-label {
+    font-size: 10px;
+    color: #aeaeb2;
+  }
+
+  /* --- Mock list item --- */
+  .section-label {
+    font-size: 10px;
+    color: #aeaeb2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+
+  .mock-list {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #f2f2f7;
+  }
+
+  .mock-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #f2f2f7;
+    cursor: default;
+  }
+
+  .mock-item:last-child { border-bottom: none; }
+
+  .mock-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f2f2f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .mock-content { flex: 1; min-width: 0; }
+
+  .mock-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mock-meta {
+    font-size: 12px;
+    color: #86868b;
+  }
+
+  .mock-date {
+    font-size: 11px;
+    color: #c7c7cc;
+    flex-shrink: 0;
+  }
+
+  /* --- Record button --- */
+  .record-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #fafafa;
+  }
+
+  .record-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .record-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .record-label {
+    font-size: 13px;
+    color: #86868b;
+  }
+
+  /* --- AI Pill --- */
+  .ai-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 16px;
+  }
+
+  .ai-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  /* --- Markdown preview --- */
+  .md-preview {
+    margin-top: 16px;
+    padding: 16px;
+    background: #fafafa;
+    border-radius: 10px;
+  }
+
+  .md-h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .md-h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .md-body {
+    font-size: 13px;
+    color: #2c2c2e;
+    line-height: 1.6;
+  }
+
+  .md-strong {
+    font-weight: 600;
+  }
+
+  /* --- Badge row --- */
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  /* ========================================
+     SCHEME A: 石墨 Graphite
+     ======================================== */
+  .scheme-a .scheme-label { color: #6b6b6e; }
+  .scheme-a .scheme-name { color: #3a3a3c; }
+
+  .scheme-a .mock-item.selected {
+    background: rgba(0,0,0,0.04);
+  }
+  .scheme-a .mock-item.selected .mock-title { color: #48484a; }
+  .scheme-a .mock-item.selected .mock-meta { color: #6b6b6e; }
+  .scheme-a .selected-bar {
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    background: #636366;
+    flex-shrink: 0;
+  }
+
+  .scheme-a .record-btn {
+    background: #48484a;
+  }
+  .scheme-a .record-btn svg { fill: #ffffff; }
+
+  .scheme-a .ai-pill {
+    background: #f2f2f7;
+    border: 1px solid #d1d1d6;
+    color: #48484a;
+  }
+  .scheme-a .ai-dot { background: #636366; }
+
+  .scheme-a .md-h1 { color: #3a3a3c; }
+  .scheme-a .md-h2 { color: #48484a; }
+  .scheme-a .md-strong { color: #3a3a3c; }
+
+  .scheme-a .badge-voice {
+    background: #f2f2f7;
+    color: #636366;
+    border-color: #d1d1d6;
+  }
+
+  /* ========================================
+     SCHEME B: 墨青 Ink Blue
+     ======================================== */
+  .scheme-b .scheme-label { color: #5a7a8a; }
+  .scheme-b .scheme-name { color: #3a5a6a; }
+
+  .scheme-b .mock-item.selected {
+    background: rgba(58,90,106,0.04);
+  }
+  .scheme-b .mock-item.selected .mock-title { color: #3a5a6a; }
+  .scheme-b .mock-item.selected .mock-meta { color: #5a7a8a; }
+  .scheme-b .selected-bar {
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    background: #5a7a8a;
+    flex-shrink: 0;
+  }
+
+  .scheme-b .record-btn {
+    background: #4a6a7a;
+  }
+  .scheme-b .record-btn svg { fill: #ffffff; }
+
+  .scheme-b .ai-pill {
+    background: #f0f4f6;
+    border: 1px solid #c8d8e0;
+    color: #3a5a6a;
+  }
+  .scheme-b .ai-dot { background: #5a7a8a; }
+
+  .scheme-b .md-h1 { color: #3a5a6a; }
+  .scheme-b .md-h2 { color: #4a6a7a; }
+  .scheme-b .md-strong { color: #3a5a6a; }
+
+  .scheme-b .badge-voice {
+    background: #f0f4f6;
+    color: #4a6a7a;
+    border-color: #c8d8e0;
+  }
+
+  /* ========================================
+     SCHEME C: 暖石 Warm Stone
+     ======================================== */
+  .scheme-c .scheme-label { color: #8a7a6a; }
+  .scheme-c .scheme-name { color: #5a4e40; }
+
+  .scheme-c .mock-item.selected {
+    background: rgba(90,78,64,0.04);
+  }
+  .scheme-c .mock-item.selected .mock-title { color: #5a4e40; }
+  .scheme-c .mock-item.selected .mock-meta { color: #8a7a6a; }
+  .scheme-c .selected-bar {
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    background: #8a7a6a;
+    flex-shrink: 0;
+  }
+
+  .scheme-c .record-btn {
+    background: #6a5e50;
+  }
+  .scheme-c .record-btn svg { fill: #ffffff; }
+
+  .scheme-c .ai-pill {
+    background: #f6f4f0;
+    border: 1px solid #ddd6cc;
+    color: #5a4e40;
+  }
+  .scheme-c .ai-dot { background: #8a7a6a; }
+
+  .scheme-c .md-h1 { color: #5a4e40; }
+  .scheme-c .md-h2 { color: #6a5e50; }
+  .scheme-c .md-strong { color: #5a4e40; }
+
+  .scheme-c .badge-voice {
+    background: #f6f4f0;
+    color: #6a5e50;
+    border-color: #ddd6cc;
+  }
+
+  /* --- Current (reference) indicator --- */
+  .current-ref {
+    text-align: center;
+    margin-top: 48px;
+    margin-bottom: 16px;
+  }
+
+  .current-ref-label {
+    font-size: 11px;
+    color: #aeaeb2;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .current-swatches {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .current-swatch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #86868b;
+  }
+
+  .current-swatch-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">亮色模式 · Accent 配色方案对比</div>
+<div class="page-subtitle">替换当前金橙色 #DFA748 → 克制 · 沉浸 · 专业</div>
+
+<div class="schemes">
+
+  <!-- ==================== SCHEME A ==================== -->
+  <div class="scheme scheme-a">
+    <div class="scheme-header">
+      <div class="scheme-label">方案 A</div>
+      <div class="scheme-name">石墨 Graphite</div>
+      <div class="scheme-desc">纯中性灰，零彩色倾向。最克制、最安静。<br>像铅笔在纸上的痕迹——存在但不张扬。</div>
+    </div>
+    <div class="scheme-body">
+      <!-- Swatches -->
+      <div class="swatches">
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#48484a"></div>
+          <div class="swatch-label">主色</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#636366"></div>
+          <div class="swatch-label">次色</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#8e8e93"></div>
+          <div class="swatch-label">辅助</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#f2f2f7"></div>
+          <div class="swatch-label">底色</div>
+        </div>
+      </div>
+
+      <!-- Mock list -->
+      <div class="section-label">列表选中态</div>
+      <div class="mock-list">
+        <div class="mock-item">
+          <div class="mock-icon">📋</div>
+          <div class="mock-content">
+            <div class="mock-title">工作流编辑锁方案评审</div>
+            <div class="mock-meta">会议纪要 · 3月25日</div>
+          </div>
+          <div class="mock-date">14:30</div>
+        </div>
+        <div class="mock-item selected">
+          <div class="selected-bar"></div>
+          <div class="mock-icon">🎙️</div>
+          <div class="mock-content">
+            <div class="mock-title">泼墨体模型接入策略讨论</div>
+            <div class="mock-meta">语音记录 · 3月25日</div>
+          </div>
+          <div class="mock-date">10:15</div>
+        </div>
+        <div class="mock-item">
+          <div class="mock-icon">📄</div>
+          <div class="mock-content">
+            <div class="mock-title">ARM适配评估报告</div>
+            <div class="mock-meta">文档 · 3月26日</div>
+          </div>
+          <div class="mock-date">09:00</div>
+        </div>
+      </div>
+
+      <!-- Record button -->
+      <div class="section-label">录音按钮</div>
+      <div class="record-row">
+        <button class="record-btn">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </button>
+        <span class="record-label">按住录音，松开结束</span>
+      </div>
+
+      <!-- AI pill -->
+      <div class="section-label">AI 状态</div>
+      <div class="ai-pill">
+        <div class="ai-dot"></div>
+        AI 正在处理…
+      </div>
+
+      <!-- Markdown -->
+      <div class="section-label">正文标题</div>
+      <div class="md-preview">
+        <div class="md-h1">企业数字员工价值叙事</div>
+        <div class="md-h2">核心定位</div>
+        <div class="md-body">
+          <span class="md-strong">私有化是前提</span>，数字员工才是目的。串联安全、ROI与战略三层。
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="section-label">标签</div>
+      <div class="badge-row">
+        <span class="badge badge-voice">语音</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SCHEME B ==================== -->
+  <div class="scheme scheme-b">
+    <div class="scheme-header">
+      <div class="scheme-label">方案 B</div>
+      <div class="scheme-name">墨青 Ink Blue</div>
+      <div class="scheme-desc">微冷的青灰蓝。沉静但不死板，<br>像深水区的颜色——有层次，不喧闹。</div>
+    </div>
+    <div class="scheme-body">
+      <!-- Swatches -->
+      <div class="swatches">
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#3a5a6a"></div>
+          <div class="swatch-label">主色</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#5a7a8a"></div>
+          <div class="swatch-label">次色</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#8a9aa4"></div>
+          <div class="swatch-label">辅助</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#f0f4f6"></div>
+          <div class="swatch-label">底色</div>
+        </div>
+      </div>
+
+      <!-- Mock list -->
+      <div class="section-label">列表选中态</div>
+      <div class="mock-list">
+        <div class="mock-item">
+          <div class="mock-icon">📋</div>
+          <div class="mock-content">
+            <div class="mock-title">工作流编辑锁方案评审</div>
+            <div class="mock-meta">会议纪要 · 3月25日</div>
+          </div>
+          <div class="mock-date">14:30</div>
+        </div>
+        <div class="mock-item selected">
+          <div class="selected-bar"></div>
+          <div class="mock-icon">🎙️</div>
+          <div class="mock-content">
+            <div class="mock-title">泼墨体模型接入策略讨论</div>
+            <div class="mock-meta">语音记录 · 3月25日</div>
+          </div>
+          <div class="mock-date">10:15</div>
+        </div>
+        <div class="mock-item">
+          <div class="mock-icon">📄</div>
+          <div class="mock-content">
+            <div class="mock-title">ARM适配评估报告</div>
+            <div class="mock-meta">文档 · 3月26日</div>
+          </div>
+          <div class="mock-date">09:00</div>
+        </div>
+      </div>
+
+      <!-- Record button -->
+      <div class="section-label">录音按钮</div>
+      <div class="record-row">
+        <button class="record-btn">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </button>
+        <span class="record-label">按住录音，松开结束</span>
+      </div>
+
+      <!-- AI pill -->
+      <div class="section-label">AI 状态</div>
+      <div class="ai-pill">
+        <div class="ai-dot"></div>
+        AI 正在处理…
+      </div>
+
+      <!-- Markdown -->
+      <div class="section-label">正文标题</div>
+      <div class="md-preview">
+        <div class="md-h1">企业数字员工价值叙事</div>
+        <div class="md-h2">核心定位</div>
+        <div class="md-body">
+          <span class="md-strong">私有化是前提</span>，数字员工才是目的。串联安全、ROI与战略三层。
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="section-label">标签</div>
+      <div class="badge-row">
+        <span class="badge badge-voice">语音</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SCHEME C ==================== -->
+  <div class="scheme scheme-c">
+    <div class="scheme-header">
+      <div class="scheme-label">方案 C</div>
+      <div class="scheme-name">暖石 Warm Stone</div>
+      <div class="scheme-desc">去掉金属光泽的大地棕。温暖但不浮夸，<br>像旧书纸张的颜色——沉稳、有质感。</div>
+    </div>
+    <div class="scheme-body">
+      <!-- Swatches -->
+      <div class="swatches">
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#5a4e40"></div>
+          <div class="swatch-label">主色</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#8a7a6a"></div>
+          <div class="swatch-label">次色</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#a89a8a"></div>
+          <div class="swatch-label">辅助</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-circle" style="background:#f6f4f0"></div>
+          <div class="swatch-label">底色</div>
+        </div>
+      </div>
+
+      <!-- Mock list -->
+      <div class="section-label">列表选中态</div>
+      <div class="mock-list">
+        <div class="mock-item">
+          <div class="mock-icon">📋</div>
+          <div class="mock-content">
+            <div class="mock-title">工作流编辑锁方案评审</div>
+            <div class="mock-meta">会议纪要 · 3月25日</div>
+          </div>
+          <div class="mock-date">14:30</div>
+        </div>
+        <div class="mock-item selected">
+          <div class="selected-bar"></div>
+          <div class="mock-icon">🎙️</div>
+          <div class="mock-content">
+            <div class="mock-title">泼墨体模型接入策略讨论</div>
+            <div class="mock-meta">语音记录 · 3月25日</div>
+          </div>
+          <div class="mock-date">10:15</div>
+        </div>
+        <div class="mock-item">
+          <div class="mock-icon">📄</div>
+          <div class="mock-content">
+            <div class="mock-title">ARM适配评估报告</div>
+            <div class="mock-meta">文档 · 3月26日</div>
+          </div>
+          <div class="mock-date">09:00</div>
+        </div>
+      </div>
+
+      <!-- Record button -->
+      <div class="section-label">录音按钮</div>
+      <div class="record-row">
+        <button class="record-btn">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </button>
+        <span class="record-label">按住录音，松开结束</span>
+      </div>
+
+      <!-- AI pill -->
+      <div class="section-label">AI 状态</div>
+      <div class="ai-pill">
+        <div class="ai-dot"></div>
+        AI 正在处理…
+      </div>
+
+      <!-- Markdown -->
+      <div class="section-label">正文标题</div>
+      <div class="md-preview">
+        <div class="md-h1">企业数字员工价值叙事</div>
+        <div class="md-h2">核心定位</div>
+        <div class="md-body">
+          <span class="md-strong">私有化是前提</span>，数字员工才是目的。串联安全、ROI与战略三层。
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="section-label">标签</div>
+      <div class="badge-row">
+        <span class="badge badge-voice">语音</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Current reference -->
+<div class="current-ref">
+  <div class="current-ref-label">当前配色（对照参考）</div>
+  <div class="current-swatches">
+    <div class="current-swatch">
+      <div class="current-swatch-dot" style="background:#DFA748"></div>
+      #DFA748 录音按钮
+    </div>
+    <div class="current-swatch">
+      <div class="current-swatch-dot" style="background:#9a7428"></div>
+      #9a7428 选中态/标题
+    </div>
+    <div class="current-swatch">
+      <div class="current-swatch-dot" style="background:#fdf7ec"></div>
+      #fdf7ec AI pill 底色
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

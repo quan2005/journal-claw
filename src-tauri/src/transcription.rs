@@ -471,9 +471,19 @@ fn truncate_at_first_marker<'a>(text: &'a str, markers: &[&str]) -> &'a str {
 fn extract_whisperkit_transcription_text(stdout_text: &str) -> String {
     if let Some(start_idx) = stdout_text.find("Transcription of ") {
         let suffix = &stdout_text[start_idx..];
-        if let Some(colon_idx) = suffix.find(':') {
+        // The line format is "Transcription of <filename>: <text>"
+        // The filename may itself contain ':' (e.g. "录音 14:04:51.m4a"),
+        // so we must find the ": " that follows the filename extension, not the
+        // first ':' in the string.  We look for ": " (colon + space) after a
+        // known audio extension to skip colons inside the filename.
+        let sep_idx = ["m4a: ", "mp4: ", "wav: ", "mp3: ", "aac: ", "ogg: ", "flac: "]
+            .iter()
+            .filter_map(|ext| suffix.find(ext).map(|i| i + ext.len() - 2)) // point at ': '
+            .min()
+            .or_else(|| suffix.find(": "));
+        if let Some(colon_idx) = sep_idx {
             let body = truncate_at_first_marker(
-                &suffix[colon_idx + 1..],
+                &suffix[colon_idx + 2..],
                 &[
                     "Preparing diarization models...",
                     "---- Speaker Diarization Results ----",

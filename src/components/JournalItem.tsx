@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react'
 import type { JournalEntry } from '../types'
 import { pickDisplayTags } from '../lib/tags'
 
@@ -10,9 +11,17 @@ interface JournalItemProps {
 
 export function JournalItem({ entry, isSelected, onClick, onContextMenu }: JournalItemProps) {
   const tags = pickDisplayTags(entry.tags, Infinity)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isSelected) {
+      ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [isSelected])
 
   return (
     <div
+      ref={ref}
       onClick={() => onClick(entry)}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -34,7 +43,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
       {/* Title */}
       <div style={{
         fontSize: 12,
-        fontWeight: 500,
+        fontWeight: 700,
         color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
         fontFamily: "'Noto Serif SC', serif",
         lineHeight: 1.4,

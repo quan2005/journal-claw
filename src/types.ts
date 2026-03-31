@@ -43,6 +43,7 @@ export interface JournalEntry {
   year_month: string      // "2603"
   day: number             // 28
   created_time: string    // "10:15"
+  mtime_secs: number      // Unix timestamp for sorting
   materials: RawMaterial[]
 }
 

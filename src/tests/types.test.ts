@@ -12,6 +12,7 @@ describe('JournalEntry type', () => {
       year_month: '2603',
       day: 28,
       created_time: '10:15',
+      mtime_secs: 1743120000,
       materials: [],
     }
     expect(entry.day).toBe(28)

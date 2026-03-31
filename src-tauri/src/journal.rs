@@ -20,6 +20,7 @@ pub struct JournalEntry {
     pub year_month: String,   // "2603"
     pub day: u32,             // 28
     pub created_time: String, // "10:15" (from file mtime)
+    pub mtime_secs: i64,      // Unix timestamp for sorting
     pub materials: Vec<RawMaterial>,
 }
 
@@ -149,16 +150,21 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .map(|p| p.data)
             .unwrap_or_else(|| parse_frontmatter_fallback(&content));
 
-        // mtime as HH:mm
-        let created_time = entry
+        // mtime as HH:mm and as Unix seconds for sorting
+        let mtime = entry
             .metadata()
             .ok()
-            .and_then(|m| m.modified().ok())
+            .and_then(|m| m.modified().ok());
+        let created_time = mtime
             .map(|t| {
                 let dt: chrono::DateTime<chrono::Local> = t.into();
                 dt.format("%H:%M").to_string()
             })
             .unwrap_or_default();
+        let mtime_secs = mtime
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
 
         // collect materials from raw/
         let mut materials: Vec<RawMaterial> = vec![];
@@ -194,12 +200,13 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             year_month: year_month.to_string(),
             day,
             created_time,
+            mtime_secs,
             materials,
         });
     }
 
-    // Sort by day descending, then by filename descending within same day
-    entries.sort_by(|a, b| b.day.cmp(&a.day).then(b.filename.cmp(&a.filename)));
+    // Sort by day descending, then by mtime descending within same day
+    entries.sort_by(|a, b| b.day.cmp(&a.day).then(b.mtime_secs.cmp(&a.mtime_secs)));
     Ok(entries)
 }
 
@@ -243,7 +250,7 @@ pub async fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry
             b.year_month
                 .cmp(&a.year_month)
                 .then(b.day.cmp(&a.day))
-                .then(b.filename.cmp(&a.filename))
+                .then(b.mtime_secs.cmp(&a.mtime_secs))
         });
         Ok(all)
     })

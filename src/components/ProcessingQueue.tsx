@@ -8,6 +8,7 @@ interface ProcessingQueueProps {
   items: QueueItem[]
   onDismiss: (path: string) => void
   onCancel: (item: QueueItem) => void
+  onRetry: (item: QueueItem) => void
   activeLogPath: string | null
   onSetActiveLogPath: (path: string | null) => void
 }
@@ -68,7 +69,7 @@ function formatElapsed(secs: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () => void }) {
+function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDismiss: () => void; onRetry: () => void }) {
   if (item.status === 'converting') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 9, opacity: 0.8 }}>
@@ -98,6 +99,16 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
         <span style={{ color: '#ff453a', fontSize: 9 }}>失败</span>
         <button
+          onClick={(e) => { e.stopPropagation(); onRetry() }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px',
+            color: 'var(--item-meta)', fontSize: 9, lineHeight: 1,
+          }}
+          title="重试"
+        >
+          重试
+        </button>
+        <button
           onClick={(e) => { e.stopPropagation(); onDismiss() }}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
@@ -118,7 +129,7 @@ function StatusIndicator({ item, onDismiss }: { item: QueueItem; onDismiss: () =
   )
 }
 
-export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onSetActiveLogPath }: ProcessingQueueProps) {
+export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLogPath, onSetActiveLogPath }: ProcessingQueueProps) {
   const [confirmingPath, setConfirmingPath] = useState<string | null>(null)
 
   useEffect(() => {
@@ -197,7 +208,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
             item.status === 'completed'
               ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
               : { animation: 'queue-enter 0.2s ease-out' }
-          const isClickable = item.status === 'processing'
+          const isClickable = item.status === 'processing' || item.status === 'failed'
           const isCancellable = item.status === 'queued' || item.status === 'processing'
           const isConfirming = confirmingPath === item.path
 
@@ -247,7 +258,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, activeLogPath, onS
                 </span>
               ) : (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} />
+                  <StatusIndicator item={item} onDismiss={() => onDismiss(item.path)} onRetry={() => onRetry(item)} />
                   {isCancellable && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirmingPath(item.path) }}

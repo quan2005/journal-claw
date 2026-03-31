@@ -422,22 +422,28 @@ export function CommandDock({
             WebkitAppRegion: 'no-drag',
             boxShadow: recorderStatus === 'recording'
               ? '0 6px 18px rgba(255,59,48,0.24)'
-              : '0 6px 18px rgba(200,147,58,0.22)',
+              : '0 6px 18px rgba(200,147,59,0.22)',
             animation: recorderStatus === 'recording'
               ? 'rec-pulse 1.2s ease-in-out infinite'
               : 'pulse 3.2s ease-in-out infinite',
             transition: 'background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
           } as React.CSSProperties}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="var(--record-btn-icon)"
-          >
-            <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-            <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" stroke="var(--record-btn-icon)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-          </svg>
+          {recorderStatus === 'recording' ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--record-btn-icon)">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="var(--record-btn-icon)"
+            >
+              <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+              <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" stroke="var(--record-btn-icon)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+            </svg>
+          )}
         </button>
       </div>
 

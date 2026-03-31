@@ -273,6 +273,73 @@ pub fn delete_journal_entry(path: String) -> Result<(), String> {
     std::fs::remove_file(&path).map_err(|e| e.to_string())
 }
 
+/// 示例条目 Markdown 内容（固定文案）
+fn sample_entry_content() -> String {
+    r#"---
+summary: 这是 AI 帮你整理的示例——试着录一段音或粘贴一段会议记录
+tags: [示例, 产品, 会议]
+---
+
+# 产品评审会议纪要
+
+## 会议结论
+
+- 下一版本功能优先级已确定，重点投入 AI 摘要功能
+- UI 改版方案通过评审，进入设计执行阶段
+- 技术债处理排期至 Q2 下半段
+
+## 待办事项
+
+- @设计：输出首页改版高保真稿，截止下周五
+- @后端：排期 API 优化，评估工作量
+
+## 参会人员
+
+产品、设计、前后端各一名
+
+---
+
+> 这条记录是示例，展示 AI 整理后的效果。你可以删除它，或直接录音 / 粘贴文件开始使用。
+"#
+    .to_string()
+}
+
+/// 在 workspace 的当月目录写入一条示例日志条目。
+/// 若文件已存在（同名），直接返回 Ok 不覆盖。
+pub fn write_sample_entry(workspace: &str, year_month: &str, day: u32) -> Result<String, String> {
+    use crate::workspace;
+    workspace::ensure_dirs(workspace, year_month)?;
+    let filename = format!("{:02}-产品评审示例.md", day);
+    let path = workspace::year_month_dir(workspace, year_month).join(&filename);
+    if path.exists() {
+        return Ok(path.to_string_lossy().to_string());
+    }
+    std::fs::write(&path, sample_entry_content()).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// 首次启动时调用：若 sample_entry_created 为 false，写入示例条目并置 flag 为 true。
+/// 返回 true 表示本次写入了示例条目，false 表示 flag 已设置过（无操作）。
+#[tauri::command]
+pub fn create_sample_entry_if_needed(app: AppHandle) -> Result<bool, String> {
+    use crate::config;
+    use crate::workspace;
+    use chrono::Datelike;
+    let mut cfg = config::load_config(&app)?;
+    if cfg.sample_entry_created {
+        return Ok(false);
+    }
+    if cfg.workspace_path.is_empty() {
+        return Ok(false);
+    }
+    let year_month = workspace::current_year_month();
+    let day = chrono::Local::now().day();
+    write_sample_entry(&cfg.workspace_path, &year_month, day)?;
+    cfg.sample_entry_created = true;
+    config::save_config(&app, &cfg)?;
+    Ok(true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -378,5 +445,46 @@ mod tests {
             !fm.summary.is_empty(),
             "fallback should recover non-empty summary"
         );
+    }
+
+    #[test]
+    fn write_sample_entry_creates_file() {
+        let tmp = std::env::temp_dir().join(format!(
+            "journal_sample_test_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let ws = tmp.to_str().unwrap();
+        let result = write_sample_entry(ws, "2604", 1);
+        assert!(result.is_ok(), "write_sample_entry failed: {:?}", result);
+        let path = std::path::PathBuf::from(result.unwrap());
+        assert!(path.exists(), "sample entry file should exist");
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("产品评审会议纪要"));
+        assert!(content.contains("summary:"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn write_sample_entry_does_not_overwrite_existing() {
+        let tmp = std::env::temp_dir().join(format!(
+            "journal_sample_test_no_overwrite_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let ws = tmp.to_str().unwrap();
+        // 先写一次
+        let path_str = write_sample_entry(ws, "2604", 1).unwrap();
+        // 改写文件内容
+        std::fs::write(&path_str, "custom content").unwrap();
+        // 再写一次，不应覆盖
+        write_sample_entry(ws, "2604", 1).unwrap();
+        let content = std::fs::read_to_string(&path_str).unwrap();
+        assert_eq!(content, "custom content");
+        std::fs::remove_dir_all(&tmp).ok();
     }
 }

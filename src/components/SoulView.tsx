@@ -127,7 +127,10 @@ export default function SoulView() {
             : ''}
         </span>
         <button
-          onClick={() => save(content)}
+          onClick={() => {
+            if (debounceRef.current) clearTimeout(debounceRef.current)
+            save(content)
+          }}
           disabled={saveStatus === 'saving'}
           style={{
             background: saveStatus === 'saving' ? 'var(--divider)' : 'var(--record-btn)',

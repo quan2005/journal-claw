@@ -23,6 +23,7 @@ describe('SoulView', () => {
     const textarea = await screen.findByRole('textbox')
     expect(textarea).toBeTruthy()
     expect(mockGetWorkspacePrompt).toHaveBeenCalledOnce()
+    expect((textarea as HTMLTextAreaElement).value).toBe('# 谨迹')
   })
 
   it('calls setWorkspacePrompt when save button clicked', async () => {

@@ -222,13 +222,18 @@ export default function SectionVoice() {
     invoke('open_with_system', { path: modelsDir })
   }
 
-  const handleInstallCli = () => {
+  const handleInstallCli = async () => {
     if (cliInstalling) return
     setCliInstalling(true)
     setCliInstallLog([])
-    installWhisperkitCli().catch(() => {
+    try {
+      await installWhisperkitCli()
+    } catch (e) {
+      console.error('[install-whisperkit-cli]', e)
+      setCliInstallLog(prev => [...prev, `错误: ${String(e)}`])
+    } finally {
       setCliInstalling(false)
-    })
+    }
   }
 
   const handleDownload = (model: WhisperModel) => {

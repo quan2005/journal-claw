@@ -195,13 +195,12 @@ pub fn check_whisperkit_cli_installed() -> bool {
 }
 
 /// 通过 `brew install whisperkit-cli` 安装 whisperkit-cli。
-/// 流式推送日志到 "engine-install-log" 事件（engine: "whisperkit-cli"）。
+/// 立即返回，安装进度通过 "engine-install-log" 事件流式推送（engine: "whisperkit-cli"）。
 #[tauri::command]
-pub async fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String> {
+pub fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::Emitter;
-    use tokio::io::AsyncBufReadExt;
 
-    let mut child = tokio::process::Command::new("brew")
+    let mut child = std::process::Command::new("brew")
         .args(["install", "whisperkit-cli"])
         .env("PATH", augmented_path())
         .env("HOMEBREW_NO_AUTO_UPDATE", "1")
@@ -213,52 +212,58 @@ pub async fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String>
         .spawn()
         .map_err(|e| format!("启动 brew 失败（请确认已安装 Homebrew）: {}", e))?;
 
-    let emit_line = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
-        let _ = app.emit(
-            "engine-install-log",
-            serde_json::json!({
-                "engine": "whisperkit-cli",
-                "line": line,
-                "done": done,
-                "success": success,
-            }),
-        );
-    };
+    // Spawn a background thread to stream output and wait for completion.
+    // The command returns immediately so it doesn't block the IPC bridge.
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::io::{BufRead, BufReader};
 
-    let stdout_handle = child.stdout.take().map(|stdout| {
-        let app_clone = app.clone();
-        tokio::spawn(async move {
-            let mut lines = tokio::io::BufReader::new(stdout).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app_clone.emit(
-                    "engine-install-log",
-                    serde_json::json!({ "engine": "whisperkit-cli", "line": line, "done": false, "success": false }),
-                );
-            }
-        })
+        let emit = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
+            let _ = app.emit(
+                "engine-install-log",
+                serde_json::json!({
+                    "engine": "whisperkit-cli",
+                    "line": line,
+                    "done": done,
+                    "success": success,
+                }),
+            );
+        };
+
+        // Stream stderr (brew writes progress to stderr)
+        if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    if !line.trim().is_empty() {
+                        let _ = app_clone.emit(
+                            "engine-install-log",
+                            serde_json::json!({ "engine": "whisperkit-cli", "line": line.trim(), "done": false, "success": false }),
+                        );
+                    }
+                }
+            });
+        }
+
+        // Stream stdout
+        if let Some(stdout) = child.stdout.take() {
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                    if !line.trim().is_empty() {
+                        let _ = app_clone.emit(
+                            "engine-install-log",
+                            serde_json::json!({ "engine": "whisperkit-cli", "line": line.trim(), "done": false, "success": false }),
+                        );
+                    }
+                }
+            });
+        }
+
+        let success = child.wait().map(|s| s.success()).unwrap_or(false);
+        emit(&app, if success { "安装完成" } else { "安装失败" }, true, success);
     });
 
-    let stderr_handle = child.stderr.take().map(|stderr| {
-        let app_clone = app.clone();
-        tokio::spawn(async move {
-            let mut lines = tokio::io::BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app_clone.emit(
-                    "engine-install-log",
-                    serde_json::json!({ "engine": "whisperkit-cli", "line": line, "done": false, "success": false }),
-                );
-            }
-        })
-    });
-
-    let status = child.wait().await.map_err(|e| e.to_string())?;
-    if let Some(h) = stdout_handle { let _ = h.await; }
-    if let Some(h) = stderr_handle { let _ = h.await; }
-
-    let success = status.success();
-    emit_line(&app, if success { "安装完成" } else { "安装失败" }, true, success);
-
-    if success { Ok(()) } else { Err("安装失败".to_string()) }
+    Ok(())
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {

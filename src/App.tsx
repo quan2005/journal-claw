@@ -374,8 +374,12 @@ export default function App() {
                   onRecord={handleRecord}
                   onOpenDock={() => setDockOpen(true)}
                   onSelectSample={() => {
-                    const sample = entries.find(e => e.title === '产品评审示例')
-                    if (sample) setSelectedEntry(sample)
+                    createSampleEntryIfNeeded().then(async () => {
+                      await refresh()
+                      const all = await listAllJournalEntries()
+                      const sample = all.find(e => e.title === '产品评审示例')
+                      if (sample) setSelectedEntry(sample)
+                    }).catch(() => {})
                   }}
                 />
             </div>

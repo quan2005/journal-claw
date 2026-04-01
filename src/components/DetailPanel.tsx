@@ -154,7 +154,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
   const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
 
   if (!entry) {
-    const hasSample = entries.some(e => e.title === '产品评审示例')
+    const isEmpty = entries.length === 0
     return (
       <div style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
@@ -227,8 +227,8 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
               <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
             </button>
 
-            {/* 看示例卡片：只在示例条目实际存在时显示 */}
-            {hasSample && (
+            {/* 创建示例卡片：只在工作目录为空时显示 */}
+            {isEmpty && (
               <button
                 onClick={onSelectSample}
                 style={{
@@ -241,8 +241,8 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
               >
                 <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
-                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>看示例条目</div>
-                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>先了解 AI 整理<br/>结果长什么样</div>
+                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>创建示例条目</div>
+                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>生成一条示例<br/>了解 AI 整理效果</div>
               </button>
             )}
           </div>

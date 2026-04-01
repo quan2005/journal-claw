@@ -961,16 +961,20 @@ pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
 }
 
 /// 查找 journal-speech sidecar 二进制路径。
-/// 优先使用 Tauri resource_dir 下的 sidecar，回退到开发环境路径和 PATH。
-fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
+/// Tauri v2 将 externalBin 放在与主程序相同的目录（macOS: Contents/MacOS/），
+/// 而非 resource_dir（Contents/Resources/）。优先在当前可执行文件同目录查找，
+/// 再回退到开发环境路径和 PATH。
+fn find_journal_speech_path(_app: &AppHandle) -> Result<PathBuf, String> {
     let target_triple = "aarch64-apple-darwin";
     let binary_name = format!("journal-speech-{}", target_triple);
 
-    // Tauri sidecar: resource_dir/binaries/journal-speech-<target>
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let sidecar = resource_dir.join("binaries").join(&binary_name);
-        if sidecar.exists() {
-            return Ok(sidecar);
+    // Tauri externalBin 位于与主可执行文件相同目录（macOS: Contents/MacOS/）
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let sidecar = exe_dir.join(&binary_name);
+            if sidecar.exists() {
+                return Ok(sidecar);
+            }
         }
     }
 

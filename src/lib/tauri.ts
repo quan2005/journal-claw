@@ -199,6 +199,9 @@ export const mergeSpeakerProfiles = (sourceId: string, targetId: string): Promis
 // Permissions
 export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
 
+export const requestPermission = (perm: 'microphone' | 'speech_recognition'): Promise<PermStatus> =>
+  invoke<PermStatus>('request_permission', { perm })
+
 export interface AppPermissions {
   microphone: PermStatus
   speech_recognition: PermStatus
@@ -208,5 +211,5 @@ export interface AppPermissions {
 export const checkAppPermissions = (): Promise<AppPermissions> =>
   invoke<AppPermissions>('check_app_permissions')
 
-export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition' | string): Promise<void> =>
+export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition'): Promise<void> =>
   invoke<void>('open_privacy_settings', { pane })

@@ -264,6 +264,7 @@ fn main() {
             speaker_profiles::merge_speaker_profiles,
             permissions::check_app_permissions,
             permissions::open_privacy_settings,
+            permissions::request_permission,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

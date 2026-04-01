@@ -2417,6 +2417,7 @@ dependencies = [
 name = "journal"
 version = "0.8.1"
 dependencies = [
+ "cc",
  "chrono",
  "cpal",
  "futures",

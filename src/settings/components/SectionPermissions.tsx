@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { checkAppPermissions, openPrivacySettings } from '../../lib/tauri'
+import { checkAppPermissions, openPrivacySettings, requestPermission } from '../../lib/tauri'
 import type { AppPermissions, PermStatus } from '../../lib/tauri'
 import SkeletonRow from './SkeletonRow'
 
@@ -23,9 +23,10 @@ function statusBadge(s: PermStatus): { label: string; variant: BadgeVariant } {
 }
 
 function Badge({ variant, label }: { variant: BadgeVariant; label: string }) {
+  // Single accent color (var(--record-btn)) with opacity variations per CLAUDE.md design principles
   const color: Record<BadgeVariant, string> = {
-    ok:    'var(--ok-color, #34c759)',
-    warn:  'var(--warn-color, #ff9f0a)',
+    ok:    'var(--item-text)',
+    warn:  'color-mix(in srgb, var(--record-btn, #ff3b30) 60%, var(--item-text))',
     error: 'var(--record-btn, #ff3b30)',
     idle:  'var(--item-meta)',
   }
@@ -34,8 +35,16 @@ function Badge({ variant, label }: { variant: BadgeVariant; label: string }) {
       fontSize: 10,
       fontWeight: 500,
       color: color[variant],
-      background: `color-mix(in srgb, ${color[variant]} 12%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${color[variant]} 30%, transparent)`,
+      background: variant === 'ok'
+        ? 'color-mix(in srgb, var(--item-text) 8%, transparent)'
+        : variant === 'error'
+          ? 'color-mix(in srgb, var(--record-btn, #ff3b30) 12%, transparent)'
+          : variant === 'warn'
+            ? 'color-mix(in srgb, var(--record-btn, #ff3b30) 8%, transparent)'
+            : 'color-mix(in srgb, var(--item-meta) 8%, transparent)',
+      border: variant === 'error'
+        ? '1px solid color-mix(in srgb, var(--record-btn, #ff3b30) 30%, transparent)'
+        : '1px solid transparent',
       borderRadius: 4,
       padding: '2px 7px',
       letterSpacing: '0.02em',
@@ -126,19 +135,47 @@ function PermRow({ icon, title, description, status, actionLabel, onAction, extr
 
 // ---- Section ----
 
+type SystemPerm = 'microphone' | 'speech_recognition'
+
 export default function SectionPermissions() {
   const [perms, setPerms] = useState<AppPermissions | null>(null)
   const [loading, setLoading] = useState(false)
   const [checked, setChecked] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleCheck = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const result = await checkAppPermissions()
       setPerms(result)
       setChecked(true)
+    } catch (err) {
+      console.error('[settings/permissions] check failed', err)
+      setError(String(err))
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  const handleOpenSettings = useCallback(async (pane: SystemPerm) => {
+    try {
+      await openPrivacySettings(pane)
+    } catch (err) {
+      console.error(`[settings/permissions] failed to open ${pane} settings`, err)
+      setError(`无法打开系统设置: ${err}`)
+    }
+  }, [])
+
+  // Trigger system authorization dialog for a single permission
+  const handleRequest = useCallback(async (perm: SystemPerm) => {
+    setError(null)
+    try {
+      const newStatus = await requestPermission(perm)
+      setPerms(prev => prev ? { ...prev, [perm]: newStatus } : prev)
+    } catch (err) {
+      console.error(`[settings/permissions] request ${perm} failed`, err)
+      setError(`请求授权失败: ${err}`)
     }
   }, [])
 
@@ -147,12 +184,32 @@ export default function SectionPermissions() {
       await handleCheck()
       return
     }
-    // Open System Settings pane for each missing permission
-    if (perms.microphone !== 'granted') {
-      await openPrivacySettings('microphone')
-    }
-    if (perms.speech_recognition !== 'granted') {
-      await openPrivacySettings('speech_recognition')
+    setError(null)
+    try {
+      // Step 1: Request not_determined permissions (triggers system dialog)
+      if (perms.microphone === 'not_determined') {
+        const micStatus = await requestPermission('microphone')
+        setPerms(prev => prev ? { ...prev, microphone: micStatus } : prev)
+      }
+      if (perms.speech_recognition === 'not_determined') {
+        const speechStatus = await requestPermission('speech_recognition')
+        setPerms(prev => prev ? { ...prev, speech_recognition: speechStatus } : prev)
+      }
+      // Step 2: Open System Settings for denied/restricted permissions
+      setPerms(current => {
+        if (current) {
+          if (current.microphone !== 'granted') {
+            openPrivacySettings('microphone').catch(() => {})
+          }
+          if (current.speech_recognition !== 'granted') {
+            openPrivacySettings('speech_recognition').catch(() => {})
+          }
+        }
+        return current
+      })
+    } catch (err) {
+      console.error('[settings/permissions] request all failed', err)
+      setError(`授权过程出错: ${err}`)
     }
   }, [perms, handleCheck])
 
@@ -161,6 +218,15 @@ export default function SectionPermissions() {
     perms.microphone === 'granted' &&
     perms.speech_recognition === 'granted' &&
     perms.claude_cli_path !== null
+
+  // Determine action label per permission based on status
+  const permAction = useCallback((status: PermStatus, perm: SystemPerm) => {
+    if (status === 'not_determined') {
+      return { label: '请求授权', action: () => handleRequest(perm) }
+    }
+    // denied / restricted → open System Settings
+    return { label: '前往系统设置', action: () => handleOpenSettings(perm) }
+  }, [handleRequest, handleOpenSettings])
 
   return (
     <div style={sectionStyle}>
@@ -176,7 +242,7 @@ export default function SectionPermissions() {
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.7, marginBottom: 24 }}>
-        谨迹需要以下系统权限才能正常工作。点击「检测权限」查看当前状态，或点击「一键授权」前往系统设置完成授权。
+        谨迹需要以下系统权限才能正常工作。点击「检测权限」查看当前状态，或点击「一键授权」完成授权。
       </div>
 
       {/* Action bar */}
@@ -222,7 +288,7 @@ export default function SectionPermissions() {
             alignItems: 'center',
             gap: 5,
             fontSize: 12,
-            color: 'var(--ok-color, #34c759)',
+            color: 'var(--item-text)',
             fontWeight: 500,
           }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -233,8 +299,23 @@ export default function SectionPermissions() {
         )}
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div style={{
+          padding: '8px 12px',
+          marginBottom: 20,
+          borderRadius: 6,
+          fontSize: 11,
+          color: 'var(--record-btn, #ff3b30)',
+          background: 'color-mix(in srgb, var(--record-btn, #ff3b30) 8%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--record-btn, #ff3b30) 20%, transparent)',
+        }}>
+          {error}
+        </div>
+      )}
+
       {/* Permission rows */}
-      {!checked && !loading && (
+      {!checked && !loading && !error && (
         <div style={{
           padding: '32px 0',
           textAlign: 'center',
@@ -268,8 +349,8 @@ export default function SectionPermissions() {
             title="麦克风"
             description="录音功能需要访问麦克风，用于语音转写和会议记录。"
             status={perms.microphone}
-            actionLabel="前往系统设置"
-            onAction={() => openPrivacySettings('microphone')}
+            actionLabel={permAction(perms.microphone, 'microphone').label}
+            onAction={permAction(perms.microphone, 'microphone').action}
           />
 
           {/* Speech Recognition */}
@@ -282,8 +363,8 @@ export default function SectionPermissions() {
             title="语音识别"
             description="使用 Apple 语音识别引擎时需要此权限（DashScope / WhisperKit 不需要）。"
             status={perms.speech_recognition}
-            actionLabel="前往系统设置"
-            onAction={() => openPrivacySettings('speech_recognition')}
+            actionLabel={permAction(perms.speech_recognition, 'speech_recognition').label}
+            onAction={permAction(perms.speech_recognition, 'speech_recognition').action}
           />
 
           {/* Claude CLI */}

@@ -486,9 +486,10 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                       className="md-link"
                       onClick={isMdLink ? (e) => {
                         e.preventDefault()
-                        const targetFilename = decodeURIComponent(href!.replace(/^\.\//, ''))
+                        const decodedHref = decodeURIComponent(href!)
                         const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
-                        const targetPath = `${entryDir}/${targetFilename}`
+                        const targetPath = resolveRelativePath(entryDir, decodedHref)
+                        const targetFilename = targetPath.substring(targetPath.lastIndexOf('/') + 1)
                         window.dispatchEvent(new CustomEvent('journal-entry-navigate', {
                           detail: { path: targetPath, filename: targetFilename },
                         }))
@@ -556,6 +557,15 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
       />
     </div>
   )
+}
+
+function resolveRelativePath(baseDir: string, relative: string): string {
+  const parts = baseDir.split('/')
+  for (const segment of relative.split('/')) {
+    if (segment === '..') parts.pop()
+    else if (segment !== '.') parts.push(segment)
+  }
+  return parts.join('/')
 }
 
 function stripFrontmatter(md: string): string {

@@ -318,6 +318,37 @@ pub fn write_sample_entry(workspace: &str, year_month: &str, day: u32) -> Result
     Ok(path.to_string_lossy().to_string())
 }
 
+/// Returns true if the workspace contains at least one .md file in any yyMM/ directory.
+/// Raw materials (in raw/) are ignored. Non-existent workspace returns false.
+fn workspace_has_any_md(workspace: &str) -> bool {
+    use crate::workspace;
+    let ws_path = std::path::PathBuf::from(workspace);
+    if !ws_path.exists() {
+        return false;
+    }
+    let Ok(read_dir) = std::fs::read_dir(&ws_path) else {
+        return false;
+    };
+    for entry in read_dir.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        // Only 4-digit all-numeric dirs (yyMM format)
+        if name.len() != 4 || !name.chars().all(|c| c.is_ascii_digit()) {
+            continue;
+        }
+        let ym_dir = workspace::year_month_dir(workspace, &name);
+        let Ok(inner) = std::fs::read_dir(&ym_dir) else {
+            continue;
+        };
+        for file in inner.flatten() {
+            let fname = file.file_name().to_string_lossy().to_string();
+            if fname.ends_with(".md") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// 首次启动时调用：若 sample_entry_created 为 false，写入示例条目并置 flag 为 true。
 /// 返回 true 表示本次写入了示例条目，false 表示 flag 已设置过（无操作）。
 #[tauri::command]
@@ -330,6 +361,10 @@ pub fn create_sample_entry_if_needed(app: AppHandle) -> Result<bool, String> {
         return Ok(false);
     }
     if cfg.workspace_path.is_empty() {
+        return Ok(false);
+    }
+    // Only insert if workspace has no existing .md files
+    if workspace_has_any_md(&cfg.workspace_path) {
         return Ok(false);
     }
     let year_month = workspace::current_year_month();
@@ -464,6 +499,43 @@ mod tests {
         let content = std::fs::read_to_string(&path).unwrap();
         assert!(content.contains("产品评审会议纪要"));
         assert!(content.contains("summary:"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn create_sample_skips_when_md_exists() {
+        // workspace already has a .md file → function should return Ok(false) and NOT set flag
+        // We test the helper directly since the command needs AppHandle.
+        let tmp = std::env::temp_dir().join(format!(
+            "journal_skip_test_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let ws = tmp.to_str().unwrap();
+        // Create a yyMM dir with an existing .md file
+        let ym_dir = tmp.join("2604");
+        std::fs::create_dir_all(&ym_dir).unwrap();
+        std::fs::write(ym_dir.join("01-existing.md"), "# hi").unwrap();
+        // Helper should report the workspace is NOT empty
+        assert!(workspace_has_any_md(ws), "should detect existing .md");
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn create_sample_proceeds_when_no_md_exists() {
+        let tmp = std::env::temp_dir().join(format!(
+            "journal_empty_test_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let ws = tmp.to_str().unwrap();
+        // Workspace dir exists but has no yyMM dirs
+        std::fs::create_dir_all(&tmp).unwrap();
+        assert!(!workspace_has_any_md(ws), "empty workspace should return false");
         std::fs::remove_dir_all(&tmp).ok();
     }
 

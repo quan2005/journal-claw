@@ -5,6 +5,7 @@ mod audio_process;
 mod config;
 mod journal;
 mod materials;
+mod permissions;
 mod recorder;
 mod recordings;
 mod transcription;
@@ -256,7 +257,9 @@ fn main() {
             ai_processor::install_engine,
             journal::create_sample_entry_if_needed,
             journal::create_sample_entry,
-        ])
+            permissions::check_app_permissions,
+            permissions::open_privacy_settings,
+            permissions::request_permission,        ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {

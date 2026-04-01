@@ -182,3 +182,21 @@ export const createSampleEntryIfNeeded = (): Promise<boolean> =>
 
 export const createSampleEntry = (): Promise<void> =>
   invoke<void>('create_sample_entry')
+
+export const requestPermission = (perm: 'microphone' | 'speech_recognition'): Promise<PermStatus> =>
+  invoke<PermStatus>('request_permission', { perm })
+
+// Permissions
+export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
+
+export interface AppPermissions {
+  microphone: PermStatus
+  speech_recognition: PermStatus
+  claude_cli_path: string | null
+}
+
+export const checkAppPermissions = (): Promise<AppPermissions> =>
+  invoke<AppPermissions>('check_app_permissions')
+
+export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition'): Promise<void> =>
+  invoke<void>('open_privacy_settings', { pane })

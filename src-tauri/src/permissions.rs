@@ -64,6 +64,7 @@ mod macos {
         let cls_name = CString::new(class).ok()?;
         let cls = objc_getClass(cls_name.as_ptr());
         if cls.is_null() {
+            eprintln!("[permissions] objc_getClass({}) returned null", class);
             return None;
         }
 
@@ -71,6 +72,7 @@ mod macos {
         let ns_cls_name = CString::new("NSString").ok()?;
         let ns_cls = objc_getClass(ns_cls_name.as_ptr());
         if ns_cls.is_null() {
+            eprintln!("[permissions] objc_getClass(NSString) returned null");
             return None;
         }
         let make_sel_name = CString::new("stringWithUTF8String:").ok()?;
@@ -80,6 +82,7 @@ mod macos {
         let make_fn: MakeFn = std::mem::transmute(objc_msgSend as *const ());
         let ns_arg = make_fn(ns_cls, make_sel, arg_cstr.as_ptr());
         if ns_arg.is_null() {
+            eprintln!("[permissions] NSString stringWithUTF8String returned null for arg '{}'", arg);
             return None;
         }
 
@@ -96,6 +99,7 @@ mod macos {
         let cls_name = CString::new(class).ok()?;
         let cls = objc_getClass(cls_name.as_ptr());
         if cls.is_null() {
+            eprintln!("[permissions] objc_getClass({}) returned null", class);
             return None;
         }
         let sel_name = CString::new(sel).ok()?;
@@ -109,14 +113,20 @@ mod macos {
         // AVMediaTypeAudio = "soun"
         match unsafe { cls_msg_nsstr_arg("AVCaptureDevice", "authorizationStatusForMediaType:", "soun") } {
             Some(n) => super::PermStatus::from_av(n),
-            None => super::PermStatus::Unknown,
+            None => {
+                eprintln!("[permissions] failed to query microphone permission via ObjC FFI");
+                super::PermStatus::Unknown
+            }
         }
     }
 
     pub fn speech_recognition_status() -> super::PermStatus {
         match unsafe { cls_msg_no_arg("SFSpeechRecognizer", "authorizationStatus") } {
             Some(n) => super::PermStatus::from_speech(n),
-            None => super::PermStatus::Unknown,
+            None => {
+                eprintln!("[permissions] failed to query speech recognition permission via ObjC FFI");
+                super::PermStatus::Unknown
+            }
         }
     }
 }
@@ -124,17 +134,25 @@ mod macos {
 // ---------------------------------------------------------------------------
 
 fn find_claude_cli() -> Option<String> {
-    let output = Command::new("which").arg("claude").output().ok()?;
-    if output.status.success() {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if path.is_empty() { None } else { Some(path) }
-    } else {
-        None
+    let output = Command::new("which")
+        .arg("claude")
+        .env("PATH", crate::config::augmented_path())
+        .output();
+    match output {
+        Ok(out) if out.status.success() => {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if path.is_empty() { None } else { Some(path) }
+        }
+        Ok(_) => None,
+        Err(e) => {
+            eprintln!("[permissions] failed to run `which claude`: {}", e);
+            None
+        }
     }
 }
 
 #[tauri::command]
-pub async fn check_app_permissions() -> Result<AppPermissions, String> {
+pub fn check_app_permissions() -> Result<AppPermissions, String> {
     #[cfg(target_os = "macos")]
     let (microphone, speech_recognition) = (
         macos::microphone_status(),
@@ -151,9 +169,51 @@ pub async fn check_app_permissions() -> Result<AppPermissions, String> {
     })
 }
 
+// ---------------------------------------------------------------------------
+// macOS ObjC FFI – compiled from permissions_ffi.m via cc crate
+// ---------------------------------------------------------------------------
+#[cfg(target_os = "macos")]
+extern "C" {
+    /// Returns AVAuthorizationStatus: 0=notDetermined, 1=restricted, 2=denied, 3=authorized
+    fn request_microphone_access() -> i32;
+    /// Returns SFSpeechRecognizerAuthorizationStatus: 0=notDetermined, 1=denied, 2=restricted, 3=authorized
+    fn request_speech_recognition_access() -> i32;
+}
+
+/// Request a system permission (triggers the authorization dialog for `not_determined` status).
+#[tauri::command]
+pub fn request_permission(perm: String) -> Result<PermStatus, String> {
+    match perm.as_str() {
+        "microphone" => {
+            #[cfg(target_os = "macos")]
+            {
+                let n = unsafe { request_microphone_access() } as i64;
+                Ok(PermStatus::from_av(n))
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = perm;
+                Ok(PermStatus::Unknown)
+            }
+        }
+        "speech_recognition" => {
+            #[cfg(target_os = "macos")]
+            {
+                let n = unsafe { request_speech_recognition_access() } as i64;
+                Ok(PermStatus::from_speech(n))
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                Ok(PermStatus::Unknown)
+            }
+        }
+        _ => Err(format!("unknown permission: {}", perm)),
+    }
+}
+
 /// Open the appropriate System Settings privacy pane.
 #[tauri::command]
-pub async fn open_privacy_settings(pane: String) -> Result<(), String> {
+pub fn open_privacy_settings(pane: String) -> Result<(), String> {
     let url = match pane.as_str() {
         "microphone" => {
             "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
@@ -161,11 +221,85 @@ pub async fn open_privacy_settings(pane: String) -> Result<(), String> {
         "speech_recognition" => {
             "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition"
         }
-        _ => "x-apple.systempreferences:com.apple.preference.security",
+        _ => return Err(format!("unknown privacy pane: {}", pane)),
     };
-    Command::new("open")
+    let status = Command::new("open")
         .arg(url)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+        .status()
+        .map_err(|e| format!("failed to open privacy settings: {}", e))?;
+    if !status.success() {
+        return Err(format!("`open {}` exited with code {}", url, status.code().unwrap_or(-1)));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_av_mapping() {
+        assert_eq!(PermStatus::from_av(0), PermStatus::NotDetermined);
+        assert_eq!(PermStatus::from_av(1), PermStatus::Restricted);
+        assert_eq!(PermStatus::from_av(2), PermStatus::Denied);
+        assert_eq!(PermStatus::from_av(3), PermStatus::Granted);
+        assert_eq!(PermStatus::from_av(99), PermStatus::Unknown);
+    }
+
+    #[test]
+    fn from_speech_mapping() {
+        // Note: Speech framework swaps 1↔2 vs AVFoundation
+        assert_eq!(PermStatus::from_speech(0), PermStatus::NotDetermined);
+        assert_eq!(PermStatus::from_speech(1), PermStatus::Denied);
+        assert_eq!(PermStatus::from_speech(2), PermStatus::Restricted);
+        assert_eq!(PermStatus::from_speech(3), PermStatus::Granted);
+        assert_eq!(PermStatus::from_speech(99), PermStatus::Unknown);
+    }
+
+    #[test]
+    fn perm_status_serde_snake_case() {
+        let statuses = vec![
+            PermStatus::Granted,
+            PermStatus::Denied,
+            PermStatus::NotDetermined,
+            PermStatus::Restricted,
+            PermStatus::Unknown,
+        ];
+        let json = serde_json::to_string(&statuses).unwrap();
+        assert!(json.contains("\"granted\""));
+        assert!(json.contains("\"denied\""));
+        assert!(json.contains("\"not_determined\""));
+        assert!(json.contains("\"restricted\""));
+        assert!(json.contains("\"unknown\""));
+
+        let roundtrip: Vec<PermStatus> = serde_json::from_str(&json).unwrap();
+        assert_eq!(roundtrip, statuses);
+    }
+
+    #[test]
+    fn app_permissions_serde_roundtrip() {
+        let perms = AppPermissions {
+            microphone: PermStatus::Granted,
+            speech_recognition: PermStatus::NotDetermined,
+            claude_cli_path: Some("/usr/local/bin/claude".to_string()),
+        };
+        let json = serde_json::to_string(&perms).unwrap();
+        let parsed: AppPermissions = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.microphone, PermStatus::Granted);
+        assert_eq!(parsed.speech_recognition, PermStatus::NotDetermined);
+        assert_eq!(parsed.claude_cli_path, Some("/usr/local/bin/claude".to_string()));
+    }
+
+    #[test]
+    fn app_permissions_null_cli_path() {
+        let perms = AppPermissions {
+            microphone: PermStatus::Unknown,
+            speech_recognition: PermStatus::Unknown,
+            claude_cli_path: None,
+        };
+        let json = serde_json::to_string(&perms).unwrap();
+        assert!(json.contains("\"claude_cli_path\":null"));
+        let parsed: AppPermissions = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.claude_cli_path, None);
+    }
 }

@@ -108,10 +108,14 @@ export default function App() {
 
   // journal-entry-deleted event
   useEffect(() => {
-    const handler = () => refresh()
+    const handler = (e: Event) => {
+      const path = (e as CustomEvent<{ path?: string }>).detail?.path
+      if (path && selectedEntry?.path === path) setSelectedEntry(null)
+      refresh()
+    }
     window.addEventListener('journal-entry-deleted', handler)
     return () => window.removeEventListener('journal-entry-deleted', handler)
-  }, [refresh])
+  }, [refresh, selectedEntry])
 
   // Keep entriesRef in sync so navigate handler always sees latest entries
   // Also sync selectedEntry so DetailPanel sees updated mtime_secs after file changes

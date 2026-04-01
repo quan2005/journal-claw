@@ -167,7 +167,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
           }}
           onDelete={async () => {
             await deleteJournalEntry(contextMenu.entry.path)
-            window.dispatchEvent(new CustomEvent('journal-entry-deleted'))
+            window.dispatchEvent(new CustomEvent('journal-entry-deleted', { detail: { path: contextMenu.entry.path } }))
           }}
           onClose={() => setContextMenu(null)}
         />

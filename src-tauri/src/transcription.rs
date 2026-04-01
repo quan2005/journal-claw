@@ -431,12 +431,26 @@ fn format_ai_speaker_label(
 ) -> String {
     match speaker {
         Some(sp) => {
-            let label = speaker_map.entry(sp.clone()).or_insert_with(|| {
-                let current = *next_label as char;
-                *next_label += 1;
-                current
-            });
-            format!("发言人 {}", label)
+            // Raw internal IDs (SPEAKER_00 from SpeakerKit, single uppercase letters
+            // from WhisperKit text format) get canonicalised to 发言人 A/B/C.
+            // Profile names ("张三", "说话人 2") are already human-readable — use as-is.
+            let is_raw_id = sp.starts_with("SPEAKER_")
+                || (sp.len() == 1
+                    && sp
+                        .chars()
+                        .next()
+                        .map(|c| c.is_ascii_uppercase())
+                        .unwrap_or(false));
+            if is_raw_id {
+                let label = speaker_map.entry(sp.clone()).or_insert_with(|| {
+                    let current = *next_label as char;
+                    *next_label += 1;
+                    current
+                });
+                format!("发言人 {}", label)
+            } else {
+                sp.clone()
+            }
         }
         None => "发言内容".to_string(),
     }
@@ -912,19 +926,16 @@ pub async fn transcribe_audio_to_ai_markdown(
         _ => transcribe_with_dashscope(&app, &file_path, duration_secs).await?,
     };
 
-    // Step 2: 说话人分离（仅当转写结果不含说话人标签时）
-    let has_speaker_labels = transcript.segments.iter().any(|s| s.speaker.is_some());
-    let final_transcript = if has_speaker_labels {
-        // whisperkit 已提供说话人标签，跳过 SpeakerKit
-        transcript
-    } else {
-        // apple / dashscope 不含说话人标签，调用 SpeakerKit
-        let filename = file_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
-        emit_progress(&app, &filename, "diarizing");
+    // Step 2: 说话人分离（所有引擎都调用 SpeakerKit 获取声纹向量，用于档案匹配）
+    // WhisperKit 已有 SPEAKER_XX 标签，但没有跨会话可匹配的声纹向量；
+    // 用 SpeakerKit 补充向量后，merge_transcript_with_speakers 会用档案名覆盖原标签。
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    emit_progress(&app, &filename, "diarizing");
+    let final_transcript =
         match diarize_with_speakerkit(app.clone(), file_path.clone(), duration_secs).await {
             Ok((mut speakers, embeddings)) => {
                 // 用声纹档案识别说话人：已知→用档案名，未知→自动注册并返回"说话人 N"
@@ -945,10 +956,10 @@ pub async fn transcribe_audio_to_ai_markdown(
             }
             Err(e) => {
                 eprintln!("[audio_pipeline] SpeakerKit failed, fallback: {}", e);
-                transcript // 回退为无说话人标注
+                // 回退：保留 WhisperKit 原有标签或无标签
+                transcript
             }
-        }
-    };
+        };
 
     // Step 3: 生成 audio-ai.md
     let audio_filename = file_path

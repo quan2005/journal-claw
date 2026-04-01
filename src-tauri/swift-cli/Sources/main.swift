@@ -321,8 +321,11 @@ struct Diarize: AsyncParsableCommand {
         let execURL = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
 
         // 1. Tauri .app layout: sidecar is in Contents/MacOS/, resources in Contents/Resources/
+        // Tauri preserves the source directory structure, so "resources/speakerkit-models"
+        // in src-tauri/ becomes Resources/resources/speakerkit-models/ in the bundle.
         let appResources = execURL.deletingLastPathComponent()
             .appendingPathComponent("Resources")
+            .appendingPathComponent("resources")
             .appendingPathComponent("speakerkit-models")
         if FileManager.default.fileExists(atPath: appResources.path) {
             return appResources

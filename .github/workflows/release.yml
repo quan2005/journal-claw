@@ -27,6 +27,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Build Swift CLI (journal-speech sidecar)
+        run: |
+          cd src-tauri/swift-cli
+          swift build --configuration release --arch arm64
+          cp .build/arm64-apple-macosx/release/journal-speech \
+             ../binaries/journal-speech-aarch64-apple-darwin
+          chmod +x ../binaries/journal-speech-aarch64-apple-darwin
+
       - name: Build Tauri app
         run: npm run tauri build
 

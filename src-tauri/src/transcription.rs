@@ -962,18 +962,23 @@ pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
 
 /// 查找 journal-speech sidecar 二进制路径。
 ///
-/// Tauri v2 将 externalBin 放在与主程序相同目录（macOS 包: Contents/MacOS/）。
+/// Tauri v2 打包时会去掉 target triple 后缀：
+///   源文件  binaries/journal-speech-aarch64-apple-darwin
+///   包内路径 Contents/MacOS/journal-speech（无 triple）
+///
 /// 按以下顺序查找，并在全部失败时报告所有已查找路径，方便诊断。
 fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let target_triple = "aarch64-apple-darwin";
-    let binary_name = format!("journal-speech-{}", target_triple);
+    // 打包后的二进制名（Tauri 去掉了 target triple 后缀）
+    let bundle_name = "journal-speech";
+    // 开发环境源目录里的文件名（保留 triple，与 externalBin 命名规范一致）
+    let dev_name = "journal-speech-aarch64-apple-darwin";
 
     let mut tried: Vec<PathBuf> = Vec::new();
 
-    // 1. current_exe().parent() → Contents/MacOS/（Tauri v2 externalBin 标准位置）
+    // 1. current_exe().parent() → Contents/MacOS/journal-speech（Tauri v2 标准位置）
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let p = exe_dir.join(&binary_name);
+            let p = exe_dir.join(bundle_name);
             if p.exists() {
                 return Ok(p);
             }
@@ -981,10 +986,10 @@ fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
         }
     }
 
-    // 2. resource_dir()/../MacOS/ → Contents/MacOS/（通过 Tauri 路径 API 推导）
+    // 2. resource_dir()/../MacOS/journal-speech（通过 Tauri 路径 API 推导，同一位置的备用查找）
     if let Ok(resource_dir) = app.path().resource_dir() {
         if let Some(contents_dir) = resource_dir.parent() {
-            let p = contents_dir.join("MacOS").join(&binary_name);
+            let p = contents_dir.join("MacOS").join(bundle_name);
             if p.exists() {
                 return Ok(p);
             }
@@ -996,7 +1001,7 @@ fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
     {
         let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("binaries")
-            .join(&binary_name);
+            .join(dev_name);
         if p.exists() {
             return Ok(p);
         }
@@ -1005,7 +1010,7 @@ fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
 
     // 4. 系统 PATH
     if let Ok(output) = std::process::Command::new("which")
-        .arg("journal-speech")
+        .arg(bundle_name)
         .env("PATH", config::augmented_path())
         .output()
     {

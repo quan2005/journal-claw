@@ -195,3 +195,18 @@ export const deleteSpeakerProfile = (id: string): Promise<void> =>
 
 export const mergeSpeakerProfiles = (sourceId: string, targetId: string): Promise<void> =>
   invoke<void>('merge_speaker_profiles', { sourceId, targetId })
+
+// Permissions
+export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
+
+export interface AppPermissions {
+  microphone: PermStatus
+  speech_recognition: PermStatus
+  claude_cli_path: string | null
+}
+
+export const checkAppPermissions = (): Promise<AppPermissions> =>
+  invoke<AppPermissions>('check_app_permissions')
+
+export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition' | string): Promise<void> =>
+  invoke<void>('open_privacy_settings', { pane })

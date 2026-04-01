@@ -4,6 +4,7 @@ import {
   Cpu,
   Mic,
   Users,
+  ShieldCheck,
   Puzzle,
   Info,
   type LucideIcon,
@@ -12,6 +13,7 @@ import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
 import SectionSpeakers from './components/SectionSpeakers'
+import SectionPermissions from './components/SectionPermissions'
 import SectionPlugins from './components/SectionPlugins'
 import SectionAbout from './components/SectionAbout'
 import { ALL_NAV_IDS, SECTION_TOP_GUTTER, type NavId, resolveActiveNav } from './navigation'
@@ -38,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'ai', label: 'AI 引擎', icon: Cpu },
   { id: 'voice', label: '语音转写', icon: Mic },
   { id: 'speakers', label: '声纹', icon: Users },
+  { id: 'permissions', label: '授权管理', icon: ShieldCheck },
   { id: 'plugins', label: '技能插件', icon: Puzzle },
   { id: 'about', label: '关于', icon: Info },
 ]
@@ -58,6 +61,7 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
       <section id="ai" ref={(el) => registerSectionRef('ai', el)}><SectionAiEngine /></section>
       <section id="voice" ref={(el) => registerSectionRef('voice', el)}><SectionVoice /></section>
       <section id="speakers" ref={(el) => registerSectionRef('speakers', el)}><SectionSpeakers /></section>
+      <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}><SectionPermissions /></section>
       <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}><SectionPlugins /></section>
       <section id="about" ref={(el) => registerSectionRef('about', el)} style={{ paddingBottom: 40 }}><SectionAbout /></section>
     </>

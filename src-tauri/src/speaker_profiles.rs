@@ -21,8 +21,8 @@ pub struct SpeakerProfile {
     /// Auto-generated label, e.g. "说话人 1".
     pub auto_name: String,
     /// Up to MAX_EMBEDDINGS_PER_PROFILE representative d-vectors (rolling window).
-    /// Not sent to frontend — only used for matching.
-    #[serde(default, skip_serializing)]
+    /// Persisted to disk for matching; stripped before sending to the frontend.
+    #[serde(default)]
     pub embeddings: Vec<Vec<f32>>,
     pub created_at: u64,
     pub last_seen_at: u64,
@@ -211,7 +211,17 @@ pub fn identify_or_register_all(
 
 #[tauri::command]
 pub fn get_speaker_profiles(app: AppHandle) -> Vec<SpeakerProfile> {
+    let _guard = PROFILES_LOCK.lock().unwrap_or_else(|e| {
+        eprintln!("[speaker_profiles] Lock poisoned: {}", e);
+        e.into_inner()
+    });
     load_profiles(&app)
+        .into_iter()
+        .map(|mut p| {
+            p.embeddings = Vec::new();
+            p
+        })
+        .collect()
 }
 
 #[tauri::command]

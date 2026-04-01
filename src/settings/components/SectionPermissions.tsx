@@ -195,13 +195,13 @@ export default function SectionPermissions() {
         const speechStatus = await requestPermission('speech_recognition')
         setPerms(prev => prev ? { ...prev, speech_recognition: speechStatus } : prev)
       }
-      // Step 2: Open System Settings for denied/restricted permissions
+      // Step 2: Open System Settings for denied/restricted permissions only
       setPerms(current => {
         if (current) {
-          if (current.microphone !== 'granted') {
+          if (current.microphone === 'denied' || current.microphone === 'restricted') {
             openPrivacySettings('microphone').catch(() => {})
           }
-          if (current.speech_recognition !== 'granted') {
+          if (current.speech_recognition === 'denied' || current.speech_recognition === 'restricted') {
             openPrivacySettings('speech_recognition').catch(() => {})
           }
         }

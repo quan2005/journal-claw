@@ -21,6 +21,7 @@ beforeAll(() => {
 
 vi.mock('../lib/tauri', () => ({
   getJournalEntryContent: vi.fn().mockResolvedValue('# Test'),
+  createSampleEntryIfNeeded: vi.fn().mockResolvedValue(false),
 }))
 
 describe('empty state guidance cards', () => {
@@ -42,23 +43,22 @@ describe('empty state guidance cards', () => {
     render(<DetailPanel {...baseProps} entries={[]} />)
     expect(screen.getByText('录音记录')).toBeTruthy()
     expect(screen.getByText('粘贴 / 拖文件')).toBeTruthy()
-    expect(screen.queryByText('看示例条目')).toBeNull()
+  })
+
+  it('shows 创建示例条目 card when entries is empty', () => {
+    render(<DetailPanel {...baseProps} entries={[]} />)
+    expect(screen.getByText('创建示例条目')).toBeTruthy()
+  })
+
+  it('does not show 创建示例条目 card when entries exist', () => {
+    render(<DetailPanel {...baseProps} entries={[fakeEntry]} />)
+    expect(screen.queryByText('创建示例条目')).toBeNull()
   })
 
   it('shows recording and paste cards whenever no entry is selected', () => {
     render(<DetailPanel {...baseProps} entries={[fakeEntry]} />)
     expect(screen.getByText('录音记录')).toBeTruthy()
     expect(screen.getByText('粘贴 / 拖文件')).toBeTruthy()
-  })
-
-  it('shows sample card when sample entry exists', () => {
-    const sampleEntry: JournalEntry = {
-      filename: '01-产品评审示例.md', path: '/ws/2604/01-产品评审示例.md',
-      title: '产品评审示例', summary: '', tags: [], year_month: '2604',
-      day: 1, created_time: '10:00', mtime_secs: 0, materials: [],
-    }
-    render(<DetailPanel {...baseProps} entries={[sampleEntry]} />)
-    expect(screen.getByText('看示例条目')).toBeTruthy()
   })
 
   it('calls onRecord when 录音记录 card is clicked', () => {
@@ -75,8 +75,10 @@ describe('empty state guidance cards', () => {
     expect(onOpenDock).toHaveBeenCalledOnce()
   })
 
-  it('does not show sample card when entries is empty (sample not available)', () => {
-    render(<DetailPanel {...baseProps} entries={[]} onSelectSample={vi.fn()} />)
-    expect(screen.queryByText('看示例条目')).toBeNull()
+  it('calls onSelectSample when 创建示例条目 card is clicked', () => {
+    const onSelectSample = vi.fn()
+    render(<DetailPanel {...baseProps} entries={[]} onSelectSample={onSelectSample} />)
+    fireEvent.click(screen.getByText('创建示例条目').closest('button')!)
+    expect(onSelectSample).toHaveBeenCalledOnce()
   })
 })

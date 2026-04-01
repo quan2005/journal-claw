@@ -1,5 +1,6 @@
 mod ai_processor;
 mod audio_pipeline;
+#[allow(dead_code)]
 mod audio_process;
 mod config;
 mod journal;

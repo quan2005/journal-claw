@@ -1,5 +1,7 @@
 use crate::config;
+use crate::speaker_profiles;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -924,7 +926,19 @@ pub async fn transcribe_audio_to_ai_markdown(
             .to_string();
         emit_progress(&app, &filename, "diarizing");
         match diarize_with_speakerkit(app.clone(), file_path.clone(), duration_secs).await {
-            Ok(speakers) => {
+            Ok((mut speakers, embeddings)) => {
+                // 用声纹档案识别说话人：已知→用档案名，未知→自动注册并返回"说话人 N"
+                if !embeddings.is_empty() {
+                    let name_map = speaker_profiles::identify_or_register_all(&app, &embeddings);
+                    // 将 SPEAKER_XX 标签替换为档案名称
+                    for seg in &mut speakers {
+                        if let Some(display) = name_map.get(&seg.label) {
+                            seg.label = display.clone();
+                        }
+                    }
+                    // 通知前端声纹档案已更新
+                    let _ = app.emit("speakers-updated", ());
+                }
                 let merged = merge_transcript_with_speakers(&transcript, &speakers);
                 save_transcript_data(&file_path, &merged);
                 merged
@@ -1217,11 +1231,12 @@ pub async fn transcribe_with_apple_stt(
 }
 
 /// SpeakerKit 说话人分离：调用 journal-speech diarize sidecar。
+/// 返回 (segments, embeddings)，embeddings 可能为空 map（旧版 CLI 或失败时）。
 pub async fn diarize_with_speakerkit(
     app: AppHandle,
     file_path: PathBuf,
     duration_secs: f64,
-) -> Result<Vec<SpeakerSegment>, String> {
+) -> Result<(Vec<SpeakerSegment>, HashMap<String, Vec<f32>>), String> {
     let filename = file_path
         .file_name()
         .unwrap_or_default()
@@ -1347,7 +1362,25 @@ pub async fn diarize_with_speakerkit(
         })
         .unwrap_or_default();
 
-    Ok(speakers)
+    // 解析声纹嵌入向量（新版 CLI 才有；旧版返回 null 或缺失时忽略）
+    let embeddings: HashMap<String, Vec<f32>> = parsed
+        .get("embeddings")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.iter()
+                .filter_map(|(label, arr)| {
+                    let vec: Vec<f32> = arr
+                        .as_array()?
+                        .iter()
+                        .filter_map(|x| x.as_f64().map(|f| f as f32))
+                        .collect();
+                    if vec.is_empty() { None } else { Some((label.clone(), vec)) }
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok((speakers, embeddings))
 }
 
 /// WhisperKit 转录：调用 whisperkit-cli sidecar，返回格式化 markdown 文本。

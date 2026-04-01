@@ -23,6 +23,7 @@ struct TranscribeSegment: Codable {
 struct DiarizeResult: Codable {
     let status: String
     let speakers: [DiarizeSpeakerSegment]
+    let embeddings: [String: [Float]]?  // SPEAKER_XX → mean d-vector (optional, nil if unavailable)
 }
 
 struct DiarizeSpeakerSegment: Codable {
@@ -292,7 +293,11 @@ struct Diarize: AsyncParsableCommand {
             let diarization = try await speakerKit.diarize(audioArray: audioArray)
 
             // Convert SpeakerKit segments to our output format
+            // Also collect per-speaker audio windows for embedding computation
+            let sampleRate: Float = 16000
             var speakers: [DiarizeSpeakerSegment] = []
+            var speakerAudioSegments: [String: [[Float]]] = [:]  // label → list of audio chunks
+
             for segment in diarization.segments {
                 let speakerId = segment.speaker.speakerId ?? 0
                 let label = String(format: "SPEAKER_%02d", speakerId)
@@ -301,12 +306,52 @@ struct Diarize: AsyncParsableCommand {
                     start: Double(segment.startTime),
                     end: Double(segment.endTime)
                 ))
+
+                // Extract audio chunk for this segment (cap at 10s to limit compute)
+                let startSample = Int(segment.startTime * sampleRate)
+                let endSample = min(Int(segment.endTime * sampleRate), startSample + Int(10 * sampleRate))
+                if endSample > startSample && endSample <= audioArray.count {
+                    let chunk = Array(audioArray[startSample..<endSample])
+                    speakerAudioSegments[label, default: []].append(chunk)
+                }
+            }
+
+            // Compute per-speaker mean embedding using SpeakerEmbedder
+            var embeddings: [String: [Float]] = [:]
+            if let modelFolder = modelFolder {
+                let embedderURL = modelFolder.appendingPathComponent("speaker_embedder")
+                    .appendingPathComponent("pyannote-v3")
+                    .appendingPathComponent("W8A16")
+                if FileManager.default.fileExists(atPath: embedderURL.path) {
+                    if let embedder = try? SpeakerEmbedder(modelFolder: embedderURL) {
+                        for (label, chunks) in speakerAudioSegments {
+                            var segmentEmbeddings: [[Float]] = []
+                            for chunk in chunks {
+                                if let emb = try? await embedder.encode(audioArray: chunk) {
+                                    segmentEmbeddings.append(emb)
+                                }
+                            }
+                            if !segmentEmbeddings.isEmpty {
+                                // Mean embedding across all chunks for this speaker
+                                let dim = segmentEmbeddings[0].count
+                                var mean = [Float](repeating: 0, count: dim)
+                                for emb in segmentEmbeddings {
+                                    for i in 0..<dim { mean[i] += emb[i] }
+                                }
+                                let n = Float(segmentEmbeddings.count)
+                                for i in 0..<dim { mean[i] /= n }
+                                embeddings[label] = mean
+                            }
+                        }
+                    }
+                }
             }
 
             // Output result — consistent format whether single or multiple speakers
             let result = DiarizeResult(
                 status: "completed",
-                speakers: speakers
+                speakers: speakers,
+                embeddings: embeddings.isEmpty ? nil : embeddings
             )
             writeJSON(result)
 

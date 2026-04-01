@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { RecordingItem, Transcript, JournalEntry } from '../types'
+import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile } from '../types'
 
 export const listRecordings = (): Promise<RecordingItem[]> =>
   invoke('list_recordings')
@@ -182,3 +182,16 @@ export const createSampleEntryIfNeeded = (): Promise<boolean> =>
 
 export const createSampleEntry = (): Promise<void> =>
   invoke<void>('create_sample_entry')
+
+// Speaker profiles (声纹档案)
+export const getSpeakerProfiles = (): Promise<SpeakerProfile[]> =>
+  invoke<SpeakerProfile[]>('get_speaker_profiles')
+
+export const updateSpeakerName = (id: string, name: string): Promise<void> =>
+  invoke<void>('update_speaker_name', { id, name })
+
+export const deleteSpeakerProfile = (id: string): Promise<void> =>
+  invoke<void>('delete_speaker_profile', { id })
+
+export const mergeSpeakerProfiles = (sourceId: string, targetId: string): Promise<void> =>
+  invoke<void>('merge_speaker_profiles', { sourceId, targetId })

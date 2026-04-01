@@ -59,6 +59,18 @@ export interface AiLogLine {
   message: string
 }
 
+// ── 声纹档案 ─────────────────────────────────────────────
+export interface SpeakerProfile {
+  id: string
+  /** 用户命名，空字符串表示未命名，显示时用 auto_name 代替 */
+  name: string
+  /** 自动生成的名称，如"说话人 1" */
+  auto_name: string
+  recording_count: number
+  created_at: number
+  last_seen_at: number
+}
+
 // ── Processing queue ────────────────────────────────────
 export type QueueItemStatus = 'recording' | 'converting' | 'queued' | 'processing' | 'completed' | 'failed'
 

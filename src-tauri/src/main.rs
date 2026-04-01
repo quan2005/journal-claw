@@ -7,6 +7,7 @@ mod journal;
 mod materials;
 mod recorder;
 mod recordings;
+mod speaker_profiles;
 mod transcription;
 mod types;
 mod workspace;
@@ -256,6 +257,10 @@ fn main() {
             ai_processor::install_engine,
             journal::create_sample_entry_if_needed,
             journal::create_sample_entry,
+            speaker_profiles::get_speaker_profiles,
+            speaker_profiles::update_speaker_name,
+            speaker_profiles::delete_speaker_profile,
+            speaker_profiles::merge_speaker_profiles,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

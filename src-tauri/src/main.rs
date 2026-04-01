@@ -253,6 +253,7 @@ fn main() {
             ai_processor::check_engine_installed,
             ai_processor::install_engine,
             journal::create_sample_entry_if_needed,
+            journal::create_sample_entry,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

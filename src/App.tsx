@@ -11,7 +11,7 @@ import SoulView from './components/SoulView'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, listAllJournalEntries } from './lib/tauri'
+import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
 
@@ -374,7 +374,7 @@ export default function App() {
                   onRecord={handleRecord}
                   onOpenDock={() => setDockOpen(true)}
                   onSelectSample={() => {
-                    createSampleEntryIfNeeded().then(async () => {
+                    createSampleEntry().then(async () => {
                       await refresh()
                       const all = await listAllJournalEntries()
                       const sample = all.find(e => e.title === '产品评审示例')

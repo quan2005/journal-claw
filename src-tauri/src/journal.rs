@@ -349,6 +349,22 @@ fn workspace_has_any_md(workspace: &str) -> bool {
     false
 }
 
+/// 无条件写入示例条目（若已存在则不覆盖）。供引导按钮直接调用。
+#[tauri::command]
+pub fn create_sample_entry(app: tauri::AppHandle) -> Result<(), String> {
+    use crate::config;
+    use crate::workspace;
+    use chrono::Datelike;
+    let cfg = config::load_config(&app)?;
+    if cfg.workspace_path.is_empty() {
+        return Err("workspace not configured".to_string());
+    }
+    let year_month = workspace::current_year_month();
+    let day = chrono::Local::now().day();
+    write_sample_entry(&cfg.workspace_path, &year_month, day)?;
+    Ok(())
+}
+
 /// 首次启动时调用：若 sample_entry_created 为 false，写入示例条目并置 flag 为 true。
 /// 返回 true 表示本次写入了示例条目，false 表示 flag 已设置过（无操作）。
 #[tauri::command]

@@ -1,5 +1,6 @@
 import ArgumentParser
 import AVFoundation
+import CoreML
 import Foundation
 import Speech
 import SpeakerKit
@@ -23,7 +24,7 @@ struct TranscribeSegment: Codable {
 struct DiarizeResult: Codable {
     let status: String
     let speakers: [DiarizeSpeakerSegment]
-    let embeddings: [String: [Float]]?  // SPEAKER_XX → mean d-vector (optional, nil if unavailable)
+    let embeddings: [String: [Float]]?  // SPEAKER_XX → 256-dim d-vector (nil if unavailable)
 }
 
 struct DiarizeSpeakerSegment: Codable {
@@ -292,11 +293,11 @@ struct Diarize: AsyncParsableCommand {
             // Perform diarization
             let diarization = try await speakerKit.diarize(audioArray: audioArray)
 
-            // Convert SpeakerKit segments to our output format
-            // Also collect per-speaker audio windows for embedding computation
+            // Convert SpeakerKit segments to our output format and collect per-speaker audio
             let sampleRate: Float = 16000
+            let maxEmbeddingSamples = 480000  // 30s at 16kHz
             var speakers: [DiarizeSpeakerSegment] = []
-            var speakerAudioSegments: [String: [[Float]]] = [:]  // label → list of audio chunks
+            var speakerAudioChunks: [String: [Float]] = [:]  // label → concatenated audio (up to 30s)
 
             for segment in diarization.segments {
                 let speakerId = segment.speaker.speakerId ?? 0
@@ -307,47 +308,48 @@ struct Diarize: AsyncParsableCommand {
                     end: Double(segment.endTime)
                 ))
 
-                // Extract audio chunk for this segment (cap at 10s to limit compute)
+                // Extract audio for this segment (collect up to 30s per speaker)
                 let startSample = Int(segment.startTime * sampleRate)
-                let endSample = min(Int(segment.endTime * sampleRate), startSample + Int(10 * sampleRate))
-                if endSample > startSample && endSample <= audioArray.count {
-                    let chunk = Array(audioArray[startSample..<endSample])
-                    speakerAudioSegments[label, default: []].append(chunk)
-                }
-            }
-
-            // Compute per-speaker mean embedding using SpeakerEmbedder
-            var embeddings: [String: [Float]] = [:]
-            if let modelFolder = modelFolder {
-                let embedderURL = modelFolder.appendingPathComponent("speaker_embedder")
-                    .appendingPathComponent("pyannote-v3")
-                    .appendingPathComponent("W8A16")
-                if FileManager.default.fileExists(atPath: embedderURL.path) {
-                    if let embedder = try? SpeakerEmbedder(modelFolder: embedderURL) {
-                        for (label, chunks) in speakerAudioSegments {
-                            var segmentEmbeddings: [[Float]] = []
-                            for chunk in chunks {
-                                if let emb = try? await embedder.encode(audioArray: chunk) {
-                                    segmentEmbeddings.append(emb)
-                                }
-                            }
-                            if !segmentEmbeddings.isEmpty {
-                                // Mean embedding across all chunks for this speaker
-                                let dim = segmentEmbeddings[0].count
-                                var mean = [Float](repeating: 0, count: dim)
-                                for emb in segmentEmbeddings {
-                                    for i in 0..<dim { mean[i] += emb[i] }
-                                }
-                                let n = Float(segmentEmbeddings.count)
-                                for i in 0..<dim { mean[i] /= n }
-                                embeddings[label] = mean
-                            }
-                        }
+                let endSample = min(Int(segment.endTime * sampleRate), audioArray.count)
+                if endSample > startSample {
+                    let currentCount = speakerAudioChunks[label]?.count ?? 0
+                    let remaining = maxEmbeddingSamples - currentCount
+                    if remaining > 0 {
+                        let toAppend = min(endSample - startSample, remaining)
+                        speakerAudioChunks[label, default: []]
+                            .append(contentsOf: audioArray[startSample..<(startSample + toAppend)])
                     }
                 }
             }
 
-            // Output result — consistent format whether single or multiple speakers
+            // Compute per-speaker embeddings using CoreML directly
+            // SpeakerKit's SpeakerEmbedderModel is internal and not accessible from outside the module,
+            // so we load the same .mlmodelc files and run predictions via MLModel directly.
+            var embeddings: [String: [Float]] = [:]
+            if let modelFolder = modelFolder {
+                let preprocessorURL = modelFolder
+                    .appendingPathComponent("speaker_embedder")
+                    .appendingPathComponent("pyannote-v3")
+                    .appendingPathComponent("W8A16")
+                    .appendingPathComponent("SpeakerEmbedderPreprocessor.mlmodelc")
+                let embedderURL = modelFolder
+                    .appendingPathComponent("speaker_embedder")
+                    .appendingPathComponent("pyannote-v3")
+                    .appendingPathComponent("W8A16")
+                    .appendingPathComponent("SpeakerEmbedder.mlmodelc")
+
+                if FileManager.default.fileExists(atPath: preprocessorURL.path) &&
+                   FileManager.default.fileExists(atPath: embedderURL.path) {
+                    embeddings = computeEmbeddings(
+                        speakerAudioChunks: speakerAudioChunks,
+                        preprocessorURL: preprocessorURL,
+                        embedderURL: embedderURL,
+                        maxChunkSamples: maxEmbeddingSamples
+                    )
+                }
+            }
+
+            // Output result
             let result = DiarizeResult(
                 status: "completed",
                 speakers: speakers,
@@ -357,6 +359,105 @@ struct Diarize: AsyncParsableCommand {
 
         } catch {
             exitWithError("SpeakerKit diarization failed: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Embedding Computation via CoreML
+
+    /// Compute per-speaker embeddings by loading CoreML models directly.
+    ///
+    /// The pipeline: audio [1, 480000] → Preprocessor → features [1, 2998, 80]
+    ///               features + mask [1, 64, 1767] → Embedder → embeddings [1, 64, 256]
+    /// We extract speaker 0's 256-dim vector (our isolated audio is all one speaker).
+    private func computeEmbeddings(
+        speakerAudioChunks: [String: [Float]],
+        preprocessorURL: URL,
+        embedderURL: URL,
+        maxChunkSamples: Int
+    ) -> [String: [Float]] {
+        do {
+            let mlConfig = MLModelConfiguration()
+            mlConfig.computeUnits = .cpuAndNeuralEngine
+
+            fputs("[embedding] Loading preprocessor model...\n", stderr)
+            let preprocessorModel = try MLModel(contentsOf: preprocessorURL, configuration: mlConfig)
+            fputs("[embedding] Loading embedder model...\n", stderr)
+            let embedderModel = try MLModel(contentsOf: embedderURL, configuration: mlConfig)
+
+            let maskSpeakers = 64
+            let maskFrames = 1767
+            var embeddings: [String: [Float]] = [:]
+
+            for (label, audio) in speakerAudioChunks {
+                guard !audio.isEmpty else { continue }
+
+                // Pad or trim to exactly 480000 samples (30s at 16kHz)
+                var chunk: [Float]
+                if audio.count >= maxChunkSamples {
+                    chunk = Array(audio.prefix(maxChunkSamples))
+                } else {
+                    chunk = audio
+                    chunk.append(contentsOf: [Float](repeating: 0, count: maxChunkSamples - audio.count))
+                }
+
+                // Create waveform MLMultiArray [1, 480000] in Float16
+                let waveform = try MLMultiArray(
+                    shape: [1, NSNumber(value: maxChunkSamples)],
+                    dataType: .float16
+                )
+                let waveformPtr = waveform.dataPointer.assumingMemoryBound(to: Float16.self)
+                for i in 0..<maxChunkSamples {
+                    waveformPtr[i] = Float16(chunk[i])
+                }
+
+                // Run preprocessor model: waveform → features
+                let preprocessorInput = EmbeddingPreprocessorInput(waveforms: waveform)
+                let preprocessorOutput = try preprocessorModel.prediction(from: preprocessorInput)
+                guard let preprocessorFeatures = preprocessorOutput
+                    .featureValue(for: "preprocessor_output_1")?.multiArrayValue else {
+                    fputs("[embedding] Missing preprocessor output for \(label)\n", stderr)
+                    continue
+                }
+
+                // Create speaker mask [1, 64, 1767]: speaker 0 = all 1s, rest = 0s
+                // Since we extracted audio for a single speaker, the entire chunk belongs to them.
+                let speakerMask = try MLMultiArray(
+                    shape: [1, NSNumber(value: maskSpeakers), NSNumber(value: maskFrames)],
+                    dataType: .float16
+                )
+                let maskPtr = speakerMask.dataPointer.assumingMemoryBound(to: Float16.self)
+                let totalMaskElements = maskSpeakers * maskFrames
+                for i in 0..<totalMaskElements { maskPtr[i] = 0 }
+                // Set speaker 0 to all 1s
+                for f in 0..<maskFrames { maskPtr[f] = Float16(1.0) }
+
+                // Run embedder model: features + mask → embeddings
+                let embedderInput = EmbedderModelInput(
+                    speakerMasks: speakerMask,
+                    preprocessorOutput: preprocessorFeatures
+                )
+                let embedderOutput = try embedderModel.prediction(from: embedderInput)
+                guard let embeddingArray = embedderOutput
+                    .featureValue(for: "speaker_embeddings")?.multiArrayValue else {
+                    fputs("[embedding] Missing embedder output for \(label)\n", stderr)
+                    continue
+                }
+
+                // Extract speaker 0's embedding vector (256-dim)
+                let embeddingDim = embeddingArray.shape[2].intValue
+                var embedding: [Float] = []
+                embedding.reserveCapacity(embeddingDim)
+                for d in 0..<embeddingDim {
+                    embedding.append(embeddingArray[[0, 0, d] as [NSNumber]].floatValue)
+                }
+                embeddings[label] = embedding
+                fputs("[embedding] Computed \(embeddingDim)-dim embedding for \(label)\n", stderr)
+            }
+
+            return embeddings
+        } catch {
+            fputs("[embedding] Failed: \(error.localizedDescription)\n", stderr)
+            return [:]
         }
     }
 
@@ -393,5 +494,48 @@ struct Diarize: AsyncParsableCommand {
 
         // 4. No local models found — return nil to use default config (will download)
         return nil
+    }
+}
+
+// MARK: - CoreML Feature Providers for Embedding Pipeline
+
+/// Input provider for SpeakerEmbedderPreprocessor model.
+/// Input: waveforms [1, 480000] Float16
+private class EmbeddingPreprocessorInput: MLFeatureProvider {
+    let waveforms: MLMultiArray
+    var featureNames: Set<String> { ["waveforms"] }
+
+    func featureValue(for featureName: String) -> MLFeatureValue? {
+        if featureName == "waveforms" {
+            return MLFeatureValue(multiArray: waveforms)
+        }
+        return nil
+    }
+
+    init(waveforms: MLMultiArray) {
+        self.waveforms = waveforms
+    }
+}
+
+/// Input provider for SpeakerEmbedder model.
+/// Inputs: speaker_masks [1, 64, 1767], preprocessor_output_1 [1, 2998, 80]
+private class EmbedderModelInput: MLFeatureProvider {
+    let speakerMasks: MLMultiArray
+    let preprocessorOutput: MLMultiArray
+    var featureNames: Set<String> { ["speaker_masks", "preprocessor_output_1"] }
+
+    func featureValue(for featureName: String) -> MLFeatureValue? {
+        if featureName == "speaker_masks" {
+            return MLFeatureValue(multiArray: speakerMasks)
+        }
+        if featureName == "preprocessor_output_1" {
+            return MLFeatureValue(multiArray: preprocessorOutput)
+        }
+        return nil
+    }
+
+    init(speakerMasks: MLMultiArray, preprocessorOutput: MLMultiArray) {
+        self.speakerMasks = speakerMasks
+        self.preprocessorOutput = preprocessorOutput
     }
 }

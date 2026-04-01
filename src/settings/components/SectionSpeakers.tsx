@@ -170,6 +170,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
   const [editing, setEditing] = useState(false)
   const [nameInput, setNameInput] = useState(profile.name)
   const [merging, setMerging] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -180,8 +181,12 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
     setEditing(false)
     const trimmed = nameInput.trim()
     if (trimmed !== profile.name) {
-      await updateSpeakerName(profile.id, trimmed).catch(console.error)
-      onUpdated()
+      try {
+        await updateSpeakerName(profile.id, trimmed)
+        onUpdated()
+      } catch (err) {
+        console.error('[speakers] rename failed', err)
+      }
     }
   }
 
@@ -194,14 +199,27 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
   }
 
   const handleDelete = async () => {
-    await deleteSpeakerProfile(profile.id).catch(console.error)
-    onUpdated()
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
+    try {
+      await deleteSpeakerProfile(profile.id)
+      onUpdated()
+    } catch (err) {
+      console.error('[speakers] delete failed', err)
+      setConfirmDelete(false)
+    }
   }
 
   const handleMergeConfirm = async (targetId: string) => {
     setMerging(false)
-    await mergeSpeakerProfiles(profile.id, targetId).catch(console.error)
-    onUpdated()
+    try {
+      await mergeSpeakerProfiles(profile.id, targetId)
+      onUpdated()
+    } catch (err) {
+      console.error('[speakers] merge failed', err)
+    }
   }
 
   const color = avatarColor(profile.id)
@@ -336,13 +354,17 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
             </button>
             <button
               onClick={handleDelete}
+              onBlur={() => setConfirmDelete(false)}
               title="删除"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--item-meta)', padding: '4px 6px', borderRadius: 4,
+                color: confirmDelete ? '#ff3b30' : 'var(--item-meta)',
+                padding: '4px 6px', borderRadius: 4,
+                fontSize: confirmDelete ? 10 : undefined,
+                fontWeight: confirmDelete ? 600 : undefined,
               }}
             >
-              <Trash2 size={13} />
+              {confirmDelete ? '确认删除' : <Trash2 size={13} />}
             </button>
           </div>
         )}
@@ -361,7 +383,7 @@ export default function SectionSpeakers() {
   const reload = () => {
     getSpeakerProfiles()
       .then(setProfiles)
-      .catch(console.error)
+      .catch(err => console.error('[speakers] load failed', err))
       .finally(() => setLoading(false))
   }
 
@@ -370,7 +392,11 @@ export default function SectionSpeakers() {
 
     // Refresh whenever backend registers new speakers after a recording
     let unlisten: (() => void) | null = null
-    listen('speakers-updated', () => reload()).then(fn => { unlisten = fn })
+    listen('speakers-updated', () => {
+      getSpeakerProfiles()
+        .then(setProfiles)
+        .catch(err => console.error('[speakers] event reload failed', err))
+    }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
   }, [])
 

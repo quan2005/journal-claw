@@ -1363,6 +1363,7 @@ pub async fn diarize_with_speakerkit(
         .unwrap_or_default();
 
     // 解析声纹嵌入向量（新版 CLI 才有；旧版返回 null 或缺失时忽略）
+    let has_embeddings_key = parsed.get("embeddings").is_some();
     let embeddings: HashMap<String, Vec<f32>> = parsed
         .get("embeddings")
         .and_then(|v| v.as_object())
@@ -1379,6 +1380,15 @@ pub async fn diarize_with_speakerkit(
                 .collect()
         })
         .unwrap_or_default();
+    eprintln!(
+        "[speaker_profiles] CLI output: {} speakers, embeddings key={}, parsed {} embeddings",
+        speakers.len(),
+        has_embeddings_key,
+        embeddings.len(),
+    );
+    if !has_embeddings_key {
+        eprintln!("[speaker_profiles] WARNING: no embeddings in CLI output. Swift CLI may not have SpeakerEmbedder model loaded.");
+    }
 
     Ok((speakers, embeddings))
 }

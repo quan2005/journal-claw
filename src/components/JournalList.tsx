@@ -3,7 +3,6 @@ import type { JournalEntry } from '../types'
 import { JournalItem } from './JournalItem'
 import { JournalContextMenu } from './JournalContextMenu'
 import { deleteJournalEntry } from '../lib/tauri'
-import { invoke } from '@tauri-apps/api/core'
 
 interface JournalListProps {
   entries: JournalEntry[]
@@ -161,10 +160,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
         <JournalContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          entryPath={contextMenu.entry.path}
-          onShowInFinder={async () => {
-            await invoke('reveal_in_finder', { path: contextMenu.entry.path })
-          }}
+          entry={contextMenu.entry}
           onDelete={async () => {
             await deleteJournalEntry(contextMenu.entry.path)
             window.dispatchEvent(new CustomEvent('journal-entry-deleted', { detail: { path: contextMenu.entry.path } }))

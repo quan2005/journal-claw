@@ -90,7 +90,7 @@ export function CommandDock({
       setInputOpen(false)
       setInputText('')
       importedTexts.current.clear()
-      showToast('已提交，Agent 整理中…')
+      showToast('已提交，谨迹整理中…')
       try {
         await onFilesSubmit(paths, note)
       } catch (err) {
@@ -103,7 +103,7 @@ export function CommandDock({
       setInputOpen(false)
       setInputText('')
       importedTexts.current.clear()
-      showToast('已提交，Agent 整理中…')
+      showToast('已提交，谨迹整理中…')
       try {
         await onPasteSubmit(text)
       } catch (err) {
@@ -349,7 +349,7 @@ export function CommandDock({
                     取消
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); handleSubmit() }} style={actionBtnSubmit}>
-                    提交 Agent 整理
+                    提交整理
                   </button>
                 </div>
               </div>

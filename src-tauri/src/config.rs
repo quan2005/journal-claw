@@ -56,7 +56,7 @@ pub struct Config {
     pub qwen_code_model: String,
     // ASR 引擎配置
     #[serde(default = "default_asr_engine")]
-    pub asr_engine: String, // "dashscope" | "whisperkit"
+    pub asr_engine: String, // "apple" | "dashscope" | "whisperkit"
     #[serde(default = "default_whisperkit_model")]
     pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
     // 首次启动引导
@@ -97,7 +97,7 @@ fn default_active_engine() -> String {
 }
 
 fn default_asr_engine() -> String {
-    "whisperkit".to_string()
+    "apple".to_string()
 }
 
 fn default_whisperkit_model() -> String {
@@ -127,9 +127,19 @@ fn sanitize_engine_config(config: &mut Config) {
         config.active_ai_engine = default_active_engine();
     }
 
-    let valid_asr_engines = ["dashscope", "whisperkit"];
+    let valid_asr_engines = ["apple", "dashscope", "whisperkit"];
     if !valid_asr_engines.contains(&config.asr_engine.as_str()) {
         config.asr_engine = default_asr_engine();
+    }
+
+    // 默认引擎迁移逻辑（Requirements 7.1, 7.2, 7.3）：
+    // - 升级用户 + whisperkit + cli 未安装 → 自动切换为 apple
+    // - 升级用户 + dashscope + API Key 已配置 → 保持不变
+    // - 新用户默认 apple（已通过 default_asr_engine 实现）
+    if config.asr_engine == "whisperkit" && !cfg!(test) {
+        if find_whisperkit_cli_path().is_none() {
+            config.asr_engine = "apple".to_string();
+        }
     }
 
     config.whisperkit_model = normalize_whisperkit_model(&config.whisperkit_model)
@@ -448,6 +458,26 @@ pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
     })
 }
 
+/// 返回当前系统 Apple 语音识别使用的底层引擎：
+/// - macOS 26+: "speech_analyzer" (新一代 SpeechAnalyzer API)
+/// - macOS < 26: "sf_speech_recognizer" (旧版 SFSpeechRecognizer)
+#[tauri::command]
+pub fn get_apple_stt_variant() -> String {
+    let major = std::process::Command::new("sw_vers")
+        .arg("-productVersion")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|v| v.trim().split('.').next().map(String::from))
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(0);
+    if major >= 26 {
+        "speech_analyzer".to_string()
+    } else {
+        "sf_speech_recognizer".to_string()
+    }
+}
+
 #[tauri::command]
 pub fn set_asr_config(
     app: AppHandle,
@@ -455,7 +485,7 @@ pub fn set_asr_config(
     dashscope_api_key: String,
     whisperkit_model: String,
 ) -> Result<(), String> {
-    let valid_engines = ["dashscope", "whisperkit"];
+    let valid_engines = ["apple", "dashscope", "whisperkit"];
     if !valid_engines.contains(&asr_engine.as_str()) {
         return Err(format!("invalid asr_engine: {}", asr_engine));
     }
@@ -707,7 +737,7 @@ mod tests {
     #[test]
     fn config_asr_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.asr_engine, "whisperkit");
+        assert_eq!(c.asr_engine, "apple");
         assert_eq!(c.whisperkit_model, "base");
     }
 
@@ -751,7 +781,7 @@ mod tests {
         };
         sanitize_engine_config(&mut c);
         assert_eq!(c.active_ai_engine, "claude");
-        assert_eq!(c.asr_engine, "whisperkit");
+        assert_eq!(c.asr_engine, "apple");
         assert_eq!(c.whisperkit_model, "base");
     }
 
@@ -780,5 +810,47 @@ mod tests {
         let json = serde_json::to_string(&c).unwrap();
         let c2: Config = serde_json::from_str(&json).unwrap();
         assert!(c2.sample_entry_created);
+    }
+
+    #[test]
+    fn migration_dashscope_with_api_key_preserved() {
+        // 升级用户 + dashscope + API Key 已配置 → 保持不变
+        let mut c = Config {
+            asr_engine: "dashscope".into(),
+            dashscope_api_key: "sk-test-key".into(),
+            ..Config::default()
+        };
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.asr_engine, "dashscope");
+        assert_eq!(c.dashscope_api_key, "sk-test-key");
+    }
+
+    #[test]
+    fn migration_apple_engine_stays_apple() {
+        // Apple 引擎保持不变
+        let mut c = Config {
+            asr_engine: "apple".into(),
+            ..Config::default()
+        };
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.asr_engine, "apple");
+    }
+
+    #[test]
+    fn migration_new_user_defaults_to_apple() {
+        // 新用户默认 apple（通过 default_asr_engine 实现）
+        let c: Config = serde_json::from_str("{}").unwrap();
+        assert_eq!(c.asr_engine, "apple");
+    }
+
+    #[test]
+    fn migration_invalid_engine_falls_back_to_apple() {
+        // 无效引擎名称回退为 apple
+        let mut c = Config {
+            asr_engine: "invalid_engine".into(),
+            ..Config::default()
+        };
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.asr_engine, "apple");
     }
 }

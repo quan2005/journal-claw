@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, RefreshCw } from 'lucide-react'
-import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, type AsrConfig } from '../../lib/tauri'
+import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, Mic, RefreshCw } from 'lucide-react'
+import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, getAppleSttVariant, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
 
-type AsrEngineId = 'dashscope' | 'whisperkit'
+type AsrEngineId = 'apple' | 'dashscope' | 'whisperkit'
 type WhisperModel = 'base' | 'small' | 'large-v3-turbo'
 type WhisperDownloadPanelStatus = 'starting' | 'downloading' | 'success' | 'error'
 type WhisperDownloadEventStatus = 'downloading' | 'done' | 'error'
@@ -105,7 +105,7 @@ export default function SectionVoice() {
   const [cliInstalled, setCliInstalled] = useState<boolean | null>(null)
   const [cliInstalling, setCliInstalling] = useState(false)
   const [cliInstallLog, setCliInstallLog] = useState<string[]>([])
-
+  const [appleSttVariant, setAppleSttVariant] = useState<string>('')
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
     Promise.all(models.map(m =>
@@ -123,6 +123,7 @@ export default function SectionVoice() {
       }),
       getWhisperkitModelsDir().then(setModelsDir),
       checkWhisperkitCliInstalled().then(setCliInstalled),
+      getAppleSttVariant().then(setAppleSttVariant),
     ]).then(() => {
       refreshDownloadedModels()
       setLoading(false)
@@ -297,9 +298,15 @@ export default function SectionVoice() {
           ? '有未保存修改'
           : ''
 
+  const appleReady = true // Apple STT is always ready on macOS ≥ 13
+  const appleVendor = appleSttVariant === 'speech_analyzer'
+    ? '系统内置 · SpeechAnalyzer'
+    : '系统内置 · 零配置'
+
   const ENGINES: { id: AsrEngineId; label: string; vendor: string; icon: typeof Cloud; ready: boolean }[] = [
-    { id: 'whisperkit', label: 'WhisperKit', vendor: 'Argmax · 本地',  icon: Cpu,   ready: whisperkitReady },
-    { id: 'dashscope',  label: 'DashScope',  vendor: '阿里云 · 云端', icon: Cloud, ready: dashscopeReady  },
+    { id: 'apple',      label: 'Apple 语音识别', vendor: appleVendor,         icon: Mic,   ready: appleReady      },
+    { id: 'whisperkit', label: 'WhisperKit',     vendor: 'Argmax · 本地',     icon: Cpu,   ready: whisperkitReady },
+    { id: 'dashscope',  label: 'DashScope',      vendor: '阿里云 · 云端',     icon: Cloud, ready: dashscopeReady  },
   ]
 
   return (
@@ -308,7 +315,8 @@ export default function SectionVoice() {
 
       {loading ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 18 }}>
+            <SkeletonRow height={90} mb={0} />
             <SkeletonRow height={90} mb={0} />
             <SkeletonRow height={90} mb={0} />
           </div>
@@ -320,7 +328,7 @@ export default function SectionVoice() {
       ) : (
         <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
           {/* 引擎选择卡片 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 18 }}>
             {ENGINES.map(({ id, label, vendor, icon: Icon, ready }) => {
               const isActive = cfg.asr_engine === id
               return (

@@ -40,8 +40,8 @@ export function resolveTag(tag: string): TagStyle {
   // Detect current theme from document attribute
   const dark = typeof document !== 'undefined' &&
     document.documentElement.getAttribute('data-theme') === 'dark'
-  const textAlpha = dark ? 0.72 : 0.78
-  const bgAlpha = dark ? 0.12 : 0.13
+  const textAlpha = dark ? 0.72 : 0.90
+  const bgAlpha = dark ? 0.12 : 0.18
   return {
     label: tag,
     color: `rgba(${rgb},${textAlpha})`,

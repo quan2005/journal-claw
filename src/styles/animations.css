@@ -121,3 +121,9 @@
   from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   to   { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
 }
+
+/* View switch — smooth fade + subtle slide */
+@keyframes view-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

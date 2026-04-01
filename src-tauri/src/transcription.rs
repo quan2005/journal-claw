@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
@@ -11,6 +11,13 @@ const UPLOAD_URL: &str = "https://dashscope.aliyuncs.com/api/v1/uploads";
 const TRANSCRIBE_URL: &str =
     "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription";
 const MIN_DURATION_SECS: f64 = 30.0;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpeakerSegment {
+    pub label: String,
+    pub start: f64,
+    pub end: f64,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WhisperSegment {
@@ -26,6 +33,9 @@ pub struct Transcript {
     pub text: String,
     #[serde(default)]
     pub segments: Vec<WhisperSegment>,
+    /// Which speech engine produced this transcript (e.g. "speech_analyzer", "sf_speech_recognizer", "whisperkit", "dashscope")
+    #[serde(default)]
+    pub engine: Option<String>,
 }
 
 pub fn transcript_json_path_for_audio(file_path: &std::path::Path) -> PathBuf {
@@ -396,6 +406,7 @@ fn save_transcript(app: &AppHandle, file_path: &Path, status: &str, text: &str) 
         status: status.to_string(),
         text: text.to_string(),
         segments: vec![],
+        engine: None,
     };
     save_transcript_data(file_path, &transcript);
     let filename = file_path
@@ -606,7 +617,107 @@ fn parse_whisperkit_stdout(stdout_bytes: &str) -> Transcript {
         status: "completed".to_string(),
         text,
         segments,
+        engine: None,
     }
+}
+
+/// 将词级别的 segments 合并为句子级别。
+/// SFSpeechRecognizer 返回的每个 segment 只有一两个词，没有标点。
+/// 合并策略：当两个相邻词之间的时间间隔 > PAUSE_THRESHOLD 秒时断句，
+/// 并在中文句尾添加句号。
+fn merge_word_segments_to_sentences(segments: &[WhisperSegment]) -> Vec<WhisperSegment> {
+    if segments.is_empty() {
+        return vec![];
+    }
+
+    const PAUSE_THRESHOLD: f64 = 0.7; // 停顿超过 0.7 秒视为句子边界
+
+    let mut result: Vec<WhisperSegment> = Vec::new();
+    let mut current_text = String::new();
+    let mut current_start = segments[0].start;
+    let mut current_end = segments[0].end;
+    let mut current_speaker = segments[0].speaker.clone();
+
+    for (i, seg) in segments.iter().enumerate() {
+        let gap = if i > 0 { seg.start - segments[i - 1].end } else { 0.0 };
+        let speaker_changed = seg.speaker != current_speaker;
+
+        if i > 0 && (gap > PAUSE_THRESHOLD || speaker_changed) {
+            // 断句：保存当前累积的句子
+            let text = finalize_sentence_text(&current_text);
+            result.push(WhisperSegment {
+                speaker: current_speaker.clone(),
+                start: current_start,
+                end: current_end,
+                text,
+            });
+            current_text.clear();
+            current_start = seg.start;
+            current_speaker = seg.speaker.clone();
+        }
+
+        // CJK 文本之间不加空格
+        if !current_text.is_empty() {
+            let needs_space = !ends_with_cjk(&current_text) || !starts_with_cjk(seg.text.trim());
+            if needs_space {
+                current_text.push(' ');
+            }
+        }
+        current_text.push_str(seg.text.trim());
+        current_end = seg.end;
+    }
+
+    // 最后一个句子
+    if !current_text.is_empty() {
+        let text = finalize_sentence_text(&current_text);
+        result.push(WhisperSegment {
+            speaker: current_speaker,
+            start: current_start,
+            end: current_end,
+            text,
+        });
+    }
+
+    result
+}
+
+/// 给句子末尾添加标点（如果还没有的话）
+fn finalize_sentence_text(text: &str) -> String {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let last_char = trimmed.chars().last().unwrap();
+    // 已有标点则不添加
+    if "。！？.!?，,、；;：:…".contains(last_char) {
+        return trimmed.to_string();
+    }
+    // 末尾是 CJK 字符 → 加中文句号，否则加英文句号
+    if is_cjk(last_char) {
+        format!("{}。", trimmed)
+    } else {
+        format!("{}.", trimmed)
+    }
+}
+
+/// 判断字符是否为 CJK（中日韩）字符
+fn is_cjk(c: char) -> bool {
+    matches!(c,
+        '\u{4E00}'..='\u{9FFF}'   // CJK Unified Ideographs
+        | '\u{3400}'..='\u{4DBF}' // CJK Extension A
+        | '\u{3000}'..='\u{303F}' // CJK Symbols and Punctuation
+        | '\u{FF00}'..='\u{FFEF}' // Fullwidth Forms
+        | '\u{3040}'..='\u{309F}' // Hiragana
+        | '\u{30A0}'..='\u{30FF}' // Katakana
+    )
+}
+
+fn ends_with_cjk(s: &str) -> bool {
+    s.chars().last().map_or(false, is_cjk)
+}
+
+fn starts_with_cjk(s: &str) -> bool {
+    s.chars().next().map_or(false, is_cjk)
 }
 
 fn format_ai_body(transcript: &Transcript) -> String {
@@ -627,7 +738,11 @@ fn format_ai_body(transcript: &Transcript) -> String {
         match blocks.last_mut() {
             Some((speaker, content)) if *speaker == segment.speaker => {
                 if !content.is_empty() {
-                    content.push(' ');
+                    // 中文字符之间不加空格，其他语言加空格
+                    let needs_space = !ends_with_cjk(content) || !starts_with_cjk(&cleaned);
+                    if needs_space {
+                        content.push(' ');
+                    }
                 }
                 content.push_str(&cleaned);
             }
@@ -655,10 +770,15 @@ fn render_audio_ai_markdown(
         .iter()
         .any(|segment| segment.speaker.is_some());
     let body = format_ai_body(transcript);
+    // 显示实际使用的底层引擎（如 speech_analyzer / sf_speech_recognizer）
+    let engine_display = match &transcript.engine {
+        Some(e) => format!("{} ({})", asr_engine, e),
+        None => asr_engine.to_string(),
+    };
     format!(
         "# 音频素材\n\n- 来源音频: {}\n- 转写引擎: {}\n- 语言: zh\n- 说话人分离: {}\n\n## 转写内容\n\n{}\n",
         audio_filename,
-        asr_engine,
+        engine_display,
         if has_speaker { "是" } else { "否" },
         body,
     )
@@ -750,6 +870,7 @@ async fn transcribe_with_dashscope(
         status: "completed".to_string(),
         text,
         segments: vec![],
+        engine: Some("dashscope".to_string()),
     };
     save_transcript_data(file_path, &transcript);
     emit_progress(app, &filename, "completed");
@@ -778,24 +899,421 @@ pub async fn transcribe_audio_to_ai_markdown(
     })?;
     let asr_engine = cfg.asr_engine.clone();
 
-    let transcript = if asr_engine == "whisperkit" {
-        transcribe_with_whisperkit(app.clone(), file_path.clone(), cfg.whisperkit_model).await?
-    } else {
-        transcribe_with_dashscope(&app, &file_path, duration_secs).await?
+    // Step 1: 转写（根据引擎选择）
+    let transcript = match asr_engine.as_str() {
+        "apple" => {
+            transcribe_with_apple_stt(app.clone(), file_path.clone(), duration_secs).await?
+        }
+        "whisperkit" => {
+            transcribe_with_whisperkit(app.clone(), file_path.clone(), cfg.whisperkit_model).await?
+        }
+        _ => transcribe_with_dashscope(&app, &file_path, duration_secs).await?,
     };
 
+    // Step 2: 说话人分离（仅当转写结果不含说话人标签时）
+    let has_speaker_labels = transcript.segments.iter().any(|s| s.speaker.is_some());
+    let final_transcript = if has_speaker_labels {
+        // whisperkit 已提供说话人标签，跳过 SpeakerKit
+        transcript
+    } else {
+        // apple / dashscope 不含说话人标签，调用 SpeakerKit
+        let filename = file_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        emit_progress(&app, &filename, "diarizing");
+        match diarize_with_speakerkit(app.clone(), file_path.clone(), duration_secs).await {
+            Ok(speakers) => {
+                let merged = merge_transcript_with_speakers(&transcript, &speakers);
+                save_transcript_data(&file_path, &merged);
+                merged
+            }
+            Err(e) => {
+                eprintln!("[audio_pipeline] SpeakerKit failed, fallback: {}", e);
+                transcript // 回退为无说话人标注
+            }
+        }
+    };
+
+    // Step 3: 生成 audio-ai.md
     let audio_filename = file_path
         .file_name()
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    let markdown = render_audio_ai_markdown(&audio_filename, &asr_engine, &transcript);
+
+    emit_progress(&app, &audio_filename, "completed");
+
+    let markdown = render_audio_ai_markdown(&audio_filename, &asr_engine, &final_transcript);
     let markdown_path = audio_ai_markdown_path_for_audio(file_path.as_path());
 
     std::fs::write(&markdown_path, markdown.as_bytes())
         .map_err(|e| format!("写入音频 AI markdown 失败: {}", e))?;
 
     Ok(markdown_path)
+}
+
+/// 计算 CLI 调用超时：max(duration_secs * 3, 60) 秒
+pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
+    let secs = (duration_secs * 3.0).max(60.0);
+    Duration::from_secs(secs as u64)
+}
+
+/// 查找 journal-speech sidecar 二进制路径。
+/// 优先使用 Tauri resource_dir 下的 sidecar，回退到开发环境路径和 PATH。
+fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let target_triple = "aarch64-apple-darwin";
+    let binary_name = format!("journal-speech-{}", target_triple);
+
+    // Tauri sidecar: resource_dir/binaries/journal-speech-<target>
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let sidecar = resource_dir.join("binaries").join(&binary_name);
+        if sidecar.exists() {
+            return Ok(sidecar);
+        }
+    }
+
+    // 开发环境回退：src-tauri/binaries/
+    let dev_sidecar = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("binaries")
+        .join(&binary_name);
+    if dev_sidecar.exists() {
+        return Ok(dev_sidecar);
+    }
+
+    // 最后尝试 PATH
+    if let Ok(output) = std::process::Command::new("which")
+        .arg("journal-speech")
+        .env("PATH", config::augmented_path())
+        .output()
+    {
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Ok(PathBuf::from(path));
+            }
+        }
+    }
+
+    Err("未找到 journal-speech，请重新安装应用".to_string())
+}
+
+/// Apple STT 转写：调用 journal-speech transcribe sidecar。
+pub async fn transcribe_with_apple_stt(
+    app: AppHandle,
+    file_path: PathBuf,
+    duration_secs: f64,
+) -> Result<Transcript, String> {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let cli_path = find_journal_speech_path(&app).map_err(|e| {
+        save_transcript(&app, &file_path, "failed", &e);
+        e
+    })?;
+
+    // 推送 "transcribing" 状态
+    emit_progress(&app, &filename, "transcribing");
+
+    let mut cmd = Command::new(&cli_path);
+    cmd.args([
+        "transcribe",
+        "--audio",
+        file_path.to_str().unwrap_or(""),
+        "--language",
+        "zh-CN",
+    ]);
+
+    use std::process::Stdio;
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| {
+        let msg = format!("启动 journal-speech 失败: {}", e);
+        save_transcript(&app, &file_path, "failed", &msg);
+        msg
+    })?;
+
+    // 流式读取 stderr 日志
+    let stderr_handle = if let Some(stderr) = child.stderr.take() {
+        let app_clone = app.clone();
+        let fname = filename.clone();
+        Some(tokio::spawn(async move {
+            let mut reader = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let _ = app_clone.emit(
+                    "transcription-progress",
+                    serde_json::json!({
+                        "filename": fname,
+                        "status": "transcribing",
+                        "message": line.trim(),
+                    }),
+                );
+            }
+        }))
+    } else {
+        None
+    };
+
+    // 收集 stdout
+    let stdout_bytes = if let Some(stdout) = child.stdout.take() {
+        let mut reader = BufReader::new(stdout);
+        let mut buf = String::new();
+        use tokio::io::AsyncReadExt;
+        reader.read_to_string(&mut buf).await.ok();
+        buf
+    } else {
+        String::new()
+    };
+
+    // 超时控制：max(duration_secs * 3, 60) 秒
+    let timeout = compute_stt_timeout(duration_secs);
+    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
+
+    // 清理 stderr reader
+    if let Some(h) = stderr_handle {
+        let _ = h.await;
+    }
+
+    let status = match wait_result {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => {
+            let msg = format!("等待 journal-speech 进程失败: {}", e);
+            save_transcript(&app, &file_path, "failed", &msg);
+            return Err(msg);
+        }
+        Err(_) => {
+            // 超时：终止子进程
+            let msg = format!(
+                "Apple STT 转写超时（{}秒），已终止进程",
+                timeout.as_secs()
+            );
+            save_transcript(&app, &file_path, "failed", &msg);
+            return Err(msg);
+        }
+    };
+
+    if !status.success() {
+        // 尝试从 stdout 解析错误信息
+        let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
+            .ok()
+            .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+            .unwrap_or_else(|| "journal-speech 转写失败".to_string());
+        save_transcript(&app, &file_path, "failed", &error_msg);
+        return Err(error_msg);
+    }
+
+    // 解析 JSON stdout 为 Transcript
+    let parsed: serde_json::Value = serde_json::from_str(&stdout_bytes).map_err(|e| {
+        let msg = format!("解析 journal-speech 输出失败: {}", e);
+        save_transcript(&app, &file_path, "failed", &msg);
+        msg
+    })?;
+
+    // 检查 CLI 返回的 status 字段
+    let cli_status = parsed
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    if cli_status == "failed" {
+        let error_msg = parsed
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("未知错误")
+            .to_string();
+        save_transcript(&app, &file_path, "failed", &error_msg);
+        return Err(error_msg);
+    }
+
+    let text = parsed
+        .get("text")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let segments: Vec<WhisperSegment> = parsed
+        .get("segments")
+        .and_then(|s| s.as_array())
+        .map(|arr| {
+            arr.iter()
+                .map(|item| WhisperSegment {
+                    speaker: item
+                        .get("speaker")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                    start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                    end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                    text: item
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let engine = parsed
+        .get("engine")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    // SFSpeechRecognizer 返回词级别 segments，合并为句子级别
+    let merged_segments = merge_word_segments_to_sentences(&segments);
+    // 用合并后的句子文本替换原始 text（带标点）
+    let merged_text = merged_segments.iter().map(|s| s.text.as_str()).collect::<Vec<_>>().join("");
+
+    let transcript = Transcript {
+        status: "completed".to_string(),
+        text: if merged_segments.is_empty() { text } else { merged_text },
+        segments: merged_segments,
+        engine,
+    };
+
+    save_transcript_data(&file_path, &transcript);
+    emit_progress(&app, &filename, "completed");
+
+    Ok(transcript)
+}
+
+/// SpeakerKit 说话人分离：调用 journal-speech diarize sidecar。
+pub async fn diarize_with_speakerkit(
+    app: AppHandle,
+    file_path: PathBuf,
+    duration_secs: f64,
+) -> Result<Vec<SpeakerSegment>, String> {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let cli_path = find_journal_speech_path(&app)?;
+
+    // 推送 "diarizing" 状态
+    emit_progress(&app, &filename, "diarizing");
+
+    let mut cmd = Command::new(&cli_path);
+    cmd.args([
+        "diarize",
+        "--audio",
+        file_path.to_str().unwrap_or(""),
+    ]);
+
+    use std::process::Stdio;
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| {
+        format!("启动 journal-speech diarize 失败: {}", e)
+    })?;
+
+    // 流式读取 stderr 日志
+    let stderr_handle = if let Some(stderr) = child.stderr.take() {
+        let app_clone = app.clone();
+        let fname = filename.clone();
+        Some(tokio::spawn(async move {
+            let mut reader = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let _ = app_clone.emit(
+                    "transcription-progress",
+                    serde_json::json!({
+                        "filename": fname,
+                        "status": "diarizing",
+                        "message": line.trim(),
+                    }),
+                );
+            }
+        }))
+    } else {
+        None
+    };
+
+    // 收集 stdout
+    let stdout_bytes = if let Some(stdout) = child.stdout.take() {
+        let mut reader = BufReader::new(stdout);
+        let mut buf = String::new();
+        use tokio::io::AsyncReadExt;
+        reader.read_to_string(&mut buf).await.ok();
+        buf
+    } else {
+        String::new()
+    };
+
+    // 超时控制：与转写超时逻辑一致
+    let timeout = compute_stt_timeout(duration_secs);
+    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
+
+    // 清理 stderr reader
+    if let Some(h) = stderr_handle {
+        let _ = h.await;
+    }
+
+    let status = match wait_result {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => {
+            return Err(format!("等待 journal-speech diarize 进程失败: {}", e));
+        }
+        Err(_) => {
+            return Err(format!(
+                "SpeakerKit 说话人分离超时（{}秒），已终止进程",
+                timeout.as_secs()
+            ));
+        }
+    };
+
+    if !status.success() {
+        let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
+            .ok()
+            .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+            .unwrap_or_else(|| "journal-speech diarize 失败".to_string());
+        return Err(error_msg);
+    }
+
+    // 解析 JSON stdout
+    let parsed: serde_json::Value = serde_json::from_str(&stdout_bytes)
+        .map_err(|e| format!("解析 journal-speech diarize 输出失败: {}", e))?;
+
+    // 检查 CLI 返回的 status 字段
+    let cli_status = parsed
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    if cli_status == "failed" {
+        let error_msg = parsed
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("未知错误")
+            .to_string();
+        return Err(error_msg);
+    }
+
+    // 解析 speakers 数组为 Vec<SpeakerSegment>
+    let speakers: Vec<SpeakerSegment> = parsed
+        .get("speakers")
+        .and_then(|s| s.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|item| {
+                    Some(SpeakerSegment {
+                        label: item.get("label").and_then(|v| v.as_str())?.to_string(),
+                        start: item.get("start").and_then(|v| v.as_f64())?,
+                        end: item.get("end").and_then(|v| v.as_f64())?,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(speakers)
 }
 
 /// WhisperKit 转录：调用 whisperkit-cli sidecar，返回格式化 markdown 文本。
@@ -948,9 +1466,12 @@ pub async fn transcribe_with_whisperkit(
             status: "completed".to_string(),
             text,
             segments,
+            engine: Some("whisperkit".to_string()),
         }
     } else {
-        parse_whisperkit_stdout(&stdout_bytes)
+        let mut t = parse_whisperkit_stdout(&stdout_bytes);
+        t.engine = Some("whisperkit".to_string());
+        t
     };
     save_transcript_data(&file_path, &transcript);
 
@@ -990,6 +1511,64 @@ pub fn retry_transcription(app: AppHandle, path: String) -> Result<(), String> {
     let duration = crate::recordings::read_duration_pub(&file_path);
     start_transcription(app, filename, file_path, duration);
     Ok(())
+}
+
+/// 将转写结果与说话人分离结果按时间戳合并。
+///
+/// 对每个转写 segment，找到时间重叠最大的 speaker segment 并赋予其说话人标签。
+/// 如果 segment 已有 speaker 标签（非 None），则保留不覆盖。
+/// 如果没有任何 speaker segment 与之重叠，赋予 "SPEAKER_UNKNOWN"。
+/// 输出 segments 按 start 时间升序排列。
+pub fn merge_transcript_with_speakers(
+    transcript: &Transcript,
+    speakers: &[SpeakerSegment],
+) -> Transcript {
+    let mut merged_segments: Vec<WhisperSegment> = transcript
+        .segments
+        .iter()
+        .map(|seg| {
+            // If the segment already has a speaker label, preserve it
+            if seg.speaker.is_some() {
+                return seg.clone();
+            }
+
+            // Find the speaker segment with the maximum overlap
+            let mut best_label: Option<&str> = None;
+            let mut best_overlap: f64 = 0.0;
+
+            for sp in speakers {
+                let overlap_start = seg.start.max(sp.start);
+                let overlap_end = seg.end.min(sp.end);
+                let overlap = overlap_end - overlap_start;
+
+                if overlap > best_overlap {
+                    best_overlap = overlap;
+                    best_label = Some(&sp.label);
+                }
+            }
+
+            WhisperSegment {
+                speaker: Some(
+                    best_label
+                        .unwrap_or("SPEAKER_UNKNOWN")
+                        .to_string(),
+                ),
+                start: seg.start,
+                end: seg.end,
+                text: seg.text.clone(),
+            }
+        })
+        .collect();
+
+    // Sort by start time ascending
+    merged_segments.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(std::cmp::Ordering::Equal));
+
+    Transcript {
+        status: transcript.status.clone(),
+        text: transcript.text.clone(),
+        segments: merged_segments,
+        engine: transcript.engine.clone(),
+    }
 }
 
 #[cfg(test)]
@@ -1114,5 +1693,110 @@ SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
         assert_eq!(transcript.segments[0].text, "喂喂喂 你好");
         assert_eq!(transcript.segments[1].speaker.as_deref(), Some("B"));
         assert_eq!(transcript.segments[1].text, "现在测试录音");
+    }
+
+    #[test]
+    fn compute_stt_timeout_uses_duration_times_three() {
+        let timeout = compute_stt_timeout(30.0);
+        assert_eq!(timeout, Duration::from_secs(90));
+    }
+
+    #[test]
+    fn compute_stt_timeout_minimum_60_seconds() {
+        let timeout = compute_stt_timeout(10.0);
+        assert_eq!(timeout, Duration::from_secs(60));
+    }
+
+    #[test]
+    fn compute_stt_timeout_zero_duration_returns_60() {
+        let timeout = compute_stt_timeout(0.0);
+        assert_eq!(timeout, Duration::from_secs(60));
+    }
+
+    #[test]
+    fn compute_stt_timeout_large_duration() {
+        let timeout = compute_stt_timeout(120.0);
+        assert_eq!(timeout, Duration::from_secs(360));
+    }
+
+    #[test]
+    fn merge_basic_two_speakers() {
+        let transcript = Transcript {
+            status: "completed".into(),
+            text: "大家好 今天讨论排期".into(),
+            segments: vec![
+                WhisperSegment { speaker: None, start: 0.0, end: 3.0, text: "大家好".into() },
+                WhisperSegment { speaker: None, start: 3.5, end: 7.0, text: "今天讨论排期".into() },
+            ],
+            engine: None,
+        };
+        let speakers = vec![
+            SpeakerSegment { label: "SPEAKER_00".into(), start: 0.0, end: 3.2 },
+            SpeakerSegment { label: "SPEAKER_01".into(), start: 3.3, end: 7.5 },
+        ];
+
+        let merged = merge_transcript_with_speakers(&transcript, &speakers);
+        assert_eq!(merged.segments.len(), 2);
+        assert_eq!(merged.segments[0].speaker.as_deref(), Some("SPEAKER_00"));
+        assert_eq!(merged.segments[1].speaker.as_deref(), Some("SPEAKER_01"));
+        // Verify sorted by start time
+        assert!(merged.segments[0].start <= merged.segments[1].start);
+    }
+
+    #[test]
+    fn merge_single_speaker() {
+        let transcript = Transcript {
+            status: "completed".into(),
+            text: "独白内容".into(),
+            segments: vec![
+                WhisperSegment { speaker: None, start: 0.0, end: 5.0, text: "独白内容".into() },
+            ],
+            engine: None,
+        };
+        let speakers = vec![
+            SpeakerSegment { label: "SPEAKER_00".into(), start: 0.0, end: 10.0 },
+        ];
+
+        let merged = merge_transcript_with_speakers(&transcript, &speakers);
+        assert_eq!(merged.segments.len(), 1);
+        assert_eq!(merged.segments[0].speaker.as_deref(), Some("SPEAKER_00"));
+        assert_eq!(merged.segments[0].text, "独白内容");
+    }
+
+    #[test]
+    fn merge_preserves_existing_speaker_labels() {
+        let transcript = Transcript {
+            status: "completed".into(),
+            text: "已有标签".into(),
+            segments: vec![
+                WhisperSegment { speaker: Some("EXISTING_A".into()), start: 0.0, end: 3.0, text: "已有标签".into() },
+                WhisperSegment { speaker: None, start: 3.5, end: 6.0, text: "无标签".into() },
+            ],
+            engine: None,
+        };
+        let speakers = vec![
+            SpeakerSegment { label: "SPEAKER_01".into(), start: 0.0, end: 7.0 },
+        ];
+
+        let merged = merge_transcript_with_speakers(&transcript, &speakers);
+        assert_eq!(merged.segments[0].speaker.as_deref(), Some("EXISTING_A"), "existing speaker label should not be overwritten");
+        assert_eq!(merged.segments[1].speaker.as_deref(), Some("SPEAKER_01"), "missing speaker should be assigned from speakers list");
+    }
+
+    #[test]
+    fn merge_empty_speakers_assigns_unknown() {
+        let transcript = Transcript {
+            status: "completed".into(),
+            text: "无说话人数据".into(),
+            segments: vec![
+                WhisperSegment { speaker: None, start: 0.0, end: 3.0, text: "无说话人数据".into() },
+            ],
+            engine: None,
+        };
+        let speakers: Vec<SpeakerSegment> = vec![];
+
+        let merged = merge_transcript_with_speakers(&transcript, &speakers);
+        assert_eq!(merged.segments.len(), 1);
+        assert_eq!(merged.segments[0].speaker.as_deref(), Some("SPEAKER_UNKNOWN"));
     }
 }

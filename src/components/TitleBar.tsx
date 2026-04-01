@@ -35,21 +35,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
 
       {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        {view === 'soul' ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(90,154,106,0.08)',
-            border: '0.5px solid rgba(90,154,106,0.2)',
-            borderRadius: 5, padding: '3px 10px',
-            fontSize: 11, color: 'var(--soul-color, #5a9a6a)',
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
-              <path d="M9 21h6M10 17h4"/>
-            </svg>
-            Agent 灵魂
-          </div>
-        ) : view === 'settings' ? (
+        {view === 'settings' ? (
           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
         ) : (
           <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} onLogClick={onLogClick} />
@@ -61,7 +47,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
         {view === 'journal' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
         <button
           onClick={onToggleSoul}
-          title={soulActive ? '返回 (Esc)' : 'Agent 灵魂 (⌘P)'}
+          title={soulActive ? '返回 (Esc)' : '谨迹灵魂 (⌘P)'}
           style={{
             background: soulActive ? 'rgba(90,154,106,0.12)' : 'none',
             border: 'none', cursor: 'pointer',
@@ -71,9 +57,13 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
             opacity: soulActive ? 1 : 0.6,
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
-            <path d="M9 21h6M10 17h4"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/>
+            <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 12 0"/>
+            <path d="M12 12a2 2 0 0 0-2 2c0 2 1 4 1 6"/>
+            <path d="M8.5 16.5c-.3 2-.1 4 .5 6"/>
+            <path d="M14 13.5c0 1.5-.5 3-1 5.5"/>
+            <path d="M17.5 15c-.5 2-1 4-1.5 6"/>
           </svg>
         </button>
       </div>

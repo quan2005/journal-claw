@@ -18,41 +18,54 @@ interface DetailPanelProps {
 }
 
 // ── Detail context menu ───────────────────────────────────────────────────────
-function DetailContextMenu({ x, y, onCopy, onClose }: {
-  x: number; y: number
-  onCopy: () => void
+function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onClose }: {
+  menuRef: React.RefObject<HTMLDivElement | null>
+  onCopySelection: () => void
+  onCopyRaw: () => void
   onClose: () => void
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    window.addEventListener('mousedown', handler)
-    return () => window.removeEventListener('mousedown', handler)
-  }, [onClose])
-
+  const iconColor = 'var(--item-meta)'
   const itemStyle: React.CSSProperties = {
-    padding: '8px 14px', fontSize: 13, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '7px 12px', fontSize: 13, cursor: 'pointer',
     color: 'var(--item-text)',
   }
 
   return (
-    <div ref={ref} style={{
-      position: 'fixed', top: y, left: x, zIndex: 9999,
+    <div ref={menuRef} style={{
+      position: 'fixed', top: 0, left: 0, zIndex: 9999,
       background: 'var(--context-menu-bg)',
       border: '1px solid var(--context-menu-border)',
       borderRadius: 8,
       boxShadow: '0 4px 20px var(--context-menu-shadow)',
-      minWidth: 140, overflow: 'hidden',
+      minWidth: 160, overflow: 'hidden',
+      padding: '4px 0',
+      display: 'none',
     }}>
+      {/* Copy selection */}
+      <div data-role="copy-selection" style={itemStyle}
+        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
+        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => { onCopySelection(); onClose() }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span>复制选中文本</span>
+      </div>
+      <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
+      {/* Copy raw markdown */}
       <div style={itemStyle}
         onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
         onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-        onClick={() => { onCopy(); onClose() }}
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => { onCopyRaw(); onClose() }}
       >
-        复制原文
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span>复制全文 (Markdown)</span>
       </div>
     </div>
   )
@@ -119,14 +132,58 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 // ── Component ─────────────────────────────────────────────────────────────────
 export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!entry) { setContent(null); return }
     setContent(null)
     getJournalEntryContent(entry.path).then(setContent)
   }, [entry?.path, entry?.mtime_secs])
+
+  // Show/hide context menu imperatively — no state, no re-render, no selection loss
+  const showContextMenu = (x: number, y: number) => {
+    const el = ctxMenuRef.current
+    if (!el) return
+    // Update "copy selection" item enabled state
+    const hasSelection = !!window.getSelection()?.toString()
+    const copySelItem = el.querySelector('[data-role="copy-selection"]') as HTMLDivElement | null
+    if (copySelItem) {
+      copySelItem.style.opacity = hasSelection ? '1' : '0.35'
+      copySelItem.style.cursor = hasSelection ? 'pointer' : 'default'
+      copySelItem.style.pointerEvents = hasSelection ? 'auto' : 'none'
+    }
+    el.style.display = 'block'
+    el.style.left = `${x}px`
+    el.style.top = `${y}px`
+    // Adjust if overflowing viewport
+    const rect = el.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    if (rect.right > vw) el.style.left = `${Math.max(4, vw - rect.width - 8)}px`
+    if (rect.bottom > vh) el.style.top = `${Math.max(4, vh - rect.height - 8)}px`
+  }
+
+  const hideContextMenu = () => {
+    const el = ctxMenuRef.current
+    if (el) el.style.display = 'none'
+  }
+
+  // Close on outside click or Escape
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      if (ctxMenuRef.current && !ctxMenuRef.current.contains(e.target as Node)) hideContextMenu()
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') hideContextMenu()
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onDeselect() }
@@ -206,7 +263,14 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
             >
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🎙️</div>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                  <path d="M19 10a7 7 0 0 1-14 0"/>
+                  <line x1="12" y1="19" x2="12" y2="22"/>
+                  <line x1="8" y1="22" x2="16" y2="22"/>
+                </svg>
+              </div>
               <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
               <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
             </button>
@@ -222,7 +286,13 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
             >
-              <div style={{ fontSize: 24, marginBottom: 8 }}>📄</div>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
               <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
               <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
             </button>
@@ -240,7 +310,13 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
               >
-                <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
+                    <line x1="9" y1="21" x2="15" y2="21"/>
+                    <line x1="10" y1="17" x2="14" y2="17"/>
+                  </svg>
+                </div>
                 <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>创建示例条目</div>
                 <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>生成一条示例<br/>了解 AI 整理效果</div>
               </button>
@@ -262,7 +338,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
         style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
         onContextMenu={(e) => {
           e.preventDefault()
-          setContextMenu({ x: e.clientX, y: e.clientY })
+          showContextMenu(e.clientX, e.clientY)
         }}
       >
 
@@ -467,16 +543,17 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
         )}
       </div>
 
-      {contextMenu && (
-        <DetailContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onCopy={() => {
-            if (content) navigator.clipboard.writeText(content)
-          }}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
+      <DetailContextMenu
+        menuRef={ctxMenuRef}
+        onCopySelection={() => {
+          const sel = window.getSelection()?.toString()
+          if (sel) navigator.clipboard.writeText(sel)
+        }}
+        onCopyRaw={() => {
+          if (content) navigator.clipboard.writeText(content)
+        }}
+        onClose={hideContextMenu}
+      />
     </div>
   )
 }

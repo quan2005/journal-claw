@@ -70,7 +70,7 @@ export function AiStatusPill({ isProcessing, processingFilename, onLogClick }: A
       }}>
         {active
           ? lingerName ? `${lingerName} · 整理中` : '整理中…'
-          : 'Agent 待命中'}
+          : '谨迹待命中'}
       </span>
     </div>
   )

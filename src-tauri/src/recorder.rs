@@ -237,8 +237,7 @@ pub async fn stop_recording(app: AppHandle, state: State<'_, RecorderState>) -> 
     // Heavy path: denoise + convert on a blocking thread
     let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let _ = crate::audio_process::process_audio(&wav_path);
-
+        // 先用原始 WAV 直接转成 m4a（保留完整语音内容供转写使用）
         let status = std::process::Command::new("afconvert")
             .args([
                 "-f",

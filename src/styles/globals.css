@@ -5,24 +5,24 @@
 }
 
 :root {
-  --bg: #ffffff;
-  --titlebar-bg: rgba(0,0,0,0.04);
-  --divider: #e5e5ea;
-  --scrollbar-thumb: rgba(0,0,0,0.12);
-  --scrollbar-thumb-hover: rgba(0,0,0,0.22);
-  --month-label: #8e8e93;
+  --bg: #f5f6f7;
+  --titlebar-bg: #edf0f1;
+  --divider: #d8dce0;
+  --scrollbar-thumb: #d2d5d8;
+  --scrollbar-thumb-hover: #bec2c5;
+  --month-label: #6a7278;
   --item-text: #1c1c1e;
-  --item-meta: #86868b;
-  --duration-text: #c7c7cc;
+  --item-meta: #6a7278;
+  --duration-text: #a0a8ad;
   --accent: #ff3b30;
   --record-btn: #4a6a7a;
   --record-btn-hover: #3a5a6a;
-  --record-btn-icon: #ffffff;
-  --record-highlight: rgba(58,90,106,0.06);
+  --record-btn-icon: #f5f6f7;
+  --record-highlight: #ebeef0;
   --record-highlight-bar: rgba(74,106,122,1);
-  --item-icon-bg: #f2f2f7;
-  --item-hover-bg: rgba(0, 0, 0, 0.04);
-  --item-selected-bg: rgba(58,90,106,0.05);
+  --item-icon-bg: #eef1f3;
+  --item-hover-bg: #eff1f2;
+  --item-selected-bg: #ebeef0;
   --item-selected-text: #3a5a6a;
   --item-selected-meta: #5a7a8a;
   --card-selected-bar: var(--record-btn);
@@ -30,57 +30,57 @@
   --date-secondary: var(--item-meta);
   --sheet-overlay: rgba(0, 0, 0, 0.30);
   --sheet-bg: var(--bg);
-  --sheet-handle: #d1d1d6;
+  --sheet-handle: #b8c0c6;
 
   /* Active day (today) */
   --date-today-number: #3a5a6a;
   --date-today-weekday: #5a7a8a;
 
   /* Sidebar */
-  --sidebar-bg: #f8f8f8;
-  --sidebar-month: #8e8e93;
+  --sidebar-bg: #f0f2f3;
+  --sidebar-month: #6a7278;
 
   /* AI Status Pill */
-  --ai-pill-bg: #f0f4f6;
-  --ai-pill-border: #c8d8e0;
+  --ai-pill-bg: #eaf0f3;
+  --ai-pill-border: #a8bcc8;
   --ai-pill-text: #3a5a6a;
   --ai-pill-dot: #5a7a8a;
   --ai-pill-active-text: #2a4a5a;
-  --ai-pill-active-bg: #e4ecf0;
+  --ai-pill-active-bg: #dce6ec;
   --ai-pill-active-border: #4a6a7a;
 
   /* Command Dock */
-  --dock-bg: #f8f8f8;
-  --dock-border: #e5e5ea;
-  --dock-dropzone-border: #b0b0b4;
-  --dock-dropzone-text: #8e8e93;
-  --dock-dropzone-hint: #aeaeb2;
+  --dock-bg: #f0f2f3;
+  --dock-border: #d8dce0;
+  --dock-dropzone-border: #98a4ac;
+  --dock-dropzone-text: #6a7278;
+  --dock-dropzone-hint: #8a9298;
   --dock-dropzone-hover-border: #4a6a7a;
-  --dock-dropzone-hover-bg: rgba(58,90,106,0.06);
+  --dock-dropzone-hover-bg: #ebeef0;
   --dock-paste-border: #4a6a7a;
-  --dock-paste-bg: #f0f4f6;
+  --dock-paste-bg: #eaf0f3;
   --dock-paste-label: #3a5a6a;
-  --dock-kbd-bg: #e8e8e8;
+  --dock-kbd-bg: #e0e4e8;
   --dock-kbd-text: #3a5a6a;
-  --dock-kbd-border: #c8d8e0;
+  --dock-kbd-border: #b8c8d0;
 
   /* Markdown typography */
   --md-h1: #3a5a6a;
   --md-h2: #3a5a6a;
-  --md-h3: #48484a;
-  --md-text: #2c2c2e;
+  --md-h3: #404850;
+  --md-text: #2a3038;
   --md-strong: #3a5a6a;
-  --md-em: #2c2c2e;
-  --md-bullet: #636366;
-  --md-code-bg: rgba(0,0,0,0.055);
+  --md-em: #2a3038;
+  --md-bullet: #586068;
+  --md-code-bg: #e8eaec;
   --md-code-text: #2d6a9f;
-  --md-pre-bg: #f5f5f7;
+  --md-pre-bg: #f7f8f9;
   --md-pre-text: #2d2d2d;
-  --md-quote-bar: #d1d1d6;
-  --md-quote-text: #6e6e73;
-  --md-checkbox-border: #c7c7cc;
+  --md-quote-bar: #c0c8ce;
+  --md-quote-text: #586068;
+  --md-checkbox-border: #b8c0c6;
   --md-checkbox-checked: #5a8ab5;
-  --md-checkbox-done-text: #aeaeb2;
+  --md-checkbox-done-text: #a0a8ad;
 
   /* Markdown links */
   --md-link: #2d6a9f;
@@ -88,12 +88,12 @@
 
   /* Detail panel */
   --detail-bg: var(--bg);
-  --detail-section-label: #8e8e93;
-  --detail-summary: #636366;
-  --detail-case-bg: #f5f5f7;
-  --detail-case-border: #e5e5ea;
+  --detail-section-label: #6a7278;
+  --detail-summary: #586068;
+  --detail-case-bg: #f7f8f9;
+  --detail-case-border: #d8dce0;
   --detail-case-title: #1c1c1e;
-  --detail-case-key: #8e8e93;
+  --detail-case-key: #6a7278;
   --detail-case-val: #3a3a3c;
 
   /* Source badges */
@@ -108,13 +108,13 @@
   --badge-ai-border: #c8c8e8;
 
   /* Processing queue */
-  --queue-bg: #f0f0f2;
-  --queue-border: #d1d1d6;
+  --queue-bg: #f7f8f9;
+  --queue-border: #d0d4d8;
   --queue-shadow: rgba(0,0,0,0.06);
 
   /* Context menu */
-  --context-menu-bg: #ffffff;
-  --context-menu-border: #e5e5ea;
+  --context-menu-bg: #f5f6f7;
+  --context-menu-border: #d8dce0;
   --context-menu-shadow: rgba(0,0,0,0.15);
 }
 
@@ -593,77 +593,77 @@ html, body, #root {
 }
 
 [data-theme="light"] {
-  --bg: #ffffff;
-  --titlebar-bg: rgba(0,0,0,0.04);
-  --divider: #e5e5ea;
-  --scrollbar-thumb: rgba(0,0,0,0.12);
-  --scrollbar-thumb-hover: rgba(0,0,0,0.22);
-  --month-label: #8e8e93;
+  --bg: #f5f6f7;
+  --titlebar-bg: #edf0f1;
+  --divider: #d8dce0;
+  --scrollbar-thumb: #d2d5d8;
+  --scrollbar-thumb-hover: #bec2c5;
+  --month-label: #6a7278;
   --item-text: #1c1c1e;
-  --item-meta: #86868b;
-  --duration-text: #c7c7cc;
+  --item-meta: #6a7278;
+  --duration-text: #a0a8ad;
   --accent: #ff3b30;
   --record-btn: #4a6a7a;
   --record-btn-hover: #3a5a6a;
-  --record-btn-icon: #ffffff;
-  --record-highlight: rgba(58,90,106,0.06);
+  --record-btn-icon: #f5f6f7;
+  --record-highlight: #ebeef0;
   --record-highlight-bar: rgba(74,106,122,1);
-  --item-icon-bg: #f2f2f7;
-  --item-hover-bg: rgba(0, 0, 0, 0.04);
-  --item-selected-bg: rgba(58,90,106,0.05);
+  --item-icon-bg: #eef1f3;
+  --item-hover-bg: #eff1f2;
+  --item-selected-bg: #ebeef0;
   --item-selected-text: #3a5a6a;
   --item-selected-meta: #5a7a8a;
   --sheet-bg: var(--bg);
-  --sheet-handle: #d1d1d6;
+  --sheet-handle: #b8c0c6;
   --date-today-number: #3a5a6a;
   --date-today-weekday: #5a7a8a;
-  --sidebar-bg: #f8f8f8;
-  --sidebar-month: #8e8e93;
-  --ai-pill-bg: #f0f4f6;
-  --ai-pill-border: #c8d8e0;
+  --sidebar-bg: #f0f2f3;
+  --sidebar-month: #6a7278;
+  --ai-pill-bg: #eaf0f3;
+  --ai-pill-border: #a8bcc8;
   --ai-pill-text: #3a5a6a;
   --ai-pill-dot: #5a7a8a;
   --ai-pill-active-text: #2a4a5a;
-  --ai-pill-active-bg: #e4ecf0;
+  --ai-pill-active-bg: #dce6ec;
   --ai-pill-active-border: #4a6a7a;
-  --dock-bg: #f8f8f8;
-  --dock-border: #e5e5ea;
-  --dock-dropzone-border: #b0b0b4;
-  --dock-dropzone-text: #8e8e93;
-  --dock-dropzone-hint: #aeaeb2;
+  --dock-bg: #f0f2f3;
+  --dock-border: #d8dce0;
+  --dock-dropzone-border: #98a4ac;
+  --dock-dropzone-text: #6a7278;
+  --dock-dropzone-hint: #8a9298;
   --dock-dropzone-hover-border: #4a6a7a;
-  --dock-dropzone-hover-bg: rgba(58,90,106,0.06);
+  --dock-dropzone-hover-bg: #ebeef0;
   --dock-paste-border: #4a6a7a;
-  --dock-paste-bg: #f0f4f6;
+  --dock-paste-bg: #eaf0f3;
   --dock-paste-label: #3a5a6a;
-  --dock-kbd-bg: #e8e8e8;
+  --dock-kbd-bg: #e0e4e8;
   --dock-kbd-text: #3a5a6a;
-  --dock-kbd-border: #c8d8e0;
+  --dock-kbd-border: #b8c8d0;
   --md-h1: #3a5a6a;
   --md-h2: #3a5a6a;
-  --md-h3: #48484a;
-  --md-text: #2c2c2e;
+  --md-h3: #404850;
+  --md-text: #2a3038;
   --md-strong: #3a5a6a;
-  --md-em: #2c2c2e;
-  --md-bullet: #636366;
-  --md-code-bg: rgba(0,0,0,0.055);
+  --md-em: #2a3038;
+  --md-bullet: #586068;
+  --md-code-bg: #e8eaec;
   --md-code-text: #2d6a9f;
-  --md-pre-bg: #f5f5f7;
+  --md-pre-bg: #f7f8f9;
   --md-pre-text: #2d2d2d;
-  --md-quote-bar: #d1d1d6;
-  --md-quote-text: #6e6e73;
-  --md-checkbox-border: #c7c7cc;
+  --md-quote-bar: #c0c8ce;
+  --md-quote-text: #586068;
+  --md-checkbox-border: #b8c0c6;
   --md-checkbox-checked: #5a8ab5;
-  --md-checkbox-done-text: #aeaeb2;
+  --md-checkbox-done-text: #a0a8ad;
   --md-link: #2d6a9f;
   --md-link-hover: #1a5080;
   --detail-bg: var(--bg);
-  --detail-section-label: #8e8e93;
-  --detail-summary: #636366;
-  --detail-case-bg: #f5f5f7;
-  --detail-case-border: #e5e5ea;
+  --detail-section-label: #6a7278;
+  --detail-summary: #586068;
+  --detail-case-bg: #f7f8f9;
+  --detail-case-border: #d8dce0;
   --detail-case-title: #1c1c1e;
-  --detail-case-key: #8e8e93;
+  --detail-case-key: #6a7278;
   --detail-case-val: #3a3a3c;
   --badge-voice-bg: #f0f4f6;
   --badge-voice-text: #4a6a7a;
@@ -674,9 +674,11 @@ html, body, #root {
   --badge-ai-bg: #ededfa;
   --badge-ai-text: #5a5a9a;
   --badge-ai-border: #c8c8e8;
-  --queue-bg: #f0f0f2;
-  --queue-border: #d1d1d6;
+  --queue-bg: #f7f8f9;
+  --queue-border: #d0d4d8;
   --queue-shadow: rgba(0,0,0,0.06);
+  --context-menu-bg: #f5f6f7;
+  --context-menu-border: #d8dce0;
 }
 
 /* ── hljs light-mode overrides for manual [data-theme="light"] ── */

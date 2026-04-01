@@ -4,5 +4,7 @@
 <dict>
   <key>NSMicrophoneUsageDescription</key>
   <string>Journal needs microphone access to record audio.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>谨迹需要语音识别权限来将录音转写为文字。</string>
 </dict>
 </plist>

@@ -53,6 +53,10 @@ export default function App() {
   // Check ASR readiness on mount and after settings are closed
   useEffect(() => {
     getAsrConfig().then(async cfg => {
+      if (cfg.asr_engine === 'apple') {
+        setAsrReady(true)
+        return
+      }
       if (cfg.asr_engine === 'dashscope') {
         setAsrReady(cfg.dashscope_api_key.trim().length > 0)
         return
@@ -340,16 +344,16 @@ export default function App() {
       />
 
       {view === 'settings' ? (
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div key="settings" style={{ flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
           <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} onClose={() => setView('journal')} />
         </div>
       ) : view === 'soul' ? (
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div key="soul" style={{ flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
           <SoulView />
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <div key="journal" style={{ display: 'flex', flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
             {/* Left: Journal list */}
             <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
               <JournalList

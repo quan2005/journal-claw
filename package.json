@@ -1,7 +1,7 @@
 {
   "name": "journal",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.7.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -31,6 +31,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "fast-check": "^4.6.0",
     "jsdom": "^28.1.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",

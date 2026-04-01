@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.journal.speech</string>
+    <key>CFBundleName</key>
+    <string>journal-speech</string>
+    <key>CFBundleExecutable</key>
+    <string>journal-speech</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>谨迹需要语音识别权限来将录音转写为文字。</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>谨迹需要麦克风权限来录制音频。</string>
+</dict>
+</plist>

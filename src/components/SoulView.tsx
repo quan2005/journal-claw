@@ -69,23 +69,27 @@ export default function SoulView() {
   const editorLineHeight = 1.7
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 28px 28px', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0, overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 28px 16px', flexShrink: 0 }}>
         <div style={{
           width: 30, height: 30, borderRadius: 8,
           background: 'rgba(90,154,106,0.10)',
           border: '0.5px solid rgba(90,154,106,0.18)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--soul-color, #5a9a6a)" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
-            <path d="M9 21h6M10 17h4"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--soul-color, #5a9a6a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/>
+            <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 12 0"/>
+            <path d="M12 12a2 2 0 0 0-2 2c0 2 1 4 1 6"/>
+            <path d="M8.5 16.5c-.3 2-.1 4 .5 6"/>
+            <path d="M14 13.5c0 1.5-.5 3-1 5.5"/>
+            <path d="M17.5 15c-.5 2-1 4-1.5 6"/>
           </svg>
         </div>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>Agent 灵魂</div>
-          <div style={{ fontSize: 11, color: 'var(--item-meta)', marginTop: 1 }}>定义 Agent 的角色与工作偏好</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>人格设定</div>
+          <div style={{ fontSize: 11, color: 'var(--item-meta)', marginTop: 1 }}>定义谨迹的角色与工作偏好</div>
         </div>
       </div>
 
@@ -93,8 +97,8 @@ export default function SoulView() {
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <div ref={backdropRef} aria-hidden style={{
           position: 'absolute', inset: 0,
-          background: 'var(--detail-case-bg)', border: '1px solid var(--divider)', borderRadius: 6,
-          padding: '12px 14px', fontFamily: editorFont,
+          background: 'var(--detail-case-bg)', borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)', borderLeft: 'none', borderRight: 'none', borderRadius: 0,
+          padding: '12px 28px', fontFamily: editorFont,
           fontSize: editorFontSize, lineHeight: editorLineHeight, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           pointerEvents: 'none', overflowY: 'auto',
         }}>
@@ -107,8 +111,8 @@ export default function SoulView() {
           onScroll={handleScroll}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
-            background: 'transparent', border: '1px solid transparent', borderRadius: 6,
-            padding: '12px 14px', fontFamily: editorFont,
+            background: 'transparent', borderTop: '1px solid transparent', borderBottom: '1px solid transparent', borderLeft: 'none', borderRight: 'none', borderRadius: 0,
+            padding: '12px 28px', fontFamily: editorFont,
             fontSize: editorFontSize, lineHeight: editorLineHeight,
             color: 'transparent', caretColor: 'var(--item-text)', cursor: 'text',
             resize: 'none', outline: 'none', boxSizing: 'border-box',
@@ -119,7 +123,7 @@ export default function SoulView() {
       </div>
 
       {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 28px 28px', flexShrink: 0 }}>
         <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>
           {saveStatus === 'saving' ? '保存中…'
             : saveStatus === 'saved' ? '已自动保存'

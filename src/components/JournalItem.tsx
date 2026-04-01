@@ -46,6 +46,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
         fontWeight: 700,
         color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
         fontFamily: "'Noto Serif SC', serif",
+        ...(isSelected ? { textShadow: '0 0 0.4px currentColor, 0 0 0.4px currentColor' } : {}),
         lineHeight: 1.4,
         marginBottom: 4,
         whiteSpace: 'nowrap',

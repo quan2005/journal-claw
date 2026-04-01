@@ -25,3 +25,6 @@ src-tauri/target/
 *.sln
 *.sw?
 src-tauri/resources/workspace-template/.claude/scripts/__pycache__/
+
+# Swift build artifacts
+src-tauri/swift-cli/.build/

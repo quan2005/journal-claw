@@ -17,7 +17,15 @@ export function useJournal() {
     refreshing.current = true
     try {
       const result = await listAllJournalEntries()
-      setEntries(result)
+      // Only update state when data actually changed to avoid unnecessary re-renders
+      // that clear text selection in DetailPanel
+      setEntries(prev => {
+        if (prev.length !== result.length) return result
+        for (let i = 0; i < prev.length; i++) {
+          if (prev[i].path !== result[i].path || prev[i].mtime_secs !== result[i].mtime_secs) return result
+        }
+        return prev
+      })
     } catch (e) {
       console.error('Failed to load journal entries:', e)
     } finally {

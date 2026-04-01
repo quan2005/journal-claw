@@ -58,11 +58,24 @@ async fn run_audio_pipeline(
         AudioAiReadyPayload {
             source_path: audio_path.to_string_lossy().to_string(),
             material_path: material_path.to_string_lossy().to_string(),
-            filename,
+            filename: filename.clone(),
         },
     );
 
     if enqueue_ai {
+        // 转写内容为空时跳过 AI 处理
+        let material_content = std::fs::read_to_string(&material_path).unwrap_or_default();
+        let has_content = material_content
+            .split("## 转写内容")
+            .nth(1)
+            .map(|body| body.trim().len() > 0)
+            .unwrap_or(false);
+
+        if !has_content {
+            eprintln!("[audio_pipeline] 转写内容为空，跳过 AI 处理: {}", filename);
+            return Ok(material_path);
+        }
+
         if let Err(error) = crate::ai_processor::enqueue_material(
             &app,
             material_path.to_string_lossy().to_string(),

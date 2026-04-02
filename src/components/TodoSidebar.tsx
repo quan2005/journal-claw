@@ -219,8 +219,9 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
 
   useEffect(() => {
     if (editingText && textRef.current) {
-      textRef.current.focus()
-      textRef.current.select()
+      const el = textRef.current
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
     }
   }, [editingText])
 
@@ -279,18 +280,19 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
             }}
             onBlur={handleTextSubmit}
             style={{
-              width: '100%', fontSize: 12, fontFamily: "'Noto Serif SC', serif",
-              fontWeight: 500, lineHeight: 1.4,
+              width: '100%', fontSize: 14, fontFamily: "'Noto Serif SC', serif",
+              fontWeight: 700, lineHeight: '19.6px',
               background: 'transparent', border: 'none', outline: 'none',
-              color: 'var(--item-text)', padding: 0,
+              color: 'var(--item-text)', padding: 0, margin: 0,
+              boxSizing: 'border-box',
             }}
           />
         ) : (
           <div
             onClick={() => !item.done && setEditingText(true)}
             style={{
-              fontSize: 12, lineHeight: 1.4,
-              fontFamily: "'Noto Serif SC', serif", fontWeight: 500,
+              fontSize: 14, lineHeight: '19.6px',
+              fontFamily: "'Noto Serif SC', serif", fontWeight: 700,
               color: item.done ? 'var(--duration-text)' : 'var(--item-text)',
               textDecoration: item.done ? 'line-through' : 'none',
               transition: 'color 0.2s ease',

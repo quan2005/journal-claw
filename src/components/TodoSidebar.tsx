@@ -221,7 +221,7 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
               截止 {item.due.slice(5).replace('-', '/')}
             </span>
           )}
-          {!item.done && !editingDue && (
+          {!item.done && !editingDue && !item.due && (
             <span
               onClick={() => setEditingDue(true)}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}

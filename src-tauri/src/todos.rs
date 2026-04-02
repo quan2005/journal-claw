@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TodoItem {
@@ -59,6 +60,117 @@ pub fn parse_todos(content: &str) -> Vec<TodoItem> {
         .collect()
 }
 
+fn todos_path(workspace: &str) -> PathBuf {
+    Path::new(workspace).join("todos.md")
+}
+
+fn read_todos_file(workspace: &str) -> String {
+    let p = todos_path(workspace);
+    std::fs::read_to_string(&p).unwrap_or_default()
+}
+
+fn write_todos_file(workspace: &str, content: &str) -> Result<(), String> {
+    let p = todos_path(workspace);
+    std::fs::write(&p, content).map_err(|e| format!("写入 todos.md 失败: {}", e))
+}
+
+pub fn list_todos_from_workspace(workspace: &str) -> Vec<TodoItem> {
+    parse_todos(&read_todos_file(workspace))
+}
+
+pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>) -> Result<(), String> {
+    let p = todos_path(workspace);
+    let mut content = if p.exists() {
+        std::fs::read_to_string(&p).map_err(|e| e.to_string())?
+    } else {
+        "---\ndescription: 全局待办清单，由用户手动添加或 AI 自动提取\nformat: GFM task list\nrules:\n  - 每行一条待办，`- [ ]` 未完成，`- [x]` 已完成\n  - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）\n  - 完成日期用 `<!-- done:YYYY-MM-DD -->` 附在行尾（勾选时自动添加）\n  - 新条目追加到未完成项末尾、已完成项之前\n  - 不要重复已存在的条目\n---\n\n# 待办\n\n".to_string()
+    };
+
+    let new_line = match due {
+        Some(d) => format!("- [ ] {} <!-- due:{} -->", text, d),
+        None => format!("- [ ] {}", text),
+    };
+
+    let lines: Vec<&str> = content.lines().collect();
+    let first_done = lines.iter().position(|l| {
+        let t = l.trim_start();
+        t.starts_with("- [x] ") || t.starts_with("- [X] ")
+    });
+
+    match first_done {
+        Some(pos) => {
+            let mut new_lines: Vec<String> = lines[..pos].iter().map(|s| s.to_string()).collect();
+            new_lines.push(new_line);
+            new_lines.extend(lines[pos..].iter().map(|s| s.to_string()));
+            content = new_lines.join("\n") + "\n";
+        }
+        None => {
+            if !content.ends_with('\n') {
+                content.push('\n');
+            }
+            content.push_str(&new_line);
+            content.push('\n');
+        }
+    }
+
+    write_todos_file(workspace, &content)
+}
+
+pub fn toggle_todo_in_workspace(workspace: &str, line_index: usize, checked: bool) -> Result<(), String> {
+    let content = read_todos_file(workspace);
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
+
+    if line_index >= lines.len() {
+        return Err(format!("行号 {} 超出范围", line_index));
+    }
+
+    let line = &lines[line_index];
+    let trimmed = line.trim_start();
+
+    if checked {
+        if trimmed.starts_with("- [ ] ") {
+            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+            let new_line = line.replacen("- [ ] ", "- [x] ", 1);
+            lines[line_index] = format!("{} <!-- done:{} -->", new_line, today);
+        }
+    } else if trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ") {
+        let new_line = line
+            .replacen("- [x] ", "- [ ] ", 1)
+            .replacen("- [X] ", "- [ ] ", 1);
+        let cleaned = remove_comment(&new_line, "done:");
+        lines[line_index] = cleaned;
+    }
+
+    write_todos_file(workspace, &(lines.join("\n") + "\n"))
+}
+
+pub fn delete_todo_in_workspace(workspace: &str, line_index: usize) -> Result<(), String> {
+    let content = read_todos_file(workspace);
+    let lines: Vec<&str> = content.lines().collect();
+
+    if line_index >= lines.len() {
+        return Err(format!("行号 {} 超出范围", line_index));
+    }
+
+    let new_lines: Vec<&str> = lines.into_iter().enumerate()
+        .filter(|(i, _)| *i != line_index)
+        .map(|(_, l)| l)
+        .collect();
+
+    write_todos_file(workspace, &(new_lines.join("\n") + "\n"))
+}
+
+fn remove_comment(line: &str, prefix: &str) -> String {
+    let mut result = line.to_string();
+    let pattern = format!("<!-- {}", prefix);
+    if let Some(start) = result.find(&pattern) {
+        if let Some(end) = result[start..].find("-->") {
+            result = format!("{}{}", result[..start].trim_end(), &result[start + end + 3..]);
+        }
+    }
+    result.trim_end().to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,5 +220,107 @@ mod tests {
     fn empty_file() {
         let items = parse_todos("");
         assert!(items.is_empty());
+    }
+
+    #[test]
+    fn list_todos_from_file() {
+        let tmp = std::env::temp_dir().join("journal_todo_list_test");
+        std::fs::create_dir_all(&tmp).unwrap();
+        let path = tmp.join("todos.md");
+        std::fs::write(&path, "# 待办\n\n- [ ] 任务一\n- [x] 任务二 <!-- done:2026-04-01 -->\n").unwrap();
+        let items = list_todos_from_workspace(tmp.to_str().unwrap());
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].text, "任务一");
+        assert!(items[1].done);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn list_todos_missing_file() {
+        let tmp = std::env::temp_dir().join("journal_todo_missing_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let items = list_todos_from_workspace(tmp.to_str().unwrap());
+        assert!(items.is_empty());
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn add_todo_creates_file_if_missing() {
+        let tmp = std::env::temp_dir().join("journal_todo_add_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "新待办", None).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.starts_with("---\n"));
+        assert!(content.contains("# 待办"));
+        assert!(content.contains("- [ ] 新待办"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn add_todo_with_due_date() {
+        let tmp = std::env::temp_dir().join("journal_todo_add_due_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "截止任务", Some("2026-04-10")).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("- [ ] 截止任务 <!-- due:2026-04-10 -->"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn add_todo_appends_before_completed() {
+        let tmp = std::env::temp_dir().join("journal_todo_add_order_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 已有任务\n- [x] 已完成\n").unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "新增任务", None).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        let lines: Vec<&str> = content.lines().collect();
+        let new_pos = lines.iter().position(|l| l.contains("新增任务")).unwrap();
+        let done_pos = lines.iter().position(|l| l.contains("已完成")).unwrap();
+        assert!(new_pos < done_pos);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn toggle_todo_check() {
+        let tmp = std::env::temp_dir().join("journal_todo_toggle_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 待办项\n").unwrap();
+        toggle_todo_in_workspace(tmp.to_str().unwrap(), 2, true).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("- [x] 待办项"));
+        assert!(content.contains("<!-- done:"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn toggle_todo_uncheck() {
+        let tmp = std::env::temp_dir().join("journal_todo_uncheck_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [x] 已完成 <!-- done:2026-04-01 -->\n").unwrap();
+        toggle_todo_in_workspace(tmp.to_str().unwrap(), 2, false).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("- [ ] 已完成"));
+        assert!(!content.contains("<!-- done:"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn delete_todo_line() {
+        let tmp = std::env::temp_dir().join("journal_todo_delete_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 保留\n- [ ] 删除\n- [ ] 也保留\n").unwrap();
+        delete_todo_in_workspace(tmp.to_str().unwrap(), 3).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("保留"));
+        assert!(!content.contains("删除"));
+        assert!(content.contains("也保留"));
+        std::fs::remove_dir_all(&tmp).ok();
     }
 }

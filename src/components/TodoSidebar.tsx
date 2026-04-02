@@ -239,10 +239,21 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
               ref={dateRef}
               type="date"
               defaultValue={item.due ?? ''}
+              onKeyDown={e => {
+                if (e.key === 'Escape') { setEditingDue(false); return }
+                if (e.key === 'Enter') {
+                  const val = (e.target as HTMLInputElement).value
+                  onSetDue(item.line_index, val || null)
+                  setEditingDue(false)
+                }
+              }}
               onChange={e => {
+                // Only submit when a full date is picked (YYYY-MM-DD)
                 const val = e.target.value
-                onSetDue(item.line_index, val || null)
-                setEditingDue(false)
+                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                  onSetDue(item.line_index, val)
+                  setEditingDue(false)
+                }
               }}
               onBlur={() => setEditingDue(false)}
               style={{

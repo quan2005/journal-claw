@@ -158,6 +158,15 @@ export function TodoSidebar({ todos, onToggle, onAdd, onDelete, onSetDue }: Todo
   )
 }
 
+function dueDateColor(due: string): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dueDate = new Date(due + 'T00:00:00')
+  if (dueDate.getTime() < today.getTime()) return 'var(--accent)'       // 已过期 → 红色
+  if (dueDate.getTime() === today.getTime()) return 'var(--record-btn)' // 今天 → 主题色
+  return 'var(--duration-text)'                                          // 未来 → 默认
+}
+
 function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean) => void
@@ -216,7 +225,7 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
           {!editingDue && item.due && (
             <span
               onClick={() => !item.done && setEditingDue(true)}
-              style={{ fontSize: 9, color: 'var(--duration-text)', cursor: item.done ? 'default' : 'pointer' }}
+              style={{ fontSize: 9, color: item.done ? 'var(--duration-text)' : dueDateColor(item.due), cursor: item.done ? 'default' : 'pointer' }}
             >
               截止 {item.due.replace(/-/g, '/')}
             </span>

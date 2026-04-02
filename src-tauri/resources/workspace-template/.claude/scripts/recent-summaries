@@ -51,14 +51,14 @@ done
 # Identity profiles summary
 IDENTITY_DIR="${REPO_ROOT}/identity"
 if [[ -d "${IDENTITY_DIR}" ]]; then
-  identity_count=0
+  identity_files=()
   while IFS= read -r -d '' file; do
-    identity_count=$((identity_count + 1))
-  done < <(find "${IDENTITY_DIR}" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
-  if [[ $identity_count -gt 0 ]]; then
+    identity_files+=("$file")
+  done < <(find "${IDENTITY_DIR}" -maxdepth 1 -name "*.md" -print0 2>/dev/null | sort -z)
+  if [[ ${#identity_files[@]} -gt 0 ]]; then
     echo ""
-    echo "## 身份档案 (${identity_count} 人)"
-    while IFS= read -r -d '' file; do
+    echo "## 身份档案 (${#identity_files[@]} 人)"
+    for file in "${identity_files[@]}"; do
       fname="$(basename "$file" .md)"
       summary=$(awk '
         /^---$/ { count++; next }
@@ -70,7 +70,7 @@ if [[ -d "${IDENTITY_DIR}" ]]; then
         }
       ' "$file")
       printf "- %s: %s\n" "$fname" "${summary:-[无摘要]}"
-    done < <(find "${IDENTITY_DIR}" -maxdepth 1 -name "*.md" -print0 2>/dev/null | sort -z)
+    done
   fi
 fi
 

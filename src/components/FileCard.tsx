@@ -86,7 +86,7 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
 
       {/* Filename */}
       <span style={{
-        fontSize: 9,
+        fontSize: 11,
         color: 'var(--item-meta)',
         textAlign: 'center',
         maxWidth: 58,

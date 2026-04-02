@@ -10,7 +10,9 @@ export function useIdentity() {
   const refresh = useCallback(async () => {
     try {
       const result = await listIdentities()
-      setIdentities(result)
+      setIdentities(prev =>
+        JSON.stringify(prev) === JSON.stringify(result) ? prev : result
+      )
     } catch (e) {
       console.error('[useIdentity] failed to load identities:', e)
     } finally {

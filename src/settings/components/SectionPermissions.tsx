@@ -32,7 +32,7 @@ function Badge({ variant, label }: { variant: BadgeVariant; label: string }) {
   }
   return (
     <span style={{
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: 500,
       color: color[variant],
       background: variant === 'ok'
@@ -99,10 +99,10 @@ function PermRow({ icon, title, description, status, actionLabel, onAction, extr
       {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>{title}</span>
+          <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--item-text)' }}>{title}</span>
           {badge && <Badge variant={badge.variant} label={badge.label} />}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--item-meta)', marginTop: 3, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 3, lineHeight: 1.6 }}>
           {description}
         </div>
         {extra && <div style={{ marginTop: 6 }}>{extra}</div>}
@@ -120,7 +120,7 @@ function PermRow({ icon, title, description, status, actionLabel, onAction, extr
             border: '1px solid var(--divider)',
             background: 'transparent',
             color: 'var(--item-text)',
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 500,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -234,7 +234,7 @@ export default function SectionPermissions() {
   return (
     <div style={sectionStyle}>
       <div style={{
-        fontSize: 11,
+        fontSize: 13,
         color: 'var(--month-label)',
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
@@ -244,7 +244,7 @@ export default function SectionPermissions() {
         授权管理
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.7, marginBottom: 24 }}>
+      <div style={{ fontSize: 14, color: 'var(--item-meta)', lineHeight: 1.7, marginBottom: 24 }}>
         谨迹需要以下系统权限才能正常工作。点击「检测权限」查看当前状态，或点击「一键授权」完成授权。
       </div>
 
@@ -259,7 +259,7 @@ export default function SectionPermissions() {
             border: '1px solid var(--divider)',
             background: 'transparent',
             color: loading ? 'var(--item-meta)' : 'var(--item-text)',
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: 500,
             cursor: loading ? 'default' : 'pointer',
           }}
@@ -276,7 +276,7 @@ export default function SectionPermissions() {
               border: 'none',
               background: 'var(--record-btn, #ff3b30)',
               color: '#fff',
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -290,7 +290,7 @@ export default function SectionPermissions() {
             display: 'flex',
             alignItems: 'center',
             gap: 5,
-            fontSize: 12,
+            fontSize: 14,
             color: 'var(--item-text)',
             fontWeight: 500,
           }}>
@@ -308,7 +308,7 @@ export default function SectionPermissions() {
           padding: '8px 12px',
           marginBottom: 20,
           borderRadius: 6,
-          fontSize: 11,
+          fontSize: 13,
           color: 'var(--record-btn, #ff3b30)',
           background: 'color-mix(in srgb, var(--record-btn, #ff3b30) 8%, transparent)',
           border: '1px solid color-mix(in srgb, var(--record-btn, #ff3b30) 20%, transparent)',
@@ -323,7 +323,7 @@ export default function SectionPermissions() {
           padding: '32px 0',
           textAlign: 'center',
           color: 'var(--duration-text)',
-          fontSize: 12,
+          fontSize: 14,
         }}>
           点击「检测权限」查看各项授权状态
         </div>

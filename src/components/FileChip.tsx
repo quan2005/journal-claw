@@ -99,7 +99,7 @@ export function FileChip({ filename, kind, onRemove }: FileChipProps) {
         background: colors.bg,
         color: colors.color,
         fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: 11,
+        fontSize: 13,
         lineHeight: 1,
         maxWidth: 200,
       }}

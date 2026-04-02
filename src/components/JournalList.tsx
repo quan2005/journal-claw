@@ -93,7 +93,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
               {/* Month label */}
               <div style={{ padding: '14px 16px 6px' }}>
                 <span style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sidebar-month)',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase' as const,
@@ -116,7 +116,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
                       padding: '10px 14px 4px',
                     }}>
                       <span style={{
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: 500,
                         lineHeight: 1,
                         color: today ? 'var(--date-today-number)' : 'var(--item-meta)',
@@ -124,7 +124,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
                         {day}
                       </span>
                       <span style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         letterSpacing: '0.08em',
                         color: today ? 'var(--date-today-weekday)' : 'var(--item-meta)',
                       }}>

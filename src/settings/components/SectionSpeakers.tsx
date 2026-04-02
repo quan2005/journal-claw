@@ -15,14 +15,14 @@ const sectionStyle: React.CSSProperties = {
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 13,
   color: 'var(--item-meta)',
   marginBottom: 5,
   display: 'block',
 }
 
 const hintStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 12,
   color: 'var(--duration-text)',
   marginTop: 4,
   lineHeight: 1.5,
@@ -87,15 +87,15 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
           gap: 16,
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--item-text)' }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)' }}>
           合并声纹
         </div>
-        <div style={{ fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: 'var(--item-meta)', lineHeight: 1.5 }}>
           将 <strong style={{ color: 'var(--item-text)' }}>{displayName(source)}</strong> 合并到另一个说话人，合并后原档案将被删除。
         </div>
 
         {candidates.length === 0 ? (
-          <div style={{ fontSize: 11, color: 'var(--duration-text)' }}>
+          <div style={{ fontSize: 13, color: 'var(--duration-text)' }}>
             没有其他说话人档案可以合并。
           </div>
         ) : (
@@ -107,7 +107,7 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
               border: '1px solid var(--divider)',
               borderRadius: 6,
               padding: '7px 10px',
-              fontSize: 12,
+              fontSize: 14,
               color: 'var(--item-text)',
               outline: 'none',
               width: '100%',
@@ -129,7 +129,7 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
               border: '1px solid var(--divider)',
               background: 'transparent',
               color: 'var(--item-meta)',
-              fontSize: 12,
+              fontSize: 14,
               cursor: 'pointer',
             }}
           >
@@ -144,7 +144,7 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
               border: 'none',
               background: targetId ? 'var(--record-btn)' : 'var(--divider)',
               color: targetId ? '#fff' : 'var(--item-meta)',
-              fontSize: 12,
+              fontSize: 14,
               cursor: targetId ? 'pointer' : 'default',
               fontWeight: 500,
             }}
@@ -281,7 +281,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
                   border: '1px solid var(--record-btn)',
                   borderRadius: 4,
                   padding: '3px 7px',
-                  fontSize: 12,
+                  fontSize: 14,
                   color: 'var(--item-text)',
                   outline: 'none',
                 }}
@@ -308,7 +308,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
           ) : (
             <div
               style={{
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: 500,
                 color: 'var(--item-text)',
                 overflow: 'hidden',
@@ -318,13 +318,13 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
             >
               {displayName(profile)}
               {!profile.name && (
-                <span style={{ fontSize: 10, color: 'var(--duration-text)', marginLeft: 5 }}>
+                <span style={{ fontSize: 12, color: 'var(--duration-text)', marginLeft: 5 }}>
                   未命名
                 </span>
               )}
             </div>
           )}
-          <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>
             出现在 {profile.recording_count} 条录音中
           </div>
         </div>
@@ -402,7 +402,7 @@ export default function SectionSpeakers() {
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--item-text)', marginBottom: 4 }}>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', marginBottom: 4 }}>
         声纹管理
       </div>
       <div style={{ ...hintStyle, marginBottom: 20 }}>
@@ -436,8 +436,8 @@ export default function SectionSpeakers() {
           }}
         >
           <Mic size={28} strokeWidth={1.2} />
-          <div style={{ fontSize: 12 }}>暂未检测到说话人</div>
-          <div style={{ fontSize: 10, lineHeight: 1.5, textAlign: 'center', maxWidth: 200 }}>
+          <div style={{ fontSize: 14 }}>暂未检测到说话人</div>
+          <div style={{ fontSize: 12, lineHeight: 1.5, textAlign: 'center', maxWidth: 200 }}>
             完成一次录音后，系统将自动识别说话人并在此处显示
           </div>
         </div>

@@ -36,7 +36,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
       {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         {view === 'settings' ? (
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
+          <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
         ) : (
           <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} onLogClick={onLogClick} />
         )}

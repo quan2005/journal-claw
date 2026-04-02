@@ -42,7 +42,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
     >
       {/* Title */}
       <div style={{
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 700,
         color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
         fontFamily: "'Noto Serif SC', serif",
@@ -59,7 +59,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
       {/* Preview / summary */}
       {entry.summary && (
         <div style={{
-          fontSize: 10,
+          fontSize: 12,
           color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)',
           lineHeight: 1.4,
           whiteSpace: 'nowrap',
@@ -89,7 +89,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
         }}>
           {tags.map((tag, i) => (
             <span key={i} style={{
-              fontSize: 9,
+              fontSize: 11,
               padding: '1px 5px',
               borderRadius: 3,
               background: tag.bg,
@@ -104,7 +104,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
         </div>
 
         {/* Time — pushed right */}
-        <span style={{ fontSize: 9, color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)', flexShrink: 0 }}>
+        <span style={{ fontSize: 11, color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)', flexShrink: 0 }}>
           {entry.created_time}
         </span>
       </div>

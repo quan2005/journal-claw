@@ -14,7 +14,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue 
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const unchecked = todos.filter(t => !t.done)
@@ -68,7 +68,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue 
           onSetDue={onSetDue}
           onContextMenu={(e) => {
             e.preventDefault()
-            setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index })
+            setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
           }}
         />
       ))}
@@ -130,7 +130,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue 
               onSetDue={onSetDue}
               onContextMenu={(e) => {
                 e.preventDefault()
-                setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index })
+                setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
               }}
             />
           ))}
@@ -138,23 +138,52 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue 
       )}
 
       {/* Context menu */}
-      {contextMenu && (
-        <div style={{
-          position: 'fixed', left: contextMenu.x, top: contextMenu.y,
-          background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)',
-          borderRadius: 8, padding: '4px 0', zIndex: 1000,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-        }}>
-          <div
-            onClick={() => { onDelete(contextMenu.lineIndex); setContextMenu(null) }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-            style={{ padding: '7px 12px', fontSize: 13, color: '#ff3b30', cursor: 'pointer' }}
-          >
-            删除
+      {contextMenu && (() => {
+        const menuItemStyle: React.CSSProperties = {
+          padding: '7px 12px', fontSize: 13, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)',
+        }
+        const hoverIn = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }
+        const hoverOut = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }
+        return (
+          <div style={{
+            position: 'fixed', left: contextMenu.x, top: contextMenu.y,
+            background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)',
+            borderRadius: 8, padding: '4px 0', zIndex: 1000,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)', minWidth: 140,
+          }}>
+            {/* 复制文本 */}
+            <div style={menuItemStyle} onMouseEnter={hoverIn} onMouseLeave={hoverOut}
+              onClick={() => { navigator.clipboard.writeText(contextMenu.text); setContextMenu(null) }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              复制文本
+            </div>
+            {/* 清除截止日期 (仅有截止日期时显示) */}
+            {contextMenu.due && (
+              <div style={menuItemStyle} onMouseEnter={hoverIn} onMouseLeave={hoverOut}
+                onClick={() => { onSetDue(contextMenu.lineIndex, null); setContextMenu(null) }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                清除截止日期
+              </div>
+            )}
+            <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
+            {/* 删除 */}
+            <div style={{ ...menuItemStyle, color: '#ff3b30' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
+              onMouseLeave={hoverOut}
+              onClick={() => { onDelete(contextMenu.lineIndex); setContextMenu(null) }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              删除
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

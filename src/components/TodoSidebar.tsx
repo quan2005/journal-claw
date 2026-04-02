@@ -280,8 +280,8 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
             }}
             onBlur={handleTextSubmit}
             style={{
-              width: '100%', fontSize: 14, fontFamily: "'Noto Serif SC', serif",
-              fontWeight: 700, lineHeight: '19.6px',
+              width: '100%', fontSize: 13, fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
+              fontWeight: 400, lineHeight: '18.2px',
               background: 'transparent', border: 'none', outline: 'none',
               color: 'var(--item-text)', padding: 0, margin: 0,
               boxSizing: 'border-box',
@@ -291,8 +291,8 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
           <div
             onClick={() => !item.done && setEditingText(true)}
             style={{
-              fontSize: 14, lineHeight: '19.6px',
-              fontFamily: "'Noto Serif SC', serif", fontWeight: 700,
+              fontSize: 13, lineHeight: '18.2px',
+              fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400,
               color: item.done ? 'var(--duration-text)' : 'var(--item-text)',
               textDecoration: item.done ? 'line-through' : 'none',
               transition: 'color 0.2s ease',

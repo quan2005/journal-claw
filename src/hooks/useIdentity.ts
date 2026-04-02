@@ -21,12 +21,16 @@ export function useIdentity() {
   useEffect(() => {
     refresh()
 
+    // Poll as safety net for manual file edits
+    const pollInterval = setInterval(refresh, 3000)
+
     // Refresh when speakers are updated (new speaker registered after recording)
     const unlistenSpeakers = listen('speakers-updated', () => refresh())
     // Refresh when identity files change (merge, delete, create)
     const unlistenIdentity = listen('identity-updated', () => refresh())
 
     return () => {
+      clearInterval(pollInterval)
       unlistenSpeakers.then(fn => fn())
       unlistenIdentity.then(fn => fn())
     }

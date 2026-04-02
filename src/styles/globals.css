@@ -116,6 +116,10 @@
   --context-menu-bg: #f5f6f7;
   --context-menu-border: #d8dce0;
   --context-menu-shadow: rgba(0,0,0,0.15);
+
+  /* Todo sidebar */
+  --todo-row-bg: rgba(0,0,0,0.02);
+  --todo-checkbox-border: #bbb;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -316,9 +320,10 @@
   --queue-bg: #1c1c1e;
   --queue-border: #333;
   --queue-shadow: rgba(0,0,0,0.3);
-  --context-menu-bg: #1e1e1e;
-  --context-menu-border: #333;
-  --context-menu-shadow: rgba(0,0,0,0.5);
+
+  /* Todo sidebar */
+  --todo-row-bg: rgba(255,255,255,0.02);
+  --todo-checkbox-border: #555;
 }
 
 html, body, #root {

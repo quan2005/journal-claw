@@ -15,9 +15,20 @@
 
 ### 文件格式
 
-`{workspace}/todos.md`，使用 GFM task list 语法：
+`{workspace}/todos.md`，使用 YAML frontmatter + GFM task list 语法：
 
 ```markdown
+---
+description: 全局待办清单，由用户手动添加或 AI 自动提取
+format: GFM task list
+rules:
+  - 每行一条待办，`- [ ]` 未完成，`- [x]` 已完成
+  - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）
+  - 完成日期用 `<!-- done:YYYY-MM-DD -->` 附在行尾（勾选时自动添加）
+  - 新条目追加到未完成项末尾、已完成项之前
+  - 不要重复已存在的条目
+---
+
 # 待办
 
 - [ ] 输出首页改版高保真稿 <!-- due:2026-04-10 -->
@@ -31,7 +42,8 @@
 - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）
 - 完成日期用 `<!-- done:YYYY-MM-DD -->` 附在行尾（勾选时自动添加）
 - 未完成在前，已完成在后，新条目追加到未完成区域末尾
-- 文件不存在时，首次添加 todo 自动创建，写入 `# 待办\n\n` 作为文件头
+- 文件不存在时，首次添加 todo 自动创建，写入完整的 YAML frontmatter 头 + `# 待办\n\n`
+- YAML frontmatter 中的 rules 字段供 AI 读取，解析 todo 时应跳过 frontmatter 部分
 
 ### 解析逻辑（Rust 端）
 

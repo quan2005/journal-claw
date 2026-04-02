@@ -67,7 +67,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
       onClick={onClick}
       onContextMenu={e => { e.preventDefault(); onContextMenu(identity) }}
       style={{
-        padding: '7px 12px',
+        padding: '9px 16px',
         cursor: 'pointer',
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
         display: 'flex', alignItems: 'center', gap: 10,

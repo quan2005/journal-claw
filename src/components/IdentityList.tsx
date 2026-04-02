@@ -10,7 +10,7 @@ function isSoul(identity: IdentityEntry) {
 }
 
 function isUserSelf(identity: IdentityEntry) {
-  return identity.filename === 'about-me.md'
+  return identity.filename === 'README.md'
 }
 
 function isPinned(identity: IdentityEntry) {

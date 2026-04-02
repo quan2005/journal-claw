@@ -75,7 +75,7 @@ fn ensure_self_identity(workspace: &str) -> Result<(), String> {
     if !dir.exists() {
         return Ok(());
     }
-    let path = dir.join("about-me.md");
+    let path = dir.join("README.md");
     if path.exists() {
         return Ok(());
     }
@@ -187,7 +187,7 @@ pub fn delete_identity(path: String) -> Result<(), String> {
         .file_name()
         .unwrap_or_default()
         .to_string_lossy();
-    if fname == "about-me.md" {
+    if fname == "README.md" {
         return Err("不可删除「关于我」".to_string());
     }
     std::fs::remove_file(&path).map_err(|e| e.to_string())

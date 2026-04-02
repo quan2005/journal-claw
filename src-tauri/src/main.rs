@@ -3,6 +3,7 @@ mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
 mod config;
+mod identity;
 mod journal;
 mod materials;
 mod permissions;

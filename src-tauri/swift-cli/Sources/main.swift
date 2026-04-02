@@ -266,19 +266,33 @@ struct Diarize: AsyncParsableCommand {
     @Option(name: .long, help: "Path to the audio file")
     var audio: String
 
+    @Option(name: .long, help: "Path to SpeakerKit model folder (overrides auto-detection)")
+    var modelFolder: String?
+
     func run() async throws {
         let fileURL = URL(fileURLWithPath: audio)
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             exitWithError("Audio file not found: \(audio)")
         }
 
-        // Resolve model folder from app bundle Resources or executable-relative Resources
-        let modelFolder = resolveModelFolder()
+        // Use explicit model folder if provided, otherwise auto-detect
+        let resolvedModelFolder: URL?
+        if let explicit = modelFolder {
+            let url = URL(fileURLWithPath: explicit)
+            if FileManager.default.fileExists(atPath: url.path) {
+                resolvedModelFolder = url
+            } else {
+                fputs("[diarize] WARNING: explicit model folder not found: \(explicit)\n", stderr)
+                resolvedModelFolder = resolveModelFolder()
+            }
+        } else {
+            resolvedModelFolder = resolveModelFolder()
+        }
 
         do {
             // Initialize SpeakerKit with local models from bundle Resources if available
             let config: PyannoteConfig
-            if let folder = modelFolder {
+            if let folder = resolvedModelFolder {
                 config = PyannoteConfig(modelFolder: folder, download: false)
             } else {
                 // Fall back to default config (will download models on first run)
@@ -326,7 +340,7 @@ struct Diarize: AsyncParsableCommand {
             // SpeakerKit's SpeakerEmbedderModel is internal and not accessible from outside the module,
             // so we load the same .mlmodelc files and run predictions via MLModel directly.
             var embeddings: [String: [Float]] = [:]
-            if let modelFolder = modelFolder {
+            if let modelFolder = resolvedModelFolder {
                 let preprocessorURL = modelFolder
                     .appendingPathComponent("speaker_embedder")
                     .appendingPathComponent("pyannote-v3")

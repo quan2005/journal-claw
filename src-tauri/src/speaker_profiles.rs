@@ -259,8 +259,14 @@ pub fn check_speaker_embedder(app: AppHandle) -> Result<serde_json::Value, Strin
         .map(|p| p.join("Resources/resources/speakerkit-models"));
     // 2. Dev: binary dir/../resources/speakerkit-models
     let dev_resources = Some(binary_dir.join("../resources/speakerkit-models"));
+    // 3. Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
+    //    (Tauri dev copies sidecar to target/debug/, so binary-relative path misses)
+    let cargo_resources = Some(
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("resources/speakerkit-models"),
+    );
 
-    let model_folder = [app_resources, dev_resources]
+    let model_folder = [app_resources, dev_resources, cargo_resources]
         .into_iter()
         .flatten()
         .map(|p| p.canonicalize().unwrap_or(p))

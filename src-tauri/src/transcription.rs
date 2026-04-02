@@ -1271,6 +1271,22 @@ pub async fn diarize_with_speakerkit(
         file_path.to_str().unwrap_or(""),
     ]);
 
+    // Pass model folder explicitly so Swift CLI can find models in dev mode
+    // (Tauri dev copies sidecar to target/debug/, breaking relative path resolution)
+    let model_candidates = [
+        // Packaged .app: Contents/MacOS/../Resources/resources/speakerkit-models
+        cli_path.parent().and_then(|d| d.parent()).map(|p| p.join("Resources/resources/speakerkit-models")),
+        // Dev: binary dir/../resources/speakerkit-models
+        cli_path.parent().map(|d| d.join("../resources/speakerkit-models")),
+        // Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
+        Some(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/speakerkit-models")),
+    ];
+    if let Some(folder) = model_candidates.into_iter().flatten().find(|p| p.exists()) {
+        if let Some(s) = folder.canonicalize().ok().and_then(|p| p.to_str().map(String::from)) {
+            cmd.args(["--model-folder", &s]);
+        }
+    }
+
     use std::process::Stdio;
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 

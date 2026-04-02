@@ -10,6 +10,7 @@ mod permissions;
 mod recorder;
 mod recordings;
 mod speaker_profiles;
+mod todos;
 mod transcription;
 mod types;
 mod workspace;

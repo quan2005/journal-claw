@@ -432,7 +432,7 @@ fn format_ai_speaker_label(
     match speaker {
         Some(sp) => {
             // Only canonicalise machine-generated SpeakerKit IDs (SPEAKER_00, SPEAKER_01, …).
-            // Profile names ("张三", "说话人 2", or even single-letter initials like "A")
+            // 5-digit speaker IDs (from speaker profiles) and profile names ("张三", "说话人 2", etc.)
             // are passed through as-is so user-assigned names are preserved.
             if sp.starts_with("SPEAKER_") {
                 let label = speaker_map.entry(sp.clone()).or_insert_with(|| {

@@ -206,7 +206,7 @@ pub fn identify_or_register_all(
                 profile.last_seen_at = now;
                 profile.recording_count += 1;
                 profile.add_embedding(embedding.clone());
-                mapping.insert(label.clone(), profile.display_name().to_string());
+                mapping.insert(label.clone(), profile.id.clone());
                 continue;
             }
         }
@@ -224,7 +224,7 @@ pub fn identify_or_register_all(
             last_seen_at: now,
             recording_count: 1,
         };
-        mapping.insert(label.clone(), new_profile.auto_name.clone());
+        mapping.insert(label.clone(), new_id.clone());
         profiles.push(new_profile);
     }
 

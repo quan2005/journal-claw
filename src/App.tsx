@@ -8,9 +8,11 @@ import { CommandDock } from './components/CommandDock'
 import { ProcessingQueue } from './components/ProcessingQueue'
 import { SettingsPanel } from './settings/SettingsPanel'
 import IdentityView from './components/IdentityView'
+import { TodoSidebar } from './components/TodoSidebar'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
+import { useTodos } from './hooks/useTodos'
 import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem } from './types'
@@ -22,6 +24,7 @@ export default function App() {
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
+  const { todos, addTodo, toggleTodo, deleteTodo } = useTodos()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [asrReady, setAsrReady] = useState<boolean | null>(null)
@@ -34,6 +37,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
   const [dockOpen, setDockOpen] = useState(false)
+  const [todoOpen, setTodoOpen] = useState(false)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -179,6 +183,10 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
         e.preventDefault()
         setView(v => v === 'identity' ? 'journal' : 'identity')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 't') {
+        e.preventDefault()
+        setTodoOpen(prev => !prev)
       }
     }
     window.addEventListener('keydown', handler)
@@ -341,6 +349,9 @@ export default function App() {
         onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
         onToggleIdentity={() => setView(v => v === 'identity' ? 'journal' : 'identity')}
+        todoOpen={todoOpen}
+        todoCount={todos.filter(t => !t.done).length}
+        onToggleTodo={() => setTodoOpen(prev => !prev)}
       />
 
       {view === 'settings' ? (
@@ -393,6 +404,16 @@ export default function App() {
                   }}
                 />
             </div>
+
+            {/* Todo sidebar */}
+            {todoOpen && (
+              <TodoSidebar
+                todos={todos}
+                onToggle={toggleTodo}
+                onAdd={addTodo}
+                onDelete={deleteTodo}
+              />
+            )}
           </div>
 
           <div style={{ position: 'relative', flexShrink: 0 }}>

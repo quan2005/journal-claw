@@ -198,7 +198,12 @@ export function IdentityList({
 
         {/* Pinned section */}
         {pinned.length > 0 && (
-          <div style={{ paddingTop: 21 }}>
+          <div>
+            <div style={{ padding: '14px 16px 6px' }}>
+              <span style={{ fontSize: 10, color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
+                内置
+              </span>
+            </div>
             {pinned.map(identity => (
               <IdentityItem
                 key={identity.path}

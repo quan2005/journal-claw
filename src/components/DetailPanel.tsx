@@ -118,7 +118,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
         borderRadius: 8,
         padding: '10px 14px',
         overflowX: 'auto',
-        fontSize: 12,
+        fontSize: 14,
         lineHeight: 1.7,
         color: 'var(--md-pre-text)',
         fontFamily: "'IBM Plex Mono', ui-monospace, Menlo, monospace",
@@ -248,7 +248,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
           width: '100%',
           maxWidth: 520,
         }}>
-          <div style={{ fontSize: 12, color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
+          <div style={{ fontSize: 14, color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
             通过以下方式开始记录
           </div>
           <div style={{ display: 'flex', gap: 12, width: '100%' }}>
@@ -271,8 +271,8 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                   <line x1="8" y1="22" x2="16" y2="22"/>
                 </svg>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
-              <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
+              <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
+              <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
             </button>
 
             {/* 粘贴卡片 */}
@@ -293,8 +293,8 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
-              <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
+              <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
+              <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
             </button>
 
             {/* 创建示例卡片：只在工作目录为空时显示 */}
@@ -317,8 +317,8 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                     <line x1="10" y1="17" x2="14" y2="17"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>创建示例条目</div>
-                <div style={{ fontSize: 10, color: 'var(--item-meta)', lineHeight: 1.6 }}>生成一条示例<br/>了解 AI 整理效果</div>
+                <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>创建示例条目</div>
+                <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>生成一条示例<br/>了解 AI 整理效果</div>
               </button>
             )}
           </div>
@@ -347,7 +347,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
           {/* Summary */}
           {entry.summary && (
             <div style={{
-              fontSize: 12,
+              fontSize: 14,
               color: 'var(--detail-summary)',
               lineHeight: 1.8,
               marginBottom: displayTags.length > 0 ? 10 : 0,
@@ -364,7 +364,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
             }}>
               {displayTags.map((cfg, i) => (
                 <span key={i} style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   padding: '2px 8px',
                   borderRadius: 4,
                   fontWeight: 500,
@@ -395,33 +395,33 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 h1: ({ children }) => (
                   <h1 style={{
                     fontFamily: "'Noto Serif SC', serif",
-                    fontSize: 20, fontWeight: 600, color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
+                    fontSize: 24, fontWeight: 600, color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
                   }}>{children}</h1>
                 ),
                 h2: ({ children }) => (
                   <h2 style={{
                     fontFamily: "'Noto Serif SC', serif",
-                    fontSize: 15, fontWeight: 600, color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
+                    fontSize: 18, fontWeight: 600, color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
                   }}>{children}</h2>
                 ),
                 h3: ({ children }) => (
                   <h3 style={{
                     fontFamily: "'Noto Serif SC', serif",
-                    fontSize: 13, fontWeight: 600, color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
+                    fontSize: 16, fontWeight: 600, color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
                   }}>{children}</h3>
                 ),
                 h4: ({ children }) => (
-                  <h4 style={{ fontSize: 11, fontWeight: 700, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
+                  <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
                 ),
                 h5: ({ children }) => (
-                  <h5 style={{ fontSize: 12, fontWeight: 600, color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
+                  <h5 style={{ fontSize: 14, fontWeight: 600, color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
                 ),
                 h6: ({ children }) => (
-                  <h6 style={{ fontSize: 11, fontWeight: 500, color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
+                  <h6 style={{ fontSize: 13, fontWeight: 500, color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
                 ),
                 // Paragraph
                 p: ({ children }) => (
-                  <p style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
+                  <p style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
                 ),
                 // Lists
                 ul: ({ children }) => (
@@ -433,7 +433,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 li: ({ children, ...liProps }) => {
                   const ordered = (liProps as { ordered?: boolean }).ordered
                   if (ordered) {
-                    return <li style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.75 }}>{children}</li>
+                    return <li style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.75 }}>{children}</li>
                   }
                   const isTask = (liProps as { className?: string }).className?.includes('task-list-item')
                   if (isTask) {
@@ -441,14 +441,14 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                     const checkbox = childArray[0]
                     const rest = childArray.slice(1)
                     return (
-                      <li style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none' }}>
+                      <li style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none' }}>
                         <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 5 }}>{checkbox}</span>
                         <span style={{ flex: 1 }}>{rest}</span>
                       </li>
                     )
                   }
                   return (
-                    <li style={{ fontSize: 13, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start' }}>
+                    <li style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start' }}>
                       <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 8 }}>
                         <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: 'var(--md-bullet)' }} />
                       </span>
@@ -486,9 +486,10 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                       className="md-link"
                       onClick={isMdLink ? (e) => {
                         e.preventDefault()
-                        const targetFilename = decodeURIComponent(href!.replace(/^\.\//, ''))
+                        const decodedHref = decodeURIComponent(href!)
                         const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
-                        const targetPath = `${entryDir}/${targetFilename}`
+                        const targetPath = resolveRelativePath(entryDir, decodedHref)
+                        const targetFilename = targetPath.substring(targetPath.lastIndexOf('/') + 1)
                         window.dispatchEvent(new CustomEvent('journal-entry-navigate', {
                           detail: { path: targetPath, filename: targetFilename },
                         }))
@@ -517,13 +518,13 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 // Table
                 table: ({ children }) => (
                   <div style={{ overflowX: 'auto', margin: '10px 0' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>{children}</table>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>{children}</table>
                   </div>
                 ),
                 th: ({ children }) => (
                   <th style={{
                     padding: '6px 10px', textAlign: 'left', fontWeight: 600,
-                    fontSize: 11, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+                    fontSize: 13, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
                     borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap',
                     minWidth: 72,
                   }}>{children}</th>
@@ -556,6 +557,15 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
       />
     </div>
   )
+}
+
+function resolveRelativePath(baseDir: string, relative: string): string {
+  const parts = baseDir.split('/')
+  for (const segment of relative.split('/')) {
+    if (segment === '..') parts.pop()
+    else if (segment !== '.') parts.push(segment)
+  }
+  return parts.join('/')
 }
 
 function stripFrontmatter(md: string): string {

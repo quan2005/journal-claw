@@ -5,11 +5,11 @@ import SkeletonRow from './SkeletonRow'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
-const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
-const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
+const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
+const hintStyle: React.CSSProperties = { fontSize: 12, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
 const inputStyle: React.CSSProperties = {
   flex: 1, background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-  borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--item-text)',
+  borderRadius: 6, padding: '7px 10px', fontSize: 14, color: 'var(--item-text)',
   fontFamily: 'ui-monospace, monospace', outline: 'none',
 }
 
@@ -62,7 +62,7 @@ export default function SectionGeneral() {
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>通用</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>通用</div>
 
       {loading ? (
         <>
@@ -92,7 +92,7 @@ export default function SectionGeneral() {
                 onClick={handlePickFolder}
                 style={{
                   background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                  borderRadius: 6, padding: '0 12px', fontSize: 12, color: 'var(--item-meta)',
+                  borderRadius: 6, padding: '0 12px', fontSize: 14, color: 'var(--item-meta)',
                   cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
                 }}
               >
@@ -105,7 +105,7 @@ export default function SectionGeneral() {
           {/* 保存 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
             <span style={{
-              fontSize: 11,
+              fontSize: 13,
               color: saveStatus === 'error'
                 ? '#ff9f0a'
                 : saveStatus === 'saved'
@@ -120,7 +120,7 @@ export default function SectionGeneral() {
               disabled={!canSave}
               style={{
                 background: canSave ? 'var(--record-btn)' : 'var(--divider)', border: 'none', borderRadius: 5,
-                padding: '6px 18px', fontSize: 12, fontWeight: 600,
+                padding: '6px 18px', fontSize: 14, fontWeight: 600,
                 color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
               }}
             >

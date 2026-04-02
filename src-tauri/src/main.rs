@@ -3,10 +3,13 @@ mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
 mod config;
+mod identity;
 mod journal;
 mod materials;
+mod permissions;
 mod recorder;
 mod recordings;
+mod speaker_profiles;
 mod transcription;
 mod types;
 mod workspace;
@@ -235,6 +238,7 @@ fn main() {
             ai_processor::trigger_ai_processing,
             ai_processor::get_workspace_prompt,
             ai_processor::set_workspace_prompt,
+            ai_processor::reset_workspace_prompt,
             ai_processor::cancel_ai_processing,
             ai_processor::cancel_queued_item,
             ai_processor::trigger_ai_prompt,
@@ -256,6 +260,20 @@ fn main() {
             ai_processor::install_engine,
             journal::create_sample_entry_if_needed,
             journal::create_sample_entry,
+            speaker_profiles::get_speaker_profiles,
+            speaker_profiles::update_speaker_name,
+            speaker_profiles::delete_speaker_profile,
+            speaker_profiles::merge_speaker_profiles,
+            speaker_profiles::check_speaker_embedder,
+            permissions::check_app_permissions,
+            permissions::open_privacy_settings,
+            permissions::request_permission,
+            identity::list_identities,
+            identity::get_identity_content,
+            identity::save_identity_content,
+            identity::delete_identity,
+            identity::create_identity,
+            identity::merge_identity,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

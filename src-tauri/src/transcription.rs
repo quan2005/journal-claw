@@ -1,5 +1,7 @@
 use crate::config;
+use crate::speaker_profiles;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -429,12 +431,19 @@ fn format_ai_speaker_label(
 ) -> String {
     match speaker {
         Some(sp) => {
-            let label = speaker_map.entry(sp.clone()).or_insert_with(|| {
-                let current = *next_label as char;
-                *next_label += 1;
-                current
-            });
-            format!("发言人 {}", label)
+            // Only canonicalise machine-generated SpeakerKit IDs (SPEAKER_00, SPEAKER_01, …).
+            // 5-digit speaker IDs (from speaker profiles) and profile names ("张三", "说话人 2", etc.)
+            // are passed through as-is so user-assigned names are preserved.
+            if sp.starts_with("SPEAKER_") {
+                let label = speaker_map.entry(sp.clone()).or_insert_with(|| {
+                    let current = *next_label as char;
+                    *next_label += 1;
+                    current
+                });
+                format!("发言人 {}", label)
+            } else {
+                sp.clone()
+            }
         }
         None => "发言内容".to_string(),
     }
@@ -910,31 +919,52 @@ pub async fn transcribe_audio_to_ai_markdown(
         _ => transcribe_with_dashscope(&app, &file_path, duration_secs).await?,
     };
 
-    // Step 2: 说话人分离（仅当转写结果不含说话人标签时）
-    let has_speaker_labels = transcript.segments.iter().any(|s| s.speaker.is_some());
-    let final_transcript = if has_speaker_labels {
-        // whisperkit 已提供说话人标签，跳过 SpeakerKit
-        transcript
-    } else {
-        // apple / dashscope 不含说话人标签，调用 SpeakerKit
-        let filename = file_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
-        emit_progress(&app, &filename, "diarizing");
+    // Step 2: 说话人分离（所有引擎都调用 SpeakerKit 获取声纹向量，用于档案匹配）
+    // WhisperKit 已有 SPEAKER_XX 标签，但没有跨会话可匹配的声纹向量；
+    // 用 SpeakerKit 补充向量后，merge_transcript_with_speakers 会用档案名覆盖原标签。
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    emit_progress(&app, &filename, "diarizing");
+    let final_transcript =
         match diarize_with_speakerkit(app.clone(), file_path.clone(), duration_secs).await {
-            Ok(speakers) => {
-                let merged = merge_transcript_with_speakers(&transcript, &speakers);
+            Ok((mut speakers, embeddings)) => {
+                // 用声纹档案识别说话人：已知→用档案名，未知→自动注册并返回"说话人 N"
+                if !embeddings.is_empty() {
+                    let name_map = speaker_profiles::identify_or_register_all(&app, &embeddings);
+                    // 将 SPEAKER_XX 标签替换为档案名称
+                    for seg in &mut speakers {
+                        if let Some(display) = name_map.get(&seg.label) {
+                            seg.label = display.clone();
+                        }
+                    }
+                    // 通知前端声纹档案已更新
+                    let _ = app.emit("speakers-updated", ());
+                }
+                // 清除引擎自带的说话人标签，让 SpeakerKit 的档案名通过时间重叠匹配覆盖
+                // （否则 merge_transcript_with_speakers 会保留 WhisperKit 的 SPEAKER_XX 原始标签）
+                let transcript_unlabeled = Transcript {
+                    status: transcript.status.clone(),
+                    text: transcript.text.clone(),
+                    segments: transcript
+                        .segments
+                        .iter()
+                        .map(|s| WhisperSegment { speaker: None, ..s.clone() })
+                        .collect(),
+                    engine: transcript.engine.clone(),
+                };
+                let merged = merge_transcript_with_speakers(&transcript_unlabeled, &speakers);
                 save_transcript_data(&file_path, &merged);
                 merged
             }
             Err(e) => {
                 eprintln!("[audio_pipeline] SpeakerKit failed, fallback: {}", e);
-                transcript // 回退为无说话人标注
+                // 回退：保留 WhisperKit 原有标签或无标签
+                transcript
             }
-        }
-    };
+        };
 
     // Step 3: 生成 audio-ai.md
     let audio_filename = file_path
@@ -967,7 +997,7 @@ pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
 ///   包内路径 Contents/MacOS/journal-speech（无 triple）
 ///
 /// 按以下顺序查找，并在全部失败时报告所有已查找路径，方便诊断。
-fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
     // 打包后的二进制名（Tauri 去掉了 target triple 后缀）
     let bundle_name = "journal-speech";
     // 开发环境源目录里的文件名（保留 triple，与 externalBin 命名规范一致）
@@ -1217,11 +1247,12 @@ pub async fn transcribe_with_apple_stt(
 }
 
 /// SpeakerKit 说话人分离：调用 journal-speech diarize sidecar。
+/// 返回 (segments, embeddings)，embeddings 可能为空 map（旧版 CLI 或失败时）。
 pub async fn diarize_with_speakerkit(
     app: AppHandle,
     file_path: PathBuf,
     duration_secs: f64,
-) -> Result<Vec<SpeakerSegment>, String> {
+) -> Result<(Vec<SpeakerSegment>, HashMap<String, Vec<f32>>), String> {
     let filename = file_path
         .file_name()
         .unwrap_or_default()
@@ -1239,6 +1270,22 @@ pub async fn diarize_with_speakerkit(
         "--audio",
         file_path.to_str().unwrap_or(""),
     ]);
+
+    // Pass model folder explicitly so Swift CLI can find models in dev mode
+    // (Tauri dev copies sidecar to target/debug/, breaking relative path resolution)
+    let model_candidates = [
+        // Packaged .app: Contents/MacOS/../Resources/resources/speakerkit-models
+        cli_path.parent().and_then(|d| d.parent()).map(|p| p.join("Resources/resources/speakerkit-models")),
+        // Dev: binary dir/../resources/speakerkit-models
+        cli_path.parent().map(|d| d.join("../resources/speakerkit-models")),
+        // Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
+        Some(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/speakerkit-models")),
+    ];
+    if let Some(folder) = model_candidates.into_iter().flatten().find(|p| p.exists()) {
+        if let Some(s) = folder.canonicalize().ok().and_then(|p| p.to_str().map(String::from)) {
+            cmd.args(["--model-folder", &s]);
+        }
+    }
 
     use std::process::Stdio;
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
@@ -1347,7 +1394,35 @@ pub async fn diarize_with_speakerkit(
         })
         .unwrap_or_default();
 
-    Ok(speakers)
+    // 解析声纹嵌入向量（新版 CLI 才有；旧版返回 null 或缺失时忽略）
+    let has_embeddings_key = parsed.get("embeddings").is_some();
+    let embeddings: HashMap<String, Vec<f32>> = parsed
+        .get("embeddings")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.iter()
+                .filter_map(|(label, arr)| {
+                    let vec: Vec<f32> = arr
+                        .as_array()?
+                        .iter()
+                        .filter_map(|x| x.as_f64().map(|f| f as f32))
+                        .collect();
+                    if vec.is_empty() { None } else { Some((label.clone(), vec)) }
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    eprintln!(
+        "[speaker_profiles] CLI output: {} speakers, embeddings key={}, parsed {} embeddings",
+        speakers.len(),
+        has_embeddings_key,
+        embeddings.len(),
+    );
+    if !has_embeddings_key {
+        eprintln!("[speaker_profiles] WARNING: no embeddings in CLI output. Swift CLI may not have SpeakerEmbedder model loaded.");
+    }
+
+    Ok((speakers, embeddings))
 }
 
 /// WhisperKit 转录：调用 whisperkit-cli sidecar，返回格式化 markdown 文本。

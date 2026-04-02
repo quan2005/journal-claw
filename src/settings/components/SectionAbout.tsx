@@ -17,7 +17,7 @@ export default function SectionAbout() {
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20, fontWeight: 500 }}>关于</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20, fontWeight: 500 }}>关于</div>
 
       {loading ? (
         <>
@@ -41,7 +41,7 @@ export default function SectionAbout() {
           {/* 应用名区块 */}
           <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <div style={{ fontSize: 24, color: 'var(--item-text)', fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1 }}>谨迹</div>
-            <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 10, lineHeight: 1.5 }}>每一次思考，都值得被谨迹</div>
+            <div style={{ fontSize: 16, color: 'var(--item-meta)', marginTop: 10, lineHeight: 1.5 }}>每一次思考，都值得被谨迹</div>
           </div>
 
           {/* 联系作者 */}
@@ -53,16 +53,16 @@ export default function SectionAbout() {
                 style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: 'center center', transform: 'scale(1.2) translateY(10px)', transformOrigin: 'center center' }}
               />
             </div>
-            <div style={{ fontSize: 10, color: 'var(--duration-text)', letterSpacing: '0.03em' }}>扫码添加微信</div>
+            <div style={{ fontSize: 12, color: 'var(--duration-text)', letterSpacing: '0.03em' }}>扫码添加微信</div>
           </div>
 
           {/* 底部元信息 */}
           <div style={{ marginTop: 36, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: 'var(--item-meta)' }}>版本 {version}</div>
-            <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 5, letterSpacing: '0.02em' }}>
+            <div style={{ fontSize: 13, color: 'var(--item-meta)' }}>版本 {version}</div>
+            <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 5, letterSpacing: '0.02em' }}>
               macOS · Tauri · React · Rust · Claude
             </div>
-            <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 8, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 8, lineHeight: 1.6 }}>
               内置 WhisperKit（MIT License）by Argmax, Inc. — 本地语音识别引擎
             </div>
           </div>

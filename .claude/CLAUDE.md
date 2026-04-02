@@ -127,6 +127,24 @@ Body content...
 
 Filename: `DD-title.md` (e.g. `28-AI平台产品会议纪要.md`). The `DD` prefix determines sort order.
 
+### Versioning
+
+版本号在三个文件中必须保持一致，由 release-please 自动同步，**不要手动修改**：
+- `package.json` → `version`
+- `src-tauri/Cargo.toml` → `[package].version`
+- `src-tauri/tauri.conf.json` → `version`
+
+所有 commit message 必须遵循 **Conventional Commits** 格式，release-please 依此自动判断版本类型：
+
+| 格式 | 版本变化 | 示例 |
+|---|---|---|
+| `fix: ...` | patch | `fix: 修复跨文件夹链接跳转` |
+| `feat: ...` | minor | `feat: 新增标签筛选功能` |
+| `feat!: ...` 或 body 含 `BREAKING CHANGE:` | major | `feat!: 重构存储格式` |
+| `chore:` / `docs:` / `refactor:` / `test:` 等 | 无变化 | `chore: 更新依赖` |
+
+合并到 master 后，release-please 自动维护一个 Release PR；合并该 PR 即完成打 tag 和发布 GitHub Release。
+
 ### Key Constraints
 
 - **Context menu**: Use Tauri v2 `@tauri-apps/api/menu` (`Menu`, `MenuItem`). `tauri-plugin-context-menu` is v1-only — do not use it.

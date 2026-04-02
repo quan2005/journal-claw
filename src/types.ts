@@ -59,6 +59,32 @@ export interface AiLogLine {
   message: string
 }
 
+// ── 声纹档案 ─────────────────────────────────────────────
+export interface SpeakerProfile {
+  id: string
+  /** 用户命名，空字符串表示未命名，显示时用 auto_name 代替 */
+  name: string
+  /** 自动生成的名称，如"说话人 1" */
+  auto_name: string
+  recording_count: number
+  created_at: number
+  last_seen_at: number
+}
+
+// ── 身份档案 ─────────────────────────────────────────────
+export interface IdentityEntry {
+  filename: string       // "广州-张三.md"
+  path: string           // absolute path
+  name: string           // "张三"
+  region: string         // "广州"
+  summary: string        // from frontmatter
+  tags: string[]         // from frontmatter
+  speaker_id: string     // linked speaker profile id
+  mtime_secs: number     // Unix timestamp for sorting
+}
+
+export type MergeMode = 'voice_only' | 'full'
+
 // ── Processing queue ────────────────────────────────────
 export type QueueItemStatus = 'recording' | 'converting' | 'queued' | 'processing' | 'completed' | 'failed'
 

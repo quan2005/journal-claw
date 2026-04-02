@@ -47,3 +47,30 @@ for entry in "${sorted[@]}"; do
   printf "%d. %s\n   > %s\n" "$((count+1))" "$rel" "$summary"
   count=$((count+1))
 done
+
+# Identity profiles summary
+IDENTITY_DIR="${REPO_ROOT}/identity"
+if [[ -d "${IDENTITY_DIR}" ]]; then
+  identity_files=()
+  while IFS= read -r -d '' file; do
+    identity_files+=("$file")
+  done < <(find "${IDENTITY_DIR}" -maxdepth 1 -name "*.md" -print0 2>/dev/null | sort -z)
+  if [[ ${#identity_files[@]} -gt 0 ]]; then
+    echo ""
+    echo "## 身份档案 (${#identity_files[@]} 人)"
+    for file in "${identity_files[@]}"; do
+      fname="$(basename "$file" .md)"
+      summary=$(awk '
+        /^---$/ { count++; next }
+        count == 1 && /^summary:/ {
+          sub(/^summary:[[:space:]]*/, "")
+          gsub(/^["'"'"']|["'"'"']$/, "")
+          print
+          exit
+        }
+      ' "$file")
+      printf "- %s: %s\n" "$fname" "${summary:-[无摘要]}"
+    done
+  fi
+fi
+

@@ -68,11 +68,11 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           color: 'var(--item-meta)',
         }}>
           {isActive && <Spinner size={12} borderWidth={1.5} />}
-          <span style={{ flex: 1, fontSize: 11, color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.filename}
           </span>
           <span style={{
-            fontSize: 9,
+            fontSize: 11,
             color: item.status === 'failed' ? '#ff453a'
               : item.status === 'completed' ? 'var(--ai-pill-text)'
               : 'var(--ai-pill-active-text)',
@@ -98,7 +98,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
             overflowY: 'auto',
             padding: '10px 16px',
             fontFamily: 'ui-monospace, "SF Mono", monospace',
-            fontSize: 10,
+            fontSize: 12,
             lineHeight: 1.6,
             color: 'var(--item-meta)',
           }}
@@ -142,7 +142,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
                 border: '0.5px solid var(--queue-border)',
                 borderRadius: 5,
                 padding: '4px 12px',
-                fontSize: 10,
+                fontSize: 12,
                 color: '#ff453a',
                 cursor: 'pointer',
               }}

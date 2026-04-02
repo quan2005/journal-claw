@@ -83,6 +83,8 @@ const SCRIPT_JOURNAL_CREATE: &str =
     include_str!("../resources/workspace-template/.claude/scripts/journal-create");
 const SCRIPT_RECENT_SUMMARIES: &str =
     include_str!("../resources/workspace-template/.claude/scripts/recent-summaries");
+const SCRIPT_IDENTITY_CREATE: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/identity-create");
 
 /// 确保 workspace/.claude/ 已初始化。仅在文件不存在时创建，不覆盖用户修改。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -112,6 +114,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let scripts: &[(&str, &str)] = &[
         ("journal-create", SCRIPT_JOURNAL_CREATE),
         ("recent-summaries", SCRIPT_RECENT_SUMMARIES),
+        ("identity-create", SCRIPT_IDENTITY_CREATE),
     ];
     for (name, content) in scripts {
         let path = scripts_dir.join(name);
@@ -873,6 +876,16 @@ pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), Strin
     let _ = std::fs::create_dir_all(&dot_claude);
     let path = dot_claude.join("CLAUDE.md");
     std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn reset_workspace_prompt(app: AppHandle) -> Result<String, String> {
+    let cfg = config::load_config(&app)?;
+    let dot_claude = std::path::PathBuf::from(&cfg.workspace_path).join(".claude");
+    let _ = std::fs::create_dir_all(&dot_claude);
+    let path = dot_claude.join("CLAUDE.md");
+    std::fs::write(&path, WORKSPACE_CLAUDE_MD).map_err(|e| e.to_string())?;
+    Ok(WORKSPACE_CLAUDE_MD.to_string())
 }
 
 #[tauri::command]

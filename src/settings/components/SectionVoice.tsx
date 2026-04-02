@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, Mic, RefreshCw } from 'lucide-react'
-import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, getAppleSttVariant, type AsrConfig } from '../../lib/tauri'
+import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, getAppleSttVariant, checkSpeakerEmbedder, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
 
@@ -20,11 +20,11 @@ type WhisperDownloadSession = {
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
-const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
-const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
+const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
+const hintStyle: React.CSSProperties = { fontSize: 12, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-  borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--item-text)',
+  borderRadius: 6, padding: '7px 10px', fontSize: 14, color: 'var(--item-text)',
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
@@ -106,6 +106,8 @@ export default function SectionVoice() {
   const [cliInstalling, setCliInstalling] = useState(false)
   const [cliInstallLog, setCliInstallLog] = useState<string[]>([])
   const [appleSttVariant, setAppleSttVariant] = useState<string>('')
+  const [embedderAvailable, setEmbedderAvailable] = useState<boolean | null>(null)
+
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
     Promise.all(models.map(m =>
@@ -124,8 +126,8 @@ export default function SectionVoice() {
       getWhisperkitModelsDir().then(setModelsDir),
       checkWhisperkitCliInstalled().then(setCliInstalled),
       getAppleSttVariant().then(setAppleSttVariant),
+      checkSpeakerEmbedder().then(r => setEmbedderAvailable(r.available)).catch(() => setEmbedderAvailable(false)),
     ]).then(() => {
-      refreshDownloadedModels()
       setLoading(false)
     })
 
@@ -310,8 +312,9 @@ export default function SectionVoice() {
   ]
 
   return (
+    <>
     <div style={sectionStyle}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>语音转写</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>语音转写</div>
 
       {loading ? (
         <>
@@ -357,14 +360,36 @@ export default function SectionVoice() {
                   <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}>
                     <Icon size={22} strokeWidth={1.5} />
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
-                  <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
                 </div>
               )
             })}
           </div>
 
           <div style={{ height: 1, background: 'var(--divider)', margin: '0 0 14px' }} />
+
+          {/* 声纹模型状态 */}
+          {embedderAvailable === false && (
+            <div style={{
+              marginBottom: 14,
+              padding: '10px 14px',
+              borderRadius: 8,
+              background: 'rgba(255,159,10,0.08)',
+              border: '1px solid rgba(255,159,10,0.3)',
+              fontSize: 11,
+              color: 'var(--item-meta)',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <AlertTriangle size={13} strokeWidth={1.8} color="#ff9f0a" />
+                <span style={{ fontWeight: 600, color: '#ff9f0a' }}>声纹识别不可用</span>
+              </div>
+              <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
+                未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。
+              </div>
+            </div>
+          )}
 
           {/* WhisperKit 配置 */}
           {cfg.asr_engine === 'whisperkit' && (
@@ -735,7 +760,7 @@ export default function SectionVoice() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
             <span style={{
-              fontSize: 11,
+              fontSize: 13,
               color: saveStatus === 'error'
                 ? '#ff9f0a'
                 : saveStatus === 'saved'
@@ -751,7 +776,7 @@ export default function SectionVoice() {
               style={{
                 background: saveStatus === 'saving' || !hasUnsavedChanges ? 'var(--divider)' : 'var(--record-btn)',
                 border: 'none', borderRadius: 5,
-                padding: '6px 18px', fontSize: 12, fontWeight: 600,
+                padding: '6px 18px', fontSize: 14, fontWeight: 600,
                 color: saveStatus === 'saving' || !hasUnsavedChanges ? 'var(--duration-text)' : 'var(--bg)',
                 cursor: saveStatus === 'saving' || !hasUnsavedChanges ? 'not-allowed' : 'pointer',
               }}
@@ -762,5 +787,7 @@ export default function SectionVoice() {
         </div>
       )}
     </div>
+
+    </>
   )
 }

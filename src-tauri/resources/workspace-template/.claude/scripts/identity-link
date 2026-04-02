@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Link a speaker_id to an existing identity file.
+# If the identity already has a different speaker_id, the two voice profiles
+# will be merged (new embeddings absorbed into existing profile).
+set -euo pipefail
+
+usage() {
+  echo "Usage: .claude/scripts/identity-link <speaker_id> <identity_path>" >&2
+  echo "  speaker_id:    5-digit ID from transcript (e.g. 00003)" >&2
+  echo "  identity_path: path to identity .md file (e.g. identity/广州-张三.md)" >&2
+  exit 1
+}
+
+[[ $# -lt 2 ]] && usage
+
+speaker_id="$1"
+identity_file="$2"
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+workspace="$(cd "${script_dir}/../.." && pwd)"
+
+# Resolve relative path
+if [[ ! "$identity_file" = /* ]]; then
+  identity_file="${workspace}/${identity_file}"
+fi
+
+if [[ ! -f "$identity_file" ]]; then
+  echo "Identity file not found: ${identity_file}" >&2
+  exit 1
+fi
+
+# Read current speaker_id from frontmatter
+current_id=$(awk '
+  /^---$/ { count++; next }
+  count == 1 && /^speaker_id:/ {
+    sub(/^speaker_id:[[:space:]]*/, "")
+    gsub(/^["'"'"']|["'"'"']$/, "")
+    print
+    exit
+  }
+' "$identity_file")
+
+if [[ "$current_id" == "$speaker_id" ]]; then
+  echo "Already linked: ${identity_file}" >&2
+  echo "${identity_file}"
+  exit 0
+fi
+
+profiles_file="${workspace}/identity/raw/speaker_profiles.json"
+
+if [[ -n "$current_id" && "$current_id" != "$speaker_id" && -f "$profiles_file" ]]; then
+  # Merge: absorb new speaker_id's embeddings into existing profile
+  # Use python3 (available on macOS) for JSON manipulation
+  python3 -c "
+import json, sys
+
+with open('${profiles_file}', 'r') as f:
+    profiles = json.load(f)
+
+source = next((p for p in profiles if p['id'] == '${speaker_id}'), None)
+target = next((p for p in profiles if p['id'] == '${current_id}'), None)
+
+if source and target:
+    # Merge embeddings (rolling window of 5)
+    for emb in source.get('embeddings', []):
+        target['embeddings'].append(emb)
+    target['embeddings'] = target['embeddings'][-5:]
+    target['recording_count'] = target.get('recording_count', 0) + source.get('recording_count', 0)
+    target['last_seen_at'] = max(target.get('last_seen_at', 0), source.get('last_seen_at', 0))
+    # Remove source profile
+    profiles = [p for p in profiles if p['id'] != '${speaker_id}']
+
+    with open('${profiles_file}', 'w') as f:
+        json.dump(profiles, f, indent=2, ensure_ascii=False)
+    print('Merged voice profile ${speaker_id} into ${current_id}', file=sys.stderr)
+elif source and not target:
+    # No existing profile for current_id — just rename source's id
+    source['id'] = '${current_id}'
+    with open('${profiles_file}', 'w') as f:
+        json.dump(profiles, f, indent=2, ensure_ascii=False)
+    print('Reassigned voice profile ${speaker_id} -> ${current_id}', file=sys.stderr)
+else:
+    print('Source profile ${speaker_id} not found, skipping merge', file=sys.stderr)
+"
+  echo "${identity_file}"
+  exit 0
+fi
+
+# No existing speaker_id — just write the new one into frontmatter
+if [[ -z "$current_id" ]]; then
+  # Replace empty speaker_id in frontmatter
+  if grep -q '^speaker_id:' "$identity_file"; then
+    sed -i '' "s/^speaker_id:.*/speaker_id: \"${speaker_id}\"/" "$identity_file"
+  else
+    # Insert speaker_id after tags line
+    sed -i '' "/^tags:/a\\
+speaker_id: \"${speaker_id}\"
+" "$identity_file"
+  fi
+  echo "${identity_file}"
+  exit 0
+fi
+
+echo "${identity_file}"

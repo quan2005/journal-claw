@@ -13,11 +13,11 @@ type EngineId = 'claude' | 'qwen'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
-const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
-const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
+const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
+const hintStyle: React.CSSProperties = { fontSize: 12, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-  borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--item-text)',
+  borderRadius: 6, padding: '7px 10px', fontSize: 14, color: 'var(--item-text)',
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
@@ -126,7 +126,7 @@ export default function SectionAiEngine() {
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>AI 引擎</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>AI 引擎</div>
 
       {loading ? (
         <>
@@ -199,8 +199,8 @@ export default function SectionAiEngine() {
                   <div style={{ marginBottom: 6, opacity: (!isComingSoon && (s === 'not_installed' || s === 'installing')) ? 0.5 : 1, display: 'flex', justifyContent: 'center' }}>
                     <Icon size={22} strokeWidth={1.5} />
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
-                  <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
                 </div>
               )
             })}
@@ -344,7 +344,7 @@ export default function SectionAiEngine() {
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
                 <span style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   color: saveStatus === 'error'
                     ? '#ff9f0a'
                     : saveStatus === 'saved'
@@ -356,7 +356,7 @@ export default function SectionAiEngine() {
                 </span>
                 <button onClick={handleSave} disabled={!canSave} style={{
                   background: canSave ? 'var(--record-btn)' : 'var(--divider)', border: 'none', borderRadius: 5,
-                  padding: '6px 18px', fontSize: 12, fontWeight: 600,
+                  padding: '6px 18px', fontSize: 14, fontWeight: 600,
                   color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
                 }}>{saveStatus === 'saving' ? '保存中…' : '保存'}</button>
               </div>

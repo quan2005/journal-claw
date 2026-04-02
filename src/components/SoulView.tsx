@@ -65,7 +65,7 @@ export default function SoulView() {
   }
 
   const editorFont = "'IBM Plex Mono', ui-monospace, monospace"
-  const editorFontSize = 12
+  const editorFontSize = 14
   const editorLineHeight = 1.7
 
   return (
@@ -88,8 +88,8 @@ export default function SoulView() {
           </svg>
         </div>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>人格设定</div>
-          <div style={{ fontSize: 11, color: 'var(--item-meta)', marginTop: 1 }}>定义谨迹的角色与工作偏好</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>人格设定</div>
+          <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 1 }}>定义谨迹的角色与工作偏好</div>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export default function SoulView() {
 
       {/* Footer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 28px 28px', flexShrink: 0 }}>
-        <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>
+        <span style={{ fontSize: 12, color: 'var(--duration-text)' }}>
           {saveStatus === 'saving' ? '保存中…'
             : saveStatus === 'saved' ? '已自动保存'
             : saveStatus === 'error' ? '保存失败，请重试'
@@ -139,7 +139,7 @@ export default function SoulView() {
           style={{
             background: saveStatus === 'saving' ? 'var(--divider)' : 'var(--record-btn)',
             border: 'none', borderRadius: 5, padding: '6px 18px',
-            fontSize: 12, fontWeight: 600,
+            fontSize: 14, fontWeight: 600,
             color: saveStatus === 'saving' ? 'var(--duration-text)' : 'var(--bg)',
             cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
           }}

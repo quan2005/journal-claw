@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { RecordingItem, Transcript, JournalEntry } from '../types'
+import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile, IdentityEntry, MergeMode } from '../types'
 
 export const listRecordings = (): Promise<RecordingItem[]> =>
   invoke('list_recordings')
@@ -89,6 +89,9 @@ export const getWorkspacePrompt = () =>
 
 export const setWorkspacePrompt = (content: string) =>
   invoke<void>('set_workspace_prompt', { content })
+
+export const resetWorkspacePrompt = () =>
+  invoke<string>('reset_workspace_prompt')
 
 export const openFile = (path: string): Promise<void> =>
   invoke('open_with_system', { path })
@@ -182,3 +185,66 @@ export const createSampleEntryIfNeeded = (): Promise<boolean> =>
 
 export const createSampleEntry = (): Promise<void> =>
   invoke<void>('create_sample_entry')
+
+// Speaker profiles (声纹档案)
+export const getSpeakerProfiles = (): Promise<SpeakerProfile[]> =>
+  invoke<SpeakerProfile[]>('get_speaker_profiles')
+
+export const updateSpeakerName = (id: string, name: string): Promise<void> =>
+  invoke<void>('update_speaker_name', { id, name })
+
+export const deleteSpeakerProfile = (id: string): Promise<void> =>
+  invoke<void>('delete_speaker_profile', { id })
+
+export const mergeSpeakerProfiles = (sourceId: string, targetId: string): Promise<void> =>
+  invoke<void>('merge_speaker_profiles', { sourceId, targetId })
+
+export const checkSpeakerEmbedder = (): Promise<{ available: boolean; binary_path: string | null; model_path: string | null }> =>
+  invoke('check_speaker_embedder')
+
+// Permissions
+export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
+
+export const requestPermission = (perm: 'microphone' | 'speech_recognition'): Promise<PermStatus> =>
+  invoke<PermStatus>('request_permission', { perm })
+
+export interface AppPermissions {
+  microphone: PermStatus
+  speech_recognition: PermStatus
+  claude_cli_path: string | null
+}
+
+export const checkAppPermissions = (): Promise<AppPermissions> =>
+  invoke<AppPermissions>('check_app_permissions')
+
+export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition'): Promise<void> =>
+  invoke<void>('open_privacy_settings', { pane })
+
+// Identity library (身份档案)
+export const listIdentities = (): Promise<IdentityEntry[]> =>
+  invoke<IdentityEntry[]>('list_identities')
+
+export const getIdentityContent = (path: string): Promise<string> =>
+  invoke<string>('get_identity_content', { path })
+
+export const saveIdentityContent = (path: string, content: string): Promise<void> =>
+  invoke<void>('save_identity_content', { path, content })
+
+export const deleteIdentity = (path: string): Promise<void> =>
+  invoke<void>('delete_identity', { path })
+
+export const createIdentity = (
+  region: string,
+  name: string,
+  summary: string,
+  tags: string[],
+  speakerId: string,
+): Promise<string> =>
+  invoke<string>('create_identity', { region, name, summary, tags, speakerId })
+
+export const mergeIdentity = (
+  sourcePath: string,
+  targetPath: string,
+  mode: MergeMode,
+): Promise<void> =>
+  invoke<void>('merge_identity', { sourcePath, targetPath, mode })

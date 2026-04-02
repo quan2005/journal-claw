@@ -72,7 +72,7 @@ function formatElapsed(secs: number): string {
 function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDismiss: () => void; onRetry: () => void }) {
   if (item.status === 'converting') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 9, opacity: 0.8 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 11, opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
         转换中
       </span>
@@ -80,7 +80,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   }
   if (item.status === 'queued') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 9, opacity: 0.7 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 11, opacity: 0.7 }}>
         <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--item-meta)', opacity: 0.4 }} />
         排队中
       </span>
@@ -88,7 +88,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   }
   if (item.status === 'processing') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 9, opacity: 0.8 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 11, opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
         处理中
       </span>
@@ -97,12 +97,12 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   if (item.status === 'failed') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ color: '#ff453a', fontSize: 9 }}>失败</span>
+        <span style={{ color: '#ff453a', fontSize: 11 }}>失败</span>
         <button
           onClick={(e) => { e.stopPropagation(); onRetry() }}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px',
-            color: 'var(--item-meta)', fontSize: 9, lineHeight: 1,
+            color: 'var(--item-meta)', fontSize: 11, lineHeight: 1,
           }}
           title="重试"
         >
@@ -122,8 +122,8 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
     )
   }
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 9, opacity: 0.7 }}>
-      <span style={{ fontSize: 11 }}>✓</span>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 11, opacity: 0.7 }}>
+      <span style={{ fontSize: 13 }}>✓</span>
       完成
     </span>
   )
@@ -171,7 +171,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                 }}
               >
                 <span style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--record-btn)',
                   flexShrink: 0,
                   display: 'flex',
@@ -192,7 +192,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                 <AudioWaveform level={(item.audioLevel ?? 0) * 6} />
                 <span style={{
                   fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 9,
+                  fontSize: 11,
                   color: 'var(--record-btn)',
                   flexShrink: 0,
                 }}>
@@ -227,10 +227,10 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                 ...animStyle,
               }}
             >
-              <span style={{ fontSize: 11, flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
+              <span style={{ fontSize: 13, flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
               <span style={{
                 flex: 1,
-                fontSize: 10,
+                fontSize: 12,
                 color: item.status === 'failed' ? '#ff453a' : 'var(--item-meta)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -242,16 +242,16 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
 
               {isConfirming ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, color: 'var(--item-meta)', opacity: 0.7 }}>确认取消？</span>
+                  <span style={{ fontSize: 11, color: 'var(--item-meta)', opacity: 0.7 }}>确认取消？</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null); onCancel(item) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 9, color: '#ff453a' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 11, color: '#ff453a' }}
                   >
                     确认
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 9, color: 'var(--item-meta)', opacity: 0.6 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 11, color: 'var(--item-meta)', opacity: 0.6 }}
                   >
                     返回
                   </button>

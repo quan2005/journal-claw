@@ -209,9 +209,8 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
 }) {
   const [editingDue, setEditingDue] = useState(false)
   const [editingText, setEditingText] = useState(false)
-  const [editText, setEditText] = useState(item.text)
   const dateRef = useRef<HTMLInputElement>(null)
-  const textRef = useRef<HTMLInputElement>(null)
+  const textRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (editingDue && dateRef.current) dateRef.current.showPicker?.()
@@ -221,16 +220,22 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
     if (editingText && textRef.current) {
       const el = textRef.current
       el.focus()
-      el.setSelectionRange(el.value.length, el.value.length)
+      // Move cursor to end
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      sel?.addRange(range)
     }
   }, [editingText])
 
   const handleTextSubmit = () => {
-    const trimmed = editText.trim()
+    const trimmed = (textRef.current?.textContent ?? '').trim()
     if (trimmed && trimmed !== item.text) {
       onUpdateText(item.line_index, trimmed)
-    } else {
-      setEditText(item.text)
+    } else if (textRef.current) {
+      textRef.current.textContent = item.text
     }
     setEditingText(false)
   }
@@ -269,28 +274,17 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
       </div>
 
       <div style={{ minWidth: 0, flex: 1 }}>
-        {editingText ? (
-          <input
-            ref={textRef}
-            value={editText}
-            onChange={e => setEditText(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleTextSubmit()
-              if (e.key === 'Escape') { setEditText(item.text); setEditingText(false) }
-            }}
-            onBlur={handleTextSubmit}
-            style={{
-              width: '100%', fontSize: 13, fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
-              fontWeight: 400, lineHeight: '18.2px', height: '18.2px',
-              background: 'transparent', border: 'none', outline: 'none',
-              color: 'var(--item-text)', padding: 0, margin: 0,
-              boxSizing: 'border-box', WebkitAppearance: 'none',
-              display: 'block',
-            }}
-          />
-        ) : (
           <div
-            onClick={() => !item.done && setEditingText(true)}
+            ref={textRef}
+            contentEditable={!item.done && editingText}
+            suppressContentEditableWarning
+            onClick={() => !item.done && !editingText && setEditingText(true)}
+            onKeyDown={e => {
+              if (!editingText) return
+              if (e.key === 'Enter') { e.preventDefault(); handleTextSubmit() }
+              if (e.key === 'Escape') { if (textRef.current) textRef.current.textContent = item.text; setEditingText(false) }
+            }}
+            onBlur={() => editingText && handleTextSubmit()}
             style={{
               fontSize: 13, lineHeight: '18.2px',
               fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400,
@@ -298,11 +292,11 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
               textDecoration: item.done ? 'line-through' : 'none',
               transition: 'color 0.2s ease',
               cursor: item.done ? 'default' : 'text',
+              outline: 'none',
             }}
           >
             {item.text}
           </div>
-        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
           {!editingDue && item.due && (
             <span

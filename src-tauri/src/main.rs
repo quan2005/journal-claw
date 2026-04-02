@@ -280,6 +280,7 @@ fn main() {
             todos::toggle_todo,
             todos::delete_todo,
             todos::set_todo_due,
+            todos::update_todo_text,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

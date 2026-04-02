@@ -8,9 +8,10 @@ interface TodoSidebarProps {
   onAdd: (text: string) => void
   onDelete: (lineIndex: number) => void
   onSetDue: (lineIndex: number, due: string | null) => void
+  onUpdateText: (lineIndex: number, text: string) => void
 }
 
-export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue }: TodoSidebarProps) {
+export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText }: TodoSidebarProps) {
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -66,6 +67,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue 
           item={item}
           onToggle={onToggle}
           onSetDue={onSetDue}
+          onUpdateText={onUpdateText}
           onContextMenu={(e) => {
             e.preventDefault()
             setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
@@ -128,6 +130,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue 
               item={item}
               onToggle={onToggle}
               onSetDue={onSetDue}
+              onUpdateText={onUpdateText}
               onContextMenu={(e) => {
                 e.preventDefault()
                 setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
@@ -197,18 +200,39 @@ function dueDateColor(due: string): string {
   return 'var(--duration-text)'                                          // 未来 → 默认
 }
 
-function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
+function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean) => void
   onSetDue: (lineIndex: number, due: string | null) => void
+  onUpdateText: (lineIndex: number, text: string) => void
   onContextMenu: (e: React.MouseEvent) => void
 }) {
   const [editingDue, setEditingDue] = useState(false)
+  const [editingText, setEditingText] = useState(false)
+  const [editText, setEditText] = useState(item.text)
   const dateRef = useRef<HTMLInputElement>(null)
+  const textRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (editingDue && dateRef.current) dateRef.current.showPicker?.()
   }, [editingDue])
+
+  useEffect(() => {
+    if (editingText && textRef.current) {
+      textRef.current.focus()
+      textRef.current.select()
+    }
+  }, [editingText])
+
+  const handleTextSubmit = () => {
+    const trimmed = editText.trim()
+    if (trimmed && trimmed !== item.text) {
+      onUpdateText(item.line_index, trimmed)
+    } else {
+      setEditText(item.text)
+    }
+    setEditingText(false)
+  }
 
   return (
     <div
@@ -228,7 +252,7 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
           if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--divider)'
         }}
         style={{
-          width: 14, height: 14, flexShrink: 0, marginTop: 1, cursor: 'pointer',
+          width: 14, height: 14, flexShrink: 0, marginTop: 2, cursor: 'pointer',
           border: `1.5px solid ${item.done ? 'var(--record-btn)' : 'var(--divider)'}`,
           borderRadius: 3,
           background: item.done ? 'var(--record-btn)' : 'transparent',
@@ -244,13 +268,38 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
       </div>
 
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{
-          fontSize: 11, lineHeight: 1.4, color: item.done ? 'var(--duration-text)' : 'var(--item-text)',
-          textDecoration: item.done ? 'line-through' : 'none',
-          transition: 'color 0.2s ease',
-        }}>
-          {item.text}
-        </div>
+        {editingText ? (
+          <input
+            ref={textRef}
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleTextSubmit()
+              if (e.key === 'Escape') { setEditText(item.text); setEditingText(false) }
+            }}
+            onBlur={handleTextSubmit}
+            style={{
+              width: '100%', fontSize: 12, fontFamily: "'Noto Serif SC', serif",
+              fontWeight: 500, lineHeight: 1.4,
+              background: 'transparent', border: 'none', outline: 'none',
+              color: 'var(--item-text)', padding: 0,
+            }}
+          />
+        ) : (
+          <div
+            onClick={() => !item.done && setEditingText(true)}
+            style={{
+              fontSize: 12, lineHeight: 1.4,
+              fontFamily: "'Noto Serif SC', serif", fontWeight: 500,
+              color: item.done ? 'var(--duration-text)' : 'var(--item-text)',
+              textDecoration: item.done ? 'line-through' : 'none',
+              transition: 'color 0.2s ease',
+              cursor: item.done ? 'default' : 'text',
+            }}
+          >
+            {item.text}
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
           {!editingDue && item.due && (
             <span

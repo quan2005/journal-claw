@@ -13,13 +13,12 @@ import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { SidebarTabs } from './components/SidebarTabs'
 import type { SidebarTab } from './components/SidebarTabs'
 import { useIdentity } from './hooks/useIdentity'
-import { deleteIdentity } from './lib/tauri'
 import { TodoSidebar } from './components/TodoSidebar'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
 import { useTodos } from './hooks/useTodos'
-import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries } from './lib/tauri'
+import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries, deleteIdentity } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry } from './types'
 
@@ -30,7 +29,7 @@ export default function App() {
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
-  const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue } = useTodos()
+  const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue, updateTodoText } = useTodos()
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
@@ -414,23 +413,31 @@ export default function App() {
         <div key="settings" style={{ flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
           <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} onClose={() => setView('journal')} />
         </div>
-      ) : view === 'identity' ? (
-        <IdentityView
-          baseWidth={baseWidth}
-          dividerWidth={DIVIDER_WIDTH}
-          onDividerMouseDown={onDividerMouseDown}
-        />
       ) : (
         <>
           <div key="journal" style={{ display: 'flex', flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
-            {/* Left: Journal list */}
+            {/* Left: Journal list / Identity list */}
             <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
-              <JournalList
-                entries={entries}
-                loading={loading}
-                selectedPath={selectedEntry?.path ?? null}
-                onSelect={setSelectedEntry}
-              />
+              <SidebarTabs active={sidebarTab} onChange={setSidebarTab} />
+              <div key={sidebarTab} style={{ flex: 1, minHeight: 0, animation: 'content-enter 0.15s ease-out' }}>
+                {sidebarTab === 'journal' ? (
+                  <JournalList
+                    entries={entries}
+                    loading={loading}
+                    selectedPath={selectedEntry?.path ?? null}
+                    onSelect={setSelectedEntry}
+                  />
+                ) : (
+                  <IdentityList
+                    identities={allIdentities}
+                    loading={identityLoading}
+                    selectedPath={selectedIdentity?.path ?? null}
+                    onSelect={identity => setSelectedIdentity(identity)}
+                    onMerge={identity => setMergeSource(identity)}
+                    onDelete={handleDeleteIdentity}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Divider */}
@@ -442,9 +449,10 @@ export default function App() {
               }}
             />
 
-            {/* Right: Detail panel */}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <DetailPanel
+            {/* Right: Detail panel / Identity detail */}
+            <div key={sidebarTab} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'content-enter 0.15s ease-out' }}>
+              {sidebarTab === 'journal' ? (
+                <DetailPanel
                   entry={selectedEntry}
                   entries={entries}
                   onDeselect={() => setSelectedEntry(null)}
@@ -458,8 +466,10 @@ export default function App() {
                       if (sample) setSelectedEntry(sample)
                     }).catch(() => {})
                   }}
-                  onAddToTodo={(text) => addTodo(text)}
                 />
+              ) : (
+                <IdentityDetail identity={selectedIdentity} />
+              )}
             </div>
 
             {/* Todo sidebar */}
@@ -479,11 +489,23 @@ export default function App() {
                   onAdd={addTodo}
                   onDelete={deleteTodo}
                   onSetDue={setTodoDue}
+                  onUpdateText={updateTodoText}
                 />
               </>
             )}
           </div>
 
+          {mergeSource && (
+            <MergeIdentityDialog
+              source={mergeSource}
+              onClose={() => setMergeSource(null)}
+              onMerged={() => {
+                setMergeSource(null)
+                if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
+                refreshIdentity()
+              }}
+            />
+          )}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
               position: 'absolute',

@@ -263,3 +263,6 @@ export const deleteTodo = (lineIndex: number): Promise<void> =>
 
 export const setTodoDue = (lineIndex: number, due: string | null): Promise<void> =>
   invoke<void>('set_todo_due', { lineIndex, due })
+
+export const updateTodoText = (lineIndex: number, text: string): Promise<void> =>
+  invoke<void>('update_todo_text', { lineIndex, text })

@@ -223,6 +223,55 @@ pub fn set_todo_due(app: tauri::AppHandle, line_index: usize, due: Option<String
     set_todo_due_in_workspace(&cfg.workspace_path, line_index, due.as_deref())
 }
 
+pub fn update_todo_text_in_workspace(workspace: &str, line_index: usize, new_text: &str) -> Result<(), String> {
+    let content = read_todos_file(workspace);
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
+
+    if line_index >= lines.len() {
+        return Err(format!("行号 {} 超出范围", line_index));
+    }
+
+    let line = &lines[line_index];
+    let trimmed = line.trim_start();
+
+    // Preserve the checkbox prefix and any trailing comments (due/done)
+    let prefix = if trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ") {
+        "- [x] "
+    } else if trimmed.starts_with("- [ ] ") {
+        "- [ ] "
+    } else {
+        return Err("该行不是待办项".to_string());
+    };
+
+    // Extract existing comments
+    let old_rest = &trimmed[6..];
+    let mut comments = String::new();
+    let mut tmp = old_rest.to_string();
+    while let Some(start) = tmp.find("<!--") {
+        if let Some(end) = tmp[start..].find("-->") {
+            comments.push(' ');
+            comments.push_str(&tmp[start..start + end + 3]);
+            tmp = format!("{}{}", &tmp[..start], &tmp[start + end + 3..]);
+        } else {
+            break;
+        }
+    }
+
+    lines[line_index] = if comments.is_empty() {
+        format!("{}{}", prefix, new_text.trim())
+    } else {
+        format!("{}{}{}", prefix, new_text.trim(), comments)
+    };
+
+    write_todos_file(workspace, &(lines.join("\n") + "\n"))
+}
+
+#[tauri::command]
+pub fn update_todo_text(app: tauri::AppHandle, line_index: usize, text: String) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    update_todo_text_in_workspace(&cfg.workspace_path, line_index, &text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

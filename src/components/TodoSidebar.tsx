@@ -250,6 +250,7 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
                 background: 'transparent', border: '0.5px solid var(--divider)',
                 borderRadius: 3, color: 'var(--item-text)', padding: '1px 3px',
                 outline: 'none', width: 90,
+                colorScheme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
               }}
             />
           )}

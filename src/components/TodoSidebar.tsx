@@ -218,7 +218,7 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
               onClick={() => !item.done && setEditingDue(true)}
               style={{ fontSize: 9, color: 'var(--duration-text)', cursor: item.done ? 'default' : 'pointer' }}
             >
-              截止 {item.due.slice(5).replace('-', '/')}
+              截止 {item.due.replace(/-/g, '/')}
             </span>
           )}
           {!item.done && !editingDue && !item.due && (

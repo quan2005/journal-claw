@@ -7,7 +7,13 @@ import { DetailPanel } from './components/DetailPanel'
 import { CommandDock } from './components/CommandDock'
 import { ProcessingQueue } from './components/ProcessingQueue'
 import { SettingsPanel } from './settings/SettingsPanel'
-import IdentityView from './components/IdentityView'
+import { IdentityList, SOUL_PATH } from './components/IdentityList'
+import { IdentityDetail } from './components/IdentityDetail'
+import { MergeIdentityDialog } from './components/MergeIdentityDialog'
+import { SidebarTabs } from './components/SidebarTabs'
+import type { SidebarTab } from './components/SidebarTabs'
+import { useIdentity } from './hooks/useIdentity'
+import { deleteIdentity } from './lib/tauri'
 import { TodoSidebar } from './components/TodoSidebar'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
@@ -15,7 +21,7 @@ import { useTheme } from './hooks/useTheme'
 import { useTodos } from './hooks/useTodos'
 import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
-import type { JournalEntry, QueueItem } from './types'
+import type { JournalEntry, QueueItem, IdentityEntry } from './types'
 
 const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
@@ -25,11 +31,12 @@ export default function App() {
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
   const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue } = useTodos()
+  const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [asrReady, setAsrReady] = useState<boolean | null>(null)
   const [audioRejected, setAudioRejected] = useState(false)
-  const [view, setView] = useState<'journal' | 'settings' | 'identity'>('journal')
+  const [view, setView] = useState<'journal' | 'settings'>('journal')
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -38,6 +45,16 @@ export default function App() {
   const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
   const [dockOpen, setDockOpen] = useState(false)
   const [todoOpen, setTodoOpen] = useState(false)
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
+  const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
+  const [mergeSource, setMergeSource] = useState<IdentityEntry | null>(null)
+  const [todoWidth, setTodoWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('journal_todo_width')
+    return saved ? parseInt(saved) : BASE_WIDTH
+  })
+  const [isTodoDragging, setIsTodoDragging] = useState(false)
+  const todoDragStartX = useRef(0)
+  const todoDragStartWidth = useRef(0)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -114,6 +131,27 @@ export default function App() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [isDragging])
 
+  // Todo sidebar divider drag
+  const onTodoDividerMouseDown = (e: React.MouseEvent) => {
+    setIsTodoDragging(true)
+    todoDragStartX.current = e.clientX
+    todoDragStartWidth.current = todoWidth
+  }
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isTodoDragging) return
+      // Dragging left increases width, right decreases
+      const delta = todoDragStartX.current - e.clientX
+      const newWidth = Math.max(180, Math.min(560, todoDragStartWidth.current + delta))
+      setTodoWidth(newWidth)
+      localStorage.setItem('journal_todo_width', String(newWidth))
+    }
+    const onUp = () => setIsTodoDragging(false)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [isTodoDragging])
+
   // journal-entry-deleted event
   useEffect(() => {
     const handler = (e: Event) => {
@@ -179,10 +217,6 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault()
         setView(v => v === 'settings' ? 'journal' : 'settings')
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
-        e.preventDefault()
-        setView(v => v === 'identity' ? 'journal' : 'identity')
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 't') {
         e.preventDefault()
@@ -339,6 +373,29 @@ export default function App() {
     ? [{ path: RECORDING_PLACEHOLDER, filename: '录音中', status: 'recording' as const, addedAt: Date.now(), logs: [], elapsedSecs, audioLevel }, ...queueItems]
     : queueItems
 
+  const SOUL_ENTRY: IdentityEntry = {
+    filename: '__soul__',
+    path: SOUL_PATH,
+    name: '助理',
+    region: '',
+    summary: '定义谨迹的角色与工作偏好',
+    tags: [],
+    speaker_id: '',
+    mtime_secs: 0,
+  }
+  const allIdentities: IdentityEntry[] = [SOUL_ENTRY, ...identities]
+
+  const handleDeleteIdentity = async (identity: IdentityEntry) => {
+    if (!window.confirm(`确认删除「${identity.name}」的档案？`)) return
+    try {
+      await deleteIdentity(identity.path)
+      if (selectedIdentity?.path === identity.path) setSelectedIdentity(null)
+      refreshIdentity()
+    } catch (e) {
+      console.error('[App] identity delete failed', e)
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
       <TitleBar
@@ -348,7 +405,6 @@ export default function App() {
         processingFilename={processingFilename}
         onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
-        onToggleIdentity={() => setView(v => v === 'identity' ? 'journal' : 'identity')}
         todoOpen={todoOpen}
         todoCount={todos.filter(t => !t.done).length}
         onToggleTodo={() => setTodoOpen(prev => !prev)}
@@ -408,13 +464,23 @@ export default function App() {
 
             {/* Todo sidebar */}
             {todoOpen && (
-              <TodoSidebar
-                todos={todos}
-                onToggle={toggleTodo}
-                onAdd={addTodo}
-                onDelete={deleteTodo}
-                onSetDue={setTodoDue}
-              />
+              <>
+                <div
+                  onMouseDown={onTodoDividerMouseDown}
+                  style={{
+                    width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
+                    cursor: 'col-resize',
+                  }}
+                />
+                <TodoSidebar
+                  width={todoWidth}
+                  todos={todos}
+                  onToggle={toggleTodo}
+                  onAdd={addTodo}
+                  onDelete={deleteTodo}
+                  onSetDue={setTodoDue}
+                />
+              </>
             )}
           </div>
 

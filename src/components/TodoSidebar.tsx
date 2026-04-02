@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { TodoItem } from '../types'
 
 interface TodoSidebarProps {
+  width: number
   todos: TodoItem[]
   onToggle: (lineIndex: number, checked: boolean) => void
   onAdd: (text: string) => void
@@ -9,7 +10,7 @@ interface TodoSidebarProps {
   onSetDue: (lineIndex: number, due: string | null) => void
 }
 
-export function TodoSidebar({ todos, onToggle, onAdd, onDelete, onSetDue }: TodoSidebarProps) {
+export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue }: TodoSidebarProps) {
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -46,7 +47,7 @@ export function TodoSidebar({ todos, onToggle, onAdd, onDelete, onSetDue }: Todo
 
   return (
     <div style={{
-      width: 220, flexShrink: 0, borderLeft: '0.5px solid var(--divider)',
+      width: width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)',
       padding: '12px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column',
     }}>
       {/* Header */}

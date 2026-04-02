@@ -203,16 +203,31 @@ pub fn identify_or_register_all(
 
         // No match — register new profile
         let auto_number = next_auto_number(&profiles);
+        let new_id = Uuid::new_v4().to_string();
+        let auto_name = format!("说话人 {}", auto_number);
         let new_profile = SpeakerProfile {
-            id: Uuid::new_v4().to_string(),
+            id: new_id.clone(),
             name: String::new(),
-            auto_name: format!("说话人 {}", auto_number),
+            auto_name: auto_name.clone(),
             embeddings: vec![embedding.clone()],
             created_at: now,
             last_seen_at: now,
             recording_count: 1,
         };
         mapping.insert(label.clone(), new_profile.auto_name.clone());
+        // Auto-create identity file for new speaker
+        if let Ok(cfg) = crate::config::load_config(app) {
+            if !cfg.workspace_path.is_empty() {
+                let _ = crate::identity::create_identity_file(
+                    &cfg.workspace_path,
+                    "未知",
+                    &auto_name,
+                    "",
+                    &[],
+                    &new_id,
+                );
+            }
+        }
         profiles.push(new_profile);
     }
 

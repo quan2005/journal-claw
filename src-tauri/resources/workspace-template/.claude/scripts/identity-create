@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Create a new identity file in workspace/identity/{region}-{name}.md
+set -euo pipefail
+
+usage() {
+  echo "Usage: .claude/scripts/identity-create <地域> <姓名> [--speaker-id ID] [--summary TEXT]" >&2
+  exit 1
+}
+
+[[ $# -lt 2 ]] && usage
+
+region="$1"
+name="$2"
+shift 2
+
+speaker_id=""
+summary=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --speaker-id) shift; speaker_id="$1" ;;
+    --summary)    shift; summary="$1" ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+  shift
+done
+
+[[ -n "$region" && -n "$name" ]] || usage
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+workspace="$(cd "${script_dir}/../.." && pwd)"
+identity_dir="${workspace}/identity"
+
+mkdir -p "${identity_dir}"
+
+filename="${region}-${name}.md"
+target="${identity_dir}/${filename}"
+
+if [[ -e "${target}" ]]; then
+  echo "Identity already exists: ${target}" >&2
+  echo "${target}"
+  exit 0
+fi
+
+cat > "${target}" <<EOF
+---
+summary: "${summary}"
+tags: []
+speaker_id: "${speaker_id}"
+---
+
+# ${name}
+
+EOF
+
+echo "${target}"

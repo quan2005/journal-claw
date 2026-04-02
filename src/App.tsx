@@ -7,7 +7,7 @@ import { DetailPanel } from './components/DetailPanel'
 import { CommandDock } from './components/CommandDock'
 import { ProcessingQueue } from './components/ProcessingQueue'
 import { SettingsPanel } from './settings/SettingsPanel'
-import SoulView from './components/SoulView'
+import IdentityView from './components/IdentityView'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
@@ -26,7 +26,7 @@ export default function App() {
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [asrReady, setAsrReady] = useState<boolean | null>(null)
   const [audioRejected, setAudioRejected] = useState(false)
-  const [view, setView] = useState<'journal' | 'settings' | 'soul'>('journal')
+  const [view, setView] = useState<'journal' | 'settings' | 'identity'>('journal')
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -178,7 +178,7 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
         e.preventDefault()
-        setView(v => v === 'soul' ? 'journal' : 'soul')
+        setView(v => v === 'identity' ? 'journal' : 'identity')
       }
     }
     window.addEventListener('keydown', handler)
@@ -340,17 +340,19 @@ export default function App() {
         processingFilename={processingFilename}
         onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
-        onToggleSoul={() => setView(v => v === 'soul' ? 'journal' : 'soul')}
+        onToggleIdentity={() => setView(v => v === 'identity' ? 'journal' : 'identity')}
       />
 
       {view === 'settings' ? (
         <div key="settings" style={{ flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
           <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} onClose={() => setView('journal')} />
         </div>
-      ) : view === 'soul' ? (
-        <div key="soul" style={{ flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
-          <SoulView />
-        </div>
+      ) : view === 'identity' ? (
+        <IdentityView
+          baseWidth={baseWidth}
+          dividerWidth={DIVIDER_WIDTH}
+          onDividerMouseDown={onDividerMouseDown}
+        />
       ) : (
         <>
           <div key="journal" style={{ display: 'flex', flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>

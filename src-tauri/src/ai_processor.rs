@@ -83,6 +83,8 @@ const SCRIPT_JOURNAL_CREATE: &str =
     include_str!("../resources/workspace-template/.claude/scripts/journal-create");
 const SCRIPT_RECENT_SUMMARIES: &str =
     include_str!("../resources/workspace-template/.claude/scripts/recent-summaries");
+const SCRIPT_IDENTITY_CREATE: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/identity-create");
 
 /// 确保 workspace/.claude/ 已初始化。仅在文件不存在时创建，不覆盖用户修改。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -112,6 +114,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let scripts: &[(&str, &str)] = &[
         ("journal-create", SCRIPT_JOURNAL_CREATE),
         ("recent-summaries", SCRIPT_RECENT_SUMMARIES),
+        ("identity-create", SCRIPT_IDENTITY_CREATE),
     ];
     for (name, content) in scripts {
         let path = scripts_dir.join(name);

@@ -49,7 +49,7 @@ export default function App() {
   const detailAnimRef = useRef<HTMLDivElement>(null)
 
   const handleTabChange = useCallback((tab: SidebarTab) => {
-    const anim = tab === 'identity' ? 'tab-slide-right 0.18s ease-out' : 'tab-slide-left 0.18s ease-out'
+    const anim = 'tab-crossfade 0.12s ease-out'
     // Restart animation by removing then re-adding
     for (const ref of [sidebarAnimRef, detailAnimRef]) {
       if (ref.current) {

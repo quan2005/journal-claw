@@ -266,6 +266,11 @@ fn main() {
             permissions::check_app_permissions,
             permissions::open_privacy_settings,
             permissions::request_permission,
+            identity::list_identities,
+            identity::get_identity_content,
+            identity::save_identity_content,
+            identity::delete_identity,
+            identity::create_identity,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

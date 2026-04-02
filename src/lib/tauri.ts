@@ -207,7 +207,6 @@ export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' 
 
 export const requestPermission = (perm: 'microphone' | 'speech_recognition'): Promise<PermStatus> =>
   invoke<PermStatus>('request_permission', { perm })
-
 export interface AppPermissions {
   microphone: PermStatus
   speech_recognition: PermStatus

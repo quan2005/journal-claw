@@ -21,6 +21,11 @@ let downloadListener: ((event: { payload: DownloadPayload }) => void) | null = n
 
 const mockCheckWhisperkitCliInstalled = vi.fn()
 const mockInstallWhisperkitCli = vi.fn()
+const mockGetAppleSttVariant = vi.fn()
+const mockGetSpeakerProfiles = vi.fn()
+const mockUpdateSpeakerName = vi.fn()
+const mockDeleteSpeakerProfile = vi.fn()
+const mockMergeSpeakerProfiles = vi.fn()
 
 vi.mock('../lib/tauri', () => ({
   getAsrConfig: (...args: unknown[]) => mockGetAsrConfig(...args),
@@ -30,6 +35,11 @@ vi.mock('../lib/tauri', () => ({
   downloadWhisperkitModel: (...args: unknown[]) => mockDownloadWhisperkitModel(...args),
   checkWhisperkitCliInstalled: (...args: unknown[]) => mockCheckWhisperkitCliInstalled(...args),
   installWhisperkitCli: (...args: unknown[]) => mockInstallWhisperkitCli(...args),
+  getAppleSttVariant: (...args: unknown[]) => mockGetAppleSttVariant(...args),
+  getSpeakerProfiles: (...args: unknown[]) => mockGetSpeakerProfiles(...args),
+  updateSpeakerName: (...args: unknown[]) => mockUpdateSpeakerName(...args),
+  deleteSpeakerProfile: (...args: unknown[]) => mockDeleteSpeakerProfile(...args),
+  mergeSpeakerProfiles: (...args: unknown[]) => mockMergeSpeakerProfiles(...args),
 }))
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -72,6 +82,11 @@ describe('SectionVoice', () => {
     mockCheckWhisperkitCliInstalled.mockResolvedValue(true)
     mockInstallWhisperkitCli.mockResolvedValue(undefined)
     mockDownloadWhisperkitModel.mockResolvedValue(undefined)
+    mockGetAppleSttVariant.mockResolvedValue('default')
+    mockGetSpeakerProfiles.mockResolvedValue([])
+    mockUpdateSpeakerName.mockResolvedValue(undefined)
+    mockDeleteSpeakerProfile.mockResolvedValue(undefined)
+    mockMergeSpeakerProfiles.mockResolvedValue(undefined)
     mockInvoke.mockResolvedValue(undefined)
   })
 

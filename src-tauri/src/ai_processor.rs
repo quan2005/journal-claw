@@ -827,6 +827,11 @@ pub async fn process_material(
                 },
             );
             let _ = app_clone.emit("journal-updated", year_month);
+            // Check if todos.md was modified by AI and notify frontend
+            let todos_path = std::path::Path::new(&cfg.workspace_path).join("todos.md");
+            if todos_path.exists() {
+                let _ = app_clone.emit("todos-updated", ());
+            }
             Ok(())
         }
         Err(err) => {

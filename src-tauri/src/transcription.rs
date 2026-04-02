@@ -950,7 +950,19 @@ pub async fn transcribe_audio_to_ai_markdown(
                     // 通知前端声纹档案已更新
                     let _ = app.emit("speakers-updated", ());
                 }
-                let merged = merge_transcript_with_speakers(&transcript, &speakers);
+                // 清除引擎自带的说话人标签，让 SpeakerKit 的档案名通过时间重叠匹配覆盖
+                // （否则 merge_transcript_with_speakers 会保留 WhisperKit 的 SPEAKER_XX 原始标签）
+                let transcript_unlabeled = Transcript {
+                    status: transcript.status.clone(),
+                    text: transcript.text.clone(),
+                    segments: transcript
+                        .segments
+                        .iter()
+                        .map(|s| WhisperSegment { speaker: None, ..s.clone() })
+                        .collect(),
+                    engine: transcript.engine.clone(),
+                };
+                let merged = merge_transcript_with_speakers(&transcript_unlabeled, &speakers);
                 save_transcript_data(&file_path, &merged);
                 merged
             }

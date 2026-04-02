@@ -18,6 +18,10 @@
   --record-btn: #4a6a7a;
   --record-btn-hover: #3a5a6a;
   --record-btn-icon: #f5f6f7;
+  --segment-bg: rgba(128,128,128,0.06);
+  --segment-active-bg: rgba(74,106,122,0.10);
+  --segment-text: #6a7278;
+  --segment-active-text: var(--record-btn);
   --record-highlight: #ebeef0;
   --record-highlight-bar: rgba(74,106,122,1);
   --item-icon-bg: #eef1f3;
@@ -137,6 +141,10 @@
     --record-btn: #C8933B;
     --record-btn-hover: #d9a44b;
     --record-btn-icon: #0f0f0f;
+    --segment-bg: rgba(128,128,128,0.08);
+    --segment-active-bg: rgba(200,147,58,0.12);
+    --segment-text: #666;
+    --segment-active-text: #C8933B;
     --record-highlight: rgba(200,147,59,0.06);
     --record-highlight-bar: rgba(200,147,59,1);
     --item-icon-bg: #2c2c2e;
@@ -249,6 +257,10 @@
   --record-btn: #C8933B;
   --record-btn-hover: #d9a44b;
   --record-btn-icon: #0f0f0f;
+  --segment-bg: rgba(128,128,128,0.08);
+  --segment-active-bg: rgba(200,147,58,0.12);
+  --segment-text: #666;
+  --segment-active-text: #C8933B;
   --record-highlight: rgba(200,147,59,0.06);
   --record-highlight-bar: rgba(200,147,59,1);
   --item-icon-bg: #2c2c2e;
@@ -524,6 +536,10 @@ html, body, #root {
   --record-btn: #C8933B;
   --record-btn-hover: #d9a44b;
   --record-btn-icon: #0f0f0f;
+  --segment-bg: rgba(128,128,128,0.08);
+  --segment-active-bg: rgba(200,147,58,0.12);
+  --segment-text: #666;
+  --segment-active-text: #C8933B;
   --record-highlight: rgba(200,147,59,0.06);
   --record-highlight-bar: rgba(200,147,59,1);
   --item-icon-bg: #2c2c2e;
@@ -611,6 +627,10 @@ html, body, #root {
   --record-btn: #4a6a7a;
   --record-btn-hover: #3a5a6a;
   --record-btn-icon: #f5f6f7;
+  --segment-bg: rgba(128,128,128,0.06);
+  --segment-active-bg: rgba(74,106,122,0.10);
+  --segment-text: #6a7278;
+  --segment-active-text: var(--record-btn);
   --record-highlight: #ebeef0;
   --record-highlight-bar: rgba(74,106,122,1);
   --item-icon-bg: #eef1f3;

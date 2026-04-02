@@ -45,6 +45,21 @@ export default function App() {
   const [dockOpen, setDockOpen] = useState(false)
   const [todoOpen, setTodoOpen] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
+  const sidebarAnimRef = useRef<HTMLDivElement>(null)
+  const detailAnimRef = useRef<HTMLDivElement>(null)
+
+  const handleTabChange = useCallback((tab: SidebarTab) => {
+    const anim = tab === 'identity' ? 'tab-slide-right 0.18s ease-out' : 'tab-slide-left 0.18s ease-out'
+    // Restart animation by removing then re-adding
+    for (const ref of [sidebarAnimRef, detailAnimRef]) {
+      if (ref.current) {
+        ref.current.style.animation = 'none'
+        void ref.current.offsetHeight // force reflow
+        ref.current.style.animation = anim
+      }
+    }
+    setSidebarTab(tab)
+  }, [])
   const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
   const [mergeSource, setMergeSource] = useState<IdentityEntry | null>(null)
   const [todoWidth, setTodoWidth] = useState<number>(() => {
@@ -418,16 +433,17 @@ export default function App() {
           <div key="journal" style={{ display: 'flex', flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
             {/* Left: Journal list / Identity list */}
             <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
-              <SidebarTabs active={sidebarTab} onChange={setSidebarTab} />
-              <div key={sidebarTab} style={{ flex: 1, minHeight: 0, animation: 'content-enter 0.15s ease-out' }}>
-                {sidebarTab === 'journal' ? (
+              <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
+              <div ref={sidebarAnimRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column' }}>
                   <JournalList
                     entries={entries}
                     loading={loading}
                     selectedPath={selectedEntry?.path ?? null}
                     onSelect={setSelectedEntry}
                   />
-                ) : (
+                </div>
+                <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column' }}>
                   <IdentityList
                     identities={allIdentities}
                     loading={identityLoading}
@@ -436,7 +452,7 @@ export default function App() {
                     onMerge={identity => setMergeSource(identity)}
                     onDelete={handleDeleteIdentity}
                   />
-                )}
+                </div>
               </div>
             </div>
 
@@ -450,7 +466,7 @@ export default function App() {
             />
 
             {/* Right: Detail panel / Identity detail */}
-            <div key={sidebarTab} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'content-enter 0.15s ease-out' }}>
+            <div ref={detailAnimRef} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {sidebarTab === 'journal' ? (
                 <DetailPanel
                   entry={selectedEntry}

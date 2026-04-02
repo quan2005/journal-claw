@@ -83,7 +83,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)', animation: 'content-enter 0.2s ease-out' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
         {months.map(ym => {
           const days = Object.keys(grouped[ym]).map(Number).sort((a, b) => b - a)

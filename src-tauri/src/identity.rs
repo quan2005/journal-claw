@@ -69,23 +69,39 @@ pub fn create_identity_file(
     Ok(path.to_string_lossy().to_string())
 }
 
-/// Ensure a user-self identity file (我-*.md) exists. If none found, create 我-用户.md.
+/// Ensure a user-self identity file (about-me.md) exists. If not found, create it.
 fn ensure_self_identity(workspace: &str) -> Result<(), String> {
     let dir = identity_dir(workspace);
     if !dir.exists() {
         return Ok(());
     }
-    if let Ok(read_dir) = std::fs::read_dir(&dir) {
-        for entry in read_dir.flatten() {
-            let fname = entry.file_name().to_string_lossy().to_string();
-            if fname.starts_with("我-") && fname.ends_with(".md") {
-                return Ok(()); // already exists
-            }
-        }
+    let path = dir.join("about-me.md");
+    if path.exists() {
+        return Ok(());
     }
-    // No 我-*.md found — create default
-    let path = dir.join("我-用户.md");
-    let content = "---\nsummary: \"\"\ntags: []\nspeaker_id: \"\"\n---\n\n# 用户\n";
+    let content = r#"---
+summary: ""
+tags: []
+speaker_id: ""
+---
+
+# 关于我
+
+## 基本信息
+
+- 姓名：
+- 角色：
+- 所在地：
+
+## 工作偏好
+
+- 沟通风格：
+- 关注领域：
+
+## 备注
+
+这是你的个人档案，谨迹会参考这里的信息来更好地整理你的日志。
+"#;
     std::fs::write(&path, content).map_err(|e| format!("创建用户身份失败: {}", e))?;
     Ok(())
 }
@@ -167,6 +183,13 @@ pub fn save_identity_content(path: String, content: String) -> Result<(), String
 
 #[tauri::command]
 pub fn delete_identity(path: String) -> Result<(), String> {
+    let fname = std::path::Path::new(&path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+    if fname == "about-me.md" {
+        return Err("不可删除「关于我」".to_string());
+    }
     std::fs::remove_file(&path).map_err(|e| e.to_string())
 }
 

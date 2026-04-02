@@ -10,7 +10,7 @@ function isSoul(identity: IdentityEntry) {
 }
 
 function isUserSelf(identity: IdentityEntry) {
-  return identity.filename.startsWith('我-')
+  return identity.filename === 'about-me.md'
 }
 
 function isPinned(identity: IdentityEntry) {

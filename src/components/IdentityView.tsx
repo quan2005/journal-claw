@@ -10,7 +10,7 @@ import type { IdentityEntry } from '../types'
 const SOUL_ENTRY: IdentityEntry = {
   filename: '__soul__',
   path: SOUL_PATH,
-  name: '人格设定',
+  name: '助理',
   region: '',
   summary: '定义谨迹的角色与工作偏好',
   tags: [],

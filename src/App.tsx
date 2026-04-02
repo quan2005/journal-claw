@@ -402,6 +402,7 @@ export default function App() {
                       if (sample) setSelectedEntry(sample)
                     }).catch(() => {})
                   }}
+                  onAddToTodo={(text) => addTodo(text)}
                 />
             </div>
 

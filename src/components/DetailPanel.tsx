@@ -15,13 +15,15 @@ interface DetailPanelProps {
   onRecord: () => void
   onOpenDock: () => void
   onSelectSample: () => void
+  onAddToTodo?: (text: string) => void
 }
 
 // ── Detail context menu ───────────────────────────────────────────────────────
-function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onClose }: {
+function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onAddToTodo, onClose }: {
   menuRef: React.RefObject<HTMLDivElement | null>
   onCopySelection: () => void
   onCopyRaw: () => void
+  onAddToTodo: () => void
   onClose: () => void
 }) {
   const iconColor = 'var(--item-meta)'
@@ -42,6 +44,19 @@ function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onClose }: {
       padding: '4px 0',
       display: 'none',
     }}>
+      {/* Add to todo */}
+      <div data-role="add-to-todo" style={itemStyle}
+        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
+        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => { onAddToTodo(); onClose() }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>添加到待办</span>
+      </div>
+      <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Copy selection */}
       <div data-role="copy-selection" style={itemStyle}
         onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
@@ -130,7 +145,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample }: DetailPanelProps) {
+export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
@@ -152,6 +167,12 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
       copySelItem.style.opacity = hasSelection ? '1' : '0.35'
       copySelItem.style.cursor = hasSelection ? 'pointer' : 'default'
       copySelItem.style.pointerEvents = hasSelection ? 'auto' : 'none'
+    }
+    const addTodoItem = el.querySelector('[data-role="add-to-todo"]') as HTMLDivElement | null
+    if (addTodoItem) {
+      addTodoItem.style.opacity = hasSelection ? '1' : '0.35'
+      addTodoItem.style.cursor = hasSelection ? 'pointer' : 'default'
+      addTodoItem.style.pointerEvents = hasSelection ? 'auto' : 'none'
     }
     el.style.display = 'block'
     el.style.left = `${x}px`
@@ -552,6 +573,10 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
         }}
         onCopyRaw={() => {
           if (content) navigator.clipboard.writeText(content)
+        }}
+        onAddToTodo={() => {
+          const sel = window.getSelection()?.toString()?.trim()
+          if (sel && onAddToTodo) onAddToTodo(sel)
         }}
         onClose={hideContextMenu}
       />

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tab 切换动画方案对比</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Mono', ui-monospace, -apple-system, sans-serif;
+    background: #111;
+    color: #e8e8e8;
+    padding: 40px 32px 80px;
+    line-height: 1.5;
+  }
+
+  h1 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { font-size: 12px; color: #666; margin-bottom: 40px; }
+
+  .section-label {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #444; font-weight: 600; margin-bottom: 20px;
+    padding-bottom: 8px; border-bottom: 0.5px solid #222;
+  }
+
+  .four-views {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 48px;
+  }
+
+  .view-label {
+    font-size: 11px; color: #555; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 500;
+    background: rgba(200,147,58,0.12); color: #C8933B;
+    border: 0.5px solid rgba(200,147,58,0.2);
+  }
+
+  .badge-rec {
+    background: rgba(90,154,106,0.12); color: #5a9a6a;
+    border-color: rgba(90,154,106,0.2);
+  }
+
+  .app {
+    background: #0f0f0f; border-radius: 10px;
+    border: 0.5px solid #2a2a2a; overflow: hidden;
+    font-size: 11px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .titlebar {
+    height: 32px; background: #161616;
+    border-bottom: 0.5px solid #222;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .traffic-lights {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 5px;
+  }
+  .tl { width: 9px; height: 9px; border-radius: 50%; }
+  .tl-r { background: #ff5f57; } .tl-y { background: #febc2e; } .tl-g { background: #28c840; }
+
+  .ai-pill {
+    display: flex; align-items: center; gap: 4px;
+    background: #1a1708; border: 0.5px solid #3a3018;
+    border-radius: 14px; padding: 2px 8px; font-size: 9px; color: #C8933B;
+  }
+  .ai-dot { width: 4px; height: 4px; border-radius: 50%; background: #C8933B; }
+
+  .body-area { display: flex; height: 280px; }
+
+  .sidebar {
+    width: 150px; border-right: 0.5px solid #1e1e1e;
+    background: #141414; flex-shrink: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .detail {
+    flex: 1; overflow: hidden; position: relative; background: #0f0f0f;
+  }
+
+  .tab-segment {
+    display: flex; margin: 8px 10px 4px;
+    background: rgba(128,128,128,0.08);
+    border-radius: 5px; padding: 2px; flex-shrink: 0;
+  }
+  .tab-segment-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+    font-size: 10px; font-weight: 500; padding: 4px 0; border-radius: 3px;
+    color: #555; cursor: pointer; border: none; background: transparent;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    transition: color 0.15s, background 0.15s;
+  }
+  .tab-segment-btn.active {
+    background: rgba(200,147,58,0.12); color: #C8933B;
+  }
+
+  .sidebar-scroll {
+    flex: 1; overflow: hidden; position: relative;
+  }
+
+  .panel {
+    position: absolute; inset: 0; overflow-y: auto;
+  }
+
+  .month-label {
+    font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #333; padding: 10px 12px 4px; font-weight: 600;
+  }
+
+  .day-header { display: flex; align-items: baseline; gap: 4px; padding: 6px 12px 2px; }
+  .day-number { font-size: 18px; font-weight: 500; color: #555; line-height: 1; }
+  .day-weekday { font-size: 9px; color: #555; }
+
+  .sidebar-item {
+    padding: 4px 12px; font-size: 10px; color: #888;
+    display: flex; flex-direction: column; gap: 0; cursor: pointer;
+  }
+  .sidebar-item.selected {
+    background: #1c1c1c; color: #C8933B;
+    border-left: 2px solid #C8933B; padding-left: 10px;
+  }
+  .sidebar-item-title { font-weight: 600; font-size: 11px; }
+  .sidebar-item-summary { font-size: 9px; color: #555; }
+
+  .id-item {
+    padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .id-item.selected {
+    background: #1c1c1c; border-left: 2px solid #C8933B; padding-left: 10px;
+  }
+  .id-avatar {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 600; flex-shrink: 0;
+  }
+  .id-avatar.soul { background: rgba(90,154,106,0.15); color: #5a9a6a; }
+  .id-avatar.me { background: rgba(200,147,58,0.15); color: #c8933a; }
+  .id-avatar.other { background: rgba(128,128,128,0.12); color: #888; }
+  .id-name { font-weight: 600; font-size: 11px; color: #e8e8e8; }
+  .id-name.selected { color: #C8933B; }
+  .id-summary { font-size: 9px; color: #555; }
+  .id-section { font-size: 8px; letter-spacing: 0.12em; color: #333; padding: 10px 12px 2px; font-weight: 600; }
+
+  .detail-title { font-size: 14px; font-weight: 600; color: #e8e8e8; margin-bottom: 6px; }
+  .detail-meta { font-size: 9px; color: #444; margin-bottom: 12px; }
+  .detail-line { height: 6px; border-radius: 3px; background: #1a1a1a; margin-bottom: 5px; }
+
+  .id-detail-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 16px; border-bottom: 0.5px solid #222;
+  }
+  .id-detail-toolbar span { font-size: 12px; font-weight: 600; color: #e8e8e8; }
+  .id-detail-toolbar button {
+    font-size: 10px; padding: 2px 10px; border-radius: 4px;
+    border: 1px solid #333; background: transparent; color: #888; cursor: pointer;
+  }
+  .id-detail-body { padding: 16px 18px; }
+
+  /* Journal panel template */
+  .journal-panel { display: none; }
+  .identity-panel { display: none; }
+  .journal-detail-panel { display: none; }
+  .identity-detail-panel { display: none; }
+
+  /* ── Animation keyframes ── */
+  @keyframes anim-a-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes anim-b-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes anim-c-slide-right {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes anim-c-slide-left {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes anim-d-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .callout-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 48px;
+  }
+  .callout {
+    background: #161616; border: 0.5px solid #222;
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .callout-title { font-size: 11px; color: #C8933B; font-weight: 500; margin-bottom: 8px; }
+  .callout-text { font-size: 11px; color: #888; line-height: 1.6; }
+  .callout-text strong { color: #e8e8e8; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h1>Tab 切换动画方案对比</h1>
+<p class="subtitle">点击每个 mockup 的 tab 控件查看动画效果 · 点击当前 tab 可重播</p>
+
+<div class="section-label">四种方案</div>
+
+<div class="four-views" id="views-container"></div>
+
+<!-- ── Trade-offs ── -->
+<div class="section-label">对比</div>
+
+<div class="callout-row">
+  <div class="callout">
+    <div class="callout-title">A. 淡入 + 上移 (当前)</div>
+    <div class="callout-text">
+      当前实现。<strong>translateY(4px)</strong> 在 tab 切换场景下显得突兀——上移暗示"从下方加载新内容"，但 tab 切换是<strong>平级导航</strong>，不是层级进入。<br><br>
+      <strong>0.15s</strong> 时长合理但位移方向不对。
+    </div>
+  </div>
+  <div class="callout">
+    <div class="callout-title" style="color:#5a9a6a;">B. 纯淡入淡出 (推荐)</div>
+    <div class="callout-text">
+      <strong>最克制</strong>。只有 opacity 变化，无位移。暗示"同一空间内容替换"，符合 tab 的平级语义。<br><br>
+      <strong>0.12s ease-out</strong>。Bear/Things 风格——你几乎注意不到动画，但没有它会觉得硬。
+    </div>
+  </div>
+  <div class="callout">
+    <div class="callout-title">C. 横向滑动</div>
+    <div class="callout-text">
+      <strong>方向感最强</strong>。日志→人设向右滑入，人设→日志向左滑入。暗示 tab 之间的空间关系。<br><br>
+      <strong>0.18s ease-out</strong>，translateX(12px)。iOS UIPageViewController 风格。比较活泼，可能偏离"克制"调性。
+    </div>
+  </div>
+  <div class="callout">
+    <div class="callout-title">D. 缩放淡入</div>
+    <div class="callout-text">
+      微缩放 <strong>scale(0.97→1)</strong> + 淡入。暗示"内容展开"。macOS Spotlight 结果切换的感觉。<br><br>
+      <strong>0.15s ease-out</strong>。比纯淡入多一点质感，但缩放在列表内容上可能显得不自然。
+    </div>
+  </div>
+</div>
+
+<script>
+// All content is built via safe DOM methods — no innerHTML with user data.
+// This is a static mockup with hardcoded content only.
+
+const variants = [
+  { id: 'a', label: 'A. 当前 — 淡入 + 上移 (生硬)', badgeClass: 'badge' },
+  { id: 'b', label: 'B. 纯淡入淡出 (推荐)', badgeClass: 'badge badge-rec' },
+  { id: 'c', label: 'C. 横向滑动 (方向感)', badgeClass: 'badge' },
+  { id: 'd', label: 'D. 缩放淡入 (轻微)', badgeClass: 'badge' },
+];
+
+const appStates = {};
+
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'style' && typeof v === 'object') {
+        Object.assign(e.style, v);
+      } else if (k === 'className') {
+        e.className = v;
+      } else if (k.startsWith('on')) {
+        e.addEventListener(k.slice(2).toLowerCase(), v);
+      } else {
+        e.setAttribute(k, v);
+      }
+    }
+  }
+  if (children) {
+    if (typeof children === 'string') e.textContent = children;
+    else if (Array.isArray(children)) children.forEach(c => { if (c) e.appendChild(c); });
+    else e.appendChild(children);
+  }
+  return e;
+}
+
+function buildJournalSidebar() {
+  const frag = document.createDocumentFragment();
+  frag.appendChild(el('div', { className: 'month-label' }, '2026年4月'));
+  frag.appendChild(el('div', { className: 'day-header' }, [
+    el('span', { className: 'day-number' }, '2'),
+    el('span', { className: 'day-weekday' }, '周四'),
+  ]));
+  frag.appendChild(el('div', { className: 'sidebar-item selected' }, [
+    el('span', { className: 'sidebar-item-title' }, '产品评审会议'),
+    el('span', { className: 'sidebar-item-summary' }, '讨论 Q2 路线图'),
+  ]));
+  frag.appendChild(el('div', { className: 'sidebar-item' }, [
+    el('span', { className: 'sidebar-item-title' }, '技术方案评审'),
+    el('span', { className: 'sidebar-item-summary' }, '微服务拆分'),
+  ]));
+  frag.appendChild(el('div', { className: 'day-header' }, [
+    el('span', { className: 'day-number' }, '1'),
+    el('span', { className: 'day-weekday' }, '周三'),
+  ]));
+  frag.appendChild(el('div', { className: 'sidebar-item' }, [
+    el('span', { className: 'sidebar-item-title' }, '团队周会'),
+    el('span', { className: 'sidebar-item-summary' }, '本周进度同步'),
+  ]));
+  frag.appendChild(el('div', { className: 'sidebar-item' }, [
+    el('span', { className: 'sidebar-item-title' }, '客户需求沟通'),
+    el('span', { className: 'sidebar-item-summary' }, '定制化需求'),
+  ]));
+  frag.appendChild(el('div', { className: 'month-label' }, '2026年3月'));
+  frag.appendChild(el('div', { className: 'day-header' }, [
+    el('span', { className: 'day-number' }, '31'),
+    el('span', { className: 'day-weekday' }, '周二'),
+  ]));
+  frag.appendChild(el('div', { className: 'sidebar-item' }, [
+    el('span', { className: 'sidebar-item-title' }, '架构评审'),
+    el('span', { className: 'sidebar-item-summary' }, '数据库迁移方案'),
+  ]));
+  return frag;
+}
+
+function buildIdentitySidebar() {
+  const frag = document.createDocumentFragment();
+  frag.appendChild(el('div', { className: 'id-section' }, '内置'));
+
+  const soulItem = el('div', { className: 'id-item selected' }, [
+    el('div', { className: 'id-avatar soul' }, 'AI'),
+    el('div', {}, [el('div', { className: 'id-name selected' }, '助理'), el('div', { className: 'id-summary' }, '角色与工作偏好')]),
+  ]);
+  frag.appendChild(soulItem);
+
+  frag.appendChild(el('div', { className: 'id-item' }, [
+    el('div', { className: 'id-avatar me' }, '我'),
+    el('div', {}, [el('div', { className: 'id-name' }, '吴彦'), el('div', { className: 'id-summary' }, '用户档案')]),
+  ]));
+
+  frag.appendChild(el('div', { style: { height: '4px', background: '#0f0f0f' } }));
+  frag.appendChild(el('div', { className: 'id-section' }, '产品部'));
+
+  frag.appendChild(el('div', { className: 'id-item' }, [
+    el('div', { className: 'id-avatar other' }, '张'),
+    el('div', {}, [el('div', { className: 'id-name' }, '张明'), el('div', { className: 'id-summary' }, '产品经理')]),
+  ]));
+  frag.appendChild(el('div', { className: 'id-item' }, [
+    el('div', { className: 'id-avatar other' }, '李'),
+    el('div', {}, [el('div', { className: 'id-name' }, '李薇'), el('div', { className: 'id-summary' }, 'UX 设计师')]),
+  ]));
+
+  frag.appendChild(el('div', { className: 'id-section' }, '工程部'));
+  frag.appendChild(el('div', { className: 'id-item' }, [
+    el('div', { className: 'id-avatar other' }, '王'),
+    el('div', {}, [el('div', { className: 'id-name' }, '王强'), el('div', { className: 'id-summary' }, '后端工程师')]),
+  ]));
+  return frag;
+}
+
+function buildJournalDetail() {
+  const wrap = el('div', { style: { padding: '16px 18px' } });
+  wrap.appendChild(el('div', { className: 'detail-title' }, '产品评审会议'));
+  wrap.appendChild(el('div', { className: 'detail-meta' }, '4月2日 · meeting'));
+  [88, 72, 95, 60].forEach(w => wrap.appendChild(el('div', { className: 'detail-line', style: { width: w + '%' } })));
+  wrap.appendChild(el('div', { style: { height: '8px' } }));
+  [82, 75, 90].forEach(w => wrap.appendChild(el('div', { className: 'detail-line', style: { width: w + '%' } })));
+  return wrap;
+}
+
+function buildIdentityDetail() {
+  const wrap = el('div');
+  const toolbar = el('div', { className: 'id-detail-toolbar' }, [
+    el('span', {}, '助理'),
+    el('button', {}, '编辑'),
+  ]);
+  wrap.appendChild(toolbar);
+  const body = el('div', { className: 'id-detail-body' });
+  body.appendChild(el('div', { className: 'detail-line', style: { height: '8px', width: '30%', background: '#222', marginBottom: '10px' } }));
+  [85, 70].forEach(w => body.appendChild(el('div', { className: 'detail-line', style: { width: w + '%' } })));
+  body.appendChild(el('div', { style: { height: '8px' } }));
+  body.appendChild(el('div', { className: 'detail-line', style: { height: '8px', width: '40%', background: '#222', marginBottom: '10px' } }));
+  [90, 65, 80].forEach(w => body.appendChild(el('div', { className: 'detail-line', style: { width: w + '%' } })));
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function getAnimation(variant, tab, prevTab) {
+  if (!prevTab) return 'none';
+  switch (variant) {
+    case 'a': return 'anim-a-in 0.15s ease-out';
+    case 'b': return 'anim-b-in 0.12s ease-out';
+    case 'c': return tab === 'identity' ? 'anim-c-slide-right 0.18s ease-out' : 'anim-c-slide-left 0.18s ease-out';
+    case 'd': return 'anim-d-in 0.15s ease-out';
+    default: return 'none';
+  }
+}
+
+function renderContent(app, variant, tab, prevTab) {
+  const sidebar = app.querySelector('.sidebar-scroll');
+  const detail = app.querySelector('.detail');
+  const anim = getAnimation(variant, tab, prevTab);
+
+  // Clear
+  sidebar.textContent = '';
+  detail.textContent = '';
+
+  // Sidebar panel
+  const sPanel = el('div', { className: 'panel', style: { animation: anim } });
+  sPanel.appendChild(tab === 'journal' ? buildJournalSidebar() : buildIdentitySidebar());
+  sidebar.appendChild(sPanel);
+
+  // Detail panel
+  const dPanel = el('div', { style: { position: 'absolute', inset: '0', animation: anim, background: '#0f0f0f' } });
+  dPanel.appendChild(tab === 'journal' ? buildJournalDetail() : buildIdentityDetail());
+  detail.appendChild(dPanel);
+}
+
+function switchTab(btn) {
+  const app = btn.closest('.app');
+  const variant = app.dataset.variant;
+  const tab = btn.dataset.tab;
+  const prevTab = appStates[variant];
+
+  if (tab === prevTab) {
+    renderContent(app, variant, tab, 'replay');
+    return;
+  }
+
+  btn.parentElement.querySelectorAll('.tab-segment-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  appStates[variant] = tab;
+  renderContent(app, variant, tab, prevTab);
+}
+
+// ── Build all apps ──
+const container = document.getElementById('views-container');
+
+variants.forEach(v => {
+  const wrapper = el('div');
+
+  const label = el('div', { className: 'view-label' });
+  label.appendChild(el('span', { className: v.badgeClass }, v.label));
+  wrapper.appendChild(label);
+
+  const app = el('div', { className: 'app' });
+  app.dataset.variant = v.id;
+
+  // Titlebar
+  const tb = el('div', { className: 'titlebar' });
+  const tl = el('div', { className: 'traffic-lights' }, [
+    el('div', { className: 'tl tl-r' }),
+    el('div', { className: 'tl tl-y' }),
+    el('div', { className: 'tl tl-g' }),
+  ]);
+  tb.appendChild(tl);
+  tb.appendChild(el('div', { className: 'ai-pill' }, [el('div', { className: 'ai-dot' }), document.createTextNode('谨迹')]));
+  app.appendChild(tb);
+
+  // Body
+  const body = el('div', { className: 'body-area' });
+
+  // Sidebar
+  const sidebar = el('div', { className: 'sidebar' });
+
+  const tabs = el('div', { className: 'tab-segment' });
+
+  const journalBtn = el('button', { className: 'tab-segment-btn active', onClick: function() { switchTab(this); } });
+  journalBtn.dataset.tab = 'journal';
+  const jSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  jSvg.setAttribute('width', '10'); jSvg.setAttribute('height', '10'); jSvg.setAttribute('viewBox', '0 0 24 24');
+  jSvg.setAttribute('fill', 'none'); jSvg.setAttribute('stroke', 'currentColor'); jSvg.setAttribute('stroke-width', '1.5');
+  const jPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  jPath.setAttribute('d', 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z');
+  jSvg.appendChild(jPath);
+  journalBtn.appendChild(jSvg);
+  journalBtn.appendChild(document.createTextNode(' 日志'));
+  tabs.appendChild(journalBtn);
+
+  const identityBtn = el('button', { className: 'tab-segment-btn', onClick: function() { switchTab(this); } });
+  identityBtn.dataset.tab = 'identity';
+  const iSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  iSvg.setAttribute('width', '10'); iSvg.setAttribute('height', '10'); iSvg.setAttribute('viewBox', '0 0 24 24');
+  iSvg.setAttribute('fill', 'none'); iSvg.setAttribute('stroke', 'currentColor'); iSvg.setAttribute('stroke-width', '1.5');
+  const iCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  iCircle.setAttribute('cx', '12'); iCircle.setAttribute('cy', '8'); iCircle.setAttribute('r', '4');
+  iSvg.appendChild(iCircle);
+  const iPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  iPath.setAttribute('d', 'M4 20c0-4 3.6-7 8-7s8 3 8 7');
+  iSvg.appendChild(iPath);
+  identityBtn.appendChild(iSvg);
+  identityBtn.appendChild(document.createTextNode(' 人设'));
+  tabs.appendChild(identityBtn);
+
+  sidebar.appendChild(tabs);
+  sidebar.appendChild(el('div', { className: 'sidebar-scroll' }));
+  body.appendChild(sidebar);
+  body.appendChild(el('div', { className: 'detail' }));
+  app.appendChild(body);
+  wrapper.appendChild(app);
+  container.appendChild(wrapper);
+
+  appStates[v.id] = 'journal';
+  renderContent(app, v.id, 'journal', null);
+});
+</script>
+
+</body>
+</html>

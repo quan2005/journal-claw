@@ -110,10 +110,6 @@ pub fn material_kind(filename: &str) -> String {
     .to_string()
 }
 
-fn is_internal_material(filename: &str) -> bool {
-    filename.ends_with(".audio-ai.md") || filename.ends_with(".transcript.json")
-}
-
 pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntry>, String> {
     use crate::workspace;
     use gray_matter::{engine::YAML, Matter};
@@ -123,7 +119,6 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
         return Ok(vec![]);
     }
 
-    let raw_dir = workspace::raw_dir(workspace, year_month);
     let mut entries: Vec<JournalEntry> = vec![];
 
     let read_dir = std::fs::read_dir(&ym_dir).map_err(|e| format!("读取目录失败: {}", e))?;
@@ -166,31 +161,6 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
 
-        // collect materials from raw/
-        let mut materials: Vec<RawMaterial> = vec![];
-        if raw_dir.exists() {
-            if let Ok(rdir) = std::fs::read_dir(&raw_dir) {
-                for rentry in rdir.flatten() {
-                    let rpath = rentry.path();
-                    let rname = rpath
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string();
-                    if is_internal_material(&rname) {
-                        continue;
-                    }
-                    let size = rentry.metadata().map(|m| m.len()).unwrap_or(0);
-                    materials.push(RawMaterial {
-                        filename: rname.clone(),
-                        path: rpath.to_string_lossy().to_string(),
-                        kind: material_kind(&rname),
-                        size_bytes: size,
-                    });
-                }
-            }
-        }
-
         entries.push(JournalEntry {
             filename,
             path: path.to_string_lossy().to_string(),
@@ -201,7 +171,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             day,
             created_time,
             mtime_secs,
-            materials,
+            materials: vec![],
         });
     }
 

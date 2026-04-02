@@ -71,6 +71,20 @@ export interface SpeakerProfile {
   last_seen_at: number
 }
 
+// ── 身份档案 ─────────────────────────────────────────────
+export interface IdentityEntry {
+  filename: string       // "广州-张三.md"
+  path: string           // absolute path
+  name: string           // "张三"
+  region: string         // "广州"
+  summary: string        // from frontmatter
+  tags: string[]         // from frontmatter
+  speaker_id: string     // linked speaker profile id
+  mtime_secs: number     // Unix timestamp for sorting
+}
+
+export type MergeMode = 'voice_only' | 'full'
+
 // ── Processing queue ────────────────────────────────────
 export type QueueItemStatus = 'recording' | 'converting' | 'queued' | 'processing' | 'completed' | 'failed'
 

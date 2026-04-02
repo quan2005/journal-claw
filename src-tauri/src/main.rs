@@ -271,6 +271,7 @@ fn main() {
             identity::save_identity_content,
             identity::delete_identity,
             identity::create_identity,
+            identity::merge_identity,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

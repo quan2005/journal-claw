@@ -162,6 +162,102 @@ pub fn create_identity(
     create_identity_file(&cfg.workspace_path, &region, &name, &summary, &tags, &speaker_id)
 }
 
+/// Merge source identity into target.
+/// - voice_only: update target's speaker_id to source's speaker_id (if target has none), delete source file.
+/// - full: append source body to target body, union tags, update speaker_id, delete source file.
+#[tauri::command]
+pub fn merge_identity(
+    app: AppHandle,
+    source_path: String,
+    target_path: String,
+    mode: String, // "voice_only" | "full"
+) -> Result<(), String> {
+    use gray_matter::{engine::YAML, Matter};
+
+    if source_path == target_path {
+        return Err("Cannot merge an identity into itself".to_string());
+    }
+
+    let source_content = std::fs::read_to_string(&source_path).map_err(|e| e.to_string())?;
+    let target_content = std::fs::read_to_string(&target_path).map_err(|e| e.to_string())?;
+
+    let matter = Matter::<YAML>::new();
+    let src_fm: IdentityFrontMatter = matter
+        .parse_with_struct::<IdentityFrontMatter>(&source_content)
+        .map(|p| p.data)
+        .unwrap_or_default();
+    let tgt_fm: IdentityFrontMatter = matter
+        .parse_with_struct::<IdentityFrontMatter>(&target_content)
+        .map(|p| p.data)
+        .unwrap_or_default();
+
+    // Determine merged speaker_id: prefer target's if set, else source's
+    let merged_speaker_id = if !tgt_fm.speaker_id.is_empty() {
+        tgt_fm.speaker_id.clone()
+    } else {
+        src_fm.speaker_id.clone()
+    };
+
+    let new_target = if mode == "full" {
+        // Union tags
+        let mut merged_tags = tgt_fm.tags.clone();
+        for t in &src_fm.tags {
+            if !merged_tags.contains(t) {
+                merged_tags.push(t.clone());
+            }
+        }
+        // Extract body (content after frontmatter)
+        let src_body = extract_body(&source_content);
+        let tgt_body = extract_body(&target_content);
+        let combined_body = if src_body.trim().is_empty() {
+            tgt_body.to_string()
+        } else {
+            format!("{}\n\n---\n\n{}", tgt_body.trim_end(), src_body.trim_start())
+        };
+        let tags_yaml = merged_tags
+            .iter()
+            .map(|t| format!("\"{}\"", t))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(
+            "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
+            tgt_fm.summary, tags_yaml, merged_speaker_id, combined_body.trim_start()
+        )
+    } else {
+        // voice_only: just update speaker_id in target
+        let tags_yaml = tgt_fm.tags
+            .iter()
+            .map(|t| format!("\"{}\"", t))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let tgt_body = extract_body(&target_content);
+        format!(
+            "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
+            tgt_fm.summary, tags_yaml, merged_speaker_id, tgt_body.trim_start()
+        )
+    };
+
+    std::fs::write(&target_path, new_target).map_err(|e| e.to_string())?;
+    std::fs::remove_file(&source_path).map_err(|e| e.to_string())?;
+
+    // Also update speaker_profiles: reassign source speaker_id to target identity
+    if !src_fm.speaker_id.is_empty() && src_fm.speaker_id != merged_speaker_id {
+        let _ = crate::speaker_profiles::reassign_speaker_id(&app, &src_fm.speaker_id, &merged_speaker_id);
+    }
+
+    Ok(())
+}
+
+fn extract_body(content: &str) -> &str {
+    if let Some(rest) = content.strip_prefix("---") {
+        if let Some(end) = rest.find("\n---") {
+            let after = &rest[end + 4..]; // skip "\n---"
+            return after.trim_start_matches('\n');
+        }
+    }
+    content
+}
+
 pub fn parse_identity_filename(filename: &str) -> Option<(String, String)> {
     let stem = filename.strip_suffix(".md")?;
     let dash_pos = stem.find('-')?;

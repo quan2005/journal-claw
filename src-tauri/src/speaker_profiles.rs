@@ -56,6 +56,15 @@ fn now_secs() -> u64 {
 }
 
 fn profiles_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    if let Ok(cfg) = crate::config::load_config(app) {
+        if !cfg.workspace_path.is_empty() {
+            let dir = crate::identity::identity_dir(&cfg.workspace_path).join("raw");
+            std::fs::create_dir_all(&dir)
+                .map_err(|e| format!("创建 identity/raw 目录失败: {}", e))?;
+            return Ok(dir.join(PROFILES_FILE));
+        }
+    }
+    // Fallback: app_data_dir (workspace not configured yet)
     app.path()
         .app_data_dir()
         .map(|p| p.join(PROFILES_FILE))
@@ -70,6 +79,14 @@ pub fn load_profiles(app: &AppHandle) -> Vec<SpeakerProfile> {
             return Vec::new();
         }
     };
+    // Migration: if new workspace path doesn't have the file yet, copy from old app_data_dir
+    if !path.exists() {
+        if let Ok(old_path) = app.path().app_data_dir().map(|p| p.join(PROFILES_FILE)) {
+            if old_path.exists() && old_path != path {
+                let _ = std::fs::copy(&old_path, &path);
+            }
+        }
+    }
     match std::fs::read_to_string(&path) {
         Ok(json) => {
             let result: Result<Vec<SpeakerProfile>, _> = serde_json::from_str(&json);
@@ -302,7 +319,26 @@ pub fn merge_speaker_profiles(
     save_profiles(&app, &profiles)
 }
 
-#[cfg(test)]
+/// Update all profiles whose id matches `old_id` to use `new_id`.
+/// Used when merging identity files to keep speaker_id references consistent.
+pub fn reassign_speaker_id(app: &AppHandle, old_id: &str, new_id: &str) -> Result<(), String> {
+    let _guard = PROFILES_LOCK.lock().unwrap_or_else(|e| {
+        eprintln!("[speaker_profiles] Lock poisoned: {}", e);
+        e.into_inner()
+    });
+    let mut profiles = load_profiles(app);
+    let mut changed = false;
+    for p in &mut profiles {
+        if p.id == old_id {
+            p.id = new_id.to_string();
+            changed = true;
+        }
+    }
+    if changed {
+        save_profiles(app, &profiles)?;
+    }
+    Ok(())
+}
 mod tests {
     use super::*;
 

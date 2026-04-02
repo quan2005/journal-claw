@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile } from '../types'
+import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile, IdentityEntry, MergeMode } from '../types'
 
 export const listRecordings = (): Promise<RecordingItem[]> =>
   invoke('list_recordings')
@@ -213,3 +213,32 @@ export const checkAppPermissions = (): Promise<AppPermissions> =>
 
 export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition'): Promise<void> =>
   invoke<void>('open_privacy_settings', { pane })
+
+// Identity library (身份档案)
+export const listIdentities = (): Promise<IdentityEntry[]> =>
+  invoke<IdentityEntry[]>('list_identities')
+
+export const getIdentityContent = (path: string): Promise<string> =>
+  invoke<string>('get_identity_content', { path })
+
+export const saveIdentityContent = (path: string, content: string): Promise<void> =>
+  invoke<void>('save_identity_content', { path, content })
+
+export const deleteIdentity = (path: string): Promise<void> =>
+  invoke<void>('delete_identity', { path })
+
+export const createIdentity = (
+  region: string,
+  name: string,
+  summary: string,
+  tags: string[],
+  speakerId: string,
+): Promise<string> =>
+  invoke<string>('create_identity', { region, name, summary, tags, speakerId })
+
+export const mergeIdentity = (
+  sourcePath: string,
+  targetPath: string,
+  mode: MergeMode,
+): Promise<void> =>
+  invoke<void>('merge_identity', { sourcePath, targetPath, mode })

@@ -171,6 +171,33 @@ fn remove_comment(line: &str, prefix: &str) -> String {
     result.trim_end().to_string()
 }
 
+#[tauri::command]
+pub fn list_todos(app: tauri::AppHandle) -> Result<Vec<TodoItem>, String> {
+    let cfg = crate::config::load_config(&app)?;
+    Ok(list_todos_from_workspace(&cfg.workspace_path))
+}
+
+#[tauri::command]
+pub fn add_todo(app: tauri::AppHandle, text: String, due: Option<String>) -> Result<TodoItem, String> {
+    let cfg = crate::config::load_config(&app)?;
+    add_todo_to_workspace(&cfg.workspace_path, &text, due.as_deref())?;
+    let items = list_todos_from_workspace(&cfg.workspace_path);
+    items.into_iter().filter(|t| !t.done && t.text == text).last()
+        .ok_or_else(|| "添加后未找到该待办".to_string())
+}
+
+#[tauri::command]
+pub fn toggle_todo(app: tauri::AppHandle, line_index: usize, checked: bool) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    toggle_todo_in_workspace(&cfg.workspace_path, line_index, checked)
+}
+
+#[tauri::command]
+pub fn delete_todo(app: tauri::AppHandle, line_index: usize) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    delete_todo_in_workspace(&cfg.workspace_path, line_index)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

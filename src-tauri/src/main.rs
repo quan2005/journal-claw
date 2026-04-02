@@ -275,6 +275,10 @@ fn main() {
             identity::delete_identity,
             identity::create_identity,
             identity::merge_identity,
+            todos::list_todos,
+            todos::add_todo,
+            todos::toggle_todo,
+            todos::delete_todo,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

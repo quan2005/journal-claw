@@ -128,9 +128,14 @@ pub fn list_identity_entries(workspace: &str) -> Result<Vec<IdentityEntry>, Stri
             .to_string_lossy()
             .to_string();
 
-        let (region, name) = match parse_identity_filename(&filename) {
-            Some(v) => v,
-            None => continue,
+        // Special case: README.md is the user-self identity
+        let (region, name) = if filename == "README.md" {
+            (String::new(), "关于我".to_string())
+        } else {
+            match parse_identity_filename(&filename) {
+                Some(v) => v,
+                None => continue,
+            }
         };
 
         let content = std::fs::read_to_string(&path).unwrap_or_default();

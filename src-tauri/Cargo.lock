@@ -2435,7 +2435,6 @@ dependencies = [
  "tauri-plugin-clipboard",
  "tauri-plugin-dialog",
  "tokio",
- "uuid",
 ]
 
 [[package]]

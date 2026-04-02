@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
-use uuid::Uuid;
 
 const PROFILES_FILE: &str = "speaker_profiles.json";
 const SIMILARITY_THRESHOLD: f32 = 0.85;
@@ -152,6 +151,17 @@ fn next_auto_number(profiles: &[SpeakerProfile]) -> usize {
     max_num + 1
 }
 
+/// Compute the next speaker_id: scan existing profile IDs, find max numeric value, return max+1
+/// zero-padded to 5 digits. Non-numeric IDs (legacy UUIDs) are ignored.
+fn next_speaker_id(profiles: &[SpeakerProfile]) -> String {
+    let max_num = profiles
+        .iter()
+        .filter_map(|p| p.id.parse::<u32>().ok())
+        .max()
+        .unwrap_or(0);
+    format!("{:05}", max_num + 1)
+}
+
 /// Given a list of embeddings (one per SPEAKER_XX key) from a single recording,
 /// match each against existing profiles or register new ones.
 ///
@@ -203,7 +213,7 @@ pub fn identify_or_register_all(
 
         // No match — register new profile
         let auto_number = next_auto_number(&profiles);
-        let new_id = Uuid::new_v4().to_string();
+        let new_id = next_speaker_id(&profiles);
         let auto_name = format!("说话人 {}", auto_number);
         let new_profile = SpeakerProfile {
             id: new_id.clone(),
@@ -354,6 +364,7 @@ pub fn reassign_speaker_id(app: &AppHandle, old_id: &str, new_id: &str) -> Resul
     }
     Ok(())
 }
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -392,24 +403,34 @@ mod tests {
     }
 
     #[test]
-    fn next_auto_number_skips_gaps() {
-        let profiles = vec![
-            SpeakerProfile {
-                id: "1".into(), name: String::new(), auto_name: "说话人 1".into(),
-                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
-            },
-            SpeakerProfile {
-                id: "3".into(), name: String::new(), auto_name: "说话人 5".into(),
-                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
-            },
-        ];
-        // Max existing is 5, so next should be 6 (not profiles.len()+1=3)
-        assert_eq!(next_auto_number(&profiles), 6);
+    fn next_speaker_id_empty() {
+        assert_eq!(next_speaker_id(&[]), "00001".to_string());
     }
 
     #[test]
-    fn next_auto_number_empty() {
-        assert_eq!(next_auto_number(&[]), 1);
+    fn next_speaker_id_increments_max() {
+        let profiles = vec![
+            SpeakerProfile {
+                id: "00001".into(), name: String::new(), auto_name: "说话人 1".into(),
+                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
+            },
+            SpeakerProfile {
+                id: "00005".into(), name: String::new(), auto_name: "说话人 5".into(),
+                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
+            },
+        ];
+        assert_eq!(next_speaker_id(&profiles), "00006".to_string());
+    }
+
+    #[test]
+    fn next_speaker_id_ignores_non_numeric() {
+        let profiles = vec![
+            SpeakerProfile {
+                id: "some-uuid-string".into(), name: String::new(), auto_name: "说话人 1".into(),
+                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
+            },
+        ];
+        assert_eq!(next_speaker_id(&profiles), "00001".to_string());
     }
 
     #[test]

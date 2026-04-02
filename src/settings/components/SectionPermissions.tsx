@@ -215,14 +215,17 @@ export default function SectionPermissions() {
 
   const allGranted =
     perms !== null &&
-    perms.microphone === 'granted' &&
-    perms.speech_recognition === 'granted' &&
+    (perms.microphone === 'granted' || perms.microphone === 'unknown') &&
+    (perms.speech_recognition === 'granted' || perms.speech_recognition === 'unknown') &&
     perms.claude_cli_path !== null
 
   // Determine action label per permission based on status
   const permAction = useCallback((status: PermStatus, perm: SystemPerm) => {
     if (status === 'not_determined') {
       return { label: '请求授权', action: () => handleRequest(perm) }
+    }
+    if (status === 'unknown') {
+      return null // non-macOS: no actionable path
     }
     // denied / restricted → open System Settings
     return { label: '前往系统设置', action: () => handleOpenSettings(perm) }
@@ -349,8 +352,8 @@ export default function SectionPermissions() {
             title="麦克风"
             description="录音功能需要访问麦克风，用于语音转写和会议记录。"
             status={perms.microphone}
-            actionLabel={permAction(perms.microphone, 'microphone').label}
-            onAction={permAction(perms.microphone, 'microphone').action}
+            actionLabel={permAction(perms.microphone, 'microphone')?.label}
+            onAction={permAction(perms.microphone, 'microphone')?.action}
           />
 
           {/* Speech Recognition */}
@@ -363,8 +366,8 @@ export default function SectionPermissions() {
             title="语音识别"
             description="使用 Apple 语音识别引擎时需要此权限（DashScope / WhisperKit 不需要）。"
             status={perms.speech_recognition}
-            actionLabel={permAction(perms.speech_recognition, 'speech_recognition').label}
-            onAction={permAction(perms.speech_recognition, 'speech_recognition').action}
+            actionLabel={permAction(perms.speech_recognition, 'speech_recognition')?.label}
+            onAction={permAction(perms.speech_recognition, 'speech_recognition')?.action}
           />
 
           {/* Claude CLI */}

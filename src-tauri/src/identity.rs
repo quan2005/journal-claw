@@ -69,13 +69,37 @@ pub fn create_identity_file(
     Ok(path.to_string_lossy().to_string())
 }
 
+/// Ensure a user-self identity file (我-*.md) exists. If none found, create 我-用户.md.
+fn ensure_self_identity(workspace: &str) -> Result<(), String> {
+    let dir = identity_dir(workspace);
+    if !dir.exists() {
+        return Ok(());
+    }
+    if let Ok(read_dir) = std::fs::read_dir(&dir) {
+        for entry in read_dir.flatten() {
+            let fname = entry.file_name().to_string_lossy().to_string();
+            if fname.starts_with("我-") && fname.ends_with(".md") {
+                return Ok(()); // already exists
+            }
+        }
+    }
+    // No 我-*.md found — create default
+    let path = dir.join("我-用户.md");
+    let content = "---\nsummary: \"\"\ntags: []\nspeaker_id: \"\"\n---\n\n# 用户\n";
+    std::fs::write(&path, content).map_err(|e| format!("创建用户身份失败: {}", e))?;
+    Ok(())
+}
+
 pub fn list_identity_entries(workspace: &str) -> Result<Vec<IdentityEntry>, String> {
     use gray_matter::{engine::YAML, Matter};
 
     let dir = identity_dir(workspace);
     if !dir.exists() {
-        return Ok(vec![]);
+        ensure_identity_dir(workspace)?;
     }
+
+    // Ensure user-self identity exists (我-*.md)
+    ensure_self_identity(workspace)?;
 
     let mut entries: Vec<IdentityEntry> = vec![];
     let read_dir = std::fs::read_dir(&dir).map_err(|e| format!("读取 identity 目录失败: {}", e))?;

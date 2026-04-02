@@ -281,10 +281,11 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
             onBlur={handleTextSubmit}
             style={{
               width: '100%', fontSize: 13, fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
-              fontWeight: 400, lineHeight: '18.2px',
+              fontWeight: 400, lineHeight: '18.2px', height: '18.2px',
               background: 'transparent', border: 'none', outline: 'none',
               color: 'var(--item-text)', padding: 0, margin: 0,
-              boxSizing: 'border-box',
+              boxSizing: 'border-box', WebkitAppearance: 'none',
+              display: 'block',
             }}
           />
         ) : (

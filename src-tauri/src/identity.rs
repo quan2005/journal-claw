@@ -80,7 +80,7 @@ fn ensure_self_identity(workspace: &str) -> Result<(), String> {
         return Ok(());
     }
     let content = r#"---
-summary: ""
+summary: "你的个人档案，谨迹会参考这里的信息来更好地整理你的日志"
 tags: []
 speaker_id: ""
 ---
@@ -97,10 +97,6 @@ speaker_id: ""
 
 - 沟通风格：
 - 关注领域：
-
-## 备注
-
-这是你的个人档案，谨迹会参考这里的信息来更好地整理你的日志。
 "#;
     std::fs::write(&path, content).map_err(|e| format!("创建用户身份失败: {}", e))?;
     Ok(())

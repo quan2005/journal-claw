@@ -67,10 +67,10 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
       onClick={onClick}
       onContextMenu={e => { e.preventDefault(); onContextMenu(identity) }}
       style={{
-        padding: '9px 16px',
+        padding: '10px 14px 4px',
         cursor: 'pointer',
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex', alignItems: 'flex-start', gap: 10,
       }}
       onMouseEnter={e => {
         if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'

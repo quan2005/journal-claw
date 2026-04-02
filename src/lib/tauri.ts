@@ -260,3 +260,6 @@ export const toggleTodo = (lineIndex: number, checked: boolean): Promise<void> =
 
 export const deleteTodo = (lineIndex: number): Promise<void> =>
   invoke<void>('delete_todo', { lineIndex })
+
+export const setTodoDue = (lineIndex: number, due: string | null): Promise<void> =>
+  invoke<void>('set_todo_due', { lineIndex, due })

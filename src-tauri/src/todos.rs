@@ -198,6 +198,31 @@ pub fn delete_todo(app: tauri::AppHandle, line_index: usize) -> Result<(), Strin
     delete_todo_in_workspace(&cfg.workspace_path, line_index)
 }
 
+pub fn set_todo_due_in_workspace(workspace: &str, line_index: usize, due: Option<&str>) -> Result<(), String> {
+    let content = read_todos_file(workspace);
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
+
+    if line_index >= lines.len() {
+        return Err(format!("行号 {} 超出范围", line_index));
+    }
+
+    // Remove existing due comment
+    let cleaned = remove_comment(&lines[line_index], "due:");
+    // Append new due if provided
+    lines[line_index] = match due {
+        Some(d) if !d.is_empty() => format!("{} <!-- due:{} -->", cleaned, d),
+        _ => cleaned,
+    };
+
+    write_todos_file(workspace, &(lines.join("\n") + "\n"))
+}
+
+#[tauri::command]
+pub fn set_todo_due(app: tauri::AppHandle, line_index: usize, due: Option<String>) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    set_todo_due_in_workspace(&cfg.workspace_path, line_index, due.as_deref())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

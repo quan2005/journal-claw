@@ -6,9 +6,10 @@ interface TodoSidebarProps {
   onToggle: (lineIndex: number, checked: boolean) => void
   onAdd: (text: string) => void
   onDelete: (lineIndex: number) => void
+  onSetDue: (lineIndex: number, due: string | null) => void
 }
 
-export function TodoSidebar({ todos, onToggle, onAdd, onDelete }: TodoSidebarProps) {
+export function TodoSidebar({ todos, onToggle, onAdd, onDelete, onSetDue }: TodoSidebarProps) {
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -63,6 +64,7 @@ export function TodoSidebar({ todos, onToggle, onAdd, onDelete }: TodoSidebarPro
           key={item.line_index}
           item={item}
           onToggle={onToggle}
+          onSetDue={onSetDue}
           onContextMenu={(e) => {
             e.preventDefault()
             setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index })
@@ -124,6 +126,7 @@ export function TodoSidebar({ todos, onToggle, onAdd, onDelete }: TodoSidebarPro
               key={item.line_index}
               item={item}
               onToggle={onToggle}
+              onSetDue={onSetDue}
               onContextMenu={(e) => {
                 e.preventDefault()
                 setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index })
@@ -155,11 +158,19 @@ export function TodoSidebar({ todos, onToggle, onAdd, onDelete }: TodoSidebarPro
   )
 }
 
-function TodoRow({ item, onToggle, onContextMenu }: {
+function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean) => void
+  onSetDue: (lineIndex: number, due: string | null) => void
   onContextMenu: (e: React.MouseEvent) => void
 }) {
+  const [editingDue, setEditingDue] = useState(false)
+  const dateRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingDue && dateRef.current) dateRef.current.showPicker?.()
+  }, [editingDue])
+
   return (
     <div
       onContextMenu={onContextMenu}
@@ -193,7 +204,7 @@ function TodoRow({ item, onToggle, onContextMenu }: {
         )}
       </div>
 
-      <div style={{ minWidth: 0 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
           fontSize: 11, lineHeight: 1.4, color: item.done ? 'var(--duration-text)' : 'var(--item-text)',
           textDecoration: item.done ? 'line-through' : 'none',
@@ -201,11 +212,48 @@ function TodoRow({ item, onToggle, onContextMenu }: {
         }}>
           {item.text}
         </div>
-        {item.due && (
-          <div style={{ fontSize: 9, color: 'var(--duration-text)', marginTop: 3 }}>
-            截止 {item.due.slice(5).replace('-', '/')}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+          {item.due && (
+            <span
+              onClick={() => !item.done && setEditingDue(true)}
+              style={{ fontSize: 9, color: 'var(--duration-text)', cursor: item.done ? 'default' : 'pointer' }}
+            >
+              截止 {item.due.slice(5).replace('-', '/')}
+            </span>
+          )}
+          {!item.done && !editingDue && (
+            <span
+              onClick={() => setEditingDue(true)}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
+              style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center' }}
+              title="设置截止日期"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </span>
+          )}
+          {editingDue && (
+            <input
+              ref={dateRef}
+              type="date"
+              defaultValue={item.due ?? ''}
+              onChange={e => {
+                const val = e.target.value
+                onSetDue(item.line_index, val || null)
+                setEditingDue(false)
+              }}
+              onBlur={() => setEditingDue(false)}
+              style={{
+                fontSize: 9, fontFamily: "'IBM Plex Mono', monospace",
+                background: 'transparent', border: '0.5px solid var(--divider)',
+                borderRadius: 3, color: 'var(--item-text)', padding: '1px 3px',
+                outline: 'none', width: 90,
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

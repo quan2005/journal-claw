@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import { listTodos, addTodo as addTodoIpc, toggleTodo as toggleTodoIpc, deleteTodo as deleteTodoIpc } from '../lib/tauri'
+import { listTodos, addTodo as addTodoIpc, toggleTodo as toggleTodoIpc, deleteTodo as deleteTodoIpc, setTodoDue as setTodoDueIpc } from '../lib/tauri'
 import type { TodoItem } from '../types'
 
 export function useTodos() {
@@ -45,5 +45,10 @@ export function useTodos() {
     await refresh()
   }, [refresh])
 
-  return { todos, loading, refresh, addTodo, toggleTodo, deleteTodo }
+  const setTodoDue = useCallback(async (lineIndex: number, due: string | null) => {
+    await setTodoDueIpc(lineIndex, due)
+    await refresh()
+  }, [refresh])
+
+  return { todos, loading, refresh, addTodo, toggleTodo, deleteTodo, setTodoDue }
 }

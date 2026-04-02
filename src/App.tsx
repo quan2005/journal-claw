@@ -24,7 +24,7 @@ export default function App() {
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
-  const { todos, addTodo, toggleTodo, deleteTodo } = useTodos()
+  const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue } = useTodos()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [asrReady, setAsrReady] = useState<boolean | null>(null)
@@ -412,6 +412,7 @@ export default function App() {
                 onToggle={toggleTodo}
                 onAdd={addTodo}
                 onDelete={deleteTodo}
+                onSetDue={setTodoDue}
               />
             )}
           </div>

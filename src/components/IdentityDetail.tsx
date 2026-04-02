@@ -344,147 +344,136 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
   const editorFontSize = 12
   const editorLineHeight = 1.7
 
+  const btnStyle: React.CSSProperties = {
+    position: 'absolute', top: 16, right: 20, zIndex: 10,
+    padding: '4px 14px', borderRadius: 6,
+    border: '1px solid var(--divider)',
+    background: 'transparent', color: 'var(--item-meta)',
+    fontSize: 11, cursor: 'pointer',
+    minWidth: 48, textAlign: 'center',
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--detail-bg)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--detail-bg)', overflow: 'hidden', position: 'relative' }}>
+
+      {/* Fixed top-right button — same position for both modes */}
+      {editing ? (
+        <button
+          onClick={exitEdit}
+          disabled={saveStatus === 'saving'}
+          style={{
+            ...btnStyle,
+            background: saveStatus === 'saving' ? 'var(--divider)' : 'transparent',
+            cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {saveStatus === 'saving' ? '保存中…' : '保存'}
+        </button>
+      ) : (
+        <button
+          onClick={enterEdit}
+          style={btnStyle}
+          onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
+          onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
+        >
+          编辑
+        </button>
+      )}
 
       {/* Edit mode */}
       {editing ? (
-        <>
-          {/* Editor toolbar */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 20px', flexShrink: 0, borderBottom: '1px solid var(--divider)',
+        <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+          <div ref={backdropRef} aria-hidden style={{
+            position: 'absolute', inset: 0,
+            background: 'var(--detail-case-bg)',
+            padding: '16px 28px',
+            fontFamily: editorFont, fontSize: editorFontSize, lineHeight: editorLineHeight,
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            pointerEvents: 'none', overflowY: 'auto',
           }}>
-            <span style={{ fontSize: 11, color: 'var(--item-meta)' }}>
-              {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '已自动保存' : saveStatus === 'error' ? '保存失败' : '编辑中'}
-            </span>
-            <button
-              onClick={exitEdit}
-              disabled={saveStatus === 'saving'}
-              style={{
-                padding: '5px 14px', borderRadius: 6, border: 'none',
-                background: saveStatus === 'saving' ? 'var(--divider)' : 'var(--record-btn)',
-                color: saveStatus === 'saving' ? 'var(--item-meta)' : '#fff',
-                fontSize: 12, fontWeight: 600,
-                cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
-              }}
-            >
-              保存
-            </button>
+            {highlightMarkdown(editText)}
           </div>
-
-          {/* Syntax-highlight editor */}
-          <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
-            <div ref={backdropRef} aria-hidden style={{
-              position: 'absolute', inset: 0,
-              background: 'var(--detail-case-bg)',
+          <textarea
+            ref={textareaRef}
+            value={editText}
+            onChange={handleEditChange}
+            onScroll={handleEditorScroll}
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              background: 'transparent', border: 'none', borderRadius: 0,
               padding: '16px 28px',
               fontFamily: editorFont, fontSize: editorFontSize, lineHeight: editorLineHeight,
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-              pointerEvents: 'none', overflowY: 'auto',
-            }}>
-              {highlightMarkdown(editText)}
-            </div>
-            <textarea
-              ref={textareaRef}
-              value={editText}
-              onChange={handleEditChange}
-              onScroll={handleEditorScroll}
-              style={{
-                position: 'absolute', inset: 0, width: '100%', height: '100%',
-                background: 'transparent', border: 'none', borderRadius: 0,
-                padding: '16px 28px',
-                fontFamily: editorFont, fontSize: editorFontSize, lineHeight: editorLineHeight,
-                color: 'transparent', caretColor: 'var(--item-text)', cursor: 'text',
-                resize: 'none', outline: 'none', boxSizing: 'border-box', overflowY: 'auto',
-              }}
-              spellCheck={false}
-              autoFocus
-            />
-          </div>
-        </>
+              color: 'transparent', caretColor: 'var(--item-text)', cursor: 'text',
+              resize: 'none', outline: 'none', boxSizing: 'border-box', overflowY: 'auto',
+            }}
+            spellCheck={false}
+            autoFocus
+          />
+        </div>
       ) : (
         /* Read mode */
-        <>
-          <div
-            ref={bodyRef}
-            style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
-            onContextMenu={e => { e.preventDefault(); showContextMenu(e.clientX, e.clientY) }}
-          >
-            {/* Header: summary + tags */}
-            <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid var(--divider)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                {identity.summary && (
-                  <div style={{
-                    fontSize: 12, color: 'var(--detail-summary)', lineHeight: 1.8,
-                    marginBottom: displayTags.length > 0 ? 10 : 0,
+        <div
+          ref={bodyRef}
+          style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
+          onContextMenu={e => { e.preventDefault(); showContextMenu(e.clientX, e.clientY) }}
+        >
+          {/* Header: summary + tags */}
+          <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid var(--divider)', paddingRight: 70 }}>
+            {identity.summary && (
+              <div style={{
+                fontSize: 12, color: 'var(--detail-summary)', lineHeight: 1.8,
+                marginBottom: displayTags.length > 0 ? 10 : 0,
+              }}>
+                {identity.summary}
+              </div>
+            )}
+            {displayTags.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {displayTags.map((cfg, i) => (
+                  <span key={i} style={{
+                    fontSize: 10, padding: '2px 8px', borderRadius: 4,
+                    fontWeight: 500, color: cfg.color, background: cfg.bg,
+                    fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
                   }}>
-                    {identity.summary}
-                  </div>
-                )}
-                {displayTags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {displayTags.map((cfg, i) => (
-                      <span key={i} style={{
-                        fontSize: 10, padding: '2px 8px', borderRadius: 4,
-                        fontWeight: 500, color: cfg.color, background: cfg.bg,
-                        fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
-                      }}>
-                        {cfg.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                    {cfg.label}
+                  </span>
+                ))}
               </div>
-              {/* Edit button */}
-              <button
-                onClick={enterEdit}
-                style={{
-                  flexShrink: 0, padding: '4px 12px', borderRadius: 6,
-                  border: '1px solid var(--divider)',
-                  background: 'transparent', color: 'var(--item-meta)',
-                  fontSize: 11, cursor: 'pointer',
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
-                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
-              >
-                编辑
-              </button>
-            </div>
-
-            {/* Body */}
-            {content === null ? (
-              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
-                <Spinner size={20} />
-              </div>
-            ) : bodyContent ? (
-              <div className="md-body">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[[rehypeHighlight, { detect: false }]]}
-                  components={mdComponents}
-                >
-                  {bodyContent}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <div style={{ color: 'var(--item-meta)', fontSize: 12 }}>暂无内容</div>
             )}
           </div>
 
-          <DetailContextMenu
-            menuRef={ctxMenuRef}
-            onCopySelection={() => {
-              const sel = window.getSelection()?.toString()
-              if (sel) navigator.clipboard.writeText(sel)
-            }}
-            onCopyRaw={() => {
-              if (content) navigator.clipboard.writeText(content)
-            }}
-            onClose={hideContextMenu}
-          />
-        </>
+          {/* Body */}
+          {content === null ? (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
+              <Spinner size={20} />
+            </div>
+          ) : bodyContent ? (
+            <div className="md-body">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[[rehypeHighlight, { detect: false }]]}
+                components={mdComponents}
+              >
+                {bodyContent}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <div style={{ color: 'var(--item-meta)', fontSize: 12 }}>暂无内容</div>
+          )}
+        </div>
       )}
+
+      <DetailContextMenu
+        menuRef={ctxMenuRef}
+        onCopySelection={() => {
+          const sel = window.getSelection()?.toString()
+          if (sel) navigator.clipboard.writeText(sel)
+        }}
+        onCopyRaw={() => {
+          if (content) navigator.clipboard.writeText(content)
+        }}
+        onClose={hideContextMenu}
+      />
     </div>
   )
 }

@@ -225,19 +225,6 @@ pub fn identify_or_register_all(
             recording_count: 1,
         };
         mapping.insert(label.clone(), new_profile.auto_name.clone());
-        // Auto-create identity file for new speaker
-        if let Ok(cfg) = crate::config::load_config(app) {
-            if !cfg.workspace_path.is_empty() {
-                let _ = crate::identity::create_identity_file(
-                    &cfg.workspace_path,
-                    "未知",
-                    &auto_name,
-                    "",
-                    &[],
-                    &new_id,
-                );
-            }
-        }
         profiles.push(new_profile);
     }
 

@@ -90,6 +90,9 @@ export const getWorkspacePrompt = () =>
 export const setWorkspacePrompt = (content: string) =>
   invoke<void>('set_workspace_prompt', { content })
 
+export const resetWorkspacePrompt = () =>
+  invoke<string>('reset_workspace_prompt')
+
 export const openFile = (path: string): Promise<void> =>
   invoke('open_with_system', { path })
 

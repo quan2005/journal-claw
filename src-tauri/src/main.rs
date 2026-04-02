@@ -238,6 +238,7 @@ fn main() {
             ai_processor::trigger_ai_processing,
             ai_processor::get_workspace_prompt,
             ai_processor::set_workspace_prompt,
+            ai_processor::reset_workspace_prompt,
             ai_processor::cancel_ai_processing,
             ai_processor::cancel_queued_item,
             ai_processor::trigger_ai_prompt,

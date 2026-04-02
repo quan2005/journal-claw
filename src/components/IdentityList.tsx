@@ -82,12 +82,27 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
       <Avatar identity={identity} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600,
-          color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          lineHeight: 1.4, marginBottom: identity.summary || displayTags.length > 0 ? 2 : 0,
+          display: 'flex', alignItems: 'center', gap: 6,
+          lineHeight: 1.4, marginBottom: identity.summary ? 2 : 0,
         }}>
-          {identity.name}
+          <span style={{
+            fontSize: 12, fontWeight: 600,
+            color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            flexShrink: 1, minWidth: 0,
+          }}>
+            {identity.name}
+          </span>
+          {displayTags.length > 0 && displayTags.map((cfg, i) => (
+            <span key={i} style={{
+              fontSize: 10, padding: '1px 6px', borderRadius: 4,
+              fontWeight: 500, color: cfg.color, background: cfg.bg,
+              fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}>
+              {cfg.label}
+            </span>
+          ))}
         </div>
         {identity.summary && (
           <div style={{
@@ -96,19 +111,6 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
             lineHeight: 1.4,
           }}>
             {identity.summary}
-          </div>
-        )}
-        {displayTags.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-            {displayTags.map((cfg, i) => (
-              <span key={i} style={{
-                fontSize: 10, padding: '1px 6px', borderRadius: 4,
-                fontWeight: 500, color: cfg.color, background: cfg.bg,
-                fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
-              }}>
-                {cfg.label}
-              </span>
-            ))}
           </div>
         )}
       </div>

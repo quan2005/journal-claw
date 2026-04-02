@@ -431,17 +431,10 @@ fn format_ai_speaker_label(
 ) -> String {
     match speaker {
         Some(sp) => {
-            // Raw internal IDs (SPEAKER_00 from SpeakerKit, single uppercase letters
-            // from WhisperKit text format) get canonicalised to 发言人 A/B/C.
-            // Profile names ("张三", "说话人 2") are already human-readable — use as-is.
-            let is_raw_id = sp.starts_with("SPEAKER_")
-                || (sp.len() == 1
-                    && sp
-                        .chars()
-                        .next()
-                        .map(|c| c.is_ascii_uppercase())
-                        .unwrap_or(false));
-            if is_raw_id {
+            // Only canonicalise machine-generated SpeakerKit IDs (SPEAKER_00, SPEAKER_01, …).
+            // Profile names ("张三", "说话人 2", or even single-letter initials like "A")
+            // are passed through as-is so user-assigned names are preserved.
+            if sp.starts_with("SPEAKER_") {
                 let label = speaker_map.entry(sp.clone()).or_insert_with(|| {
                     let current = *next_label as char;
                     *next_label += 1;

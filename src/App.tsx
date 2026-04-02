@@ -424,13 +424,13 @@ export default function App() {
         onToggleTodo={() => setTodoOpen(prev => !prev)}
       />
 
-      {view === 'settings' ? (
-        <div key="settings" style={{ flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
+      {view === 'settings' && (
+        <div style={{ position: 'absolute', inset: 0, top: 38, zIndex: 10, overflow: 'hidden', animation: 'view-enter 0.2s ease-out', background: 'var(--bg)' }}>
           <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} onClose={() => setView('journal')} />
         </div>
-      ) : (
-        <>
-          <div key="journal" style={{ display: 'flex', flex: 1, overflow: 'hidden', animation: 'view-enter 0.2s ease-out' }}>
+      )}
+
+          <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
             {/* Left: Journal list / Identity list */}
             <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
               <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
@@ -585,8 +585,6 @@ export default function App() {
               </div>
             )}
           </div>
-        </>
-      )}
     </div>
   )
 }

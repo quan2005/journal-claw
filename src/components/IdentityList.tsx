@@ -198,7 +198,7 @@ export function IdentityList({
 
         {/* Pinned section */}
         {pinned.length > 0 && (
-          <div>
+          <div style={{ paddingTop: 21 }}>
             {pinned.map(identity => (
               <IdentityItem
                 key={identity.path}

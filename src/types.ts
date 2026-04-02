@@ -85,6 +85,15 @@ export interface IdentityEntry {
 
 export type MergeMode = 'voice_only' | 'full'
 
+// ── 待办事项 ─────────────────────────────────────────────
+export interface TodoItem {
+  text: string
+  done: boolean
+  due: string | null
+  done_date: string | null
+  line_index: number
+}
+
 // ── Processing queue ────────────────────────────────────
 export type QueueItemStatus = 'recording' | 'converting' | 'queued' | 'processing' | 'completed' | 'failed'
 

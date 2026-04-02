@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile, IdentityEntry, MergeMode } from '../types'
+import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile, IdentityEntry, MergeMode, TodoItem } from '../types'
 
 export const listRecordings = (): Promise<RecordingItem[]> =>
   invoke('list_recordings')
@@ -247,3 +247,16 @@ export const mergeIdentity = (
   mode: MergeMode,
 ): Promise<void> =>
   invoke<void>('merge_identity', { sourcePath, targetPath, mode })
+
+// Todos (待办事项)
+export const listTodos = (): Promise<TodoItem[]> =>
+  invoke<TodoItem[]>('list_todos')
+
+export const addTodo = (text: string, due?: string): Promise<TodoItem> =>
+  invoke<TodoItem>('add_todo', { text, due: due ?? null })
+
+export const toggleTodo = (lineIndex: number, checked: boolean): Promise<void> =>
+  invoke<void>('toggle_todo', { lineIndex, checked })
+
+export const deleteTodo = (lineIndex: number): Promise<void> =>
+  invoke<void>('delete_todo', { lineIndex })

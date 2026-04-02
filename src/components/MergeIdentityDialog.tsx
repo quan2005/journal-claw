@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { IdentityEntry, MergeMode } from '../types'
-import { listIdentities, mergeIdentity } from '../lib/tauri'
+import { listIdentities, mergeIdentity, triggerAiPrompt } from '../lib/tauri'
 
 interface MergeIdentityDialogProps {
   source: IdentityEntry
@@ -30,6 +30,20 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
     setError(null)
     try {
       await mergeIdentity(source.path, targetPath, mode)
+      if (mode === 'full') {
+        // AI intelligently merges content, then deletes source
+        const srcRel = source.path.split('/identity/').pop() || source.filename
+        const tgtRel = targetPath.split('/identity/').pop() || targetPath
+        await triggerAiPrompt(
+          `将身份档案 identity/${srcRel} 的内容智能合并到 identity/${tgtRel} 中。\n` +
+          `要求：\n` +
+          `- 阅读两份档案，将来源档案中的有用信息整合进目标档案（去重、补充、更新）\n` +
+          `- 合并 tags（去重）\n` +
+          `- 更新 summary 使其反映合并后的完整信息\n` +
+          `- 完成后删除来源文件 identity/${srcRel}\n` +
+          `- 直接操作文件，不要输出解释`
+        )
+      }
       onMerged()
     } catch (e) {
       setError(String(e))

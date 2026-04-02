@@ -25,6 +25,11 @@ struct IdentityFrontMatter {
     speaker_id: String,
 }
 
+/// Escape a string for use inside YAML double quotes: `"` → `\"`, `\` → `\\`.
+fn yaml_escape(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
 pub fn identity_dir(workspace: &str) -> PathBuf {
     PathBuf::from(workspace).join("identity")
 }
@@ -58,12 +63,12 @@ pub fn create_identity_file(
     }
     let tags_yaml = tags
         .iter()
-        .map(|t| format!("\"{}\"", t))
+        .map(|t| format!("\"{}\"", yaml_escape(t)))
         .collect::<Vec<_>>()
         .join(", ");
     let content = format!(
         "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n# {}\n",
-        summary, tags_yaml, speaker_id, name
+        yaml_escape(summary), tags_yaml, yaml_escape(speaker_id), name
     );
     std::fs::write(&path, content).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().to_string())
@@ -212,7 +217,8 @@ pub fn create_identity(
 
 /// Merge source identity into target.
 /// - voice_only: update target's speaker_id to source's speaker_id (if target has none), delete source file.
-/// - full: append source body to target body, union tags, update speaker_id, delete source file.
+/// - full: merge speaker_id, then delegate content merging to AI engine. Source file is NOT deleted
+///   here — the AI prompt instructs it to delete source after intelligent content merge.
 #[tauri::command]
 pub fn merge_identity(
     app: AppHandle,
@@ -246,52 +252,29 @@ pub fn merge_identity(
         src_fm.speaker_id.clone()
     };
 
-    let new_target = if mode == "full" {
-        // Union tags
-        let mut merged_tags = tgt_fm.tags.clone();
-        for t in &src_fm.tags {
-            if !merged_tags.contains(t) {
-                merged_tags.push(t.clone());
-            }
-        }
-        // Extract body (content after frontmatter)
-        let src_body = extract_body(&source_content);
-        let tgt_body = extract_body(&target_content);
-        let combined_body = if src_body.trim().is_empty() {
-            tgt_body.to_string()
-        } else {
-            format!("{}\n\n---\n\n{}", tgt_body.trim_end(), src_body.trim_start())
-        };
-        let tags_yaml = merged_tags
-            .iter()
-            .map(|t| format!("\"{}\"", t))
-            .collect::<Vec<_>>()
-            .join(", ");
-        format!(
-            "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
-            tgt_fm.summary, tags_yaml, merged_speaker_id, combined_body.trim_start()
-        )
-    } else {
-        // voice_only: just update speaker_id in target
-        let tags_yaml = tgt_fm.tags
-            .iter()
-            .map(|t| format!("\"{}\"", t))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let tgt_body = extract_body(&target_content);
-        format!(
-            "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
-            tgt_fm.summary, tags_yaml, merged_speaker_id, tgt_body.trim_start()
-        )
-    };
-
+    // Update target's speaker_id in frontmatter (both modes need this)
+    let tags_yaml = tgt_fm.tags
+        .iter()
+        .map(|t| format!("\"{}\"", yaml_escape(t)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let tgt_body = extract_body(&target_content);
+    let new_target = format!(
+        "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
+        yaml_escape(&tgt_fm.summary), tags_yaml, yaml_escape(&merged_speaker_id), tgt_body.trim_start()
+    );
     std::fs::write(&target_path, new_target).map_err(|e| e.to_string())?;
-    std::fs::remove_file(&source_path).map_err(|e| e.to_string())?;
 
-    // Also update speaker_profiles: reassign source speaker_id to target identity
+    // Reassign speaker profiles
     if !src_fm.speaker_id.is_empty() && src_fm.speaker_id != merged_speaker_id {
         let _ = crate::speaker_profiles::reassign_speaker_id(&app, &src_fm.speaker_id, &merged_speaker_id);
     }
+
+    if mode == "voice_only" {
+        // voice_only: just delete source, we're done
+        std::fs::remove_file(&source_path).map_err(|e| e.to_string())?;
+    }
+    // full: source file is kept — AI will merge content and delete it
 
     Ok(())
 }
@@ -347,5 +330,12 @@ mod tests {
     #[test]
     fn parse_identity_filename_not_md() {
         assert_eq!(parse_identity_filename("广州-张三.txt"), None);
+    }
+
+    #[test]
+    fn yaml_escape_quotes_and_backslashes() {
+        assert_eq!(yaml_escape(r#"hello "world""#), r#"hello \"world\""#);
+        assert_eq!(yaml_escape(r#"back\slash"#), r#"back\\slash"#);
+        assert_eq!(yaml_escape("plain"), "plain");
     }
 }

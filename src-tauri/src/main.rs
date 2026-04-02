@@ -263,6 +263,7 @@ fn main() {
             speaker_profiles::update_speaker_name,
             speaker_profiles::delete_speaker_profile,
             speaker_profiles::merge_speaker_profiles,
+            speaker_profiles::check_speaker_embedder,
             permissions::check_app_permissions,
             permissions::open_privacy_settings,
             permissions::request_permission,

@@ -997,7 +997,7 @@ pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
 ///   包内路径 Contents/MacOS/journal-speech（无 triple）
 ///
 /// 按以下顺序查找，并在全部失败时报告所有已查找路径，方便诊断。
-fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
     // 打包后的二进制名（Tauri 去掉了 target triple 后缀）
     let bundle_name = "journal-speech";
     // 开发环境源目录里的文件名（保留 triple，与 externalBin 命名规范一致）

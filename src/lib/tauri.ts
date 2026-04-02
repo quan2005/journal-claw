@@ -196,6 +196,9 @@ export const deleteSpeakerProfile = (id: string): Promise<void> =>
 export const mergeSpeakerProfiles = (sourceId: string, targetId: string): Promise<void> =>
   invoke<void>('merge_speaker_profiles', { sourceId, targetId })
 
+export const checkSpeakerEmbedder = (): Promise<{ available: boolean; binary_path: string | null; model_path: string | null }> =>
+  invoke('check_speaker_embedder')
+
 // Permissions
 export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
 

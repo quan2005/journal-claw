@@ -234,6 +234,57 @@ pub fn identify_or_register_all(
     mapping
 }
 
+/// Check if SpeakerEmbedder CoreML models are accessible from the journal-speech sidecar.
+/// Mirrors the Swift CLI's `resolveModelFolder()` logic to detect the same path issue.
+#[tauri::command]
+pub fn check_speaker_embedder(app: AppHandle) -> Result<serde_json::Value, String> {
+    let binary_path = match crate::transcription::find_journal_speech_path(&app) {
+        Ok(p) => p,
+        Err(_) => {
+            return Ok(serde_json::json!({
+                "available": false,
+                "reason": "journal-speech binary not found",
+                "binary_path": null,
+                "model_path": null,
+            }));
+        }
+    };
+
+    let binary_dir = binary_path.parent().unwrap_or(&binary_path);
+
+    // Mirror Swift CLI resolveModelFolder():
+    // 1. Tauri .app: Contents/MacOS/../Resources/resources/speakerkit-models
+    let app_resources = binary_dir
+        .parent()
+        .map(|p| p.join("Resources/resources/speakerkit-models"));
+    // 2. Dev: binary dir/../resources/speakerkit-models
+    let dev_resources = Some(binary_dir.join("../resources/speakerkit-models"));
+
+    let model_folder = [app_resources, dev_resources]
+        .into_iter()
+        .flatten()
+        .map(|p| p.canonicalize().unwrap_or(p))
+        .find(|p| p.exists());
+
+    let (available, model_path) = match model_folder {
+        Some(folder) => {
+            let embedder = folder
+                .join("speaker_embedder/pyannote-v3/W8A16/SpeakerEmbedder.mlmodelc");
+            let preprocessor = folder
+                .join("speaker_embedder/pyannote-v3/W8A16/SpeakerEmbedderPreprocessor.mlmodelc");
+            let ok = embedder.exists() && preprocessor.exists();
+            (ok, Some(folder.to_string_lossy().to_string()))
+        }
+        None => (false, None),
+    };
+
+    Ok(serde_json::json!({
+        "available": available,
+        "binary_path": binary_path.to_string_lossy(),
+        "model_path": model_path,
+    }))
+}
+
 // ---------------------------------------------------------------------------
 // Tauri commands
 // ---------------------------------------------------------------------------

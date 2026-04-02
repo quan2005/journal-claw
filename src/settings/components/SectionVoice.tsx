@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, Mic, RefreshCw, User } from 'lucide-react'
-import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, getAppleSttVariant, getSpeakerProfiles, updateSpeakerName, deleteSpeakerProfile, mergeSpeakerProfiles, type AsrConfig } from '../../lib/tauri'
+import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, Mic, RefreshCw } from 'lucide-react'
+import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, getAppleSttVariant, checkSpeakerEmbedder, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
-import type { SpeakerProfile } from '../../types'
 
 type AsrEngineId = 'apple' | 'dashscope' | 'whisperkit'
 type WhisperModel = 'base' | 'small' | 'large-v3-turbo'
@@ -21,11 +20,11 @@ type WhisperDownloadSession = {
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
-const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
-const hintStyle: React.CSSProperties = { fontSize: 10, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
+const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
+const hintStyle: React.CSSProperties = { fontSize: 12, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-  borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--item-text)',
+  borderRadius: 6, padding: '7px 10px', fontSize: 14, color: 'var(--item-text)',
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
@@ -90,12 +89,6 @@ function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
   )
 }
 
-const actionBtnStyle = (color: string): React.CSSProperties => ({
-  background: 'none', border: '1px solid var(--divider)', borderRadius: 4,
-  padding: '3px 8px', fontSize: 10, color, cursor: color === 'var(--duration-text)' ? 'not-allowed' : 'pointer',
-  whiteSpace: 'nowrap' as const,
-})
-
 export default function SectionVoice() {
   const defaultConfig: AsrConfig = {
     asr_engine: 'whisperkit',
@@ -113,70 +106,7 @@ export default function SectionVoice() {
   const [cliInstalling, setCliInstalling] = useState(false)
   const [cliInstallLog, setCliInstallLog] = useState<string[]>([])
   const [appleSttVariant, setAppleSttVariant] = useState<string>('')
-
-  // ── Speaker profiles ─────────────────────────────────────────────────────
-  const [profiles, setProfiles] = useState<SpeakerProfile[]>([])
-  const [profilesLoading, setProfilesLoading] = useState(true)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [mergingId, setMergingId] = useState<string | null>(null)
-  const [mergeTargetId, setMergeTargetId] = useState<string>('')
-  const loadProfiles = () => {
-    getSpeakerProfiles()
-      .then(setProfiles)
-      .catch(console.error)
-      .finally(() => setProfilesLoading(false))
-  }
-
-  const handleStartEdit = (profile: SpeakerProfile) => {
-    setEditingId(profile.id)
-    setEditingName(profile.name || profile.auto_name)
-    setMergingId(null)
-    setDeletingId(null)
-  }
-
-  const handleSaveName = async (id: string) => {
-    const trimmed = editingName.trim()
-    const auto = profiles.find(p => p.id === id)?.auto_name ?? ''
-    const nameToSave = trimmed === auto ? '' : trimmed
-    try {
-      await updateSpeakerName(id, nameToSave)
-      setProfiles(prev => prev.map(p => p.id === id ? { ...p, name: nameToSave } : p))
-    } catch (e) { console.error(e) }
-    setEditingId(null)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (deletingId !== id) {
-      setDeletingId(id)
-      setEditingId(null)
-      setMergingId(null)
-      return
-    }
-    try {
-      await deleteSpeakerProfile(id)
-      setProfiles(prev => prev.filter(p => p.id !== id))
-    } catch (e) { console.error(e) }
-    setDeletingId(null)
-  }
-
-  const handleStartMerge = (id: string) => {
-    setMergingId(id)
-    setMergeTargetId('')
-    setEditingId(null)
-    setDeletingId(null)
-  }
-
-  const handleMerge = async () => {
-    if (!mergingId || !mergeTargetId) return
-    try {
-      await mergeSpeakerProfiles(mergingId, mergeTargetId)
-      await getSpeakerProfiles().then(setProfiles)
-    } catch (e) { console.error(e) }
-    setMergingId(null)
-    setMergeTargetId('')
-  }
+  const [embedderAvailable, setEmbedderAvailable] = useState<boolean | null>(null)
 
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
@@ -196,11 +126,10 @@ export default function SectionVoice() {
       getWhisperkitModelsDir().then(setModelsDir),
       checkWhisperkitCliInstalled().then(setCliInstalled),
       getAppleSttVariant().then(setAppleSttVariant),
+      checkSpeakerEmbedder().then(r => setEmbedderAvailable(r.available)).catch(() => setEmbedderAvailable(false)),
     ]).then(() => {
-      refreshDownloadedModels()
       setLoading(false)
     })
-    loadProfiles()
 
     // listen for download progress events from Rust
     let unlisten: (() => void) | null = null
@@ -385,7 +314,7 @@ export default function SectionVoice() {
   return (
     <>
     <div style={sectionStyle}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>语音转写</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>语音转写</div>
 
       {loading ? (
         <>
@@ -431,14 +360,36 @@ export default function SectionVoice() {
                   <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}>
                     <Icon size={22} strokeWidth={1.5} />
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
-                  <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
                 </div>
               )
             })}
           </div>
 
           <div style={{ height: 1, background: 'var(--divider)', margin: '0 0 14px' }} />
+
+          {/* 声纹模型状态 */}
+          {embedderAvailable === false && (
+            <div style={{
+              marginBottom: 14,
+              padding: '10px 14px',
+              borderRadius: 8,
+              background: 'rgba(255,159,10,0.08)',
+              border: '1px solid rgba(255,159,10,0.3)',
+              fontSize: 11,
+              color: 'var(--item-meta)',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <AlertTriangle size={13} strokeWidth={1.8} color="#ff9f0a" />
+                <span style={{ fontWeight: 600, color: '#ff9f0a' }}>声纹识别不可用</span>
+              </div>
+              <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
+                未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。
+              </div>
+            </div>
+          )}
 
           {/* WhisperKit 配置 */}
           {cfg.asr_engine === 'whisperkit' && (
@@ -809,7 +760,7 @@ export default function SectionVoice() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
             <span style={{
-              fontSize: 11,
+              fontSize: 13,
               color: saveStatus === 'error'
                 ? '#ff9f0a'
                 : saveStatus === 'saved'
@@ -825,7 +776,7 @@ export default function SectionVoice() {
               style={{
                 background: saveStatus === 'saving' || !hasUnsavedChanges ? 'var(--divider)' : 'var(--record-btn)',
                 border: 'none', borderRadius: 5,
-                padding: '6px 18px', fontSize: 12, fontWeight: 600,
+                padding: '6px 18px', fontSize: 14, fontWeight: 600,
                 color: saveStatus === 'saving' || !hasUnsavedChanges ? 'var(--duration-text)' : 'var(--bg)',
                 cursor: saveStatus === 'saving' || !hasUnsavedChanges ? 'not-allowed' : 'pointer',
               }}
@@ -837,141 +788,6 @@ export default function SectionVoice() {
       )}
     </div>
 
-    {/* ── 声纹档案 ─────────────────────────────────────────────────────── */}
-    <div style={{ padding: '24px 28px 32px', borderBottom: '1px solid var(--divider)' }}>
-      <div style={{ fontSize: 11, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 4, fontWeight: 500 }}>声纹档案</div>
-      <div style={{ fontSize: 10, color: 'var(--duration-text)', marginBottom: 16, lineHeight: 1.6 }}>
-        录音转写后，系统自动识别并注册说话人。未命名档案显示自动编号，可在此标注姓名或合并同一人的档案。
-      </div>
-
-      {profilesLoading ? (
-        <>
-          <SkeletonRow height={48} mb={8} />
-          <SkeletonRow height={48} mb={0} />
-        </>
-      ) : profiles.length === 0 ? (
-        <div style={{ padding: '28px 0', textAlign: 'center' as const, color: 'var(--duration-text)' }}>
-          <User size={28} strokeWidth={1} style={{ marginBottom: 8, opacity: 0.35, display: 'block', margin: '0 auto 8px' }} />
-          <div style={{ fontSize: 11 }}>尚无声纹档案</div>
-          <div style={{ fontSize: 10, marginTop: 4, opacity: 0.7 }}>录音并转写后，检测到的说话人将自动注册</div>
-        </div>
-      ) : (
-        <div style={{ border: '1px solid var(--divider)', borderRadius: 8, overflow: 'hidden' }}>
-          {profiles.map((profile, idx) => {
-            const isEditing = editingId === profile.id
-            const isDeleting = deletingId === profile.id
-            const isMerging = mergingId === profile.id
-            const displayName = profile.name || profile.auto_name
-            const otherProfiles = profiles.filter(p => p.id !== profile.id)
-
-            return (
-              <div
-                key={profile.id}
-                style={{
-                  padding: '10px 12px',
-                  borderBottom: idx < profiles.length - 1 ? '1px solid var(--divider)' : 'none',
-                  background: isEditing || isMerging ? 'rgba(255,255,255,0.02)' : 'var(--detail-case-bg)',
-                }}
-              >
-                {/* Main row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: 'var(--divider)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <User size={13} strokeWidth={1.5} color="var(--item-meta)" />
-                  </div>
-
-                  {isEditing ? (
-                    <input
-                      autoFocus
-                      value={editingName}
-                      onChange={e => setEditingName(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleSaveName(profile.id)
-                        if (e.key === 'Escape') setEditingId(null)
-                      }}
-                      style={{
-                        flex: 1, background: 'var(--bg)', border: '1px solid var(--record-btn)',
-                        borderRadius: 4, padding: '3px 8px', fontSize: 12, color: 'var(--item-text)',
-                        outline: 'none',
-                      }}
-                    />
-                  ) : (
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, color: 'var(--item-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {displayName}
-                        {!profile.name && (
-                          <span style={{ fontSize: 9, color: 'var(--duration-text)', background: 'var(--divider)', borderRadius: 3, padding: '1px 4px' }}>未命名</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 1 }}>{profile.recording_count} 次录音</div>
-                    </div>
-                  )}
-
-                  {isEditing ? (
-                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                      <button onClick={() => handleSaveName(profile.id)} style={actionBtnStyle('#27c93f')}>确定</button>
-                      <button onClick={() => setEditingId(null)} style={actionBtnStyle('var(--item-meta)')}>取消</button>
-                    </div>
-                  ) : !isMerging && (
-                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                      <button onClick={() => handleStartEdit(profile)} style={actionBtnStyle('var(--item-meta)')}>改名</button>
-                      {otherProfiles.length > 0 && (
-                        <button onClick={() => handleStartMerge(profile.id)} style={actionBtnStyle('var(--item-meta)')}>合并</button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(profile.id)}
-                        style={actionBtnStyle(isDeleting ? '#ff3b30' : 'var(--item-meta)')}
-                      >
-                        {isDeleting ? '确认删除' : '删除'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Delete hint */}
-                {isDeleting && (
-                  <div style={{ marginTop: 6, fontSize: 10, color: 'var(--duration-text)' }}>
-                    再次点击「确认删除」将永久移除此声纹档案，无法恢复。点击其他区域可取消。
-                  </div>
-                )}
-
-                {/* Merge row */}
-                {isMerging && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--divider)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 11, color: 'var(--item-meta)', flexShrink: 0 }}>合并到</div>
-                    <select
-                      value={mergeTargetId}
-                      onChange={e => setMergeTargetId(e.target.value)}
-                      style={{
-                        flex: 1, background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                        borderRadius: 4, padding: '3px 8px', fontSize: 11, color: 'var(--item-text)',
-                        outline: 'none',
-                      }}
-                    >
-                      <option value="">选择目标说话人…</option>
-                      {otherProfiles.map(p => (
-                        <option key={p.id} value={p.id}>{p.name || p.auto_name}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={handleMerge}
-                      disabled={!mergeTargetId}
-                      style={actionBtnStyle(!mergeTargetId ? 'var(--duration-text)' : '#27c93f')}
-                    >
-                      确定
-                    </button>
-                    <button onClick={() => { setMergingId(null); setMergeTargetId('') }} style={actionBtnStyle('var(--item-meta)')}>取消</button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
     </>
   )
 }

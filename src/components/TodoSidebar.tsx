@@ -213,7 +213,7 @@ function TodoRow({ item, onToggle, onSetDue, onContextMenu }: {
           {item.text}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-          {item.due && (
+          {!editingDue && item.due && (
             <span
               onClick={() => !item.done && setEditingDue(true)}
               style={{ fontSize: 9, color: 'var(--duration-text)', cursor: item.done ? 'default' : 'pointer' }}

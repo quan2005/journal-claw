@@ -130,11 +130,12 @@ function formatDueShort(due: string): string {
 }
 
 // ── TodoRow ──────────────────────────────────────────────────────────────────
-function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu, onNavigateToSource }: {
+function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMenu, onNavigateToSource }: {
   item: TodoItem
-  onToggle: (lineIndex: number, checked: boolean) => void
-  onSetDue: (lineIndex: number, due: string | null) => void
-  onUpdateText: (lineIndex: number, text: string) => void
+  onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
+  onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
+  onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
+  onDelete: (lineIndex: number, doneFile: boolean) => void
   onContextMenu: (e: React.MouseEvent) => void
   onNavigateToSource?: (filename: string) => void
 }) {
@@ -158,7 +159,8 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu, onNavi
 
   const handleTextSubmit = () => {
     const trimmed = (textRef.current?.textContent ?? '').trim()
-    if (trimmed && trimmed !== item.text) onUpdateText(item.line_index, trimmed)
+    if (!trimmed) { onDelete(item.line_index, item.done_file); return }
+    if (trimmed !== item.text) onUpdateText(item.line_index, trimmed, item.done_file)
     else if (textRef.current) textRef.current.textContent = item.text
     setEditingText(false)
   }
@@ -193,7 +195,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu, onNavi
 
       {/* Checkbox */}
       <div
-        onClick={() => onToggle(item.line_index, !item.done)}
+        onClick={() => onToggle(item.line_index, !item.done, item.done_file)}
         onMouseEnter={e => { if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--record-btn)' }}
         onMouseLeave={e => { if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--divider)' }}
         style={{
@@ -271,7 +273,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu, onNavi
       {editingDue && (
         <div style={{ position: 'fixed', left: pickerPos.x, top: pickerPos.y, zIndex: 1001 }}>
           <DatePicker initialValue={item.due}
-            onSelect={date => { onSetDue(item.line_index, date); setEditingDue(false) }}
+            onSelect={date => { onSetDue(item.line_index, date, item.done_file); setEditingDue(false) }}
             onClose={() => setEditingDue(false)}
           />
         </div>
@@ -284,11 +286,11 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu, onNavi
 interface TodoSidebarProps {
   width: number
   todos: TodoItem[]
-  onToggle: (lineIndex: number, checked: boolean) => void
+  onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
   onAdd: (text: string, due?: string, source?: string) => void
-  onDelete: (lineIndex: number) => void
-  onSetDue: (lineIndex: number, due: string | null) => void
-  onUpdateText: (lineIndex: number, text: string) => void
+  onDelete: (lineIndex: number, doneFile: boolean) => void
+  onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
+  onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
   onNavigateToSource?: (filename: string) => void
 }
 
@@ -296,12 +298,12 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null; doneFile: boolean } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
-  const unchecked = todos.filter(t => !t.done)
-  const checked = todos.filter(t => t.done)
+  const unchecked = todos.filter(t => !t.done).sort((a, b) => a.line_index - b.line_index)
+  const checked = todos.filter(t => t.done).sort((a, b) => a.line_index - b.line_index)
 
   useEffect(() => { if (adding && inputRef.current) inputRef.current.focus() }, [adding])
 
@@ -342,8 +344,8 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       </div>
 
       {unchecked.map(item => (
-        <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onNavigateToSource={onNavigateToSource}
-          onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due }) }}
+        <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
+          onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
         />
       ))}
 
@@ -376,8 +378,8 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           >已完成 · {checked.length} {showCompleted ? '▾' : '▸'}</div>
           {showCompleted && checked.map(item => (
             <div key={item.line_index} style={{ opacity: 0.5 }}>
-              <TodoRow item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onNavigateToSource={onNavigateToSource}
-                onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due }) }}
+              <TodoRow item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
+                onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
               />
             </div>
           ))}
@@ -405,7 +407,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             </div>
             {contextMenu.due && (
               <div style={s} onMouseEnter={hi} onMouseLeave={ho}
-                onClick={() => { onSetDue(contextMenu.lineIndex, null); setContextMenu(null) }}>
+                onClick={() => { onSetDue(contextMenu.lineIndex, null, contextMenu.doneFile); setContextMenu(null) }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="15" x2="15" y2="15"/>
                 </svg>
@@ -416,7 +418,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             <div style={{ ...s, color: '#ff3b30' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
               onMouseLeave={ho}
-              onClick={() => { onDelete(contextMenu.lineIndex); setContextMenu(null) }}>
+              onClick={() => { onDelete(contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>

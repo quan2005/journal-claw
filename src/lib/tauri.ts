@@ -255,14 +255,14 @@ export const listTodos = (): Promise<TodoItem[]> =>
 export const addTodo = (text: string, due?: string, source?: string): Promise<TodoItem> =>
   invoke<TodoItem>('add_todo', { text, due: due ?? null, source: source ?? null })
 
-export const toggleTodo = (lineIndex: number, checked: boolean): Promise<void> =>
-  invoke<void>('toggle_todo', { lineIndex, checked })
+export const toggleTodo = (lineIndex: number, checked: boolean, doneFile: boolean): Promise<void> =>
+  invoke<void>('toggle_todo', { lineIndex, checked, doneFile })
 
-export const deleteTodo = (lineIndex: number): Promise<void> =>
-  invoke<void>('delete_todo', { lineIndex })
+export const deleteTodo = (lineIndex: number, doneFile: boolean): Promise<void> =>
+  invoke<void>('delete_todo', { lineIndex, doneFile })
 
-export const setTodoDue = (lineIndex: number, due: string | null): Promise<void> =>
-  invoke<void>('set_todo_due', { lineIndex, due })
+export const setTodoDue = (lineIndex: number, due: string | null, doneFile: boolean): Promise<void> =>
+  invoke<void>('set_todo_due', { lineIndex, due, doneFile })
 
-export const updateTodoText = (lineIndex: number, text: string): Promise<void> =>
-  invoke<void>('update_todo_text', { lineIndex, text })
+export const updateTodoText = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
+  invoke<void>('update_todo_text', { lineIndex, text, doneFile })

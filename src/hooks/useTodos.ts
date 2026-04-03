@@ -35,23 +35,23 @@ export function useTodos() {
     await refresh()
   }, [refresh])
 
-  const toggleTodo = useCallback(async (lineIndex: number, checked: boolean) => {
-    await toggleTodoIpc(lineIndex, checked)
+  const toggleTodo = useCallback(async (lineIndex: number, checked: boolean, doneFile: boolean) => {
+    await toggleTodoIpc(lineIndex, checked, doneFile)
     await refresh()
   }, [refresh])
 
-  const deleteTodo = useCallback(async (lineIndex: number) => {
-    await deleteTodoIpc(lineIndex)
+  const deleteTodo = useCallback(async (lineIndex: number, doneFile: boolean) => {
+    await deleteTodoIpc(lineIndex, doneFile)
     await refresh()
   }, [refresh])
 
-  const setTodoDue = useCallback(async (lineIndex: number, due: string | null) => {
-    await setTodoDueIpc(lineIndex, due)
+  const setTodoDue = useCallback(async (lineIndex: number, due: string | null, doneFile: boolean) => {
+    await setTodoDueIpc(lineIndex, due, doneFile)
     await refresh()
   }, [refresh])
 
-  const updateTodoText = useCallback(async (lineIndex: number, text: string) => {
-    await updateTodoTextIpc(lineIndex, text)
+  const updateTodoText = useCallback(async (lineIndex: number, text: string, doneFile: boolean) => {
+    await updateTodoTextIpc(lineIndex, text, doneFile)
     await refresh()
   }, [refresh])
 

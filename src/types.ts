@@ -93,6 +93,7 @@ export interface TodoItem {
   done_date: string | null
   source: string | null
   line_index: number
+  done_file: boolean
 }
 
 // ── Processing queue ────────────────────────────────────

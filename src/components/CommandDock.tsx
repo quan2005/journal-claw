@@ -31,6 +31,7 @@ export function CommandDock({
   const [inputText, setInputText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const dockRef = useRef<HTMLDivElement>(null)
   const importedTexts = useRef<Set<string>>(new Set())
   const hasFiles = pendingFiles.length > 0
 
@@ -125,9 +126,13 @@ export function CommandDock({
         handleSubmit()
         return
       }
-      // ⌘V: 全局剪贴板路由
+      // ⌘V: 全局剪贴板路由 — 仅在焦点位于 dock 内部或无特定焦点时拦截
       if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
-        if (inputOpen && !hasFiles) return  // 纯文本模式：焦点在 textarea，放行原生粘贴
+        const active = document.activeElement
+        const inDock = dockRef.current?.contains(active as Node)
+        // 焦点不在 dock 内：放行原生粘贴（待办输入框、搜索框、contentEditable 等）
+        if (!inDock && active && active !== document.body) return
+        if (inputOpen && !hasFiles) return  // 纯文本模式：焦点在 dock textarea，放行原生粘贴
         e.preventDefault()
         clipboard.readFiles().then((files) => {
           if (files && files.length > 0) {
@@ -192,7 +197,7 @@ export function CommandDock({
   }
 
   return (
-    <div style={{
+    <div ref={dockRef} style={{
       background: 'var(--dock-bg)',
       borderTop: `1px solid var(--dock-border)`,
       padding: '10px 20px',

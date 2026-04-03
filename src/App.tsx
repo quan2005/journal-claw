@@ -510,6 +510,13 @@ export default function App() {
                   onDelete={deleteTodo}
                   onSetDue={setTodoDue}
                   onUpdateText={updateTodoText}
+                  onNavigateToSource={(filename: string) => {
+                    const match = entries.find(e => e.filename === filename)
+                    if (match) {
+                      setSidebarTab('journal')
+                      setSelectedEntry(match)
+                    }
+                  }}
                 />
               </>
             )}

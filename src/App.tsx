@@ -4,8 +4,7 @@ import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { JournalList } from './components/JournalList'
 import { DetailPanel } from './components/DetailPanel'
-import { CommandDock } from './components/CommandDock'
-import { ProcessingQueue } from './components/ProcessingQueue'
+import { RightPanel } from './components/RightPanel'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { IdentityList, SOUL_PATH } from './components/IdentityList'
 import { IdentityDetail } from './components/IdentityDetail'
@@ -13,7 +12,6 @@ import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { SidebarTabs } from './components/SidebarTabs'
 import type { SidebarTab } from './components/SidebarTabs'
 import { useIdentity } from './hooks/useIdentity'
-import { TodoSidebar } from './components/TodoSidebar'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
@@ -42,33 +40,33 @@ export default function App() {
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
-  const [dockOpen, setDockOpen] = useState(false)
-  const [todoOpen, setTodoOpen] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
   const sidebarAnimRef = useRef<HTMLDivElement>(null)
   const detailAnimRef = useRef<HTMLDivElement>(null)
 
   const handleTabChange = useCallback((tab: SidebarTab) => {
     const anim = 'tab-crossfade 0.12s ease-out'
-    // Restart animation by removing then re-adding
     for (const ref of [sidebarAnimRef, detailAnimRef]) {
       if (ref.current) {
         ref.current.style.animation = 'none'
-        void ref.current.offsetHeight // force reflow
+        void ref.current.offsetHeight
         ref.current.style.animation = anim
       }
     }
     setSidebarTab(tab)
   }, [])
+
   const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
   const [mergeSource, setMergeSource] = useState<IdentityEntry | null>(null)
-  const [todoWidth, setTodoWidth] = useState<number>(() => {
+
+  const [rightWidth, setRightWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_todo_width')
     return saved ? parseInt(saved) : BASE_WIDTH
   })
-  const [isTodoDragging, setIsTodoDragging] = useState(false)
-  const todoDragStartX = useRef(0)
-  const todoDragStartWidth = useRef(0)
+  const [isRightDragging, setIsRightDragging] = useState(false)
+  const rightDragStartX = useRef(0)
+  const rightDragStartWidth = useRef(0)
+
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -78,34 +76,27 @@ export default function App() {
   const dragStartWidth = useRef(0)
   const entriesRef = useRef(entries)
 
-  // Check AI engine availability on mount
+  // Check AI engine availability
   useEffect(() => {
     getEngineConfig().then(cfg =>
       checkEngineInstalled(cfg.active_ai_engine as 'claude' | 'qwen').then(setAiReady)
     ).catch(() => setAiReady(false))
-  }, [view]) // re-check after user closes settings
+  }, [view])
 
-  // Check ASR readiness on mount and after settings are closed
+  // Check ASR readiness
   useEffect(() => {
     getAsrConfig().then(async cfg => {
-      if (cfg.asr_engine === 'apple') {
-        setAsrReady(true)
-        return
-      }
-      if (cfg.asr_engine === 'dashscope') {
-        setAsrReady(cfg.dashscope_api_key.trim().length > 0)
-        return
-      }
-      // whisperkit: need both CLI installed and model downloaded
+      if (cfg.asr_engine === 'apple') { setAsrReady(true); return }
+      if (cfg.asr_engine === 'dashscope') { setAsrReady(cfg.dashscope_api_key.trim().length > 0); return }
       const [cliOk, modelOk] = await Promise.all([
         checkWhisperkitCliInstalled(),
         checkWhisperkitModelDownloaded(cfg.whisperkit_model),
       ])
       setAsrReady(cliOk && modelOk)
     }).catch(() => setAsrReady(false))
-  }, [view]) // re-check after settings closed
+  }, [view])
 
-  // Immediately clear overlay when an engine finishes installing successfully
+  // Clear overlay when engine finishes installing
   useEffect(() => {
     let unlisten: (() => void) | null = null
     listen<{ engine: string; done: boolean; success: boolean }>('engine-install-log', ({ payload }) => {
@@ -114,7 +105,7 @@ export default function App() {
     return () => { unlisten?.() }
   }, [])
 
-  // 首次启动：写入示例条目并自动选中
+  // First launch: write sample entry and auto-select it
   useEffect(() => {
     createSampleEntryIfNeeded().then(async created => {
       if (!created) return
@@ -125,7 +116,7 @@ export default function App() {
     }).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Divider drag
+  // Left panel divider drag
   const onDividerMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true)
     dragStartX.current = e.clientX
@@ -145,26 +136,25 @@ export default function App() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [isDragging])
 
-  // Todo sidebar divider drag
-  const onTodoDividerMouseDown = (e: React.MouseEvent) => {
-    setIsTodoDragging(true)
-    todoDragStartX.current = e.clientX
-    todoDragStartWidth.current = todoWidth
+  // Right panel divider drag
+  const onRightDividerMouseDown = (e: React.MouseEvent) => {
+    setIsRightDragging(true)
+    rightDragStartX.current = e.clientX
+    rightDragStartWidth.current = rightWidth
   }
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (!isTodoDragging) return
-      // Dragging left increases width, right decreases
-      const delta = todoDragStartX.current - e.clientX
-      const newWidth = Math.max(180, Math.min(560, todoDragStartWidth.current + delta))
-      setTodoWidth(newWidth)
+      if (!isRightDragging) return
+      const delta = rightDragStartX.current - e.clientX
+      const newWidth = Math.max(220, Math.min(560, rightDragStartWidth.current + delta))
+      setRightWidth(newWidth)
       localStorage.setItem('journal_todo_width', String(newWidth))
     }
-    const onUp = () => setIsTodoDragging(false)
+    const onUp = () => setIsRightDragging(false)
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-  }, [isTodoDragging])
+  }, [isRightDragging])
 
   // journal-entry-deleted event
   useEffect(() => {
@@ -177,8 +167,7 @@ export default function App() {
     return () => window.removeEventListener('journal-entry-deleted', handler)
   }, [refresh, selectedEntry])
 
-  // Keep entriesRef in sync so navigate handler always sees latest entries
-  // Also sync selectedEntry so DetailPanel sees updated mtime_secs after file changes
+  // Keep entriesRef in sync
   useEffect(() => {
     entriesRef.current = entries
     setSelectedEntry(prev => {
@@ -195,46 +184,33 @@ export default function App() {
       if (!targetPath && !targetFilename) return
       const current = entriesRef.current
       let match = targetPath ? current.find(entry => entry.path === targetPath) : undefined
-      if (!match && targetFilename) {
-        match = current.find(entry => entry.filename === targetFilename)
-      }
+      if (!match && targetFilename) match = current.find(entry => entry.filename === targetFilename)
       if (match) setSelectedEntry(match)
     }
     window.addEventListener('journal-entry-navigate', handler)
     return () => window.removeEventListener('journal-entry-navigate', handler)
   }, [])
 
-  // Open settings from Rust menu (Cmd+,) or keyboard shortcut
+  // Open settings from Rust menu (Cmd+,)
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    listen('open-settings', () => {
-      setSettingsInitialSection(undefined)
-      setView('settings')
-    }).then(fn => { unlisten = fn })
+    listen('open-settings', () => { setSettingsInitialSection(undefined); setView('settings') }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
   }, [])
 
-  // Open settings → about section from Rust menu
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    listen('open-settings-about', () => {
-      setSettingsInitialSection('about')
-      setView('settings')
-    }).then(fn => { unlisten = fn })
+    listen('open-settings-about', () => { setSettingsInitialSection('about'); setView('settings') }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
   }, [])
 
-  // Esc closes settings; Cmd+, toggles settings
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setView('journal'); return }
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault()
         setView(v => v === 'settings' ? 'journal' : 'settings')
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 't') {
-        e.preventDefault()
-        setTodoOpen(prev => !prev)
       }
     }
     window.addEventListener('keydown', handler)
@@ -246,19 +222,9 @@ export default function App() {
     let zoom = 1
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return
-      if (e.key === '=' || e.key === '+') {
-        e.preventDefault()
-        zoom = Math.min(2, zoom + 0.1)
-        getCurrentWebview().setZoom(zoom)
-      } else if (e.key === '-') {
-        e.preventDefault()
-        zoom = Math.max(0.5, zoom - 0.1)
-        getCurrentWebview().setZoom(zoom)
-      } else if (e.key === '0') {
-        e.preventDefault()
-        zoom = 1
-        getCurrentWebview().setZoom(1)
-      }
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); zoom = Math.min(2, zoom + 0.1); getCurrentWebview().setZoom(zoom) }
+      else if (e.key === '-') { e.preventDefault(); zoom = Math.max(0.5, zoom - 0.1); getCurrentWebview().setZoom(zoom) }
+      else if (e.key === '0') { e.preventDefault(); zoom = 1; getCurrentWebview().setZoom(1) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -290,9 +256,7 @@ export default function App() {
   }
 
   const handleFilesCancel = () => setPendingFiles([])
-
-  const handleRemoveFile = (index: number) =>
-    setPendingFiles(prev => prev.filter((_, i) => i !== index))
+  const handleRemoveFile = (index: number) => setPendingFiles(prev => prev.filter((_, i) => i !== index))
 
   const handleRecord = async () => {
     if (status === 'idle') {
@@ -309,11 +273,8 @@ export default function App() {
   }
 
   const handleCancelQueueItem = async (item: QueueItem) => {
-    if (item.status === 'processing') {
-      await cancelAiProcessing()
-    } else {
-      await cancelQueuedItem(item.path)
-    }
+    if (item.status === 'processing') await cancelAiProcessing()
+    else await cancelQueuedItem(item.path)
     dismissQueueItem(item.path)
   }
 
@@ -321,16 +282,10 @@ export default function App() {
     const yearMonth = item.path.split('/').slice(-2, -1)[0] ?? ''
     const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
     const isAudioSourceFile = audioExts.some(ext => item.path.toLowerCase().endsWith(ext))
-
     retryQueueItem(item.path)
     try {
-      if (isAudioSourceFile) {
-        // Audio source file: need full pipeline (transcription + AI)
-        await prepareAudioForAi(item.path, yearMonth)
-      } else {
-        // Already-transcribed material or non-audio: go directly to AI
-        await triggerAiProcessing(item.path, yearMonth)
-      }
+      if (isAudioSourceFile) await prepareAudioForAi(item.path, yearMonth)
+      else await triggerAiProcessing(item.path, yearMonth)
     } catch (err) {
       markItemFailed(item.path, String(err))
     }
@@ -339,7 +294,6 @@ export default function App() {
   const handlePasteFiles = useCallback((paths: string[]) => {
     const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
     const isAudio = (p: string) => audioExts.some(ext => p.toLowerCase().endsWith(ext))
-
     let filteredPaths = paths
     if (asrReady === false) {
       const audioCount = paths.filter(isAudio).length
@@ -349,7 +303,6 @@ export default function App() {
         setTimeout(() => setAudioRejected(false), 2500)
       }
     }
-
     setPendingFiles(prev => {
       const existing = new Set(prev)
       const newPaths = filteredPaths.filter(p => !existing.has(p))
@@ -363,16 +316,12 @@ export default function App() {
     let unlisten: (() => void) | null = null
     getCurrentWebview().onDragDropEvent((event) => {
       const type = event.payload.type
-      if (type === 'enter' || type === 'over') {
-        setIsDragOver(true)
-      } else if (type === 'leave') {
-        setIsDragOver(false)
-      } else if (type === 'drop') {
+      if (type === 'enter' || type === 'over') setIsDragOver(true)
+      else if (type === 'leave') setIsDragOver(false)
+      else if (type === 'drop') {
         setIsDragOver(false)
         const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
-        if (paths.length > 0) {
-          handlePasteFiles(paths)
-        }
+        if (paths.length > 0) handlePasteFiles(paths)
       }
     }).then(fn => { unlisten = fn })
     return () => { unlisten?.() }
@@ -382,7 +331,6 @@ export default function App() {
   const processingFilename = processingItem?.filename
   const processingPath = processingItem?.path
 
-  // Inject a virtual 'recording' item at the front of the queue when recording
   const visibleQueueItems = status === 'recording'
     ? [{ path: RECORDING_PLACEHOLDER, filename: '录音中', status: 'recording' as const, addedAt: Date.now(), logs: [], elapsedSecs, audioLevel }, ...queueItems]
     : queueItems
@@ -419,9 +367,6 @@ export default function App() {
         processingFilename={processingFilename}
         onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
-        todoOpen={todoOpen}
-        todoCount={todos.filter(t => !t.done).length}
-        onToggleTodo={() => setTodoOpen(prev => !prev)}
       />
 
       {view === 'settings' && (
@@ -430,172 +375,131 @@ export default function App() {
         </div>
       )}
 
-          <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
-            {/* Left: Journal list / Identity list */}
-            <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
-              <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
-              <div ref={sidebarAnimRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column' }}>
-                  <JournalList
-                    entries={entries}
-                    loading={loading}
-                    selectedPath={selectedEntry?.path ?? null}
-                    onSelect={setSelectedEntry}
-                  />
-                </div>
-                <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column' }}>
-                  <IdentityList
-                    identities={allIdentities}
-                    loading={identityLoading}
-                    selectedPath={selectedIdentity?.path ?? null}
-                    onSelect={identity => setSelectedIdentity(identity)}
-                    onMerge={identity => setMergeSource(identity)}
-                    onDelete={handleDeleteIdentity}
-                  />
-                </div>
-              </div>
+      <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Left: Journal list / Identity list */}
+        <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
+          <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
+          <div ref={sidebarAnimRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column' }}>
+              <JournalList
+                entries={entries}
+                loading={loading}
+                selectedPath={selectedEntry?.path ?? null}
+                onSelect={setSelectedEntry}
+              />
             </div>
+            <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column' }}>
+              <IdentityList
+                identities={allIdentities}
+                loading={identityLoading}
+                selectedPath={selectedIdentity?.path ?? null}
+                onSelect={identity => setSelectedIdentity(identity)}
+                onMerge={identity => setMergeSource(identity)}
+                onDelete={handleDeleteIdentity}
+              />
+            </div>
+          </div>
 
-            {/* Divider */}
-            <div
-              onMouseDown={onDividerMouseDown}
+          {/* Settings footer — fixed at bottom of left sidebar */}
+          <div style={{ flexShrink: 0, borderTop: '0.5px solid var(--divider)' }}>
+            <button
+              onClick={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
+              title="设置 (⌘,)"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               style={{
-                width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
-                cursor: 'col-resize',
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', background: 'transparent', border: 'none',
+                color: 'var(--item-meta)', cursor: 'pointer', fontSize: 13,
+                textAlign: 'left',
               }}
-            />
-
-            {/* Right: Detail panel / Identity detail */}
-            <div ref={detailAnimRef} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              {sidebarTab === 'journal' ? (
-                <DetailPanel
-                  entry={selectedEntry}
-                  entries={entries}
-                  onDeselect={() => setSelectedEntry(null)}
-                  onRecord={handleRecord}
-                  onOpenDock={() => setDockOpen(true)}
-                  onSelectSample={() => {
-                    createSampleEntry().then(async () => {
-                      await refresh()
-                      const all = await listAllJournalEntries()
-                      const sample = all.find(e => e.title === '产品评审示例')
-                      if (sample) setSelectedEntry(sample)
-                    }).catch(() => {})
-                  }}
-                  onAddToTodo={(text: string, source: string) => {
-                    addTodo(text, undefined, source)
-                    setTodoOpen(true)
-                  }}
-                />
-              ) : (
-                <IdentityDetail identity={selectedIdentity} />
-              )}
-            </div>
-
-            {/* Todo sidebar */}
-            {todoOpen && (
-              <>
-                <div
-                  onMouseDown={onTodoDividerMouseDown}
-                  style={{
-                    width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
-                    cursor: 'col-resize',
-                  }}
-                />
-                <TodoSidebar
-                  width={todoWidth}
-                  todos={todos}
-                  onToggle={toggleTodo}
-                  onAdd={addTodo}
-                  onDelete={deleteTodo}
-                  onSetDue={setTodoDue}
-                  onUpdateText={updateTodoText}
-                  onNavigateToSource={(filename: string) => {
-                    const match = entries.find(e => e.filename === filename)
-                    if (match) {
-                      setSidebarTab('journal')
-                      setSelectedEntry(match)
-                    }
-                  }}
-                />
-              </>
-            )}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              设置
+            </button>
           </div>
+        </div>
 
-          {mergeSource && (
-            <MergeIdentityDialog
-              source={mergeSource}
-              onClose={() => setMergeSource(null)}
-              onMerged={() => {
-                setMergeSource(null)
-                if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
-                refreshIdentity()
-              }}
-            />
-          )}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 10,
-            }}>
-              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={handleCancelQueueItem} onRetry={handleRetryQueueItem} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
-            </div>
-            <CommandDock
-              isDragOver={isDragOver}
-              pendingFiles={pendingFiles}
-              onPasteSubmit={handlePasteSubmit}
-              onFilesSubmit={handleFilesSubmit}
-              onFilesCancel={handleFilesCancel}
-              onRemoveFile={handleRemoveFile}
-              onPasteFiles={handlePasteFiles}
-              recorderStatus={status}
+        {/* Divider */}
+        <div onMouseDown={onDividerMouseDown} style={{ width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent', cursor: 'col-resize' }} />
+
+        {/* Middle: Detail panel / Identity detail */}
+        <div ref={detailAnimRef} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {sidebarTab === 'journal' ? (
+            <DetailPanel
+              entry={selectedEntry}
+              entries={entries}
+              onDeselect={() => setSelectedEntry(null)}
               onRecord={handleRecord}
-              asrReady={asrReady}
-              audioRejected={audioRejected}
-              onOpenSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
-              externalOpen={dockOpen}
-              onExternalOpenConsumed={() => setDockOpen(false)}
+              onOpenDock={() => {/* dock removed – focus RightPanel input */}}
+              onSelectSample={() => {
+                createSampleEntry().then(async () => {
+                  await refresh()
+                  const all = await listAllJournalEntries()
+                  const sample = all.find(e => e.title === '产品评审示例')
+                  if (sample) setSelectedEntry(sample)
+                }).catch(() => {})
+              }}
+              onAddToTodo={(text: string, source: string) => addTodo(text, undefined, source)}
             />
-            {aiReady === false && (
-              <div
-                onClick={() => setView('settings')}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'var(--bg)',
-                  opacity: 0.93,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                  zIndex: 20,
-                  borderTop: '1px solid var(--divider)',
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <span style={{ fontSize: 12, color: 'var(--item-meta)', letterSpacing: '0.03em' }}>
-                  AI 引擎未配置
-                </span>
-                <span style={{
-                  fontSize: 11,
-                  color: 'var(--dock-paste-label)',
-                  background: 'var(--dock-paste-bg)',
-                  border: '0.5px solid var(--dock-paste-border)',
-                  borderRadius: 5,
-                  padding: '2px 8px',
-                  letterSpacing: '0.04em',
-                }}>
-                  前往设置 →
-                </span>
-              </div>
-            )}
-          </div>
+          ) : (
+            <IdentityDetail identity={selectedIdentity} />
+          )}
+        </div>
+
+        {/* Right panel divider */}
+        <div onMouseDown={onRightDividerMouseDown} style={{ width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent', cursor: 'col-resize' }} />
+
+        {/* Right panel — always visible */}
+        <RightPanel
+          width={rightWidth}
+          todos={todos}
+          onToggleTodo={toggleTodo}
+          onAddTodo={addTodo}
+          onDeleteTodo={deleteTodo}
+          onSetTodoDue={setTodoDue}
+          onUpdateTodoText={updateTodoText}
+          onNavigateToSource={(filename: string) => {
+            const match = entries.find(e => e.filename === filename)
+            if (match) { setSidebarTab('journal'); setSelectedEntry(match) }
+          }}
+          pendingFiles={pendingFiles}
+          onPasteSubmit={handlePasteSubmit}
+          onFilesSubmit={handleFilesSubmit}
+          onFilesCancel={handleFilesCancel}
+          onRemoveFile={handleRemoveFile}
+          onPasteFiles={handlePasteFiles}
+          recorderStatus={status}
+          onRecord={handleRecord}
+          asrReady={asrReady}
+          audioRejected={audioRejected}
+          isDragOver={isDragOver}
+          queueItems={visibleQueueItems}
+          onDismissQueueItem={dismissQueueItem}
+          onCancelQueueItem={handleCancelQueueItem}
+          onRetryQueueItem={handleRetryQueueItem}
+          activeLogPath={activeLogPath}
+          onSetActiveLogPath={setActiveLogPath}
+          selectedEntry={selectedEntry}
+          aiReady={aiReady}
+          onOpenSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
+        />
+      </div>
+
+      {mergeSource && (
+        <MergeIdentityDialog
+          source={mergeSource}
+          onClose={() => setMergeSource(null)}
+          onMerged={() => {
+            setMergeSource(null)
+            if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
+            refreshIdentity()
+          }}
+        />
+      )}
     </div>
   )
 }

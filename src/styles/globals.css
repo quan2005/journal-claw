@@ -124,6 +124,18 @@
   /* Todo sidebar */
   --todo-row-bg: rgba(0,0,0,0.02);
   --todo-checkbox-border: #bbb;
+
+  /* AI Chat bubbles */
+  --chat-user-bg: rgba(100, 60, 140, 0.10);
+  --chat-user-border: rgba(120, 80, 160, 0.22);
+  --chat-user-text: var(--item-text);
+  --chat-ai-bg: #edf0f2;
+  --chat-ai-text: var(--md-text);
+  --chat-date-text: var(--item-meta);
+  --chat-date-line: var(--divider);
+
+  /* Right panel tab bar */
+  --panel-tab-active-bar: var(--record-btn);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -239,6 +251,18 @@
     --context-menu-bg: #1e1e1e;
     --context-menu-border: #333;
     --context-menu-shadow: rgba(0,0,0,0.5);
+
+    /* AI Chat bubbles */
+    --chat-user-bg: rgba(150, 80, 200, 0.15);
+    --chat-user-border: rgba(160, 100, 220, 0.30);
+    --chat-user-text: #e8e8e8;
+    --chat-ai-bg: #1a1a1a;
+    --chat-ai-text: #b0b0b0;
+    --chat-date-text: #666;
+    --chat-date-line: #2a2a2a;
+
+    /* Right panel tab bar */
+    --panel-tab-active-bar: #C8933B;
   }
 }
 
@@ -336,6 +360,18 @@
   /* Todo sidebar */
   --todo-row-bg: rgba(255,255,255,0.02);
   --todo-checkbox-border: #555;
+
+  /* AI Chat bubbles */
+  --chat-user-bg: rgba(150, 80, 200, 0.15);
+  --chat-user-border: rgba(160, 100, 220, 0.30);
+  --chat-user-text: #e8e8e8;
+  --chat-ai-bg: #1a1a1a;
+  --chat-ai-text: #b0b0b0;
+  --chat-date-text: #666;
+  --chat-date-line: #2a2a2a;
+
+  /* Right panel tab bar */
+  --panel-tab-active-bar: #C8933B;
 }
 
 html, body, #root {

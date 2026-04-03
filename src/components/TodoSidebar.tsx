@@ -282,9 +282,8 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
   )
 }
 
-// ── TodoSidebar ──────────────────────────────────────────────────────────────
-interface TodoSidebarProps {
-  width: number
+// ── TodoContent (inner body, used inside RightPanel) ─────────────────────────
+export interface TodoContentProps {
   todos: TodoItem[]
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
   onAdd: (text: string, due?: string, source?: string) => void
@@ -294,7 +293,7 @@ interface TodoSidebarProps {
   onNavigateToSource?: (filename: string) => void
 }
 
-export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onNavigateToSource }: TodoSidebarProps) {
+export function TodoContent({ todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onNavigateToSource }: TodoContentProps) {
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -336,13 +335,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   }
 
   return (
-    <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', padding: '12px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 10, color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>待办</span>
-        <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>{unchecked.length} 项</span>
-      </div>
-
+    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '8px 14px' }}>
       {unchecked.map(item => (
         <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
           onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
@@ -427,6 +420,26 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           </div>
         )
       })()}
+    </div>
+  )
+}
+
+// ── TodoSidebar ──────────────────────────────────────────────────────────────
+interface TodoSidebarProps {
+  width: number
+  todos: TodoItem[]
+  onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
+  onAdd: (text: string, due?: string, source?: string) => void
+  onDelete: (lineIndex: number, doneFile: boolean) => void
+  onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
+  onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
+  onNavigateToSource?: (filename: string) => void
+}
+
+export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onNavigateToSource }: TodoSidebarProps) {
+  return (
+    <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <TodoContent todos={todos} onToggle={onToggle} onAdd={onAdd} onDelete={onDelete} onSetDue={onSetDue} onUpdateText={onUpdateText} onNavigateToSource={onNavigateToSource} />
     </div>
   )
 }

@@ -482,6 +482,10 @@ export default function App() {
                       if (sample) setSelectedEntry(sample)
                     }).catch(() => {})
                   }}
+                  onAddToTodo={(text: string) => {
+                    addTodo(text)
+                    setTodoOpen(true)
+                  }}
                 />
               ) : (
                 <IdentityDetail identity={selectedIdentity} />

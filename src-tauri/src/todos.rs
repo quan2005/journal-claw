@@ -122,7 +122,7 @@ pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, sou
     let mut content = if p.exists() {
         std::fs::read_to_string(&p).map_err(|e| e.to_string())?
     } else {
-        "---\ndescription: 全局待办清单，由用户手动添加或 AI 自动提取\nformat: GFM task list\nrules:\n  - 每行一条待办，`- [ ]` 未完成，`- [x]` 已完成\n  - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）\n  - 完成日期用 `<!-- done:YYYY-MM-DD -->` 附在行尾（勾选时自动添加）\n  - 新条目追加到未完成项末尾、已完成项之前\n  - 不要重复已存在的条目\n---\n\n# 待办\n\n".to_string()
+        "---\ndescription: 待办清单（仅未完成项），由用户手动添加或 AI 自动提取\nformat: GFM task list\nrules:\n  - 每行一条待办，`- [ ]` 未完成\n  - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）\n  - 来源用 `<!-- source:filename.md -->` 附在行尾（可选）\n  - 新条目追加到文件末尾\n  - 勾选后自动移入 todos.done.md，不要在此文件写 `- [x]`\n  - 不要重复已存在的条目\n---\n\n# 待办\n\n".to_string()
     };
 
     let mut new_line = format!("- [ ] {}", text);

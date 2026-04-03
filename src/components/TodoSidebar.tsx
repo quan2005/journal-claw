@@ -5,13 +5,14 @@ interface TodoSidebarProps {
   width: number
   todos: TodoItem[]
   onToggle: (lineIndex: number, checked: boolean) => void
-  onAdd: (text: string) => void
+  onAdd: (text: string, due?: string, source?: string) => void
   onDelete: (lineIndex: number) => void
   onSetDue: (lineIndex: number, due: string | null) => void
   onUpdateText: (lineIndex: number, text: string) => void
+  onNavigateToSource?: (filename: string) => void
 }
 
-export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText }: TodoSidebarProps) {
+export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onNavigateToSource }: TodoSidebarProps) {
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -68,6 +69,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           onToggle={onToggle}
           onSetDue={onSetDue}
           onUpdateText={onUpdateText}
+          onNavigateToSource={onNavigateToSource}
           onContextMenu={(e) => {
             e.preventDefault()
             setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
@@ -77,7 +79,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
       {/* Add button / input */}
       {adding ? (
-        <div style={{ padding: '6px 8px', marginBottom: 10 }}>
+        <div style={{ padding: '6px 8px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
           <input
             ref={inputRef}
             value={inputText}
@@ -95,18 +97,19 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       ) : (
         <div
           onClick={() => setAdding(true)}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--record-btn)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--divider)'
-          }}
           style={{
-            marginTop: 4, padding: 8, border: '1px dashed var(--divider)',
-            borderRadius: 5, textAlign: 'center' as const, cursor: 'pointer',
+            padding: '6px 8px', cursor: 'pointer',
+            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+            display: 'flex', alignItems: 'center', gap: 6,
+            transition: 'background 0.1s',
           }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
         >
-          <span style={{ fontSize: 11, color: 'var(--duration-text)' }}>+ 添加待办</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span style={{ fontSize: 11, color: '#555' }}>添加待办</span>
         </div>
       )}
 
@@ -116,26 +119,28 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           <div
             onClick={() => setShowCompleted(!showCompleted)}
             style={{
-              fontSize: 10, color: 'var(--duration-text)', letterSpacing: '0.08em',
-              textTransform: 'uppercase' as const, marginTop: 16, marginBottom: 8,
-              paddingTop: 8, borderTop: '0.5px solid var(--divider)', cursor: 'pointer',
-              userSelect: 'none' as const,
+              fontSize: 9, color: '#555', marginTop: 8,
+              padding: '6px 8px 4px',
+              cursor: 'pointer', userSelect: 'none' as const,
+              letterSpacing: '0.08em', textTransform: 'uppercase' as const,
             }}
           >
             已完成 · {checked.length} {showCompleted ? '▾' : '▸'}
           </div>
           {showCompleted && checked.map(item => (
-            <TodoRow
-              key={item.line_index}
-              item={item}
-              onToggle={onToggle}
-              onSetDue={onSetDue}
-              onUpdateText={onUpdateText}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
-              }}
-            />
+            <div key={item.line_index} style={{ opacity: 0.5 }}>
+              <TodoRow
+                item={item}
+                onToggle={onToggle}
+                onSetDue={onSetDue}
+                onUpdateText={onUpdateText}
+                onNavigateToSource={onNavigateToSource}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due })
+                }}
+              />
+            </div>
           ))}
         </>
       )}
@@ -191,21 +196,38 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   )
 }
 
-function dueDateColor(due: string): string {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const dueDate = new Date(due + 'T00:00:00')
-  if (dueDate.getTime() < today.getTime()) return 'var(--accent)'       // 已过期 → 红色
-  if (dueDate.getTime() === today.getTime()) return 'var(--record-btn)' // 今天 → 主题色
-  return 'var(--duration-text)'                                          // 未来 → 默认
+function statusBarColor(item: TodoItem): string {
+  if (item.done) return 'rgba(255,255,255,0.12)'
+  if (item.due) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const d = new Date(item.due + 'T00:00:00')
+    if (d < today) return '#ff3b30'
+  }
+  return 'rgba(255,255,255,0.3)'
 }
 
-function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
+function dueBadgeStyle(due: string): { color: string; background: string } {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const d = new Date(due + 'T00:00:00')
+  if (d.getTime() < today.getTime()) return { color: '#ff3b30', background: 'rgba(255,59,48,0.1)' }
+  if (d.getTime() === today.getTime()) return { color: '#ff3b30', background: 'rgba(255,59,48,0.08)' }
+  return { color: 'var(--duration-text)', background: 'rgba(255,255,255,0.05)' }
+}
+
+function formatDueShort(due: string): string {
+  const parts = due.split('-')
+  return `${parts[1]}/${parts[2]}`
+}
+
+function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu, onNavigateToSource }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean) => void
   onSetDue: (lineIndex: number, due: string | null) => void
   onUpdateText: (lineIndex: number, text: string) => void
   onContextMenu: (e: React.MouseEvent) => void
+  onNavigateToSource?: (filename: string) => void
 }) {
   const [editingDue, setEditingDue] = useState(false)
   const [editingText, setEditingText] = useState(false)
@@ -220,7 +242,6 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
     if (editingText && textRef.current) {
       const el = textRef.current
       el.focus()
-      // Move cursor to end
       const range = document.createRange()
       range.selectNodeContents(el)
       range.collapse(false)
@@ -243,12 +264,34 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
   return (
     <div
       onContextMenu={onContextMenu}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'
+        const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
+        if (cal) cal.style.opacity = '1'
+        const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
+        if (src) src.style.opacity = '0.6'
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.background = 'transparent'
+        const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
+        if (cal) cal.style.opacity = '0'
+        const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
+        if (src) src.style.opacity = '0.35'
+      }}
       style={{
-        display: 'flex', alignItems: 'flex-start', gap: 8,
-        marginBottom: 10, padding: '6px 8px', borderRadius: 5,
-        background: 'var(--todo-row-bg, rgba(255,255,255,0.02))',
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '6px 8px',
+        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+        transition: 'background 0.1s',
       }}
     >
+      {/* Status bar */}
+      <div style={{
+        width: 3, alignSelf: 'stretch', borderRadius: 1.5, flexShrink: 0,
+        background: statusBarColor(item),
+      }} />
+
+      {/* Checkbox */}
       <div
         onClick={() => onToggle(item.line_index, !item.done)}
         onMouseEnter={e => {
@@ -258,7 +301,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
           if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--divider)'
         }}
         style={{
-          width: 14, height: 14, flexShrink: 0, marginTop: 2, cursor: 'pointer',
+          width: 13, height: 13, flexShrink: 0, cursor: 'pointer',
           border: `1.5px solid ${item.done ? 'var(--record-btn)' : 'var(--divider)'}`,
           borderRadius: 3,
           background: item.done ? 'var(--record-btn)' : 'transparent',
@@ -267,91 +310,122 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onContextMenu }: {
         }}
       >
         {item.done && (
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}
       </div>
 
-      <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            ref={textRef}
-            contentEditable={!item.done && editingText}
-            suppressContentEditableWarning
-            onClick={() => !item.done && !editingText && setEditingText(true)}
-            onKeyDown={e => {
-              if (!editingText) return
-              if (e.key === 'Enter') { e.preventDefault(); handleTextSubmit() }
-              if (e.key === 'Escape') { if (textRef.current) textRef.current.textContent = item.text; setEditingText(false) }
-            }}
-            onBlur={() => editingText && handleTextSubmit()}
-            style={{
-              fontSize: 13, lineHeight: '18.2px',
-              fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400,
-              color: item.done ? 'var(--duration-text)' : 'var(--item-text)',
-              textDecoration: item.done ? 'line-through' : 'none',
-              transition: 'color 0.2s ease',
-              cursor: item.done ? 'default' : 'text',
-              outline: 'none',
-            }}
-          >
-            {item.text}
-          </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-          {!editingDue && item.due && (
-            <span
-              onClick={() => !item.done && setEditingDue(true)}
-              style={{ fontSize: 9, color: item.done ? 'var(--duration-text)' : dueDateColor(item.due), cursor: item.done ? 'default' : 'pointer' }}
-            >
-              截止 {item.due.replace(/-/g, '/')}
-            </span>
-          )}
-          {!item.done && !editingDue && !item.due && (
-            <span
-              onClick={() => setEditingDue(true)}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
-              style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center' }}
-              title="设置截止日期"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </span>
-          )}
-          {editingDue && (
-            <input
-              ref={dateRef}
-              type="date"
-              defaultValue={item.due ?? ''}
-              onKeyDown={e => {
-                if (e.key === 'Escape') { setEditingDue(false); return }
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value
-                  onSetDue(item.line_index, val || null)
-                  setEditingDue(false)
-                }
-              }}
-              onChange={e => {
-                // Only submit when a full date is picked (YYYY-MM-DD)
-                const val = e.target.value
-                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-                  onSetDue(item.line_index, val)
-                  setEditingDue(false)
-                }
-              }}
-              onBlur={() => setEditingDue(false)}
-              style={{
-                fontSize: 9, fontFamily: "'IBM Plex Mono', monospace",
-                background: 'transparent', border: '0.5px solid var(--divider)',
-                borderRadius: 3, color: 'var(--item-text)', padding: '1px 3px',
-                outline: 'none', width: 90,
-                colorScheme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
-              }}
-            />
-          )}
+      {/* Text */}
+      {editingText ? (
+        <div
+          ref={textRef}
+          contentEditable
+          suppressContentEditableWarning
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); handleTextSubmit() }
+            if (e.key === 'Escape') { if (textRef.current) textRef.current.textContent = item.text; setEditingText(false) }
+          }}
+          onBlur={() => handleTextSubmit()}
+          style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12, lineHeight: '18px',
+            fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400,
+            color: 'var(--item-text)', outline: 'none', cursor: 'text',
+          }}
+        >
+          {item.text}
         </div>
-      </div>
+      ) : (
+        <span
+          onClick={() => !item.done && setEditingText(true)}
+          style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12, lineHeight: '18px',
+            fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400,
+            color: item.done ? '#555' : 'var(--item-text)',
+            textDecoration: item.done ? 'line-through' : 'none',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            cursor: item.done ? 'default' : 'text',
+          }}
+        >
+          {item.text}
+        </span>
+      )}
+
+      {/* Due badge / calendar icon / date picker */}
+      {editingDue ? (
+        <input
+          ref={dateRef}
+          type="date"
+          defaultValue={item.due ?? ''}
+          onKeyDown={e => {
+            if (e.key === 'Escape') { setEditingDue(false); return }
+            if (e.key === 'Enter') {
+              const val = (e.target as HTMLInputElement).value
+              onSetDue(item.line_index, val || null)
+              setEditingDue(false)
+            }
+          }}
+          onChange={e => {
+            const val = e.target.value
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+              onSetDue(item.line_index, val)
+              setEditingDue(false)
+            }
+          }}
+          onBlur={() => setEditingDue(false)}
+          style={{
+            fontSize: 9, fontFamily: "'IBM Plex Mono', monospace",
+            background: 'transparent', border: '0.5px solid var(--divider)',
+            borderRadius: 3, color: 'var(--item-text)', padding: '1px 3px',
+            outline: 'none', width: 90, flexShrink: 0,
+            colorScheme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+          }}
+        />
+      ) : item.due ? (
+        <span
+          onClick={() => !item.done && setEditingDue(true)}
+          style={{
+            fontSize: 8, padding: '1px 4px', borderRadius: 3, flexShrink: 0,
+            cursor: item.done ? 'default' : 'pointer',
+            whiteSpace: 'nowrap',
+            ...dueBadgeStyle(item.due),
+          }}
+        >
+          {formatDueShort(item.due)}
+        </span>
+      ) : !item.done ? (
+        <span
+          className="todo-calendar-icon"
+          onClick={() => setEditingDue(true)}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
+          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0, opacity: 0, transition: 'opacity 0.1s' }}
+          title="设置截止日期"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </span>
+      ) : null}
+
+      {/* Source icon */}
+      {item.source && (
+        <span
+          className="todo-source-icon"
+          onClick={() => onNavigateToSource?.(item.source!)}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.35' }}
+          title={item.source}
+          style={{ cursor: 'pointer', opacity: 0.35, display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'opacity 0.1s' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </span>
+      )}
     </div>
   )
 }

@@ -7,6 +7,7 @@ pub struct TodoItem {
     pub done: bool,
     pub due: Option<String>,
     pub done_date: Option<String>,
+    pub source: Option<String>,
     pub line_index: usize,
 }
 
@@ -27,6 +28,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     let mut text = rest.to_string();
     let mut due: Option<String> = None;
     let mut done_date: Option<String> = None;
+    let mut source: Option<String> = None;
 
     while let Some(start) = text.find("<!--") {
         if let Some(end) = text[start..].find("-->") {
@@ -35,6 +37,8 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
                 due = Some(val.trim().to_string());
             } else if let Some(val) = comment.strip_prefix("done:") {
                 done_date = Some(val.trim().to_string());
+            } else if let Some(val) = comment.strip_prefix("source:") {
+                source = Some(val.trim().to_string());
             }
             text = format!("{}{}", &text[..start], &text[start + end + 3..]);
         } else {
@@ -47,6 +51,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
         done,
         due,
         done_date,
+        source,
         line_index,
     })
 }
@@ -78,7 +83,7 @@ pub fn list_todos_from_workspace(workspace: &str) -> Vec<TodoItem> {
     parse_todos(&read_todos_file(workspace))
 }
 
-pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>) -> Result<(), String> {
+pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, source: Option<&str>) -> Result<(), String> {
     let p = todos_path(workspace);
     let mut content = if p.exists() {
         std::fs::read_to_string(&p).map_err(|e| e.to_string())?
@@ -86,10 +91,13 @@ pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>) -> 
         "---\ndescription: 全局待办清单，由用户手动添加或 AI 自动提取\nformat: GFM task list\nrules:\n  - 每行一条待办，`- [ ]` 未完成，`- [x]` 已完成\n  - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）\n  - 完成日期用 `<!-- done:YYYY-MM-DD -->` 附在行尾（勾选时自动添加）\n  - 新条目追加到未完成项末尾、已完成项之前\n  - 不要重复已存在的条目\n---\n\n# 待办\n\n".to_string()
     };
 
-    let new_line = match due {
-        Some(d) => format!("- [ ] {} <!-- due:{} -->", text, d),
-        None => format!("- [ ] {}", text),
-    };
+    let mut new_line = format!("- [ ] {}", text);
+    if let Some(d) = due {
+        new_line.push_str(&format!(" <!-- due:{} -->", d));
+    }
+    if let Some(s) = source {
+        new_line.push_str(&format!(" <!-- source:{} -->", s));
+    }
 
     let lines: Vec<&str> = content.lines().collect();
     let first_done = lines.iter().position(|l| {
@@ -178,9 +186,9 @@ pub fn list_todos(app: tauri::AppHandle) -> Result<Vec<TodoItem>, String> {
 }
 
 #[tauri::command]
-pub fn add_todo(app: tauri::AppHandle, text: String, due: Option<String>) -> Result<TodoItem, String> {
+pub fn add_todo(app: tauri::AppHandle, text: String, due: Option<String>, source: Option<String>) -> Result<TodoItem, String> {
     let cfg = crate::config::load_config(&app)?;
-    add_todo_to_workspace(&cfg.workspace_path, &text, due.as_deref())?;
+    add_todo_to_workspace(&cfg.workspace_path, &text, due.as_deref(), source.as_deref())?;
     let items = list_todos_from_workspace(&cfg.workspace_path);
     items.into_iter().filter(|t| !t.done && t.text == text).last()
         .ok_or_else(|| "添加后未找到该待办".to_string())
@@ -351,7 +359,7 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "新待办", None).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "新待办", None, None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.starts_with("---\n"));
         assert!(content.contains("# 待办"));
@@ -364,7 +372,7 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_due_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "截止任务", Some("2026-04-10")).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "截止任务", Some("2026-04-10"), None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 截止任务 <!-- due:2026-04-10 -->"));
         std::fs::remove_dir_all(&tmp).ok();
@@ -376,7 +384,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 已有任务\n- [x] 已完成\n").unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "新增任务", None).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "新增任务", None, None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         let lines: Vec<&str> = content.lines().collect();
         let new_pos = lines.iter().position(|l| l.contains("新增任务")).unwrap();
@@ -422,6 +430,35 @@ mod tests {
         assert!(content.contains("保留"));
         assert!(!content.contains("删除"));
         assert!(content.contains("也保留"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn parse_item_with_source() {
+        let items = parse_todos("- [ ] 确认权限 <!-- source:02-研发沟通.md -->\n");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].source.as_deref(), Some("02-研发沟通.md"));
+        assert_eq!(items[0].text, "确认权限");
+    }
+
+    #[test]
+    fn parse_item_with_all_metadata() {
+        let items = parse_todos("- [x] 写代码 <!-- due:2026-04-05 --> <!-- done:2026-04-03 --> <!-- source:25-泼墨体.md -->\n");
+        assert_eq!(items.len(), 1);
+        assert!(items[0].done);
+        assert_eq!(items[0].due.as_deref(), Some("2026-04-05"));
+        assert_eq!(items[0].done_date.as_deref(), Some("2026-04-03"));
+        assert_eq!(items[0].source.as_deref(), Some("25-泼墨体.md"));
+    }
+
+    #[test]
+    fn add_todo_with_source() {
+        let tmp = std::env::temp_dir().join("journal_todo_add_source_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "确认权限", None, Some("02-研发沟通.md")).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("- [ ] 确认权限 <!-- source:02-研发沟通.md -->"));
         std::fs::remove_dir_all(&tmp).ok();
     }
 }

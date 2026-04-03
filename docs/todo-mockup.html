@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo UI Mockup — Before / After</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    padding: 48px 32px;
+    min-height: 100vh;
+  }
+
+  .column { width: 260px; flex-shrink: 0; }
+  .column-label {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #666; margin-bottom: 20px; text-align: center;
+  }
+
+  .panel {
+    background: #222;
+    border: 0.5px solid #333;
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: 260px;
+  }
+
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .header-title {
+    font-size: 10px; color: #ff3b30; letter-spacing: 0.08em;
+    text-transform: uppercase; font-weight: 500;
+  }
+  .header-count { font-size: 10px; color: #666; }
+
+  /* ─── BEFORE (current) ─── */
+  .old-row {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-bottom: 10px; padding: 6px 8px; border-radius: 5px;
+    background: rgba(255,255,255,0.02);
+  }
+  .old-checkbox {
+    width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px;
+    border: 1.5px solid #444; border-radius: 3px;
+  }
+  .old-checkbox.done {
+    background: #ff3b30; border-color: #ff3b30;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .old-text { font-size: 13px; line-height: 18.2px; color: #e0e0e0; }
+  .old-text.done { color: #666; text-decoration: line-through; }
+  .old-due { font-size: 9px; margin-top: 3px; }
+  .old-due.overdue { color: #ff3b30; }
+  .old-due.normal { color: #666; }
+
+  .add-btn {
+    margin-top: 4px; padding: 8px; border: 1px dashed #444;
+    border-radius: 5px; text-align: center; cursor: pointer;
+  }
+  .add-btn span { font-size: 11px; color: #666; }
+
+  .completed-header {
+    font-size: 10px; color: #666; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-top: 16px; margin-bottom: 8px;
+    padding-top: 8px; border-top: 0.5px solid #333;
+  }
+
+  /* ─── AFTER (new design) ─── */
+  .new-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.06);
+    position: relative;
+    transition: background 0.1s;
+  }
+  .new-row:hover { background: rgba(255,255,255,0.03); }
+  .new-row:last-of-type { border-bottom: none; }
+
+  .status-bar {
+    width: 3px; align-self: stretch; border-radius: 1.5px; flex-shrink: 0;
+    min-height: 20px;
+  }
+  .status-bar.pending { background: rgba(255,255,255,0.3); }
+  .status-bar.overdue { background: #ff3b30; }
+  .status-bar.done    { background: rgba(255,255,255,0.12); }
+
+  .new-checkbox {
+    width: 13px; height: 13px; flex-shrink: 0;
+    border: 1.5px solid #444; border-radius: 3px;
+  }
+  .new-checkbox.done {
+    background: #ff3b30; border-color: #ff3b30;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .new-content { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+  .new-text {
+    font-size: 12px; line-height: 17px; color: #e0e0e0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .new-text.done { color: #555; text-decoration: line-through; }
+
+  .new-due-badge {
+    font-size: 8px; padding: 1px 4px; border-radius: 3px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .new-due-badge.overdue { color: #ff3b30; background: rgba(255,59,48,0.1); }
+  .new-due-badge.today   { color: #ff3b30; background: rgba(255,59,48,0.08); }
+  .new-due-badge.future  { color: #666; background: rgba(255,255,255,0.05); }
+
+  .source-icon {
+    flex-shrink: 0; cursor: pointer; opacity: 0.35;
+    transition: opacity 0.15s;
+  }
+  .new-row:hover .source-icon { opacity: 0.6; }
+  .source-icon:hover { opacity: 1 !important; }
+
+  .new-add-btn {
+    padding: 6px 8px; cursor: pointer;
+    border-bottom: 0.5px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; gap: 6px;
+    transition: background 0.1s;
+  }
+  .new-add-btn:hover { background: rgba(255,255,255,0.03); }
+  .new-add-btn span { font-size: 11px; color: #555; }
+
+  .new-completed-header {
+    font-size: 9px; color: #555; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-top: 8px;
+    padding: 6px 8px 4px;
+  }
+
+  /* check svg */
+  .check-svg { display: block; }
+
+  /* tooltip */
+  .source-icon { position: relative; }
+  .source-icon .tooltip {
+    display: none; position: absolute; right: 0; bottom: 120%;
+    background: #333; color: #ccc; font-size: 9px; padding: 3px 6px;
+    border-radius: 4px; white-space: nowrap; pointer-events: none;
+  }
+  .source-icon:hover .tooltip { display: block; }
+
+  /* comparison arrow */
+  .arrow {
+    display: flex; align-items: center; justify-content: center;
+    align-self: center; color: #444; font-size: 28px; margin-top: 80px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ BEFORE ═══ -->
+<div class="column">
+  <div class="column-label">Before — 当前</div>
+  <div class="panel">
+    <div class="header">
+      <span class="header-title">待办</span>
+      <span class="header-count">5 项</span>
+    </div>
+
+    <div class="old-row">
+      <div class="old-checkbox"></div>
+      <div>
+        <div class="old-text">确认内部系统接入权限边界</div>
+        <div class="old-due overdue">截止 2026/04/01</div>
+      </div>
+    </div>
+
+    <div class="old-row">
+      <div class="old-checkbox"></div>
+      <div>
+        <div class="old-text">交付AI平台产品原型</div>
+        <div class="old-due normal">截止 2026/04/10</div>
+      </div>
+    </div>
+
+    <div class="old-row">
+      <div class="old-checkbox"></div>
+      <div>
+        <div class="old-text">梳理职能中心试点场景</div>
+      </div>
+    </div>
+
+    <div class="old-row">
+      <div class="old-checkbox"></div>
+      <div>
+        <div class="old-text">P0首响性能问题指定解决人</div>
+        <div class="old-due overdue">截止 2026/03/31</div>
+      </div>
+    </div>
+
+    <div class="old-row">
+      <div class="old-checkbox"></div>
+      <div>
+        <div class="old-text">ARM适配meeting-asr确认</div>
+      </div>
+    </div>
+
+    <div class="add-btn"><span>+ 添加待办</span></div>
+
+    <div class="completed-header">已完成 · 2 ▸</div>
+  </div>
+</div>
+
+<!-- Arrow -->
+<div class="arrow">→</div>
+
+<!-- ═══ AFTER ═══ -->
+<div class="column">
+  <div class="column-label">After — 方案 A</div>
+  <div class="panel">
+    <div class="header">
+      <span class="header-title">待办</span>
+      <span class="header-count">5 项</span>
+    </div>
+
+    <!-- overdue -->
+    <div class="new-row">
+      <div class="status-bar overdue"></div>
+      <div class="new-checkbox"></div>
+      <div class="new-content">
+        <span class="new-text">确认内部系统接入权限边界</span>
+        <span class="new-due-badge overdue">04/01</span>
+      </div>
+      <div class="source-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span class="tooltip">研发沟通-墨宝产品演示.md</span>
+      </div>
+    </div>
+
+    <!-- future due -->
+    <div class="new-row">
+      <div class="status-bar pending"></div>
+      <div class="new-checkbox"></div>
+      <div class="new-content">
+        <span class="new-text">交付AI平台产品原型</span>
+        <span class="new-due-badge future">04/10</span>
+      </div>
+      <div class="source-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span class="tooltip">研发沟通-墨宝产品演示.md</span>
+      </div>
+    </div>
+
+    <!-- no due, no source -->
+    <div class="new-row">
+      <div class="status-bar pending"></div>
+      <div class="new-checkbox"></div>
+      <div class="new-content">
+        <span class="new-text">梳理职能中心试点场景</span>
+      </div>
+    </div>
+
+    <!-- overdue -->
+    <div class="new-row">
+      <div class="status-bar overdue"></div>
+      <div class="new-checkbox"></div>
+      <div class="new-content">
+        <span class="new-text">P0首响性能问题指定解决人</span>
+        <span class="new-due-badge overdue">03/31</span>
+      </div>
+      <div class="source-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span class="tooltip">璟问Bug需求跟踪表分析.md</span>
+      </div>
+    </div>
+
+    <!-- no due, with source -->
+    <div class="new-row">
+      <div class="status-bar pending"></div>
+      <div class="new-checkbox"></div>
+      <div class="new-content">
+        <span class="new-text">ARM适配meeting-asr确认</span>
+      </div>
+      <div class="source-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span class="tooltip">璟问璟疏鲲鹏ARM适配评估.md</span>
+      </div>
+    </div>
+
+    <!-- add -->
+    <div class="new-add-btn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      <span>添加待办</span>
+    </div>
+
+    <!-- completed -->
+    <div class="new-completed-header">已完成 · 2 ▸</div>
+
+    <!-- completed items (collapsed preview) -->
+    <div class="new-row" style="opacity: 0.5;">
+      <div class="status-bar done"></div>
+      <div class="new-checkbox done">
+        <svg class="check-svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="new-content">
+        <span class="new-text done">泼墨体模型统一收口策略</span>
+      </div>
+    </div>
+
+    <div class="new-row" style="opacity: 0.5;">
+      <div class="status-bar done"></div>
+      <div class="new-checkbox done">
+        <svg class="check-svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="new-content">
+        <span class="new-text done">工作流编辑锁方案评审</span>
+      </div>
+      <div class="source-icon" style="opacity: 0.2;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,7 +1,7 @@
 use crate::config;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdentityEntry {
@@ -67,8 +67,8 @@ pub fn create_identity_file(
         .collect::<Vec<_>>()
         .join(", ");
     let content = format!(
-        "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n# {}\n",
-        yaml_escape(summary), tags_yaml, yaml_escape(speaker_id), name
+        "---\nsummary: {}\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n# {}\n",
+        summary, tags_yaml, yaml_escape(speaker_id), name
     );
     std::fs::write(&path, content).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().to_string())
@@ -157,7 +157,7 @@ pub fn list_identity_entries(workspace: &str) -> Result<Vec<IdentityEntry>, Stri
             path: path.to_string_lossy().to_string(),
             name,
             region,
-            summary: fm.summary,
+            summary: crate::journal::strip_surrounding_quotes(&fm.summary),
             tags: fm.tags,
             speaker_id: fm.speaker_id,
             mtime_secs,
@@ -183,12 +183,14 @@ pub fn get_identity_content(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn save_identity_content(path: String, content: String) -> Result<(), String> {
-    std::fs::write(&path, content).map_err(|e| e.to_string())
+pub fn save_identity_content(app: AppHandle, path: String, content: String) -> Result<(), String> {
+    std::fs::write(&path, &content).map_err(|e| e.to_string())?;
+    let _ = app.emit("identity-updated", ());
+    Ok(())
 }
 
 #[tauri::command]
-pub fn delete_identity(path: String) -> Result<(), String> {
+pub fn delete_identity(app: AppHandle, path: String) -> Result<(), String> {
     let fname = std::path::Path::new(&path)
         .file_name()
         .unwrap_or_default()
@@ -196,7 +198,9 @@ pub fn delete_identity(path: String) -> Result<(), String> {
     if fname == "README.md" {
         return Err("不可删除「关于我」".to_string());
     }
-    std::fs::remove_file(&path).map_err(|e| e.to_string())
+    std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+    let _ = app.emit("identity-updated", ());
+    Ok(())
 }
 
 #[tauri::command]
@@ -212,7 +216,9 @@ pub fn create_identity(
     if cfg.workspace_path.is_empty() {
         return Err("workspace not configured".to_string());
     }
-    create_identity_file(&cfg.workspace_path, &region, &name, &summary, &tags, &speaker_id)
+    let path = create_identity_file(&cfg.workspace_path, &region, &name, &summary, &tags, &speaker_id)?;
+    let _ = app.emit("identity-updated", ());
+    Ok(path)
 }
 
 /// Merge source identity into target.
@@ -276,6 +282,7 @@ pub fn merge_identity(
     }
     // full: source file is kept — AI will merge content and delete it
 
+    let _ = app.emit("identity-updated", ());
     Ok(())
 }
 

@@ -170,6 +170,10 @@ export function useJournal() {
       })
     })
 
+    const unlistenDiscarded = listen<string>('recording-discarded', () => {
+      setQueueItems(prev => prev.filter(i => i.path !== RECORDING_PLACEHOLDER))
+    })
+
     const unlistenAudioFailed = listen<{ source_path: string; filename: string; error: string }>('audio-ai-material-failed', (event) => {
       const { source_path, filename, error } = event.payload
       setQueueItems(prev => {
@@ -191,6 +195,7 @@ export function useJournal() {
       unlistenUpdated.then(fn => fn())
       unlistenProcessed.then(fn => fn())
       unlistenAudioReady.then(fn => fn())
+      unlistenDiscarded.then(fn => fn())
       unlistenAudioFailed.then(fn => fn())
       removalTimers.current.forEach(t => clearTimeout(t))
       removalTimers.current.clear()

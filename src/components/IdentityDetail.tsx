@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { Check, ChevronUp, ChevronDown, X, RotateCcw } from 'lucide-react'
+import { Check, ChevronUp, ChevronDown, X } from 'lucide-react'
 import type { IdentityEntry } from '../types'
-import { getIdentityContent, saveIdentityContent, getWorkspacePrompt, setWorkspacePrompt, resetWorkspacePrompt } from '../lib/tauri'
+import { getIdentityContent, saveIdentityContent, getWorkspacePrompt, setWorkspacePrompt } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
 import { Spinner } from './Spinner'
 import { SOUL_PATH } from './IdentityList'
@@ -358,9 +358,11 @@ const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
 // ── Main component ────────────────────────────────────────────────────────────
 interface IdentityDetailProps {
   identity: IdentityEntry | null
+  onRecord?: () => void
+  onOpenDock?: () => void
 }
 
-export function IdentityDetail({ identity }: IdentityDetailProps) {
+export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetailProps) {
   const [content, setContent] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
@@ -436,7 +438,20 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
     })
   }
 
-  // Cmd+F / Cmd+R in edit mode; Escape closes search first, then exits edit
+  // Cmd+E to enter edit mode (read mode) — disabled for soul
+  useEffect(() => {
+    if (editing || !identity || isSoul) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+        e.preventDefault()
+        enterEdit()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [editing, identity, content])
+
+  // Cmd+F / Cmd+R / Cmd+S in edit mode; Escape cancels edit (no save)
   useEffect(() => {
     if (!editing) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -449,6 +464,10 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
         setShowSearch(true)
         setShowReplace(true)
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        exitEdit()
+      }
       if (e.key === 'Escape') {
         e.stopImmediatePropagation()
         e.preventDefault()
@@ -457,7 +476,11 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
           setShowReplace(false)
           textareaRef.current?.focus()
         } else {
-          exitEdit()
+          // Cancel: discard changes, no save
+          if (debounceRef.current) clearTimeout(debounceRef.current)
+          setShowSearch(false)
+          setShowReplace(false)
+          setEditing(false)
         }
       }
     }
@@ -513,10 +536,93 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
   if (!identity) {
     return (
       <div style={{
-        width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--detail-bg)', color: 'var(--item-meta)', fontSize: 16, userSelect: 'none',
+        width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: 'var(--detail-bg)',
+        userSelect: 'none',
+        overflow: 'hidden',
+        position: 'relative',
       }}>
-        选择一个身份档案
+        {/* Watermark */}
+        <span style={{
+          fontSize: '84vh',
+          fontWeight: 900,
+          letterSpacing: '0.06em',
+          color: 'var(--item-text)',
+          opacity: 0.035,
+          lineHeight: 1,
+          fontFamily: '"Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "Songti SC", serif',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          position: 'absolute',
+        }}>
+          谨迹
+        </span>
+
+        <div style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+          padding: '0 32px',
+          width: '100%',
+          maxWidth: 520,
+        }}>
+          <div style={{ fontSize: 14, color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
+            通过以下方式开始记录
+          </div>
+          {(onRecord || onOpenDock) && (
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              {onRecord && (
+                <button
+                  onClick={onRecord}
+                  style={{
+                    flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
+                    borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                    transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                      <path d="M19 10a7 7 0 0 1-14 0"/>
+                      <line x1="12" y1="19" x2="12" y2="22"/>
+                      <line x1="8" y1="22" x2="16" y2="22"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
+                  <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
+                </button>
+              )}
+              {onOpenDock && (
+                <button
+                  onClick={onOpenDock}
+                  style={{
+                    flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
+                    borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                    transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
+                  <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -561,48 +667,47 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
           {identity.name}
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {isSoul && !editing && (
-            <button
-              onClick={() => handleBtnClick(async () => {
-                if (!confirm('确定要还原助理设定为默认模板？当前内容将被覆盖。')) return
-                try {
-                  const defaultContent = await resetWorkspacePrompt()
-                  setContent(defaultContent)
-                } catch (e) {
-                  console.error('[IdentityDetail] reset failed', e)
-                }
-              })}
-              disabled={btnCooldown}
-              style={{ ...btnStyle, display: 'flex', alignItems: 'center', gap: 4, opacity: btnCooldown ? 0.5 : 1 }}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
-              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
-            >
-              <RotateCcw size={11} strokeWidth={1.8} />
-              还原
-            </button>
-          )}
-          {editing ? (
-            <button
-              onClick={() => handleBtnClick(exitEdit)}
-              disabled={saveStatus === 'saving' || btnCooldown}
-              style={{
-                ...btnStyle,
-                background: saveStatus === 'saving' ? 'var(--divider)' : 'transparent',
-                cursor: (saveStatus === 'saving' || btnCooldown) ? 'not-allowed' : 'pointer',
-                opacity: btnCooldown ? 0.5 : 1,
-              }}
-              onMouseDown={e => {
-                if (!btnCooldown) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-              }}
-              onMouseUp={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-            >
-              {saveStatus === 'saving' ? '保存中…' : '保存'}
-            </button>
-          ) : (
+          {!isSoul && editing ? (
+            <>
+              <button
+                onClick={() => handleBtnClick(() => {
+                  if (debounceRef.current) clearTimeout(debounceRef.current)
+                  setShowSearch(false)
+                  setShowReplace(false)
+                  setEditing(false)
+                })}
+                disabled={btnCooldown}
+                style={{ ...btnStyle, opacity: btnCooldown ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 5 }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
+              >
+                <span style={{ fontSize: 9, opacity: 0.5 }}>ESC</span>
+                取消
+              </button>
+              <button
+                onClick={() => handleBtnClick(exitEdit)}
+                disabled={saveStatus === 'saving' || btnCooldown}
+                style={{
+                  ...btnStyle,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: saveStatus === 'saving' ? 'var(--divider)' : 'transparent',
+                  cursor: (saveStatus === 'saving' || btnCooldown) ? 'not-allowed' : 'pointer',
+                  opacity: btnCooldown ? 0.5 : 1,
+                }}
+                onMouseDown={e => {
+                  if (!btnCooldown) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+                }}
+                onMouseUp={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+              >
+                <span style={{ fontSize: 9, opacity: 0.5 }}>⌘S</span>
+                {saveStatus === 'saving' ? '保存中…' : '保存'}
+              </button>
+            </>
+          ) : !isSoul ? (
             <button
               onClick={() => handleBtnClick(enterEdit)}
               disabled={btnCooldown}
-              style={{ ...btnStyle, opacity: btnCooldown ? 0.5 : 1 }}
+              style={{ ...btnStyle, opacity: btnCooldown ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 5 }}
               onMouseDown={e => {
                 if (!btnCooldown) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
               }}
@@ -610,9 +715,10 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
               onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
               onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
             >
+              <span style={{ fontSize: 9, opacity: 0.5 }}>⌘E</span>
               编辑
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -674,11 +780,24 @@ export function IdentityDetail({ identity }: IdentityDetailProps) {
                 {identity.summary}
               </div>
             )}
-            {displayTags.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(identity.speaker_id || displayTags.length > 0) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {identity.speaker_id && (
+                  <span style={{
+                    fontSize: 12, padding: '2px 9px', borderRadius: 4,
+                    fontWeight: 500, color: 'var(--item-meta)', background: 'rgba(255,255,255,0.10)',
+                    fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    {identity.speaker_id}
+                  </span>
+                )}
                 {displayTags.map((cfg, i) => (
                   <span key={i} style={{
-                    fontSize: 12, padding: '2px 8px', borderRadius: 4,
+                    fontSize: 12, padding: '2px 9px', borderRadius: 4,
                     fontWeight: 500, color: cfg.color, background: cfg.bg,
                     fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
                   }}>

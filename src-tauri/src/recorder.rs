@@ -257,6 +257,17 @@ pub async fn stop_recording(app: AppHandle, state: State<'_, RecorderState>) -> 
 
         let duration_secs = read_duration_pub(&output_path);
 
+        // 录音太短（<5s）直接丢弃，不进入转写/AI流程
+        if duration_secs < 5.0 {
+            eprintln!(
+                "[recorder] recording too short ({:.1}s < 5s), discarding: {}",
+                duration_secs, filename
+            );
+            let _ = std::fs::remove_file(&output_path);
+            let _ = app_clone.emit("recording-discarded", &filename);
+            return;
+        }
+
         let _ = app_clone.emit(
             "recording-processed",
             serde_json::json!({
@@ -266,11 +277,171 @@ pub async fn stop_recording(app: AppHandle, state: State<'_, RecorderState>) -> 
         );
 
         let ym_for_ai = crate::workspace::current_year_month();
-        let _ = duration_secs;
         crate::audio_pipeline::start_audio_pipeline(app_clone, output_path, ym_for_ai, true, None);
     });
 
     Ok(())
+}
+
+/// Repair a truncated WAV header left by an unfinalized hound::WavWriter.
+/// Fixes the RIFF chunk size and data chunk size fields based on actual file size.
+fn repair_wav_header(path: &Path) -> Result<(), String> {
+    use std::io::{Read, Seek, SeekFrom, Write};
+
+    let mut f = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .map_err(|e| format!("open failed: {}", e))?;
+
+    let file_size = f
+        .metadata()
+        .map_err(|e| format!("metadata: {}", e))?
+        .len();
+    if file_size < 44 {
+        return Err("file too small to be a valid WAV".into());
+    }
+
+    // Verify RIFF header
+    let mut header = [0u8; 12];
+    f.read_exact(&mut header)
+        .map_err(|e| format!("read header: {}", e))?;
+    if &header[0..4] != b"RIFF" || &header[8..12] != b"WAVE" {
+        return Err("not a RIFF/WAVE file".into());
+    }
+
+    // Fix RIFF chunk size (bytes 4-7): file_size - 8
+    f.seek(SeekFrom::Start(4))
+        .map_err(|e| format!("seek: {}", e))?;
+    f.write_all(&((file_size - 8) as u32).to_le_bytes())
+        .map_err(|e| format!("write riff size: {}", e))?;
+
+    // Find "data" chunk by scanning subchunks after byte 12
+    let mut pos = 12u64;
+    loop {
+        if pos + 8 > file_size {
+            return Err("data chunk not found".into());
+        }
+        f.seek(SeekFrom::Start(pos))
+            .map_err(|e| format!("seek chunk: {}", e))?;
+        let mut chunk_hdr = [0u8; 8];
+        f.read_exact(&mut chunk_hdr)
+            .map_err(|e| format!("read chunk: {}", e))?;
+
+        if &chunk_hdr[0..4] == b"data" {
+            // Fix data chunk size: remaining bytes after this 8-byte header
+            let data_size = file_size - pos - 8;
+            f.seek(SeekFrom::Start(pos + 4))
+                .map_err(|e| format!("seek data size: {}", e))?;
+            f.write_all(&(data_size as u32).to_le_bytes())
+                .map_err(|e| format!("write data size: {}", e))?;
+            break;
+        }
+
+        // Skip to next chunk: current pos + 8 (header) + declared chunk size
+        let chunk_size = u32::from_le_bytes([chunk_hdr[4], chunk_hdr[5], chunk_hdr[6], chunk_hdr[7]]);
+        pos += 8 + chunk_size as u64;
+    }
+
+    f.flush().map_err(|e| format!("flush: {}", e))?;
+    eprintln!("[recorder] repaired WAV header: {:?} ({} bytes)", path, file_size);
+    Ok(())
+}
+
+/// Scan all `yyMM/raw/` dirs for orphaned `.wav.tmp` files left by interrupted recordings.
+/// For each one, convert to `.m4a` via afconvert and feed into the audio pipeline.
+pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
+    let workspace = PathBuf::from(workspace);
+    let entries = match std::fs::read_dir(&workspace) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+
+    for entry in entries.flatten() {
+        let dir_name = entry.file_name().to_string_lossy().to_string();
+        // Match yyMM directories (4 digits)
+        if dir_name.len() != 4 || !dir_name.chars().all(|c| c.is_ascii_digit()) {
+            continue;
+        }
+        let raw_dir = entry.path().join("raw");
+        let raw_entries = match std::fs::read_dir(&raw_dir) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        for file in raw_entries.flatten() {
+            let path = file.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("tmp") {
+                continue;
+            }
+            let name = path.to_string_lossy();
+            if !name.ends_with(".wav.tmp") {
+                continue;
+            }
+
+            // Derive .m4a path: strip ".wav.tmp", append ".m4a"
+            let stem = name.trim_end_matches(".wav.tmp");
+            let m4a_path = PathBuf::from(format!("{}.m4a", stem));
+
+            if m4a_path.exists() {
+                // Conversion already completed; clean up orphan
+                eprintln!("[recorder] removing orphaned tmp (m4a exists): {}", name);
+                let _ = std::fs::remove_file(&path);
+                continue;
+            }
+
+            eprintln!("[recorder] recovering interrupted recording: {}", name);
+            let app_clone = app.clone();
+            let wav_path = path.clone();
+            let year_month = dir_name.clone();
+
+            tauri::async_runtime::spawn_blocking(move || {
+                // Repair truncated WAV header before conversion
+                if let Err(e) = repair_wav_header(&wav_path) {
+                    eprintln!("[recorder] WAV repair failed for {:?}: {}", wav_path, e);
+                    return;
+                }
+
+                let status = std::process::Command::new("afconvert")
+                    .args([
+                        "-f", "m4af", "-d", "aac",
+                        wav_path.to_str().unwrap(),
+                        m4a_path.to_str().unwrap(),
+                    ])
+                    .status();
+
+                if let Ok(s) = &status {
+                    if s.success() {
+                        let _ = std::fs::remove_file(&wav_path);
+                    } else {
+                        eprintln!("[recorder] afconvert failed for {:?}", wav_path);
+                        return;
+                    }
+                } else {
+                    eprintln!("[recorder] afconvert error for {:?}: {:?}", wav_path, status);
+                    return;
+                }
+
+                let filename = m4a_path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+
+                let _ = app_clone.emit(
+                    "recording-processed",
+                    serde_json::json!({
+                        "filename": filename,
+                        "path": m4a_path.to_string_lossy().as_ref(),
+                    }),
+                );
+
+                crate::audio_pipeline::start_audio_pipeline(
+                    app_clone, m4a_path, year_month, true, None,
+                );
+            });
+        }
+    }
 }
 
 #[cfg(test)]

@@ -44,7 +44,7 @@ fi
 
 cat > "${target}" <<EOF
 ---
-summary: "${summary}"
+summary: ${summary}
 tags: []
 speaker_id: "${speaker_id}"
 ---
@@ -52,5 +52,30 @@ speaker_id: "${speaker_id}"
 # ${name}
 
 EOF
+
+# Update speaker_profiles.json name field if speaker_id was provided
+if [[ -n "$speaker_id" ]]; then
+  profiles_file="${identity_dir}/raw/speaker_profiles.json"
+  if [[ -f "$profiles_file" ]]; then
+    python3 -c "
+import json, sys
+
+with open('${profiles_file}', 'r') as f:
+    profiles = json.load(f)
+
+changed = False
+for p in profiles:
+    if p['id'] == '${speaker_id}':
+        p['name'] = '${name}'
+        changed = True
+        break
+
+if changed:
+    with open('${profiles_file}', 'w') as f:
+        json.dump(profiles, f, indent=2, ensure_ascii=False)
+    print('Updated speaker profile name: ${speaker_id} -> ${name}', file=sys.stderr)
+"
+  fi
+fi
 
 echo "${target}"

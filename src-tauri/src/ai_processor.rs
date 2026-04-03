@@ -86,7 +86,7 @@ const SCRIPT_RECENT_SUMMARIES: &str =
 const SCRIPT_IDENTITY_CREATE: &str =
     include_str!("../resources/workspace-template/.claude/scripts/identity-create");
 
-/// 确保 workspace/.claude/ 已初始化。仅在文件不存在时创建，不覆盖用户修改。
+/// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
     let scripts_dir = dot_claude.join("scripts");
@@ -98,19 +98,10 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         return;
     }
 
-    // Write CLAUDE.md
-    let claude_md = dot_claude.join("CLAUDE.md");
-    if !claude_md.exists() {
-        let _ = std::fs::write(&claude_md, WORKSPACE_CLAUDE_MD);
-    }
+    // Always overwrite template files to keep workspace in sync with app version
+    let _ = std::fs::write(dot_claude.join("CLAUDE.md"), WORKSPACE_CLAUDE_MD);
+    let _ = std::fs::write(dot_claude.join("settings.json"), WORKSPACE_SETTINGS_JSON);
 
-    // Write settings.json (SessionStart hook to inject recent summaries)
-    let settings_json = dot_claude.join("settings.json");
-    if !settings_json.exists() {
-        let _ = std::fs::write(&settings_json, WORKSPACE_SETTINGS_JSON);
-    }
-
-    // Write scripts, set executable bit
     let scripts: &[(&str, &str)] = &[
         ("journal-create", SCRIPT_JOURNAL_CREATE),
         ("recent-summaries", SCRIPT_RECENT_SUMMARIES),
@@ -118,7 +109,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     ];
     for (name, content) in scripts {
         let path = scripts_dir.join(name);
-        if !path.exists() && std::fs::write(&path, content).is_ok() {
+        if std::fs::write(&path, content).is_ok() {
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -1318,11 +1309,12 @@ mod tests {
             assert!(mode & 0o111 != 0, "script {} should be executable", script);
         }
 
-        // Second call should NOT overwrite existing files
+        // Second call SHOULD overwrite with embedded template
         std::fs::write(&claude_md, "用户自定义内容").unwrap();
         ensure_workspace_dot_claude(tmp.to_str().unwrap());
         let content2 = std::fs::read_to_string(&claude_md).unwrap();
-        assert_eq!(content2, "用户自定义内容", "second call must not overwrite");
+        assert_ne!(content2, "用户自定义内容", "second call must overwrite");
+        assert!(content2.contains("tags"), "overwritten CLAUDE.md should have template content");
 
         // settings.json exists and contains the SessionStart hook
         let settings_json = dot_claude.join("settings.json");

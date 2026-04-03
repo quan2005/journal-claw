@@ -488,7 +488,7 @@ export default function App() {
                   }}
                 />
               ) : (
-                <IdentityDetail identity={selectedIdentity} />
+                <IdentityDetail identity={selectedIdentity} onRecord={handleRecord} onOpenDock={() => setDockOpen(true)} />
               )}
             </div>
 

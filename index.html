@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh">
+<html lang="zh" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
@@ -7,6 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="preload" as="style" onload="this.rel='stylesheet'" />
     <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
     <title>谨迹</title>
+    <script>
+      // Sync theme before first paint to prevent flash
+      (function() {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light');
+      })();
+    </script>
   </head>
 
   <body>

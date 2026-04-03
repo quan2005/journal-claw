@@ -29,6 +29,9 @@ if [[ ! -f "$identity_file" ]]; then
   exit 1
 fi
 
+# Extract person name from identity filename: {region}-{name}.md → {name}
+identity_name=$(basename "$identity_file" .md | sed 's/^[^-]*-//')
+
 # Read current speaker_id from frontmatter
 current_id=$(awk '
   /^---$/ { count++; next }
@@ -69,6 +72,8 @@ if source and target:
     target['last_seen_at'] = max(target.get('last_seen_at', 0), source.get('last_seen_at', 0))
     # Remove source profile
     profiles = [p for p in profiles if p['id'] != '${speaker_id}']
+    # Update target profile name
+    target['name'] = '${identity_name}'
 
     with open('${profiles_file}', 'w') as f:
         json.dump(profiles, f, indent=2, ensure_ascii=False)
@@ -76,6 +81,7 @@ if source and target:
 elif source and not target:
     # No existing profile for current_id — just rename source's id
     source['id'] = '${current_id}'
+    source['name'] = '${identity_name}'
     with open('${profiles_file}', 'w') as f:
         json.dump(profiles, f, indent=2, ensure_ascii=False)
     print('Reassigned voice profile ${speaker_id} -> ${current_id}', file=sys.stderr)
@@ -96,6 +102,23 @@ if [[ -z "$current_id" ]]; then
     sed -i '' "/^tags:/a\\
 speaker_id: \"${speaker_id}\"
 " "$identity_file"
+  fi
+  # Update speaker_profiles.json name field
+  if [[ -f "$profiles_file" ]]; then
+    python3 -c "
+import json, sys
+
+with open('${profiles_file}', 'r') as f:
+    profiles = json.load(f)
+
+for p in profiles:
+    if p['id'] == '${speaker_id}':
+        p['name'] = '${identity_name}'
+        with open('${profiles_file}', 'w') as f:
+            json.dump(profiles, f, indent=2, ensure_ascii=False)
+        print('Updated speaker profile name: ${speaker_id} -> ${identity_name}', file=sys.stderr)
+        break
+"
   fi
   echo "${identity_file}"
   exit 0

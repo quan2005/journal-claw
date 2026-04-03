@@ -70,6 +70,39 @@ fn extract_scalar_value(s: &str) -> String {
     }
 }
 
+/// Repeatedly strip surrounding double/single quotes and escaped quotes from a parsed value.
+/// LLMs often wrap summary text in redundant quotes that survive YAML parsing, e.g.:
+///   gray_matter parses `summary: "\"摘要\""` → `"摘要"` (quotes still in value)
+/// This function peels them off until the core text is clean.
+pub fn strip_surrounding_quotes(s: &str) -> String {
+    let mut result = s.trim().to_string();
+    loop {
+        let t = result.trim();
+        // ASCII double quotes
+        if let Some(inner) = t.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+            result = inner.to_string();
+            continue;
+        }
+        // ASCII single quotes
+        if let Some(inner) = t.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')) {
+            result = inner.to_string();
+            continue;
+        }
+        // Curly/smart quotes: \u{201c}…\u{201d}
+        if let Some(inner) = t.strip_prefix('\u{201c}').and_then(|s| s.strip_suffix('\u{201d}')) {
+            result = inner.to_string();
+            continue;
+        }
+        // Escaped quotes: \"...\"
+        if let Some(inner) = t.strip_prefix("\\\"").and_then(|s| s.strip_suffix("\\\"")) {
+            result = inner.to_string();
+            continue;
+        }
+        break;
+    }
+    result
+}
+
 /// Parse a YAML inline sequence like `[journal, meeting]` into a Vec<String>.
 fn extract_inline_sequence(s: &str) -> Vec<String> {
     let inner = s.trim_start_matches('[').trim_end_matches(']');
@@ -165,7 +198,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             filename,
             path: path.to_string_lossy().to_string(),
             title,
-            summary: fm.summary,
+            summary: strip_surrounding_quotes(&fm.summary),
             tags: fm.tags,
             year_month: year_month.to_string(),
             day,
@@ -525,9 +558,55 @@ mod tests {
         std::fs::remove_dir_all(&tmp).ok();
     }
 
+    // ── strip_surrounding_quotes tests ─────────────────────────────────────
+
     #[test]
-    fn write_sample_entry_does_not_overwrite_existing() {
-        let tmp = std::env::temp_dir().join(format!(
+    fn strip_quotes_ascii_double() {
+        assert_eq!(strip_surrounding_quotes(r#""摘要内容""#), "摘要内容");
+    }
+
+    #[test]
+    fn strip_quotes_ascii_single() {
+        assert_eq!(strip_surrounding_quotes("'摘要内容'"), "摘要内容");
+    }
+
+    #[test]
+    fn strip_quotes_smart_curly() {
+        assert_eq!(strip_surrounding_quotes("\u{201c}摘要内容\u{201d}"), "摘要内容");
+    }
+
+    #[test]
+    fn strip_quotes_escaped() {
+        assert_eq!(strip_surrounding_quotes(r#"\"摘要内容\""#), "摘要内容");
+    }
+
+    #[test]
+    fn strip_quotes_nested_layers() {
+        // Agent wraps in multiple layers: "\"摘要\"" → after YAML parse → "摘要"
+        assert_eq!(strip_surrounding_quotes(r#""\"摘要\"""#), "摘要");
+    }
+
+    #[test]
+    fn strip_quotes_no_quotes() {
+        assert_eq!(strip_surrounding_quotes("正常摘要"), "正常摘要");
+    }
+
+    #[test]
+    fn strip_quotes_empty() {
+        assert_eq!(strip_surrounding_quotes(""), "");
+    }
+
+    #[test]
+    fn strip_quotes_preserves_inner_quotes() {
+        // Only strips matching outer pairs — inner quotes stay
+        assert_eq!(
+            strip_surrounding_quotes(r#""他说"你好"再见""#),
+            "他说\"你好\"再见"
+        );
+    }
+
+    #[test]
+    fn write_sample_entry_does_not_overwrite_existing() {        let tmp = std::env::temp_dir().join(format!(
             "journal_sample_test_no_overwrite_{}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

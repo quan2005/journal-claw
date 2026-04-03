@@ -78,7 +78,7 @@ else
   cat > "${target_path}" <<EOF
 ---
 tags: [journal]
-summary: ""
+summary:
 ---
 
 # ${title}

@@ -82,6 +82,7 @@ fn main() {
                 // ── Initialize workspace .claude/ on startup ──
                 if let Ok(cfg) = config::load_config(app.handle()) {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
+                    recorder::recover_interrupted_recordings(app.handle().clone(), &cfg.workspace_path);
                 }
                 // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
                 let about_item =

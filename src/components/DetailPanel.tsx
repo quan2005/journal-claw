@@ -15,7 +15,7 @@ interface DetailPanelProps {
   onRecord: () => void
   onOpenDock: () => void
   onSelectSample: () => void
-  onAddToTodo?: (text: string) => void
+  onAddToTodo?: (text: string, source: string) => void
 }
 
 // ── Detail context menu ───────────────────────────────────────────────────────
@@ -576,7 +576,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
         }}
         onAddToTodo={() => {
           const sel = window.getSelection()?.toString()?.trim()
-          if (sel && onAddToTodo) onAddToTodo(sel)
+          if (sel && onAddToTodo && entry) onAddToTodo(sel, entry.filename)
         }}
         onClose={hideContextMenu}
       />

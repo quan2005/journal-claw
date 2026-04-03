@@ -482,8 +482,8 @@ export default function App() {
                       if (sample) setSelectedEntry(sample)
                     }).catch(() => {})
                   }}
-                  onAddToTodo={(text: string) => {
-                    addTodo(text)
+                  onAddToTodo={(text: string, source: string) => {
+                    addTodo(text, undefined, source)
                     setTodoOpen(true)
                   }}
                 />

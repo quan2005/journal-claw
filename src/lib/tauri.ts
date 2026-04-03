@@ -252,8 +252,8 @@ export const mergeIdentity = (
 export const listTodos = (): Promise<TodoItem[]> =>
   invoke<TodoItem[]>('list_todos')
 
-export const addTodo = (text: string, due?: string): Promise<TodoItem> =>
-  invoke<TodoItem>('add_todo', { text, due: due ?? null })
+export const addTodo = (text: string, due?: string, source?: string): Promise<TodoItem> =>
+  invoke<TodoItem>('add_todo', { text, due: due ?? null, source: source ?? null })
 
 export const toggleTodo = (lineIndex: number, checked: boolean): Promise<void> =>
   invoke<void>('toggle_todo', { lineIndex, checked })

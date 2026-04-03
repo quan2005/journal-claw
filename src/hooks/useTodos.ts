@@ -30,8 +30,8 @@ export function useTodos() {
     }
   }, [refresh])
 
-  const addTodo = useCallback(async (text: string, due?: string) => {
-    await addTodoIpc(text, due)
+  const addTodo = useCallback(async (text: string, due?: string, source?: string) => {
+    await addTodoIpc(text, due, source)
     await refresh()
   }, [refresh])
 

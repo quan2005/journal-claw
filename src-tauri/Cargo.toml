@@ -1,6 +1,6 @@
 [package]
 name = "journal"
-version = "0.9.0"
+version = "0.10.0"
 description = "谨迹 — 知识工作者的日志助手"
 authors = ["you"]
 edition = "2021"

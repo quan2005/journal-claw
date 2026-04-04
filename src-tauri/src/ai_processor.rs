@@ -173,7 +173,6 @@ pub fn build_claude_args_with_creds(
         "--output-format".to_string(),
         "stream-json".to_string(),
         "--verbose".to_string(),
-        "--no-session-persistence".to_string(),
         "--disallowed-tools".to_string(),
         "AskUserQuestion".to_string(),
     ];

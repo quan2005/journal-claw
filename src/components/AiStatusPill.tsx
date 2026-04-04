@@ -34,7 +34,7 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
 
   return (
     <div
-      onClick={() => openClaudeTerminal(isProcessing)}
+      onClick={() => openClaudeTerminal()}
       style={{
         display: 'flex',
         alignItems: 'center',

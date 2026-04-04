@@ -37,77 +37,36 @@ fn open_with_system(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn open_claude_terminal(app: tauri::AppHandle, continue_session: bool) -> Result<(), String> {
+fn open_claude_terminal(app: tauri::AppHandle) -> Result<(), String> {
     let cfg = config::load_config(&app).map_err(|e| e.to_string())?;
     let workspace = &cfg.workspace_path;
     let tmp = std::env::temp_dir();
+    let pid_file = tmp.join("journal-claude-terminal.pid");
+    let app_file = tmp.join("journal-claude-terminal.app");
 
-    // Two independent terminals: interactive (idle) and processing (resume)
-    let interactive_pid = tmp.join("journal-claude-terminal.pid");
-    let interactive_app = tmp.join("journal-claude-terminal.app");
-    let processing_pid = tmp.join("journal-claude-processing.pid");
-    let processing_app = tmp.join("journal-claude-processing.app");
-    let session_file = tmp.join("journal-claude-session-id");
-
-    let activate = |app_file: &std::path::PathBuf| -> bool {
-        if let Ok(app_name) = std::fs::read_to_string(app_file) {
-            let app = app_name.trim().to_string();
-            if !app.is_empty() {
-                let _ = std::process::Command::new("osascript")
-                    .args(["-e", &format!("tell application \"{}\" to activate", app)])
-                    .spawn();
-                return true;
+    // Activate existing terminal if still alive
+    if let Ok(pid_str) = std::fs::read_to_string(&pid_file) {
+        if let Ok(pid) = pid_str.trim().parse::<i32>() {
+            if unsafe { libc::kill(pid, 0) == 0 } {
+                if let Ok(app_name) = std::fs::read_to_string(&app_file) {
+                    let name = app_name.trim().to_string();
+                    if !name.is_empty() {
+                        let _ = std::process::Command::new("osascript")
+                            .args(["-e", &format!("tell application \"{}\" to activate", name)])
+                            .spawn();
+                    }
+                }
+                return Ok(());
             }
         }
-        false
-    };
-
-    let is_alive = |pid_file: &std::path::PathBuf| -> bool {
-        if let Ok(pid_str) = std::fs::read_to_string(pid_file) {
-            if let Ok(pid) = pid_str.trim().parse::<i32>() {
-                return unsafe { libc::kill(pid, 0) == 0 };
-            }
-        }
-        false
-    };
-
-    if !continue_session {
-        // Idle: activate existing interactive terminal, or create new
-        if is_alive(&interactive_pid) {
-            activate(&interactive_app);
-            return Ok(());
-        }
-        spawn_terminal(
-            workspace,
-            "claude --allow-dangerously-skip-permissions",
-            &interactive_pid,
-            &interactive_app,
-        )
-    } else {
-        // Processing: activate existing processing terminal, or create new with --resume
-        if is_alive(&processing_pid) {
-            activate(&processing_app);
-            return Ok(());
-        }
-        let session_id = std::fs::read_to_string(&session_file)
-            .unwrap_or_default()
-            .trim()
-            .to_string();
-        let claude_cmd = if session_id.is_empty() {
-            "claude --continue --allow-dangerously-skip-permissions".to_string()
-        } else {
-            format!(
-                "claude --resume {} --allow-dangerously-skip-permissions",
-                session_id
-            )
-        };
-        spawn_terminal(workspace, &claude_cmd, &processing_pid, &processing_app)
     }
+
+    // No running terminal — spawn new
+    spawn_terminal(workspace, &pid_file, &app_file)
 }
 
 fn spawn_terminal(
     workspace: &str,
-    claude_cmd: &str,
     pid_file: &std::path::PathBuf,
     app_file: &std::path::PathBuf,
 ) -> Result<(), String> {
@@ -121,11 +80,10 @@ fn spawn_terminal(
         app_file.display(),
     );
     let script = format!(
-        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\n{}\nrm -f '{}' '{}'",
+        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\nclaude --allow-dangerously-skip-permissions\nrm -f '{}' '{}'",
         pid_file.display(),
         detect_terminal,
         workspace,
-        claude_cmd,
         pid_file.display(),
         app_file.display(),
     );

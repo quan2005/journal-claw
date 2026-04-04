@@ -96,8 +96,8 @@ export const resetWorkspacePrompt = () =>
 export const openFile = (path: string): Promise<void> =>
   invoke('open_with_system', { path })
 
-export const openClaudeTerminal = (continueSession: boolean): Promise<void> =>
-  invoke('open_claude_terminal', { continueSession })
+export const openClaudeTerminal = (): Promise<void> =>
+  invoke('open_claude_terminal')
 
 export const cancelAiProcessing = () =>
   invoke<void>('cancel_ai_processing')

@@ -50,7 +50,7 @@ export function SidebarTabs({ active, onChange }: SidebarTabsProps) {
           <polyline points="14 2 14 8 20 8"/>
           <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
-        日志
+        记忆
       </button>
     </div>
   )

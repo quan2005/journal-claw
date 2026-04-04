@@ -36,6 +36,40 @@ fn open_with_system(path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn open_claude_terminal(app: tauri::AppHandle, continue_session: bool) -> Result<(), String> {
+    let cfg = config::load_config(&app).map_err(|e| e.to_string())?;
+    let workspace = &cfg.workspace_path;
+
+    let claude_cmd = if continue_session {
+        "claude --continue --allow-dangerously-skip-permissions"
+    } else {
+        "claude --allow-dangerously-skip-permissions"
+    };
+
+    let script = format!(
+        "#!/bin/bash\ncd '{}'\n{}",
+        workspace, claude_cmd
+    );
+
+    let tmp_dir = std::env::temp_dir();
+    let tmp_path = tmp_dir.join("journal-open-claude.command");
+    std::fs::write(&tmp_path, &script).map_err(|e| e.to_string())?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&tmp_path, std::fs::Permissions::from_mode(0o755))
+            .map_err(|e| e.to_string())?;
+    }
+
+    std::process::Command::new("open")
+        .arg(&tmp_path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 fn save_main_window_state(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         if let (Ok(size), Ok(pos)) = (window.outer_size(), window.outer_position()) {
@@ -245,6 +279,7 @@ fn main() {
             ai_processor::cancel_queued_item,
             ai_processor::trigger_ai_prompt,
             open_with_system,
+            open_claude_terminal,
             workspace_settings::get_workspace_theme,
             workspace_settings::set_workspace_theme,
             config::get_engine_config,

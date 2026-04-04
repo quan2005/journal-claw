@@ -1125,19 +1125,34 @@ pub async fn transcribe_with_apple_stt(
         None
     };
 
-    // 收集 stdout
+    // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
+    let timeout = compute_stt_timeout(duration_secs);
     let stdout_bytes = if let Some(stdout) = child.stdout.take() {
         let mut reader = BufReader::new(stdout);
         let mut buf = String::new();
         use tokio::io::AsyncReadExt;
-        reader.read_to_string(&mut buf).await.ok();
-        buf
+        match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
+            Ok(Ok(_)) => buf,
+            Ok(Err(_)) => String::new(),
+            Err(_) => {
+                // stdout 读取超时，杀掉子进程
+                let _ = child.kill().await;
+                if let Some(h) = stderr_handle {
+                    let _ = h.await;
+                }
+                let msg = format!(
+                    "Apple STT 转写超时（{}秒），stdout 读取阻塞，已终止进程",
+                    timeout.as_secs()
+                );
+                save_transcript(&app, &file_path, "failed", &msg);
+                return Err(msg);
+            }
+        }
     } else {
         String::new()
     };
 
-    // 超时控制：max(duration_secs * 3, 60) 秒
-    let timeout = compute_stt_timeout(duration_secs);
+    // 等待子进程退出（带超时）
     let wait_result = tokio::time::timeout(timeout, child.wait()).await;
 
     // 清理 stderr reader
@@ -1318,19 +1333,31 @@ pub async fn diarize_with_speakerkit(
         None
     };
 
-    // 收集 stdout
+    // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
+    let timeout = compute_stt_timeout(duration_secs);
     let stdout_bytes = if let Some(stdout) = child.stdout.take() {
         let mut reader = BufReader::new(stdout);
         let mut buf = String::new();
         use tokio::io::AsyncReadExt;
-        reader.read_to_string(&mut buf).await.ok();
-        buf
+        match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
+            Ok(Ok(_)) => buf,
+            Ok(Err(_)) => String::new(),
+            Err(_) => {
+                let _ = child.kill().await;
+                if let Some(h) = stderr_handle {
+                    let _ = h.await;
+                }
+                return Err(format!(
+                    "SpeakerKit diarize 超时（{}秒），已终止进程",
+                    timeout.as_secs()
+                ));
+            }
+        }
     } else {
         String::new()
     };
 
-    // 超时控制：与转写超时逻辑一致
-    let timeout = compute_stt_timeout(duration_secs);
+    // 等待子进程退出（带超时）
     let wait_result = tokio::time::timeout(timeout, child.wait()).await;
 
     // 清理 stderr reader
@@ -1523,21 +1550,46 @@ pub async fn transcribe_with_whisperkit(
         None
     };
 
-    // 收集 stdout（最终 JSON 输出）
+    // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
+    let timeout = std::time::Duration::from_secs(300); // whisperkit 模型加载较慢，给 5 分钟
     let stdout_bytes = if let Some(stdout) = child.stdout.take() {
         let mut reader = BufReader::new(stdout);
         let mut buf = String::new();
         use tokio::io::AsyncReadExt;
-        reader.read_to_string(&mut buf).await.ok();
-        buf
+        match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
+            Ok(Ok(_)) => buf,
+            Ok(Err(_)) => String::new(),
+            Err(_) => {
+                let _ = child.kill().await;
+                if let Some(h) = stderr_handle {
+                    let _ = h.await;
+                }
+                save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（300秒），已终止进程");
+                return Err("WhisperKit 转录超时（300秒），已终止进程".to_string());
+            }
+        }
     } else {
         String::new()
     };
 
-    let status = child.wait().await.map_err(|e| e.to_string())?;
+    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
     if let Some(h) = stderr_handle {
         let _ = h.await;
     }
+
+    let status = match wait_result {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => {
+            let msg = format!("等待 whisperkit-cli 进程失败: {}", e);
+            save_transcript(&app, &file_path, "failed", &msg);
+            return Err(msg);
+        }
+        Err(_) => {
+            let _ = child.kill().await;
+            save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（300秒），已终止进程");
+            return Err("WhisperKit 转录超时（300秒），已终止进程".to_string());
+        }
+    };
 
     if !status.success() {
         save_transcript(&app, &file_path, "failed", "whisperkit 转录失败");

@@ -40,49 +40,94 @@ fn open_with_system(path: String) -> Result<(), String> {
 fn open_claude_terminal(app: tauri::AppHandle, continue_session: bool) -> Result<(), String> {
     let cfg = config::load_config(&app).map_err(|e| e.to_string())?;
     let workspace = &cfg.workspace_path;
-    let pid_file = std::env::temp_dir().join("journal-claude-terminal.pid");
+    let tmp = std::env::temp_dir();
 
-    // Check if a previous instance is still alive
-    if let Ok(pid_str) = std::fs::read_to_string(&pid_file) {
-        if let Ok(pid) = pid_str.trim().parse::<i32>() {
-            // Signal 0 doesn't kill, just checks if process exists
-            let alive = unsafe { libc::kill(pid, 0) == 0 };
-            if alive {
-                // Find parent process (the terminal app) and activate it
-                let ppid_output = std::process::Command::new("ps")
-                    .args(["-o", "ppid=", "-p", &pid.to_string()])
-                    .output()
-                    .map_err(|e| e.to_string())?;
-                let ppid_str = String::from_utf8_lossy(&ppid_output.stdout).trim().to_string();
-                if let Ok(ppid) = ppid_str.parse::<i32>() {
-                    let _ = std::process::Command::new("osascript")
-                        .args([
-                            "-e",
-                            &format!(
-                                "tell application \"System Events\" to set frontmost of first process whose unix id is {} to true",
-                                ppid
-                            ),
-                        ])
-                        .spawn();
-                }
-                return Ok(());
+    // Two independent terminals: interactive (idle) and processing (resume)
+    let interactive_pid = tmp.join("journal-claude-terminal.pid");
+    let interactive_app = tmp.join("journal-claude-terminal.app");
+    let processing_pid = tmp.join("journal-claude-processing.pid");
+    let processing_app = tmp.join("journal-claude-processing.app");
+    let session_file = tmp.join("journal-claude-session-id");
+
+    let activate = |app_file: &std::path::PathBuf| -> bool {
+        if let Ok(app_name) = std::fs::read_to_string(app_file) {
+            let app = app_name.trim().to_string();
+            if !app.is_empty() {
+                let _ = std::process::Command::new("osascript")
+                    .args(["-e", &format!("tell application \"{}\" to activate", app)])
+                    .spawn();
+                return true;
             }
         }
-    }
-
-    // No running instance — open new terminal
-    let claude_cmd = if continue_session {
-        "claude --continue --allow-dangerously-skip-permissions"
-    } else {
-        "claude --allow-dangerously-skip-permissions"
+        false
     };
 
+    let is_alive = |pid_file: &std::path::PathBuf| -> bool {
+        if let Ok(pid_str) = std::fs::read_to_string(pid_file) {
+            if let Ok(pid) = pid_str.trim().parse::<i32>() {
+                return unsafe { libc::kill(pid, 0) == 0 };
+            }
+        }
+        false
+    };
+
+    if !continue_session {
+        // Idle: activate existing interactive terminal, or create new
+        if is_alive(&interactive_pid) {
+            activate(&interactive_app);
+            return Ok(());
+        }
+        spawn_terminal(
+            workspace,
+            "claude --allow-dangerously-skip-permissions",
+            &interactive_pid,
+            &interactive_app,
+        )
+    } else {
+        // Processing: activate existing processing terminal, or create new with --resume
+        if is_alive(&processing_pid) {
+            activate(&processing_app);
+            return Ok(());
+        }
+        let session_id = std::fs::read_to_string(&session_file)
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+        let claude_cmd = if session_id.is_empty() {
+            "claude --continue --allow-dangerously-skip-permissions".to_string()
+        } else {
+            format!(
+                "claude --resume {} --allow-dangerously-skip-permissions",
+                session_id
+            )
+        };
+        spawn_terminal(workspace, &claude_cmd, &processing_pid, &processing_app)
+    }
+}
+
+fn spawn_terminal(
+    workspace: &str,
+    claude_cmd: &str,
+    pid_file: &std::path::PathBuf,
+    app_file: &std::path::PathBuf,
+) -> Result<(), String> {
+    let detect_terminal = format!(
+        "_pid=$$; while true; do _ppid=$(ps -o ppid= -p $_pid 2>/dev/null | tr -d ' '); \
+        [ -z \"$_ppid\" ] || [ \"$_ppid\" = \"0\" ] || [ \"$_ppid\" = \"1\" ] && break; \
+        _comm=$(ps -o comm= -p $_ppid 2>/dev/null); \
+        case \"$_comm\" in \
+        *Terminal*|*iTerm*|*Warp*|*Alacritty*|*kitty*|*WezTerm*|*Hyper*|*Ghostty*) \
+        echo \"$_comm\" | awk '{{print $1}}' > '{}'; break;; esac; _pid=$_ppid; done",
+        app_file.display(),
+    );
     let script = format!(
-        "#!/bin/bash\necho $$ > '{}'\ncd '{}'\n{}\nrm -f '{}'",
+        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\n{}\nrm -f '{}' '{}'",
         pid_file.display(),
+        detect_terminal,
         workspace,
         claude_cmd,
         pid_file.display(),
+        app_file.display(),
     );
 
     let tmp_path = std::env::temp_dir().join("journal-open-claude.command");

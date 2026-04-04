@@ -11,6 +11,7 @@
     "core:webview:allow-set-webview-zoom",
     "clipboard:allow-read-text",
     "clipboard:allow-read-files",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "dialog:allow-ask"
   ]
 }

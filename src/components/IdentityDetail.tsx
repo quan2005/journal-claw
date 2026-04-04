@@ -4,7 +4,8 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { Check, ChevronUp, ChevronDown, X } from 'lucide-react'
 import type { IdentityEntry } from '../types'
-import { getIdentityContent, saveIdentityContent, getWorkspacePrompt, setWorkspacePrompt } from '../lib/tauri'
+import { getIdentityContent, saveIdentityContent, getWorkspacePrompt, setWorkspacePrompt, resetWorkspacePrompt } from '../lib/tauri'
+import { ask } from '@tauri-apps/plugin-dialog'
 import { pickDisplayTags } from '../lib/tags'
 import { Spinner } from './Spinner'
 import { SOUL_PATH } from './IdentityList'
@@ -438,9 +439,9 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
     })
   }
 
-  // Cmd+E to enter edit mode (read mode) — disabled for soul
+  // Cmd+E to enter edit mode (read mode)
   useEffect(() => {
-    if (editing || !identity || isSoul) return
+    if (editing || !identity) return
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
         e.preventDefault()
@@ -667,7 +668,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
           {identity.name}
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {!isSoul && editing ? (
+          {editing ? (
             <>
               <button
                 onClick={() => handleBtnClick(() => {
@@ -703,22 +704,47 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 {saveStatus === 'saving' ? '保存中…' : '保存'}
               </button>
             </>
-          ) : !isSoul ? (
-            <button
-              onClick={() => handleBtnClick(enterEdit)}
-              disabled={btnCooldown}
-              style={{ ...btnStyle, opacity: btnCooldown ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 5 }}
-              onMouseDown={e => {
-                if (!btnCooldown) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-              }}
-              onMouseUp={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
-              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
-            >
-              <span style={{ fontSize: 9, opacity: 0.5 }}>⌘E</span>
-              编辑
-            </button>
-          ) : null}
+          ) : (
+            <>
+              {isSoul && (
+                <button
+                  onClick={() => {
+                    ask('确认恢复为默认助理设定？当前的自定义内容将被覆盖。', { title: '还原助理', kind: 'warning', okLabel: '还原', cancelLabel: '取消' }).then(yes => {
+                      if (!yes) return
+                      handleBtnClick(async () => {
+                        const defaultContent = await resetWorkspacePrompt()
+                        setContent(defaultContent)
+                      })
+                    })
+                  }}
+                  disabled={btnCooldown}
+                  style={{ ...btnStyle, opacity: btnCooldown ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 4 }}
+                  onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                  还原
+                </button>
+              )}
+              <button
+                onClick={() => handleBtnClick(enterEdit)}
+                disabled={btnCooldown}
+                style={{ ...btnStyle, opacity: btnCooldown ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 5 }}
+                onMouseDown={e => {
+                  if (!btnCooldown) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+                }}
+                onMouseUp={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
+              >
+                <span style={{ fontSize: 9, opacity: 0.5 }}>⌘E</span>
+                编辑
+              </button>
+            </>
+          )}
         </div>
       </div>
 

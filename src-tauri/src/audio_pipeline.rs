@@ -41,15 +41,12 @@ async fn run_audio_pipeline(
 ) -> Result<PathBuf, String> {
     let duration_secs = crate::recordings::read_duration_pub(&audio_path);
 
-    // duration=0 但文件有数据，说明格式不兼容（如 Opus in m4a），直接报错
-    if duration_secs <= 0.0 {
-        let file_size = std::fs::metadata(&audio_path).map(|m| m.len()).unwrap_or(0);
-        if file_size > 10_000 {
-            let msg = "不支持的音频格式（可能是 Opus 编码），请转换为 AAC 格式后重试".to_string();
-            eprintln!("[audio_pipeline] duration=0, file_size={}, rejecting: {}", file_size, msg);
-            emit_failed(&app, &audio_path, msg.clone());
-            return Err(msg);
-        }
+    // 检测不兼容的音频编码（如 Opus in m4a）：macOS 原生 API 无法解码
+    if crate::recordings::is_unsupported_codec(&audio_path) {
+        let msg = "不支持的音频编码（Opus），请转换为 AAC 格式后重试".to_string();
+        eprintln!("[audio_pipeline] unsupported codec (Opus), rejecting");
+        emit_failed(&app, &audio_path, msg.clone());
+        return Err(msg);
     }
 
     let material_path = crate::transcription::transcribe_audio_to_ai_markdown(

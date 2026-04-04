@@ -903,6 +903,14 @@ pub async fn transcribe_audio_to_ai_markdown(
     file_path: PathBuf,
     duration_secs: f64,
 ) -> Result<PathBuf, String> {
+    // 前置检查：不兼容的音频编码（如 Opus in m4a）
+    if crate::recordings::is_unsupported_codec(&file_path) {
+        let msg = "不支持的音频编码（Opus），请转换为 AAC 格式后重试".to_string();
+        eprintln!("[transcription] Opus codec detected, rejecting");
+        save_transcript(&app, &file_path, "failed", &msg);
+        return Err(msg);
+    }
+
     let cfg = config::load_config(&app).inspect_err(|error| {
         save_transcript(&app, &file_path, "failed", error);
     })?;

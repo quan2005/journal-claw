@@ -19,6 +19,28 @@ pub(crate) fn read_duration_pub(path: &PathBuf) -> f64 {
         .unwrap_or(0.0)
 }
 
+/// Check if the audio file uses an unsupported codec (e.g. Opus in m4a).
+/// macOS native APIs (SFSpeechRecognizer, AVAudioPlayer) cannot decode Opus,
+/// so we must reject these files before attempting transcription.
+///
+/// Detection: searches for the "Opus" fourcc in the stsd atom's codec entry.
+/// This is reliable because "Opus" (capital-O) is an uncommon byte sequence
+/// outside of the codec declaration.
+pub(crate) fn is_unsupported_codec(path: &PathBuf) -> bool {
+    // Only check m4a/mp4 files
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    if !matches!(ext.as_str(), "m4a" | "mp4") {
+        return false;
+    }
+
+    // Read up to 1MB — the stsd atom is always near the beginning
+    let Ok(data) = std::fs::read(path) else { return false };
+    let search_region = &data[..data.len().min(1_048_576)];
+
+    // Opus codec fourcc in stsd atom
+    search_region.windows(4).any(|w| w == b"Opus")
+}
+
 /// Parse display_name and year_month from a filename like "录音 2026-03-12 22:41.m4a".
 pub(crate) fn parse_filename_pub(filename: &str) -> (String, String) {
     let display_name = filename.trim_end_matches(".m4a").to_string();

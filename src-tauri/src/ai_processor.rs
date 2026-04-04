@@ -864,33 +864,27 @@ pub async fn trigger_ai_processing(
 #[tauri::command]
 pub fn get_workspace_prompt(app: AppHandle) -> Result<String, String> {
     let cfg = config::load_config(&app)?;
-    let path = std::path::PathBuf::from(&cfg.workspace_path)
-        .join(".claude")
-        .join("CLAUDE.md");
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
     if path.exists() {
         std::fs::read_to_string(&path).map_err(|e| e.to_string())
     } else {
-        Ok(WORKSPACE_CLAUDE_MD.to_string())
+        Ok(WORKSPACE_USER_CLAUDE_MD.to_string())
     }
 }
 
 #[tauri::command]
 pub fn set_workspace_prompt(app: AppHandle, content: String) -> Result<(), String> {
     let cfg = config::load_config(&app)?;
-    let dot_claude = std::path::PathBuf::from(&cfg.workspace_path).join(".claude");
-    let _ = std::fs::create_dir_all(&dot_claude);
-    let path = dot_claude.join("CLAUDE.md");
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn reset_workspace_prompt(app: AppHandle) -> Result<String, String> {
     let cfg = config::load_config(&app)?;
-    let dot_claude = std::path::PathBuf::from(&cfg.workspace_path).join(".claude");
-    let _ = std::fs::create_dir_all(&dot_claude);
-    let path = dot_claude.join("CLAUDE.md");
-    std::fs::write(&path, WORKSPACE_CLAUDE_MD).map_err(|e| e.to_string())?;
-    Ok(WORKSPACE_CLAUDE_MD.to_string())
+    let path = std::path::PathBuf::from(&cfg.workspace_path).join("CLAUDE.md");
+    std::fs::write(&path, WORKSPACE_USER_CLAUDE_MD).map_err(|e| e.to_string())?;
+    Ok(WORKSPACE_USER_CLAUDE_MD.to_string())
 }
 
 #[tauri::command]

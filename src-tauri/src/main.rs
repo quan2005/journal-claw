@@ -40,7 +40,37 @@ fn open_with_system(path: String) -> Result<(), String> {
 fn open_claude_terminal(app: tauri::AppHandle, continue_session: bool) -> Result<(), String> {
     let cfg = config::load_config(&app).map_err(|e| e.to_string())?;
     let workspace = &cfg.workspace_path;
+    let pid_file = std::env::temp_dir().join("journal-claude-terminal.pid");
 
+    // Check if a previous instance is still alive
+    if let Ok(pid_str) = std::fs::read_to_string(&pid_file) {
+        if let Ok(pid) = pid_str.trim().parse::<i32>() {
+            // Signal 0 doesn't kill, just checks if process exists
+            let alive = unsafe { libc::kill(pid, 0) == 0 };
+            if alive {
+                // Find parent process (the terminal app) and activate it
+                let ppid_output = std::process::Command::new("ps")
+                    .args(["-o", "ppid=", "-p", &pid.to_string()])
+                    .output()
+                    .map_err(|e| e.to_string())?;
+                let ppid_str = String::from_utf8_lossy(&ppid_output.stdout).trim().to_string();
+                if let Ok(ppid) = ppid_str.parse::<i32>() {
+                    let _ = std::process::Command::new("osascript")
+                        .args([
+                            "-e",
+                            &format!(
+                                "tell application \"System Events\" to set frontmost of first process whose unix id is {} to true",
+                                ppid
+                            ),
+                        ])
+                        .spawn();
+                }
+                return Ok(());
+            }
+        }
+    }
+
+    // No running instance — open new terminal
     let claude_cmd = if continue_session {
         "claude --continue --allow-dangerously-skip-permissions"
     } else {
@@ -48,12 +78,14 @@ fn open_claude_terminal(app: tauri::AppHandle, continue_session: bool) -> Result
     };
 
     let script = format!(
-        "#!/bin/bash\ncd '{}'\n{}",
-        workspace, claude_cmd
+        "#!/bin/bash\necho $$ > '{}'\ncd '{}'\n{}\nrm -f '{}'",
+        pid_file.display(),
+        workspace,
+        claude_cmd,
+        pid_file.display(),
     );
 
-    let tmp_dir = std::env::temp_dir();
-    let tmp_path = tmp_dir.join("journal-open-claude.command");
+    let tmp_path = std::env::temp_dir().join("journal-open-claude.command");
     std::fs::write(&tmp_path, &script).map_err(|e| e.to_string())?;
 
     #[cfg(unix)]

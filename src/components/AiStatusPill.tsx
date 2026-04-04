@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { openClaudeTerminal } from '../lib/tauri'
 
 interface AiStatusPillProps {
   isProcessing: boolean
   processingFilename?: string
-  onLogClick?: () => void
 }
 
-export function AiStatusPill({ isProcessing, processingFilename, onLogClick }: AiStatusPillProps) {
+export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillProps) {
   // Track visual state separately to implement 2s linger after processing ends
   const [showActive, setShowActive] = useState(false)
   const [lingerName, setLingerName] = useState<string | undefined>(undefined)
@@ -34,7 +34,7 @@ export function AiStatusPill({ isProcessing, processingFilename, onLogClick }: A
 
   return (
     <div
-      onClick={active && onLogClick ? onLogClick : undefined}
+      onClick={() => openClaudeTerminal(isProcessing)}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -49,7 +49,7 @@ export function AiStatusPill({ isProcessing, processingFilename, onLogClick }: A
         userSelect: 'none',
         transition: 'background 0.3s, color 0.3s, border-color 0.3s',
         WebkitAppRegion: 'no-drag',
-        cursor: active && onLogClick ? 'pointer' : 'default',
+        cursor: 'pointer',
       } as React.CSSProperties}
     >
       <div

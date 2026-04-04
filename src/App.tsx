@@ -380,7 +380,6 @@ export default function App() {
 
   const processingItem = queueItems.find(i => i.status === 'processing')
   const processingFilename = processingItem?.filename
-  const processingPath = processingItem?.path
 
   // Inject a virtual 'recording' item at the front of the queue when recording
   const visibleQueueItems = status === 'recording'
@@ -417,7 +416,6 @@ export default function App() {
         onThemeChange={setTheme}
         isProcessing={isProcessing}
         processingFilename={processingFilename}
-        onLogClick={processingPath ? () => setActiveLogPath(processingPath) : undefined}
         view={view}
         todoOpen={todoOpen}
         todoCount={todos.filter(t => !t.done).length}

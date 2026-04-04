@@ -86,6 +86,9 @@ const SCRIPT_RECENT_SUMMARIES: &str =
 const SCRIPT_IDENTITY_CREATE: &str =
     include_str!("../resources/workspace-template/.claude/scripts/identity-create");
 
+const WORKSPACE_USER_CLAUDE_MD: &str =
+    include_str!("../resources/workspace-template/CLAUDE.md");
+
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
@@ -116,6 +119,12 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
                 let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755));
             }
         }
+    }
+
+    // Ensure workspace/CLAUDE.md exists (only create if missing — never overwrite user edits)
+    let user_claude_md = std::path::PathBuf::from(workspace_path).join("CLAUDE.md");
+    if !user_claude_md.exists() {
+        let _ = std::fs::write(&user_claude_md, WORKSPACE_USER_CLAUDE_MD);
     }
 }
 

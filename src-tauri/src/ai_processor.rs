@@ -652,6 +652,24 @@ pub async fn process_material(
         api_key,
         base_url,
     );
+    // Generate session ID for resume support
+    let t = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    let nanos = t.as_nanos();
+    let session_id = format!(
+        "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
+        (nanos & 0xFFFFFFFF) as u32,
+        ((nanos >> 32) & 0xFFFF) as u16,
+        ((nanos >> 48) & 0x0FFF) as u16,
+        ((nanos >> 60) & 0xFFFF) as u16,
+        ((nanos >> 76) & 0xFFFFFFFFFFFF) as u64 & 0xFFFFFFFFFFFF,
+    );
+    let session_file = std::env::temp_dir().join("journal-claude-session-id");
+    let _ = std::fs::write(&session_file, &session_id);
+    let mut args = args;
+    args.push("--session-id".to_string());
+    args.push(session_id);
     let command_display = build_command_display(&cli, &args);
 
     // Emit startup log

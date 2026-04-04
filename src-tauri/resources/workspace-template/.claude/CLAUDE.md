@@ -100,16 +100,3 @@ summary: 核心结论。背景与约束。
 - DOCX / PPTX → `pandoc <file> -t plain`
 
 工具缺失时自动安装：`brew install poppler` 或 `brew install pandoc`
-
-## 待办事项提取
-
-如果内容中包含待办事项、行动计划或后续步骤，将它们以 GFM task list 格式追加到 workspace 根目录的 `todos.md` 文件中。
-
-格式示例：
-- `- [ ] 待办内容`
-- `- [ ] 待办内容 <!-- due:2026-04-10 -->`（有截止日期时）
-
-规则：
-- 先读取现有 `todos.md`，不要重复已存在的条目
-- 新条目追加到未完成项末尾、已完成项之前
-- 如果 `todos.md` 不存在，创建文件并写入完整的 YAML frontmatter 头（参考已有 todos.md 格式）+ `# 待办` 标题

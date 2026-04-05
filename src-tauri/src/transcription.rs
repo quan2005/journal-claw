@@ -1047,7 +1047,7 @@ pub fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
     }
 
     // 4. 系统 PATH
-    if let Ok(output) = std::process::Command::new("which")
+    if let Ok(output) = std::process::Command::new("/usr/bin/which")
         .arg(bundle_name)
         .env("PATH", config::augmented_path())
         .output()

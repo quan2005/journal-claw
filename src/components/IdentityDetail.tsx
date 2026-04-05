@@ -9,6 +9,11 @@ import { ask } from '@tauri-apps/plugin-dialog'
 import { pickDisplayTags } from '../lib/tags'
 import { Spinner } from './Spinner'
 import { SOUL_PATH } from './IdentityList'
+import { createTranslator, detectLang } from '../lib/i18n'
+import { useTranslation } from '../contexts/I18nContext'
+
+// Module-level translator for sub-components that can't use hooks
+const getT = () => createTranslator(detectLang())
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function stripFrontmatter(md: string): string {
@@ -101,7 +106,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
           transition: 'color 0.15s, background 0.15s',
           userSelect: 'none',
         }}>
-          {copied ? <><Check size={12} strokeWidth={2} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />已复制</> : '复制'}
+          {copied ? <><Check size={12} strokeWidth={2} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{getT()('copied')}</> : getT()('copy')}
         </button>
       )}
       <pre style={{
@@ -236,26 +241,26 @@ function SearchBar({ text, showReplace, textareaRef, onReplace, onClose, onToggl
           value={query}
           onChange={e => { setQuery(e.target.value); setMatchIndex(0) }}
           onKeyDown={handleKeyDown}
-          placeholder="搜索…"
+          placeholder={getT()('search')}
           style={inputStyle}
         />
         <span style={{ fontSize: 10, color: 'var(--item-meta)', whiteSpace: 'nowrap', minWidth: 36, textAlign: 'center' }}>
           {query ? `${matches.length ? matchIndex + 1 : 0}/${matches.length}` : ''}
         </span>
-        <button onClick={goPrev} style={smallBtn} title="上一个 (Shift+Enter)">
+        <button onClick={goPrev} style={smallBtn} title={getT()('findPrev')}>
           <ChevronUp size={14} />
         </button>
-        <button onClick={goNext} style={smallBtn} title="下一个 (Enter)">
+        <button onClick={goNext} style={smallBtn} title={getT()('findNext')}>
           <ChevronDown size={14} />
         </button>
         {!showReplace && (
-          <button onClick={onToggleReplace} style={{ ...smallBtn, fontSize: 11 }} title="替换">
+          <button onClick={onToggleReplace} style={{ ...smallBtn, fontSize: 11 }} title={getT()('replaceBtn')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>
             </svg>
           </button>
         )}
-        <button onClick={onClose} style={smallBtn} title="关闭 (Esc)">
+        <button onClick={onClose} style={smallBtn} title={getT()('closeFindBar')}>
           <X size={14} />
         </button>
       </div>
@@ -266,11 +271,11 @@ function SearchBar({ text, showReplace, textareaRef, onReplace, onClose, onToggl
             value={replaceVal}
             onChange={e => setReplaceVal(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="替换为…"
+            placeholder={getT()('replacePlaceholder')}
             style={inputStyle}
           />
-          <button onClick={replaceCurrent} style={actionBtn}>替换</button>
-          <button onClick={replaceAll} style={actionBtn}>全部</button>
+          <button onClick={replaceCurrent} style={actionBtn}>{getT()('replaceBtn')}</button>
+          <button onClick={replaceAll} style={actionBtn}>{getT()('replaceAll')}</button>
         </div>
       )}
     </div>
@@ -364,6 +369,7 @@ interface IdentityDetailProps {
 }
 
 export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetailProps) {
+  const { t } = useTranslation()
   const [content, setContent] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
@@ -701,7 +707,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 onMouseUp={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
               >
                 <span style={{ fontSize: 9, opacity: 0.5 }}>⌘S</span>
-                {saveStatus === 'saving' ? '保存中…' : '保存'}
+                {saveStatus === 'saving' ? t('saving') : t('save')}
               </button>
             </>
           ) : (
@@ -709,7 +715,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
               {isSoul && (
                 <button
                   onClick={() => {
-                    ask('确认恢复为默认助理设定？当前的自定义内容将被覆盖。', { title: '还原助理', kind: 'warning', okLabel: '还原', cancelLabel: '取消' }).then(yes => {
+                    ask(t('confirmResetAssistant'), { title: t('resetAssistantTitle'), kind: 'warning', okLabel: t('reset'), cancelLabel: t('cancel') }).then(yes => {
                       if (!yes) return
                       handleBtnClick(async () => {
                         const defaultContent = await resetWorkspacePrompt()
@@ -726,7 +732,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                     <path d="M3 3v5h5"/>
                   </svg>
-                  还原
+                  {t('reset')}
                 </button>
               )}
               <button
@@ -741,7 +747,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
               >
                 <span style={{ fontSize: 9, opacity: 0.5 }}>⌘E</span>
-                编辑
+                {t('edit')}
               </button>
             </>
           )}

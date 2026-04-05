@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { JournalEntry } from '../types'
 import { getJournalEntryContent, revealInFinder, openFile } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface JournalContextMenuProps {
   x: number
@@ -15,6 +16,7 @@ type MenuItem =
   | { type: 'divider' }
 
 export function JournalContextMenu({ x, y, entry, onDelete, onClose }: JournalContextMenuProps) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
 
   // Close on outside click
@@ -69,14 +71,14 @@ export function JournalContextMenu({ x, y, entry, onDelete, onClose }: JournalCo
   }
 
   const items: MenuItem[] = [
-    { type: 'action', label: '复制标题', icon: 'title', onClick: copyTitle },
-    { type: 'action', label: '复制内容', icon: 'content', onClick: copyContent },
-    { type: 'action', label: '复制文件路径', icon: 'path', onClick: copyPath },
+    { type: 'action', label: t('copyTitle'), icon: 'title', onClick: copyTitle },
+    { type: 'action', label: t('copyContent'), icon: 'content', onClick: copyContent },
+    { type: 'action', label: t('copyFilePath'), icon: 'path', onClick: copyPath },
     { type: 'divider' },
-    { type: 'action', label: '用默认编辑器打开', icon: 'edit', onClick: handleOpenWithEditor },
-    { type: 'action', label: '在 Finder 中显示', icon: 'finder', onClick: handleShowInFinder },
+    { type: 'action', label: t('openInEditor'), icon: 'edit', onClick: handleOpenWithEditor },
+    { type: 'action', label: t('showInFinder'), icon: 'finder', onClick: handleShowInFinder },
     { type: 'divider' },
-    { type: 'action', label: '删除', icon: 'delete', danger: true, onClick: () => { onDelete(); onClose() } },
+    { type: 'action', label: t('delete'), icon: 'delete', danger: true, onClick: () => { onDelete(); onClose() } },
   ]
 
   const menuStyle: React.CSSProperties = {

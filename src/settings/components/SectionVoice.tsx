@@ -4,6 +4,9 @@ import { AlertTriangle, Check, Cloud, Cpu, Download, FolderOpen, Mic, RefreshCw 
 import { getAsrConfig, setAsrConfig, getWhisperkitModelsDir, checkWhisperkitModelDownloaded, downloadWhisperkitModel, checkWhisperkitCliInstalled, installWhisperkitCli, getAppleSttVariant, checkSpeakerEmbedder, type AsrConfig } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
+import { useTranslation } from '../../contexts/I18nContext'
+import { createTranslator, detectLang } from '../../lib/i18n'
+const getT = () => createTranslator(detectLang())
 
 type AsrEngineId = 'apple' | 'dashscope' | 'whisperkit'
 type WhisperModel = 'base' | 'small' | 'large-v3-turbo'
@@ -28,16 +31,18 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
-const WHISPER_MODELS: {
+type WhisperModelMeta = {
   id: WhisperModel
   label: string
   size: string
-  hint: string
+  hintKey: 'baseModelHint' | 'smallModelHint' | 'largeModelHint'
   bundled?: boolean
-}[] = [
-  { id: 'base',           label: 'Base',           size: '~142MB', hint: '默认模型，中文效果稳定，适合日常会议记录' },
-  { id: 'small',          label: 'Small',          size: '~244MB', hint: '中文效果更好，适合会议记录' },
-  { id: 'large-v3-turbo', label: 'Large v3 Turbo', size: '~809MB', hint: '最佳中文效果，首次下载较慢' },
+}
+
+const WHISPER_MODELS: WhisperModelMeta[] = [
+  { id: 'base',           label: 'Base',           size: '~142MB', hintKey: 'baseModelHint' },
+  { id: 'small',          label: 'Small',          size: '~244MB', hintKey: 'smallModelHint' },
+  { id: 'large-v3-turbo', label: 'Large v3 Turbo', size: '~809MB', hintKey: 'largeModelHint' },
 ]
 
 const DOWNLOAD_HISTORY_LIMIT = 6
@@ -65,20 +70,21 @@ function resolvePanelStatus(message?: string): WhisperDownloadPanelStatus {
   if (!message) {
     return 'downloading'
   }
-  return /启动|准备|检查/.test(message) ? 'starting' : 'downloading'
+  return /启动|准备|检查|starting|preparing|checking/i.test(message) ? 'starting' : 'downloading'
 }
 
 function panelStatusCopy(status: WhisperDownloadPanelStatus) {
+  const t = getT()
   if (status === 'starting') {
-    return { label: '下载中', color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
+    return { label: t('downloading'), color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
   }
   if (status === 'downloading') {
-    return { label: '下载中', color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
+    return { label: t('downloading'), color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
   }
   if (status === 'success') {
-    return { label: '已下载', color: '#27c93f', background: 'rgba(39,201,63,0.12)' }
+    return { label: t('downloaded'), color: '#27c93f', background: 'rgba(39,201,63,0.12)' }
   }
-  return { label: '下载失败', color: '#ff9f0a', background: 'rgba(255,159,10,0.12)' }
+  return { label: t('downloadFailed'), color: '#ff9f0a', background: 'rgba(255,159,10,0.12)' }
 }
 
 function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
@@ -90,6 +96,7 @@ function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
 }
 
 export default function SectionVoice() {
+  const { t } = useTranslation()
   const defaultConfig: AsrConfig = {
     asr_engine: 'whisperkit',
     dashscope_api_key: '',
@@ -137,7 +144,7 @@ export default function SectionVoice() {
       'whisperkit-download-progress',
       ({ payload }) => {
         if (payload.status === 'downloading') {
-          const latestMessage = payload.message?.trim() || `${getModelDisplayLabel(payload.model)} 模型下载中…`
+          const latestMessage = payload.message?.trim() || t('downloadingModel', { model: getModelDisplayLabel(payload.model) })
           setDownloadSession(prev => {
             const history = appendHistory(
               prev?.model === payload.model ? prev.history : [],
@@ -153,7 +160,7 @@ export default function SectionVoice() {
         } else if (payload.status === 'done') {
           refreshDownloadedModels()
           setDownloadSession(prev => {
-            const successMessage = `${getModelDisplayLabel(payload.model)} 模型已下载，可离线使用`
+            const successMessage = t('downloadSuccess', { model: getModelDisplayLabel(payload.model) })
             const history = appendHistory(
               prev?.model === payload.model ? prev.history : [],
               successMessage,
@@ -166,7 +173,7 @@ export default function SectionVoice() {
             }
           })
         } else if (payload.status === 'error') {
-          const errorMessage = payload.message?.trim() || '下载失败，请检查网络连接后重试'
+          const errorMessage = payload.message?.trim() || t('downloadErrorFallback')
           setDownloadSession(prev => {
             const history = appendHistory(
               prev?.model === payload.model ? prev.history : [],
@@ -235,7 +242,7 @@ export default function SectionVoice() {
       // cliInstalling stays true until engine-install-log done event arrives.
     } catch (e) {
       console.error('[install-whisperkit-cli]', e)
-      setCliInstallLog(prev => [...prev, `错误: ${String(e)}`])
+      setCliInstallLog(prev => [...prev, t('installError', { err: String(e) })])
       setCliInstalling(false)
     }
   }
@@ -248,7 +255,7 @@ export default function SectionVoice() {
       return
     }
 
-    const startMessage = `正在下载 ${getModelDisplayLabel(model)} 模型…`
+    const startMessage = t('downloadingModel', { model: getModelDisplayLabel(model) })
     setDownloadSession({
       model,
       status: 'downloading',
@@ -257,7 +264,7 @@ export default function SectionVoice() {
     })
 
     downloadWhisperkitModel(model).catch((error: unknown) => {
-      const fallback = '下载失败，请检查网络连接后重试'
+      const fallback = t('downloadErrorFallback')
       const message = error instanceof Error
         ? error.message
         : typeof error === 'string'
@@ -291,30 +298,30 @@ export default function SectionVoice() {
   const panelCopy = downloadSession ? panelStatusCopy(downloadSession.status) : null
   const hasUnsavedChanges = !isAsrConfigEqual(cfg, persistedCfg)
   const saveHint = saveStatus === 'saving'
-    ? '保存中…'
+    ? t('savingDots')
     : saveStatus === 'saved'
-      ? '已保存'
+      ? t('saved')
       : saveStatus === 'error'
-        ? '保存失败，请重试'
+        ? t('saveFailedMsg')
         : hasUnsavedChanges
-          ? '有未保存修改'
+          ? t('unsavedChanges')
           : ''
 
   const appleReady = true // Apple STT is always ready on macOS ≥ 13
   const appleVendor = appleSttVariant === 'speech_analyzer'
-    ? '系统内置 · SpeechAnalyzer'
-    : '系统内置 · 零配置'
+    ? t('appleVendorSpeechAnalyzer')
+    : t('appleVendorDefault')
 
   const ENGINES: { id: AsrEngineId; label: string; vendor: string; icon: typeof Cloud; ready: boolean }[] = [
-    { id: 'apple',      label: 'Apple 语音识别', vendor: appleVendor,         icon: Mic,   ready: appleReady      },
-    { id: 'whisperkit', label: 'WhisperKit',     vendor: 'Argmax · 本地',     icon: Cpu,   ready: whisperkitReady },
-    { id: 'dashscope',  label: 'DashScope',      vendor: '阿里云 · 云端',     icon: Cloud, ready: dashscopeReady  },
+    { id: 'apple',      label: t('appleEngineLabel'), vendor: appleVendor,           icon: Mic,   ready: appleReady      },
+    { id: 'whisperkit', label: 'WhisperKit',           vendor: t('whisperkitVendor'), icon: Cpu,   ready: whisperkitReady },
+    { id: 'dashscope',  label: 'DashScope',            vendor: t('dashscopeVendor'),  icon: Cloud, ready: dashscopeReady  },
   ]
 
   return (
     <>
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>语音转写</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16, fontWeight: 500 }}>{t('voiceSection')}</div>
 
       {loading ? (
         <>
@@ -383,10 +390,10 @@ export default function SectionVoice() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <AlertTriangle size={13} strokeWidth={1.8} color="#ff9f0a" />
-                <span style={{ fontWeight: 600, color: '#ff9f0a' }}>声纹识别不可用</span>
+                <span style={{ fontWeight: 600, color: '#ff9f0a' }}>{t('speakerEmbedderUnavailable')}</span>
               </div>
               <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
-                未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。
+                {t('speakerEmbedderHint')}
               </div>
             </div>
           )}
@@ -406,7 +413,7 @@ export default function SectionVoice() {
                   lineHeight: 1.6,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: '#ff9f0a' }}>未检测到 whisperkit-cli</div>
+                    <div style={{ fontWeight: 600, color: '#ff9f0a' }}>{t('whisperNotFound')}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         onClick={() => checkWhisperkitCliInstalled().then(setCliInstalled)}
@@ -421,7 +428,7 @@ export default function SectionVoice() {
                         }}
                       >
                         <RefreshCw size={10} strokeWidth={1.8} />
-                        重新检测
+                        {t('reDetect')}
                       </button>
                       <button
                         onClick={handleInstallCli}
@@ -443,12 +450,12 @@ export default function SectionVoice() {
                               border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
                               borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                             }} />
-                            安装中…
+                            {t('installingDots')}
                           </>
                         ) : (
                           <>
                             <Download size={11} strokeWidth={1.8} />
-                            一键安装
+                            {t('installBtn')}
                           </>
                         )}
                       </button>
@@ -456,7 +463,7 @@ export default function SectionVoice() {
                   </div>
                   {!cliInstalling && cliInstallLog.length === 0 && (
                     <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
-                      需要已安装 <span style={{ fontFamily: 'ui-monospace, monospace' }}>Homebrew</span>。点击一键安装，或手动运行：
+                      {t('requiresHomebrew')}
                       <code style={{
                         display: 'block', marginTop: 5, padding: '4px 8px',
                         background: 'rgba(0,0,0,0.2)', borderRadius: 4,
@@ -482,7 +489,7 @@ export default function SectionVoice() {
                   )}
                 </div>
               )}
-              <label style={labelStyle}>转写模型</label>
+              <label style={labelStyle}>{t('transcriptionModel')}</label>
               {/* 平铺式模型选择卡片 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {WHISPER_MODELS.map(m => {
@@ -522,14 +529,14 @@ export default function SectionVoice() {
                           {m.label}
                           <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 400, color: 'var(--duration-text)' }}>{m.size}</span>
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 1 }}>{m.hint}</div>
+                        <div style={{ fontSize: 10, color: 'var(--duration-text)', marginTop: 1 }}>{t(m.hintKey)}</div>
                       </div>
 
                       {/* 下载状态 / 按钮 */}
                       <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0 }}>
                         {isDownloaded ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#27c93f', fontSize: 10 }}>
-                            <Check size={12} strokeWidth={2.5} />已下载
+                            <Check size={12} strokeWidth={2.5} />{t('alreadyDownloaded')}
                           </span>
                         ) : isThisDownloading ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--record-btn)', fontSize: 10 }}>
@@ -538,13 +545,13 @@ export default function SectionVoice() {
                               border: '1.5px solid var(--divider)', borderTopColor: 'var(--record-btn)',
                               borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                             }} />
-                            下载中
+                            {t('downloadingBtn')}
                           </span>
                         ) : (
                           <button
                             onClick={() => handleDownload(m.id)}
                             disabled={!canDownload}
-                            title={hasActiveDownload && !isThisDownloading ? `正在下载 ${getModelDisplayLabel(activeDownloadModel as WhisperModel)}，请稍候` : '下载模型'}
+                            title={hasActiveDownload && !isThisDownloading ? t('downloadConflict', { model: getModelDisplayLabel(activeDownloadModel as WhisperModel) }) : t('downloadBtn')}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 5,
                               padding: '3px 9px', borderRadius: 5, fontSize: 10,
@@ -556,7 +563,7 @@ export default function SectionVoice() {
                             }}
                           >
                             <Download size={10} strokeWidth={1.8} />
-                            下载
+                            {t('downloadBtn')}
                           </button>
                         )}
                       </div>
@@ -566,7 +573,7 @@ export default function SectionVoice() {
               </div>
               {isCurrentModelDownloading && (
                 <div style={{ ...hintStyle, color: 'var(--item-meta)', marginTop: 8 }}>
-                  下载已在后台继续，切换模型或滚动页面都不会中断。
+                  {t('downloadInBackground')}
                 </div>
               )}
 
@@ -582,9 +589,9 @@ export default function SectionVoice() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
                       <div>
-                        <div style={{ fontSize: 11, color: 'var(--item-meta)', marginBottom: 4 }}>模型下载任务</div>
+                        <div style={{ fontSize: 11, color: 'var(--item-meta)', marginBottom: 4 }}>{t('modelDownloadTask')}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--item-text)' }}>
-                          {getModelDisplayLabel(downloadSession.model)} 模型
+                          {getModelDisplayLabel(downloadSession.model)}
                         </div>
                       </div>
                       <div style={{
@@ -613,13 +620,13 @@ export default function SectionVoice() {
                         marginBottom: 10,
                       }}
                     >
-                      <div style={{ fontSize: 10, color: 'var(--duration-text)', marginBottom: 4 }}>最新状态</div>
+                      <div style={{ fontSize: 10, color: 'var(--duration-text)', marginBottom: 4 }}>{t('latestStatus')}</div>
                       <div style={{ fontSize: 11, color: 'var(--item-text)', lineHeight: 1.6 }}>
                         {downloadSession.latestMessage}
                       </div>
                     </div>
 
-                    <div style={{ fontSize: 10, color: 'var(--duration-text)', marginBottom: 6 }}>最近日志</div>
+                    <div style={{ fontSize: 10, color: 'var(--duration-text)', marginBottom: 6 }}>{t('recentLogs')}</div>
                     <div style={{
                       display: 'grid',
                       gap: 5,
@@ -666,7 +673,7 @@ export default function SectionVoice() {
                           }}
                         >
                           <RefreshCw size={12} strokeWidth={1.8} />
-                          重新下载
+                          {t('reDownload')}
                         </button>
                       )}
                       <button
@@ -686,18 +693,18 @@ export default function SectionVoice() {
                         }}
                       >
                         <FolderOpen size={12} strokeWidth={1.7} />
-                        打开模型目录
+                        {t('openModelDir')}
                       </button>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--duration-text)', fontSize: 10 }}>
                         {downloadSession.status === 'error' ? (
                           <>
                             <AlertTriangle size={12} strokeWidth={1.7} />
-                            失败后可直接重试，不用重新选模型。
+                            {t('retryHint')}
                           </>
                         ) : (
                           <>
                             <Check size={12} strokeWidth={1.8} color={downloadSession.status === 'success' ? '#27c93f' : 'currentColor'} />
-                            切换模型不会打断当前下载任务。
+                            {t('switchModelHint')}
                           </>
                         )}
                       </div>
@@ -711,7 +718,7 @@ export default function SectionVoice() {
                 marginTop: 12, background: 'var(--detail-case-bg)',
                 border: '1px solid var(--divider)', borderRadius: 8, padding: '10px 12px',
               }}>
-                <div style={{ fontSize: 10, color: 'var(--item-meta)', marginBottom: 6 }}>模型存放目录</div>
+                <div style={{ fontSize: 10, color: 'var(--item-meta)', marginBottom: 6 }}>{t('modelStoreDir')}</div>
                 <div style={{
                   fontFamily: 'ui-monospace, monospace', fontSize: 9,
                   color: 'var(--duration-text)', wordBreak: 'break-all', lineHeight: 1.5,
@@ -729,12 +736,12 @@ export default function SectionVoice() {
                   }}
                 >
                   <FolderOpen size={11} strokeWidth={1.5} />
-                  在 Finder 中打开
+                  {t('openInFinder')}
                 </button>
                 <div style={{ ...hintStyle, marginTop: 8 }}>
                   {isBundledModel
-                    ? 'Base 模型已内置在应用包中。上方目录用于存放额外下载的 Small / Large 模型。'
-                    : '点击下载按钮自动从 HuggingFace 下载，之后离线可用。也可手动将模型文件放入上方目录。'}
+                    ? t('baseModelBundled')
+                    : t('downloadFromHF')}
                 </div>
               </div>
             </div>
@@ -754,7 +761,7 @@ export default function SectionVoice() {
                   setSaveStatus('idle')
                 }}
               />
-              <div style={hintStyle}>配置后，录音将自动上传至阿里云转写</div>
+              <div style={hintStyle}>{t('dashscopeHint')}</div>
             </div>
           )}
 
@@ -781,7 +788,7 @@ export default function SectionVoice() {
                 cursor: saveStatus === 'saving' || !hasUnsavedChanges ? 'not-allowed' : 'pointer',
               }}
             >
-              {saveStatus === 'saving' ? '保存中…' : '保存'}
+              {saveStatus === 'saving' ? t('savingDots') : t('save')}
             </button>
           </div>
         </div>

@@ -7,6 +7,10 @@ import type { JournalEntry } from '../types'
 import { getJournalEntryContent } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
 import { Spinner } from './Spinner'
+import { createTranslator, detectLang } from '../lib/i18n'
+
+// Module-level translator for components that can't use hooks (CodeBlock is defined outside component)
+const getT = () => createTranslator(detectLang())
 
 interface DetailPanelProps {
   entry: JournalEntry | null
@@ -54,7 +58,7 @@ function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onAddToTodo, o
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
         </svg>
-        <span>添加到待办</span>
+        <span>{getT()('addToTodo')}</span>
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Copy selection */}
@@ -67,7 +71,7 @@ function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onAddToTodo, o
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
         </svg>
-        <span>复制选中文本</span>
+        <span>{getT()('copySelected')}</span>
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Copy raw markdown */}
@@ -80,7 +84,7 @@ function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onAddToTodo, o
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/>
         </svg>
-        <span>复制全文 (Markdown)</span>
+        <span>{getT()('copyMarkdown')}</span>
       </div>
     </div>
   )
@@ -124,7 +128,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
             userSelect: 'none',
           }}
         >
-          {copied ? <><Check size={12} strokeWidth={2} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />已复制</> : '复制'}
+          {copied ? <><Check size={12} strokeWidth={2} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{getT()('copied')}</> : getT()('copy')}
         </button>
       )}
       <pre style={{

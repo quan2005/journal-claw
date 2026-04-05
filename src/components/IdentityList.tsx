@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { IdentityEntry } from '../types'
 import { pickDisplayTags } from '../lib/tags'
 import { getIdentityContent, revealInFinder, openFile } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
+import { detectLang, createTranslator } from '../lib/i18n'
 
 export const SOUL_PATH = '__soul__'
 
@@ -28,7 +30,7 @@ function Avatar({ identity }: { identity: IdentityEntry }) {
     bg = 'rgba(90,154,106,0.15)'
     color = '#5a9a6a'
   } else if (isUserSelf(identity)) {
-    char = '我'
+    char = createTranslator(detectLang())('me')
     bg = 'rgba(200,147,58,0.15)'
     color = '#c8933a'
   } else {
@@ -178,6 +180,7 @@ interface IdentityContextMenuProps {
 }
 
 function IdentityContextMenu({ x, y, identity, onMerge, onDelete, onClose }: IdentityContextMenuProps) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -227,21 +230,21 @@ function IdentityContextMenu({ x, y, identity, onMerge, onDelete, onClose }: Ide
   const items: ContextMenuItem[] = []
 
   if (!isSoul(identity) && !isUserSelf(identity)) {
-    items.push({ type: 'action', label: '合并到…', icon: 'merge', onClick: () => { onMerge(); onClose() } })
+    items.push({ type: 'action', label: t('mergeTo'), icon: 'merge', onClick: () => { onMerge(); onClose() } })
   }
 
   items.push(
-    { type: 'action', label: '复制内容', icon: 'content', onClick: () => { copyContent(); onClose() } },
-    { type: 'action', label: '复制文件路径', icon: 'path', onClick: () => { copyPath(); onClose() } },
+    { type: 'action', label: t('copyContent'), icon: 'content', onClick: () => { copyContent(); onClose() } },
+    { type: 'action', label: t('copyFilePath'), icon: 'path', onClick: () => { copyPath(); onClose() } },
     { type: 'divider' },
-    { type: 'action', label: '用默认编辑器打开', icon: 'edit', onClick: () => { handleOpenWithEditor(); onClose() } },
-    { type: 'action', label: '在 Finder 中显示', icon: 'finder', onClick: () => { handleShowInFinder(); onClose() } },
+    { type: 'action', label: t('openInEditor'), icon: 'edit', onClick: () => { handleOpenWithEditor(); onClose() } },
+    { type: 'action', label: t('showInFinder'), icon: 'finder', onClick: () => { handleShowInFinder(); onClose() } },
   )
 
   if (!isSoul(identity) && !isUserSelf(identity)) {
     items.push(
       { type: 'divider' },
-      { type: 'action', label: '删除', icon: 'delete', danger: true, onClick: () => { onDelete(); onClose() } },
+      { type: 'action', label: t('delete'), icon: 'delete', danger: true, onClick: () => { onDelete(); onClose() } },
     )
   }
 
@@ -278,7 +281,7 @@ interface IdentityListProps {
 export function IdentityList({
   identities, loading, selectedPath, onSelect, onMerge, onDelete,
 }: IdentityListProps) {
-
+  const { t } = useTranslation()
   const [contextMenu, setContextMenu] = useState<{ identity: IdentityEntry; x: number; y: number } | null>(null)
 
   const handleContextMenu = useCallback((identity: IdentityEntry, e: React.MouseEvent) => {
@@ -334,7 +337,7 @@ export function IdentityList({
           <div>
             <div style={{ padding: '14px 16px 6px' }}>
               <span style={{ fontSize: 12, color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
-                内置
+                {t('builtin')}
               </span>
             </div>
             {pinned.map(identity => (
@@ -380,8 +383,8 @@ export function IdentityList({
             padding: '24px 16px', textAlign: 'center',
             color: 'var(--item-meta)', fontSize: 14, lineHeight: 1.6,
           }}>
-            暂无身份档案<br />
-            <span style={{ fontSize: 13 }}>录音后会自动创建说话人档案</span>
+            {t('noProfiles')}<br />
+            <span style={{ fontSize: 13 }}>{t('recordingHint')}</span>
           </div>
         )}
       </div>

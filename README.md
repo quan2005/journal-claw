@@ -1,98 +1,109 @@
-# 谨迹
+# JournalClaw
 
-你负责思考，AI 负责剩下的。
+You capture. AI organizes.
 
-谨迹是一款 macOS 桌面应用，帮助知识工作者把录音、文件、随手记录变成整理好的日志。输入越低门槛，输出越高质量。
+JournalClaw is a macOS desktop app for knowledge workers who think faster than they type. Drop a recording, paste some notes, drag in a file — JournalClaw turns the raw material into structured journal entries.
 
-## 为什么需要它
+## The Idea
 
-- **产品经理**：走路时冒出想法，说不完整，也没时间记
-- **学生**：上课拼命记还是漏了要点，导师嘱咐转眼就忘
-- **职场人**：开完会各散东西，下次还得重新对齐
+Andrej Karpathy [wrote about](https://karpathy.bearblog.dev/the-append-and-review-note/) a note-taking principle that resonates: *append first, review later*. The friction of organizing while capturing kills the thought. The value is in the review cycle, not the structure.
 
-每一个场景，谨迹只做一件事：不需要整理，就得到整理好的东西。
+JournalClaw is built on this: **capture anything, let AI do the organizing**. One keystroke to start a recording. One paste to submit a doc. One drop to process a file. You never touch a folder.
 
-## 功能
+The output — searchable, tagged, linked journal entries — shows up automatically. You come back later and read.
 
-![谨迹主界面](docs/images/screenshot-20260330-205220.png)
+## Features
 
-- **录音** — 一键开始，自动降噪、去除静默，转为 M4A
-- **导入文件** — 拖入 PDF、DOCX、TXT，AI 自动处理
-- **粘贴文字** — 粘贴会议摘要、网页内容，即时生成日志
-- **AI 整理** — Claude CLI 提炼结构、生成纪要、补全材料
-- **沉浸阅读** — Markdown 渲染，代码高亮，左列表右详情
-- **多 Workspace** — 按月份归档，支持自定义工作区路径
-- **深色 / 浅色主题** — 系统跟随，也可手动切换
+![JournalClaw main UI](docs/images/screenshot-20260330-205220.png)
+
+- **Voice recording** — One click, noise reduction, silence removal, M4A output. AI transcribes and structures it.
+- **File import** — Drop PDF, DOCX, TXT. AI extracts, summarizes, files it.
+- **Paste text** — Meeting notes, web clips, rough ideas. Submit and move on.
+- **AI organization** — Claude CLI generates structured Markdown: title, tags, summary, body.
+- **Speaker profiles** — On-device speaker identification. Name the voices once; AI uses the names.
+- **Immersive reading** — Markdown rendering, code highlighting, left-list right-detail layout.
+- **Multi-workspace** — Monthly archive, configurable workspace path.
+- **Light / Dark theme** — System-adaptive or manual.
+- **Voice engines** — Apple on-device (zero config), WhisperKit (on-device, offline), DashScope (cloud).
+
+## Quick Start
+
+1. Download the latest `.dmg` from [Releases](https://github.com/quan2005/journal/releases) and drag to Applications
+2. Install [Claude CLI](https://claude.ai/download) — ensure `claude` is in your PATH
+3. Open JournalClaw, set your workspace path in Settings, start recording or drop a file
 
 ## Roadmap
 
-- [ ] **待办清单** — 支持从日志中提取 TODO，独立管理和追踪
-- [ ] **更换 AI 引擎** — 从 Claude CLI 外部进程迁移到内嵌推理引擎
-- [ ] **多 AI 接入** — 支持切换不同 AI 服务（Claude、OpenAI、本地模型等）
-- [ ] **Skill 插件** — 可扩展的技能系统，用户自定义处理流程
-- [ ] **自动整理** — 定时或触发式自动归类、打标签、生成摘要
-- [ ] **对话式交互** — 从单向处理改为聊天界面，支持追问和迭代优化
-- [ ] **IM 远程控制** — 配置 Telegram / 微信等聊天工具，随时随地发消息触发录音、查询日志、添加待办
+- [ ] **Todo extraction** — pull action items from journal entries into a standalone task list
+- [ ] **AI engine swap** — move from Claude CLI subprocess to embedded inference
+- [ ] **Multi-AI** — plug in different providers (Claude, OpenAI, local models)
+- [ ] **Skill plugins** — extensible processing pipeline, user-defined workflows
+- [ ] **Auto-organize** — scheduled or trigger-based tagging and summarization
+- [ ] **Conversational UI** — chat interface for follow-up and iterative refinement
+- [ ] **Remote control** — Telegram / WeChat bot to trigger recordings and query journal from anywhere
 
-## 快速上手
+## Tech Stack
 
-1. 从 [Releases](https://github.com/quan2005/journal/releases) 下载最新 `.dmg`，拖入应用程序
-2. 安装 [Claude CLI](https://claude.ai/download)，确保 `claude` 命令可用
-3. 打开谨迹，在设置中配置工作区路径，开始录音或导入文件
-
----
-
-## 技术栈
-
-| 层 | 技术 |
+| Layer | Technology |
 |---|---|
-| 桌面框架 | Tauri v2 |
-| 前端 | React 19 + TypeScript + Vite |
-| 音频采集 | cpal 0.17 |
-| 音频处理 | nnnoiseless（降噪）+ rubato（重采样）+ afconvert（M4A）|
-| AI 处理 | Claude CLI（外部进程）|
-| 序列化 | serde / serde_json |
+| Desktop framework | Tauri v2 |
+| Frontend | React 19 + TypeScript + Vite |
+| Audio capture | cpal 0.17 |
+| Audio processing | nnnoiseless (denoising) + rubato (resampling) + afconvert (M4A) |
+| AI processing | Claude CLI (external process) |
+| Serialization | serde / serde_json |
 
-## 架构
-
-数据流：
+## Architecture
 
 ```
-用户操作（录音 / 拖文件 / 粘贴）
+User action (record / drop / paste)
   → Frontend invoke() → src/lib/tauri.ts
-  → Rust 命令处理 → workspace/yyMM/raw/ 写入原始材料
-  → 启动 Claude CLI → 生成 workspace/yyMM/DD-title.md
-  → 发出 journal-updated 事件
-  → Frontend useJournal hook 重新加载条目
+  → Rust command → workspace/yyMM/raw/ (raw materials)
+  → Claude CLI spawned → writes workspace/yyMM/DD-title.md
+  → Emits journal-updated event
+  → Frontend useJournal hook reloads entries
 ```
 
-目录：
-
 ```
-src/                     # 前端
-  components/            # React 组件
+src/                     # Frontend
+  components/            # React components
   hooks/                 # useJournal, useRecorder, useTheme
-  lib/tauri.ts           # 所有 IPC 调用封装
-  types.ts               # 共享类型
-src-tauri/src/           # Rust 后端
-  ai_processor.rs        # 调用 Claude CLI，发出事件
-  recorder.rs            # 录音控制
-  audio_process.rs       # 降噪 / 重采样 / 去静默
-  journal.rs             # 日志条目扫描与解析
-  config.rs              # 应用配置读写
-  workspace.rs           # 工作区路径工具函数
+  lib/tauri.ts           # All IPC calls
+  types.ts               # Shared types
+src-tauri/src/           # Rust backend
+  ai_processor.rs        # Claude CLI invocation, event emission
+  recorder.rs            # Recording state machine
+  audio_process.rs       # Denoising / resampling / silence removal
+  journal.rs             # Journal entry scanning and parsing
+  config.rs              # App config read/write
+  workspace.rs           # Workspace path helpers
 ```
 
-## 本地开发
+## Development
 
-**前置依赖**：Rust stable、Node.js 18+、macOS 12+
+**Prerequisites:** Rust stable, Node.js 18+, macOS 12+
 
 ```bash
 npm install
-npm run tauri dev        # 启动开发模式（Vite + Tauri）
-npm test                 # 前端测试（vitest）
-cd src-tauri && cargo test   # Rust 单元测试
-npm run tauri build      # 构建产物 → src-tauri/target/release/bundle/
+npm run tauri dev        # Dev mode (Vite + Tauri hot reload)
+npm test                 # Frontend tests (vitest)
+cd src-tauri && cargo test   # Rust unit tests
+npm run tauri build      # Build → src-tauri/target/release/bundle/
 ```
 
-首次运行需授权麦克风权限（系统设置 → 隐私与安全性 → 麦克风）。
+First run requires microphone permission: System Settings → Privacy & Security → Microphone.
+
+---
+
+## 中文说明
+
+**谨迹** — 你负责思考，AI 负责剩下的。
+
+谨迹是一款 macOS 桌面应用，帮助知识工作者把录音、文件、随手记录变成整理好的日志。一键录音，一次粘贴，一个拖拽——谨迹自动生成结构化日志条目。
+
+**核心理念**：先捕捉，后整理。Andrej Karpathy 的「追加-回顾」笔记法的精髓：记录的摩擦感会扼杀思维，价值在于回顾而非当下的整理。谨迹让捕捉零摩擦，AI 完成剩余的组织工作。
+
+**快速上手**：
+1. 从 [Releases](https://github.com/quan2005/journal/releases) 下载最新 `.dmg`，拖入应用程序
+2. 安装 [Claude CLI](https://claude.ai/download)，确保 `claude` 命令可用
+3. 打开谨迹，在设置中配置工作区路径，开始录音或导入文件

@@ -7,6 +7,7 @@ import {
 } from '../../lib/tauri'
 import { Terminal, Sparkles, Check, Download, type LucideIcon } from 'lucide-react'
 import SkeletonRow from './SkeletonRow'
+import { useTranslation } from '../../contexts/I18nContext'
 
 type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
 type EngineId = 'claude' | 'qwen'
@@ -21,9 +22,12 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
 }
 
+import { createTranslator, detectLang } from '../../lib/i18n'
+const getT = () => createTranslator(detectLang())
+
 const ENGINES: { id: EngineId; label: string; vendor: string; icon: LucideIcon }[] = [
-  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic', icon: Terminal },
-  { id: 'qwen',   label: 'Qwen Code',   vendor: '阿里云',     icon: Sparkles },
+  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic',       icon: Terminal },
+  { id: 'qwen',   label: 'Qwen Code',   vendor: getT()('qwenVendor'), icon: Sparkles },
 ]
 
 function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
@@ -39,6 +43,7 @@ function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
 }
 
 export default function SectionAiEngine() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<Record<EngineId, InstallStatus>>({
     claude: 'checking', qwen: 'checking',
   })
@@ -114,19 +119,19 @@ export default function SectionAiEngine() {
   const active = cfg.active_ai_engine as EngineId
   const hasUnsavedChanges = !isEngineConfigEqual(cfg, persistedCfg)
   const saveHint = saveStatus === 'saving'
-    ? '保存中…'
+    ? t('savingDots')
     : saveStatus === 'saved'
-      ? '已保存'
+      ? t('saved')
       : saveStatus === 'error'
-        ? '保存失败，请重试'
+        ? t('saveFailedMsg')
         : hasUnsavedChanges
-          ? '有未保存修改'
+          ? t('unsavedChanges')
           : ''
   const canSave = hasUnsavedChanges && saveStatus !== 'saving'
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>AI 引擎</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('aiEngineSection')}</div>
 
       {loading ? (
         <>
@@ -162,7 +167,7 @@ export default function SectionAiEngine() {
                       setSaveStatus('idle')
                     }
                   }}
-                  title={isComingSoon ? '开发中，敬请期待' : undefined}
+                  title={isComingSoon ? t('comingSoon') : undefined}
                   style={{
                     background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
                     border: `1px solid ${isActive ? 'var(--record-btn)' : 'var(--divider)'}`,
@@ -179,7 +184,7 @@ export default function SectionAiEngine() {
                       fontSize: 9, color: 'var(--duration-text)',
                       background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
                       borderRadius: 4, padding: '1px 5px', letterSpacing: '0.04em',
-                    }}>开发中</div>
+                    }}>{t('inDevelopment')}</div>
                   )}
                   {!isComingSoon && s === 'checking' && (
                     <div style={{
@@ -214,7 +219,7 @@ export default function SectionAiEngine() {
               fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ fontWeight: 600, color: '#ff9f0a' }}>未检测到 Claude Code</div>
+                <div style={{ fontWeight: 600, color: '#ff9f0a' }}>{t('claudeNotFound')}</div>
                 <button
                   onClick={() => handleInstall('claude')}
                   style={{
@@ -225,11 +230,11 @@ export default function SectionAiEngine() {
                   }}
                 >
                   <Download size={11} strokeWidth={1.8} />
-                  一键安装
+                  {t('installOneLiner')}
                 </button>
               </div>
               <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
-                需要已安装 <span style={{ fontFamily: 'ui-monospace, monospace' }}>Homebrew</span>。点击一键安装，或手动运行：
+                {t('requiresHomebrew')}
                 <code style={{
                   display: 'block', marginTop: 5, padding: '4px 8px',
                   background: 'rgba(0,0,0,0.2)', borderRadius: 4,
@@ -255,7 +260,7 @@ export default function SectionAiEngine() {
                   border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                 }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#ff9f0a' }}>正在安装 {label}…</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#ff9f0a' }}>{t('installing', { label })}</span>
               </div>
               <div style={{
                 fontFamily: 'ui-monospace, monospace', fontSize: 10,
@@ -282,7 +287,7 @@ export default function SectionAiEngine() {
                         setCfg(prev => ({ ...prev, claude_code_api_key: e.target.value }))
                         setSaveStatus('idle')
                       }} />
-                    <div style={hintStyle}>留空则使用 CLI 默认配置</div>
+                    <div style={hintStyle}>{t('leaveBlankDefault')}</div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>Base URL</label>
@@ -292,7 +297,7 @@ export default function SectionAiEngine() {
                         setCfg(prev => ({ ...prev, claude_code_base_url: e.target.value }))
                         setSaveStatus('idle')
                       }} />
-                    <div style={hintStyle}>自定义 API 端点，留空使用默认值（代理场景）</div>
+                    <div style={hintStyle}>{t('customEndpoint')}</div>
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
@@ -302,7 +307,7 @@ export default function SectionAiEngine() {
                         setCfg(prev => ({ ...prev, claude_code_model: e.target.value }))
                         setSaveStatus('idle')
                       }} />
-                    <div style={hintStyle}>留空使用 CLI 默认模型</div>
+                    <div style={hintStyle}>{t('leaveBlankModel')}</div>
                   </div>
                 </>
               )}
@@ -317,7 +322,7 @@ export default function SectionAiEngine() {
                         setCfg(prev => ({ ...prev, qwen_code_api_key: e.target.value }))
                         setSaveStatus('idle')
                       }} />
-                    <div style={hintStyle}>阿里云 DashScope API Key（独立于语音转写配置）</div>
+                    <div style={hintStyle}>{t('dashscopeKeyHint')}</div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>Base URL</label>
@@ -327,7 +332,7 @@ export default function SectionAiEngine() {
                         setCfg(prev => ({ ...prev, qwen_code_base_url: e.target.value }))
                         setSaveStatus('idle')
                       }} />
-                    <div style={hintStyle}>自定义 API 端点，留空使用默认值</div>
+                    <div style={hintStyle}>{t('customEndpointHint')}</div>
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
@@ -337,7 +342,7 @@ export default function SectionAiEngine() {
                         setCfg(prev => ({ ...prev, qwen_code_model: e.target.value }))
                         setSaveStatus('idle')
                       }} />
-                    <div style={hintStyle}>留空使用默认模型</div>
+                    <div style={hintStyle}>{t('leaveBlankModelHint')}</div>
                   </div>
                 </>
               )}
@@ -358,7 +363,7 @@ export default function SectionAiEngine() {
                   background: canSave ? 'var(--record-btn)' : 'var(--divider)', border: 'none', borderRadius: 5,
                   padding: '6px 18px', fontSize: 14, fontWeight: 600,
                   color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
-                }}>{saveStatus === 'saving' ? '保存中…' : '保存'}</button>
+                }}>{saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}</button>
               </div>
             </>
           )}

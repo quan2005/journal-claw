@@ -1,6 +1,7 @@
 // src/components/SoulView.tsx
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getWorkspacePrompt, setWorkspacePrompt } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 function highlightMarkdown(text: string): React.ReactNode[] {
   return text.split('\n').map((line, i) => {
@@ -25,6 +26,7 @@ function highlightMarkdown(text: string): React.ReactNode[] {
 }
 
 export default function SoulView() {
+  const { t } = useTranslation()
   const [content, setContent] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -88,8 +90,8 @@ export default function SoulView() {
           </svg>
         </div>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>人格设定</div>
-          <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 1 }}>定义谨迹的角色与工作偏好</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>{t('aiPersonality')}</div>
+          <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 1 }}>{t('aiPersonalityDesc')}</div>
         </div>
       </div>
 
@@ -125,9 +127,9 @@ export default function SoulView() {
       {/* Footer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 28px 28px', flexShrink: 0 }}>
         <span style={{ fontSize: 12, color: 'var(--duration-text)' }}>
-          {saveStatus === 'saving' ? '保存中…'
-            : saveStatus === 'saved' ? '已自动保存'
-            : saveStatus === 'error' ? '保存失败，请重试'
+          {saveStatus === 'saving' ? t('saving')
+            : saveStatus === 'saved' ? t('autoSaved')
+            : saveStatus === 'error' ? t('saveFailed')
             : ''}
         </span>
         <button
@@ -144,7 +146,7 @@ export default function SoulView() {
             cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
           }}
         >
-          {saveStatus === 'saving' ? '保存中…' : '保存'}
+          {saveStatus === 'saving' ? t('saving') : t('save')}
         </button>
       </div>
     </div>

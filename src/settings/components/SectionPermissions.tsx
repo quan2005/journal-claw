@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react'
 import { checkAppPermissions, openPrivacySettings, requestPermission } from '../../lib/tauri'
 import type { AppPermissions, PermStatus } from '../../lib/tauri'
 import SkeletonRow from './SkeletonRow'
+import { useTranslation } from '../../contexts/I18nContext'
+
 
 const sectionStyle: React.CSSProperties = {
   padding: '28px 28px 40px',
@@ -12,13 +14,13 @@ const sectionStyle: React.CSSProperties = {
 
 type BadgeVariant = 'ok' | 'warn' | 'error' | 'idle'
 
-function statusBadge(s: PermStatus): { label: string; variant: BadgeVariant } {
+function statusBadge(s: PermStatus, t: (key: string) => string): { label: string; variant: BadgeVariant } {
   switch (s) {
-    case 'granted':       return { label: '已授权',  variant: 'ok'   }
-    case 'denied':        return { label: '已拒绝',  variant: 'error' }
-    case 'restricted':    return { label: '受限制',  variant: 'warn' }
-    case 'not_determined':return { label: '未授权',  variant: 'warn' }
-    default:              return { label: '未知',    variant: 'idle' }
+    case 'granted':       return { label: t('statusGranted'),       variant: 'ok'   }
+    case 'denied':        return { label: t('statusDenied'),        variant: 'error' }
+    case 'restricted':    return { label: t('statusRestricted'),    variant: 'warn' }
+    case 'not_determined':return { label: t('statusNotDetermined'), variant: 'warn' }
+    default:              return { label: t('statusUnknown'),       variant: 'idle' }
   }
 }
 
@@ -66,10 +68,11 @@ interface PermRowProps {
   actionLabel?: string
   onAction?: () => void
   extra?: React.ReactNode
+  t: (key: string) => string
 }
 
-function PermRow({ icon, title, description, status, actionLabel, onAction, extra }: PermRowProps) {
-  const badge = status ? statusBadge(status) : null
+function PermRow({ icon, title, description, status, actionLabel, onAction, extra, t }: PermRowProps) {
+  const badge = status ? statusBadge(status, t) : null
   const needsAction = status === 'denied' || status === 'not_determined' || status === 'restricted'
 
   return (
@@ -138,6 +141,7 @@ function PermRow({ icon, title, description, status, actionLabel, onAction, extr
 type SystemPerm = 'microphone' | 'speech_recognition'
 
 export default function SectionPermissions() {
+  const { t } = useTranslation()
   const [perms, setPerms] = useState<AppPermissions | null>(null)
   const [loading, setLoading] = useState(false)
   const [checked, setChecked] = useState(false)
@@ -163,7 +167,7 @@ export default function SectionPermissions() {
       await openPrivacySettings(pane)
     } catch (err) {
       console.error(`[settings/permissions] failed to open ${pane} settings`, err)
-      setError(`无法打开系统设置: ${err}`)
+      setError(t('failedToOpen', { err: String(err) }))
     }
   }, [])
 
@@ -175,7 +179,7 @@ export default function SectionPermissions() {
       setPerms(prev => prev ? { ...prev, [perm]: newStatus } : prev)
     } catch (err) {
       console.error(`[settings/permissions] request ${perm} failed`, err)
-      setError(`请求授权失败: ${err}`)
+      setError(t('requestFailed', { err: String(err) }))
     }
   }, [])
 
@@ -209,7 +213,7 @@ export default function SectionPermissions() {
       })
     } catch (err) {
       console.error('[settings/permissions] request all failed', err)
-      setError(`授权过程出错: ${err}`)
+      setError(t('authError', { err: String(err) }))
     }
   }, [perms, handleCheck])
 
@@ -222,13 +226,13 @@ export default function SectionPermissions() {
   // Determine action label per permission based on status
   const permAction = useCallback((status: PermStatus, perm: SystemPerm) => {
     if (status === 'not_determined') {
-      return { label: '请求授权', action: () => handleRequest(perm) }
+      return { label: t('requestPermission'), action: () => handleRequest(perm) }
     }
     if (status === 'unknown') {
       return null // non-macOS: no actionable path
     }
     // denied / restricted → open System Settings
-    return { label: '前往系统设置', action: () => handleOpenSettings(perm) }
+    return { label: t('openSystemSettings'), action: () => handleOpenSettings(perm) }
   }, [handleRequest, handleOpenSettings])
 
   return (
@@ -241,11 +245,11 @@ export default function SectionPermissions() {
         marginBottom: 20,
         fontWeight: 500,
       }}>
-        授权管理
+        {t('permissionsSection')}
       </div>
 
       <div style={{ fontSize: 14, color: 'var(--item-meta)', lineHeight: 1.7, marginBottom: 24 }}>
-        谨迹需要以下系统权限才能正常工作。点击「检测权限」查看当前状态，或点击「一键授权」完成授权。
+        {t('permissionsDesc')}
       </div>
 
       {/* Action bar */}
@@ -264,7 +268,7 @@ export default function SectionPermissions() {
             cursor: loading ? 'default' : 'pointer',
           }}
         >
-          {loading ? '检测中…' : checked ? '重新检测' : '检测权限'}
+          {loading ? t('checking') : checked ? t('rechecking') : t('checkPermissions')}
         </button>
 
         {checked && !allGranted && (
@@ -281,7 +285,7 @@ export default function SectionPermissions() {
               cursor: 'pointer',
             }}
           >
-            一键授权
+            {t('grantAll')}
           </button>
         )}
 
@@ -297,7 +301,7 @@ export default function SectionPermissions() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            所有权限已就绪
+            {t('allGranted')}
           </span>
         )}
       </div>
@@ -325,7 +329,7 @@ export default function SectionPermissions() {
           color: 'var(--duration-text)',
           fontSize: 14,
         }}>
-          点击「检测权限」查看各项授权状态
+          {t('clickToCheck')}
         </div>
       )}
 
@@ -349,11 +353,12 @@ export default function SectionPermissions() {
                 <line x1="8" y1="23" x2="16" y2="23"/>
               </svg>
             }
-            title="麦克风"
-            description="录音功能需要访问麦克风，用于语音转写和会议记录。"
+            title={t('permMic')}
+            description={t('permMicDesc')}
             status={perms.microphone}
             actionLabel={permAction(perms.microphone, 'microphone')?.label}
             onAction={permAction(perms.microphone, 'microphone')?.action}
+            t={t}
           />
 
           {/* Speech Recognition */}
@@ -363,11 +368,12 @@ export default function SectionPermissions() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             }
-            title="语音识别"
-            description="使用 Apple 语音识别引擎时需要此权限（DashScope / WhisperKit 不需要）。"
+            title={t('permSpeech')}
+            description={t('permSpeechDesc')}
             status={perms.speech_recognition}
             actionLabel={permAction(perms.speech_recognition, 'speech_recognition')?.label}
             onAction={permAction(perms.speech_recognition, 'speech_recognition')?.action}
+            t={t}
           />
 
           {/* Claude CLI */}
@@ -379,7 +385,7 @@ export default function SectionPermissions() {
               </svg>
             }
             title="Claude CLI"
-            description="AI 日志处理需要系统中安装 Claude CLI 命令行工具。"
+            description={t('permClaudeDesc')}
             status={perms.claude_cli_path ? 'granted' : 'not_determined'}
             extra={
               perms.claude_cli_path
@@ -394,10 +400,11 @@ export default function SectionPermissions() {
                 )
                 : (
                   <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>
-                    请先安装 Claude CLI：<code style={{ fontFamily: 'ui-monospace, monospace' }}>npm install -g @anthropic-ai/claude-code</code>
+                    {t('installClaude')}<code style={{ fontFamily: 'ui-monospace, monospace' }}>npm install -g @anthropic-ai/claude-code</code>
                   </span>
                 )
             }
+            t={t}
           />
         </div>
       )}

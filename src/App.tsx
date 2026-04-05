@@ -21,11 +21,13 @@ import { useTodos } from './hooks/useTodos'
 import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries, deleteIdentity } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry } from './types'
+import { useTranslation } from './contexts/I18nContext'
 
 const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
 
 export default function App() {
+  const { t } = useTranslation()
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
   const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
@@ -299,7 +301,7 @@ export default function App() {
       await start()
     } else {
       await stop()
-      addConvertingItem(RECORDING_PLACEHOLDER, '录音处理中')
+      addConvertingItem(RECORDING_PLACEHOLDER, t('recordingConverting'))
     }
   }
 
@@ -383,15 +385,15 @@ export default function App() {
 
   // Inject a virtual 'recording' item at the front of the queue when recording
   const visibleQueueItems = status === 'recording'
-    ? [{ path: RECORDING_PLACEHOLDER, filename: '录音中', status: 'recording' as const, addedAt: Date.now(), logs: [], elapsedSecs, audioLevel }, ...queueItems]
+    ? [{ path: RECORDING_PLACEHOLDER, filename: t('recordingStatus'), status: 'recording' as const, addedAt: Date.now(), logs: [], elapsedSecs, audioLevel }, ...queueItems]
     : queueItems
 
   const SOUL_ENTRY: IdentityEntry = {
     filename: '__soul__',
     path: SOUL_PATH,
-    name: '助理',
+    name: t('assistantName'),
     region: '',
-    summary: '定义谨迹的角色与工作偏好',
+    summary: t('assistantDesc'),
     tags: [],
     speaker_id: '',
     mtime_secs: 0,
@@ -399,7 +401,7 @@ export default function App() {
   const allIdentities: IdentityEntry[] = [SOUL_ENTRY, ...identities]
 
   const handleDeleteIdentity = async (identity: IdentityEntry) => {
-    if (!window.confirm(`确认删除「${identity.name}」的档案？`)) return
+    if (!window.confirm(t('confirmDeleteIdentity', { name: identity.name }))) return
     try {
       await deleteIdentity(identity.path)
       if (selectedIdentity?.path === identity.path) setSelectedIdentity(null)

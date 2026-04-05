@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { QueueItem } from '../types'
 import { Spinner } from './Spinner'
+import { useTranslation } from '../contexts/I18nContext'
 
 const ANIM_DURATION = 180
 
@@ -11,6 +12,7 @@ interface AiLogModalProps {
 }
 
 export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
+  const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [closing, setClosing] = useState(false)
 
@@ -78,8 +80,8 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
               : 'var(--ai-pill-active-text)',
             opacity: 0.8,
           }}>
-            {item.status === 'failed' ? '失败'
-              : item.status === 'completed' ? '已完成'
+            {item.status === 'failed' ? t('failedStatus')
+              : item.status === 'completed' ? t('completedStatus')
               : null}
           </span>
           <button
@@ -106,7 +108,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           {item.logs.length === 0 ? (
             item.error
               ? <span style={{ color: '#ff453a', whiteSpace: 'pre-wrap' }}>{item.error}</span>
-              : <span style={{ opacity: 0.4 }}>等待输出...</span>
+              : <span style={{ opacity: 0.4 }}>{t('waitingOutput')}</span>
           ) : (
             item.logs.map((line, i) => (
               <div
@@ -147,7 +149,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
                 cursor: 'pointer',
               }}
             >
-              停止处理
+              {t('stopProcessing')}
             </button>
           </div>
         )}

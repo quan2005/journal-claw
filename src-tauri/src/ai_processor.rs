@@ -205,12 +205,7 @@ pub fn build_claude_args(
 }
 
 fn augmented_path() -> String {
-    let path_env = std::env::var("PATH").unwrap_or_default();
-    format!(
-        "{}:/usr/local/bin:/opt/homebrew/bin:{}/.local/bin",
-        path_env,
-        std::env::var("HOME").unwrap_or_default()
-    )
+    crate::config::augmented_path()
 }
 
 /// Extract a concise label from a tool_use input object.
@@ -613,7 +608,7 @@ pub async fn process_material(
         );
     })?;
     let cli = if cfg.claude_cli_path.is_empty() {
-        "claude".to_string()
+        crate::config::default_claude_cli_detect()
     } else {
         cfg.claude_cli_path.clone()
     };
@@ -974,7 +969,7 @@ pub fn check_engine_installed(engine: String) -> Result<bool, String> {
         "qwen" => "qwen",
         _ => return Err(format!("unknown engine: {}", engine)),
     };
-    let output = std::process::Command::new("which")
+    let output = std::process::Command::new("/usr/bin/which")
         .arg(bin)
         .env("PATH", augmented_path())
         .output()

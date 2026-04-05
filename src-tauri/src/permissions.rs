@@ -134,7 +134,7 @@ mod macos {
 // ---------------------------------------------------------------------------
 
 fn find_claude_cli() -> Option<String> {
-    let output = Command::new("which")
+    let output = Command::new("/usr/bin/which")
         .arg("claude")
         .env("PATH", crate::config::augmented_path())
         .output();

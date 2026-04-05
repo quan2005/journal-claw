@@ -66,18 +66,91 @@ pub struct Config {
 
 pub fn augmented_path() -> String {
     let path_env = std::env::var("PATH").unwrap_or_default();
-    format!(
-        "{}:/usr/local/bin:/opt/homebrew/bin:{}/.local/bin",
-        path_env,
-        std::env::var("HOME").unwrap_or_default()
-    )
+    let home = std::env::var("HOME").unwrap_or_default();
+    let mut dirs: Vec<String> = path_env.split(':').map(|s| s.to_string()).collect();
+
+    // Standard locations
+    for d in &["/usr/bin", "/bin", "/usr/sbin", "/sbin", "/usr/local/bin", "/opt/homebrew/bin"] {
+        dirs.push(d.to_string());
+    }
+    if !home.is_empty() {
+        dirs.push(format!("{}/.local/bin", home));
+    }
+
+    // Node version managers — each may install `claude` as a global npm package.
+    // We scan for all installed versions and add their bin dirs.
+    let node_manager_roots: Vec<std::path::PathBuf> = vec![
+        // nvm
+        std::path::PathBuf::from(
+            std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{}/.nvm", home)),
+        )
+        .join("versions/node"),
+        // fnm
+        std::path::PathBuf::from(
+            std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm/node-versions", home)),
+        ),
+        // volta
+        std::path::PathBuf::from(format!("{}/.volta/bin", home)),
+        // n (tj/n)
+        std::path::PathBuf::from(
+            std::env::var("N_PREFIX").unwrap_or_else(|_| "/usr/local".to_string()),
+        )
+        .join("n/versions/node"),
+    ];
+
+    // Volta: its bin dir contains shims directly
+    let volta_bin = format!("{}/.volta/bin", home);
+    if std::path::Path::new(&volta_bin).exists() {
+        dirs.push(volta_bin);
+    }
+
+    // For nvm / fnm / n: scan version directories for bin/
+    for root in &node_manager_roots {
+        if let Ok(entries) = std::fs::read_dir(root) {
+            let mut versions: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .map(|e| e.path())
+                .collect();
+            versions.sort();
+            for v in versions {
+                let bin = v.join("bin");
+                if bin.exists() {
+                    dirs.push(bin.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    // Also check fnm aliases (e.g. ~/.local/share/fnm/aliases/default/bin)
+    let fnm_aliases = format!(
+        "{}/aliases",
+        std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm/node-versions", home))
+    );
+    if let Ok(entries) = std::fs::read_dir(&fnm_aliases) {
+        for e in entries.filter_map(|e| e.ok()) {
+            let bin = e.path().join("bin");
+            if bin.exists() {
+                dirs.push(bin.to_string_lossy().to_string());
+            }
+        }
+    }
+
+    dirs.dedup();
+    dirs.join(":")
 }
 
 fn default_claude_cli() -> String {
     if cfg!(test) {
         return "claude".to_string();
     }
-    if let Ok(output) = std::process::Command::new("which")
+    default_claude_cli_detect()
+}
+
+/// Detect the claude CLI path using augmented PATH.
+/// Called at config init and as runtime fallback when `claude_cli_path` is empty.
+pub fn default_claude_cli_detect() -> String {
+    if let Ok(output) = std::process::Command::new("/usr/bin/which")
         .arg("claude")
         .env("PATH", augmented_path())
         .output()
@@ -188,7 +261,7 @@ pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf
 /// 在 PATH（含 /usr/local/bin, /opt/homebrew/bin）中查找 whisperkit-cli。
 /// 返回绝对路径，若未找到返回 None。
 pub fn find_whisperkit_cli_path() -> Option<String> {
-    let output = std::process::Command::new("which")
+    let output = std::process::Command::new("/usr/bin/which")
         .arg("whisperkit-cli")
         .env("PATH", augmented_path())
         .output()
@@ -389,7 +462,7 @@ pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
     // Auto-select: if the saved engine is not installed, pick the first available one.
     // Priority: claude > qwen. If neither is installed, keep the saved value.
     let engine_available = |name: &str| -> bool {
-        std::process::Command::new("which")
+        std::process::Command::new("/usr/bin/which")
             .arg(name)
             .env("PATH", augmented_path())
             .output()

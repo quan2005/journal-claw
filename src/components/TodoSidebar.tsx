@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
+import { useTranslation } from '../contexts/I18nContext'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({ initialValue, onSelect, onClose }: {
@@ -49,10 +50,11 @@ function DatePicker({ initialValue, onSelect, onClose }: {
     return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey) }
   }, [onClose])
 
+  const { s } = useTranslation()
   const selectedStr = initialValue
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
-  const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  const WEEKDAYS = s.weekdaysFull
+  const MONTHS = s.monthsFull
   const cellSize = 26
   const arrowStyle: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--item-meta)', cursor: 'pointer', fontSize: 11, padding: '2px 6px', borderRadius: 3 }
 
@@ -98,7 +100,7 @@ function DatePicker({ initialValue, onSelect, onClose }: {
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           style={{ marginTop: 6, padding: '4px 0', textAlign: 'center', fontSize: 10, color: 'var(--duration-text)', cursor: 'pointer', borderTop: '0.5px solid var(--divider)' }}
-        >清除截止日期</div>
+        >{s.clearDueDate}</div>
       )}
     </div>
   )
@@ -139,6 +141,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
   onContextMenu: (e: React.MouseEvent) => void
   onNavigateToSource?: (filename: string) => void
 }) {
+  const { t } = useTranslation()
   const [editingDue, setEditingDue] = useState(false)
   const [editingText, setEditingText] = useState(false)
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 })
@@ -246,7 +249,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
           style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0, opacity: 0, transition: 'opacity 0.1s' }}
-          title="设置截止日期"
+          title={t('setDueDate')}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -295,6 +298,7 @@ interface TodoSidebarProps {
 }
 
 export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onNavigateToSource }: TodoSidebarProps) {
+  const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -339,8 +343,8 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
     <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', padding: '12px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 10, color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>待办</span>
-        <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>{unchecked.length} 项</span>
+        <span style={{ fontSize: 10, color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>{t('todo')}</span>
+        <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>{t('itemCount', { count: unchecked.length })}</span>
       </div>
 
       {unchecked.map(item => (
@@ -353,7 +357,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       {adding ? (
         <div style={{ padding: '6px 8px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
           <input ref={inputRef} value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyDown} onBlur={handleSubmit}
-            placeholder="输入待办内容..."
+            placeholder={t('addTodo')}
             style={{ width: '100%', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
           />
         </div>
@@ -366,7 +370,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          <span style={{ fontSize: 11, color: '#555' }}>添加待办</span>
+          <span style={{ fontSize: 11, color: '#555' }}>{t('addTodoBtn')}</span>
         </div>
       )}
 
@@ -375,7 +379,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
         <>
           <div onClick={() => setShowCompleted(!showCompleted)}
             style={{ fontSize: 9, color: '#555', marginTop: 8, padding: '6px 8px 4px', cursor: 'pointer', userSelect: 'none' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}
-          >已完成 · {checked.length} {showCompleted ? '▾' : '▸'}</div>
+          >{t('completedSection', { count: checked.length })} {showCompleted ? '▾' : '▸'}</div>
           {showCompleted && checked.map(item => (
             <div key={item.line_index} style={{ opacity: 0.5 }}>
               <TodoRow item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
@@ -388,7 +392,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
       {/* Context menu */}
       {contextMenu && (() => {
-        const s: React.CSSProperties = { padding: '7px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)' }
+        const menuItemStyle: React.CSSProperties = { padding: '7px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)' }
         const hi = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }
         const ho = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }
         return (
@@ -398,31 +402,31 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             borderRadius: 8, padding: '4px 0', zIndex: 1000,
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)', minWidth: 140,
           }}>
-            <div style={s} onMouseEnter={hi} onMouseLeave={ho}
+            <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
               onClick={() => { navigator.clipboard.writeText(contextMenu.text); setContextMenu(null) }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
-              复制文本
+              {t('copyText')}
             </div>
             {contextMenu.due && (
-              <div style={s} onMouseEnter={hi} onMouseLeave={ho}
+              <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
                 onClick={() => { onSetDue(contextMenu.lineIndex, null, contextMenu.doneFile); setContextMenu(null) }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="15" x2="15" y2="15"/>
                 </svg>
-                清除截止日期
+                {t('clearDueDate')}
               </div>
             )}
             <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
-            <div style={{ ...s, color: '#ff3b30' }}
+            <div style={{ ...menuItemStyle, color: '#ff3b30' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
               onMouseLeave={ho}
               onClick={() => { onDelete(contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>
-              删除
+              {t('deleteTodo')}
             </div>
           </div>
         )

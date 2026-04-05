@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getWorkspacePath, setWorkspacePath, pickFolder } from '../../lib/tauri'
 import SkeletonRow from './SkeletonRow'
+import { useTranslation } from '../../contexts/I18nContext'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -14,6 +15,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function SectionGeneral() {
+  const { t } = useTranslation()
   const [workspacePath, setWorkspacePathState] = useState('')
   const [persistedWorkspacePath, setPersistedWorkspacePath] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -51,18 +53,18 @@ export default function SectionGeneral() {
   const hasUnsavedChanges = workspacePath !== persistedWorkspacePath
   const canSave = workspacePath.trim().length > 0 && hasUnsavedChanges && saveStatus !== 'saving'
   const saveHint = saveStatus === 'saving'
-    ? '保存中…'
+    ? t('savingDots')
     : saveStatus === 'saved'
-      ? '已保存'
+      ? t('saved')
       : saveStatus === 'error'
-        ? '保存失败，请重试'
+        ? t('saveFailedMsg')
         : hasUnsavedChanges
-          ? '有未保存修改'
+          ? t('unsavedChanges')
           : ''
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>通用</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('general')}</div>
 
       {loading ? (
         <>
@@ -77,7 +79,7 @@ export default function SectionGeneral() {
         <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
           {/* Workspace 路径 */}
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Workspace 路径</label>
+            <label style={labelStyle}>{t('workspacePath')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 style={inputStyle}
@@ -96,10 +98,10 @@ export default function SectionGeneral() {
                   cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
                 }}
               >
-                选择…
+                {t('browse')}
               </button>
             </div>
-            <div style={hintStyle}>日志和素材的存储根目录</div>
+            <div style={hintStyle}>{t('workspaceDesc')}</div>
           </div>
 
           {/* 保存 */}
@@ -124,7 +126,7 @@ export default function SectionGeneral() {
                 color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
               }}
             >
-              {saveStatus === 'saving' ? '保存中…' : '保存'}
+              {saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { FileCard } from './FileCard'
 import { fileKindFromName } from '../lib/fileKind'
 import clipboard from 'tauri-plugin-clipboard-api'
 import { importTextTemp, openFile } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface CommandDockProps {
   isDragOver: boolean
@@ -27,6 +28,7 @@ export function CommandDock({
   onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
   asrReady, audioRejected, onOpenSettings, externalOpen, onExternalOpenConsumed,
 }: CommandDockProps) {
+  const { t } = useTranslation()
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export function CommandDock({
   }, [inputOpen])
 
   useEffect(() => {
-    if (audioRejected) showToast('语音转写未配置，音频文件已忽略')
+    if (audioRejected) showToast(t('audioRejected'))
   }, [audioRejected])
 
   // 外部触发打开 dock
@@ -68,7 +70,7 @@ export function CommandDock({
       }).catch((err) => {
         importedTexts.current.delete(text)
         console.error('[import-text-temp]', err)
-        showToast('提交失败')
+        showToast(t('submitFailed'))
       })
     } else {
       setInputOpen(true)
@@ -91,12 +93,12 @@ export function CommandDock({
       setInputOpen(false)
       setInputText('')
       importedTexts.current.clear()
-      showToast('已提交，谨迹整理中…')
+      showToast(t('submitted'))
       try {
         await onFilesSubmit(paths, note)
       } catch (err) {
         console.error('[files-submit]', err)
-        showToast('提交失败')
+        showToast(t('submitFailed'))
       }
     } else {
       const text = inputText.trim()
@@ -104,12 +106,12 @@ export function CommandDock({
       setInputOpen(false)
       setInputText('')
       importedTexts.current.clear()
-      showToast('已提交，谨迹整理中…')
+      showToast(t('submitted'))
       try {
         await onPasteSubmit(text)
       } catch (err) {
         console.error('[paste-submit]', err)
-        showToast('提交失败')
+        showToast(t('submitFailed'))
       }
     }
   }
@@ -211,7 +213,7 @@ export function CommandDock({
       {/* Settings button */}
       <button
         onClick={onOpenSettings}
-        title="设置 (⌘,)"
+        title={t('settingsTooltip')}
         style={{
           width: 34, height: 34, borderRadius: 8,
           border: '0.5px solid var(--divider)',
@@ -271,8 +273,8 @@ export function CommandDock({
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, color: 'var(--dock-dropzone-text)' }}>粘贴会议记录、文章、随手笔记</div>
-              <div style={{ fontSize: 12, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>AI 帮你归档 · 支持 txt · md · pdf · docx · 图片</div>
+              <div style={{ fontSize: 14, color: 'var(--dock-dropzone-text)' }}>{t('pastePrompt')}</div>
+              <div style={{ fontSize: 12, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>{t('aiArchiveHint')}</div>
             </div>
             <div
               className="dock-kbd-pulse"
@@ -347,14 +349,14 @@ export function CommandDock({
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase' as const,
                 }}>
-                  {hasFiles ? '备注（可选）' : '粘贴文本或文件'}
+                  {hasFiles ? t('noteOptional') : t('pasteOrDrop')}
                 </span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button onClick={(e) => { e.stopPropagation(); handleCancel() }} style={actionBtnCancel}>
-                    取消
+                    {t('cancel')}
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); handleSubmit() }} style={actionBtnSubmit}>
-                    提交整理
+                    {t('submit')}
                   </button>
                 </div>
               </div>
@@ -393,7 +395,7 @@ export function CommandDock({
                         onPasteFiles([result.path])
                       }).catch((err) => {
                         console.error('[paste-import]', err)
-                        showToast('提交失败')
+                        showToast(t('submitFailed'))
                       })
                     }
                   }).catch(() => {
@@ -402,12 +404,12 @@ export function CommandDock({
                         onPasteFiles([result.path])
                       }).catch((err) => {
                         console.error('[paste-import]', err)
-                        showToast('提交失败')
+                        showToast(t('submitFailed'))
                       })
                     }
                   })
                 }}
-                placeholder={hasFiles ? '补充说明…' : '在此粘贴文本，或拖入文件（txt/md/pdf/docx 等）…'}
+                placeholder={hasFiles ? t('textareaPlaceholderFiles') : t('textareaPlaceholderText')}
                 className="dock-textarea"
                 style={{
                   flex: 1,
@@ -447,10 +449,10 @@ export function CommandDock({
           disabled={recorderStatus !== 'recording' && asrReady === false}
           title={
             recorderStatus !== 'recording' && asrReady === false
-              ? '语音转写未就绪，请前往设置 → 语音转写'
-              : recorderStatus === 'recording' ? '停止录音' : '开始录音'
+              ? t('voiceNotReady')
+              : recorderStatus === 'recording' ? t('stopRecording') : t('startRecording')
           }
-          aria-label={recorderStatus === 'recording' ? '停止录音' : '开始录音'}
+          aria-label={recorderStatus === 'recording' ? t('stopRecording') : t('startRecording')}
           className="mic-btn"
           data-recording={recorderStatus === 'recording' ? 'true' : 'false'}
           style={{

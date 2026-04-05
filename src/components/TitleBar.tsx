@@ -1,6 +1,7 @@
 import type { Theme } from '../types'
 import { ThemeToggle } from './ThemeToggle'
 import { AiStatusPill } from './AiStatusPill'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface TitleBarProps {
   theme: Theme
@@ -14,6 +15,7 @@ interface TitleBarProps {
 }
 
 export function TitleBar({ theme, onThemeChange, isProcessing, processingFilename, view, todoOpen, todoCount, onToggleTodo }: TitleBarProps) {
+  const { t } = useTranslation()
   return (
     <div
       data-tauri-drag-region
@@ -35,7 +37,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
       {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         {view === 'settings' ? (
-          <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--item-text)' }}>设置</span>
+          <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--item-text)' }}>{t('settings')}</span>
         ) : (
           <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} />
         )}
@@ -47,7 +49,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
         {view !== 'settings' && (
           <button
             onClick={onToggleTodo}
-            title={todoOpen ? '收起待办 (⌘T)' : '待办 (⌘T)'}
+            title={todoOpen ? t('todoTooltipClose') : t('todoTooltipOpen')}
             style={{
               background: todoOpen ? 'rgba(200,147,58,0.12)' : 'none',
               border: 'none', cursor: 'pointer',

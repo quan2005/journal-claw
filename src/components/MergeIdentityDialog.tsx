@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { IdentityEntry, MergeMode } from '../types'
 import { listIdentities, mergeIdentity, triggerAiPrompt } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface MergeIdentityDialogProps {
   source: IdentityEntry
@@ -9,6 +10,7 @@ interface MergeIdentityDialogProps {
 }
 
 export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentityDialogProps) {
+  const { t } = useTranslation()
   const [identities, setIdentities] = useState<IdentityEntry[]>([])
   const [loaded, setLoaded] = useState(false)
   const [targetPath, setTargetPath] = useState<string>('')
@@ -97,18 +99,18 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
     <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={dialog}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--item-text)' }}>
-          合并身份档案
+          {t('mergeProfiles')}
         </div>
 
         <div>
-          <div style={label}>将「{source.name}」合并到</div>
+          <div style={label}>{t('mergeFrom', { name: source.name })}</div>
           <select
             style={select}
             value={targetPath}
             onChange={e => setTargetPath(e.target.value)}
             disabled={!loaded}
           >
-            <option value="">— 选择目标档案 —</option>
+            <option value="">{t('selectTarget')}</option>
             {identities.map(i => (
               <option key={i.path} value={i.path}>
                 {i.region}-{i.name}
@@ -118,10 +120,10 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
         </div>
 
         <div>
-          <div style={label}>合并方式</div>
+          <div style={label}>{t('mergeMode')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {source.speaker_id && modeBtn('voice_only', '仅声纹', '将声纹 ID 关联到目标档案，不合并文字内容')}
-            {modeBtn('full', '完整合并', '合并声纹 ID、标签和正文内容')}
+            {source.speaker_id && modeBtn('voice_only', t('voiceOnly'), t('voiceOnlyDesc'))}
+            {modeBtn('full', t('fullMerge'), t('fullMergeDesc'))}
           </div>
         </div>
 
@@ -137,7 +139,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
               background: 'transparent', color: 'var(--item-text)', fontSize: 14, cursor: 'pointer',
             }}
           >
-            取消
+            {t('cancel')}
           </button>
           <button
             onClick={handleMerge}
@@ -150,7 +152,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
               cursor: !targetPath || merging ? 'not-allowed' : 'pointer',
             }}
           >
-            {merging ? '合并中…' : '确认合并'}
+            {merging ? t('mergingDots') : t('confirmMerge')}
           </button>
         </div>
       </div>

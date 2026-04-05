@@ -8,6 +8,7 @@ import {
   mergeSpeakerProfiles,
 } from '../../lib/tauri'
 import type { SpeakerProfile } from '../../types'
+import { useTranslation } from '../../contexts/I18nContext'
 
 const sectionStyle: React.CSSProperties = {
   padding: '28px 28px 60px',
@@ -62,6 +63,7 @@ interface MergeModalProps {
 }
 
 function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) {
+  const { t } = useTranslation()
   const [targetId, setTargetId] = useState('')
   const candidates = profiles.filter(p => p.id !== source.id)
 
@@ -88,15 +90,15 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
         }}
       >
         <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)' }}>
-          合并声纹
+          {t('mergeVoice')}
         </div>
         <div style={{ fontSize: 13, color: 'var(--item-meta)', lineHeight: 1.5 }}>
-          将 <strong style={{ color: 'var(--item-text)' }}>{displayName(source)}</strong> 合并到另一个说话人，合并后原档案将被删除。
+          {t('mergeVoiceDesc', { name: displayName(source) })}
         </div>
 
         {candidates.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--duration-text)' }}>
-            没有其他说话人档案可以合并。
+            {t('noOtherSpeakers')}
           </div>
         ) : (
           <select
@@ -113,7 +115,7 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
               width: '100%',
             }}
           >
-            <option value="">选择目标说话人…</option>
+            <option value="">{t('selectTargetSpeaker')}</option>
             {candidates.map(p => (
               <option key={p.id} value={p.id}>{displayName(p)}</option>
             ))}
@@ -133,7 +135,7 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
               cursor: 'pointer',
             }}
           >
-            取消
+            {t('cancel')}
           </button>
           <button
             disabled={!targetId}
@@ -149,7 +151,7 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
               fontWeight: 500,
             }}
           >
-            合并
+            {t('merge')}
           </button>
         </div>
       </div>
@@ -167,6 +169,7 @@ interface ProfileRowProps {
 }
 
 function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [nameInput, setNameInput] = useState(profile.name)
   const [merging, setMerging] = useState(false)
@@ -288,7 +291,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               />
               <button
                 onMouseDown={e => { e.preventDefault(); commitName() }}
-                title="保存"
+                title={t('save')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#27c93f', padding: 2 }}
               >
                 <Check size={13} />
@@ -299,7 +302,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
                   setNameInput(profile.name)
                   setEditing(false)
                 }}
-                title="取消"
+                title={t('cancel')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--item-meta)', padding: 2 }}
               >
                 <X size={13} />
@@ -319,13 +322,13 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               {displayName(profile)}
               {!profile.name && (
                 <span style={{ fontSize: 12, color: 'var(--duration-text)', marginLeft: 5 }}>
-                  未命名
+                  {t('unnamed')}
                 </span>
               )}
             </div>
           )}
           <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>
-            出现在 {profile.recording_count} 条录音中
+            {t('appearsIn', { count: profile.recording_count })}
           </div>
         </div>
 
@@ -334,7 +337,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
           <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
             <button
               onClick={() => setEditing(true)}
-              title="命名"
+              title={t('nameTooltip')}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--item-meta)', padding: '4px 6px', borderRadius: 4,
@@ -344,7 +347,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
             </button>
             <button
               onClick={() => setMerging(true)}
-              title="合并到…"
+              title={t('mergeTooltip')}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--item-meta)', padding: '4px 6px', borderRadius: 4,
@@ -355,7 +358,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
             <button
               onClick={handleDelete}
               onBlur={() => setConfirmDelete(false)}
-              title="删除"
+              title={t('deleteTooltip')}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: confirmDelete ? '#ff3b30' : 'var(--item-meta)',
@@ -364,7 +367,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
                 fontWeight: confirmDelete ? 600 : undefined,
               }}
             >
-              {confirmDelete ? '确认删除' : <Trash2 size={13} />}
+              {confirmDelete ? t('confirmDelete') : <Trash2 size={13} />}
             </button>
           </div>
         )}
@@ -377,6 +380,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
 // Main section
 // ---------------------------------------------------------------------------
 export default function SectionSpeakers() {
+  const { t } = useTranslation()
   const [profiles, setProfiles] = useState<SpeakerProfile[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -403,10 +407,10 @@ export default function SectionSpeakers() {
   return (
     <div style={sectionStyle}>
       <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', marginBottom: 4 }}>
-        声纹管理
+        {t('speakersSection')}
       </div>
       <div style={{ ...hintStyle, marginBottom: 20 }}>
-        录音后自动识别说话人并注册声纹档案。在此处为说话人命名，AI 整理时将使用您设置的名称。
+        {t('speakersDesc')}
       </div>
 
       {loading ? (
@@ -436,15 +440,15 @@ export default function SectionSpeakers() {
           }}
         >
           <Mic size={28} strokeWidth={1.2} />
-          <div style={{ fontSize: 14 }}>暂未检测到说话人</div>
+          <div style={{ fontSize: 14 }}>{t('noSpeakers')}</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, textAlign: 'center', maxWidth: 200 }}>
-            完成一次录音后，系统将自动识别说话人并在此处显示
+            {t('noSpeakersHint')}
           </div>
         </div>
       ) : (
         <>
           <div style={{ marginBottom: 8 }}>
-            <span style={labelStyle}>说话人档案（共 {profiles.length} 人）</span>
+            <span style={labelStyle}>{t('speakerCount', { count: profiles.length })}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {profiles.map(profile => (

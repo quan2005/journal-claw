@@ -3,6 +3,7 @@ import { RecordingItem } from './RecordingItem'
 import { Spinner } from './Spinner'
 import type { RecordingItem as RecordingItemType, TranscriptionProgress } from '../types'
 import type { RecorderStatus } from '../hooks/useRecorder'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface RecordingListProps {
   recordings: RecordingItemType[]
@@ -66,6 +67,7 @@ export function RecordingList({
   processingStates,
   newFilename,
 }: RecordingListProps) {
+  const { t } = useTranslation()
   const groups = buildGroups(recordings)
 
   const now = new Date()
@@ -93,10 +95,10 @@ export function RecordingList({
           }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--record-btn)' }}>
-              录制中
+              {t('recording')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--item-meta)', marginTop: 2 }}>
-              今天 {currentTime}
+              {t('today')} {currentTime}
             </div>
           </div>
           <div style={{
@@ -128,7 +130,7 @@ export function RecordingList({
                   }}>
                     <div style={{ width: 52, flexShrink: 0 }} />
                     <Spinner size={12} borderWidth={1.5} />
-                    <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>处理中…</span>
+                    <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>{t('processingDots')}</span>
                   </div>
                 )
               }

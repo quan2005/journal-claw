@@ -3,6 +3,7 @@ import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
 import { AiLogModal } from './AiLogModal'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface ProcessingQueueProps {
   items: QueueItem[]
@@ -70,11 +71,12 @@ function formatElapsed(secs: number): string {
 }
 
 function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDismiss: () => void; onRetry: () => void }) {
+  const { t } = useTranslation()
   if (item.status === 'converting') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 11, opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
-        转换中
+        {t('converting')}
       </span>
     )
   }
@@ -82,7 +84,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 11, opacity: 0.7 }}>
         <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--item-meta)', opacity: 0.4 }} />
-        排队中
+        {t('queued')}
       </span>
     )
   }
@@ -90,23 +92,23 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 11, opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
-        处理中
+        {t('processingItem')}
       </span>
     )
   }
   if (item.status === 'failed') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ color: '#ff453a', fontSize: 11 }}>失败</span>
+        <span style={{ color: '#ff453a', fontSize: 11 }}>{t('failed')}</span>
         <button
           onClick={(e) => { e.stopPropagation(); onRetry() }}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px',
             color: 'var(--item-meta)', fontSize: 11, lineHeight: 1,
           }}
-          title="重试"
+          title={t('retryTooltip')}
         >
-          重试
+          {t('retryLabel')}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onDismiss() }}
@@ -114,7 +116,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
             color: 'var(--item-meta)', fontSize: 12, lineHeight: 1,
           }}
-          title="关闭"
+          title={t('closeTooltip')}
         >
           ×
         </button>
@@ -124,12 +126,13 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 11, opacity: 0.7 }}>
       <span style={{ fontSize: 13 }}>✓</span>
-      完成
+      {t('done')}
     </span>
   )
 }
 
 export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLogPath, onSetActiveLogPath }: ProcessingQueueProps) {
+  const { t } = useTranslation()
   const [confirmingPath, setConfirmingPath] = useState<string | null>(null)
 
   useEffect(() => {
@@ -186,7 +189,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                     flexShrink: 0,
                     animation: 'ai-breathe 1.2s ease-in-out infinite',
                   }} />
-                  录音中
+                  {t('recordingStatus')}
                 </span>
                 {/* Real-time audio waveform — centered, dominant */}
                 <AudioWaveform level={(item.audioLevel ?? 0) * 6} />
@@ -242,18 +245,18 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
 
               {isConfirming ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, color: 'var(--item-meta)', opacity: 0.7 }}>确认取消？</span>
+                  <span style={{ fontSize: 11, color: 'var(--item-meta)', opacity: 0.7 }}>{t('confirmCancel')}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null); onCancel(item) }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 11, color: '#ff453a' }}
                   >
-                    确认
+                    {t('confirm')}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null) }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 11, color: 'var(--item-meta)', opacity: 0.6 }}
                   >
-                    返回
+                    {t('back')}
                   </button>
                 </span>
               ) : (
@@ -267,7 +270,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                         color: 'var(--item-meta)', fontSize: 12, lineHeight: 1, flexShrink: 0,
                         opacity: 0.4,
                       }}
-                      title="取消"
+                      title={t('cancelTooltip')}
                     >
                       ×
                     </button>

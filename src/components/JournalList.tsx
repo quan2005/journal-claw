@@ -3,6 +3,7 @@ import type { JournalEntry } from '../types'
 import { JournalItem } from './JournalItem'
 import { JournalContextMenu } from './JournalContextMenu'
 import { deleteJournalEntry } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface JournalListProps {
   entries: JournalEntry[]
@@ -37,12 +38,12 @@ function ListSkeleton() {
   )
 }
 
-// Day of week from year_month + day
-function getDayOfWeek(yearMonth: string, day: number): string {
+// Day of week from year_month + day — caller provides locale weekdays array
+function getDayOfWeek(yearMonth: string, day: number, weekdays: readonly string[]): string {
   const year = 2000 + parseInt(yearMonth.slice(0, 2))
   const month = parseInt(yearMonth.slice(2, 4)) - 1
   const d = new Date(year, month, day)
-  return ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]
+  return weekdays[d.getDay()] ?? ''
 }
 
 // Check if an entry's date is today
@@ -54,6 +55,7 @@ function isToday(yearMonth: string, day: number): boolean {
 }
 
 export function JournalList({ entries, loading, selectedPath, onSelect }: JournalListProps) {
+  const { t, s, lang } = useTranslation()
   const [contextMenu, setContextMenu] = useState<{ entry: JournalEntry; x: number; y: number } | null>(null)
 
   if (loading) {
@@ -79,7 +81,8 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
   function formatMonthLabel(ym: string): string {
     const year = 2000 + parseInt(ym.slice(0, 2))
     const month = parseInt(ym.slice(2, 4))
-    return `${year}年${month}月`
+    const monthName = s.monthNames[month - 1] ?? String(month)
+    return lang === 'zh' ? `${year}年${month}月` : `${monthName} ${year}`
   }
 
   return (
@@ -128,7 +131,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
                         letterSpacing: '0.08em',
                         color: today ? 'var(--date-today-weekday)' : 'var(--item-meta)',
                       }}>
-                        {getDayOfWeek(ym, day)}
+                        {getDayOfWeek(ym, day, s.weekdays)}
                       </span>
                     </div>
 
@@ -151,7 +154,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
 
         {entries.length === 0 && (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--item-meta)', fontSize: 13 }}>
-            还没有日志条目。点击录音按钮或拖入文件开始记录。
+            {t('noEntries')}
           </div>
         )}
       </div>

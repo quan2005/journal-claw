@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { openClaudeTerminal } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface AiStatusPillProps {
   isProcessing: boolean
@@ -7,6 +8,7 @@ interface AiStatusPillProps {
 }
 
 export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillProps) {
+  const { t } = useTranslation()
   // Track visual state separately to implement 2s linger after processing ends
   const [showActive, setShowActive] = useState(false)
   const [lingerName, setLingerName] = useState<string | undefined>(undefined)
@@ -69,8 +71,8 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
         whiteSpace: 'nowrap',
       }}>
         {active
-          ? lingerName ? `${lingerName} · 整理中` : '整理中…'
-          : '谨迹待命中'}
+          ? lingerName ? t('processingNamed', { name: lingerName }) : t('processing')
+          : t('aiReady')}
       </span>
     </div>
   )

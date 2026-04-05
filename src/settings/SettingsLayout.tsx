@@ -15,6 +15,7 @@ import SectionPermissions from './components/SectionPermissions'
 import SectionPlugins from './components/SectionPlugins'
 import SectionAbout from './components/SectionAbout'
 import { ALL_NAV_IDS, SECTION_TOP_GUTTER, type NavId, resolveActiveNav } from './navigation'
+import { useTranslation } from '../contexts/I18nContext'
 
 interface SettingsLayoutProps {
   height: string
@@ -32,15 +33,6 @@ type NavItem = {
 interface SettingsContentProps {
   registerSectionRef: (id: NavId, el: HTMLElement | null) => void
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { id: 'general', label: '通用', icon: Settings2 },
-  { id: 'ai', label: 'AI 引擎', icon: Cpu },
-  { id: 'voice', label: '语音转写', icon: Mic },
-  { id: 'permissions', label: '授权管理', icon: ShieldCheck },
-  { id: 'plugins', label: '技能插件', icon: Puzzle },
-  { id: 'about', label: '关于', icon: Info },
-]
 
 const navIconStyle: React.CSSProperties = {
   width: 16,
@@ -65,6 +57,15 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
 })
 
 export function SettingsLayout({ height, initialSection, onSectionConsumed, onClose }: SettingsLayoutProps) {
+  const { t } = useTranslation()
+  const NAV_ITEMS: NavItem[] = [
+    { id: 'general', label: t('general'), icon: Settings2 },
+    { id: 'ai', label: t('aiEngine'), icon: Cpu },
+    { id: 'voice', label: t('voice'), icon: Mic },
+    { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
+    { id: 'plugins', label: t('plugins'), icon: Puzzle },
+    { id: 'about', label: t('about'), icon: Info },
+  ]
   const [activeNav, setActiveNav] = useState<NavId>('general')
   const scrollRef = useRef<HTMLDivElement>(null)
   const sectionRefs = useRef<Partial<Record<NavId, HTMLElement>>>({})
@@ -319,7 +320,7 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
                   <polyline points="15 18 9 12 15 6"/>
                 </svg>
               </span>
-              <span style={{ minWidth: 0 }}>返回</span>
+              <span style={{ minWidth: 0 }}>{t('back')}</span>
             </button>
           </>
         )}

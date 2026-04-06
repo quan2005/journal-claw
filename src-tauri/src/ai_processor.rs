@@ -89,6 +89,22 @@ const SCRIPT_IDENTITY_CREATE: &str =
 const WORKSPACE_USER_CLAUDE_MD: &str =
     include_str!("../resources/workspace-template/CLAUDE.md");
 
+// ── Ideate skill template ───────────────────────
+const SKILL_IDEATE_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/SKILL.md");
+const SKILL_IDEATE_VISUAL_COMPANION: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/visual-companion.md");
+const SKILL_IDEATE_START_SERVER: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/start-server.sh");
+const SKILL_IDEATE_STOP_SERVER: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/stop-server.sh");
+const SKILL_IDEATE_SERVER_CJS: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/server.cjs");
+const SKILL_IDEATE_FRAME_TEMPLATE: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/frame-template.html");
+const SKILL_IDEATE_HELPER_JS: &str =
+    include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/helper.js");
+
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
@@ -117,6 +133,34 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
             {
                 use std::os::unix::fs::PermissionsExt;
                 let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755));
+            }
+        }
+    }
+
+    // ── Sync ideate skill ───────────────────────────
+    let ideate_dir = dot_claude.join("skills").join("ideate");
+    let ideate_scripts = ideate_dir.join("scripts");
+    if let Err(e) = std::fs::create_dir_all(&ideate_scripts) {
+        eprintln!("[ai_processor] warn: failed to create skills/ideate/scripts dir: {}", e);
+    } else {
+        let _ = std::fs::write(ideate_dir.join("SKILL.md"), SKILL_IDEATE_MD);
+        let _ = std::fs::write(ideate_dir.join("visual-companion.md"), SKILL_IDEATE_VISUAL_COMPANION);
+
+        let skill_scripts: &[(&str, &str, bool)] = &[
+            ("start-server.sh", SKILL_IDEATE_START_SERVER, true),
+            ("stop-server.sh", SKILL_IDEATE_STOP_SERVER, true),
+            ("server.cjs", SKILL_IDEATE_SERVER_CJS, false),
+            ("frame-template.html", SKILL_IDEATE_FRAME_TEMPLATE, false),
+            ("helper.js", SKILL_IDEATE_HELPER_JS, false),
+        ];
+        for (name, content, executable) in skill_scripts {
+            let path = ideate_scripts.join(name);
+            if std::fs::write(&path, content).is_ok() && *executable {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755));
+                }
             }
         }
     }

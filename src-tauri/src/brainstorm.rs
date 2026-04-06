@@ -218,7 +218,7 @@ pub fn open_brainstorm_terminal(
 
         let escaped_text = text.replace('\'', "'\\''").replace('"', "\\\"");
         let cmd = format!(
-            "cd '{}' && '{}' -p '/ideate {}' --session-id {}",
+            "cd '{}' && '{}' '/ideate {}' --session-id {}",
             workspace.replace('\'', "'\\''"),
             cli.replace('\'', "'\\''"),
             escaped_text,

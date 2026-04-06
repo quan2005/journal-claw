@@ -27,7 +27,7 @@
     → 生成 session_id
     → 写入映射文件
     → AppleScript 打开终端新 tab，设 tab title = "ideate-<短码>"
-    → 运行: claude -p "/ideate <todo_text>" --session-id <id> --cwd <workspace>
+    → 运行: claude '/ideate <todo_text>' --session-id <id> --cwd <workspace>
 
   Case 2: 终端仍在运行
     → AppleScript 按 tab title 查找

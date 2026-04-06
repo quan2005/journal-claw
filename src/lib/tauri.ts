@@ -269,3 +269,7 @@ export const setTodoDue = (lineIndex: number, due: string | null, doneFile: bool
 
 export const updateTodoText = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
   invoke<void>('update_todo_text', { lineIndex, text, doneFile })
+
+// Brainstorm terminal
+export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile: boolean): Promise<void> =>
+  invoke<void>('open_brainstorm_terminal', { text, lineIndex, doneFile })

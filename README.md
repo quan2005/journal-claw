@@ -40,7 +40,6 @@ The output — searchable, tagged, linked journal entries — shows up automatic
 - [ ] **Multi-AI** — plug in different providers (Claude, OpenAI, local models)
 - [ ] **Skill plugins** — extensible processing pipeline, user-defined workflows
 - [ ] **Auto-organize** — scheduled or trigger-based tagging and summarization
-- [ ] **Conversational UI** — chat interface for follow-up and iterative refinement
 - [ ] **Remote control** — Telegram / WeChat bot to trigger recordings and query journal from anywhere
 
 ## Tech Stack

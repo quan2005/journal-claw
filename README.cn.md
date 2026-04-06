@@ -40,7 +40,6 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 - [ ] **多 AI 接入** — 支持切换不同 AI 服务（Claude、OpenAI、本地模型等）
 - [ ] **Skill 插件** — 可扩展的技能系统，用户自定义处理流程
 - [ ] **自动整理** — 定时或触发式自动归类、打标签、生成摘要
-- [ ] **对话式交互** — 从单向处理改为聊天界面，支持追问和迭代优化
 - [ ] **IM 远程控制** — 配置 Telegram / 微信等聊天工具，随时随地发消息触发录音、查询日志、添加待办
 
 ## 技术栈

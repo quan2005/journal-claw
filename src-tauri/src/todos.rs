@@ -348,7 +348,24 @@ pub fn update_todo_text_in_workspace(workspace: &str, line_index: usize, new_tex
 #[tauri::command]
 pub fn update_todo_text(app: tauri::AppHandle, line_index: usize, text: String, done_file: bool) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
-    update_todo_text_in_workspace(&cfg.workspace_path, line_index, &text, done_file)
+    // Read old text before updating
+    let old_text = {
+        let content = if done_file { read_done_file(&cfg.workspace_path) } else { read_todos_file(&cfg.workspace_path) };
+        let lines: Vec<&str> = content.lines().collect();
+        if line_index < lines.len() {
+            parse_todo_line(lines[line_index], line_index).map(|t| t.text)
+        } else {
+            None
+        }
+    };
+    update_todo_text_in_workspace(&cfg.workspace_path, line_index, &text, done_file)?;
+    // Sync brainstorm session key if text changed
+    if let Some(old) = old_text {
+        if old != text {
+            crate::brainstorm::rename_session_key(&cfg.workspace_path, &old, &text);
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

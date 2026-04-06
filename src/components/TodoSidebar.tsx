@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
+import { openBrainstormTerminal } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({ initialValue, onSelect, onClose }: {
@@ -416,6 +417,16 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
                   <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="15" x2="15" y2="15"/>
                 </svg>
                 {t('clearDueDate')}
+              </div>
+            )}
+            {!contextMenu.doneFile && (
+              <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
+                onClick={() => { openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18h6"/><path d="M10 22h4"/>
+                  <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>
+                </svg>
+                {t('exploreInDepth')}
               </div>
             )}
             <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />

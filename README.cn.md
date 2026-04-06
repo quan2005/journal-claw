@@ -37,7 +37,6 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 ## Roadmap
 
 - [ ] **待办清单** — 从日志中提取 TODO，独立管理和追踪
-- [ ] **更换 AI 引擎** — 从 Claude CLI 外部进程迁移到内嵌推理引擎
 - [ ] **多 AI 接入** — 支持切换不同 AI 服务（Claude、OpenAI、本地模型等）
 - [ ] **Skill 插件** — 可扩展的技能系统，用户自定义处理流程
 - [ ] **自动整理** — 定时或触发式自动归类、打标签、生成摘要

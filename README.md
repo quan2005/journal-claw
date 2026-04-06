@@ -37,7 +37,6 @@ The output — searchable, tagged, linked journal entries — shows up automatic
 ## Roadmap
 
 - [ ] **Todo extraction** — pull action items from journal entries into a standalone task list
-- [ ] **AI engine swap** — move from Claude CLI subprocess to embedded inference
 - [ ] **Multi-AI** — plug in different providers (Claude, OpenAI, local models)
 - [ ] **Skill plugins** — extensible processing pipeline, user-defined workflows
 - [ ] **Auto-organize** — scheduled or trigger-based tagging and summarization

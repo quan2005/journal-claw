@@ -2,6 +2,7 @@ mod ai_processor;
 mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
+mod brainstorm;
 mod config;
 mod identity;
 mod journal;
@@ -352,6 +353,7 @@ fn main() {
             todos::delete_todo,
             todos::set_todo_due,
             todos::update_todo_text,
+            brainstorm::open_brainstorm_terminal,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

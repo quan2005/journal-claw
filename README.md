@@ -1,5 +1,7 @@
 # JournalClaw
 
+[中文](README.cn.md)
+
 You capture. AI organizes.
 
 JournalClaw is a macOS desktop app for knowledge workers who think faster than they type. Drop a recording, paste some notes, drag in a file — JournalClaw turns the raw material into structured journal entries.
@@ -92,18 +94,3 @@ npm run tauri build      # Build → src-tauri/target/release/bundle/
 ```
 
 First run requires microphone permission: System Settings → Privacy & Security → Microphone.
-
----
-
-## 中文说明
-
-**谨迹** — 你负责思考，AI 负责剩下的。
-
-谨迹是一款 macOS 桌面应用，帮助知识工作者把录音、文件、随手记录变成整理好的日志。一键录音，一次粘贴，一个拖拽——谨迹自动生成结构化日志条目。
-
-**核心理念**：先捕捉，后整理。Andrej Karpathy 的「追加-回顾」笔记法的精髓：记录的摩擦感会扼杀思维，价值在于回顾而非当下的整理。谨迹让捕捉零摩擦，AI 完成剩余的组织工作。
-
-**快速上手**：
-1. 从 [Releases](https://github.com/quan2005/journal/releases) 下载最新 `.dmg`，拖入应用程序
-2. 安装 [Claude CLI](https://claude.ai/download)，确保 `claude` 命令可用
-3. 打开谨迹，在设置中配置工作区路径，开始录音或导入文件

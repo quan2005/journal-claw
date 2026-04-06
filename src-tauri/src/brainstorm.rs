@@ -59,122 +59,84 @@ pub fn rename_session_key(workspace: &str, old_text: &str, new_text: &str) {
     }
 }
 
-/// 检测 iTerm2 是否正在运行
-fn is_iterm_running() -> bool {
-    let output = std::process::Command::new("osascript")
-        .args(["-e", "tell application \"System Events\" to (name of processes) contains \"iTerm2\""])
-        .output();
-    match output {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "true",
-        Err(_) => false,
-    }
+/// PID/app file paths for a session (stored in temp dir)
+fn pid_file(session_short: &str) -> PathBuf {
+    std::env::temp_dir().join(format!("journal-ideate-{}.pid", session_short))
 }
 
-/// 尝试激活已有终端 tab（按 tab title 查找）
-fn activate_terminal_tab(tab_title: &str) -> bool {
-    if is_iterm_running() {
-        activate_iterm_tab(tab_title)
-    } else {
-        activate_terminal_app_tab(tab_title)
-    }
+fn app_file(session_short: &str) -> PathBuf {
+    std::env::temp_dir().join(format!("journal-ideate-{}.app", session_short))
 }
 
-fn activate_iterm_tab(tab_title: &str) -> bool {
-    let script = format!(
-        r#"tell application "iTerm2"
-    repeat with w in windows
-        repeat with t in tabs of w
-            repeat with s in sessions of t
-                if name of s contains "{}" then
-                    select t
-                    set index of w to 1
-                    activate
-                    return true
-                end if
-            end repeat
-        end repeat
-    end repeat
-    return false
-end tell"#,
-        tab_title
+/// Check if a terminal process is still alive, and activate it if so.
+fn try_activate_existing(session_short: &str) -> bool {
+    let pf = pid_file(session_short);
+    let af = app_file(session_short);
+
+    if let Ok(pid_str) = std::fs::read_to_string(&pf) {
+        if let Ok(pid) = pid_str.trim().parse::<i32>() {
+            if unsafe { libc::kill(pid, 0) == 0 } {
+                // Process alive — activate the terminal app
+                if let Ok(app_name) = std::fs::read_to_string(&af) {
+                    let name = app_name.trim().to_string();
+                    if !name.is_empty() {
+                        let _ = std::process::Command::new("osascript")
+                            .args(["-e", &format!("tell application \"{}\" to activate", name)])
+                            .spawn();
+                    }
+                }
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Spawn a terminal running a command, tracking PID and terminal app name.
+/// Uses the same .command file approach as open_claude_terminal.
+fn spawn_tracked_terminal(
+    session_short: &str,
+    workspace: &str,
+    command: &str,
+) -> Result<(), String> {
+    let pf = pid_file(session_short);
+    let af = app_file(session_short);
+
+    let detect_terminal = format!(
+        "_pid=$$; while true; do _ppid=$(ps -o ppid= -p $_pid 2>/dev/null | tr -d ' '); \
+        [ -z \"$_ppid\" ] || [ \"$_ppid\" = \"0\" ] || [ \"$_ppid\" = \"1\" ] && break; \
+        _comm=$(ps -o comm= -p $_ppid 2>/dev/null); \
+        case \"$_comm\" in \
+        *Terminal*|*iTerm*|*Warp*|*Alacritty*|*kitty*|*WezTerm*|*Hyper*|*Ghostty*) \
+        echo \"$_comm\" | awk '{{print $1}}' > '{}'; break;; esac; _pid=$_ppid; done",
+        af.display(),
     );
-    let output = std::process::Command::new("osascript")
-        .args(["-e", &script])
-        .output();
-    match output {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "true",
-        Err(_) => false,
-    }
-}
 
-fn activate_terminal_app_tab(tab_title: &str) -> bool {
     let script = format!(
-        r#"tell application "Terminal"
-    repeat with w in windows
-        repeat with t in tabs of w
-            if custom title of t is "{}" then
-                set selected tab of w to t
-                set index of w to 1
-                activate
-                return true
-            end if
-        end repeat
-    end repeat
-    return false
-end tell"#,
-        tab_title
+        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\n{}\nrm -f '{}' '{}'",
+        pf.display(),
+        detect_terminal,
+        workspace,
+        command,
+        pf.display(),
+        af.display(),
     );
-    let output = std::process::Command::new("osascript")
-        .args(["-e", &script])
-        .output();
-    match output {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "true",
-        Err(_) => false,
+
+    let tmp_path = std::env::temp_dir().join(format!("journal-ideate-{}.command", session_short));
+    std::fs::write(&tmp_path, &script).map_err(|e| e.to_string())?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&tmp_path, std::fs::Permissions::from_mode(0o755))
+            .map_err(|e| e.to_string())?;
     }
-}
 
-/// 打开新终端 tab 并执行命令
-fn open_terminal_tab(tab_title: &str, command: &str) {
-    if is_iterm_running() {
-        open_iterm_tab(tab_title, command);
-    } else {
-        open_terminal_app_tab(tab_title, command);
-    }
-}
-
-fn open_iterm_tab(tab_title: &str, command: &str) {
-    let script = format!(
-        r#"tell application "iTerm2"
-    activate
-    tell current window
-        set newTab to (create tab with default profile)
-        tell current session of newTab
-            set name to "{}"
-            write text "{}"
-        end tell
-    end tell
-end tell"#,
-        tab_title,
-        command.replace('"', "\\\"")
-    );
-    let _ = std::process::Command::new("osascript")
-        .args(["-e", &script])
-        .spawn();
-}
-
-fn open_terminal_app_tab(tab_title: &str, command: &str) {
-    let script = format!(
-        r#"tell application "Terminal"
-    activate
-    do script "{}"
-    set custom title of selected tab of front window to "{}"
-end tell"#,
-        command.replace('"', "\\\""),
-        tab_title
-    );
-    let _ = std::process::Command::new("osascript")
-        .args(["-e", &script])
-        .spawn();
+    std::process::Command::new("open")
+        .arg(&tmp_path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -195,36 +157,35 @@ pub fn open_brainstorm_terminal(
     };
 
     let mut store = load_sessions(workspace);
-    let tab_title_prefix = "ideate";
 
     if let Some(info) = store.sessions.get(&text) {
-        // Session exists — try to activate existing tab
-        let tab_title = format!("{}-{}", tab_title_prefix, &info.session_id[..8]);
-        if activate_terminal_tab(&tab_title) {
+        let short = &info.session_id[..8];
+
+        // Terminal still alive → just activate
+        if try_activate_existing(short) {
             return Ok(());
         }
-        // Tab gone — resume session
+
+        // Terminal closed → resume session
         let cmd = format!(
-            "cd '{}' && '{}' --resume --session-id {}",
-            workspace.replace('\'', "'\\''"),
+            "'{}' --resume --session-id {}",
             cli.replace('\'', "'\\''"),
             info.session_id
         );
-        open_terminal_tab(&tab_title, &cmd);
+        spawn_tracked_terminal(short, workspace, &cmd)?;
     } else {
         // New session
         let session_id = generate_session_id();
-        let tab_title = format!("{}-{}", tab_title_prefix, &session_id[..8]);
+        let short = session_id[..8].to_string();
 
-        let escaped_text = text.replace('\'', "'\\''").replace('"', "\\\"");
+        let escaped_text = text.replace('\'', "'\\''");
         let cmd = format!(
-            "cd '{}' && '{}' '/ideate {}' --session-id {}",
-            workspace.replace('\'', "'\\''"),
+            "'{}' '/ideate {}' --session-id {}",
             cli.replace('\'', "'\\''"),
             escaped_text,
             session_id
         );
-        open_terminal_tab(&tab_title, &cmd);
+        spawn_tracked_terminal(&short, workspace, &cmd)?;
 
         let now = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         store.sessions.insert(

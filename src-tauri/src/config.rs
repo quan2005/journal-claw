@@ -78,31 +78,31 @@ pub fn augmented_path() -> String {
     }
 
     // Node version managers — each may install `claude` as a global npm package.
-    // We scan for all installed versions and add their bin dirs.
+
+    // Volta: its bin dir contains shims directly (no version subdirs to scan).
+    let volta_bin = format!("{}/.volta/bin", home);
+    if std::path::Path::new(&volta_bin).exists() {
+        dirs.push(volta_bin);
+    }
+
+    // nvm / fnm / n: scan version directories for bin/
     let node_manager_roots: Vec<std::path::PathBuf> = vec![
         // nvm
         std::path::PathBuf::from(
             std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{}/.nvm", home)),
         )
         .join("versions/node"),
-        // fnm
+        // fnm (node-versions subdir)
         std::path::PathBuf::from(
-            std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm/node-versions", home)),
-        ),
-        // volta
-        std::path::PathBuf::from(format!("{}/.volta/bin", home)),
+            std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm", home)),
+        )
+        .join("node-versions"),
         // n (tj/n)
         std::path::PathBuf::from(
             std::env::var("N_PREFIX").unwrap_or_else(|_| "/usr/local".to_string()),
         )
         .join("n/versions/node"),
     ];
-
-    // Volta: its bin dir contains shims directly
-    let volta_bin = format!("{}/.volta/bin", home);
-    if std::path::Path::new(&volta_bin).exists() {
-        dirs.push(volta_bin);
-    }
 
     // For nvm / fnm / n: scan version directories for bin/
     for root in &node_manager_roots {
@@ -125,7 +125,7 @@ pub fn augmented_path() -> String {
     // Also check fnm aliases (e.g. ~/.local/share/fnm/aliases/default/bin)
     let fnm_aliases = format!(
         "{}/aliases",
-        std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm/node-versions", home))
+        std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm", home))
     );
     if let Ok(entries) = std::fs::read_dir(&fnm_aliases) {
         for e in entries.filter_map(|e| e.ok()) {

@@ -103,10 +103,10 @@ describe('Dark theme invariance', () => {
       path.resolve(__dirname, '../lib/tags.ts'),
       'utf-8',
     )
-    // Dark theme textAlpha = 0.72
-    expect(tagsSource).toMatch(/dark\s*\?\s*0\.72/)
-    // Dark theme bgAlpha = 0.12
-    expect(tagsSource).toMatch(/dark\s*\?\s*0\.12/)
+    // Dark theme textAlpha = 0.65
+    expect(tagsSource).toMatch(/dark\s*\?\s*0\.65/)
+    // Dark theme bgAlpha = 0.10
+    expect(tagsSource).toMatch(/dark\s*\?\s*0\.10/)
   })
 })
 
@@ -162,9 +162,9 @@ describe('Accent colors unchanged', () => {
     '--record-btn': '#4a6a7a',
     '--record-btn-hover': '#3a5a6a',
     '--item-selected-text': '#3a5a6a',
-    '--md-h1': '#3a5a6a',
-    '--md-h2': '#3a5a6a',
-    '--md-strong': '#3a5a6a',
+    '--md-h1': '#1c1c1e',
+    '--md-h2': '#2a3038',
+    '--md-strong': '#1c1c1e',
     '--ai-pill-text': '#3a5a6a',
     '--ai-pill-active-text': '#2a4a5a',
     '--ai-pill-active-border': '#4a6a7a',

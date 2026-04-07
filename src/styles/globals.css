@@ -89,11 +89,11 @@
   --dock-kbd-border: #b8c8d0;
 
   /* Markdown typography */
-  --md-h1: #3a5a6a;
-  --md-h2: #3a5a6a;
+  --md-h1: #1c1c1e;
+  --md-h2: #2a3038;
   --md-h3: #404850;
   --md-text: #2a3038;
-  --md-strong: #3a5a6a;
+  --md-strong: #1c1c1e;
   --md-em: #2a3038;
   --md-bullet: #586068;
   --md-code-bg: #e8eaec;
@@ -689,11 +689,11 @@ html, body, #root {
   --dock-kbd-bg: #e0e4e8;
   --dock-kbd-text: #3a5a6a;
   --dock-kbd-border: #b8c8d0;
-  --md-h1: #3a5a6a;
-  --md-h2: #3a5a6a;
+  --md-h1: #1c1c1e;
+  --md-h2: #2a3038;
   --md-h3: #404850;
   --md-text: #2a3038;
-  --md-strong: #3a5a6a;
+  --md-strong: #1c1c1e;
   --md-em: #2a3038;
   --md-bullet: #586068;
   --md-code-bg: #e8eaec;

@@ -9,19 +9,14 @@ export interface TagStyle {
   rgb: string
 }
 
-// Curated palette — high contrast on dark backgrounds, muted on light.
-// Hues spread evenly to minimize collision between common tags.
+// Monochrome tinted-neutral palette — ink-cyan tones, subtle and cohesive.
+// All entries are close blue-gray values; hash provides slight variation only.
 const PALETTE = [
-  [255, 149,   0],  // orange
-  [ 88,  86, 214],  // indigo
-  [ 48, 176, 199],  // teal
-  [ 52, 199,  89],  // green
-  [255,  59,  48],  // red
-  [  0, 122, 255],  // blue
-  [124,  58, 237],  // purple
-  [255, 159,  10],  // amber
-  [ 50, 173, 230],  // sky
-  [175, 82,  222],  // violet
+  [100, 110, 120],  // ink-cyan neutral 1
+  [110, 118, 128],  // ink-cyan neutral 2
+  [ 90, 100, 112],  // ink-cyan neutral 3
+  [105, 112, 122],  // ink-cyan neutral 4
+  [ 95, 105, 116],  // ink-cyan neutral 5
 ]
 
 /** Simple string hash → stable unsigned 32-bit integer. */
@@ -40,8 +35,8 @@ export function resolveTag(tag: string): TagStyle {
   // Detect current theme from document attribute
   const dark = typeof document !== 'undefined' &&
     document.documentElement.getAttribute('data-theme') === 'dark'
-  const textAlpha = dark ? 0.72 : 0.90
-  const bgAlpha = dark ? 0.12 : 0.18
+  const textAlpha = dark ? 0.65 : 0.80
+  const bgAlpha = dark ? 0.10 : 0.12
   return {
     label: tag,
     color: `rgba(${rgb},${textAlpha})`,

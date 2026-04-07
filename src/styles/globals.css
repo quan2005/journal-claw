@@ -25,6 +25,15 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* ── Spacing tokens ────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+
   --bg: #f5f6f7;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
@@ -143,19 +152,19 @@
 
   /* Todo sidebar */
   --todo-row-bg: rgba(0,0,0,0.02);
-  --todo-checkbox-border: #bbb;
+  --todo-checkbox-border: #b4b8c0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f0f0f;
     --titlebar-bg: #161616;
-    --divider: #222;
+    --divider: #1e2228;
     --scrollbar-thumb: rgba(255,255,255,0.10);
     --scrollbar-thumb-hover: rgba(255,255,255,0.18);
-    --month-label: #3a3a3a;
+    --month-label: #353840;
     --item-text: #e8e8e8;
-    --item-meta: #aaaaaa;
+    --item-meta: #a2a6ae;
     --duration-text: #48484a;
     --accent: #ff375f;
     --record-btn: #C8933B;
@@ -163,13 +172,13 @@
     --record-btn-icon: #0f0f0f;
     --segment-bg: rgba(128,128,128,0.08);
     --segment-active-bg: rgba(200,147,58,0.12);
-    --segment-text: #666;
+    --segment-text: #5e6268;
     --segment-active-text: #C8933B;
     --record-highlight: rgba(200,147,59,0.06);
     --record-highlight-bar: rgba(200,147,59,1);
     --item-icon-bg: #2c2c2e;
     --item-hover-bg: rgba(255, 255, 255, 0.03);
-    --item-selected-bg: #1c1c1c;
+    --item-selected-bg: #1a1c20;
     --item-selected-text: #C8933B;
     --item-selected-meta: #a07830;
     --sheet-bg: var(--bg);
@@ -181,7 +190,7 @@
 
     /* Sidebar */
     --sidebar-bg: #141414;
-    --sidebar-month: #3a3a3a;
+    --sidebar-month: #353840;
 
     /* AI Status Pill */
     --ai-pill-bg: #1a1708;
@@ -196,8 +205,8 @@
     --dock-bg: #141414;
     --dock-border: #252525;
     --dock-dropzone-border: #282828;
-    --dock-dropzone-text: #aaaaaa;
-    --dock-dropzone-hint: #888888;
+    --dock-dropzone-text: #a2a6ae;
+    --dock-dropzone-hint: #585c64;
     --dock-dropzone-hover-border: #C8933B;
     --dock-dropzone-hover-bg: #1a1408;
     --dock-paste-border: #C8933B;
@@ -210,19 +219,19 @@
     /* Markdown typography — dark */
     --md-h1: #C8933B;
     --md-h2: #C8933B;
-    --md-h3: #909090;
-    --md-text: #b0b0b0;
+    --md-h3: #b0b4bc;
+    --md-text: #a8acb4;
     --md-strong: #C8933B;
-    --md-em: #cccccc;
-    --md-bullet: #888888;
+    --md-em: #c4c8d0;
+    --md-bullet: #808488;
     --md-code-bg: rgba(255,255,255,0.08);
     --md-code-text: #88b4e0;
     --md-pre-bg: #141414;
     --md-pre-text: #d4d4d4;
     --md-quote-bar: #48484a;
-    --md-quote-text: #c0c0c0;
+    --md-quote-text: #a8acb4;
     --md-checkbox-border: #48484a;
-    --md-checkbox-checked: #4a6a8a;
+    --md-checkbox-checked: #0a84ff;
     --md-checkbox-done-text: #48484a;
 
     /* Markdown links — dark */
@@ -231,13 +240,13 @@
 
     /* Detail panel */
     --detail-bg: var(--bg);
-    --detail-section-label: #3a3a3a;
-    --detail-summary: #606060;
+    --detail-section-label: #353840;
+    --detail-summary: #585c64;
     --detail-case-bg: #141414;
-    --detail-case-border: #222;
-    --detail-case-title: #bbb;
-    --detail-case-key: #404040;
-    --detail-case-val: #808080;
+    --detail-case-border: #1e2228;
+    --detail-case-title: #b4b8c0;
+    --detail-case-key: #3a3e46;
+    --detail-case-val: #787c84;
 
     /* Source badges */
     --badge-voice-bg: #2a1f0f;
@@ -252,12 +261,12 @@
 
     /* Processing queue */
     --queue-bg: #1c1c1e;
-    --queue-border: #333;
+    --queue-border: #2e3238;
     --queue-shadow: rgba(0,0,0,0.3);
 
     /* Context menu */
     --context-menu-bg: #1e1e1e;
-    --context-menu-border: #333;
+    --context-menu-border: #2e3238;
     --context-menu-shadow: rgba(0,0,0,0.5);
   }
 }
@@ -266,12 +275,12 @@
 [data-theme="dark"] {
   --bg: #0f0f0f;
   --titlebar-bg: #161616;
-  --divider: #222;
+  --divider: #1e2228;
   --scrollbar-thumb: rgba(255,255,255,0.10);
   --scrollbar-thumb-hover: rgba(255,255,255,0.18);
-  --month-label: #3a3a3a;
+  --month-label: #353840;
   --item-text: #e8e8e8;
-  --item-meta: #aaaaaa;
+  --item-meta: #a2a6ae;
   --duration-text: #48484a;
   --accent: #ff375f;
   --record-btn: #C8933B;
@@ -279,13 +288,13 @@
   --record-btn-icon: #0f0f0f;
   --segment-bg: rgba(128,128,128,0.08);
   --segment-active-bg: rgba(200,147,58,0.12);
-  --segment-text: #666;
+  --segment-text: #5e6268;
   --segment-active-text: #C8933B;
   --record-highlight: rgba(200,147,59,0.06);
   --record-highlight-bar: rgba(200,147,59,1);
   --item-icon-bg: #2c2c2e;
   --item-hover-bg: rgba(255, 255, 255, 0.03);
-  --item-selected-bg: #1c1c1c;
+  --item-selected-bg: #1a1c20;
   --item-selected-text: #C8933B;
   --item-selected-meta: #a07830;
   --sheet-bg: var(--bg);
@@ -293,7 +302,7 @@
   --date-today-number: #C8933B;
   --date-today-weekday: #9a6a20;
   --sidebar-bg: #141414;
-  --sidebar-month: #3a3a3a;
+  --sidebar-month: #353840;
   --ai-pill-bg: #1a1708;
   --ai-pill-border: #3a3018;
   --ai-pill-text: #C8933B;
@@ -304,8 +313,8 @@
   --dock-bg: #141414;
   --dock-border: #252525;
   --dock-dropzone-border: #282828;
-  --dock-dropzone-text: #aaaaaa;
-  --dock-dropzone-hint: #888888;
+  --dock-dropzone-text: #a2a6ae;
+  --dock-dropzone-hint: #585c64;
   --dock-dropzone-hover-border: #C8933B;
   --dock-dropzone-hover-bg: #1a1408;
   --dock-paste-border: #C8933B;
@@ -316,30 +325,30 @@
   --dock-kbd-border: #6a4f20;
   --md-h1: #C8933B;
   --md-h2: #C8933B;
-  --md-h3: #909090;
-  --md-text: #b0b0b0;
+  --md-h3: #b0b4bc;
+  --md-text: #a8acb4;
   --md-strong: #C8933B;
-  --md-em: #cccccc;
-  --md-bullet: #888888;
+  --md-em: #c4c8d0;
+  --md-bullet: #808488;
   --md-code-bg: rgba(255,255,255,0.08);
   --md-code-text: #88b4e0;
   --md-pre-bg: #141414;
   --md-pre-text: #d4d4d4;
   --md-quote-bar: #48484a;
-  --md-quote-text: #c0c0c0;
+  --md-quote-text: #a8acb4;
   --md-checkbox-border: #48484a;
-  --md-checkbox-checked: #4a6a8a;
+  --md-checkbox-checked: #0a84ff;
   --md-checkbox-done-text: #48484a;
   --md-link: #6cb6ff;
   --md-link-hover: #8cc8ff;
   --detail-bg: var(--bg);
-  --detail-section-label: #3a3a3a;
-  --detail-summary: #606060;
+  --detail-section-label: #353840;
+  --detail-summary: #585c64;
   --detail-case-bg: #141414;
-  --detail-case-border: #222;
-  --detail-case-title: #bbb;
-  --detail-case-key: #404040;
-  --detail-case-val: #808080;
+  --detail-case-border: #1e2228;
+  --detail-case-title: #b4b8c0;
+  --detail-case-key: #3a3e46;
+  --detail-case-val: #787c84;
   --badge-voice-bg: #2a1f0f;
   --badge-voice-text: #c8933a;
   --badge-voice-border: #4a3010;
@@ -350,8 +359,11 @@
   --badge-ai-text: #7a7ac8;
   --badge-ai-border: #2a2a50;
   --queue-bg: #1c1c1e;
-  --queue-border: #333;
+  --queue-border: #2e3238;
   --queue-shadow: rgba(0,0,0,0.3);
+  --context-menu-bg: #1e1e1e;
+  --context-menu-border: #2e3238;
+  --context-menu-shadow: rgba(0,0,0,0.5);
 
   /* Todo sidebar */
   --todo-row-bg: rgba(255,255,255,0.02);
@@ -542,100 +554,6 @@ html, body, #root {
   .hljs-tag             { color: #e45649; }
   .hljs-attribute       { color: #986801; }
   .hljs-meta            { color: #0184bc; }
-}
-
-/* ── Manual theme overrides ─────────────────────────────────── */
-/* Must appear AFTER the @media block — same specificity, last wins */
-
-[data-theme="dark"] {
-  --bg: #0f0f0f;
-  --titlebar-bg: #161616;
-  --divider: #222;
-  --scrollbar-thumb: rgba(255,255,255,0.10);
-  --scrollbar-thumb-hover: rgba(255,255,255,0.18);
-  --month-label: #3a3a3a;
-  --item-text: #e8e8e8;
-  --item-meta: #aaaaaa;
-  --duration-text: #48484a;
-  --accent: #ff375f;
-  --record-btn: #C8933B;
-  --record-btn-hover: #d9a44b;
-  --record-btn-icon: #0f0f0f;
-  --segment-bg: rgba(128,128,128,0.08);
-  --segment-active-bg: rgba(200,147,58,0.12);
-  --segment-text: #666;
-  --segment-active-text: #C8933B;
-  --record-highlight: rgba(200,147,59,0.06);
-  --record-highlight-bar: rgba(200,147,59,1);
-  --item-icon-bg: #2c2c2e;
-  --item-hover-bg: rgba(255, 255, 255, 0.03);
-  --item-selected-bg: #1c1c1c;
-  --item-selected-text: #C8933B;
-  --item-selected-meta: #a07830;
-  --sheet-bg: var(--bg);
-  --sheet-handle: #48484a;
-  --date-today-number: #C8933B;
-  --date-today-weekday: #9a6a20;
-  --sidebar-bg: #141414;
-  --sidebar-month: #3a3a3a;
-  --ai-pill-bg: #1a1708;
-  --ai-pill-border: #3a3018;
-  --ai-pill-text: #C8933B;
-  --ai-pill-dot: #C8933B;
-  --ai-pill-active-text: #d9a44b;
-  --ai-pill-active-bg: #1a1408;
-  --ai-pill-active-border: #6a4f20;
-  --dock-bg: #141414;
-  --dock-border: #252525;
-  --dock-dropzone-border: #282828;
-  --dock-dropzone-text: #aaaaaa;
-  --dock-dropzone-hint: #606060;
-  --dock-dropzone-hover-border: #C8933B;
-  --dock-dropzone-hover-bg: #1a1408;
-  --dock-paste-border: #C8933B;
-  --dock-paste-bg: #1a1408;
-  --dock-paste-label: #C8933B;
-  --dock-kbd-bg: #1a1a1a;
-  --dock-kbd-text: #C8933B;
-  --dock-kbd-border: #6a4f20;
-  --md-h1: #C8933B;
-  --md-h2: #C8933B;
-  --md-h3: #b8b8b8;
-  --md-text: #b0b0b0;
-  --md-strong: #C8933B;
-  --md-em: #c0c0c0;
-  --md-bullet: #888888;
-  --md-code-bg: rgba(255,255,255,0.08);
-  --md-code-text: #88b4e0;
-  --md-pre-bg: #141414;
-  --md-pre-text: #d4d4d4;
-  --md-quote-bar: #48484a;
-  --md-quote-text: #b0b0b0;
-  --md-checkbox-border: #48484a;
-  --md-checkbox-checked: #0a84ff;
-  --md-checkbox-done-text: #48484a;
-  --md-link: #6cb6ff;
-  --md-link-hover: #8cc8ff;
-  --detail-bg: var(--bg);
-  --detail-section-label: #3a3a3a;
-  --detail-summary: #606060;
-  --detail-case-bg: #141414;
-  --detail-case-border: #222;
-  --detail-case-title: #bbb;
-  --detail-case-key: #404040;
-  --detail-case-val: #808080;
-  --badge-voice-bg: #2a1f0f;
-  --badge-voice-text: #c8933a;
-  --badge-voice-border: #4a3010;
-  --badge-doc-bg: #0f1a2a;
-  --badge-doc-text: #4a8ac8;
-  --badge-doc-border: #1a3050;
-  --badge-ai-bg: #1a1a2a;
-  --badge-ai-text: #7a7ac8;
-  --badge-ai-border: #2a2a50;
-  --queue-bg: #1c1c1e;
-  --queue-border: #333;
-  --queue-shadow: rgba(0,0,0,0.3);
 }
 
 [data-theme="light"] {

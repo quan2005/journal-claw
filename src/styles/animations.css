@@ -1,35 +1,13 @@
 /* Breathing glow on idle mic button: 3.2s ease-in-out, amber — subtle */
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-  50%       { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 10px rgba(200,147,58,0.18); }
-}
-
-@media (prefers-color-scheme: dark) {
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.24); }
-    50%       { box-shadow: 0 2px 8px rgba(0,0,0,0.24), 0 0 0 10px rgba(200,147,58,0.22); }
-  }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.08); opacity: 0.7; }
 }
 
 /* Hover glow expand — quick bloom to peak, then hold */
 @keyframes mic-glow-expand {
-  0%   { box-shadow: 0 6px 18px rgba(200,147,58,0.22), 0 0 0 0 rgba(200,147,58,0.00); }
-  100% { box-shadow: 0 7px 20px rgba(200,147,58,0.26), 0 0 0 6px rgba(200,147,58,0.14); }
-}
-
-@media (prefers-color-scheme: dark) {
-  @keyframes mic-glow-expand {
-    0%   { box-shadow: 0 6px 18px rgba(200,147,58,0.24), 0 0 0 0 rgba(200,147,58,0.00); }
-    100% { box-shadow: 0 7px 20px rgba(200,147,58,0.30), 0 0 0 6px rgba(200,147,58,0.18); }
-  }
-}
-
-/* Button press release jolt — tactile "recorded" feedback */
-@keyframes jolt {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(0.88); }
-  60%  { transform: scale(1.06); }
-  100% { transform: scale(1); }
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
 /* New recording card enter from above */
@@ -62,10 +40,10 @@
   100% { transform: scale(1.5); opacity: 0; }
 }
 
-/* Recording active — pulsing scale + red glow: 1.2s */
+/* Recording active — pulsing scale: 1.2s */
 @keyframes rec-pulse {
-  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(255,59,48,0.35); }
-  50%      { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(255,59,48,0); }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.04); opacity: 0.85; }
 }
 
 /* Queue item enter — slide up from below */

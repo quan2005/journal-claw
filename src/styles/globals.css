@@ -23,6 +23,8 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --font-serif: 'Noto Serif SC', serif;
 
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
   --bg: #f5f6f7;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
@@ -409,11 +411,11 @@ html, body, #root {
   color: var(--md-link);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
 }
 .md-body .md-link:hover {
   color: var(--md-link-hover);
-  border-bottom-color: var(--md-link-hover);
+  opacity: 0.8;
 }
 
 /* ── Checklist checkbox alignment ───────────────────────────── */
@@ -424,19 +426,19 @@ html, body, #root {
 
 /* ── Mic button hover ───────────────────────────────────────── */
 .mic-btn {
-  will-change: box-shadow, filter, background-color;
-  transition: background-color 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  will-change: transform, opacity, background-color;
+  transition: background-color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
 }
 .mic-btn[data-recording="false"]:hover {
   background: var(--record-btn-hover) !important;
-  animation: mic-glow-expand 0.18s ease-out forwards !important;
-  filter: brightness(1.02) saturate(1.03);
+  animation: mic-glow-expand 0.18s var(--ease-out) forwards !important;
+  transform: scale(1.04);
 }
 .mic-btn:active {
-  filter: brightness(0.96);
+  opacity: 0.85;
 }
 .mic-btn[data-recording="true"]:hover {
-  filter: brightness(1.04);
+  opacity: 0.9;
 }
 .mic-btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--record-btn) 68%, white);
@@ -465,8 +467,8 @@ html, body, #root {
 
 /* ── Cmd+V kbd button glow pulse ────────────────────────── */
 @keyframes kbd-glow-pulse {
-  0%, 100% { border-color: rgba(200, 147, 58, 0.1); }
-  50%       { border-color: rgba(200, 147, 58, 0.35); }
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
 }
 .dock-kbd-pulse {
   animation: kbd-glow-pulse 2.4s ease-in-out infinite;
@@ -745,16 +747,10 @@ html, body, #root {
 [data-theme="light"] .hljs-attribute       { color: #986801; }
 [data-theme="light"] .hljs-meta            { color: #0184bc; }
 
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
 @keyframes section-fadein {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes app-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes settings-fadein {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -762,4 +758,12 @@ html, body, #root {
 
 .settings-root {
   animation: settings-fadein 160ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -111,10 +111,10 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
           gap: 12,
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--item-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--item-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {item.display_name}
             </div>
-            <div style={{ fontSize: 14, color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 'var(--text-base)', color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>
               {time} · {duration}
             </div>
           </div>
@@ -146,7 +146,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
           {(status === 'uploading' || status === 'transcribing') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-meta)' }}>
               <Spinner size={14} />
-              <span style={{ fontSize: 16 }}>
+              <span style={{ fontSize: 'var(--text-md)' }}>
                 {status === 'uploading' ? '上传中...' : '转写中...'}
               </span>
             </div>
@@ -154,11 +154,11 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
 
           {status === 'failed' && text === null && (
             <div>
-              <p style={{ fontSize: 16, color: 'var(--item-meta)', marginBottom: 10 }}>转写失败</p>
+              <p style={{ fontSize: 'var(--text-md)', color: 'var(--item-meta)', marginBottom: 10 }}>转写失败</p>
               <button
                 onClick={() => retryTranscription(item.filename)}
                 style={{
-                  fontSize: 14,
+                  fontSize: 'var(--text-base)',
                   color: 'var(--record-btn)',
                   background: 'none',
                   border: '1px solid var(--record-btn)',
@@ -174,7 +174,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
 
           {text && (
             <p style={{
-              fontSize: 17,
+              fontSize: 'var(--text-md)',
               color: 'var(--item-text)',
               lineHeight: 1.75,
               whiteSpace: 'pre-wrap',
@@ -186,11 +186,11 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
           )}
 
           {!status && loading && (
-            <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>加载中...</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>加载中...</span>
           )}
 
           {!status && !loading && text === null && (
-            <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>暂无转写内容</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>暂无转写内容</span>
           )}
         </div>
     </div>

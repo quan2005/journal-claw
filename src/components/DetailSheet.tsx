@@ -74,7 +74,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
         onClose()
       } else {
         if (sheetRef.current) {
-          sheetRef.current.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+          sheetRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)'
           sheetRef.current.style.transform = 'translateX(0)'
         }
       }

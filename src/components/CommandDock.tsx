@@ -247,7 +247,7 @@ export function CommandDock({
           border: dropZoneBorder,
           background: dropZoneBg,
           cursor: activeMode === 'idle' ? 'pointer' : 'default',
-          transition: 'border-color 0.2s, background 0.2s',
+          transition: 'background 0.2s, opacity 0.2s',
           overflow: 'visible',
         }}
       >
@@ -477,7 +477,7 @@ export function CommandDock({
             animation: recorderStatus === 'recording'
               ? 'rec-pulse 1.2s ease-in-out infinite'
               : 'pulse 3.2s ease-in-out infinite',
-            transition: 'background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
+            transition: 'background 0.18s ease, transform 0.18s ease, opacity 0.18s ease',
           } as React.CSSProperties}
         >
           {recorderStatus === 'recording' ? (

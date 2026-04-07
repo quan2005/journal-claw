@@ -588,7 +588,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                   style={{
                     flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
                     borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
-                    transition: 'border-color 0.15s, background 0.15s',
+                    transition: 'opacity 0.15s, background 0.15s',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
@@ -611,7 +611,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                   style={{
                     flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
                     borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
-                    transition: 'border-color 0.15s, background 0.15s',
+                    transition: 'opacity 0.15s, background 0.15s',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
@@ -647,7 +647,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
     background: 'transparent', color: 'var(--item-meta)',
     fontSize: 'var(--text-xs)', cursor: 'pointer',
     minWidth: 48, textAlign: 'center',
-    transition: 'color 0.15s, background 0.15s, border-color 0.15s',
+    transition: 'color 0.15s, background 0.15s, opacity 0.15s',
   }
 
   const handleBtnClick = (action: () => void) => {

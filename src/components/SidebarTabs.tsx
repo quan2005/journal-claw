@@ -28,7 +28,7 @@ export function SidebarTabs({ active, onChange }: SidebarTabsProps) {
     letterSpacing: '0.03em',
     border: 'none',
     borderBottom: isActive(tab) ? '2px solid var(--segment-active-text)' : '2px solid transparent',
-    transition: 'color 0.15s, border-color 0.15s, font-weight 0.15s',
+    transition: 'color 0.15s, opacity 0.15s',
   })
 
   return (

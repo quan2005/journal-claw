@@ -209,7 +209,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
           border: `1.5px solid ${item.done ? 'var(--record-btn)' : 'var(--divider)'}`,
           borderRadius: 3, background: item.done ? 'var(--record-btn)' : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.15s ease, border-color 0.15s ease',
+          transition: 'background 0.15s ease, opacity 0.15s ease',
         }}
       >
         {item.done && (

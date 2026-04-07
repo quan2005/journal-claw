@@ -49,7 +49,7 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
         color: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-text)',
         letterSpacing: '0.05em',
         userSelect: 'none',
-        transition: 'background 0.3s, color 0.3s, border-color 0.3s',
+        transition: 'background 0.3s, color 0.3s, opacity 0.3s',
         WebkitAppRegion: 'no-drag',
         cursor: 'pointer',
       } as React.CSSProperties}

@@ -134,9 +134,9 @@ export const en = {
   confirmMerge: 'Confirm merge',
 
   // TodoSidebar
-  todo: 'Todo',
+  todo: 'Ideas',
   itemCount: '{count} items',
-  addTodo: 'Add a task…',
+  addTodo: 'Add an idea…',
   addTodoBtn: 'Add',
   completedSection: 'Done · {count}',
   clearDueDate: 'Clear due date',

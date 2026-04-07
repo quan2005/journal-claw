@@ -136,10 +136,10 @@ export const zh: Strings = {
   confirmMerge: '确认合并',
 
   // TodoSidebar
-  todo: '待办',
+  todo: '想法',
   itemCount: '{count} 项',
-  addTodo: '输入待办内容...',
-  addTodoBtn: '添加待办',
+  addTodo: '输入想法...',
+  addTodoBtn: '添加想法',
   completedSection: '已完成 · {count}',
   clearDueDate: '清除截止日期',
   setDueDate: '设置截止日期',

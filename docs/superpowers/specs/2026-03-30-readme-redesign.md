@@ -69,7 +69,7 @@ slogan（一行）
 
 ## 截图
 
-路径：`docs/images/screenshot-20260330-205220.png`
+路径：`docs/images/screenshot-20260407-095213.png`
 
 ---
 

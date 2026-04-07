@@ -16,7 +16,7 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 
 ## 功能
 
-![谨迹主界面](docs/images/screenshot-20260330-205220.png)
+![谨迹主界面](docs/images/screenshot-20260407-095213.png)
 
 - **语音录音** — 一键开始，自动降噪、去除静默，转为 M4A。AI 自动转写并结构化。
 - **文件导入** — 拖入 PDF、DOCX、TXT，AI 提取、摘要、归档。

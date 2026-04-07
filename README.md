@@ -16,7 +16,7 @@ The output — searchable, tagged, linked journal entries — shows up automatic
 
 ## Features
 
-![JournalClaw main UI](docs/images/screenshot-20260330-205220.png)
+![JournalClaw main UI](docs/images/screenshot-20260407-095213.png)
 
 - **Voice recording** — One click, noise reduction, silence removal, M4A output. AI transcribes and structures it.
 - **File import** — Drop PDF, DOCX, TXT. AI extracts, summarizes, files it.

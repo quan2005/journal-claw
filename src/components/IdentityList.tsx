@@ -44,7 +44,7 @@ function Avatar({ identity }: { identity: IdentityEntry }) {
       width: 32, height: 32, borderRadius: 8, flexShrink: 0,
       background: bg, color,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: char === 'AI' ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
+      fontSize: char === 'AI' ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 'var(--font-semibold)',
       fontFamily: char === 'AI' ? 'var(--font-mono)' : undefined,
       userSelect: 'none',
     }}>
@@ -88,7 +88,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
           lineHeight: 1.4, marginBottom: identity.summary ? 2 : 0,
         }}>
           <span style={{
-            fontSize: 'var(--text-base)', fontWeight: 600,
+            fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)',
             color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             flexShrink: 1, minWidth: 0,
@@ -98,7 +98,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
           {displayTags.length > 0 && displayTags.map((cfg, i) => (
             <span key={i} style={{
               fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 3,
-              fontWeight: 500, color: cfg.color, background: cfg.bg,
+              fontWeight: 'var(--font-medium)', color: cfg.color, background: cfg.bg,
               fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
               flexShrink: 0,
             }}>

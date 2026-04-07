@@ -296,7 +296,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                   <line x1="8" y1="22" x2="16" y2="22"/>
                 </svg>
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 'var(--font-semibold)', marginBottom: 4 }}>录音记录</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
             </button>
 
@@ -318,7 +318,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 'var(--font-semibold)', marginBottom: 4 }}>粘贴 / 拖文件</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
             </button>
 
@@ -342,7 +342,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                     <line x1="10" y1="17" x2="14" y2="17"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>创建示例条目</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 'var(--font-semibold)', marginBottom: 4 }}>创建示例条目</div>
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>生成一条示例<br/>了解 AI 整理效果</div>
               </button>
             )}
@@ -392,7 +392,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                   fontSize: 'var(--text-xs)',
                   padding: '2px 8px',
                   borderRadius: 4,
-                  fontWeight: 500,
+                  fontWeight: 'var(--font-medium)',
                   color: cfg.color,
                   background: cfg.bg,
                   fontFamily: 'var(--font-mono)',
@@ -420,29 +420,29 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 h1: ({ children }) => (
                   <h1 style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
+                    fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
                   }}>{children}</h1>
                 ),
                 h2: ({ children }) => (
                   <h2 style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
+                    fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
                   }}>{children}</h2>
                 ),
                 h3: ({ children }) => (
                   <h3 style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
+                    fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
                   }}>{children}</h3>
                 ),
                 h4: ({ children }) => (
-                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
+                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
                 ),
                 h5: ({ children }) => (
-                  <h5 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
+                  <h5 style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
                 ),
                 h6: ({ children }) => (
-                  <h6 style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
+                  <h6 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
                 ),
                 // Paragraph
                 p: ({ children }) => (
@@ -483,7 +483,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 },
                 // Inline
                 strong: ({ children }) => (
-                  <strong style={{ fontWeight: 600, color: 'var(--md-strong)' }}>{children}</strong>
+                  <strong style={{ fontWeight: 'var(--font-semibold)', color: 'var(--md-strong)' }}>{children}</strong>
                 ),
                 em: ({ children }) => (
                   <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
@@ -548,7 +548,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                 ),
                 th: ({ children }) => (
                   <th style={{
-                    padding: '6px 10px', textAlign: 'left', fontWeight: 600,
+                    padding: '6px 10px', textAlign: 'left', fontWeight: 'var(--font-semibold)',
                     fontSize: 'var(--text-sm)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
                     borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap',
                     minWidth: 72,

@@ -94,7 +94,7 @@ export function RecordingList({
             flexShrink: 0,
           }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--record-btn)' }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--record-btn)' }}>
               {t('recording')}
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', marginTop: 2 }}>

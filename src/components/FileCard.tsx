@@ -72,7 +72,7 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
             bottom: 4,
             right: 4,
             fontSize: 'var(--text-xs)',
-            fontWeight: 700,
+            fontWeight: 'var(--font-semibold)',
             letterSpacing: '0.03em',
             color: 'rgba(255,255,255,0.7)',
             fontFamily: 'var(--font-mono)',

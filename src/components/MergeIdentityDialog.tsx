@@ -90,7 +90,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
         background: mode === m ? 'rgba(255,59,48,0.06)' : 'transparent',
       }}
     >
-      <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--item-text)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)' }}>{label}</div>
       <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginTop: 2 }}>{desc}</div>
     </div>
   )
@@ -98,7 +98,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
   return (
     <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={dialog}>
-        <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--item-text)' }}>
+        <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)' }}>
           {t('mergeProfiles')}
         </div>
 
@@ -148,7 +148,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
               padding: '7px 16px', borderRadius: 6, border: 'none',
               background: !targetPath || merging ? 'var(--divider)' : 'var(--record-btn)',
               color: !targetPath || merging ? 'var(--item-meta)' : '#fff',
-              fontSize: 'var(--text-base)', fontWeight: 600,
+              fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)',
               cursor: !targetPath || merging ? 'not-allowed' : 'pointer',
             }}
           >

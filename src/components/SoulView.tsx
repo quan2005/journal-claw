@@ -90,7 +90,7 @@ export default function SoulView() {
           </svg>
         </div>
         <div>
-          <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>{t('aiPersonality')}</div>
+          <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)', lineHeight: 1.3 }}>{t('aiPersonality')}</div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginTop: 1 }}>{t('aiPersonalityDesc')}</div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function SoulView() {
           style={{
             background: saveStatus === 'saving' ? 'var(--divider)' : 'var(--record-btn)',
             border: 'none', borderRadius: 5, padding: '6px 18px',
-            fontSize: 'var(--text-base)', fontWeight: 600,
+            fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)',
             color: saveStatus === 'saving' ? 'var(--duration-text)' : 'var(--bg)',
             cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
           }}

@@ -116,7 +116,7 @@ export function RecordingItem({
           <>
             <span style={{
               fontSize: 'var(--text-2xl)',
-              fontWeight: 300,
+              fontWeight: 'var(--font-normal)',
               color: 'var(--date-number)',
               lineHeight: 1,
               fontVariantNumeric: 'tabular-nums',
@@ -141,7 +141,7 @@ export function RecordingItem({
       }}>
         <div style={{
           fontSize: 'var(--text-sm)',
-          fontWeight: 500,
+          fontWeight: 'var(--font-medium)',
           color: 'var(--item-text)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',

@@ -111,7 +111,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
           gap: 12,
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--item-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {item.display_name}
             </div>
             <div style={{ fontSize: 'var(--text-base)', color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>

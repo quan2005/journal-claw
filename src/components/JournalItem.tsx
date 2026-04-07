@@ -43,7 +43,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
       {/* Title */}
       <div style={{
         fontSize: 'var(--text-base)',
-        fontWeight: 700,
+        fontWeight: 'var(--font-semibold)',
         color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
         fontFamily: 'var(--font-serif)',
         ...(isSelected ? { textShadow: '0 0 0.4px currentColor, 0 0 0.4px currentColor' } : {}),

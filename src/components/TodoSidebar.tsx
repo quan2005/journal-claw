@@ -66,7 +66,7 @@ function DatePicker({ initialValue, onSelect, onClose }: {
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none' }}
         >◀</button>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-text)', fontWeight: 500 }}>{year} {MONTHS[month]}</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-text)', fontWeight: 'var(--font-medium)' }}>{year} {MONTHS[month]}</span>
         <button style={arrowStyle} onClick={nextMonth}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none' }}
@@ -90,7 +90,7 @@ function DatePicker({ initialValue, onSelect, onClose }: {
                 fontSize: 'var(--text-xs)', borderRadius: 4, cursor: 'pointer',
                 color: isSelected ? 'var(--bg)' : isToday ? '#ff3b30' : 'var(--item-text)',
                 background: isSelected ? '#ff3b30' : 'transparent',
-                fontWeight: isToday || isSelected ? 600 : 400,
+                fontWeight: isToday || isSelected ? 'var(--font-semibold)' : 'var(--font-normal)',
               }}
             >{day}</div>
           )
@@ -227,13 +227,13 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
             if (e.key === 'Escape') { if (textRef.current) textRef.current.textContent = item.text; setEditingText(false) }
           }}
           onBlur={() => handleTextSubmit()}
-          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-mono)', fontWeight: 400, color: 'var(--item-text)', outline: 'none', cursor: 'text' }}
+          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)', color: 'var(--item-text)', outline: 'none', cursor: 'text' }}
         >{item.text}</div>
       ) : (
         <span onClick={() => !item.done && setEditingText(true)}
           style={{
             flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px',
-            fontFamily: 'var(--font-mono)', fontWeight: 400,
+            fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)',
             color: item.done ? '#555' : 'var(--item-text)',
             textDecoration: item.done ? 'line-through' : 'none',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -376,7 +376,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
     <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', padding: '12px 0', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '0 14px' }}>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>{t('todo')}</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 'var(--font-medium)' }}>{t('todo')}</span>
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)' }}>{t('itemCount', { count: unchecked.length })}</span>
       </div>
 

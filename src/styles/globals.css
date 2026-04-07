@@ -438,7 +438,7 @@ html, body, #root {
 
 /* ── Mic button hover ───────────────────────────────────────── */
 .mic-btn {
-  will-change: transform, opacity, background-color;
+  will-change: transform, opacity;
   transition: background-color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
 }
 .mic-btn[data-recording="false"]:hover {

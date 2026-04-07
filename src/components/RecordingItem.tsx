@@ -68,8 +68,6 @@ export function RecordingItem({
     ? 'var(--item-selected-bg)'
     : hovered ? 'var(--item-hover-bg)' : 'transparent'
 
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
   return (
     <div
       onClick={() => onClick(item)}
@@ -83,11 +81,7 @@ export function RecordingItem({
         background: bg,
         position: 'relative',
         borderBottom: '1px solid var(--divider)',
-        animation: isNew
-          ? reducedMotion
-            ? 'card-enter 150ms ease forwards'
-            : 'card-enter 280ms ease-out forwards'
-          : undefined,
+        animation: isNew ? 'card-enter 280ms ease-out forwards' : undefined,
       }}
     >
       {isSelected && (

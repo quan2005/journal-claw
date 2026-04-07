@@ -54,7 +54,7 @@ function AudioWaveform({ level }: { level: number }) {
               borderRadius: 2,
               background: 'var(--record-btn)',
               opacity: 0.9,
-              transition: 'transform 0.08s cubic-bezier(0.16, 1, 0.3, 1)',
+              transition: 'height 0.08s cubic-bezier(0.16, 1, 0.3, 1)',
               flexShrink: 0,
             }}
           />

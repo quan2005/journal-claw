@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>谨迹 — 你捕获，AI 整理</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg-elevated: #161616;
+    --bg-surface: #1c1c1c;
+    --text-primary: #e8e8e8;
+    --text-secondary: #aaaaaa;
+    --text-tertiary: #666;
+    --accent: #C8933B;
+    --accent-dim: rgba(200,147,59,0.12);
+    --accent-glow: rgba(200,147,59,0.06);
+    --divider: #222;
+    --red: #ff375f;
+    --red-dim: rgba(255,55,95,0.12);
+    --sidebar-bg: #161616;
+    --code-bg: #1a1a1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+
+  body {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  /* ── Hero ─────────────────────────────────── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '谨迹';
+    position: absolute;
+    font-family: 'Noto Serif SC', serif;
+    font-size: min(42vh, 360px);
+    font-weight: 700;
+    color: rgba(200,147,59,0.025);
+    letter-spacing: 0.05em;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .hero-badge {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 0.5px solid rgba(200,147,59,0.3);
+    padding: 5px 14px;
+    border-radius: 3px;
+    margin-bottom: 40px;
+    background: var(--accent-glow);
+  }
+
+  .hero h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    max-width: 720px;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 560px;
+    line-height: 1.8;
+    margin-bottom: 48px;
+  }
+
+  .hero-quote {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    text-align: center;
+    max-width: 520px;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    text-align: left;
+  }
+
+  .hero-quote cite {
+    display: block;
+    margin-top: 8px;
+    font-style: normal;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  /* ── Section ──────────────────────────────── */
+  .section {
+    padding: 120px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    border-top: 0.5px solid var(--divider);
+  }
+
+  .section-number {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .section-pain {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    margin-bottom: 32px;
+    padding-left: 16px;
+    border-left: 2px solid var(--divider);
+    max-width: 640px;
+    line-height: 1.7;
+  }
+
+  .section h2 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(22px, 3vw, 30px);
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+
+  .section-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    max-width: 600px;
+    line-height: 1.8;
+    margin-bottom: 48px;
+  }
+
+  /* ── App Preview (mock window) ────────────── */
+  .app-preview {
+    background: var(--bg);
+    border: 0.5px solid var(--divider);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .app-titlebar {
+    height: 38px;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+    border-bottom: 0.5px solid var(--divider);
+  }
+
+  .traffic-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .traffic-dot.red { background: #ff5f57; }
+  .traffic-dot.yellow { background: #febc2e; }
+  .traffic-dot.green { background: #28c840; }
+
+  .titlebar-text {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+  }
+
+  .app-body {
+    display: flex;
+    min-height: 380px;
+  }
+
+  /* ── Sidebar mock ─────────────────────────── */
+  .mock-sidebar {
+    width: 260px;
+    background: var(--sidebar-bg);
+    border-right: 0.5px solid var(--divider);
+    padding: 12px 0;
+    flex-shrink: 0;
+  }
+
+  .mock-month-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    padding: 8px 14px 6px;
+    text-transform: uppercase;
+  }
+
+  .mock-entry {
+    padding: 9px 14px;
+    border-left: 2px solid transparent;
+    cursor: default;
+    transition: background 0.15s;
+  }
+
+  .mock-entry.selected {
+    background: var(--bg-surface);
+    border-left-color: var(--accent);
+  }
+
+  .mock-entry-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .mock-entry.selected .mock-entry-title {
+    color: var(--accent);
+    text-shadow: 0 0 0.4px currentColor, 0 0 0.4px currentColor;
+  }
+
+  .mock-entry-summary {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+
+  .mock-entry-meta {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .mock-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    letter-spacing: 0.03em;
+  }
+
+  .mock-time {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+  }
+
+  /* ── Detail panel mock ────────────────────── */
+  .mock-detail {
+    flex: 1;
+    padding: 32px 40px;
+    overflow: hidden;
+  }
+
+  .mock-detail-header {
+    margin-bottom: 24px;
+  }
+
+  .mock-detail-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .mock-detail-summary {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .mock-detail-tags {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+
+  .mock-detail-body {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.9;
+  }
+
+  .mock-detail-body h3 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 20px 0 8px;
+  }
+
+  .mock-detail-body p {
+    margin-bottom: 12px;
+  }
+
+  .mock-speaker {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── Dock mock ────────────────────────────── */
+  .mock-dock {
+    border-top: 0.5px solid var(--divider);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+  }
+
+  .mock-mic-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .mock-mic-btn.recording {
+    background: var(--red);
+    animation: pulse-rec 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-rec {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,55,95,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(255,55,95,0); }
+  }
+
+  .mock-mic-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mock-dock-input {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 0.5px solid var(--divider);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── Processing queue mock ────────────────── */
+  .mock-queue {
+    border-top: 0.5px solid var(--divider);
+    padding: 8px 16px;
+    background: var(--bg-elevated);
+  }
+
+  .mock-queue-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 12px;
+  }
+
+  .mock-spinner {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--divider);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .mock-queue-file {
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .mock-queue-status {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Waveform mock ────────────────────────── */
+  .mock-waveform {
+    display: flex;
+    align-items: center;
+    gap: 2.5px;
+    height: 22px;
+  }
+
+  .mock-waveform span {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--red);
+    opacity: 0.9;
+    animation: wave 0.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes wave {
+    from { transform: scaleY(0.3); }
+    to { transform: scaleY(1); }
+  }
+
+  /* ── Comparison table ─────────────────────── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 32px 0;
+    font-size: 13px;
+  }
+
+  .compare-table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--divider);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .compare-table td {
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--divider);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  .compare-table td:first-child {
+    color: var(--text-primary);
+    font-weight: 500;
+    width: 200px;
+  }
+
+  .compare-table .highlight {
+    color: var(--accent);
+  }
+
+  /* ── Architecture diagram ─────────────────── */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 32px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .arch-node {
+    padding: 14px 20px;
+    border: 0.5px solid var(--divider);
+    border-radius: 6px;
+    font-size: 12px;
+    text-align: center;
+    background: var(--bg-elevated);
+    min-width: 140px;
+  }
+
+  .arch-node-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .arch-node-value {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .arch-arrow {
+    color: var(--text-tertiary);
+    font-size: 18px;
+    padding: 0 8px;
+  }
+
+  .arch-node.accent {
+    border-color: rgba(200,147,59,0.3);
+    background: var(--accent-glow);
+  }
+
+  .arch-node.accent .arch-node-value {
+    color: var(--accent);
+  }
+
+  /* ── Identity mock ────────────────────────── */
+  .mock-identity-list {
+    padding: 8px 0;
+  }
+
+  .mock-identity-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+  }
+
+  .mock-identity-item.selected {
+    background: var(--bg-surface);
+    border-left: 2px solid var(--accent);
+  }
+
+  .mock-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .mock-identity-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .mock-identity-role {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .mock-voice-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    margin-left: auto;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Todo mock ────────────────────────────── */
+  .mock-todo-sidebar {
+    width: 240px;
+    border-left: 0.5px solid var(--divider);
+    padding: 12px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .mock-todo-header {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+
+  .mock-todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 4px;
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .mock-checkbox {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--text-tertiary);
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .mock-checkbox.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .mock-todo-item.done {
+    color: var(--text-tertiary);
+    text-decoration: line-through;
+  }
+
+  .mock-brainstorm-icon {
+    margin-left: auto;
+    color: var(--accent);
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  /* ── Workspace files mock ─────────────────── */
+  .mock-finder {
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--divider);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .mock-finder-bar {
+    height: 32px;
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    border-bottom: 0.5px solid var(--divider);
+  }
+
+  .mock-finder-body {
+    padding: 12px;
+  }
+
+  .mock-file-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+
+  .mock-file-row.folder {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .mock-file-row.file {
+    color: var(--text-secondary);
+    padding-left: 24px;
+  }
+
+  .mock-file-icon {
+    font-size: 14px;
+    width: 18px;
+    text-align: center;
+  }
+
+  /* ── CTA ──────────────────────────────────── */
+  .cta {
+    text-align: center;
+    padding: 120px 40px;
+    border-top: 0.5px solid var(--divider);
+  }
+
+  .cta h2 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(24px, 3.5vw, 36px);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .cta-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .cta-btn:hover { opacity: 0.85; }
+
+  /* ── Responsive ───────────────────────────── */
+  @media (max-width: 768px) {
+    .section { padding: 80px 24px; }
+    .app-body { flex-direction: column; }
+    .mock-sidebar { width: 100%; border-right: none; border-bottom: 0.5px solid var(--divider); }
+    .mock-todo-sidebar { width: 100%; border-left: none; border-top: 0.5px solid var(--divider); }
+    .mock-detail { padding: 24px; }
+    .arch-flow { flex-direction: column; }
+    .arch-arrow { transform: rotate(90deg); }
+  }
+
+  /* ── Fade-in on scroll ────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<section class="hero">
+  <div class="hero-badge">AI Knowledge Base for Knowledge Workers</div>
+  <h1>你捕获，<em>AI 整理</em></h1>
+  <p class="hero-sub">
+    录音、拖拽、粘贴——AI 自动编译成结构化知识条目。<br>
+    你只需要「喂」和「读」，知识自动复利。
+  </p>
+  <blockquote class="hero-quote">
+    "Instead of just retrieving from raw documents, the LLM incrementally builds and maintains a persistent wiki. The wiki is a persistent, compounding artifact."
+    <cite>— 与 Karpathy 的 LLM Wiki 思想不谋而合</cite>
+  </blockquote>
+</section>
+
+<!-- ═══════════════════ PAIN 1: 知识不积累 ═══════════════════ -->
+<section class="section reveal">
+  <div class="section-number">Pain 01 — 知识不积累</div>
+  <div class="section-pain">
+    "The LLM is rediscovering knowledge from scratch on every question. There's no accumulation. Ask a subtle question that requires synthesizing five documents, and the LLM has to find and piece together the relevant fragments every time."
+  </div>
+  <h2>增量编译，知识自动复利</h2>
+  <p class="section-desc">
+    每次新素材进来，AI 不是简单索引，而是读取已有条目后决定——创建新条目，还是追加到已有条目。上午的会议录音和下午的 Slack 讨论，如果关于同一个决策，AI 会自动合并成一篇完整的记录。
+  </p>
+
+  <!-- UI Preview: 主界面 — 左侧列表 + 右侧详情 -->
+  <div class="app-preview">
+    <div class="app-titlebar">
+      <span class="traffic-dot red"></span>
+      <span class="traffic-dot yellow"></span>
+      <span class="traffic-dot green"></span>
+      <span class="titlebar-text">谨迹</span>
+      <span style="width:36px"></span>
+    </div>
+    <div class="app-body">
+      <div class="mock-sidebar">
+        <div class="mock-month-label">2026 年 4 月</div>
+        <div class="mock-entry selected">
+          <div class="mock-entry-title">AI平台产品决策记录</div>
+          <div class="mock-entry-summary">综合晨会讨论与Slack补充，确定采用混合部署方案</div>
+          <div class="mock-entry-meta">
+            <span class="mock-tag">产品决策</span>
+            <span class="mock-tag">AI平台</span>
+            <span class="mock-time">09:30 + 14:20</span>
+          </div>
+        </div>
+        <div class="mock-entry">
+          <div class="mock-entry-title">Q2 OKR 对齐会议</div>
+          <div class="mock-entry-summary">三个团队的季度目标拉齐，重点关注留存指标</div>
+          <div class="mock-entry-meta">
+            <span class="mock-tag">OKR</span>
+            <span class="mock-time">11:00</span>
+          </div>
+        </div>
+        <div class="mock-entry">
+          <div class="mock-entry-title">竞品分析：Notion AI</div>
+          <div class="mock-entry-summary">功能对比与差异化定位分析</div>
+          <div class="mock-entry-meta">
+            <span class="mock-tag">竞品</span>
+            <span class="mock-time">16:45</span>
+          </div>
+        </div>
+      </div>
+      <div class="mock-detail">
+        <div class="mock-detail-header">
+          <div class="mock-detail-title">AI平台产品决策记录</div>
+          <div class="mock-detail-summary">综合晨会讨论与Slack补充，确定采用混合部署方案</div>
+          <div class="mock-detail-tags">
+            <span class="mock-tag">产品决策</span>
+            <span class="mock-tag">AI平台</span>
+            <span class="mock-tag">混合部署</span>
+          </div>
+        </div>
+        <div class="mock-detail-body">
+          <h3>背景</h3>
+          <p>团队在过去两周讨论了三种部署方案。本条目综合了 4月7日晨会录音 和 当日下午 Slack #product 频道的补充讨论。</p>
+          <h3>决策结论</h3>
+          <p>采用混合部署：核心推理层云端部署，数据预处理层支持私有化。预计 Q3 完成第一阶段交付。</p>
+          <h3>关键论点</h3>
+          <p style="color:var(--accent);font-size:12px;letter-spacing:0.05em;margin-bottom:4px">← AI 自动合并了两次输入</p>
+          <p>晨会中张总提出成本顾虑；下午李工在 Slack 补充了混合方案的技术可行性评估，解决了张总的疑虑。</p>
+        </div>
+      </div>
+    </div>
+    <div class="mock-dock">
+      <div class="mock-dock-input">粘贴文本、拖入文件，或点击麦克风录音...</div>
+      <div class="mock-mic-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ PAIN 2: 维护负担 ═══════════════════ -->
+<section class="section reveal">
+  <div class="section-number">Pain 02 — 维护负担</div>
+  <div class="section-pain">
+    "Humans abandon wikis because the maintenance burden grows faster than the value. LLMs don't get bored, don't forget to update a cross-reference, and can touch 15 files in one pass."
+  </div>
+  <h2>零写作负担，你只需要「喂」</h2>
+  <p class="section-desc">
+    三种输入方式，每一种都是零摩擦：一键录音、拖拽文件、粘贴文本。会后什么都不用做——5 分钟后打开谨迹，结构化的会议纪要已经在那里了。
+  </p>
+
+  <!-- UI Preview: 录音中状态 + 处理队列 -->
+  <div class="app-preview">
+    <div class="app-titlebar">
+      <span class="traffic-dot red"></span>
+      <span class="traffic-dot yellow"></span>
+      <span class="traffic-dot green"></span>
+      <span class="titlebar-text" style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <span class="mock-spinner"></span>
+        <span>正在处理 产品评审录音.m4a</span>
+      </span>
+      <span style="width:36px"></span>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <!-- Queue area -->
+      <div class="mock-queue">
+        <div class="mock-queue-item">
+          <div class="mock-waveform">
+            <span style="height:8px;animation-delay:0s"></span>
+            <span style="height:14px;animation-delay:0.08s"></span>
+            <span style="height:20px;animation-delay:0.16s"></span>
+            <span style="height:16px;animation-delay:0.24s"></span>
+            <span style="height:22px;animation-delay:0.32s"></span>
+            <span style="height:18px;animation-delay:0.4s"></span>
+            <span style="height:12px;animation-delay:0.48s"></span>
+            <span style="height:6px;animation-delay:0.56s"></span>
+          </div>
+          <span class="mock-queue-file" style="color:var(--red)">录音中 · 03:42</span>
+        </div>
+        <div class="mock-queue-item">
+          <div class="mock-spinner"></div>
+          <span class="mock-queue-file">产品评审录音.m4a</span>
+          <span class="mock-queue-status">转写中...</span>
+        </div>
+        <div class="mock-queue-item">
+          <span style="width:14px;height:14px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:11px">◻</span>
+          <span class="mock-queue-file" style="color:var(--text-secondary)">竞品分析报告.pdf</span>
+          <span class="mock-queue-status" style="color:var(--text-tertiary)">排队中</span>
+        </div>
+        <div class="mock-queue-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#28c840" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          <span class="mock-queue-file" style="color:var(--text-tertiary)">晨会笔记.txt</span>
+          <span class="mock-queue-status" style="color:#28c840">完成</span>
+        </div>
+      </div>
+      <!-- Dock with recording state -->
+      <div class="mock-dock">
+        <div class="mock-dock-input" style="border-color:rgba(255,55,95,0.3)">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--red)">● REC</span>
+            <span>添加备注（可选）...</span>
+          </span>
+        </div>
+        <div class="mock-mic-btn recording">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ PAIN 3: 缺少编译层 ═══════════════════ -->
+<section class="section reveal">
+  <div class="section-number">Pain 03 — 缺少编译层</div>
+  <div class="section-pain">
+    "Every business has a raw/ directory. Nobody's ever compiled it. That's the product."
+  </div>
+  <h2>三层架构，文件即数据</h2>
+  <p class="section-desc">
+    原始素材不可变，知识条目由 AI 编译维护，Schema 指导 AI 行为。所有数据都是 Markdown on disk，用任何编辑器都能打开——数据永远属于你。
+  </p>
+
+  <!-- Architecture flow -->
+  <div class="arch-flow">
+    <div class="arch-node">
+      <div class="arch-node-label">Raw Sources</div>
+      <div class="arch-node-value">yyMM/raw/</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node accent">
+      <div class="arch-node-label">AI 编译</div>
+      <div class="arch-node-value">Claude CLI</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <div class="arch-node-label">Wiki</div>
+      <div class="arch-node-value">yyMM/DD-title.md</div>
+    </div>
+  </div>
+
+  <!-- UI Preview: Finder-style workspace view -->
+  <div class="mock-finder">
+    <div class="mock-finder-bar">
+      <span class="traffic-dot red" style="width:10px;height:10px"></span>
+      <span class="traffic-dot yellow" style="width:10px;height:10px"></span>
+      <span class="traffic-dot green" style="width:10px;height:10px"></span>
+      <span style="flex:1;text-align:center;font-size:12px;color:var(--text-secondary)">~/Documents/journal/</span>
+    </div>
+    <div class="mock-finder-body">
+      <div class="mock-file-row folder">
+        <span class="mock-file-icon">📁</span> 2604/
+      </div>
+      <div class="mock-file-row folder" style="padding-left:24px">
+        <span class="mock-file-icon">📁</span> raw/
+        <span style="font-size:10px;color:var(--text-tertiary);margin-left:auto">不可变原始素材</span>
+      </div>
+      <div class="mock-file-row file" style="padding-left:48px">
+        <span class="mock-file-icon">🎤</span> 产品评审录音.m4a
+      </div>
+      <div class="mock-file-row file" style="padding-left:48px">
+        <span class="mock-file-icon">📄</span> 竞品分析报告.pdf
+      </div>
+      <div class="mock-file-row file" style="padding-left:48px">
+        <span class="mock-file-icon">📝</span> 产品评审录音.transcript.json
+      </div>
+      <div class="mock-file-row file" style="padding-left:24px;color:var(--text-primary);font-weight:500">
+        <span class="mock-file-icon">📋</span> 07-AI平台产品决策记录.md
+        <span style="font-size:10px;color:var(--accent);margin-left:auto">AI 编译产物</span>
+      </div>
+      <div class="mock-file-row file" style="padding-left:24px;color:var(--text-primary);font-weight:500">
+        <span class="mock-file-icon">📋</span> 07-Q2-OKR对齐会议.md
+      </div>
+      <div class="mock-file-row folder">
+        <span class="mock-file-icon">📁</span> identity/
+        <span style="font-size:10px;color:var(--text-tertiary);margin-left:auto">人物画像</span>
+      </div>
+      <div class="mock-file-row folder">
+        <span class="mock-file-icon">📁</span> .claude/
+        <span style="font-size:10px;color:var(--text-tertiary);margin-left:auto">Schema 规则</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ PAIN 4: 上下文丢失 ═══════════════════ -->
+<section class="section reveal">
+  <div class="section-number">Pain 04 — 上下文丢失</div>
+  <div class="section-pain">
+    "Hitting a usage limit or ending a session often feels like a lobotomy for your project. You're forced to spend valuable tokens reconstructing context for the AI."
+  </div>
+  <h2>画像系统 + 声纹识别 = 持久上下文</h2>
+  <p class="section-desc">
+    为每个人建立持久画像，关联声纹。AI 处理新素材时自动识别「谁说了什么」，并引用已有画像理解上下文。命名一次声纹，以后所有录音自动识别。
+  </p>
+
+  <!-- UI Preview: Identity list + detail with speaker diarization -->
+  <div class="app-preview">
+    <div class="app-titlebar">
+      <span class="traffic-dot red"></span>
+      <span class="traffic-dot yellow"></span>
+      <span class="traffic-dot green"></span>
+      <span class="titlebar-text">谨迹</span>
+      <span style="width:36px"></span>
+    </div>
+    <div class="app-body">
+      <div class="mock-sidebar" style="width:220px">
+        <!-- Tab bar -->
+        <div style="display:flex;padding:0 14px 8px;gap:0;border-bottom:0.5px solid var(--divider);margin-bottom:8px">
+          <span style="font-size:12px;color:var(--accent);padding:4px 12px;border-bottom:1.5px solid var(--accent);cursor:default;font-weight:500">画像</span>
+          <span style="font-size:12px;color:var(--text-tertiary);padding:4px 12px;cursor:default">记忆</span>
+        </div>
+        <div class="mock-identity-list">
+          <div class="mock-identity-item">
+            <div class="mock-avatar">我</div>
+            <div>
+              <div class="mock-identity-name">关于我</div>
+              <div class="mock-identity-role">个人档案</div>
+            </div>
+          </div>
+          <div class="mock-identity-item selected">
+            <div class="mock-avatar">张</div>
+            <div>
+              <div class="mock-identity-name">张明远</div>
+              <div class="mock-identity-role">产品总监</div>
+            </div>
+            <span class="mock-voice-badge">声纹已绑定</span>
+          </div>
+          <div class="mock-identity-item">
+            <div class="mock-avatar">李</div>
+            <div>
+              <div class="mock-identity-name">李思源</div>
+              <div class="mock-identity-role">后端架构师</div>
+            </div>
+            <span class="mock-voice-badge">声纹已绑定</span>
+          </div>
+          <div class="mock-identity-item">
+            <div class="mock-avatar">王</div>
+            <div>
+              <div class="mock-identity-name">王晓设</div>
+              <div class="mock-identity-role">UX 设计师</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-detail">
+        <div class="mock-detail-header">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+            <div class="mock-avatar" style="width:40px;height:40px;font-size:16px">张</div>
+            <div>
+              <div class="mock-detail-title" style="font-size:20px;margin-bottom:2px">张明远</div>
+              <div style="font-size:12px;color:var(--text-secondary)">产品总监 · 北京</div>
+            </div>
+          </div>
+          <div class="mock-detail-tags">
+            <span class="mock-tag">产品</span>
+            <span class="mock-tag">AI平台</span>
+            <span class="mock-tag">决策者</span>
+          </div>
+        </div>
+        <div class="mock-detail-body">
+          <h3>角色</h3>
+          <p>AI 平台产品线负责人，主导产品方向和优先级决策。偏好数据驱动的论证方式，对成本敏感。</p>
+          <h3>近期关注</h3>
+          <p>混合部署方案的成本模型、Q3 交付时间线、与竞品的差异化定位。</p>
+          <h3>会议中的发言模式</h3>
+          <p style="color:var(--accent);font-size:12px;letter-spacing:0.05em;margin-bottom:4px">← 声纹自动识别，跨会议积累</p>
+          <p>倾向于先提出质疑再寻求解决方案。在 4/7 晨会中对云端部署成本提出顾虑，在 4/5 评审中关注了用户迁移路径。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ PAIN 5: 探索不沉淀 ═══════════════════ -->
+<section class="section reveal">
+  <div class="section-number">Pain 05 — 探索不沉淀</div>
+  <div class="section-pain">
+    "Good answers can be filed back into the wiki as new pages. A comparison you asked for, an analysis, a connection you discovered — these are valuable and shouldn't disappear into chat history."
+  </div>
+  <h2>Ideas + 探讨，思考即沉淀</h2>
+  <p class="section-desc">
+    阅读时随时捕捉想法到 Ideas 列表。右键「探讨」启动独立 AI 会话，围绕这个想法展开分析——引用 workspace 里的相关条目，生成的洞察自然沉淀回知识库。
+  </p>
+
+  <!-- UI Preview: Main view with Todo sidebar -->
+  <div class="app-preview">
+    <div class="app-titlebar">
+      <span class="traffic-dot red"></span>
+      <span class="traffic-dot yellow"></span>
+      <span class="traffic-dot green"></span>
+      <span class="titlebar-text">谨迹</span>
+      <span style="width:36px"></span>
+    </div>
+    <div class="app-body">
+      <div class="mock-sidebar" style="width:200px">
+        <div class="mock-month-label">2026 年 4 月</div>
+        <div class="mock-entry selected">
+          <div class="mock-entry-title">AI平台产品决策记录</div>
+          <div class="mock-entry-summary">混合部署方案确定</div>
+          <div class="mock-entry-meta">
+            <span class="mock-tag">产品决策</span>
+          </div>
+        </div>
+        <div class="mock-entry">
+          <div class="mock-entry-title">Q2 OKR 对齐</div>
+          <div class="mock-entry-summary">留存指标对齐</div>
+        </div>
+      </div>
+      <div class="mock-detail" style="padding:24px 28px">
+        <div class="mock-detail-body">
+          <p>...张总提出成本顾虑；李工补充了混合方案的技术可行性评估...</p>
+          <!-- Context menu overlay -->
+          <div style="position:relative;display:inline-block">
+            <span style="background:rgba(200,147,59,0.15);padding:2px 0;border-radius:2px">混合部署的成本模型有没有考虑边际效应</span>
+            <div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-elevated);border:0.5px solid var(--divider);border-radius:8px;padding:4px 0;min-width:160px;z-index:10">
+              <div style="padding:7px 12px;font-size:13px;color:var(--text-primary);display:flex;align-items:center;gap:8px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                添加到 Ideas
+              </div>
+              <div style="padding:7px 12px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:8px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                复制选中文本
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Todo sidebar -->
+      <div class="mock-todo-sidebar">
+        <div class="mock-todo-header">Ideas</div>
+        <div class="mock-todo-item">
+          <div class="mock-checkbox"></div>
+          <span>混合部署的成本模型有没有考虑边际效应</span>
+          <span class="mock-brainstorm-icon" title="探讨">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>
+          </span>
+        </div>
+        <div class="mock-todo-item">
+          <div class="mock-checkbox"></div>
+          <span>调研竞品的定价策略</span>
+          <span class="mock-brainstorm-icon" style="color:var(--accent);opacity:1" title="已有探索会话">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>
+          </span>
+        </div>
+        <div class="mock-todo-item">
+          <div class="mock-checkbox"></div>
+          <span style="font-size:11px;color:var(--text-secondary)">确认 Q3 里程碑节点</span>
+        </div>
+        <div style="border-top:0.5px solid var(--divider);margin:8px 0"></div>
+        <div class="mock-todo-item done">
+          <div class="mock-checkbox checked"></div>
+          <span>整理部署方案对比表</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CTA ═══════════════════ -->
+<section class="cta reveal">
+  <h2>你捕获，AI 整理</h2>
+  <p class="cta-sub">
+    录音 · 文件 · 文本 → AI 增量编译 → 时间线知识库<br>
+    所有数据都是 Markdown，永远属于你。
+  </p>
+  <a href="https://github.com/quan2005/journal/releases" class="cta-btn">下载谨迹</a>
+</section>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

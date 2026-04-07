@@ -40,7 +40,7 @@ function DetailContextMenu({ menuRef, onCopySelection, onCopyRaw, onClose }: {
   const iconColor = 'var(--item-meta)'
   const itemStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '7px 12px', fontSize: 13, cursor: 'pointer',
+    padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer',
     color: 'var(--item-text)',
   }
   return (
@@ -101,8 +101,8 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
           background: copied ? 'rgba(52,199,89,0.15)' : 'rgba(255,255,255,0.07)',
           border: '1px solid rgba(255,255,255,0.12)',
           color: copied ? '#34c759' : 'var(--item-meta)',
-          fontSize: 11, padding: '2px 8px', borderRadius: 5, cursor: 'pointer',
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: 'var(--text-xs)', padding: '2px 8px', borderRadius: 5, cursor: 'pointer',
+          fontFamily: 'var(--font-mono)',
           transition: 'color 0.15s, background 0.15s',
           userSelect: 'none',
         }}>
@@ -111,8 +111,8 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
       )}
       <pre style={{
         margin: 0, background: 'var(--md-pre-bg)', borderRadius: 8,
-        padding: '10px 14px', overflowX: 'auto', fontSize: 14, lineHeight: 1.7,
-        color: 'var(--md-pre-text)', fontFamily: "'IBM Plex Mono', ui-monospace, Menlo, monospace",
+        padding: '10px 14px', overflowX: 'auto', fontSize: 'var(--text-base)', lineHeight: 1.7,
+        color: 'var(--md-pre-text)', fontFamily: 'var(--font-mono)',
       }}>
         {children}
       </pre>
@@ -215,12 +215,12 @@ function SearchBar({ text, showReplace, textareaRef, onReplace, onClose, onToggl
   }
   const inputStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.06)', border: '1px solid var(--divider)',
-    borderRadius: 4, padding: '3px 8px', fontSize: 12, color: 'var(--item-text)',
-    outline: 'none', fontFamily: "'IBM Plex Mono', monospace", flex: 1, minWidth: 0,
+    borderRadius: 4, padding: '3px 8px', fontSize: 'var(--text-xs)', color: 'var(--item-text)',
+    outline: 'none', fontFamily: 'var(--font-mono)', flex: 1, minWidth: 0,
   }
   const actionBtn: React.CSSProperties = {
     background: 'transparent', border: '1px solid var(--divider)',
-    borderRadius: 4, padding: '2px 8px', fontSize: 11, color: 'var(--item-meta)',
+    borderRadius: 4, padding: '2px 8px', fontSize: 'var(--text-xs)', color: 'var(--item-meta)',
     cursor: 'pointer', whiteSpace: 'nowrap',
   }
 
@@ -244,7 +244,7 @@ function SearchBar({ text, showReplace, textareaRef, onReplace, onClose, onToggl
           placeholder={getT()('search')}
           style={inputStyle}
         />
-        <span style={{ fontSize: 10, color: 'var(--item-meta)', whiteSpace: 'nowrap', minWidth: 36, textAlign: 'center' }}>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', whiteSpace: 'nowrap', minWidth: 36, textAlign: 'center' }}>
           {query ? `${matches.length ? matchIndex + 1 : 0}/${matches.length}` : ''}
         </span>
         <button onClick={goPrev} style={smallBtn} title={getT()('findPrev')}>
@@ -254,7 +254,7 @@ function SearchBar({ text, showReplace, textareaRef, onReplace, onClose, onToggl
           <ChevronDown size={14} />
         </button>
         {!showReplace && (
-          <button onClick={onToggleReplace} style={{ ...smallBtn, fontSize: 11 }} title={getT()('replaceBtn')}>
+          <button onClick={onToggleReplace} style={{ ...smallBtn, fontSize: 'var(--text-xs)' }} title={getT()('replaceBtn')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>
             </svg>
@@ -285,25 +285,25 @@ function SearchBar({ text, showReplace, textareaRef, onReplace, onClose, onToggl
 // ── Markdown components (same as DetailPanel) ─────────────────────────────────
 const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
   h1: ({ children }) => (
-    <h1 style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 24, fontWeight: 600, color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4 }}>{children}</h1>
+    <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4 }}>{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 18, fontWeight: 600, color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5 }}>{children}</h2>
+    <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5 }}>{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 16, fontWeight: 600, color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5 }}>{children}</h3>
+    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5 }}>{children}</h3>
   ),
   h4: ({ children }) => (
-    <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
+    <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
   ),
   h5: ({ children }) => (
-    <h5 style={{ fontSize: 14, fontWeight: 600, color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
+    <h5 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
   ),
   h6: ({ children }) => (
-    <h6 style={{ fontSize: 13, fontWeight: 500, color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
+    <h6 style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
   ),
   p: ({ children }) => (
-    <p style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
+    <p style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
   ),
   ul: ({ children }) => (
     <ul style={{ paddingLeft: 0, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3, listStyle: 'none' }}>{children}</ul>
@@ -313,19 +313,19 @@ const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
   ),
   li: ({ children, ...liProps }) => {
     const ordered = (liProps as { ordered?: boolean }).ordered
-    if (ordered) return <li style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.75 }}>{children}</li>
+    if (ordered) return <li style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.75 }}>{children}</li>
     const isTask = (liProps as { className?: string }).className?.includes('task-list-item')
     if (isTask) {
       const childArray = React.Children.toArray(children)
       return (
-        <li style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none' }}>
+        <li style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none' }}>
           <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 5 }}>{childArray[0]}</span>
           <span style={{ flex: 1 }}>{childArray.slice(1)}</span>
         </li>
       )
     }
     return (
-      <li style={{ fontSize: 16, color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start' }}>
+      <li style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start' }}>
         <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 8 }}>
           <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: 'var(--md-bullet)' }} />
         </span>
@@ -350,11 +350,11 @@ const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
   hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }} />,
   table: ({ children }) => (
     <div style={{ overflowX: 'auto', margin: '10px 0' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>{children}</table>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-base)' }}>{children}</table>
     </div>
   ),
   th: ({ children }) => (
-    <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, fontSize: 13, color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap', minWidth: 72 }}>{children}</th>
+    <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap', minWidth: 72 }}>{children}</th>
   ),
   td: ({ children }) => (
     <td style={{ padding: '5px 10px', color: 'var(--md-text)', lineHeight: 1.6, verticalAlign: 'top', borderBottom: '1px solid var(--divider)', minWidth: 72 }}>{children}</td>
@@ -577,7 +577,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
           width: '100%',
           maxWidth: 520,
         }}>
-          <div style={{ fontSize: 14, color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
+          <div style={{ fontSize: 'var(--text-base)', color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
             通过以下方式开始记录
           </div>
           {(onRecord || onOpenDock) && (
@@ -601,8 +601,8 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                       <line x1="8" y1="22" x2="16" y2="22"/>
                     </svg>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
-                  <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>录音记录</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
                 </button>
               )}
               {onOpenDock && (
@@ -623,8 +623,8 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                       <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
-                  <div style={{ fontSize: 12, color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 600, marginBottom: 4 }}>粘贴 / 拖文件</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
                 </button>
               )}
             </div>
@@ -637,15 +637,15 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
   const displayTags = pickDisplayTags(identity.tags, Infinity)
   const bodyContent = content ? stripFrontmatter(content) : null
 
-  const editorFont = "'IBM Plex Mono', ui-monospace, monospace"
-  const editorFontSize = 16
+  const editorFont = 'var(--font-mono)'
+  const editorFontSize = 'var(--text-md)'
   const editorLineHeight = 1.3
 
   const btnStyle: React.CSSProperties = {
     padding: '4px 14px', borderRadius: 6,
     border: '1px solid var(--divider)',
     background: 'transparent', color: 'var(--item-meta)',
-    fontSize: 11, cursor: 'pointer',
+    fontSize: 'var(--text-xs)', cursor: 'pointer',
     minWidth: 48, textAlign: 'center',
     transition: 'color 0.15s, background 0.15s, border-color 0.15s',
   }
@@ -667,7 +667,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
         borderBottom: '0.5px solid var(--divider)',
       }}>
         <span style={{
-          fontSize: 14, fontWeight: 600, color: 'var(--item-text)',
+          fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--item-text)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           minWidth: 0, marginRight: 12,
         }}>
@@ -688,7 +688,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
               >
-                <span style={{ fontSize: 9, opacity: 0.5 }}>ESC</span>
+                <span style={{ fontSize: 'var(--text-xs)', opacity: 0.5 }}>ESC</span>
                 取消
               </button>
               <button
@@ -706,7 +706,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 }}
                 onMouseUp={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
               >
-                <span style={{ fontSize: 9, opacity: 0.5 }}>⌘S</span>
+                <span style={{ fontSize: 'var(--text-xs)', opacity: 0.5 }}>⌘S</span>
                 {saveStatus === 'saving' ? t('saving') : t('save')}
               </button>
             </>
@@ -746,7 +746,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'}
                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'}
               >
-                <span style={{ fontSize: 9, opacity: 0.5 }}>⌘E</span>
+                <span style={{ fontSize: 'var(--text-xs)', opacity: 0.5 }}>⌘E</span>
                 {t('edit')}
               </button>
             </>
@@ -806,7 +806,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
           <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid var(--divider)' }}>
             {identity.summary && (
               <div style={{
-                fontSize: 14, color: 'var(--detail-summary)', lineHeight: 1.8,
+                fontSize: 'var(--text-base)', color: 'var(--detail-summary)', lineHeight: 1.8,
                 marginBottom: displayTags.length > 0 ? 10 : 0,
               }}>
                 {identity.summary}
@@ -816,9 +816,9 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 {identity.speaker_id && (
                   <span style={{
-                    fontSize: 12, padding: '2px 9px', borderRadius: 4,
+                    fontSize: 'var(--text-xs)', padding: '2px 9px', borderRadius: 4,
                     fontWeight: 500, color: 'var(--item-meta)', background: 'rgba(255,255,255,0.10)',
-                    fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
+                    fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -829,9 +829,9 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 )}
                 {displayTags.map((cfg, i) => (
                   <span key={i} style={{
-                    fontSize: 12, padding: '2px 9px', borderRadius: 4,
+                    fontSize: 'var(--text-xs)', padding: '2px 9px', borderRadius: 4,
                     fontWeight: 500, color: cfg.color, background: cfg.bg,
-                    fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
+                    fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
                   }}>
                     {cfg.label}
                   </span>
@@ -856,7 +856,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
               </ReactMarkdown>
             </div>
           ) : (
-            <div style={{ color: 'var(--item-meta)', fontSize: 14 }}>暂无内容</div>
+            <div style={{ color: 'var(--item-meta)', fontSize: 'var(--text-base)' }}>暂无内容</div>
           )}
         </div>
       )}

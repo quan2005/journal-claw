@@ -44,8 +44,8 @@ function Avatar({ identity }: { identity: IdentityEntry }) {
       width: 32, height: 32, borderRadius: 8, flexShrink: 0,
       background: bg, color,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: char === 'AI' ? 10 : 13, fontWeight: 600,
-      fontFamily: char === 'AI' ? "'IBM Plex Mono', monospace" : undefined,
+      fontSize: char === 'AI' ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
+      fontFamily: char === 'AI' ? 'var(--font-mono)' : undefined,
       userSelect: 'none',
     }}>
       {char}
@@ -88,7 +88,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
           lineHeight: 1.4, marginBottom: identity.summary ? 2 : 0,
         }}>
           <span style={{
-            fontSize: 14, fontWeight: 600,
+            fontSize: 'var(--text-base)', fontWeight: 600,
             color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             flexShrink: 1, minWidth: 0,
@@ -97,9 +97,9 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
           </span>
           {displayTags.length > 0 && displayTags.map((cfg, i) => (
             <span key={i} style={{
-              fontSize: 11, padding: '1px 5px', borderRadius: 3,
+              fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 3,
               fontWeight: 500, color: cfg.color, background: cfg.bg,
-              fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap',
+              fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
               flexShrink: 0,
             }}>
               {cfg.label}
@@ -108,7 +108,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
         </div>
         {identity.summary && (
           <div style={{
-            fontSize: 13, color: 'var(--item-meta)',
+            fontSize: 'var(--text-sm)', color: 'var(--item-meta)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             lineHeight: 1.4,
           }}>
@@ -149,7 +149,7 @@ function MenuItemRow({ label, icon, danger, onClick }: { label: string; icon: st
     <div
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '7px 12px', fontSize: 13, cursor: 'pointer',
+        padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer',
         color: danger ? '#ff3b30' : 'var(--item-text)',
       }}
       onMouseEnter={e => {
@@ -336,7 +336,7 @@ export function IdentityList({
         {pinned.length > 0 && (
           <div>
             <div style={{ padding: '14px 16px 6px' }}>
-              <span style={{ fontSize: 12, color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
                 {t('builtin')}
               </span>
             </div>
@@ -361,7 +361,7 @@ export function IdentityList({
         {regions.map(region => (
           <div key={region}>
             <div style={{ padding: '14px 16px 6px' }}>
-              <span style={{ fontSize: 12, color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
                 {region}
               </span>
             </div>
@@ -381,10 +381,10 @@ export function IdentityList({
         {regular.length === 0 && !loading && (
           <div style={{
             padding: '24px 16px', textAlign: 'center',
-            color: 'var(--item-meta)', fontSize: 14, lineHeight: 1.6,
+            color: 'var(--item-meta)', fontSize: 'var(--text-base)', lineHeight: 1.6,
           }}>
             {t('noProfiles')}<br />
-            <span style={{ fontSize: 13 }}>{t('recordingHint')}</span>
+            <span style={{ fontSize: 'var(--text-sm)' }}>{t('recordingHint')}</span>
           </div>
         )}
       </div>

@@ -71,7 +71,7 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
             position: 'absolute',
             bottom: 4,
             right: 4,
-            fontSize: 'var(--text-xs)',
+            fontSize: 7, /* micro badge — below token scale, intentional */
             fontWeight: 'var(--font-semibold)',
             letterSpacing: '0.03em',
             color: 'rgba(255,255,255,0.7)',

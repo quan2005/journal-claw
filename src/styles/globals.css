@@ -17,6 +17,7 @@
   --font-normal:   400;
   --font-medium:   500;
   --font-semibold: 600;
+  /* 700+ intentionally excluded — design spec caps at semibold (600) */
 
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -384,13 +385,13 @@ html, body, #root {
   list-style: decimal;
   display: list-item;
   color: var(--md-text);
-  font-size: 16px;
+  font-size: var(--text-md);
   line-height: 1.75;
 }
 
 .md-body ol li::marker {
   color: var(--md-bullet);
-  font-weight: 600;
+  font-weight: var(--font-semibold);
 }
 
 /* ── Inline code only (not inside pre) ───────────────────────── */
@@ -495,7 +496,7 @@ html, body, #root {
   display: block;
   overflow-x: auto;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.6;
   font-family: var(--font-mono);
   background: var(--md-pre-bg);

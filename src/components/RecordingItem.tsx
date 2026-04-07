@@ -115,7 +115,7 @@ export function RecordingItem({
         {showDate && dayNum ? (
           <>
             <span style={{
-              fontSize: 'var(--text-2xl)',
+              fontSize: 'var(--text-xl)',
               fontWeight: 'var(--font-normal)',
               color: 'var(--date-number)',
               lineHeight: 1,

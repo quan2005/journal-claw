@@ -405,7 +405,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           }}>
             {!contextMenu.doneFile && (
               <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-                onClick={() => { openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
+                onClick={() => { openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile).catch(console.error); setContextMenu(null) }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 18h6"/><path d="M10 22h4"/>
                   <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>

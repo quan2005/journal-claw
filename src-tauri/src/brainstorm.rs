@@ -36,17 +36,28 @@ fn save_sessions(workspace: &str, store: &SessionStore) -> Result<(), String> {
 }
 
 fn generate_session_id() -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
     let t = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
     let nanos = t.as_nanos();
+    let pid = std::process::id();
+
+    // Mix nanos + pid through a hasher for the trailing segments
+    let mut h = DefaultHasher::new();
+    nanos.hash(&mut h);
+    pid.hash(&mut h);
+    let hash = h.finish();
+
     format!(
         "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
         (nanos & 0xFFFFFFFF) as u32,
         ((nanos >> 32) & 0xFFFF) as u16,
         ((nanos >> 48) & 0x0FFF) as u16,
-        ((nanos >> 60) & 0xFFFF) as u16,
-        ((nanos >> 76) & 0xFFFFFFFFFFFF) as u64 & 0xFFFFFFFFFFFF,
+        ((hash >> 48) & 0xFFFF) as u16,
+        (hash & 0xFFFFFFFFFFFF),
     )
 }
 
@@ -168,7 +179,7 @@ pub fn open_brainstorm_terminal(
 
         // Terminal closed → resume session
         let cmd = format!(
-            "'{}' --resume {}",
+            "'{}' --dangerously-skip-permissions --resume {}",
             cli.replace('\'', "'\\''"),
             info.session_id
         );
@@ -180,7 +191,7 @@ pub fn open_brainstorm_terminal(
 
         let escaped_text = text.replace('\'', "'\\''");
         let cmd = format!(
-            "'{}' '/ideate {}' --session-id {}",
+            "'{}' --dangerously-skip-permissions '/ideate {}' --session-id {}",
             cli.replace('\'', "'\\''"),
             escaped_text,
             session_id

@@ -81,7 +81,7 @@ fn spawn_terminal(
         app_file.display(),
     );
     let script = format!(
-        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\nclaude --allow-dangerously-skip-permissions\nrm -f '{}' '{}'",
+        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\nclaude --dangerously-skip-permissions\nrm -f '{}' '{}'",
         pid_file.display(),
         detect_terminal,
         workspace,

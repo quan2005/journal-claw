@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { CommandDock } from '../components/CommandDock'
+import { renderWithProviders as render } from './setup'
 
 vi.mock('tauri-plugin-clipboard-api', () => ({
   default: {

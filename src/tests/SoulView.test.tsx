@@ -1,7 +1,8 @@
 // src/tests/SoulView.test.tsx
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SoulView from '../components/SoulView'
+import { renderWithProviders as render } from './setup'
 
 const mockGetWorkspacePrompt = vi.fn()
 const mockSetWorkspacePrompt = vi.fn()

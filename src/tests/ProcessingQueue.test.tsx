@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { ProcessingQueue } from '../components/ProcessingQueue'
+import { renderWithProviders as render } from './setup'
 import type { QueueItem } from '../types'
 
 const failedItem: QueueItem = {

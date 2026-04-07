@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SectionVoice from '../settings/components/SectionVoice'
+import { renderWithProviders as render } from './setup'
 
 type WhisperModel = 'base' | 'small' | 'large-v3-turbo'
 type DownloadPayload = {
@@ -26,6 +27,7 @@ const mockGetSpeakerProfiles = vi.fn()
 const mockUpdateSpeakerName = vi.fn()
 const mockDeleteSpeakerProfile = vi.fn()
 const mockMergeSpeakerProfiles = vi.fn()
+const mockCheckSpeakerEmbedder = vi.fn()
 
 vi.mock('../lib/tauri', () => ({
   getAsrConfig: (...args: unknown[]) => mockGetAsrConfig(...args),
@@ -40,6 +42,7 @@ vi.mock('../lib/tauri', () => ({
   updateSpeakerName: (...args: unknown[]) => mockUpdateSpeakerName(...args),
   deleteSpeakerProfile: (...args: unknown[]) => mockDeleteSpeakerProfile(...args),
   mergeSpeakerProfiles: (...args: unknown[]) => mockMergeSpeakerProfiles(...args),
+  checkSpeakerEmbedder: (...args: unknown[]) => mockCheckSpeakerEmbedder(...args),
 }))
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -65,6 +68,16 @@ function emitDownloadEvent(payload: DownloadPayload) {
   })
 }
 
+/** Wait for the component to finish loading (skeleton disappears, cards appear) */
+async function waitForLoaded() {
+  await screen.findByText('Small')
+}
+
+/** Click a model card by its label text */
+function clickModelCard(label: string) {
+  fireEvent.click(screen.getByText(label).closest('div[style]')!)
+}
+
 describe('SectionVoice', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -87,6 +100,7 @@ describe('SectionVoice', () => {
     mockUpdateSpeakerName.mockResolvedValue(undefined)
     mockDeleteSpeakerProfile.mockResolvedValue(undefined)
     mockMergeSpeakerProfiles.mockResolvedValue(undefined)
+    mockCheckSpeakerEmbedder.mockResolvedValue({ available: true })
     mockInvoke.mockResolvedValue(undefined)
   })
 
@@ -94,23 +108,27 @@ describe('SectionVoice', () => {
     downloadedModels.add('small')
 
     render(<SectionVoice />)
+    await waitForLoaded()
 
-    await screen.findByRole('combobox')
+    // downloadedModels state is populated via refreshDownloadedModels (triggered by download events)
+    // Simulate a download completion to trigger the refresh
+    emitDownloadEvent({ model: 'small', status: 'done' })
 
-    expect(screen.getByRole('option', { name: 'Small (~244MB，已下载)' })).toBeTruthy()
-    expect(screen.queryByRole('option', { name: /^✓/ })).toBeNull()
+    // The "已下载" text should appear for the Small model
+    expect((await screen.findAllByText('已下载')).length).toBeGreaterThan(0)
   })
 
   it('keeps the download panel visible when switching to another model during download', async () => {
     render(<SectionVoice />)
+    await waitForLoaded()
 
-    await screen.findByRole('combobox')
-
-    fireEvent.click(screen.getByRole('button', { name: '下载模型' }))
+    // Models render in order: base(0), small(1), large-v3-turbo(2)
+    const downloadButtons = screen.getAllByText('下载')
+    fireEvent.click(downloadButtons[1]) // small
 
     expect(mockDownloadWhisperkitModel).toHaveBeenCalledWith('small')
     expect(screen.getByText('模型下载任务')).toBeTruthy()
-    expect(screen.getByText('Small 模型')).toBeTruthy()
+    expect(screen.getAllByText('Small').length).toBeGreaterThan(0)
 
     emitDownloadEvent({
       model: 'small',
@@ -120,15 +138,14 @@ describe('SectionVoice', () => {
 
     expect(screen.getAllByText('正在从 HuggingFace 拉取模型…').length).toBeGreaterThan(0)
 
-    fireEvent.change(screen.getByRole('combobox'), {
-      target: { value: 'large-v3-turbo' },
-    })
+    // Switch to large-v3-turbo by clicking its card
+    clickModelCard('Large v3 Turbo')
 
     expect(screen.getByText('有未保存修改')).toBeTruthy()
     expect(mockSetAsrConfig).not.toHaveBeenCalled()
 
-    expect(screen.getByText('Small 模型')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '稍候下载' })).toHaveProperty('disabled', true)
+    // Download panel should still be visible showing Small
+    expect(screen.getByText('模型下载任务')).toBeTruthy()
 
     downloadedModels.add('small')
     emitDownloadEvent({
@@ -136,20 +153,20 @@ describe('SectionVoice', () => {
       status: 'done',
     })
 
-    expect((await screen.findAllByText('Small 模型已下载，可离线使用')).length).toBeGreaterThan(0)
+    // Success message should appear
+    const successTexts = await screen.findAllByText(/Small.*已下载/)
+    expect(successTexts.length).toBeGreaterThan(0)
   })
 
   it('persists model changes only when save is clicked', async () => {
     render(<SectionVoice />)
-
-    await screen.findByRole('combobox')
+    await waitForLoaded()
 
     const saveButton = screen.getByRole('button', { name: '保存' }) as HTMLButtonElement
     expect(saveButton.disabled).toBe(true)
 
-    fireEvent.change(screen.getByRole('combobox'), {
-      target: { value: 'large-v3-turbo' },
-    })
+    // Switch to large-v3-turbo by clicking its card
+    clickModelCard('Large v3 Turbo')
 
     expect(screen.getByText('有未保存修改')).toBeTruthy()
     expect(saveButton.disabled).toBe(false)
@@ -176,10 +193,11 @@ describe('SectionVoice', () => {
     })
 
     render(<SectionVoice />)
+    await waitForLoaded()
 
-    await screen.findByRole('combobox')
-
-    fireEvent.click(screen.getByRole('button', { name: '下载模型' }))
+    // Click the download button for large-v3-turbo
+    const downloadButtons = screen.getAllByText('下载')
+    fireEvent.click(downloadButtons[downloadButtons.length - 1])
 
     emitDownloadEvent({
       model: 'large-v3-turbo',

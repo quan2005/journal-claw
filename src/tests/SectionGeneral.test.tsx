@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SectionGeneral from '../settings/components/SectionGeneral'
+import { renderWithProviders as render } from './setup'
 
 const mockGetWorkspacePath = vi.fn()
 const mockSetWorkspacePath = vi.fn()

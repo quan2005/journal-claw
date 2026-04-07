@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SectionAiEngine from '../settings/components/SectionAiEngine'
+import { renderWithProviders as render } from './setup'
 
 const mockCheckEngineInstalled = vi.fn()
 const mockInstallEngine = vi.fn()

@@ -11,6 +11,7 @@ export default defineConfig(async () => ({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./src/tests/setup.ts'],
   },
   build: {
     rollupOptions: {

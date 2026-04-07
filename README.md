@@ -4,15 +4,21 @@
 
 You capture. AI organizes.
 
-JournalClaw is a macOS desktop app for knowledge workers who think faster than they type. Drop a recording, paste some notes, drag in a file — JournalClaw turns the raw material into structured journal entries.
+JournalClaw is a macOS desktop app — an AI-powered knowledge base for knowledge workers. You don't write notes. You throw in raw materials, and AI compiles them into searchable knowledge entries, building a personal memory system along a timeline.
 
 ## The Idea
 
 Andrej Karpathy [wrote about](https://karpathy.bearblog.dev/the-append-and-review-note/) a note-taking principle that resonates: *append first, review later*. The friction of organizing while capturing kills the thought. The value is in the review cycle, not the structure.
 
-JournalClaw is built on this: **capture anything, let AI do the organizing**. One keystroke to start a recording. One paste to submit a doc. One drop to process a file. You never touch a folder.
+JournalClaw takes this to the extreme: **you never write a single note**. Recordings, documents, pasted text — all raw materials go into `raw/`, and the LLM incrementally compiles them into structured Markdown knowledge entries. Every new material triggers an update. You only do two things: feed it materials, and come back to read.
 
-The output — searchable, tagged, linked journal entries — shows up automatically. You come back later and read.
+```
+Raw materials (recordings / documents / text)
+  ↓  LLM incremental compilation
+Memory (timeline .md knowledge entries)
+  ↓  Search + use
+Your questions answered
+```
 
 ## Features
 
@@ -21,7 +27,10 @@ The output — searchable, tagged, linked journal entries — shows up automatic
 - **Voice recording** — One click, noise reduction, silence removal, M4A output. AI transcribes and structures it.
 - **File import** — Drop PDF, DOCX, TXT. AI extracts, summarizes, files it.
 - **Paste text** — Meeting notes, web clips, rough ideas. Submit and move on.
-- **AI organization** — Claude CLI generates structured Markdown: title, tags, summary, body.
+- **AI compilation** — LLM incrementally compiles raw materials into structured Markdown: title, tags, summary, body. Knowledge base updates automatically with each new input.
+- **Timeline memory** — All knowledge entries are arranged chronologically, forming a continuously growing personal memory system.
+- **Profiles** — Build profiles for people, projects, and more to help AI understand context and connections with greater precision.
+- **Ideas** — Capture thoughts anytime. When ready to go deeper, right-click and select "Explore in Depth" to let AI expand your thinking.
 - **Speaker profiles** — On-device speaker identification. Name the voices once; AI uses the names.
 - **Immersive reading** — Markdown rendering, code highlighting, left-list right-detail layout.
 - **Multi-workspace** — Monthly archive, configurable workspace path.
@@ -36,7 +45,7 @@ The output — searchable, tagged, linked journal entries — shows up automatic
 
 ## Roadmap
 
-- [ ] **Todo extraction** — pull action items from journal entries into a standalone task list
+- [x] **Ideas** — Capture thoughts anytime; right-click "Explore in Depth" to let AI expand your thinking
 - [ ] **Multi-AI** — plug in different providers (Claude, OpenAI, local models)
 - [ ] **Skill plugins** — extensible processing pipeline, user-defined workflows
 - [ ] **Auto-organize** — scheduled or trigger-based tagging and summarization

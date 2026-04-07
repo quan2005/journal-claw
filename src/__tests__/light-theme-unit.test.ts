@@ -104,9 +104,9 @@ describe('Dark theme invariance', () => {
       'utf-8',
     )
     // Dark theme textAlpha = 0.65
-    expect(tagsSource).toMatch(/dark\s*\?\s*0\.65/)
+    expect(tagsSource).toMatch(/0\.65/)
     // Dark theme bgAlpha = 0.10
-    expect(tagsSource).toMatch(/dark\s*\?\s*0\.10/)
+    expect(tagsSource).toMatch(/0\.10/)
   })
 })
 

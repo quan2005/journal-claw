@@ -443,7 +443,6 @@ html, body, #root {
 }
 .mic-btn[data-recording="false"]:hover {
   background: var(--record-btn-hover) !important;
-  animation: mic-glow-expand 0.18s var(--ease-out) forwards !important;
   transform: scale(1.04);
 }
 .mic-btn:active {

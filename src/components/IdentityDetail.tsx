@@ -317,17 +317,31 @@ const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
     const isTask = (liProps as { className?: string }).className?.includes('task-list-item')
     if (isTask) {
       const childArray = React.Children.toArray(children)
+      const checkboxEl = childArray[0] as React.ReactElement<{ checked?: boolean }>
+      const isChecked = checkboxEl?.props?.checked ?? false
       return (
-        <li style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none' }}>
-          <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 5 }}>{childArray[0]}</span>
+        <li style={{ fontSize: 'var(--text-md)', color: isChecked ? 'var(--md-checkbox-done-text)' : 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start', listStyle: 'none', textDecoration: isChecked ? 'line-through' : 'none' }}>
+          <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 7 }}>
+            <span style={{
+              width: 13, height: 13, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `1.5px solid ${isChecked ? 'var(--md-checkbox-checked)' : 'var(--md-checkbox-border)'}`,
+              background: isChecked ? 'var(--md-checkbox-checked)' : 'transparent',
+            }}>
+              {isChecked && (
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </span>
+          </span>
           <span style={{ flex: 1 }}>{childArray.slice(1)}</span>
         </li>
       )
     }
     return (
       <li style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.75, display: 'flex', alignItems: 'flex-start' }}>
-        <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 8 }}>
-          <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: 'var(--md-bullet)' }} />
+        <span style={{ flexShrink: 0, width: 20, display: 'inline-flex', justifyContent: 'center', marginTop: 12 }}>
+          <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: 'var(--md-bullet)' }} />
         </span>
         <span>{children}</span>
       </li>

@@ -35,8 +35,21 @@ export function resolveTag(tag: string): TagStyle {
   // Detect current theme from document attribute
   const dark = typeof document !== 'undefined' &&
     document.documentElement.getAttribute('data-theme') === 'dark'
-  const textAlpha = dark ? 0.65 : 0.80
-  const bgAlpha = dark ? 0.10 : 0.12
+  // Dark mode: use amber-tinted neutrals to match theme color
+  if (dark) {
+    const amberR = Math.min(255, r + 80)
+    const amberG = Math.min(255, g + 40)
+    const amberB = Math.max(0, b - 20)
+    const amberRgb = `${amberR},${amberG},${amberB}`
+    return {
+      label: tag,
+      color: `rgba(${amberRgb},0.65)`,
+      bg: `rgba(${amberRgb},0.10)`,
+      rgb: amberRgb,
+    }
+  }
+  const textAlpha = 0.80
+  const bgAlpha = 0.12
   return {
     label: tag,
     color: `rgba(${rgb},${textAlpha})`,

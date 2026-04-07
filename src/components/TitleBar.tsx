@@ -67,7 +67,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
               <span style={{
                 position: 'absolute' as const, top: -2, right: -4,
                 background: 'var(--record-btn)', color: 'var(--bg)',
-                fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)',
+                fontSize: 9, fontWeight: 'var(--font-semibold)', /* micro badge — below token scale */
                 width: 14, height: 14, borderRadius: 7,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{todoCount > 9 ? '9+' : todoCount}</span>

@@ -5,6 +5,23 @@
 }
 
 :root {
+  /* ── Typography tokens ─────────────────────────── */
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-base: 0.875rem;   /* 14px */
+  --text-md:   1rem;       /* 16px */
+  --text-lg:   1.25rem;    /* 20px */
+  --text-xl:   1.5rem;     /* 24px */
+  --text-2xl:  1.875rem;   /* 30px */
+
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-serif: 'Noto Serif SC', serif;
+
   --bg: #f5f6f7;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
@@ -342,7 +359,7 @@ html, body, #root {
   height: 100%;
   width: 100%;
   background: var(--bg);
-  font-family: 'IBM Plex Mono', ui-monospace, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   user-select: none;
   overflow: hidden;
@@ -378,7 +395,7 @@ html, body, #root {
 
 /* ── Inline code only (not inside pre) ───────────────────────── */
 .md-body :not(pre) > code {
-  font-family: 'IBM Plex Mono', ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.88em;
   background: var(--md-code-bg);
   color: var(--md-code-text);
@@ -454,6 +471,11 @@ html, body, #root {
   animation: kbd-glow-pulse 2.4s ease-in-out infinite;
 }
 
+/* ── Dock textarea ─────────────────────────────────────── */
+.dock-textarea {
+  font-family: var(--font-mono);
+}
+
 /* ── Dock textarea placeholder ─────────────────────────── */
 .dock-textarea::placeholder {
   color: var(--item-meta);
@@ -475,7 +497,7 @@ html, body, #root {
   padding: 10px 14px;
   font-size: 14px;
   line-height: 1.6;
-  font-family: 'IBM Plex Mono', ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   background: var(--md-pre-bg);
   color: var(--md-pre-text);
   border-radius: 8px;

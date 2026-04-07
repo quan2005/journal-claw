@@ -74,7 +74,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   const { t } = useTranslation()
   if (item.status === 'converting') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 11, opacity: 0.8 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 'var(--text-xs)', opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
         {t('converting')}
       </span>
@@ -82,7 +82,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   }
   if (item.status === 'queued') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 11, opacity: 0.7 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--item-meta)', fontSize: 'var(--text-xs)', opacity: 0.7 }}>
         <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--item-meta)', opacity: 0.4 }} />
         {t('queued')}
       </span>
@@ -90,7 +90,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   }
   if (item.status === 'processing') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 11, opacity: 0.8 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-active-text)', fontSize: 'var(--text-xs)', opacity: 0.8 }}>
         <Spinner size={10} borderWidth={1.5} />
         {t('processingItem')}
       </span>
@@ -99,12 +99,12 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   if (item.status === 'failed') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ color: '#ff453a', fontSize: 11 }}>{t('failed')}</span>
+        <span style={{ color: '#ff453a', fontSize: 'var(--text-xs)' }}>{t('failed')}</span>
         <button
           onClick={(e) => { e.stopPropagation(); onRetry() }}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px',
-            color: 'var(--item-meta)', fontSize: 11, lineHeight: 1,
+            color: 'var(--item-meta)', fontSize: 'var(--text-xs)', lineHeight: 1,
           }}
           title={t('retryTooltip')}
         >
@@ -114,7 +114,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
           onClick={(e) => { e.stopPropagation(); onDismiss() }}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
-            color: 'var(--item-meta)', fontSize: 12, lineHeight: 1,
+            color: 'var(--item-meta)', fontSize: 'var(--text-sm)', lineHeight: 1,
           }}
           title={t('closeTooltip')}
         >
@@ -124,8 +124,8 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
     )
   }
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 11, opacity: 0.7 }}>
-      <span style={{ fontSize: 13 }}>✓</span>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ai-pill-text)', fontSize: 'var(--text-xs)', opacity: 0.7 }}>
+      <span style={{ fontSize: 'var(--text-sm)' }}>✓</span>
       {t('done')}
     </span>
   )
@@ -174,7 +174,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                 }}
               >
                 <span style={{
-                  fontSize: 12,
+                  fontSize: 'var(--text-xs)',
                   color: 'var(--record-btn)',
                   flexShrink: 0,
                   display: 'flex',
@@ -194,8 +194,8 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                 {/* Real-time audio waveform — centered, dominant */}
                 <AudioWaveform level={(item.audioLevel ?? 0) * 6} />
                 <span style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 11,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
                   color: 'var(--record-btn)',
                   flexShrink: 0,
                 }}>
@@ -230,10 +230,10 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                 ...animStyle,
               }}
             >
-              <span style={{ fontSize: 13, flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
+              <span style={{ fontSize: 'var(--text-sm)', flexShrink: 0, opacity: 0.7 }}>{emoji}</span>
               <span style={{
                 flex: 1,
-                fontSize: 12,
+                fontSize: 'var(--text-xs)',
                 color: item.status === 'failed' ? '#ff453a' : 'var(--item-meta)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -245,16 +245,16 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
 
               {isConfirming ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, color: 'var(--item-meta)', opacity: 0.7 }}>{t('confirmCancel')}</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.7 }}>{t('confirmCancel')}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null); onCancel(item) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 11, color: '#ff453a' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 'var(--text-xs)', color: '#ff453a' }}
                   >
                     {t('confirm')}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 11, color: 'var(--item-meta)', opacity: 0.6 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.6 }}
                   >
                     {t('back')}
                   </button>
@@ -267,7 +267,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                       onClick={(e) => { e.stopPropagation(); setConfirmingPath(item.path) }}
                       style={{
                         background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
-                        color: 'var(--item-meta)', fontSize: 12, lineHeight: 1, flexShrink: 0,
+                        color: 'var(--item-meta)', fontSize: 'var(--text-sm)', lineHeight: 1, flexShrink: 0,
                         opacity: 0.4,
                       }}
                       title={t('cancelTooltip')}

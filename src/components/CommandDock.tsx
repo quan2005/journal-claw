@@ -177,8 +177,8 @@ export function CommandDock({
       : 'transparent'
 
   const actionBtnCancel: React.CSSProperties = {
-    fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: 12,
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--text-xs)',
     padding: '3px 9px',
     borderRadius: 5,
     border: '0.5px solid var(--dock-dropzone-border)',
@@ -188,8 +188,8 @@ export function CommandDock({
   }
 
   const actionBtnSubmit: React.CSSProperties = {
-    fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: 12,
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--text-xs)',
     padding: '3px 9px',
     borderRadius: 5,
     border: '0.5px solid var(--dock-paste-border)',
@@ -273,14 +273,14 @@ export function CommandDock({
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, color: 'var(--dock-dropzone-text)' }}>{t('pastePrompt')}</div>
-              <div style={{ fontSize: 12, color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>{t('aiArchiveHint')}</div>
+              <div style={{ fontSize: 'var(--text-base)', color: 'var(--dock-dropzone-text)' }}>{t('pastePrompt')}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--dock-dropzone-hint)', marginTop: 2 }}>{t('aiArchiveHint')}</div>
             </div>
             <div
               className="dock-kbd-pulse"
               style={{
               flexShrink: 0,
-              fontSize: 11,
+              fontSize: 'var(--text-xs)',
               color: 'var(--dock-kbd-text)',
               background: 'var(--dock-kbd-bg)',
               border: `0.5px solid var(--dock-kbd-border)`,
@@ -344,7 +344,7 @@ export function CommandDock({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <span style={{
-                  fontSize: 12,
+                  fontSize: 'var(--text-xs)',
                   color: 'var(--dock-paste-label)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase' as const,
@@ -418,8 +418,8 @@ export function CommandDock({
                   border: 'none',
                   outline: 'none',
                   resize: 'none',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 13,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-sm)',
                   color: 'var(--item-text)',
                   lineHeight: 1.6,
                   caretColor: 'var(--dock-paste-label)',
@@ -517,7 +517,7 @@ export function CommandDock({
           border: '0.5px solid var(--ai-pill-border)',
           borderRadius: 8,
           padding: '7px 18px',
-          fontSize: 13,
+          fontSize: 'var(--text-sm)',
           color: 'var(--ai-pill-active-text)',
           whiteSpace: 'nowrap',
           letterSpacing: '0.05em',

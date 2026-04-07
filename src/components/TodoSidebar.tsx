@@ -109,13 +109,13 @@ function DatePicker({ initialValue, onSelect, onClose }: {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function statusBarColor(item: TodoItem): string {
-  if (item.done) return 'rgba(255,255,255,0.12)'
+  if (item.done) return 'var(--divider)'
   if (item.due) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     if (new Date(item.due + 'T00:00:00') <= today) return '#ff3b30'
   }
-  return 'rgba(255,255,255,0.3)'
+  return 'var(--divider)'
 }
 
 function dueBadgeStyle(due: string): { color: string; background: string } {
@@ -124,7 +124,7 @@ function dueBadgeStyle(due: string): { color: string; background: string } {
   const d = new Date(due + 'T00:00:00')
   if (d.getTime() < today.getTime()) return { color: '#ff3b30', background: 'rgba(255,59,48,0.1)' }
   if (d.getTime() === today.getTime()) return { color: '#ff3b30', background: 'rgba(255,59,48,0.08)' }
-  return { color: 'var(--duration-text)', background: 'rgba(255,255,255,0.05)' }
+  return { color: 'var(--duration-text)', background: 'var(--item-hover-bg)' }
 }
 
 function formatDueShort(due: string): string {
@@ -181,7 +181,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
     <div
       onContextMenu={onContextMenu}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'
+        (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
         const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
         if (cal) cal.style.display = 'flex'
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
@@ -194,7 +194,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
         if (src) src.style.opacity = '0.35'
       }}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', transition: 'background 0.1s' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '0.5px solid var(--divider)', transition: 'background 0.1s' }}
     >
       {/* Status bar */}
       <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 1.5, flexShrink: 0, background: statusBarColor(item) }} />
@@ -389,7 +389,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
       {/* Add */}
       {adding ? (
-        <div style={{ padding: '6px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: '6px 14px', borderBottom: '0.5px solid var(--divider)' }}>
           <input ref={inputRef} value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyDown} onBlur={handleSubmit}
             placeholder={t('addTodo')}
             style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
@@ -397,8 +397,8 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
         </div>
       ) : (
         <div onClick={() => setAdding(true)}
-          style={{ padding: '6px 14px', cursor: 'pointer', borderBottom: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
+          style={{ padding: '6px 14px', cursor: 'pointer', borderBottom: '0.5px solid var(--divider)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.2] - 2026-04-07
+
+### Bug Fixes
+- Repair 13 broken frontend tests with i18n provider and updated assertions (a8ada58)
+
 ## [0.11.0] - 2026-04-07
 
 ### Features

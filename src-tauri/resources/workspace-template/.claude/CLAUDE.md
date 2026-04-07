@@ -25,28 +25,29 @@ Respond in the same language as the source material unless the user specifies ot
 
 ### Two types of profiles
 
-| File | Meaning | Rules |
-|---|---|---|
-| `identity/README.md` | **The user themselves** — name, role, preferences | User edits directly; you add info when you learn it from materials |
-| `identity/{region}-{name}.md` | **Other people** the user works with | You create and maintain these |
+
+| File                          | Meaning                                           | Rules                                                              |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| `identity/README.md`          | **The user themselves** — name, role, preferences | User edits directly; you add info when you learn it from materials |
+| `identity/{region}-{name}.md` | **Other people** the user works with              | You create and maintain these                                      |
+
 
 ### Identity behavior when processing materials
 
 1. **Identify people**: note names, titles, organizations mentioned
 2. **Identify speaker IDs**: in transcribed recordings, speakers are marked with 5-digit IDs (e.g. `00003: Hello everyone`). These are assigned by the voice identification system
 3. **New person → create profile and link voice**: for first-time appearances, use the script:
-   ```bash
+  ```bash
    .claude/scripts/identity-create "region" "name" --speaker-id 00003 --summary "Brief description of this person's role and relationship to the user"
-   ```
-   - `region`: the organization/company/city this person belongs to (e.g. `Acme`, `London`); use `unknown` if unclear
-   - `name`: real name
-   - `--speaker-id`: the 5-digit ID from the transcript (omit if material is not a recording)
-   
+  ```
+  - `region`: the organization/company/city this person belongs to (e.g. `Acme`, `London`); use `unknown` if unclear
+  - `name`: real name
+  - `--speaker-id`: the 5-digit ID from the transcript (omit if material is not a recording)
    After creating, edit the profile immediately to add details from the material (organization, title, relationship to user, key statements). Add meaningful tags to `tags`, e.g. `["product", "ai-platform"]`. Don't leave the template empty.
 4. **Existing person + new voice ID → link**: if a speaker is already profiled but has a new speaker_id, link them:
-   ```bash
+  ```bash
    .claude/scripts/identity-link 00003 identity/london-alice.md
-   ```
+  ```
 5. **Existing person → add information**: if new details appear for a known person, edit their profile directly
 6. **Unidentifiable speaker → skip**: if a speaker_id only says "mm-hmm" or "okay" with no identity signal, don't create a profile. The voice system retains the voice data for future matching.
 7. **In-journal references**: write names naturally in the body — no special markup needed

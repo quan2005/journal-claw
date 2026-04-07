@@ -145,7 +145,7 @@ export const zh: Strings = {
   setDueDate: '设置截止日期',
   copyText: '复制文本',
   deleteTodo: '删除',
-  exploreInDepth: '深入探讨',
+  exploreInDepth: '探讨',
   weekdaysFull: ['日', '一', '二', '三', '四', '五', '六'],
   monthsFull: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 

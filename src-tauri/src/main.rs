@@ -354,6 +354,7 @@ fn main() {
             todos::set_todo_due,
             todos::update_todo_text,
             brainstorm::open_brainstorm_terminal,
+            brainstorm::list_brainstorm_keys,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

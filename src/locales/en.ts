@@ -143,7 +143,7 @@ export const en = {
   setDueDate: 'Set due date',
   copyText: 'Copy text',
   deleteTodo: 'Delete',
-  exploreInDepth: 'Explore in Depth',
+  exploreInDepth: 'Explore',
   weekdaysFull: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   monthsFull: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 

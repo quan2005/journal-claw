@@ -151,6 +151,13 @@ fn spawn_tracked_terminal(
 }
 
 #[tauri::command]
+pub fn list_brainstorm_keys(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let cfg = crate::config::load_config(&app)?;
+    let store = load_sessions(&cfg.workspace_path);
+    Ok(store.sessions.keys().cloned().collect())
+}
+
+#[tauri::command]
 pub fn open_brainstorm_terminal(
     app: tauri::AppHandle,
     text: String,

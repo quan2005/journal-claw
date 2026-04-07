@@ -5,30 +5,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Design Context
 
 ### Users
-知识工作者：频繁参与会议、整理会议记录和文档，每天产生多条日志。核心任务是**高效浏览 + 沉浸阅读**，不是创作。
+知识工作者：频繁参与会议、整理文档，每天产生多条日志。核心任务是**高效浏览 + 沉浸阅读**，不是创作。情感期望：打开即平静，阅读时忘记工具的存在。
 
 ### Brand Personality
-**克制 · 沉静 · 专业**
+**克制 · 沉静 · 专业**（Intentional · Quiet · Precise）
 
-- Bear / Things 3 基调：深灰背景，大量留白，内容主导
+- Bear / Things 3 / Aesop 基调：深灰背景，大量留白，内容主导
 - 只有一种 accent 色（`#ff3b30` / `#ff375f` 红色，用于录音按钮和选中态）
 - 无阴影、无渐变、无多余装饰
-- 情感目标：打开即平静，阅读不费力
+- 高级感路径：**Quieter** — 奢侈品式精密克制
 
 ### Aesthetic Direction
-- **参考**：Bear App、Things 3、Linear（密度参考）
-- **反参考**：Notion 彩色 banner / 卡片阴影；插件堆砌感
-- **主题优先级**：深色模式为主要呈现质量基准
+- **参考**：Bear App（阅读沉浸）、Things 3（交互精度）、Linear（信息密度）、Aesop（克制的高级感）
+- **反参考**：Notion 彩色 banner / 卡片阴影；AI slop（紫蓝渐变、霓虹、玻璃态、bounce 缓动）
+- **主题优先级**：深色模式为主要质量基准；浅色同等打磨
 
 ### Design Principles
 
-1. **留白即信息**：行高、段落间距比字号更重要
-2. **层级靠尺寸，不靠颜色**：h1/h2/h3/正文字号差要明显
-3. **代码可操作**：代码块加复制按钮；inline code 用中性色，不用红色
-4. **过渡有温度**：加载态、空状态与深色调协调，避免生硬
-5. **单一 accent**：全局只有录音红色，其余交互用透明度变化
+1. **留白即信息** — 行高、段落间距比字号更重要。紧密（8–12px）用于组内，宽松（32–48px）用于章节
+2. **层级靠字号 + 字重** — 不靠颜色。h1/h2/h3/正文用字号差 + 字重差建立层级
+3. **单一 accent** — 全局只有录音红色。其余交互用透明度变化和 tinted neutral 色阶
+4. **字体有意图** — 正文用系统无衬线（SF Pro），代码块用 IBM Plex Mono。等宽不是品牌气质而是代码语义
+5. **动效有纪律** — 只动 transform + opacity，≤300ms，ease-out 家族，尊重 prefers-reduced-motion
+6. **Neutrals 带墨水青调** — 灰色系带微妙冷青 tint，不是死灰
+7. **Anti-slop** — 拒绝紫蓝渐变、bounce 缓动、装饰性模糊、渐变文字、卡片套卡片
 
-详细改进路线图见 `.impeccable.md`。
+完整设计规范见 `.impeccable.md`。
 
 ---
 

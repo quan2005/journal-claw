@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
-import { openBrainstormTerminal } from '../lib/tauri'
+import { openBrainstormTerminal, listBrainstormKeys } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({ initialValue, onSelect, onClose }: {
@@ -133,7 +133,7 @@ function formatDueShort(due: string): string {
 }
 
 // ── TodoRow ──────────────────────────────────────────────────────────────────
-function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMenu, onNavigateToSource }: {
+function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMenu, onNavigateToSource, hasBrainstorm, onBrainstorm }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
   onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
@@ -141,6 +141,8 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
   onDelete: (lineIndex: number, doneFile: boolean) => void
   onContextMenu: (e: React.MouseEvent) => void
   onNavigateToSource?: (filename: string) => void
+  hasBrainstorm?: boolean
+  onBrainstorm?: () => void
 }) {
   const { t } = useTranslation()
   const [editingDue, setEditingDue] = useState(false)
@@ -181,14 +183,14 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       onMouseEnter={e => {
         (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'
         const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
-        if (cal) cal.style.opacity = '1'
+        if (cal) cal.style.display = 'flex'
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
         if (src) src.style.opacity = '0.6'
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLElement).style.background = 'transparent'
         const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
-        if (cal) cal.style.opacity = '0'
+        if (cal) cal.style.display = 'none'
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
         if (src) src.style.opacity = '0.35'
       }}
@@ -249,10 +251,10 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
         <span className="todo-calendar-icon" onMouseDown={e => e.preventDefault()} onClick={openPicker}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
-          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0, opacity: 0, transition: 'opacity 0.1s' }}
+          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'none', alignItems: 'center', flexShrink: 0 }}
           title={t('setDueDate')}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
         </span>
@@ -264,11 +266,32 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.35' }}
           title={item.source}
-          style={{ cursor: 'pointer', opacity: 0.35, display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'opacity 0.1s' }}
+          style={{ cursor: 'pointer', opacity: 0.35, display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'opacity 0.1s', willChange: 'opacity' }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </span>
+      )}
+
+      {/* Brainstorm icon */}
+      {!item.done && (
+        <span
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => {
+            openBrainstormTerminal(item.text, item.line_index, item.done_file)
+              .then(() => onBrainstorm?.())
+              .catch(console.error)
+          }}
+          onMouseEnter={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', 'var(--record-btn)') }}
+          onMouseLeave={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', hasBrainstorm ? 'var(--record-btn)' : 'var(--duration-text)') }}
+          title={t('exploreInDepth')}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasBrainstorm ? 'var(--record-btn)' : 'var(--duration-text)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <path d="M8 10h.01M12 10h.01M16 10h.01"/>
           </svg>
         </span>
       )}
@@ -304,11 +327,20 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null; doneFile: boolean } | null>(null)
+  const [brainstormKeys, setBrainstormKeys] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   const unchecked = todos.filter(t => !t.done).sort((a, b) => a.line_index - b.line_index)
   const checked = todos.filter(t => t.done).sort((a, b) => a.line_index - b.line_index)
+
+  const refreshBrainstormKeys = useCallback(() => {
+    listBrainstormKeys()
+      .then(keys => setBrainstormKeys(new Set(keys)))
+      .catch(console.error)
+  }, [])
+
+  useEffect(() => { refreshBrainstormKeys() }, [todos, refreshBrainstormKeys])
 
   useEffect(() => { if (adding && inputRef.current) inputRef.current.focus() }, [adding])
 
@@ -350,6 +382,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
       {unchecked.map(item => (
         <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
+          hasBrainstorm={brainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
           onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
         />
       ))}
@@ -384,6 +417,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           {showCompleted && checked.map(item => (
             <div key={item.line_index} style={{ opacity: 0.5 }}>
               <TodoRow item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
+                hasBrainstorm={brainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
                 onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
               />
             </div>
@@ -405,10 +439,16 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           }}>
             {!contextMenu.doneFile && (
               <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-                onClick={() => { openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile).catch(console.error); setContextMenu(null) }}>
+                onClick={() => {
+                  openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile)
+                    .then(() => listBrainstormKeys())
+                    .then(keys => setBrainstormKeys(new Set(keys)))
+                    .catch(console.error)
+                  setContextMenu(null)
+                }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18h6"/><path d="M10 22h4"/>
-                  <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  <path d="M8 10h.01M12 10h.01M16 10h.01"/>
                 </svg>
                 {t('exploreInDepth')}
               </div>

@@ -94,15 +94,15 @@ export function RecordingList({
             flexShrink: 0,
           }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--record-btn)' }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--record-btn)' }}>
               {t('recording')}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--item-meta)', marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', marginTop: 2 }}>
               {t('today')} {currentTime}
             </div>
           </div>
           <div style={{
-            fontSize: 13,
+            fontSize: 'var(--text-sm)',
             color: 'var(--record-btn)',
             fontVariantNumeric: 'tabular-nums',
             animation: 'blink 1s ease-in-out infinite',
@@ -130,7 +130,7 @@ export function RecordingList({
                   }}>
                     <div style={{ width: 52, flexShrink: 0 }} />
                     <Spinner size={12} borderWidth={1.5} />
-                    <span style={{ fontSize: 13, color: 'var(--item-meta)' }}>{t('processingDots')}</span>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>{t('processingDots')}</span>
                   </div>
                 )
               }

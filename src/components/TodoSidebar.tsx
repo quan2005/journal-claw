@@ -57,7 +57,7 @@ function DatePicker({ initialValue, onSelect, onClose }: {
   const WEEKDAYS = s.weekdaysFull
   const MONTHS = s.monthsFull
   const cellSize = 26
-  const arrowStyle: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--item-meta)', cursor: 'pointer', fontSize: 11, padding: '2px 6px', borderRadius: 3 }
+  const arrowStyle: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--item-meta)', cursor: 'pointer', fontSize: 'var(--text-xs)', padding: '2px 6px', borderRadius: 3 }
 
   return (
     <div ref={ref} style={{ background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)', borderRadius: 8, padding: 8, zIndex: 1001, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', width: 210 }}>
@@ -66,14 +66,14 @@ function DatePicker({ initialValue, onSelect, onClose }: {
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none' }}
         >◀</button>
-        <span style={{ fontSize: 11, color: 'var(--item-text)', fontWeight: 500 }}>{year} {MONTHS[month]}</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-text)', fontWeight: 500 }}>{year} {MONTHS[month]}</span>
         <button style={arrowStyle} onClick={nextMonth}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none' }}
         >▶</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(7, ${cellSize}px)`, justifyContent: 'center' }}>
-        {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 9, color: 'var(--duration-text)', padding: '2px 0' }}>{w}</div>)}
+        {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--duration-text)', padding: '2px 0' }}>{w}</div>)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(7, ${cellSize}px)`, justifyContent: 'center' }}>
         {days.map((day, i) => {
@@ -87,7 +87,7 @@ function DatePicker({ initialValue, onSelect, onClose }: {
               onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               style={{
                 width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, borderRadius: 4, cursor: 'pointer',
+                fontSize: 'var(--text-xs)', borderRadius: 4, cursor: 'pointer',
                 color: isSelected ? 'var(--bg)' : isToday ? '#ff3b30' : 'var(--item-text)',
                 background: isSelected ? '#ff3b30' : 'transparent',
                 fontWeight: isToday || isSelected ? 600 : 400,
@@ -100,7 +100,7 @@ function DatePicker({ initialValue, onSelect, onClose }: {
         <div onClick={() => onSelect(null)}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-          style={{ marginTop: 6, padding: '4px 0', textAlign: 'center', fontSize: 10, color: 'var(--duration-text)', cursor: 'pointer', borderTop: '0.5px solid var(--divider)' }}
+          style={{ marginTop: 6, padding: '4px 0', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--duration-text)', cursor: 'pointer', borderTop: '0.5px solid var(--divider)' }}
         >{s.clearDueDate}</div>
       )}
     </div>
@@ -194,7 +194,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
         if (src) src.style.opacity = '0.35'
       }}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', transition: 'background 0.1s' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', transition: 'background 0.1s' }}
     >
       {/* Status bar */}
       <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 1.5, flexShrink: 0, background: statusBarColor(item) }} />
@@ -227,13 +227,13 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
             if (e.key === 'Escape') { if (textRef.current) textRef.current.textContent = item.text; setEditingText(false) }
           }}
           onBlur={() => handleTextSubmit()}
-          style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: '18px', fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400, color: 'var(--item-text)', outline: 'none', cursor: 'text' }}
+          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-mono)', fontWeight: 400, color: 'var(--item-text)', outline: 'none', cursor: 'text' }}
         >{item.text}</div>
       ) : (
         <span onClick={() => !item.done && setEditingText(true)}
           style={{
-            flex: 1, minWidth: 0, fontSize: 12, lineHeight: '18px',
-            fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 400,
+            flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px',
+            fontFamily: 'var(--font-mono)', fontWeight: 400,
             color: item.done ? '#555' : 'var(--item-text)',
             textDecoration: item.done ? 'line-through' : 'none',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -245,7 +245,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       {/* Due badge or calendar icon */}
       {item.due ? (
         <span onMouseDown={e => e.preventDefault()} onClick={e => { if (!item.done) openPicker(e) }}
-          style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, flexShrink: 0, cursor: item.done ? 'default' : 'pointer', whiteSpace: 'nowrap', ...dueBadgeStyle(item.due) }}
+          style={{ fontSize: 'var(--text-xs)', padding: '1px 4px', borderRadius: 3, flexShrink: 0, cursor: item.done ? 'default' : 'pointer', whiteSpace: 'nowrap', ...dueBadgeStyle(item.due) }}
         >{formatDueShort(item.due)}</span>
       ) : !item.done ? (
         <span className="todo-calendar-icon" onMouseDown={e => e.preventDefault()} onClick={openPicker}
@@ -373,11 +373,11 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   }
 
   return (
-    <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', padding: '12px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', padding: '12px 0', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 10, color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>{t('todo')}</span>
-        <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>{t('itemCount', { count: unchecked.length })}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '0 14px' }}>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--record-btn)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>{t('todo')}</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)' }}>{t('itemCount', { count: unchecked.length })}</span>
       </div>
 
       {unchecked.map(item => (
@@ -389,22 +389,22 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
       {/* Add */}
       {adding ? (
-        <div style={{ padding: '6px 8px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: '6px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
           <input ref={inputRef} value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyDown} onBlur={handleSubmit}
             placeholder={t('addTodo')}
-            style={{ width: '100%', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
+            style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
           />
         </div>
       ) : (
         <div onClick={() => setAdding(true)}
-          style={{ padding: '6px 8px', cursor: 'pointer', borderBottom: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
+          style={{ padding: '6px 14px', cursor: 'pointer', borderBottom: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          <span style={{ fontSize: 11, color: '#555' }}>{t('addTodoBtn')}</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: '#555' }}>{t('addTodoBtn')}</span>
         </div>
       )}
 
@@ -412,7 +412,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       {checked.length > 0 && (
         <>
           <div onClick={() => setShowCompleted(!showCompleted)}
-            style={{ fontSize: 9, color: '#555', marginTop: 8, padding: '6px 8px 4px', cursor: 'pointer', userSelect: 'none' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}
+            style={{ fontSize: 'var(--text-xs)', color: '#555', marginTop: 8, padding: '6px 14px 4px', cursor: 'pointer', userSelect: 'none' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}
           >{t('completedSection', { count: checked.length })} {showCompleted ? '▾' : '▸'}</div>
           {showCompleted && checked.map(item => (
             <div key={item.line_index} style={{ opacity: 0.5 }}>
@@ -427,7 +427,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
       {/* Context menu */}
       {contextMenu && (() => {
-        const menuItemStyle: React.CSSProperties = { padding: '7px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)' }
+        const menuItemStyle: React.CSSProperties = { padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)' }
         const hi = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }
         const ho = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }
         return (

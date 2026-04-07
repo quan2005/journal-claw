@@ -45,7 +45,7 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
         border: `0.5px solid ${active ? 'var(--ai-pill-active-border)' : 'var(--ai-pill-border)'}`,
         borderRadius: 20,
         padding: '3px 11px',
-        fontSize: 13,
+        fontSize: 'var(--text-sm)',
         color: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-text)',
         letterSpacing: '0.05em',
         userSelect: 'none',

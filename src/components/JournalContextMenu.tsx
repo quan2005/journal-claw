@@ -145,7 +145,7 @@ function MenuItemRow({ label, icon, danger, onClick }: { label: string; icon: st
         alignItems: 'center',
         gap: 8,
         padding: '7px 12px',
-        fontSize: 13,
+        fontSize: 'var(--text-sm)',
         cursor: 'pointer',
         color: danger ? '#ff3b30' : 'var(--item-text)',
       }}

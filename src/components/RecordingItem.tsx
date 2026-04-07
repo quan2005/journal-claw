@@ -115,7 +115,7 @@ export function RecordingItem({
         {showDate && dayNum ? (
           <>
             <span style={{
-              fontSize: 26,
+              fontSize: 'var(--text-2xl)',
               fontWeight: 300,
               color: 'var(--date-number)',
               lineHeight: 1,
@@ -123,7 +123,7 @@ export function RecordingItem({
             }}>
               {dayNum}
             </span>
-            <span style={{ fontSize: 10, color: 'var(--date-secondary)', lineHeight: 1 }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--date-secondary)', lineHeight: 1 }}>
               {weekday}
             </span>
           </>
@@ -140,7 +140,7 @@ export function RecordingItem({
         gap: 4,
       }}>
         <div style={{
-          fontSize: 13,
+          fontSize: 'var(--text-sm)',
           fontWeight: 500,
           color: 'var(--item-text)',
           whiteSpace: 'nowrap',
@@ -154,7 +154,7 @@ export function RecordingItem({
           display: 'flex',
           alignItems: 'center',
           gap: 4,
-          fontSize: 12,
+          fontSize: 'var(--text-xs)',
           color: 'var(--item-meta)',
           fontVariantNumeric: 'tabular-nums',
         }}>

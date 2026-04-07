@@ -37,7 +37,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
       {/* Center: title or AI status */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         {view === 'settings' ? (
-          <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--item-text)' }}>{t('settings')}</span>
+          <span style={{ fontSize: 'var(--text-md)', fontWeight: 500, color: 'var(--item-text)' }}>{t('settings')}</span>
         ) : (
           <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} />
         )}
@@ -67,7 +67,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
               <span style={{
                 position: 'absolute' as const, top: -2, right: -4,
                 background: 'var(--record-btn)', color: 'var(--bg)',
-                fontSize: 8, fontWeight: 700,
+                fontSize: 'var(--text-xs)', fontWeight: 700,
                 width: 14, height: 14, borderRadius: 7,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{todoCount > 9 ? '9+' : todoCount}</span>

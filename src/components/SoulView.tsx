@@ -66,8 +66,8 @@ export default function SoulView() {
     }
   }
 
-  const editorFont = "'IBM Plex Mono', ui-monospace, monospace"
-  const editorFontSize = 14
+  const editorFont = 'var(--font-mono)'
+  const editorFontSize = 'var(--text-base)'
   const editorLineHeight = 1.7
 
   return (
@@ -90,8 +90,8 @@ export default function SoulView() {
           </svg>
         </div>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>{t('aiPersonality')}</div>
-          <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 1 }}>{t('aiPersonalityDesc')}</div>
+          <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--item-text)', lineHeight: 1.3 }}>{t('aiPersonality')}</div>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginTop: 1 }}>{t('aiPersonalityDesc')}</div>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function SoulView() {
 
       {/* Footer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 28px 28px', flexShrink: 0 }}>
-        <span style={{ fontSize: 12, color: 'var(--duration-text)' }}>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)' }}>
           {saveStatus === 'saving' ? t('saving')
             : saveStatus === 'saved' ? t('autoSaved')
             : saveStatus === 'error' ? t('saveFailed')
@@ -141,7 +141,7 @@ export default function SoulView() {
           style={{
             background: saveStatus === 'saving' ? 'var(--divider)' : 'var(--record-btn)',
             border: 'none', borderRadius: 5, padding: '6px 18px',
-            fontSize: 14, fontWeight: 600,
+            fontSize: 'var(--text-base)', fontWeight: 600,
             color: saveStatus === 'saving' ? 'var(--duration-text)' : 'var(--bg)',
             cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
           }}

@@ -69,7 +69,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
   }
 
   const label: React.CSSProperties = {
-    fontSize: 13, color: 'var(--item-meta)', marginBottom: 4,
+    fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginBottom: 4,
   }
 
   const select: React.CSSProperties = {
@@ -77,7 +77,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
     background: 'var(--detail-case-bg)',
     border: '1px solid var(--divider)',
     borderRadius: 6, color: 'var(--item-text)',
-    fontSize: 16, outline: 'none',
+    fontSize: 'var(--text-md)', outline: 'none',
   }
 
   const modeBtn = (m: MergeMode, label: string, desc: string) => (
@@ -90,15 +90,15 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
         background: mode === m ? 'rgba(255,59,48,0.06)' : 'transparent',
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--item-text)' }}>{label}</div>
-      <div style={{ fontSize: 13, color: 'var(--item-meta)', marginTop: 2 }}>{desc}</div>
+      <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--item-text)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginTop: 2 }}>{desc}</div>
     </div>
   )
 
   return (
     <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={dialog}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--item-text)' }}>
+        <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--item-text)' }}>
           {t('mergeProfiles')}
         </div>
 
@@ -128,7 +128,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
         </div>
 
         {error && (
-          <div style={{ fontSize: 13, color: 'var(--record-btn)' }}>{error}</div>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--record-btn)' }}>{error}</div>
         )}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -136,7 +136,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
             onClick={onClose}
             style={{
               padding: '7px 16px', borderRadius: 6, border: '1px solid var(--divider)',
-              background: 'transparent', color: 'var(--item-text)', fontSize: 14, cursor: 'pointer',
+              background: 'transparent', color: 'var(--item-text)', fontSize: 'var(--text-base)', cursor: 'pointer',
             }}
           >
             {t('cancel')}
@@ -148,7 +148,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
               padding: '7px 16px', borderRadius: 6, border: 'none',
               background: !targetPath || merging ? 'var(--divider)' : 'var(--record-btn)',
               color: !targetPath || merging ? 'var(--item-meta)' : '#fff',
-              fontSize: 14, fontWeight: 600,
+              fontSize: 'var(--text-base)', fontWeight: 600,
               cursor: !targetPath || merging ? 'not-allowed' : 'pointer',
             }}
           >

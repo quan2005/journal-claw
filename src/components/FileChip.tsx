@@ -98,8 +98,8 @@ export function FileChip({ filename, kind, onRemove }: FileChipProps) {
         border: `0.5px solid ${colors.border}`,
         background: colors.bg,
         color: colors.color,
-        fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: 13,
+        fontFamily: 'var(--font-mono)',
+        fontSize: 'var(--text-sm)',
         lineHeight: 1,
         maxWidth: 200,
       }}

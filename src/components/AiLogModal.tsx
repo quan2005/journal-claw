@@ -70,11 +70,11 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           color: 'var(--item-meta)',
         }}>
           {isActive && <Spinner size={12} borderWidth={1.5} />}
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.filename}
           </span>
           <span style={{
-            fontSize: 11,
+            fontSize: 'var(--text-xs)',
             color: item.status === 'failed' ? '#ff453a'
               : item.status === 'completed' ? 'var(--ai-pill-text)'
               : 'var(--ai-pill-active-text)',
@@ -86,7 +86,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           </span>
           <button
             onClick={handleClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--item-meta)', fontSize: 16, lineHeight: 1, padding: '0 2px' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--item-meta)', fontSize: 'var(--text-md)', lineHeight: 1, padding: '0 2px' }}
           >
             ×
           </button>
@@ -99,8 +99,8 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
             flex: 1,
             overflowY: 'auto',
             padding: '10px 16px',
-            fontFamily: 'ui-monospace, "SF Mono", monospace',
-            fontSize: 12,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
             lineHeight: 1.6,
             color: 'var(--item-meta)',
           }}
@@ -144,7 +144,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
                 border: '0.5px solid var(--queue-border)',
                 borderRadius: 5,
                 padding: '4px 12px',
-                fontSize: 12,
+                fontSize: 'var(--text-xs)',
                 color: '#ff453a',
                 cursor: 'pointer',
               }}

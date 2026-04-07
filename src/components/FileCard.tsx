@@ -71,11 +71,11 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
             position: 'absolute',
             bottom: 4,
             right: 4,
-            fontSize: 7,
+            fontSize: 'var(--text-xs)',
             fontWeight: 700,
             letterSpacing: '0.03em',
             color: 'rgba(255,255,255,0.7)',
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: 'var(--font-mono)',
             textTransform: 'uppercase',
             lineHeight: 1,
           }}>
@@ -86,7 +86,7 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
 
       {/* Filename */}
       <span style={{
-        fontSize: 11,
+        fontSize: 'var(--text-xs)',
         color: 'var(--item-meta)',
         textAlign: 'center',
         maxWidth: 58,

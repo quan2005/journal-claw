@@ -27,8 +27,8 @@ export class ErrorBoundary extends Component<Props, State> {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         height: '100vh', background: 'var(--bg)', color: 'var(--item-text)', gap: 12,
       }}>
-        <span style={{ fontSize: 14, color: 'var(--item-meta)' }}>{t('somethingWentWrong')}</span>
-        <code style={{ fontSize: 12, color: 'var(--item-meta)', maxWidth: 400, textAlign: 'center', wordBreak: 'break-word' }}>
+        <span style={{ fontSize: 'var(--text-base)', color: 'var(--item-meta)' }}>{t('somethingWentWrong')}</span>
+        <code style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', maxWidth: 400, textAlign: 'center', wordBreak: 'break-word' }}>
           {this.state.error?.message}
         </code>
         <button

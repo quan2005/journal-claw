@@ -579,11 +579,11 @@ export default function App() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
-                <span style={{ fontSize: 12, color: 'var(--item-meta)', letterSpacing: '0.03em' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', letterSpacing: '0.03em' }}>
                   AI 引擎未配置
                 </span>
                 <span style={{
-                  fontSize: 11,
+                  fontSize: 'var(--text-xs)',
                   color: 'var(--dock-paste-label)',
                   background: 'var(--dock-paste-bg)',
                   border: '0.5px solid var(--dock-paste-border)',

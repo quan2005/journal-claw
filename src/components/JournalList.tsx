@@ -153,7 +153,7 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
         })}
 
         {entries.length === 0 && (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--item-meta)', fontSize: 13 }}>
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--item-meta)', fontSize: 'var(--text-sm)' }}>
             {t('noEntries')}
           </div>
         )}

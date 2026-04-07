@@ -17,8 +17,8 @@ export function MonthDivider({ yearMonth }: MonthDividerProps) {
     <div style={{ paddingTop: 24, paddingBottom: 0 }}>
       <div style={{
         padding: '0 20px 10px',
-        fontSize: 16,
-        fontWeight: 600,
+        fontSize: 'var(--text-md)',
+        fontWeight: 'var(--font-semibold)',
         color: 'var(--item-text)',
       }}>
         {label}

@@ -168,7 +168,7 @@ pub fn open_brainstorm_terminal(
 
         // Terminal closed → resume session
         let cmd = format!(
-            "'{}' --resume --session-id {}",
+            "'{}' --resume {}",
             cli.replace('\'', "'\\''"),
             info.session_id
         );

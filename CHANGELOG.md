@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.11.3] - 2026-04-08
+
+### Bug Fixes
+- Fix dark tag colors, mic hover, custom checkboxes, bullet alignment (59dd289)
+- Replace TodoSidebar hardcoded rgba(255,255,255,*) with CSS variables (3fe2fd8)
+- Reduce todo badge font size to prevent text overflow (9840ceb)
+- Correct typography token edge cases from code review (a347700)
+- Fix ProcessingQueue AudioWaveform transition (height, not transform) (86ab7e4)
+- Remove wasteful will-change: background-color on mic button (86ab7e4)
+- Remove redundant JS matchMedia reduced-motion check (86ab7e4)
+- Extract shared markdownLi to deduplicate checkbox+bullet rendering (86ab7e4)
+
+### Other Changes
+- Merge dark theme duplicates, add ink-cyan tint to neutrals, add spacing tokens (db7999a)
+- Fix light-mode heading colors and replace rainbow tag palette with tinted neutral (9791d05)
+- Fix component transition violations — no box-shadow or border-color (4163a54)
+- Animation discipline — fix keyframes and add reduced-motion support (8416fb1)
+
 ## [0.11.2] - 2026-04-07
 
 ### Bug Fixes

@@ -3,7 +3,7 @@ import { detectLang, createTranslator, type Lang } from '../lib/i18n'
 import { en, type Strings } from '../locales/en'
 import { zh } from '../locales/zh'
 
-type TFn = (key: keyof Strings, vars?: Record<string, string | number>) => string
+export type TFn = (key: keyof Strings, vars?: Record<string, string | number>) => string
 
 interface I18nContextValue {
   lang: Lang

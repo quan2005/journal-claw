@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { checkAppPermissions, openPrivacySettings, requestPermission } from '../../lib/tauri'
 import type { AppPermissions, PermStatus } from '../../lib/tauri'
 import SkeletonRow from './SkeletonRow'
-import { useTranslation } from '../../contexts/I18nContext'
+import { useTranslation, type TFn } from '../../contexts/I18nContext'
 
 
 const sectionStyle: React.CSSProperties = {
@@ -14,7 +14,7 @@ const sectionStyle: React.CSSProperties = {
 
 type BadgeVariant = 'ok' | 'warn' | 'error' | 'idle'
 
-function statusBadge(s: PermStatus, t: (key: string) => string): { label: string; variant: BadgeVariant } {
+function statusBadge(s: PermStatus, t: TFn): { label: string; variant: BadgeVariant } {
   switch (s) {
     case 'granted':       return { label: t('statusGranted'),       variant: 'ok'   }
     case 'denied':        return { label: t('statusDenied'),        variant: 'error' }
@@ -68,7 +68,7 @@ interface PermRowProps {
   actionLabel?: string
   onAction?: () => void
   extra?: React.ReactNode
-  t: (key: string) => string
+  t: TFn
 }
 
 function PermRow({ icon, title, description, status, actionLabel, onAction, extra, t }: PermRowProps) {

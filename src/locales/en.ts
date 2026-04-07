@@ -309,6 +309,6 @@ export const en = {
   pluginScheduledSortDesc: 'Auto-archive materials and logs in Workspace by rules, keeping directories tidy',
   pluginVisualizer: 'Visual card generator',
   pluginVisualizerDesc: 'Convert journal entries into visually rich cards for easy sharing',
-} as const
+}
 
 export type Strings = typeof en

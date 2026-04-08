@@ -48,11 +48,11 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
 ## 产出规范 (Output Specs)
 
 1. **可视化探索稿 (HTML)**
-   - 写入 `.ideate/{topic}-v{n}.html` (例如 `.ideate/onboarding-v1.html`)
+   - 写入 `yyMM/raw/DD-ideate-{topic}-v{n}.html` (例如 `2604/raw/07-ideate-onboarding-v1.html`)
    - 每次迭代使用**新文件名**（不要覆盖旧文件），方便保留设计演进的历史。
    - 写完后，务必使用 `open` 命令自动在浏览器中全屏展示。
 2. **最终设计方案 (Markdown)**
-   - 讨论结束后，将方案总结写入 `.ideate/{topic}-summary.md` (或项目规定的设计文档目录，如 `docs/design/`)
+   - 讨论结束后，将方案总结写入 `yyMM/DD-ideate-{标题}.md` (使用 `journal-create` 脚本或直接创建)
    - Frontmatter 必须包含：
      ```yaml
      ---

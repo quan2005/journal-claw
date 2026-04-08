@@ -41,7 +41,12 @@
 
 ## How It Works
 
-写轻量级的 HTML 文件到当月素材目录 `yyMM/raw/DD-ideate-*.html`，然后用 `open` 命令在浏览器中打开。
+**环境嗅探与动态路由 (Context-Aware Routing)**：
+在决定输出路径前，请观察项目根目录结构：
+- **如果是日记工作区** (存在 `yyMM/` 目录或 `identity/` 目录)：写轻量级的 HTML 文件到当月素材目录 `yyMM/raw/DD-ideate-*.html`。
+- **如果是普通代码项目** (无日记结构特征)：写轻量级的 HTML 文件到项目根目录下的 `.ideate/{topic}-v{n}.html`。
+
+无论是哪种环境，写完后都用 `open` 命令在浏览器中打开。
 
 - **不要复用文件名** — 每次迭代写新文件，如 `2604/raw/07-ideate-nav-v2.html`，以便于日后作为素材回溯。
 - **自包含，但是统一样式** — 不要在每次生成的 HTML 中重新生成随机样式。你应该**直接读取并内联注入 `scripts/canvas.css` 的完整内容**，以确保每次产出的设计画板始终保持一致的高级质感。
@@ -49,7 +54,7 @@
 ## The Loop
 
 1. **选择适合的模板**：从 `skills/ideate/scripts/` 中选择最匹配当前讨论场景的模板文件。
-2. **构思与编写 HTML**：根据对话上下文，创建新文件 `yyMM/raw/DD-ideate-{topic}-v{n}.html`。**必须用 Write 工具**，绝不能用 cat/heredoc。
+2. **构思与编写 HTML**：根据对话上下文，结合**环境嗅探规则**，创建新文件（如 `yyMM/raw/DD-ideate-{topic}-v{n}.html` 或 `.ideate/{topic}-v{n}.html`）。**必须用 Write 工具**，绝不能用 cat/heredoc。
 3. **注入统一样式 (Crucial)**：
    - 使用 `Read` 工具读取 `skills/ideate/scripts/canvas.css` 的内容。
    - 将读取到的 CSS 样式**完整地拷贝并包裹在 `<style>` 标签中**，插入到您生成的 HTML 中。

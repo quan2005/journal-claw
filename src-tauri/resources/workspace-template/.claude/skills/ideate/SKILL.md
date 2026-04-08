@@ -47,12 +47,21 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
 
 ## 产出规范 (Output Specs)
 
-1. **可视化探索稿 (HTML)**
-   - 写入 `yyMM/raw/DD-ideate-{topic}-v{n}.html` (例如 `2604/raw/07-ideate-onboarding-v1.html`)
-   - 每次迭代使用**新文件名**（不要覆盖旧文件），方便保留设计演进的历史。
+**环境嗅探与动态路由 (Context-Aware Routing)**：
+在决定输出路径前，请观察项目根目录结构：
+- **如果是日记工作区** (存在 `yyMM/` 目录或 `identity/` 目录)：
+  1. **可视化探索稿 (HTML)**：写入当前年月的素材目录 `yyMM/raw/DD-ideate-{topic}-v{n}.html`
+  2. **最终设计方案 (Markdown)**：写入 `yyMM/DD-ideate-{标题}.md` (可使用 `journal-create` 脚本或直接创建)
+- **如果是普通代码项目** (无日记结构特征)：
+  1. **可视化探索稿 (HTML)**：写入项目根目录下的 `.ideate/{topic}-v{n}.html` (提示用户将其加入 `.gitignore`)
+  2. **最终设计方案 (Markdown)**：写入 `.ideate/{topic}-summary.md` 或项目规定的设计文档目录 (如 `docs/design/`)
+
+**产出通用规则**：
+1. **对于 HTML**：
+   - 每次迭代使用**新文件名**（如 `v1`, `v2`，不要覆盖旧文件），方便保留设计演进的历史。
    - 写完后，务必使用 `open` 命令自动在浏览器中全屏展示。
-2. **最终设计方案 (Markdown)**
-   - 讨论结束后，将方案总结写入 `yyMM/DD-ideate-{标题}.md` (使用 `journal-create` 脚本或直接创建)
+2. **对于 Markdown**：
+   - 讨论结束后，将方案总结写入文件。
    - Frontmatter 必须包含：
      ```yaml
      ---

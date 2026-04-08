@@ -122,7 +122,7 @@ pub fn list_todos_from_workspace(workspace: &str) -> Vec<TodoItem> {
     items
 }
 
-pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, source: Option<&str>) -> Result<(), String> {
+pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, source: Option<&str>, path: Option<&str>) -> Result<(), String> {
     let p = todos_path(workspace);
     let mut content = if p.exists() {
         std::fs::read_to_string(&p).map_err(|e| e.to_string())?
@@ -136,6 +136,9 @@ pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, sou
     }
     if let Some(s) = source {
         new_line.push_str(&format!(" <!-- source:{} -->", s));
+    }
+    if let Some(p) = path {
+        new_line.push_str(&format!(" <!-- path:{} -->", p));
     }
 
     // 始终追加到文件末尾（UI 已按 unchecked/checked 分组显示）
@@ -256,9 +259,9 @@ pub fn list_todos(app: tauri::AppHandle) -> Result<Vec<TodoItem>, String> {
 }
 
 #[tauri::command]
-pub fn add_todo(app: tauri::AppHandle, text: String, due: Option<String>, source: Option<String>) -> Result<TodoItem, String> {
+pub fn add_todo(app: tauri::AppHandle, text: String, due: Option<String>, source: Option<String>, path: Option<String>) -> Result<TodoItem, String> {
     let cfg = crate::config::load_config(&app)?;
-    add_todo_to_workspace(&cfg.workspace_path, &text, due.as_deref(), source.as_deref())?;
+    add_todo_to_workspace(&cfg.workspace_path, &text, due.as_deref(), source.as_deref(), path.as_deref())?;
     let items = list_todos_from_workspace(&cfg.workspace_path);
     items.into_iter().filter(|t| !t.done && t.text == text).last()
         .ok_or_else(|| "添加后未找到该待办".to_string())
@@ -480,7 +483,7 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "新待办", None, None).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "新待办", None, None, None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.starts_with("---\n"));
         assert!(content.contains("# 待办"));
@@ -493,7 +496,7 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_due_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "截止任务", Some("2026-04-10"), None).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "截止任务", Some("2026-04-10"), None, None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 截止任务 <!-- due:2026-04-10 -->"));
         std::fs::remove_dir_all(&tmp).ok();
@@ -505,7 +508,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 已有任务\n- [x] 已完成\n").unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "新增任务", None, None).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "新增任务", None, None, None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         let lines: Vec<&str> = content.lines().collect();
         let new_pos = lines.iter().position(|l| l.contains("新增任务")).unwrap();
@@ -625,7 +628,7 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_source_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "确认权限", None, Some("02-研发沟通.md")).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "确认权限", None, Some("02-研发沟通.md"), None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 确认权限 <!-- source:02-研发沟通.md -->"));
         std::fs::remove_dir_all(&tmp).ok();
@@ -668,6 +671,18 @@ mod tests {
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("<!-- path:~/Projects/new -->"));
         assert!(!content.contains("old"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+
+    #[test]
+    fn add_todo_with_path() {
+        let tmp = std::env::temp_dir().join("journal_todo_add_path_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "修复 bug", None, None, Some("~/Projects/app-x")).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("- [ ] 修复 bug <!-- path:~/Projects/app-x -->"));
         std::fs::remove_dir_all(&tmp).ok();
     }
 

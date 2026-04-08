@@ -1,0 +1,194 @@
+/*
+ * IDEATE VISUAL COMPANION — PRO MAX CANVAS STYLES
+ * A unified style template for high-quality ideation visual mockups.
+ */
+
+:root {
+  --bg: #FAFAFA; --bg-canvas: #F4F4F5; --surface: #FFFFFF;
+  --border: #E5E5E5; --border-hover: #D4D4D4;
+  --text-main: #111111; --text-muted: #666666; --text-tertiary: #999999;
+  --accent: #000000; --accent-surface: #F5F5F5; --accent-text: #FFFFFF;
+  --success: #00A650; --danger: #E03E3E;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 300ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A0A0A; --bg-canvas: #000000; --surface: #141414;
+    --border: #2A2A2A; --border-hover: #3A3A3A;
+    --text-main: #EEEEEE; --text-muted: #888888; --text-tertiary: #555555;
+    --accent: #FFFFFF; --accent-surface: #1E1E1E; --accent-text: #000000;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text-main);
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 4rem 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 3rem; }
+.container.wide { max-width: 1000px; }
+
+.header { text-align: center; margin-bottom: 1rem; }
+.header h2 { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.75rem; }
+.header p { font-size: 1.125rem; color: var(--text-muted); max-width: 600px; margin: 0 auto; }
+
+/* ===== 1. COMPARE / A-B TEST TEMPLATE ===== */
+.options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+.option-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.5rem; cursor: pointer; display: flex; flex-direction: column; gap: 1rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+}
+.option-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.option-card:active { transform: translateY(0) scale(0.98); box-shadow: none; }
+.option-card.selected { border-color: var(--accent); background: var(--accent-surface); }
+
+.option-header { display: flex; align-items: center; justify-content: space-between; }
+.option-badge {
+  background: var(--bg-canvas); color: var(--text-muted); font-size: 0.75rem; font-weight: 600;
+  padding: 0.375rem 0.625rem; border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+  transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+}
+.option-card.selected .option-badge { background: var(--accent); color: var(--accent-text); }
+.option-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.25rem; }
+.option-desc { font-size: 0.9375rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ===== 2. MOCKUP / WIREFRAME TEMPLATE ===== */
+.mockup-window {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl);
+  overflow: hidden; box-shadow: var(--shadow-md); transition: transform var(--duration) var(--ease-spring);
+  display: flex; flex-direction: column;
+}
+.mockup-window:hover { transform: scale(1.01); }
+.mockup-bar {
+  height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center;
+  padding: 0 1rem; gap: 0.5rem; background: var(--bg-canvas);
+}
+.mockup-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border-hover); }
+.mockup-dot.r { background: #FF5F56; }
+.mockup-dot.y { background: #FFBD2E; }
+.mockup-dot.g { background: #27C93F; }
+
+.mockup-content {
+  padding: 0; min-height: 500px; background: var(--bg);
+  display: flex; flex-direction: row;
+}
+
+.sidebar { width: 240px; border-right: 1px solid var(--border); padding: 1.5rem; background: var(--surface); display: flex; flex-direction: column; gap: 1rem; }
+.main { flex: 1; padding: 2.5rem; display: flex; flex-direction: column; gap: 2rem; }
+
+.skel-nav { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.skel-block { background: var(--bg-canvas); border-radius: var(--radius-sm); height: 1.5rem; }
+.skel-button { background: var(--accent); color: var(--accent-text); border: none; padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: transform 150ms ease, opacity 150ms ease; }
+.skel-button:hover { opacity: 0.9; transform: translateY(-1px); }
+.skel-button:active { transform: scale(0.96); }
+
+.skel-button-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border-hover); padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; }
+.skel-button-outline:hover { border-color: var(--text-main); background: var(--bg-canvas); }
+
+.skel-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+.skel-input { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem 1rem; width: 100%; color: var(--text-main); font-family: inherit; font-size: 0.9375rem; transition: border-color 150ms ease, box-shadow 150ms ease; }
+.skel-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--border-hover); }
+
+/* ===== 3. BENTO / PROS-CONS TEMPLATE ===== */
+.bento-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(180px, auto); gap: 1.5rem;
+}
+.bento-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 2rem; display: flex; flex-direction: column; gap: 1rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out);
+}
+.bento-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+
+.col-span-2 { grid-column: span 2; }
+.row-span-2 { grid-row: span 2; }
+
+.bento-box h3 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 0.5rem; }
+.bento-box p { font-size: 0.9375rem; color: var(--text-muted); line-height: 1.5; }
+
+.pros h3 { color: var(--success); }
+.cons h3 { color: var(--danger); }
+
+.bento-box ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+.bento-box li { font-size: 0.9375rem; color: var(--text-muted); display: flex; align-items: flex-start; gap: 0.5rem; }
+.bento-box li::before { content: "→"; color: var(--text-tertiary); font-weight: bold; }
+
+.badge {
+  display: inline-block; background: var(--bg-canvas); color: var(--text-main); font-size: 0.75rem;
+  padding: 0.25rem 0.75rem; border-radius: 100px; border: 1px solid var(--border);
+  width: max-content; margin-bottom: 0.5rem;
+}
+
+/* ===== 4. FLOW TEMPLATE ===== */
+.flow-container { display: flex; flex-direction: column; gap: 2rem; align-items: center; }
+.flow-node {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 1.25rem; min-width: 280px; display: flex; flex-direction: column; gap: 0.5rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+}
+.flow-node:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.flow-node.active { border-color: var(--accent); border-width: 2px; }
+.flow-title { font-weight: 600; font-size: 1.125rem; }
+.flow-desc { color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; }
+.flow-arrow {
+  height: 40px; width: 2px; background-color: var(--border); position: relative; margin: -1rem 0;
+}
+.flow-arrow::after {
+  content: ''; position: absolute; bottom: 0; left: -4px; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid var(--border);
+}
+
+/* ===== 5. STYLEGUIDE TEMPLATE ===== */
+.style-section { margin-bottom: 3rem; }
+.style-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+.color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1.5rem; }
+.color-swatch {
+  border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.color-box { height: 100px; width: 100%; }
+.color-info { padding: 0.75rem; background: var(--surface); }
+.color-name { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.25rem; }
+.color-hex { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; text-transform: uppercase; }
+
+.typo-specimen { display: flex; flex-direction: column; gap: 2rem; background: var(--surface); padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+.typo-row { display: grid; grid-template-columns: 120px 1fr; gap: 2rem; align-items: baseline; }
+.typo-label { color: var(--text-tertiary); font-size: 0.875rem; }
+.typo-value.h1 { font-size: 3rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; }
+.typo-value.h2 { font-size: 2.25rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; }
+.typo-value.h3 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+.typo-value.body { font-size: 1rem; color: var(--text-muted); line-height: 1.6; }
+
+/* MISC */
+hr { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0; }
+.note { font-size: 0.875rem; color: var(--text-tertiary); font-style: italic; text-align: center; margin-top: 1rem; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
+@media (max-width: 768px) {
+  body { padding: 2rem 1rem; }
+  .header h2 { font-size: 2rem; }
+  .options-grid { grid-template-columns: 1fr; }
+  .mockup-content { flex-direction: column; } 
+  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  .bento-grid { grid-template-columns: 1fr; }
+  .col-span-2, .row-span-2 { grid-column: span 1; grid-row: span 1; }
+  .typo-row { grid-template-columns: 1fr; gap: 0.5rem; }
+}

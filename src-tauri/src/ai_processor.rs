@@ -94,8 +94,6 @@ const SKILL_IDEATE_MD: &str =
     include_str!("../resources/workspace-template/.claude/skills/ideate/SKILL.md");
 const SKILL_IDEATE_VISUAL_COMPANION: &str =
     include_str!("../resources/workspace-template/.claude/skills/ideate/visual-companion.md");
-const SKILL_IDEATE_FRAME_TEMPLATE: &str =
-    include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/frame-template.html");
 
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -129,7 +127,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         }
     }
 
-    // ── Sync ideate skill ───────────────────────────
+    // ── Ideate skill template ───────────────────────
     let ideate_dir = dot_claude.join("skills").join("ideate");
     let ideate_scripts = ideate_dir.join("scripts");
     if let Err(e) = std::fs::create_dir_all(&ideate_scripts) {
@@ -138,11 +136,17 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         let _ = std::fs::write(ideate_dir.join("SKILL.md"), SKILL_IDEATE_MD);
         let _ = std::fs::write(ideate_dir.join("visual-companion.md"), SKILL_IDEATE_VISUAL_COMPANION);
 
-        let _ = std::fs::write(ideate_scripts.join("frame-template.html"), SKILL_IDEATE_FRAME_TEMPLATE);
+        let _ = std::fs::write(ideate_scripts.join("ab-test.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/ab-test.html"));
+        let _ = std::fs::write(ideate_scripts.join("bento.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/bento.html"));
+        let _ = std::fs::write(ideate_scripts.join("flow.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/flow.html"));
+        let _ = std::fs::write(ideate_scripts.join("styleguide.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/styleguide.html"));
+        let _ = std::fs::write(ideate_scripts.join("wireframe.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/wireframe.html"));
+        let _ = std::fs::write(ideate_scripts.join("canvas.css"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/canvas.css"));
 
-        for obsolete in &["start-server.sh", "stop-server.sh", "server.cjs", "helper.js"] {
+        for obsolete in &["start-server.sh", "stop-server.sh", "server.cjs", "helper.js", "frame-template.html", "template-compare.html", "template-mockup.html", "template-bento.html"] {
             let _ = std::fs::remove_file(ideate_scripts.join(obsolete));
         }
+        let _ = std::fs::remove_dir_all(ideate_scripts.join("templates"));
     }
 
     // Ensure workspace/CLAUDE.md exists (only create if missing — never overwrite user edits)

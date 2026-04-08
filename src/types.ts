@@ -92,6 +92,7 @@ export interface TodoItem {
   due: string | null
   done_date: string | null
   source: string | null
+  path: string | null
   line_index: number
   done_file: boolean
 }

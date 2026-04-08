@@ -255,8 +255,8 @@ export const mergeIdentity = (
 export const listTodos = (): Promise<TodoItem[]> =>
   invoke<TodoItem[]>('list_todos')
 
-export const addTodo = (text: string, due?: string, source?: string): Promise<TodoItem> =>
-  invoke<TodoItem>('add_todo', { text, due: due ?? null, source: source ?? null })
+export const addTodo = (text: string, due?: string, source?: string, path?: string): Promise<TodoItem> =>
+  invoke<TodoItem>('add_todo', { text, due: due ?? null, source: source ?? null, path: path ?? null })
 
 export const toggleTodo = (lineIndex: number, checked: boolean, doneFile: boolean): Promise<void> =>
   invoke<void>('toggle_todo', { lineIndex, checked, doneFile })
@@ -267,6 +267,9 @@ export const deleteTodo = (lineIndex: number, doneFile: boolean): Promise<void> 
 export const setTodoDue = (lineIndex: number, due: string | null, doneFile: boolean): Promise<void> =>
   invoke<void>('set_todo_due', { lineIndex, due, doneFile })
 
+export const setTodoPath = (lineIndex: number, path: string | null, doneFile: boolean): Promise<void> =>
+  invoke<void>('set_todo_path', { lineIndex, path, doneFile })
+
 export const updateTodoText = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
   invoke<void>('update_todo_text', { lineIndex, text, doneFile })
 
@@ -276,3 +279,32 @@ export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile
 
 export const listBrainstormKeys = (): Promise<string[]> =>
   invoke<string[]>('list_brainstorm_keys')
+
+// Auto dream (自动整理)
+export interface AutoDreamConfig {
+  enabled: boolean
+  frequency: 'daily' | 'weekly' | 'monthly'
+  time: '03:00' | '12:00' | '22:00'
+  min_entries: 10 | 20 | 30
+}
+
+export interface AutoDreamStatus {
+  state: 'idle' | 'running' | 'never_run' | 'error'
+  last_run: string | null
+  last_run_entries: number | null
+  next_check: string | null
+  current_new_entries: number
+  error: string | null
+}
+
+export const getAutoDreamConfig = (): Promise<AutoDreamConfig> =>
+  invoke<AutoDreamConfig>('get_auto_dream_config')
+
+export const setAutoDreamConfig = (config: AutoDreamConfig): Promise<void> =>
+  invoke<void>('set_auto_dream_config', { config })
+
+export const getAutoDreamStatus = (): Promise<AutoDreamStatus> =>
+  invoke<AutoDreamStatus>('get_auto_dream_status')
+
+export const triggerDreamNow = (): Promise<void> =>
+  invoke<void>('trigger_dream_now')

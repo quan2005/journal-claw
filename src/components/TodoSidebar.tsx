@@ -314,25 +314,43 @@ interface TodoSidebarProps {
   width: number
   todos: TodoItem[]
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
-  onAdd: (text: string, due?: string, source?: string) => void
+  onAdd: (text: string, due?: string, source?: string, path?: string) => void
   onDelete: (lineIndex: number, doneFile: boolean) => void
   onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
   onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
+  onSetPath: (lineIndex: number, path: string | null, doneFile: boolean) => void
   onNavigateToSource?: (filename: string) => void
 }
 
-export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onNavigateToSource }: TodoSidebarProps) {
+export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onSetPath, onNavigateToSource }: TodoSidebarProps) {
   const { t } = useTranslation()
-  const [adding, setAdding] = useState(false)
-  const [inputText, setInputText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null; doneFile: boolean } | null>(null)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [addingGroup, setAddingGroup] = useState<string | null>(null) // group key or null
+  const [addingText, setAddingText] = useState('')
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null; path: string | null; doneFile: boolean } | null>(null)
+  const [pathEdit, setPathEdit] = useState<{ x: number; y: number; lineIndex: number; doneFile: boolean; value: string } | null>(null)
   const [brainstormKeys, setBrainstormKeys] = useState<Set<string>>(new Set())
-  const inputRef = useRef<HTMLInputElement>(null)
+  const addInputRef = useRef<HTMLInputElement>(null)
+  const pathInputRef = useRef<HTMLInputElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   const unchecked = todos.filter(t => !t.done).sort((a, b) => a.line_index - b.line_index)
   const checked = todos.filter(t => t.done).sort((a, b) => a.line_index - b.line_index)
+
+  // Group unchecked by path
+  const groupMap = new Map<string, TodoItem[]>()
+  for (const item of unchecked) {
+    const key = item.path ?? '__inbox__'
+    if (!groupMap.has(key)) groupMap.set(key, [])
+    groupMap.get(key)!.push(item)
+  }
+  const groups: Array<{ key: string; path: string | null; items: TodoItem[] }> = []
+  if (groupMap.has('__inbox__')) groups.push({ key: '__inbox__', path: null, items: groupMap.get('__inbox__')! })
+  for (const [key, items] of [...groupMap.entries()].filter(([k]) => k !== '__inbox__').sort(([a], [b]) => a.localeCompare(b))) {
+    groups.push({ key, path: key, items })
+  }
+  const multiGroup = groups.length > 1
 
   const refreshBrainstormKeys = useCallback(() => {
     listBrainstormKeys()
@@ -341,8 +359,8 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   }, [])
 
   useEffect(() => { refreshBrainstormKeys() }, [todos, refreshBrainstormKeys])
-
-  useEffect(() => { if (adding && inputRef.current) inputRef.current.focus() }, [adding])
+  useEffect(() => { if (addingGroup !== null && addInputRef.current) addInputRef.current.focus() }, [addingGroup])
+  useEffect(() => { if (pathEdit && pathInputRef.current) pathInputRef.current.focus() }, [pathEdit])
 
   useEffect(() => {
     if (!contextMenu) return
@@ -361,16 +379,30 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
     if (rect.bottom > vh) el.style.top = `${Math.max(4, vh - rect.height - 8)}px`
   }, [contextMenu])
 
-  const handleSubmit = () => {
-    const text = inputText.trim()
-    if (text) { onAdd(text); setInputText('') }
-    setAdding(false)
+  const handleAddSubmit = (_groupKey: string, groupPath: string | null) => {
+    const text = addingText.trim()
+    if (text) onAdd(text, undefined, undefined, groupPath ?? undefined)
+    setAddingText('')
+    setAddingGroup(null)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSubmit()
-    if (e.key === 'Escape') { setAdding(false); setInputText('') }
+  const handleAddKeyDown = (e: React.KeyboardEvent, _groupKey: string, groupPath: string | null) => {
+    if (e.key === 'Enter') handleAddSubmit(_groupKey, groupPath)
+    if (e.key === 'Escape') { setAddingGroup(null); setAddingText('') }
   }
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const menuItemStyle: React.CSSProperties = { padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)' }
+  const hi = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }
+  const ho = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }
 
   return (
     <div style={{ width, flexShrink: 0, borderLeft: '0.5px solid var(--divider)', padding: '12px 0', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -380,32 +412,86 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)' }}>{t('itemCount', { count: unchecked.length })}</span>
       </div>
 
-      {unchecked.map(item => (
-        <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
-          hasBrainstorm={brainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
-          onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
-        />
-      ))}
+      {/* Grouped unchecked */}
+      {groups.map(({ key, path, items }) => {
+        const collapsed = collapsedGroups.has(key)
+        const isAddingHere = addingGroup === key
+        return (
+          <div key={key}>
+            {/* Group header — only shown when multiple groups exist */}
+            {multiGroup && (
+              <div
+                onClick={() => toggleGroup(key)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px', cursor: 'pointer', userSelect: 'none' as const }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+                  {collapsed ? '▸' : '▾'} {path ?? t('pathGroupInbox')}
+                </span>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)', opacity: 0.6 }}>{items.length}</span>
+              </div>
+            )}
 
-      {/* Add */}
-      {adding ? (
-        <div style={{ padding: '6px 14px', borderBottom: '0.5px solid var(--divider)' }}>
-          <input ref={inputRef} value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyDown} onBlur={handleSubmit}
-            placeholder={t('addTodo')}
-            style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
-          />
-        </div>
-      ) : (
-        <div onClick={() => setAdding(true)}
-          style={{ padding: '6px 14px', cursor: 'pointer', borderBottom: '0.5px solid var(--divider)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span style={{ fontSize: 'var(--text-xs)', color: '#555' }}>{t('addTodoBtn')}</span>
-        </div>
+            {/* Rows */}
+            {!collapsed && items.map(item => (
+              <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
+                hasBrainstorm={brainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
+                onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, path: item.path, doneFile: item.done_file }) }}
+              />
+            ))}
+
+            {/* Per-group add */}
+            {!collapsed && (
+              isAddingHere ? (
+                <div style={{ padding: '6px 14px', borderBottom: '0.5px solid var(--divider)' }}>
+                  <input ref={addInputRef} value={addingText} onChange={e => setAddingText(e.target.value)}
+                    onKeyDown={e => handleAddKeyDown(e, key, path)}
+                    onBlur={() => handleAddSubmit(key, path)}
+                    placeholder={t('addTodo')}
+                    style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
+                  />
+                </div>
+              ) : (
+                <div onClick={() => { setAddingGroup(key); setAddingText('') }}
+                  style={{ padding: '6px 14px', cursor: 'pointer', borderBottom: '0.5px solid var(--divider)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  <span style={{ fontSize: 'var(--text-xs)', color: '#555' }}>{t('addTodoBtn')}</span>
+                </div>
+              )
+            )}
+          </div>
+        )
+      })}
+
+      {/* Inbox add when no groups exist yet */}
+      {groups.length === 0 && (
+        addingGroup === '__inbox__' ? (
+          <div style={{ padding: '6px 14px', borderBottom: '0.5px solid var(--divider)' }}>
+            <input ref={addInputRef} value={addingText} onChange={e => setAddingText(e.target.value)}
+              onKeyDown={e => handleAddKeyDown(e, '__inbox__', null)}
+              onBlur={() => handleAddSubmit('__inbox__', null)}
+              placeholder={t('addTodo')}
+              style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
+            />
+          </div>
+        ) : (
+          <div onClick={() => { setAddingGroup('__inbox__'); setAddingText('') }}
+            style={{ padding: '6px 14px', cursor: 'pointer', borderBottom: '0.5px solid var(--divider)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.1s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span style={{ fontSize: 'var(--text-xs)', color: '#555' }}>{t('addTodoBtn')}</span>
+          </div>
+        )
       )}
 
       {/* Completed */}
@@ -418,7 +504,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             <div key={item.line_index} style={{ opacity: 0.5 }}>
               <TodoRow item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
                 hasBrainstorm={brainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
-                onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, doneFile: item.done_file }) }}
+                onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, path: item.path, doneFile: item.done_file }) }}
               />
             </div>
           ))}
@@ -426,62 +512,102 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       )}
 
       {/* Context menu */}
-      {contextMenu && (() => {
-        const menuItemStyle: React.CSSProperties = { padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-text)' }
-        const hi = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }
-        const ho = (e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }
-        return (
-          <div ref={ctxMenuRef} style={{
-            position: 'fixed', left: contextMenu.x, top: contextMenu.y,
-            background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)',
-            borderRadius: 8, padding: '4px 0', zIndex: 1000,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)', minWidth: 140,
-          }}>
-            {!contextMenu.doneFile && (
-              <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-                onClick={() => {
-                  openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile)
-                    .then(() => listBrainstormKeys())
-                    .then(keys => setBrainstormKeys(new Set(keys)))
-                    .catch(console.error)
-                  setContextMenu(null)
-                }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  <path d="M8 10h.01M12 10h.01M16 10h.01"/>
-                </svg>
-                {t('exploreInDepth')}
-              </div>
-            )}
+      {contextMenu && (
+        <div ref={ctxMenuRef} style={{
+          position: 'fixed', left: contextMenu.x, top: contextMenu.y,
+          background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)',
+          borderRadius: 8, padding: '4px 0', zIndex: 1000,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)', minWidth: 160,
+        }}>
+          {!contextMenu.doneFile && (
             <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-              onClick={() => { navigator.clipboard.writeText(contextMenu.text); setContextMenu(null) }}>
+              onClick={() => {
+                openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile)
+                  .then(() => listBrainstormKeys())
+                  .then(keys => setBrainstormKeys(new Set(keys)))
+                  .catch(console.error)
+                setContextMenu(null)
+              }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <path d="M8 10h.01M12 10h.01M16 10h.01"/>
               </svg>
-              {t('copyText')}
+              {t('exploreInDepth')}
             </div>
-            {contextMenu.due && (
-              <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-                onClick={() => { onSetDue(contextMenu.lineIndex, null, contextMenu.doneFile); setContextMenu(null) }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="15" x2="15" y2="15"/>
-                </svg>
-                {t('clearDueDate')}
-              </div>
-            )}
-            <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
-            <div style={{ ...menuItemStyle, color: '#ff3b30' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
-              onMouseLeave={ho}
-              onClick={() => { onDelete(contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-              {t('deleteTodo')}
-            </div>
+          )}
+          <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
+            onClick={() => { navigator.clipboard.writeText(contextMenu.text); setContextMenu(null) }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            {t('copyText')}
           </div>
-        )
-      })()}
+          {contextMenu.due && (
+            <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
+              onClick={() => { onSetDue(contextMenu.lineIndex, null, contextMenu.doneFile); setContextMenu(null) }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+              {t('clearDueDate')}
+            </div>
+          )}
+          {!contextMenu.doneFile && (
+            <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
+              onClick={e => {
+                e.stopPropagation()
+                setPathEdit({ x: contextMenu.x, y: contextMenu.y, lineIndex: contextMenu.lineIndex, doneFile: contextMenu.doneFile, value: contextMenu.path ?? '' })
+                setContextMenu(null)
+              }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              {t('setPath')}
+            </div>
+          )}
+          {!contextMenu.doneFile && contextMenu.path && (
+            <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
+              onClick={() => { onSetPath(contextMenu.lineIndex, null, contextMenu.doneFile); setContextMenu(null) }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                <line x1="9" y1="14" x2="15" y2="14"/>
+              </svg>
+              {t('removePath')}
+            </div>
+          )}
+          <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
+          <div style={{ ...menuItemStyle, color: '#ff3b30' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
+            onMouseLeave={ho}
+            onClick={() => { onDelete(contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            {t('deleteTodo')}
+          </div>
+        </div>
+      )}
+
+      {/* Path edit floating input */}
+      {pathEdit && (
+        <div style={{ position: 'fixed', left: pathEdit.x, top: pathEdit.y, zIndex: 1001, background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)', borderRadius: 6, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', minWidth: 200 }}>
+          <input
+            ref={pathInputRef}
+            value={pathEdit.value}
+            onChange={e => setPathEdit(p => p ? { ...p, value: e.target.value } : null)}
+            placeholder="~/Projects/app-x"
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                const v = pathEdit.value.trim()
+                onSetPath(pathEdit.lineIndex, v || null, pathEdit.doneFile)
+                setPathEdit(null)
+              }
+              if (e.key === 'Escape') setPathEdit(null)
+            }}
+            onBlur={() => setPathEdit(null)}
+            style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
+          />
+        </div>
+      )}
     </div>
   )
 }

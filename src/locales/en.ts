@@ -144,6 +144,9 @@ export const en = {
   copyText: 'Copy text',
   deleteTodo: 'Delete',
   exploreInDepth: 'Explore',
+  setPath: 'Set path…',
+  removePath: 'Remove path',
+  pathGroupInbox: 'Inbox',
   weekdaysFull: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   monthsFull: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 
@@ -309,6 +312,27 @@ export const en = {
   pluginScheduledSortDesc: 'Auto-archive materials and logs in Workspace by rules, keeping directories tidy',
   pluginVisualizer: 'Visual card generator',
   pluginVisualizerDesc: 'Convert journal entries into visually rich cards for easy sharing',
+
+  // Settings: Automation
+  automation: 'Auto Maintenance',
+  autoDreamTitle: 'Auto journal maintenance',
+  autoDreamDesc: 'Scan entries, fix references, annotate changes, update profiles',
+  frequency: 'Frequency',
+  freqDaily: 'Daily',
+  freqWeekly: 'Weekly',
+  freqMonthly: 'Monthly',
+  execTime: 'Run time',
+  minEntries: 'Min new entries',
+  skipIfInsufficient: 'skip if insufficient',
+  lastRun: 'Last run',
+  nextCheck: 'Next check',
+  currentNew: 'current new',
+  runNow: 'Run now',
+  dreamRunning: 'Running…',
+  neverRun: 'Never run',
+  dreamFailed: 'Last run failed',
+  entries: 'entries',
+  organized: 'organized',
 }
 
 export type Strings = typeof en

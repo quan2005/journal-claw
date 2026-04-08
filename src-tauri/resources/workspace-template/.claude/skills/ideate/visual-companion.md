@@ -41,19 +41,21 @@
 
 ## How It Works
 
-写自包含的 HTML 文件到 `yyMM/raw/DD-ideate-*.html`，然后用 `open` 命令在浏览器中打开。
+写轻量级的 HTML 文件到 `.ideate/` 或其他不会影响代码库的文件目录中，然后用 `open` 命令在浏览器中打开。
 
-- **不要复用文件名** — 每次迭代写新文件，如 `07-ideate-nav-v2.html`，以便于回溯。
-- **自包含** — 必须将所有的 CSS/JS 写在同一个 HTML 中，方便用户离线预览或分享。
+- **不要复用文件名** — 每次迭代写新文件，如 `.ideate/nav-v2.html`，以便于回溯。
+- **自包含，但是统一样式** — 不要在每次生成的 HTML 中重新生成随机样式。你应该**直接读取并内联注入 `scripts/canvas.css` 的完整内容**，以确保每次产出的设计画板始终保持一致的高级质感。
 
 ## The Loop
 
-1. **选择适合的模板**：从 `skills/ideate/scripts/` 中选择最匹配当前讨论场景的模板文件。
-2. **构思与编写 HTML**：根据对话上下文，创建新文件 `DD-ideate-{topic}-v{n}.html`。**必须用 Write 工具**，绝不能用 cat/heredoc。
-3. **复制并修改**：将模板的完整内容（包括精美的 CSS）复制到新文件中，并替换 `<!-- CONTENT -->` 为你的设计内容。
-4. **自动打开**：执行 `open yyMM/raw/DD-ideate-xxx.html`。
-5. **终端对话反馈**：简要说明你在浏览器中展示了什么，例如："我刚为您展示了两种信息架构方案（单列流式 vs 侧边栏分屏），您更倾向于哪种感觉？"
-6. **迭代打磨**：接收反馈并进入下一个讨论循环。
+1. **构思与编写 HTML**：根据对话上下文，创建新文件 `.ideate/{topic}-v{n}.html`。**必须用 Write 工具**，绝不能用 cat/heredoc。
+2. **选择合适的 Template 并注入 CSS**：
+   - 根据场景从 `skills/ideate/scripts/` 复制对应的 HTML 模板结构。
+   - 读取并提取 `skills/ideate/scripts/canvas.css` 的**全部 CSS 内容**。
+   - 将 CSS 粘贴进 HTML 模板的 `<style>` 标签中，保持 HTML 的自包含特性，以便用户离线分享。
+3. **自动打开**：执行 `open .ideate/xxx.html`。
+4. **终端对话反馈**：简要说明你在浏览器中展示了什么，例如："我刚为您展示了两种信息架构方案（单列流式 vs 侧边栏分屏），您更倾向于哪种感觉？"
+5. **迭代打磨**：接收反馈并进入下一个讨论循环。
 
 ## Available Templates (场景模板)
 

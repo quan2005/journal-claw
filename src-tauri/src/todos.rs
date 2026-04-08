@@ -8,6 +8,7 @@ pub struct TodoItem {
     pub due: Option<String>,
     pub done_date: Option<String>,
     pub source: Option<String>,
+    pub path: Option<String>,
     pub line_index: usize,
     pub done_file: bool,
 }
@@ -30,6 +31,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     let mut due: Option<String> = None;
     let mut done_date: Option<String> = None;
     let mut source: Option<String> = None;
+    let mut path: Option<String> = None;
 
     while let Some(start) = text.find("<!--") {
         if let Some(end) = text[start..].find("-->") {
@@ -40,6 +42,8 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
                 done_date = Some(val.trim().to_string());
             } else if let Some(val) = comment.strip_prefix("source:") {
                 source = Some(val.trim().to_string());
+            } else if let Some(val) = comment.strip_prefix("path:") {
+                path = Some(val.trim().to_string());
             }
             text = format!("{}{}", &text[..start], &text[start + end + 3..]);
         } else {
@@ -53,6 +57,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
         due,
         done_date,
         source,
+        path,
         line_index,
         done_file: false,
     })
@@ -561,6 +566,30 @@ mod tests {
         assert_eq!(items[0].due.as_deref(), Some("2026-04-05"));
         assert_eq!(items[0].done_date.as_deref(), Some("2026-04-03"));
         assert_eq!(items[0].source.as_deref(), Some("25-泼墨体.md"));
+    }
+
+    #[test]
+    fn parse_item_with_path() {
+        let items = parse_todos("- [ ] 修复登录 bug <!-- path:~/Projects/app-x -->\n");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].text, "修复登录 bug");
+        assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
+    }
+
+    #[test]
+    fn parse_item_with_path_and_due() {
+        let items = parse_todos("- [ ] 更新文档 <!-- path:~/Projects/app-x --> <!-- due:2026-04-15 -->\n");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].text, "更新文档");
+        assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
+        assert_eq!(items[0].due.as_deref(), Some("2026-04-15"));
+    }
+
+    #[test]
+    fn parse_item_without_path() {
+        let items = parse_todos("- [ ] 写周报\n");
+        assert_eq!(items.len(), 1);
+        assert!(items[0].path.is_none());
     }
 
     #[test]

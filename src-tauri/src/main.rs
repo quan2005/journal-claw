@@ -2,6 +2,7 @@ mod ai_processor;
 mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
+mod auto_dream;
 mod brainstorm;
 mod config;
 mod identity;
@@ -143,6 +144,8 @@ fn main() {
         .manage(ai_processor::CancelledPaths(std::sync::Mutex::new(
             std::collections::HashSet::new(),
         )))
+        .manage(auto_dream::AutoDreamNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
+        .manage(auto_dream::DreamRunning(std::sync::Mutex::new(false)))
         .setup({
             let allow_exit = Arc::clone(&allow_exit);
             move |app| {
@@ -154,6 +157,10 @@ fn main() {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
                     recorder::recover_interrupted_recordings(app.handle().clone(), &cfg.workspace_path);
                 }
+
+                // ── Auto dream scheduler ──
+                auto_dream::check_missed_run(app.handle());
+                auto_dream::start_scheduler(app.handle().clone());
                 // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
                 let about_item =
                     MenuItem::with_id(app, MENU_ABOUT_ID, "关于谨迹", true, None::<&str>)?;
@@ -352,9 +359,14 @@ fn main() {
             todos::toggle_todo,
             todos::delete_todo,
             todos::set_todo_due,
+            todos::set_todo_path,
             todos::update_todo_text,
             brainstorm::open_brainstorm_terminal,
             brainstorm::list_brainstorm_keys,
+            workspace_settings::get_auto_dream_config,
+            workspace_settings::set_auto_dream_config,
+            auto_dream::get_auto_dream_status,
+            auto_dream::trigger_dream_now,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

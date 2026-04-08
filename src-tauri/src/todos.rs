@@ -350,6 +350,34 @@ pub fn update_todo_text_in_workspace(workspace: &str, line_index: usize, new_tex
     writer(workspace, &(lines.join("\n") + "\n"))
 }
 
+
+pub fn set_todo_path_in_workspace(workspace: &str, line_index: usize, path: Option<&str>, done_file: bool) -> Result<(), String> {
+    let (file_content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
+        (read_done_file(workspace), Box::new(write_done_file))
+    } else {
+        (read_todos_file(workspace), Box::new(write_todos_file))
+    };
+    let mut lines: Vec<String> = file_content.lines().map(String::from).collect();
+
+    if line_index >= lines.len() {
+        return Err(format!("行号 {} 超出范围", line_index));
+    }
+
+    let cleaned = remove_comment(&lines[line_index], "path:");
+    lines[line_index] = match path {
+        Some(p) if !p.is_empty() => format!("{} <!-- path:{} -->", cleaned, p),
+        _ => cleaned,
+    };
+
+    writer(workspace, &(lines.join("\n") + "\n"))
+}
+
+#[tauri::command]
+pub fn set_todo_path(app: tauri::AppHandle, line_index: usize, path: Option<String>, done_file: bool) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    set_todo_path_in_workspace(&cfg.workspace_path, line_index, path.as_deref(), done_file)
+}
+
 #[tauri::command]
 pub fn update_todo_text(app: tauri::AppHandle, line_index: usize, text: String, done_file: bool) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
@@ -602,4 +630,46 @@ mod tests {
         assert!(content.contains("- [ ] 确认权限 <!-- source:02-研发沟通.md -->"));
         std::fs::remove_dir_all(&tmp).ok();
     }
+    #[test]
+    fn set_todo_path_sets_value() {
+        let tmp = std::env::temp_dir().join("journal_todo_set_path_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug
+").unwrap();
+        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, Some("~/Projects/app-x"), false).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("<!-- path:~/Projects/app-x -->"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn set_todo_path_removes_value() {
+        let tmp = std::env::temp_dir().join("journal_todo_remove_path_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug <!-- path:~/Projects/app-x -->
+").unwrap();
+        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, None, false).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(!content.contains("<!-- path:"));
+        assert!(content.contains("修复 bug"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn set_todo_path_replaces_existing() {
+        let tmp = std::env::temp_dir().join("journal_todo_replace_path_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug <!-- path:~/Projects/old -->
+").unwrap();
+        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, Some("~/Projects/new"), false).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("<!-- path:~/Projects/new -->"));
+        assert!(!content.contains("old"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+
 }

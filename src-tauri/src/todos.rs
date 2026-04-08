@@ -687,4 +687,49 @@ mod tests {
     }
 
 
+    #[test]
+    fn toggle_check_preserves_path_comment() {
+        let tmp = std::env::temp_dir().join("journal_todo_toggle_path_check_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug <!-- path:~/Projects/app-x -->
+").unwrap();
+        toggle_todo_in_workspace(tmp.to_str().unwrap(), 0, true, false).unwrap();
+        let done = std::fs::read_to_string(tmp.join("todos.done.md")).unwrap();
+        assert!(done.contains("<!-- path:~/Projects/app-x -->"), "path comment should survive check: {}", done);
+        assert!(done.contains("<!-- done:"), "done comment should be added: {}", done);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn toggle_uncheck_preserves_path_comment() {
+        let tmp = std::env::temp_dir().join("journal_todo_toggle_path_uncheck_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("todos.md"), "").unwrap();
+        std::fs::write(tmp.join("todos.done.md"), "- [x] 修复 bug <!-- path:~/Projects/app-x --> <!-- done:2026-04-01 -->
+").unwrap();
+        toggle_todo_in_workspace(tmp.to_str().unwrap(), 0, false, true).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("<!-- path:~/Projects/app-x -->"), "path comment should survive uncheck: {}", content);
+        assert!(!content.contains("<!-- done:"), "done comment should be stripped: {}", content);
+        // Verify parse round-trip
+        let items = parse_todos(&content);
+        assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn parse_path_roundtrip_with_all_metadata() {
+        let line = "- [ ] 写代码 <!-- due:2026-04-05 --> <!-- source:25-泼墨体.md --> <!-- path:~/Projects/app-x -->
+";
+        let items = parse_todos(line);
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].text, "写代码");
+        assert_eq!(items[0].due.as_deref(), Some("2026-04-05"));
+        assert_eq!(items[0].source.as_deref(), Some("25-泼墨体.md"));
+        assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
+    }
+
+
 }

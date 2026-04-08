@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideate - Compare</title>
+  <style>
+    /* INJECT: Paste the entire content of canvas.css here */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Which direction feels right?</h2>
+      <p>Select the foundation that best matches your workflow.</p>
+    </div>
+    <div class="options-grid">
+      <!-- Option A -->
+      <div class="option-card selected" onclick="selectOption(this)">
+        <div class="option-header"><span class="option-badge">Option A</span></div>
+        <div>
+          <div class="option-title">Single Column Stream</div>
+          <div class="option-desc">Focus entirely on reading. Perfect for content-heavy experiences with minimal distractions.</div>
+        </div>
+      </div>
+      <!-- Option B -->
+      <div class="option-card" onclick="selectOption(this)">
+        <div class="option-header"><span class="option-badge">Option B</span></div>
+        <div>
+          <div class="option-title">Sidebar App Layout</div>
+          <div class="option-desc">Structured, tool-like experience. Fast navigation between multiple distinct sections.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function selectOption(el) {
+      const container = el.closest('.options-grid');
+      if (container) {
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+      }
+    }
+  </script>
+</body>
+</html>

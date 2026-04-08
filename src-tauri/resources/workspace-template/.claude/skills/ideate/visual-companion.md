@@ -44,16 +44,13 @@
 写自包含的 HTML 文件到 `yyMM/raw/DD-ideate-*.html`，然后用 `open` 命令在浏览器中打开。
 
 - **不要复用文件名** — 每次迭代写新文件，如 `07-ideate-nav-v2.html`，以便于回溯。
-- **自包含，但样式统一** — 你需要将核心的通用样式 `canvas.css` 内联注入到生成的 HTML 中，确保即使文件被单独发送，设计感依然存在。
+- **自包含** — 必须将所有的 CSS/JS 写在同一个 HTML 中，方便用户离线预览或分享。
 
 ## The Loop
 
-1. **选择适合的模板**：从 `skills/ideate/scripts/templates/` 中选择最匹配当前讨论场景的模板文件。
+1. **选择适合的模板**：从 `skills/ideate/scripts/` 中选择最匹配当前讨论场景的模板文件。
 2. **构思与编写 HTML**：根据对话上下文，创建新文件 `DD-ideate-{topic}-v{n}.html`。**必须用 Write 工具**，绝不能用 cat/heredoc。
-3. **注入统一样式 (Crucial)**：
-   - 使用 `Read` 工具读取 `skills/ideate/scripts/canvas.css` 的内容。
-   - 将读取到的 CSS 样式**完整地拷贝并包裹在 `<style>` 标签中**，插入到您生成的 HTML 中。
-   - 替换模板中的占位符，填充您的设计内容。
+3. **复制并修改**：将模板的完整内容（包括精美的 CSS）复制到新文件中，并替换 `<!-- CONTENT -->` 为你的设计内容。
 4. **自动打开**：执行 `open yyMM/raw/DD-ideate-xxx.html`。
 5. **终端对话反馈**：简要说明你在浏览器中展示了什么，例如："我刚为您展示了两种信息架构方案（单列流式 vs 侧边栏分屏），您更倾向于哪种感觉？"
 6. **迭代打磨**：接收反馈并进入下一个讨论循环。
@@ -62,22 +59,22 @@
 
 我们提供了 4 种预置的高级模板，涵盖了从架构流转到高保真原型的各个阶段：
 
-### 1. A/B Test Canvas (`templates/ab-test.html`)
+### 1. A/B Test Canvas (`ab-test.html`)
 - **使用场景**：方案对决、概念选择、优劣势对比。
 - **包含组件**：极简选项卡片（带有 Badge 徽标和点击选中状态）、Bento Grid 格式的 Pros/Cons（便当盒优劣势对比）。
 - **适用讨论**："选择哪种侧边栏结构？"、"选用哪种数据存储策略？"
 
-### 2. Wireframe Canvas (`templates/wireframe.html`)
+### 2. Wireframe Canvas (`wireframe.html`)
 - **使用场景**：UI 布局推演、信息架构展示、组件结构探索。
 - **包含组件**：精致的 macOS 风格画板容器（带有红黄绿控制点）、移动端骨架框（带刘海）、各种 Skeleton 线框积木（导航、按钮、卡片、输入框）。
 - **适用讨论**："首页应该怎样排布？"、"这个表单的层级感觉对吗？"
 
-### 3. Styleguide Canvas (`templates/styleguide.html`)
+### 3. Styleguide Canvas (`styleguide.html`)
 - **使用场景**：视觉风格定调、设计令牌（Design Tokens）展示、配色与排版探索。
 - **包含组件**：高保真色板（Color Swatches）、排版阶层样本（Typography Specimen）。
 - **适用讨论**："品牌主色调选哪个？"、"使用哪种字体组合能传达更专业的感受？"
 
-### 4. Flow Canvas (`templates/flow.html`)
+### 4. Flow Canvas (`flow.html`)
 - **使用场景**：用户旅程（User Journey）、状态机转移、系统架构与数据流。
 - **包含组件**：带有选中状态的卡片节点（Nodes）、平滑轻量的箭头连接、垂直的步骤流列表。
 - **适用讨论**："登录注册的最佳转化路径是什么？"、"这个 API 的请求时序是怎样的？"

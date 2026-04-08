@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideate - Bento / Pros-Cons</title>
+  <style>
+    /* INJECT: Paste the entire content of canvas.css here */
+  </style>
+</head>
+<body>
+  <div class="container wide">
+    <div class="header">
+      <h2>Architecture Analysis</h2>
+      <p>Deconstructing the proposed client-server model</p>
+    </div>
+    
+    <div class="bento-grid">
+      <!-- Main Feature -->
+      <div class="bento-box col-span-2">
+        <div class="badge">Core Principle</div>
+        <h3>Event-Driven State</h3>
+        <p>The application relies entirely on an event bus to manage state changes across different modules, eliminating tight coupling and making the system infinitely scalable.</p>
+      </div>
+      
+      <!-- Secondary Stats/Info -->
+      <div class="bento-box" style="justify-content: center; align-items: center; text-align: center;">
+        <div style="font-size: 3rem; font-weight: 700; line-height: 1;">&lt;50ms</div>
+        <p style="margin-top: 0.5rem;">Target Latency</p>
+      </div>
+      
+      <!-- Pros -->
+      <div class="bento-box pros">
+        <h3>Pros (优势)</h3>
+        <ul>
+          <li>Highly decoupled components</li>
+          <li>Easy to add new features without breaking existing ones</li>
+          <li>Clean testing boundaries</li>
+        </ul>
+      </div>
+      
+      <!-- Cons -->
+      <div class="bento-box cons">
+        <h3>Cons (劣势)</h3>
+        <ul>
+          <li>Difficult to trace event flows during debugging</li>
+          <li>Higher initial setup complexity</li>
+          <li>Potential for memory leaks if events aren't cleaned up</li>
+        </ul>
+      </div>
+      
+      <!-- Info Box -->
+      <div class="bento-box">
+        <div class="badge">Tech Stack</div>
+        <h3>Infrastructure</h3>
+        <ul>
+          <li>React / TypeScript</li>
+          <li>Zustand for global state</li>
+          <li>RxJS for the event bus</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

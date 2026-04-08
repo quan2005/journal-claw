@@ -1,352 +1,87 @@
-# Visual Companion Guide
+# Visual Companion Guide (Ideate Canvas)
 
-通过浏览器展示 mockup、架构图和选项对比的可视化伴侣。
+通过浏览器展示具有设计感的 mockup、架构图和对比选项，让灵感碰撞过程更加愉悦。
 
 ## Design Philosophy
 
-生成的 HTML 应该看起来像**高端设计工具的演示模式**，而非「AI 生成的网页」。
+**Design Canvas**: 把浏览器视口想象成 Figma 或 Linear 等高端设计工具的「演示画布」。它不仅要清晰传达逻辑，更要在交互与视觉上带给用户专业级产品的愉悦体验。
 
-**核心原则：Quieter — 每个像素都有意图，但绝不张扬。**
+**核心美学：Pro Max Elegance**
+- **Dot-Matrix Background**: 细腻的点阵背景，带来专业的「设计画板」隐喻。
+- **Typography-First**: 极其严谨的字阶与行高（基于 SF Pro / Inter），靠排版建立层级，而不是靠花哨的颜色。
+- **Subtle Interactions**: 用弹簧缓动（Spring Physics）代替生硬的过渡，Hover 上浮伴随平滑阴影，Active 点击微微缩小（Scale-down 0.98）。
+- **Monochrome with One Accent**: 单色调极简界面，仅用一个干净的强调色（Accent）作为核心视觉焦点。
 
-### 必须做到
+### 必须做到 (Do)
 
-- **Tinted neutrals** — 所有灰色带微暖石色调（warm stone），不用纯灰
-- **单一 accent** — 模板使用 indigo，克制使用，仅用于选中态和焦点
-- **Typography-led hierarchy** — 靠字号 + 字重建立层级，不堆颜色
-- **Rhythmic spacing** — 组内紧（8–12px），组间松（24–40px）
-- **Targeted transitions** — 指定具体属性 + ease-out-quart，不用 `transition: all`
-- **Reduced motion** — 永远加 `@media (prefers-reduced-motion: reduce)` 降级
+- **8pt/4pt 呼吸间距体系**：组内紧凑（gap: 8-16px），组间松弛（24-40px）。
+- **可点击元素必须有视觉反馈**：通过 `transition` 控制 `transform`、`box-shadow`。
+- **清晰的对比与无障碍设计**：保证文本（包括辅助文本）的对比度达到 4.5:1 (WCAG AA)。
+- **降级处理**：加入 `@media (prefers-reduced-motion: reduce)`。
 
-### 禁止出现
+### 禁止出现 (Don't)
 
-- `transition: all` — 始终指定 `border-color`, `background-color`, `opacity` 等具体属性
-- `ease` 或 `ease-in-out` — 用 `cubic-bezier(0.16, 1, 0.3, 1)`
-- `transform: translateY(-2px)` + `box-shadow` 卡片上浮 — 只用 `border-color` 变化
-- 纯灰 `#333` / `#666` / `#999` — 用模板里的 warm stone 色值
-- 纯黑 `#000` 或纯白 `#fff` 作为大面积底色
-- 渐变文字、发光效果、玻璃态
-- bounce / elastic 缓动
-- 统一 `border-radius: 12px` — 按语义分级（sm: 6px, md: 10px, lg: 14px）
-- 按钮或导航条用 accent 色填充 — 线框图里 mock 元素用 neutral 色
+- 生硬的线框与原生的未经美化的表单控件。
+- `transition: all` — 应当只针对 `transform`、`box-shadow` 和 `border-color` 施加变化。
+- 纯黑（#000）或纯白（#FFF）作为大面积背景（应当使用细腻的浅灰或深灰）。
+- 花哨的渐变、霓虹色或过度的背景模糊（除非讨论的需求明确需要）。
 
 ## When to Use
 
-逐问题判断，不是逐会话。判断标准：**用户看到它比读文字更容易理解吗？**
+不要仅仅因为能用浏览器就使用它。只有当**视觉呈现比纯文本更能降低认知负荷**时，才切换到浏览器模式。
 
-**用浏览器** — 内容本身是视觉的：
+**用浏览器 (Visual Canvas)**：
+- **布局选型 (Layouts)** — A/B 方案并排对比，带高保真卡片或线框容器。
+- **视觉风格 (Styling)** — 颜色板展示、排版层级、组件形态探讨。
+- **组件微动效 (Micro-interactions)** — 需要展示 hover/active/focus 状态的具体表现。
+- **流程图与信息架构** — 如果文字过长，考虑用 Bento Grid 形式排布的卡片流程图呈现。
 
-- **UI mockup** — 线框图、布局、导航结构、组件设计
-- **架构图** — 系统组件、数据流、关系图
-- **并排对比** — 两种布局、两种配色、两种设计方向
-- **设计打磨** — 关于外观、间距、视觉层次的问题
-- **空间关系** — 状态机、流程图、实体关系图
-
-**用终端** — 内容是文字或表格：
-
-- **需求和范围问题** — "X 是什么意思？"、"哪些功能在范围内？"
-- **概念选择** — 用文字描述的方案对比
-- **权衡列表** — 优缺点、对比表格
-- **技术决策** — API 设计、数据建模、架构选型
-- **澄清问题** — 答案是文字而非视觉偏好的问题
-
-关于 UI 话题的问题不一定是视觉问题。"你想要什么样的向导？"是概念问题——用终端。"这两个向导布局哪个感觉对？"是视觉问题——用浏览器。
+**用终端 (Terminal)**：
+- 需求梳理、概念探讨、纯技术栈决策、优劣势逻辑罗列。
 
 ## How It Works
 
-写自包含 HTML 文件到 `yyMM/raw/DD-ideate-*.html`，然后用 `open` 命令在浏览器中打开。无需 server。
+写自包含的 HTML 文件到 `yyMM/raw/DD-ideate-*.html`，然后用 `open` 命令在浏览器中打开。
 
-- `yyMM` = 年月目录（如 `2604`）
-- `DD` = 当天日期（如 `07`）
-- 语义后缀：`07-ideate-layout.html`、`07-ideate-style-v2.html`
-
-用户在浏览器中查看后，在终端里反馈。
+- **不要复用文件名** — 每次迭代写新文件，如 `07-ideate-nav-v2.html`，以便于回溯。
+- **自包含** — 必须将所有的 CSS/JS 写在同一个 HTML 中，方便用户离线预览或分享。
 
 ## The Loop
 
-1. **写 HTML** 到 `yyMM/raw/` 下的新文件：
-  - 文件名模式：`DD-ideate-{topic}.html`（如 `07-ideate-platform.html`）
-  - **不要复用文件名** — 每个画面用新文件
-  - 迭代版本加后缀：`07-ideate-layout-v2.html`
-  - 写自包含 HTML（所有 CSS 和 JS 内联）
-  - 用 Write 工具 — **不要用 cat/heredoc**
-2. **在浏览器中打开：**
-  ```bash
-   open yyMM/raw/DD-ideate-xxx.html
-  ```
-3. **告诉用户画面内容：**
-  - 简要描述画面上有什么（如"展示了 3 种首页布局方案"）
-  - 请用户在终端回复反馈
-4. **获取反馈** — 用户在终端中回复偏好
-5. **迭代或推进** — 如果反馈需要修改当前画面，写新文件（如 `07-ideate-layout-v2.html`）。当前步骤确认后再进入下一个问题。
+1. **选择适合的模板**：从 `skills/ideate/scripts/templates/` 中选择最匹配当前讨论场景的模板文件。
+2. **构思与编写 HTML**：根据对话上下文，创建新文件 `DD-ideate-{topic}-v{n}.html`。**必须用 Write 工具**，绝不能用 cat/heredoc。
+3. **复制并修改**：将模板的完整内容（包括精美的 CSS）复制到新文件中，并替换 `<!-- CONTENT -->` 为你的设计内容。
+4. **自动打开**：执行 `open yyMM/raw/DD-ideate-xxx.html`。
+5. **终端对话反馈**：简要说明你在浏览器中展示了什么，例如："我刚为您展示了两种信息架构方案（单列流式 vs 侧边栏分屏），您更倾向于哪种感觉？"
+6. **迭代打磨**：接收反馈并进入下一个讨论循环。
 
-## Writing HTML Files
+## Available Templates (场景模板)
 
-每个 HTML 文件必须自包含。**从 `skills/ideate/scripts/frame-template.html` 复制完整 CSS**。
+我们提供了 4 种预置的高级模板，涵盖了从架构流转到高保真原型的各个阶段：
 
-**完整示例：**
+### 1. A/B Test Canvas (`templates/ab-test.html`)
+- **使用场景**：方案对决、概念选择、优劣势对比。
+- **包含组件**：极简选项卡片（带有 Badge 徽标和点击选中状态）、Bento Grid 格式的 Pros/Cons（便当盒优劣势对比）。
+- **适用讨论**："选择哪种侧边栏结构？"、"选用哪种数据存储策略？"
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ideate</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+### 2. Wireframe Canvas (`templates/wireframe.html`)
+- **使用场景**：UI 布局推演、信息架构展示、组件结构探索。
+- **包含组件**：精致的 macOS 风格画板容器（带有红黄绿控制点）、移动端骨架框（带刘海）、各种 Skeleton 线框积木（导航、按钮、卡片、输入框）。
+- **适用讨论**："首页应该怎样排布？"、"这个表单的层级感觉对吗？"
 
-    :root {
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-      --duration-fast: 150ms;
-      --duration-normal: 200ms;
-      --bg: #f7f6f3;
-      --surface: #ffffff;
-      --surface-dim: #edebe7;
-      --border: #ddd9d3;
-      --text: #1c1917;
-      --text-2: #6f6963;
-      --text-3: #a39d97;
-      --accent: #4338ca;
-      --accent-subtle: rgba(67, 56, 202, 0.06);
-      --accent-on: #ffffff;
-      --radius-sm: 6px;
-      --radius-md: 10px;
-    }
+### 3. Styleguide Canvas (`templates/styleguide.html`)
+- **使用场景**：视觉风格定调、设计令牌（Design Tokens）展示、配色与排版探索。
+- **包含组件**：高保真色板（Color Swatches）、排版阶层样本（Typography Specimen）。
+- **适用讨论**："品牌主色调选哪个？"、"使用哪种字体组合能传达更专业的感受？"
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1a1816;
-        --surface: #262320;
-        --surface-dim: #33302c;
-        --border: #3d3935;
-        --text: #ede9e3;
-        --text-2: #9a958f;
-        --text-3: #6b6660;
-        --accent: #a5b4fc;
-        --accent-subtle: rgba(165, 180, 252, 0.08);
-        --accent-on: #1a1816;
-      }
-    }
+### 4. Flow Canvas (`templates/flow.html`)
+- **使用场景**：用户旅程（User Journey）、状态机转移、系统架构与数据流。
+- **包含组件**：带有选中状态的卡片节点（Nodes）、平滑轻量的箭头连接、垂直的步骤流列表。
+- **适用讨论**："登录注册的最佳转化路径是什么？"、"这个 API 的请求时序是怎样的？"
 
-    html {
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-    }
+## Design Tips (Pro Max)
 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 3rem 2rem;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-
-    h2 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; margin-bottom: 0.5rem; }
-    .subtitle { color: var(--text-2); font-size: 1rem; line-height: 1.55; margin-bottom: 2rem; }
-
-    .options { display: flex; flex-direction: column; gap: 0.625rem; }
-    .option {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 1rem 1.25rem;
-      cursor: pointer;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.875rem;
-      transition: border-color var(--duration-normal) var(--ease-out),
-                  background-color var(--duration-normal) var(--ease-out);
-    }
-    .option:hover { border-color: var(--accent); }
-    .option.selected { background: var(--accent-subtle); border-color: var(--accent); }
-    .option .letter {
-      background: var(--surface-dim);
-      color: var(--text-2);
-      width: 1.625rem; height: 1.625rem;
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600; font-size: 0.75rem; flex-shrink: 0;
-      transition: background-color var(--duration-normal) var(--ease-out),
-                  color var(--duration-normal) var(--ease-out);
-    }
-    .option.selected .letter { background: var(--accent); color: var(--accent-on); }
-    .option .content { flex: 1; }
-    .option .content h3 { font-size: 0.9375rem; margin-bottom: 0.125rem; }
-    .option .content p { color: var(--text-2); font-size: 0.8125rem; margin: 0; line-height: 1.5; }
-
-    /* 完整 CSS（cards, mockup, split, pros-cons 等）见 frame-template.html */
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition-duration: 0.01ms !important; }
-    }
-  </style>
-</head>
-<body>
-
-<h2>Which layout works better?</h2>
-<p class="subtitle">Consider readability and visual hierarchy</p>
-
-<div class="options">
-  <div class="option" data-choice="a" onclick="toggleSelect(this)">
-    <div class="letter">A</div>
-    <div class="content">
-      <h3>Single Column</h3>
-      <p>Clean, focused reading experience with generous margins</p>
-    </div>
-  </div>
-  <div class="option" data-choice="b" onclick="toggleSelect(this)">
-    <div class="letter">B</div>
-    <div class="content">
-      <h3>Two Column</h3>
-      <p>Sidebar navigation with main content area</p>
-    </div>
-  </div>
-</div>
-
-<script>
-function toggleSelect(el) {
-  var container = el.closest('.options') || el.closest('.cards');
-  var multi = container && container.dataset.multiselect !== undefined;
-  if (container && !multi) {
-    container.querySelectorAll('.option, .card').forEach(function(o) {
-      o.classList.remove('selected');
-    });
-  }
-  if (multi) { el.classList.toggle('selected'); }
-  else { el.classList.add('selected'); }
-}
-</script>
-
-</body>
-</html>
-```
-
-## CSS Classes Available
-
-Frame template 提供以下 CSS 类。**实际使用时从 frame-template.html 复制完整 CSS，不要自己重写色值。**
-
-### Options (A/B/C choices)
-
-```html
-<div class="options">
-  <div class="option" data-choice="a" onclick="toggleSelect(this)">
-    <div class="letter">A</div>
-    <div class="content">
-      <h3>Title</h3>
-      <p>Description</p>
-    </div>
-  </div>
-</div>
-```
-
-**多选：** 添加 `data-multiselect` 到容器：
-
-```html
-<div class="options" data-multiselect>
-  <!-- users can select/deselect multiple -->
-</div>
-```
-
-### Cards (visual designs)
-
-```html
-<div class="cards">
-  <div class="card" data-choice="design1" onclick="toggleSelect(this)">
-    <div class="card-image"><!-- mockup content --></div>
-    <div class="card-body">
-      <h3>Name</h3>
-      <p>Description</p>
-    </div>
-  </div>
-</div>
-```
-
-### Mockup container
-
-```html
-<div class="mockup">
-  <div class="mockup-header">Dashboard Layout</div>
-  <div class="mockup-body"><!-- your mockup HTML --></div>
-</div>
-```
-
-### Split view (side-by-side)
-
-```html
-<div class="split">
-  <div class="mockup"><!-- left --></div>
-  <div class="mockup"><!-- right --></div>
-</div>
-```
-
-### Pros/Cons
-
-```html
-<div class="pros-cons">
-  <div class="pros"><h4>Pros</h4><ul><li>Benefit</li></ul></div>
-  <div class="cons"><h4>Cons</h4><ul><li>Drawback</li></ul></div>
-</div>
-```
-
-### Wireframe building blocks
-
-线框图用 neutral 色调，不用 accent 填充：
-
-```html
-<div class="mock-nav">Logo | Home | About | Contact</div>
-<div style="display: flex;">
-  <div class="mock-sidebar">Navigation</div>
-  <div class="mock-content">Main content area</div>
-</div>
-<button class="mock-button">Primary Action</button>
-<button class="mock-button-secondary">Secondary</button>
-<input class="mock-input" placeholder="Input field">
-<div class="placeholder">Placeholder area</div>
-```
-
-### Typography and sections
-
-- `h2` — page title（1.75rem, -0.015em tracking, 600 weight）
-- `h3` — section heading（1.0625rem, 600）
-- `h4` — sub heading（0.8125rem, 600）
-- `.subtitle` — secondary text below title（1rem, `--text-2`）
-- `.section` — content block with bottom margin
-- `.label` — uppercase label（0.6875rem, 500, 0.08em tracking）
-- `.note` — italic annotation with top border
-
-### Annotation
-
-```html
-<p class="note">A refined note about the options above.</p>
-```
-
-### Divider
-
-```html
-<hr>
-```
-
-## Design Tips
-
-- **Scale fidelity to the question** — wireframes for layout, polish for polish questions
-- **Explain the question on each page** — "Which layout feels more professional?" not just "Pick one"
-- **Iterate before advancing** — if feedback changes current screen, write a new version
-- **2-4 options max** per screen
-- **Use real content when it matters** — placeholder content obscures design issues
-- **Keep mockups simple** — focus on layout and structure
-- **Generous whitespace** — `max-width: 720px`, `padding: 3rem 2rem`，让内容呼吸
-- **Border, not shadow** — 用 `1px solid var(--border)` 分隔，不用 box-shadow
-
-## File Naming
-
-- Pattern: `DD-ideate-{topic}.html`（如 `07-ideate-layout.html`）
-- Never reuse filenames — each screen must be a new file
-- For iterations: `07-ideate-layout-v2.html`, `07-ideate-layout-v3.html`
-
-## Reference
-
-- Frame template (CSS reference): `skills/ideate/scripts/frame-template.html`
-
+- **Fidelity Matching**：需求越早期，保真度越低（多用 `wireframe.html` 中的色块和线框）；细节讨论阶段，使用具体文字与精细排版。
+- **Real Content is King**：在需要体会版式时，用真实的文案代替 `Lorem Ipsum`，这能极大增强设计的真实感和愉悦感。
+- **Bento 布局法**：对于复杂页面的拆解，不要平铺，多尝试使用网格（Grid）和圆角卡片组合的 Bento Box 形式。
+- **深色模式支持**：所有模板已经默认做了强大的 `@media (prefers-color-scheme: dark)` 支持。自己添加新元素时要确保在深/浅模式下边界分明（尤其是边框 `var(--border)` 的应用）。

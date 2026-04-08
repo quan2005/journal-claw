@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ideate - A/B Test Canvas</title>
+  <style>
+    /*
+     * IDEATE VISUAL COMPANION — A/B TEST TEMPLATE
+     * Used for presenting choices, layout comparisons, and trade-offs.
+     */
+    :root {
+      --bg: #FAFAFA; --bg-canvas: #F4F4F5; --surface: #FFFFFF; --border: #E5E5E5; --border-hover: #D4D4D4;
+      --text-main: #111111; --text-muted: #666666; --text-tertiary: #999999;
+      --accent: #000000; --accent-surface: #F5F5F5; --accent-text: #FFFFFF;
+      --success: #00A650; --danger: #E03E3E;
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1); --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --duration: 300ms;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0A0A0A; --bg-canvas: #000000; --surface: #141414; --border: #2A2A2A; --border-hover: #3A3A3A;
+        --text-main: #EEEEEE; --text-muted: #888888; --text-tertiary: #555555;
+        --accent: #FFFFFF; --accent-surface: #1E1E1E; --accent-text: #000000;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      background-color: var(--bg); background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 24px 24px;
+      color: var(--text-main); line-height: 1.6; padding: 4rem 2rem; display: flex; justify-content: center; min-height: 100vh;
+    }
+    .canvas { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 3rem; }
+    .header { text-align: center; }
+    .header h2 { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 0.75rem; line-height: 1.2; }
+    .header p { font-size: 1.125rem; color: var(--text-muted); max-width: 600px; margin: 0 auto; }
+    
+    /* Options Grid */
+    .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .option-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem;
+      cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 1rem;
+      transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+    }
+    .option-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+    .option-card:active { transform: translateY(0) scale(0.98); box-shadow: none; }
+    .option-card.selected { border-color: var(--accent); background: var(--accent-surface); }
+    
+    .option-header { display: flex; align-items: center; justify-content: space-between; }
+    .option-badge {
+      background: var(--bg-canvas); color: var(--text-muted); font-size: 0.75rem; font-weight: 600; padding: 0.375rem 0.625rem;
+      border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+      transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+    }
+    .option-card.selected .option-badge { background: var(--accent); color: var(--accent-text); }
+    
+    .option-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.25rem; }
+    .option-desc { font-size: 0.9375rem; color: var(--text-muted); line-height: 1.5; }
+    
+    /* Bento Grid (Pros/Cons) */
+    .bento-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .bento-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+    .bento-box h4 { font-size: 1.0625rem; font-weight: 600; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+    .pros h4 { color: var(--success); }
+    .cons h4 { color: var(--danger); }
+    .bento-box ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+    .bento-box li { font-size: 0.9375rem; color: var(--text-muted); display: flex; align-items: flex-start; gap: 0.5rem; }
+    .bento-box li::before { content: "→"; color: var(--text-tertiary); font-weight: bold; }
+    
+    @media (max-width: 768px) { .bento-grid, .options-grid { grid-template-columns: 1fr; } body { padding: 2rem 1rem; } .header h2 { font-size: 2rem; } }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="header">
+      <h2><!-- TITLE (e.g. Which architecture feels right?) --></h2>
+      <p><!-- SUBTITLE (e.g. Select the foundation that matches your workflow) --></p>
+    </div>
+    
+    <!-- OPTIONS GRID -->
+    <div class="options-grid">
+      <div class="option-card selected" onclick="selectOption(this)">
+        <div class="option-header"><span class="option-badge">Option A</span></div>
+        <div>
+          <div class="option-title">Title A</div>
+          <div class="option-desc">Description explaining Option A.</div>
+        </div>
+      </div>
+      <div class="option-card" onclick="selectOption(this)">
+        <div class="option-header"><span class="option-badge">Option B</span></div>
+        <div>
+          <div class="option-title">Title B</div>
+          <div class="option-desc">Description explaining Option B.</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- PROS & CONS (Optional) -->
+    <div class="bento-grid">
+      <div class="bento-box pros">
+        <h4>Pros</h4>
+        <ul><li>Advantage 1</li><li>Advantage 2</li></ul>
+      </div>
+      <div class="bento-box cons">
+        <h4>Cons</h4>
+        <ul><li>Disadvantage 1</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function selectOption(el) {
+      const container = el.closest('.options-grid');
+      if (container) {
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+      }
+    }
+  </script>
+</body>
+</html>

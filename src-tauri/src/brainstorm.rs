@@ -103,6 +103,31 @@ fn try_activate_existing(session_short: &str) -> bool {
     false
 }
 
+
+fn expand_tilde(path: &str) -> String {
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Ok(home) = std::env::var("HOME") {
+            return format!("{}/{}", home, rest);
+        }
+    }
+    path.to_string()
+}
+
+fn setup_ideate_symlink(workspace: &str, target_dir: &str) {
+    let src = Path::new(workspace).join(".claude/skills/ideate");
+    if !src.exists() {
+        return;
+    }
+    let skills_dir = Path::new(target_dir).join(".claude/skills");
+    let link = skills_dir.join("ideate");
+    if link.exists() || link.is_symlink() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(&skills_dir);
+    #[cfg(unix)]
+    let _ = std::os::unix::fs::symlink(&src, &link);
+}
+
 /// Spawn a terminal running a command, tracking PID and terminal app name.
 /// Uses the same .command file approach as open_claude_terminal.
 fn spawn_tracked_terminal(
@@ -163,11 +188,22 @@ pub fn open_brainstorm_terminal(
     text: String,
     line_index: usize,
     done_file: bool,
+    path: Option<String>,
 ) -> Result<(), String> {
-    let _ = (line_index, done_file); // reserved for future use
+    let _ = (line_index, done_file);
 
     let cfg = crate::config::load_config(&app)?;
     let workspace = &cfg.workspace_path;
+
+    // Resolve cwd: use todo path if provided, else workspace
+    let cwd = match path.as_deref() {
+        Some(p) if !p.is_empty() => {
+            let resolved = expand_tilde(p);
+            setup_ideate_symlink(workspace, &resolved);
+            resolved
+        }
+        _ => workspace.clone(),
+    };
     let cli = if cfg.claude_cli_path.is_empty() {
         crate::config::default_claude_cli_detect()
     } else {
@@ -190,7 +226,7 @@ pub fn open_brainstorm_terminal(
             cli.replace('\'', "'\\''"),
             info.session_id
         );
-        spawn_tracked_terminal(short, workspace, &cmd)?;
+        spawn_tracked_terminal(short, &cwd, &cmd)?;
     } else {
         // New session
         let session_id = generate_session_id();
@@ -203,7 +239,7 @@ pub fn open_brainstorm_terminal(
             escaped_text,
             session_id
         );
-        spawn_tracked_terminal(&short, workspace, &cmd)?;
+        spawn_tracked_terminal(&short, &cwd, &cmd)?;
 
         let now = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         store.sessions.insert(

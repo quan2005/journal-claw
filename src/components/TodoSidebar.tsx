@@ -280,7 +280,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
         <span
           onMouseDown={e => e.preventDefault()}
           onClick={() => {
-            openBrainstormTerminal(item.text, item.line_index, item.done_file)
+            openBrainstormTerminal(item.text, item.line_index, item.done_file, item.path)
               .then(() => onBrainstorm?.())
               .catch(console.error)
           }}
@@ -522,7 +522,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           {!contextMenu.doneFile && (
             <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
               onClick={() => {
-                openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile)
+                openBrainstormTerminal(contextMenu.text, contextMenu.lineIndex, contextMenu.doneFile, contextMenu.path)
                   .then(() => listBrainstormKeys())
                   .then(keys => setBrainstormKeys(new Set(keys)))
                   .catch(console.error)

@@ -274,8 +274,8 @@ export const updateTodoText = (lineIndex: number, text: string, doneFile: boolea
   invoke<void>('update_todo_text', { lineIndex, text, doneFile })
 
 // Brainstorm terminal
-export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile: boolean): Promise<void> =>
-  invoke<void>('open_brainstorm_terminal', { text, lineIndex, doneFile })
+export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile: boolean, path?: string | null): Promise<void> =>
+  invoke<void>('open_brainstorm_terminal', { text, lineIndex, doneFile, path: path ?? null })
 
 export const listBrainstormKeys = (): Promise<string[]> =>
   invoke<string[]>('list_brainstorm_keys')

@@ -36,12 +36,6 @@ impl BridgeState {
 
 // ── Token management ──────────────────────────────────────
 
-#[derive(Debug, Deserialize)]
-struct TokenResponse {
-    tenant_access_token: String,
-    expire: u64,
-}
-
 async fn fetch_token(app_id: &str, app_secret: &str) -> Result<(String, u64), String> {
     let client = reqwest::Client::new();
     let body = serde_json::json!({ "app_id": app_id, "app_secret": app_secret });
@@ -51,8 +45,20 @@ async fn fetch_token(app_id: &str, app_secret: &str) -> Result<(String, u64), St
         .send()
         .await
         .map_err(|e| format!("token request failed: {}", e))?;
-    let tr: TokenResponse = resp.json().await.map_err(|e| format!("token parse failed: {}", e))?;
-    Ok((tr.tenant_access_token, tr.expire))
+    let val: serde_json::Value = resp.json().await.map_err(|e| format!("token parse failed: {}", e))?;
+    // Check for API-level error
+    if let Some(code) = val.get("code").and_then(|v| v.as_i64()) {
+        if code != 0 {
+            let msg = val.get("msg").and_then(|v| v.as_str()).unwrap_or("unknown error");
+            return Err(format!("API error {}: {}", code, msg));
+        }
+    }
+    let token = val.get("tenant_access_token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| format!("missing tenant_access_token in response: {}", val))?
+        .to_string();
+    let expire = val.get("expire").and_then(|v| v.as_u64()).unwrap_or(7200);
+    Ok((token, expire))
 }
 
 // ── Reply sender ──────────────────────────────────────────
@@ -593,7 +599,7 @@ pub async fn run(app: AppHandle) {
             }
         };
 
-        if !cfg.feishu_enabled {
+        if !cfg.feishu_enabled || cfg.feishu_app_id.is_empty() || cfg.feishu_app_secret.is_empty() {
             set_status(&app, "idle", None);
             // Wait for config change before re-checking
             let (tx, rx) = tokio::sync::oneshot::channel::<()>();

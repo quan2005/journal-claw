@@ -1,6 +1,7 @@
 ---
 
 ## name: ideate
+
 description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感的互动式头脑风暴体验。通过优雅的浏览器可视化画布，将用户的模糊想法打磨成产品级设计方案。"
 
 # 灵感探讨 (Ideate Pro Max)

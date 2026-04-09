@@ -9,6 +9,7 @@ const entry: JournalEntry = {
   title: 'AI平台产品会议纪要',
   summary: '探索可继续，需同步做场景化表达',
   tags: ['meeting'],
+  sources: [],
   year_month: '2603',
   day: 28,
   created_time: '10:15',

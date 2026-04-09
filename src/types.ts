@@ -40,6 +40,7 @@ export interface JournalEntry {
   title: string           // "AI平台产品会议纪要"
   summary: string         // from frontmatter summary field
   tags: string[]          // from frontmatter tags field
+  sources: string[]       // workspace-relative paths of source materials
   year_month: string      // "2603"
   day: number             // 28
   created_time: string    // "10:15" (from file birthtime)

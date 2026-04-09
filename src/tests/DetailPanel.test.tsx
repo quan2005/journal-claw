@@ -35,7 +35,7 @@ describe('empty state guidance cards', () => {
 
   const fakeEntry: JournalEntry = {
     filename: '01-test.md', path: '/ws/2604/01-test.md',
-    title: 'test', summary: '', tags: [], year_month: '2604',
+    title: 'test', summary: '', tags: [], sources: [], year_month: '2604',
     day: 1, created_time: '10:00', created_at_secs: 0, mtime_secs: 0, materials: [],
   }
 

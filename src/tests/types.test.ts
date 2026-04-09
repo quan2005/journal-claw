@@ -9,6 +9,7 @@ describe('JournalEntry type', () => {
       title: 'AI平台产品会议纪要',
       summary: '探索可继续，需同步做场景化表达',
       tags: ['journal', 'meeting'],
+      sources: ['2603/raw/录音-abc123.m4a'],
       year_month: '2603',
       day: 28,
       created_time: '10:15',
@@ -18,5 +19,6 @@ describe('JournalEntry type', () => {
     }
     expect(entry.day).toBe(28)
     expect(entry.tags).toContain('meeting')
+    expect(entry.sources).toContain('2603/raw/录音-abc123.m4a')
   })
 })

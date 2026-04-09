@@ -2,7 +2,7 @@ mod ai_processor;
 mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
-mod auto_dream;
+mod auto_lint;
 mod brainstorm;
 mod config;
 mod feishu_bridge;
@@ -145,8 +145,8 @@ fn main() {
         .manage(ai_processor::CancelledPaths(std::sync::Mutex::new(
             std::collections::HashSet::new(),
         )))
-        .manage(auto_dream::AutoDreamNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
-        .manage(auto_dream::DreamRunning(std::sync::Mutex::new(false)))
+        .manage(auto_lint::AutoDreamNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
+        .manage(auto_lint::DreamRunning(std::sync::Mutex::new(false)))
         .manage(feishu_bridge::BridgeStatusState(std::sync::Mutex::new(
             config::FeishuStatus { state: "idle".to_string(), error: None },
         )))
@@ -163,8 +163,8 @@ fn main() {
                 }
 
                 // ── Auto dream scheduler ──
-                auto_dream::check_missed_run(app.handle());
-                auto_dream::start_scheduler(app.handle().clone());
+                auto_lint::check_missed_run(app.handle());
+                auto_lint::start_scheduler(app.handle().clone());
                 // ── Feishu bridge ──
                 let feishu_app = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
@@ -375,8 +375,8 @@ fn main() {
             brainstorm::list_brainstorm_keys,
             workspace_settings::get_auto_dream_config,
             workspace_settings::set_auto_dream_config,
-            auto_dream::get_auto_dream_status,
-            auto_dream::trigger_dream_now,
+            auto_lint::get_auto_dream_status,
+            auto_lint::trigger_dream_now,
             config::get_feishu_config,
             config::set_feishu_config,
             config::get_feishu_status,

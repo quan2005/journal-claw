@@ -1,7 +1,7 @@
 ---
-name: ideate
+
+## name: ideate
 description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感的互动式头脑风暴体验。通过优雅的浏览器可视化画布，将用户的模糊想法打磨成产品级设计方案。"
----
 
 # 灵感探讨 (Ideate Pro Max)
 
@@ -12,21 +12,21 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
 ## 核心工作流 (The Design Loop)
 
 1. **Discovery (探索与倾听)**
-   - 深入理解上下文、目标用户与核心场景。
-   - 不要急于给出最终方案，先挖掘 "Why"（为什么做）和 "Who"（为谁做）。
+  - 深入理解上下文、目标用户与核心场景。
+  - 不要急于给出最终方案，先挖掘 "Why"（为什么做）和 "Who"（为谁做）。
 2. **Definition (定调与概念)**
-   - 确定设计基调（如 Minimalism, Brutalism, Glassmorphism, B2B SaaS, C-end Consumer）。
-   - 设定核心体验路径，提供带有强烈观点的默认推荐（Opinionated Defaults）。
+  - 确定设计基调（如 Minimalism, Brutalism, Glassmorphism, B2B SaaS, C-end Consumer）。
+  - 设定核心体验路径，提供带有强烈观点的默认推荐（Opinionated Defaults）。
 3. **Ideation (视觉化构思)**
-   - **必须**使用可视化伴侣生成 2-3 个高品质的选项。
-   - 避免纯文字的说教，让用户在浏览器里直接对比 A/B/C 选项。
-   - 附带专业的权衡分析（Pros & Cons）。
+  - **必须**使用可视化伴侣生成 2-3 个高品质的选项。
+  - 避免纯文字的说教，让用户在浏览器里直接对比 A/B/C 选项。
+  - 附带专业的权衡分析（Pros & Cons）。
 4. **Refinement (打磨细节)**
-   - 根据用户的选择，在细节上（交互状态、无障碍、微动效、数据呈现）进行精雕细琢。
-   - 自动应用 UI/UX 最佳实践（参考 `ui-ux-pro-max` 的规则：4.5:1 对比度、8pt 间距系统、44pt 触控目标等）。
+  - 根据用户的选择，在细节上（交互状态、无障碍、微动效、数据呈现）进行精雕细琢。
+  - 自动应用 UI/UX 最佳实践（参考 `ui-ux-pro-max` 的规则：4.5:1 对比度、8pt 间距系统、44pt 触控目标等）。
 5. **Delivery (方案交付)**
-   - 在用户明确确认前，**绝对不要开始写代码**。
-   - 确认后，将设计方案整理存档。
+  - 在用户明确确认前，**绝对不要开始写代码**。
+  - 确认后，将设计方案整理存档。
 
 ## 交互体验准则 (Experience Principles)
 
@@ -49,6 +49,7 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
 
 **环境嗅探与动态路由 (Context-Aware Routing)**：
 在决定输出路径前，请观察项目根目录结构：
+
 - **如果是日记工作区** (存在 `yyMM/` 目录或 `identity/` 目录)：
   1. **可视化探索稿 (HTML)**：写入当前年月的素材目录 `yyMM/raw/DD-ideate-{topic}-v{n}.html`
   2. **最终设计方案 (Markdown)**：写入 `yyMM/DD-ideate-{标题}.md` (可使用 `journal-create` 脚本或直接创建)
@@ -57,15 +58,17 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
   2. **最终设计方案 (Markdown)**：写入 `.ideate/{topic}-summary.md` 或项目规定的设计文档目录 (如 `docs/design/`)
 
 **产出通用规则**：
+
 1. **对于 HTML**：
-   - 每次迭代使用**新文件名**（如 `v1`, `v2`，不要覆盖旧文件），方便保留设计演进的历史。
-   - 写完后，务必使用 `open` 命令自动在浏览器中全屏展示。
+  - 每次迭代使用**新文件名**（如 `v1`, `v2`，不要覆盖旧文件），方便保留设计演进的历史。
+  - 写完后，务必使用 `open` 命令自动在浏览器中全屏展示。
 2. **对于 Markdown**：
-   - 讨论结束后，将方案总结写入文件。
-   - Frontmatter 必须包含：
-     ```yaml
-     ---
-     summary: 一句话精准概括设计方向与核心决策
-     tags: [idea, design]
-     ---
-     ```
+  - 讨论结束后，将方案总结写入文件。
+  - Frontmatter 必须包含：
+    ```yaml
+    ---
+    summary: 一句话精准概括设计方向与核心决策
+    tags: [idea, design]
+    ---
+    ```
+

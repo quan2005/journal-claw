@@ -5,16 +5,58 @@ use tauri::AppHandle;
 
 use crate::config::load_config;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoDreamConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_frequency")]
+    pub frequency: String,
+    #[serde(default = "default_time")]
+    pub time: String,
+    #[serde(default = "default_min_entries")]
+    pub min_entries: u32,
+}
+
+impl Default for AutoDreamConfig {
+    fn default() -> Self {
+        AutoDreamConfig {
+            enabled: false,
+            frequency: default_frequency(),
+            time: default_time(),
+            min_entries: default_min_entries(),
+        }
+    }
+}
+
+fn default_frequency() -> String { "daily".to_string() }
+fn default_time() -> String { "03:00".to_string() }
+fn default_min_entries() -> u32 { 10 }
+
+fn valid_frequency(s: &str) -> bool {
+    matches!(s, "daily" | "weekly" | "monthly")
+}
+
+fn valid_time(s: &str) -> bool {
+    matches!(s, "03:00" | "12:00" | "22:00")
+}
+
+fn valid_min_entries(n: u32) -> bool {
+    matches!(n, 10 | 20 | 30)
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct WorkspaceSettings {
     #[serde(default = "default_theme")]
     theme: String,
+    #[serde(default)]
+    auto_dream: AutoDreamConfig,
 }
 
 impl Default for WorkspaceSettings {
     fn default() -> Self {
         WorkspaceSettings {
             theme: default_theme(),
+            auto_dream: AutoDreamConfig::default(),
         }
     }
 }
@@ -70,6 +112,41 @@ pub fn set_workspace_theme(app: AppHandle, theme: String) -> Result<(), String> 
     let mut settings = load_settings(&app)?;
     settings.theme = theme;
     save_settings(&app, &settings)
+}
+
+#[tauri::command]
+pub fn get_auto_dream_config(app: AppHandle) -> Result<AutoDreamConfig, String> {
+    Ok(load_settings(&app)?.auto_dream)
+}
+
+#[tauri::command]
+pub fn set_auto_dream_config(app: AppHandle, config: AutoDreamConfig) -> Result<(), String> {
+    if !valid_frequency(&config.frequency) {
+        return Err(format!("invalid frequency: {}", config.frequency));
+    }
+    if !valid_time(&config.time) {
+        return Err(format!("invalid time: {}", config.time));
+    }
+    if !valid_min_entries(config.min_entries) {
+        return Err(format!("invalid min_entries: {}", config.min_entries));
+    }
+    let mut settings = load_settings(&app)?;
+    settings.auto_dream = config;
+    save_settings(&app, &settings)
+}
+
+/// Returns the workspace path for use by auto_dream scheduler.
+pub fn get_workspace_path_for_auto_dream(app: &AppHandle) -> Result<String, String> {
+    let config = load_config(app)?;
+    if config.workspace_path.is_empty() {
+        return Err("workspace_path not set".to_string());
+    }
+    Ok(config.workspace_path)
+}
+
+/// Load auto_dream config without going through Tauri command interface.
+pub fn load_auto_dream_config(app: &AppHandle) -> Result<AutoDreamConfig, String> {
+    Ok(load_settings(app)?.auto_dream)
 }
 
 #[cfg(test)]

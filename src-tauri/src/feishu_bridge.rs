@@ -57,31 +57,52 @@ async fn fetch_token(app_id: &str, app_secret: &str) -> Result<(String, u64), St
 
 // ── Reply sender ──────────────────────────────────────────
 
+fn safe_utf8_chunks(text: &str, max_bytes: usize) -> Vec<String> {
+    if text.len() <= max_bytes {
+        return vec![text.to_string()];
+    }
+    let mut chunks = Vec::new();
+    let mut start = 0;
+    while start < text.len() {
+        let end = (start + max_bytes).min(text.len());
+        let end = (0..=end - start)
+            .rev()
+            .map(|i| start + i)
+            .find(|&i| text.is_char_boundary(i))
+            .unwrap_or(start + 1);
+        if end <= start {
+            break;
+        }
+        chunks.push(text[start..end].to_string());
+        start = end;
+    }
+    chunks
+}
+
 pub async fn send_reply(token: &str, message_id: &str, text: &str) -> Result<(), String> {
     const MAX_LEN: usize = 4000;
     let client = reqwest::Client::new();
-    let chunks: Vec<&str> = if text.len() <= MAX_LEN {
-        vec![text]
-    } else {
-        text.as_bytes()
-            .chunks(MAX_LEN)
-            .map(|c| std::str::from_utf8(c).unwrap_or(""))
-            .collect()
-    };
-    for chunk in chunks {
+    let chunks = safe_utf8_chunks(text, MAX_LEN);
+    for chunk in &chunks {
         let content = serde_json::json!({ "text": chunk }).to_string();
         let body = serde_json::json!({ "msg_type": "text", "content": content });
         let url = format!(
             "https://open.feishu.cn/open-apis/im/v1/messages/{}/reply",
             message_id
         );
-        client
+        let resp = client
             .post(&url)
             .bearer_auth(token)
             .json(&body)
             .send()
             .await
             .map_err(|e| format!("reply failed: {}", e))?;
+        if resp.status() == 401 {
+            return Err("TOKEN_EXPIRED".to_string());
+        }
+        if !resp.status().is_success() {
+            return Err(format!("reply HTTP {}", resp.status()));
+        }
     }
     Ok(())
 }
@@ -201,9 +222,10 @@ async fn run_websocket(
 
     let url = "wss://open.feishu.cn/event/v1/ws/";
     let mut request = url.into_client_request().map_err(|e| e.to_string())?;
-    request
-        .headers_mut()
-        .insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+    let auth_value = format!("Bearer {}", token)
+        .parse()
+        .map_err(|e| format!("invalid token for header: {}", e))?;
+    request.headers_mut().insert("Authorization", auth_value);
 
     let (ws_stream, _) = connect_async(request)
         .await
@@ -238,32 +260,6 @@ async fn run_websocket(
                 }
             }
         }
-    });
-
-    // Listen for feishu-reply-ready to send replies and flush pending
-    let reply_state = bridge_state.clone();
-    let reply_app = app.clone();
-    let reply_token = token.clone();
-    let _reply_listener = app.listen("feishu-reply-ready", move |event: tauri::Event| {
-        let payload_str = event.payload().to_string();
-        let reply_state = reply_state.clone();
-        let reply_app = reply_app.clone();
-        let reply_token = reply_token.clone();
-        tauri::async_runtime::spawn(async move {
-            if let Ok(payload) = serde_json::from_str::<FeishuReplyPayload>(&payload_str) {
-                if let Err(e) =
-                    send_reply(&reply_token, &payload.reply_ctx.message_id, &payload.result).await
-                {
-                    eprintln!("[feishu_bridge] send_reply error: {}", e);
-                }
-            }
-            set_not_running(&reply_state);
-            if has_pending(&reply_state) {
-                if let Some((batch, ctx)) = flush_pending(&reply_state) {
-                    submit_batch(&reply_app, batch, ctx).await;
-                }
-            }
-        });
     });
 
     // Heartbeat (30s ping)
@@ -351,6 +347,39 @@ pub async fn run(app: AppHandle) {
     let bridge_state = Arc::new(Mutex::new(BridgeState::new()));
     let mut backoff_secs = 1u64;
 
+    // Register reply listener once — must outlive individual WS connections
+    let reply_state = bridge_state.clone();
+    let reply_app = app.clone();
+    let token_holder: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+    let reply_token_holder = token_holder.clone();
+    let _reply_listener = app.listen("feishu-reply-ready", move |event| {
+        let payload_str = event.payload().to_string();
+        let reply_state = reply_state.clone();
+        let reply_app = reply_app.clone();
+        let token = reply_token_holder.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        tauri::async_runtime::spawn(async move {
+            if let Ok(payload) = serde_json::from_str::<FeishuReplyPayload>(&payload_str) {
+                if token.is_empty() {
+                    eprintln!("[feishu_bridge] no token available for reply");
+                } else {
+                    match send_reply(&token, &payload.reply_ctx.message_id, &payload.result).await {
+                        Ok(()) => {}
+                        Err(ref e) if e == "TOKEN_EXPIRED" => {
+                            eprintln!("[feishu_bridge] token expired, will refresh on next reconnect");
+                        }
+                        Err(e) => eprintln!("[feishu_bridge] send_reply error: {}", e),
+                    }
+                }
+            }
+            set_not_running(&reply_state);
+            if has_pending(&reply_state) {
+                if let Some((batch, ctx)) = flush_pending(&reply_state) {
+                    submit_batch(&reply_app, batch, ctx).await;
+                }
+            }
+        });
+    });
+
     loop {
         let cfg = match config::load_config(&app) {
             Ok(c) => c,
@@ -383,6 +412,7 @@ pub async fn run(app: AppHandle) {
         let token = match fetch_token(&cfg.feishu_app_id, &cfg.feishu_app_secret).await {
             Ok((t, _expire)) => {
                 backoff_secs = 1;
+                *token_holder.lock().unwrap_or_else(|e| e.into_inner()) = t.clone();
                 t
             }
             Err(e) => {

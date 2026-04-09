@@ -6,7 +6,7 @@ use tauri::AppHandle;
 use crate::config::load_config;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AutoDreamConfig {
+pub struct AutoLintConfig {
     #[serde(default)]
     pub enabled: bool,
     #[serde(default = "default_frequency")]
@@ -17,9 +17,9 @@ pub struct AutoDreamConfig {
     pub min_entries: u32,
 }
 
-impl Default for AutoDreamConfig {
+impl Default for AutoLintConfig {
     fn default() -> Self {
-        AutoDreamConfig {
+        AutoLintConfig {
             enabled: false,
             frequency: default_frequency(),
             time: default_time(),
@@ -49,14 +49,14 @@ struct WorkspaceSettings {
     #[serde(default = "default_theme")]
     theme: String,
     #[serde(default)]
-    auto_dream: AutoDreamConfig,
+    auto_lint: AutoLintConfig,
 }
 
 impl Default for WorkspaceSettings {
     fn default() -> Self {
         WorkspaceSettings {
             theme: default_theme(),
-            auto_dream: AutoDreamConfig::default(),
+            auto_lint: AutoLintConfig::default(),
         }
     }
 }
@@ -115,12 +115,12 @@ pub fn set_workspace_theme(app: AppHandle, theme: String) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn get_auto_dream_config(app: AppHandle) -> Result<AutoDreamConfig, String> {
-    Ok(load_settings(&app)?.auto_dream)
+pub fn get_auto_lint_config(app: AppHandle) -> Result<AutoLintConfig, String> {
+    Ok(load_settings(&app)?.auto_lint)
 }
 
 #[tauri::command]
-pub fn set_auto_dream_config(app: AppHandle, config: AutoDreamConfig) -> Result<(), String> {
+pub fn set_auto_lint_config(app: AppHandle, config: AutoLintConfig) -> Result<(), String> {
     if !valid_frequency(&config.frequency) {
         return Err(format!("invalid frequency: {}", config.frequency));
     }
@@ -131,12 +131,12 @@ pub fn set_auto_dream_config(app: AppHandle, config: AutoDreamConfig) -> Result<
         return Err(format!("invalid min_entries: {}", config.min_entries));
     }
     let mut settings = load_settings(&app)?;
-    settings.auto_dream = config;
+    settings.auto_lint = config;
     save_settings(&app, &settings)
 }
 
-/// Returns the workspace path for use by auto_dream scheduler.
-pub fn get_workspace_path_for_auto_dream(app: &AppHandle) -> Result<String, String> {
+/// Returns the workspace path for use by auto_lint scheduler.
+pub fn get_workspace_path_for_auto_lint(app: &AppHandle) -> Result<String, String> {
     let config = load_config(app)?;
     if config.workspace_path.is_empty() {
         return Err("workspace_path not set".to_string());
@@ -144,9 +144,9 @@ pub fn get_workspace_path_for_auto_dream(app: &AppHandle) -> Result<String, Stri
     Ok(config.workspace_path)
 }
 
-/// Load auto_dream config without going through Tauri command interface.
-pub fn load_auto_dream_config(app: &AppHandle) -> Result<AutoDreamConfig, String> {
-    Ok(load_settings(app)?.auto_dream)
+/// Load auto_lint config without going through Tauri command interface.
+pub fn load_auto_lint_config(app: &AppHandle) -> Result<AutoLintConfig, String> {
+    Ok(load_settings(app)?.auto_lint)
 }
 
 #[cfg(test)]

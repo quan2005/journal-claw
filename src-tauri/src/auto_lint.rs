@@ -149,7 +149,7 @@ pub fn start_scheduler(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         loop {
             // Load config
-            let cfg = match workspace_settings::load_auto_dream_config(&app) {
+            let cfg = match workspace_settings::load_auto_lint_config(&app) {
                 Ok(c) => c,
                 Err(_) => {
                     // No workspace set yet, wait for notification
@@ -173,7 +173,7 @@ pub fn start_scheduler(app: AppHandle) {
             };
 
             // Emit status with next check time
-            let workspace = workspace_settings::get_workspace_path_for_auto_dream(&app)
+            let workspace = workspace_settings::get_workspace_path_for_auto_lint(&app)
                 .unwrap_or_default();
             let new_entries = compute_new_entries(&workspace);
             let last = read_last_lint(&workspace);
@@ -196,12 +196,12 @@ pub fn start_scheduler(app: AppHandle) {
             tokio::select! {
                 _ = tokio::time::sleep(wait_duration) => {
                     // Time to check
-                    let workspace = match workspace_settings::get_workspace_path_for_auto_dream(&app) {
+                    let workspace = match workspace_settings::get_workspace_path_for_auto_lint(&app) {
                         Ok(w) => w,
                         Err(_) => continue,
                     };
                     let new_entries = compute_new_entries(&workspace);
-                    let cfg = workspace_settings::load_auto_dream_config(&app).unwrap_or_default();
+                    let cfg = workspace_settings::load_auto_lint_config(&app).unwrap_or_default();
                     if cfg.enabled && new_entries >= cfg.min_entries {
                         run_lint(&app, &workspace, false).await;
                     }
@@ -217,14 +217,14 @@ pub fn start_scheduler(app: AppHandle) {
 
 /// Check if app missed a scheduled run while closed.
 pub fn check_missed_run(app: &AppHandle) {
-    let cfg = match workspace_settings::load_auto_dream_config(app) {
+    let cfg = match workspace_settings::load_auto_lint_config(app) {
         Ok(c) => c,
         Err(_) => return,
     };
     if !cfg.enabled {
         return;
     }
-    let workspace = match workspace_settings::get_workspace_path_for_auto_dream(app) {
+    let workspace = match workspace_settings::get_workspace_path_for_auto_lint(app) {
         Ok(w) => w,
         Err(_) => return,
     };
@@ -269,7 +269,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
 
     if !force {
         let new_entries = compute_new_entries(workspace);
-        let cfg = workspace_settings::load_auto_dream_config(app).unwrap_or_default();
+        let cfg = workspace_settings::load_auto_lint_config(app).unwrap_or_default();
         if new_entries < cfg.min_entries {
             let running = app.state::<LintRunning>();
             *running.0.lock().unwrap() = false;
@@ -403,8 +403,8 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
 
 #[tauri::command]
 pub fn get_auto_lint_status(app: AppHandle) -> Result<AutoLintStatus, String> {
-    let workspace = workspace_settings::get_workspace_path_for_auto_dream(&app)?;
-    let cfg = workspace_settings::load_auto_dream_config(&app)?;
+    let workspace = workspace_settings::get_workspace_path_for_auto_lint(&app)?;
+    let cfg = workspace_settings::load_auto_lint_config(&app)?;
     let last = read_last_lint(&workspace);
     let new_entries = compute_new_entries(&workspace);
 
@@ -438,7 +438,7 @@ pub fn get_auto_lint_status(app: AppHandle) -> Result<AutoLintStatus, String> {
 
 #[tauri::command]
 pub async fn trigger_lint_now(app: AppHandle) -> Result<(), String> {
-    let workspace = workspace_settings::get_workspace_path_for_auto_dream(&app)?;
+    let workspace = workspace_settings::get_workspace_path_for_auto_lint(&app)?;
     run_lint(&app, &workspace, true).await;
     Ok(())
 }

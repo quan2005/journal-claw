@@ -203,12 +203,133 @@ struct WsMessageEvent {
 struct WsMessage {
     message_id: Option<String>,
     chat_id: Option<String>,
+    msg_type: Option<String>,
     content: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct MessageContent {
     text: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImageContent {
+    image_key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FileContent {
+    file_key: Option<String>,
+    file_name: Option<String>,
+}
+
+async fn download_resource(
+    token: &str,
+    message_id: &str,
+    file_key: &str,
+    resource_type: &str,
+    filename: &str,
+) -> Result<std::path::PathBuf, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://open.feishu.cn/open-apis/im/v1/messages/{}/resources/{}?type={}",
+        message_id, file_key, resource_type
+    );
+    let resp = client
+        .get(&url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| format!("download failed: {}", e))?;
+    if !resp.status().is_success() {
+        return Err(format!("download HTTP {}", resp.status()));
+    }
+    let bytes = resp.bytes().await.map_err(|e| format!("read bytes failed: {}", e))?;
+    let tmp_path = std::env::temp_dir().join(filename);
+    std::fs::write(&tmp_path, &bytes).map_err(|e| format!("write temp failed: {}", e))?;
+    Ok(tmp_path)
+}
+
+async fn export_feishu_doc(token: &str, doc_token: &str) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let body = serde_json::json!({
+        "file_extension": "md",
+        "token": doc_token,
+        "type": "docx"
+    });
+    let resp = client
+        .post("https://open.feishu.cn/open-apis/drive/v1/export_tasks")
+        .bearer_auth(token)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("export task failed: {}", e))?;
+    let val: serde_json::Value = resp.json().await.map_err(|e| format!("export parse failed: {}", e))?;
+    let ticket = val.pointer("/data/ticket")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| format!("no ticket in response: {}", val))?
+        .to_string();
+
+    let mut file_token = String::new();
+    for _ in 0..15 {
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        let poll_url = format!(
+            "https://open.feishu.cn/open-apis/drive/v1/export_tasks/{}?token={}",
+            ticket, doc_token
+        );
+        let poll_resp = client
+            .get(&poll_url)
+            .bearer_auth(token)
+            .send()
+            .await
+            .map_err(|e| format!("poll failed: {}", e))?;
+        let poll_val: serde_json::Value = poll_resp.json().await.map_err(|e| format!("poll parse: {}", e))?;
+        let status = poll_val.pointer("/data/result/job_status")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        if status == 0 {
+            file_token = poll_val.pointer("/data/result/file_token")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            break;
+        }
+        if status == 3 {
+            return Err("export failed".to_string());
+        }
+    }
+    if file_token.is_empty() {
+        return Err("export timed out".to_string());
+    }
+
+    let dl_url = format!(
+        "https://open.feishu.cn/open-apis/drive/v1/export_tasks/{}/download",
+        ticket
+    );
+    let dl_resp = client
+        .get(&dl_url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| format!("download failed: {}", e))?;
+    let bytes = dl_resp.bytes().await.map_err(|e| format!("read bytes: {}", e))?;
+    String::from_utf8(bytes.to_vec()).map_err(|e| format!("utf8: {}", e))
+}
+
+fn extract_feishu_doc_token(text: &str) -> Option<String> {
+    let patterns = ["/docx/", "/docs/"];
+    for pat in &patterns {
+        if let Some(pos) = text.find(pat) {
+            let after = &text[pos + pat.len()..];
+            let token: String = after.chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+                .collect();
+            if token.len() > 8 {
+                return Some(token);
+            }
+        }
+    }
+    None
 }
 
 async fn run_websocket(
@@ -287,41 +408,123 @@ async fn run_websocket(
                                         let message_id = msg.message_id.unwrap_or_default();
                                         let chat_id = msg.chat_id.unwrap_or_default();
                                         let raw_content = msg.content.unwrap_or_default();
-                                        let text = serde_json::from_str::<MessageContent>(&raw_content)
-                                            .ok()
-                                            .and_then(|c| c.text)
-                                            .unwrap_or(raw_content);
-                                        // Strip @bot mention
-                                        let text = if let Some(at_pos) = text.find('@') {
-                                            let before = text[..at_pos].trim();
-                                            let after = &text[at_pos + 1..];
-                                            let rest = after.splitn(2, ' ').nth(1).unwrap_or("").trim();
-                                            if rest.is_empty() {
-                                                before.to_string()
-                                            } else if before.is_empty() {
-                                                rest.to_string()
-                                            } else {
-                                                format!("{} {}", before, rest)
+                                        let msg_type = msg.msg_type.as_deref().unwrap_or("text");
+
+                                        let text_opt: Option<String> = match msg_type {
+                                            "text" => {
+                                                let text = serde_json::from_str::<MessageContent>(&raw_content)
+                                                    .ok()
+                                                    .and_then(|c| c.text)
+                                                    .unwrap_or(raw_content);
+                                                // Strip @bot mention
+                                                let text = if let Some(at_pos) = text.find('@') {
+                                                    let before = text[..at_pos].trim();
+                                                    let after = &text[at_pos + 1..];
+                                                    let rest = after.splitn(2, ' ').nth(1).unwrap_or("").trim();
+                                                    if rest.is_empty() { before.to_string() }
+                                                    else if before.is_empty() { rest.to_string() }
+                                                    else { format!("{} {}", before, rest) }
+                                                } else { text };
+                                                let text = text.trim().to_string();
+                                                // Check for Feishu doc link
+                                                if let Some(doc_token) = extract_feishu_doc_token(&text) {
+                                                    let token_clone = token.clone();
+                                                    let app_clone = app.clone();
+                                                    let bridge_clone = bridge_state.clone();
+                                                    let debounce_tx_clone = debounce_tx.clone();
+                                                    let mid = message_id.clone();
+                                                    let cid = chat_id.clone();
+                                                    tokio::spawn(async move {
+                                                        eprintln!("[feishu_bridge] exporting doc token: {}", doc_token);
+                                                        match export_feishu_doc(&token_clone, &doc_token).await {
+                                                            Ok(md_text) => {
+                                                                push_message(&bridge_clone, md_text, mid, cid);
+                                                                if !is_running(&bridge_clone) {
+                                                                    let _ = debounce_tx_clone.try_send(());
+                                                                }
+                                                            }
+                                                            Err(e) => eprintln!("[feishu_bridge] doc export failed: {}", e),
+                                                        }
+                                                    });
+                                                    None
+                                                } else if text.is_empty() {
+                                                    None
+                                                } else {
+                                                    Some(text)
+                                                }
                                             }
-                                        } else {
-                                            text
+                                            "image" => {
+                                                let image_key = serde_json::from_str::<ImageContent>(&raw_content)
+                                                    .ok()
+                                                    .and_then(|c| c.image_key)
+                                                    .unwrap_or_default();
+                                                if image_key.is_empty() { None } else {
+                                                    let token_clone = token.clone();
+                                                    let app_clone = app.clone();
+                                                    let mid = message_id.clone();
+                                                    let cid = chat_id.clone();
+                                                    tokio::spawn(async move {
+                                                        let filename = format!("{}.jpg", &image_key[..image_key.len().min(16)]);
+                                                        match download_resource(&token_clone, &mid, &image_key, "image", &filename).await {
+                                                            Ok(path) => {
+                                                                let path_str = path.to_string_lossy().to_string();
+                                                                let result = crate::materials::import_file(app_clone.clone(), path_str);
+                                                                if let Ok(import_result) = result {
+                                                                    let reply_ctx = FeishuReplyCtx { message_id: mid, chat_id: cid };
+                                                                    let _ = crate::ai_processor::enqueue_material(
+                                                                        &app_clone, import_result.path, import_result.year_month,
+                                                                        None, None, Some(reply_ctx),
+                                                                    ).await;
+                                                                }
+                                                            }
+                                                            Err(e) => eprintln!("[feishu_bridge] image download failed: {}", e),
+                                                        }
+                                                    });
+                                                    None
+                                                }
+                                            }
+                                            "file" | "audio" | "video" => {
+                                                let file_content = serde_json::from_str::<FileContent>(&raw_content).ok();
+                                                let file_key = file_content.as_ref().and_then(|c| c.file_key.clone()).unwrap_or_default();
+                                                let file_name = file_content.as_ref().and_then(|c| c.file_name.clone())
+                                                    .unwrap_or_else(|| format!("{}.bin", &file_key[..file_key.len().min(8)]));
+                                                if file_key.is_empty() { None } else {
+                                                    let token_clone = token.clone();
+                                                    let app_clone = app.clone();
+                                                    let mid = message_id.clone();
+                                                    let cid = chat_id.clone();
+                                                    tokio::spawn(async move {
+                                                        match download_resource(&token_clone, &mid, &file_key, "file", &file_name).await {
+                                                            Ok(path) => {
+                                                                let path_str = path.to_string_lossy().to_string();
+                                                                let result = crate::materials::import_file(app_clone.clone(), path_str);
+                                                                if let Ok(import_result) = result {
+                                                                    let reply_ctx = FeishuReplyCtx { message_id: mid, chat_id: cid };
+                                                                    let _ = crate::ai_processor::enqueue_material(
+                                                                        &app_clone, import_result.path, import_result.year_month,
+                                                                        None, None, Some(reply_ctx),
+                                                                    ).await;
+                                                                }
+                                                            }
+                                                            Err(e) => eprintln!("[feishu_bridge] file download failed: {}", e),
+                                                        }
+                                                    });
+                                                    None
+                                                }
+                                            }
+                                            _ => None,
                                         };
-                                        let text = text.trim().to_string();
 
-                                        if text.is_empty() {
-                                            continue;
+                                        if let Some(text) = text_opt {
+                                            eprintln!(
+                                                "[feishu_bridge] received text: {}",
+                                                &text[..text.len().min(80)]
+                                            );
+                                            push_message(&bridge_state, text, message_id, chat_id);
+                                            if !is_running(&bridge_state) {
+                                                let _ = debounce_tx.try_send(());
+                                            }
                                         }
-
-                                        eprintln!(
-                                            "[feishu_bridge] received: {}",
-                                            &text[..text.len().min(80)]
-                                        );
-                                        push_message(&bridge_state, text, message_id, chat_id);
-
-                                        if !is_running(&bridge_state) {
-                                            let _ = debounce_tx.try_send(());
-                                        }
-                                        // If running, message is accumulated — flush happens after Claude finishes
                                     }
                                 }
                             }

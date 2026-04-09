@@ -351,6 +351,11 @@ export const en = {
   feishuStatusConnected: 'Connected',
   feishuStatusError: 'Error',
   feishuSave: 'Save',
+  feishuPermsTitle: 'Required permissions',
+  feishuPermMsg: 'Receive messages via WebSocket',
+  feishuPermSend: 'Send replies as bot',
+  feishuPermRead: 'Read message history',
+  feishuPermDrive: 'Export Feishu documents',
 }
 
 export type Strings = typeof en

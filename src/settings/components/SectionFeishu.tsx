@@ -188,6 +188,22 @@ export default function SectionFeishu() {
                   </button>
                 )}
               </div>
+
+              {/* Permissions hint */}
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)', borderRadius: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--duration-text)', marginBottom: 6, fontWeight: 500 }}>{t('feishuPermsTitle')}</div>
+                {[
+                  { scope: 'im:message', desc: t('feishuPermMsg') },
+                  { scope: 'im:message:send_as_bot', desc: t('feishuPermSend') },
+                  { scope: 'im:message:readonly', desc: t('feishuPermRead') },
+                  { scope: 'drive:drive', desc: t('feishuPermDrive') },
+                ].map(({ scope, desc }) => (
+                  <div key={scope} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+                    <code style={{ fontSize: 10, color: 'var(--item-meta)', fontFamily: 'ui-monospace, monospace', flexShrink: 0 }}>{scope}</code>
+                    <span style={{ fontSize: 11, color: 'var(--duration-text)' }}>{desc}</span>
+                  </div>
+                ))}
+              </div>
             </>
           )}
         </div>

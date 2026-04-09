@@ -353,4 +353,9 @@ export const zh: Strings = {
   feishuStatusConnected: '已连接',
   feishuStatusError: '错误',
   feishuSave: '保存',
+  feishuPermsTitle: '所需权限',
+  feishuPermMsg: '通过 WebSocket 接收消息',
+  feishuPermSend: '以机器人身份发送回复',
+  feishuPermRead: '读取消息历史',
+  feishuPermDrive: '导出飞书文档',
 }

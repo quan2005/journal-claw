@@ -80,17 +80,19 @@ Before processing new material, scan recent entries to decide whether to append 
 
 ### Frontmatter
 
-Two fields only:
+Three fields only:
 
 ```yaml
 ---
 tags: [journal, meeting]
 summary: Core conclusion. Background and constraints.
+sources: [2604/raw/录音-abc123.m4a, 2604/raw/paste-20260409.txt]
 ---
 ```
 
 - `tags`: first tag must be `journal`, followed by content-type tags, all lowercase
 - `summary`: 1-3 sentences, conclusion first then context. **Do not wrap the value in quotes** (write `summary: core conclusion` not `summary: "core conclusion"`)
+- `sources`: workspace-relative paths of all raw materials referenced in this entry. Always write as an inline array. When appending to an existing entry, merge the existing `sources` array with the new material path(s) and deduplicate.
 
 Common content-type tags: `meeting`, `idea`, `note`, `review`, `learning`, `decision`
 

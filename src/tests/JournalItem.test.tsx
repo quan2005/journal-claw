@@ -12,6 +12,7 @@ const entry: JournalEntry = {
   year_month: '2603',
   day: 28,
   created_time: '10:15',
+  created_at_secs: 1743120000,
   mtime_secs: 1743120000,
   materials: [{ filename: '录音.m4a', path: '/nb/2603/raw/录音.m4a', kind: 'audio', size_bytes: 1024 }],
 }

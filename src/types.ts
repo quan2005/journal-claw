@@ -42,8 +42,9 @@ export interface JournalEntry {
   tags: string[]          // from frontmatter tags field
   year_month: string      // "2603"
   day: number             // 28
-  created_time: string    // "10:15"
-  mtime_secs: number      // Unix timestamp for sorting
+  created_time: string    // "10:15" (from file birthtime)
+  created_at_secs: number // birthtime Unix timestamp for stable same-day sorting
+  mtime_secs: number      // mtime Unix timestamp for change detection
   materials: RawMaterial[]
 }
 

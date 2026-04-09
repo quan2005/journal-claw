@@ -19,8 +19,9 @@ pub struct JournalEntry {
     pub tags: Vec<String>,    // from frontmatter
     pub year_month: String,   // "2603"
     pub day: u32,             // 28
-    pub created_time: String, // "10:15" (from file mtime)
-    pub mtime_secs: i64,      // Unix timestamp for sorting
+    pub created_time: String,   // "10:15" (from file birthtime, falls back to mtime)
+    pub created_at_secs: i64,  // birthtime Unix timestamp for stable same-day sorting
+    pub mtime_secs: i64,       // mtime Unix timestamp for change detection
     pub materials: Vec<RawMaterial>,
 }
 
@@ -178,17 +179,25 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .map(|p| p.data)
             .unwrap_or_else(|| parse_frontmatter_fallback(&content));
 
-        // mtime as HH:mm and as Unix seconds for sorting
-        let mtime = entry
-            .metadata()
-            .ok()
-            .and_then(|m| m.modified().ok());
-        let created_time = mtime
+        let meta = entry.metadata().ok();
+        // birthtime (created) for stable display time and same-day sort order
+        let birthtime = meta.as_ref().and_then(|m| m.created().ok());
+        // mtime for change detection only
+        let mtime = meta.as_ref().and_then(|m| m.modified().ok());
+
+        // Display time comes from birthtime; fall back to mtime if birthtime unavailable
+        let display_time = birthtime.or(mtime);
+        let created_time = display_time
             .map(|t| {
                 let dt: chrono::DateTime<chrono::Local> = t.into();
                 dt.format("%H:%M").to_string()
             })
             .unwrap_or_default();
+        let created_at_secs = birthtime
+            .or(mtime)
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
         let mtime_secs = mtime
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs() as i64)
@@ -203,13 +212,14 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             year_month: year_month.to_string(),
             day,
             created_time,
+            created_at_secs,
             mtime_secs,
             materials: vec![],
         });
     }
 
-    // Sort by day descending, then by mtime descending within same day
-    entries.sort_by(|a, b| b.day.cmp(&a.day).then(b.mtime_secs.cmp(&a.mtime_secs)));
+    // Sort by day descending, then by creation time descending within same day
+    entries.sort_by(|a, b| b.day.cmp(&a.day).then(b.created_at_secs.cmp(&a.created_at_secs)));
     Ok(entries)
 }
 
@@ -253,7 +263,7 @@ pub async fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry
             b.year_month
                 .cmp(&a.year_month)
                 .then(b.day.cmp(&a.day))
-                .then(b.mtime_secs.cmp(&a.mtime_secs))
+                .then(b.created_at_secs.cmp(&a.created_at_secs))
         });
         Ok(all)
     })

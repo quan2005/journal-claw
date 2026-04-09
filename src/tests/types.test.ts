@@ -12,6 +12,7 @@ describe('JournalEntry type', () => {
       year_month: '2603',
       day: 28,
       created_time: '10:15',
+      created_at_secs: 1743120000,
       mtime_secs: 1743120000,
       materials: [],
     }

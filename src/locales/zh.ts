@@ -336,6 +336,8 @@ export const zh: Strings = {
   entries: '篇',
   organized: '整理了',
 
+  // Settings: IM bridge
+  im: 'IM 配置',
   // Settings: Feishu bridge
   feishu: '飞书',
   feishuTitle: '飞书 IM 桥接',

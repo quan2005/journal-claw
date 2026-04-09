@@ -5,17 +5,17 @@ import {
   Mic,
   ShieldCheck,
   Timer,
-  MessageSquare,
   Puzzle,
   Info,
   type LucideIcon,
 } from 'lucide-react'
+import { FeishuIcon } from '../components/icons/FeishuIcon'
 import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
 import SectionPermissions from './components/SectionPermissions'
 import SectionAutomation from './components/SectionAutomation'
-import SectionFeishu from './components/SectionFeishu'
+import SectionIM from './components/SectionFeishu'
 import SectionPlugins from './components/SectionPlugins'
 import SectionAbout from './components/SectionAbout'
 import { ALL_NAV_IDS, SECTION_TOP_GUTTER, type NavId, resolveActiveNav } from './navigation'
@@ -31,7 +31,7 @@ interface SettingsLayoutProps {
 type NavItem = {
   id: NavId
   label: string
-  icon: LucideIcon
+  icon: LucideIcon | React.FC<{ size?: number; strokeWidth?: number }>
 }
 
 interface SettingsContentProps {
@@ -51,12 +51,12 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
   return (
     <>
       <section id="general" ref={(el) => registerSectionRef('general', el)}><SectionGeneral /></section>
+      <section id="im" ref={(el) => registerSectionRef('im', el)}><SectionIM /></section>
       <section id="ai" ref={(el) => registerSectionRef('ai', el)}><SectionAiEngine /></section>
       <section id="voice" ref={(el) => registerSectionRef('voice', el)}><SectionVoice /></section>
       <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}><SectionPermissions /></section>
       <section id="automation" ref={(el) => registerSectionRef('automation', el)}><SectionAutomation /></section>
       <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}><SectionPlugins /></section>
-      <section id="feishu" ref={(el) => registerSectionRef('feishu', el)}><SectionFeishu /></section>
       <section id="about" ref={(el) => registerSectionRef('about', el)} style={{ paddingBottom: 40 }}><SectionAbout /></section>
     </>
   )
@@ -66,12 +66,12 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
   const { t } = useTranslation()
   const NAV_ITEMS: NavItem[] = [
     { id: 'general', label: t('general'), icon: Settings2 },
+    { id: 'im', label: t('im'), icon: FeishuIcon },
     { id: 'ai', label: t('aiEngine'), icon: Cpu },
     { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
     { id: 'plugins', label: t('plugins'), icon: Puzzle },
-    { id: 'feishu', label: t('feishu'), icon: MessageSquare },
     { id: 'about', label: t('about'), icon: Info },
   ]
   const [activeNav, setActiveNav] = useState<NavId>('general')

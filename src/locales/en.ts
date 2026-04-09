@@ -334,6 +334,8 @@ export const en = {
   entries: 'entries',
   organized: 'organized',
 
+  // Settings: IM bridge
+  im: 'IM',
   // Settings: Feishu bridge
   feishu: 'Feishu',
   feishuTitle: 'Feishu IM Bridge',

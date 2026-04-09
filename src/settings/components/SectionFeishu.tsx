@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getFeishuConfig, setFeishuConfig, getFeishuStatus } from '../../lib/tauri'
 import type { FeishuConfig, FeishuStatus } from '../../lib/tauri'
 import { useTranslation } from '../../contexts/I18nContext'
+import { FeishuIcon } from '../../components/icons/FeishuIcon'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 40px', borderBottom: '1px solid var(--divider)' }
 
@@ -73,14 +74,14 @@ export default function SectionFeishu() {
   if (loading) {
     return (
       <div style={sectionStyle}>
-        <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('feishu')}</div>
+        <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('im')}</div>
       </div>
     )
   }
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('feishu')}</div>
+      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('im')}</div>
 
       <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
         <div style={{
@@ -95,8 +96,8 @@ export default function SectionFeishu() {
               width: 36, height: 36, borderRadius: 8,
               background: 'rgba(100,160,255,0.10)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, flexShrink: 0,
-            }}>💬</div>
+              flexShrink: 0,
+            }}><FeishuIcon size={20} /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, color: 'var(--item-text)' }}>{t('feishuTitle')}</div>
               <div style={{ fontSize: 11, color: 'var(--duration-text)', marginTop: 2 }}>{t('feishuDesc')}</div>

@@ -62,6 +62,15 @@ pub struct Config {
     // 首次启动引导
     #[serde(default)]
     pub sample_entry_created: bool,
+    // Feishu bridge
+    #[serde(default)]
+    pub feishu_enabled: bool,
+    #[serde(default)]
+    pub feishu_app_id: String,
+    #[serde(default)]
+    pub feishu_app_secret: String,
+    #[serde(default)]
+    pub feishu_session_id: Option<String>,
 }
 
 pub fn augmented_path() -> String {
@@ -739,6 +748,56 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
         Err(msg)
     }
 }
+
+// ── Feishu bridge config ─────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeishuConfig {
+    pub enabled: bool,
+    pub app_id: String,
+    pub app_secret: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeishuStatus {
+    pub state: String, // "idle" | "connecting" | "connected" | "error"
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_feishu_config(app: AppHandle) -> Result<FeishuConfig, String> {
+    let cfg = load_config(&app)?;
+    Ok(FeishuConfig {
+        enabled: cfg.feishu_enabled,
+        app_id: cfg.feishu_app_id,
+        app_secret: cfg.feishu_app_secret,
+    })
+}
+
+#[tauri::command]
+pub fn set_feishu_config(app: AppHandle, config: FeishuConfig) -> Result<(), String> {
+    let mut cfg = load_config(&app)?;
+    let creds_changed = cfg.feishu_app_id != config.app_id
+        || cfg.feishu_app_secret != config.app_secret;
+    cfg.feishu_enabled = config.enabled;
+    cfg.feishu_app_id = config.app_id;
+    cfg.feishu_app_secret = config.app_secret;
+    if creds_changed {
+        cfg.feishu_session_id = None;
+    }
+    save_config(&app, &cfg)?;
+    let _ = app.emit("feishu-config-changed", ());
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_feishu_status(app: AppHandle) -> FeishuStatus {
+    use crate::feishu_bridge::BridgeStatusState;
+    let state = app.state::<BridgeStatusState>();
+    let guard = state.0.lock().unwrap_or_else(|e| e.into_inner());
+    guard.clone()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -5,6 +5,7 @@ import {
   Mic,
   ShieldCheck,
   Timer,
+  MessageSquare,
   Puzzle,
   Info,
   type LucideIcon,
@@ -14,6 +15,7 @@ import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
 import SectionPermissions from './components/SectionPermissions'
 import SectionAutomation from './components/SectionAutomation'
+import SectionFeishu from './components/SectionFeishu'
 import SectionPlugins from './components/SectionPlugins'
 import SectionAbout from './components/SectionAbout'
 import { ALL_NAV_IDS, SECTION_TOP_GUTTER, type NavId, resolveActiveNav } from './navigation'
@@ -53,6 +55,7 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
       <section id="voice" ref={(el) => registerSectionRef('voice', el)}><SectionVoice /></section>
       <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}><SectionPermissions /></section>
       <section id="automation" ref={(el) => registerSectionRef('automation', el)}><SectionAutomation /></section>
+      <section id="feishu" ref={(el) => registerSectionRef('feishu', el)}><SectionFeishu /></section>
       <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}><SectionPlugins /></section>
       <section id="about" ref={(el) => registerSectionRef('about', el)} style={{ paddingBottom: 40 }}><SectionAbout /></section>
     </>
@@ -67,6 +70,7 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
     { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
+    { id: 'feishu', label: t('feishu'), icon: MessageSquare },
     { id: 'plugins', label: t('plugins'), icon: Puzzle },
     { id: 'about', label: t('about'), icon: Info },
   ]

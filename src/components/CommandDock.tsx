@@ -122,7 +122,7 @@ export function CommandDock({
       if (e.key === 'Escape') {
         if (inputOpen) { handleCancel(); return }
       }
-      if (inputOpen && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      if (inputOpen && e.key === 'Enter' && !e.shiftKey) {
         if (inputRef.current && document.activeElement === inputRef.current) return
         e.preventDefault()
         handleSubmit()
@@ -353,10 +353,10 @@ export function CommandDock({
                 </span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button onClick={(e) => { e.stopPropagation(); handleCancel() }} style={actionBtnCancel}>
-                    {t('cancel')}
+                    <span style={{ opacity: 0.5, marginRight: 5, fontSize: '0.9em' }}>Esc</span>{t('cancel')}
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); handleSubmit() }} style={actionBtnSubmit}>
-                    {t('submit')}
+                    <span style={{ opacity: 0.6, marginRight: 5, fontSize: '0.9em' }}>↵</span>{t('submit')}
                   </button>
                 </div>
               </div>
@@ -366,7 +366,7 @@ export function CommandDock({
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     handleSubmit()
                   }

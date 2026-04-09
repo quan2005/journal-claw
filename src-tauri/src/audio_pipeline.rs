@@ -91,6 +91,7 @@ async fn run_audio_pipeline(
             year_month,
             note,
             None,
+            None,
         )
         .await
         {

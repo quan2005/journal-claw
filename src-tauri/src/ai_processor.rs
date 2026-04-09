@@ -19,6 +19,7 @@ pub struct QueueTask {
     year_month: String,
     note: Option<String>,
     prompt_text: Option<String>,
+    reply_ctx: Option<crate::feishu_bridge::FeishuReplyCtx>,
 }
 
 /// Holds the sender half — stored in Tauri managed state.
@@ -45,6 +46,7 @@ pub async fn enqueue_material(
     year_month: String,
     note: Option<String>,
     prompt_text: Option<String>,
+    reply_ctx: Option<crate::feishu_bridge::FeishuReplyCtx>,
 ) -> Result<(), String> {
     let _ = app.emit(
         "ai-processing",
@@ -61,6 +63,7 @@ pub async fn enqueue_material(
         year_month,
         note,
         prompt_text,
+        reply_ctx,
     })
     .await
     .map_err(|e| format!("队列发送失败: {}", e))?;
@@ -581,6 +584,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                 &task.year_month,
                 task.note.as_deref(),
                 task.prompt_text.as_deref(),
+                task.reply_ctx.clone(),
                 &current_task,
             ))
             .catch_unwind()
@@ -634,6 +638,7 @@ pub async fn process_material(
     year_month: &str,
     note: Option<&str>,
     prompt_text: Option<&str>,
+    reply_ctx: Option<crate::feishu_bridge::FeishuReplyCtx>,
     current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let cfg = config::load_config(app).inspect_err(|e| {
@@ -792,6 +797,7 @@ pub async fn process_material(
     // Read stdout (stream-json NDJSON) and emit log lines
     let mut stdout_reader = tokio::io::BufReader::new(stdout).lines();
     let mut final_result: Result<(), String> = Ok(());
+    let mut final_output = String::new();
 
     while let Ok(Some(line)) = stdout_reader.next_line().await {
         eprintln!("[ai_processor:stream] {}", truncate_for_log(&line, 200));
@@ -826,6 +832,8 @@ pub async fn process_material(
                         .and_then(|v| v.as_str())
                         .unwrap_or("AI 处理失败");
                     final_result = Err(msg.to_string());
+                } else if let Some(text) = val.get("result").and_then(|v| v.as_str()) {
+                    final_output = text.to_string();
                 }
                 // result 行是 stream-json 的最后一条，主动 break 避免等待
                 // Node worker 继承 stdout fd 导致 pipe 不关闭而卡死
@@ -883,6 +891,16 @@ pub async fn process_material(
             if todos_path.exists() {
                 let _ = app_clone.emit("todos-updated", ());
             }
+            // Notify Feishu bridge to send reply
+            if let Some(ctx) = reply_ctx {
+                let _ = app_clone.emit(
+                    "feishu-reply-ready",
+                    crate::feishu_bridge::FeishuReplyPayload {
+                        reply_ctx: ctx,
+                        result: final_output,
+                    },
+                );
+            }
             Ok(())
         }
         Err(err) => {
@@ -909,7 +927,7 @@ pub async fn trigger_ai_processing(
     note: Option<String>,
 ) -> Result<(), String> {
     eprintln!("[trigger_ai] material={} ym={}", material_path, year_month);
-    enqueue_material(&app, material_path, year_month, note, None).await
+    enqueue_material(&app, material_path, year_month, note, None, None).await
 }
 
 #[tauri::command]
@@ -997,7 +1015,7 @@ pub async fn trigger_ai_prompt(app: AppHandle, prompt: String) -> Result<(), Str
 
     eprintln!("[trigger_ai_prompt] prompt_label={}", material_path);
 
-    enqueue_material(&app, material_path, year_month, None, Some(prompt)).await
+    enqueue_material(&app, material_path, year_month, None, Some(prompt), None).await
 }
 
 /// 检测引擎是否已安装。engine: "claude" | "qwen"

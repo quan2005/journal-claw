@@ -335,4 +335,20 @@ export const zh: Strings = {
   dreamFailed: '上次整理失败',
   entries: '篇',
   organized: '整理了',
+
+  // Settings: Feishu bridge
+  feishu: '飞书',
+  feishuTitle: '飞书 IM 桥接',
+  feishuDesc: '接收飞书消息，作为日志素材处理',
+  feishuEnable: '启用飞书桥接',
+  feishuAppId: 'App ID',
+  feishuAppSecret: 'App Secret',
+  feishuAppIdPlaceholder: 'cli_xxxxxxxxxxxxxxxx',
+  feishuAppSecretPlaceholder: '飞书开放平台的应用密钥',
+  feishuStatus: '连接状态',
+  feishuStatusIdle: '未启用',
+  feishuStatusConnecting: '连接中…',
+  feishuStatusConnected: '已连接',
+  feishuStatusError: '错误',
+  feishuSave: '保存',
 }

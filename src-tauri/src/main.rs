@@ -5,6 +5,7 @@ mod audio_process;
 mod auto_dream;
 mod brainstorm;
 mod config;
+mod feishu_bridge;
 mod identity;
 mod journal;
 mod materials;
@@ -146,6 +147,9 @@ fn main() {
         )))
         .manage(auto_dream::AutoDreamNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
         .manage(auto_dream::DreamRunning(std::sync::Mutex::new(false)))
+        .manage(feishu_bridge::BridgeStatusState(std::sync::Mutex::new(
+            config::FeishuStatus { state: "idle".to_string(), error: None },
+        )))
         .setup({
             let allow_exit = Arc::clone(&allow_exit);
             move |app| {
@@ -161,6 +165,11 @@ fn main() {
                 // ── Auto dream scheduler ──
                 auto_dream::check_missed_run(app.handle());
                 auto_dream::start_scheduler(app.handle().clone());
+                // ── Feishu bridge ──
+                let feishu_app = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    feishu_bridge::run(feishu_app).await;
+                });
                 // ── App menu (Cmd+Q, Cmd+H, Cmd+,) ──
                 let about_item =
                     MenuItem::with_id(app, MENU_ABOUT_ID, "关于谨迹", true, None::<&str>)?;
@@ -368,6 +377,9 @@ fn main() {
             workspace_settings::set_auto_dream_config,
             auto_dream::get_auto_dream_status,
             auto_dream::trigger_dream_now,
+            config::get_feishu_config,
+            config::set_feishu_config,
+            config::get_feishu_status,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

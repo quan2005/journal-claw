@@ -311,3 +311,24 @@ export const getAutoDreamStatus = (): Promise<AutoDreamStatus> =>
 
 export const triggerDreamNow = (): Promise<void> =>
   invoke<void>('trigger_dream_now')
+
+// Feishu bridge
+export interface FeishuConfig {
+  enabled: boolean
+  app_id: string
+  app_secret: string
+}
+
+export interface FeishuStatus {
+  state: 'idle' | 'connecting' | 'connected' | 'error'
+  error: string | null
+}
+
+export const getFeishuConfig = (): Promise<FeishuConfig> =>
+  invoke<FeishuConfig>('get_feishu_config')
+
+export const setFeishuConfig = (config: FeishuConfig): Promise<void> =>
+  invoke<void>('set_feishu_config', { config })
+
+export const getFeishuStatus = (): Promise<FeishuStatus> =>
+  invoke<FeishuStatus>('get_feishu_status')

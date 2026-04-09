@@ -23,6 +23,7 @@ pub struct JournalEntry {
     pub created_at_secs: i64,  // birthtime Unix timestamp for stable same-day sorting
     pub mtime_secs: i64,       // mtime Unix timestamp for change detection
     pub materials: Vec<RawMaterial>,
+    pub sources: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -31,6 +32,8 @@ struct FrontMatter {
     summary: String,
     #[serde(default)]
     tags: Vec<String>,
+    #[serde(default)]
+    sources: Vec<String>,
 }
 
 /// Regex-based fallback for when gray_matter fails to parse malformed YAML frontmatter.
@@ -49,16 +52,19 @@ fn parse_frontmatter_fallback(content: &str) -> FrontMatter {
 
     let mut summary = String::new();
     let mut tags: Vec<String> = vec![];
+    let mut sources: Vec<String> = vec![];
 
     for line in inner.lines() {
         if let Some(val) = line.strip_prefix("summary:") {
             summary = extract_scalar_value(val.trim());
         } else if let Some(val) = line.strip_prefix("tags:") {
             tags = extract_inline_sequence(val.trim());
+        } else if let Some(val) = line.strip_prefix("sources:") {
+            sources = extract_inline_sequence(val.trim());
         }
     }
 
-    FrontMatter { summary, tags }
+    FrontMatter { summary, tags, sources }
 }
 
 /// Strip outer single or double quotes from a YAML scalar value, returning the raw content.
@@ -215,6 +221,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             created_at_secs,
             mtime_secs,
             materials: vec![],
+            sources: fm.sources,
         });
     }
 
@@ -633,5 +640,19 @@ mod tests {
         let content = std::fs::read_to_string(&path_str).unwrap();
         assert_eq!(content, "custom content");
         std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn fallback_extracts_sources() {
+        let content = "---\ntags: [journal]\nsummary: 摘要\nsources: [2604/raw/rec-abc.m4a, 2604/raw/paste-20260409.txt]\n---\n\n# 标题\n";
+        let fm = parse_frontmatter_fallback(content);
+        assert_eq!(fm.sources, vec!["2604/raw/rec-abc.m4a", "2604/raw/paste-20260409.txt"]);
+    }
+
+    #[test]
+    fn fallback_sources_empty_when_absent() {
+        let content = "---\ntags: [journal]\nsummary: 摘要\n---\n\n# 标题\n";
+        let fm = parse_frontmatter_fallback(content);
+        assert!(fm.sources.is_empty());
     }
 }

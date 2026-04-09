@@ -5,6 +5,7 @@ mod audio_process;
 mod auto_dream;
 mod brainstorm;
 mod config;
+mod feishu_bridge;
 mod identity;
 mod journal;
 mod materials;

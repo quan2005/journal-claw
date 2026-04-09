@@ -270,6 +270,9 @@ export const setTodoDue = (lineIndex: number, due: string | null, doneFile: bool
 export const setTodoPath = (lineIndex: number, path: string | null, doneFile: boolean): Promise<void> =>
   invoke<void>('set_todo_path', { lineIndex, path, doneFile })
 
+export const removeTodoPath = (lineIndex: number, doneFile: boolean): Promise<void> =>
+  invoke<void>('remove_todo_path', { lineIndex, doneFile })
+
 export const updateTodoText = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
   invoke<void>('update_todo_text', { lineIndex, text, doneFile })
 

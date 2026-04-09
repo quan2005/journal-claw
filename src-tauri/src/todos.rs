@@ -382,6 +382,12 @@ pub fn set_todo_path(app: tauri::AppHandle, line_index: usize, path: Option<Stri
 }
 
 #[tauri::command]
+pub fn remove_todo_path(app: tauri::AppHandle, line_index: usize, done_file: bool) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    set_todo_path_in_workspace(&cfg.workspace_path, line_index, None, done_file)
+}
+
+#[tauri::command]
 pub fn update_todo_text(app: tauri::AppHandle, line_index: usize, text: String, done_file: bool) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     // Read old text before updating

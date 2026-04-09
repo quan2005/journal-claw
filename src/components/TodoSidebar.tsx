@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
-import { openBrainstormTerminal, listBrainstormKeys } from '../lib/tauri'
+import { openBrainstormTerminal, listBrainstormKeys, pickFolder } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({ initialValue, onSelect, onClose }: {
@@ -319,20 +319,19 @@ interface TodoSidebarProps {
   onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
   onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
   onSetPath: (lineIndex: number, path: string | null, doneFile: boolean) => void
+  onRemovePath: (lineIndex: number, doneFile: boolean) => void
   onNavigateToSource?: (filename: string) => void
 }
 
-export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onSetPath, onNavigateToSource }: TodoSidebarProps) {
+export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue, onUpdateText, onSetPath, onRemovePath, onNavigateToSource }: TodoSidebarProps) {
   const { t } = useTranslation()
   const [showCompleted, setShowCompleted] = useState(false)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [addingGroup, setAddingGroup] = useState<string | null>(null) // group key or null
   const [addingText, setAddingText] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null; path: string | null; doneFile: boolean } | null>(null)
-  const [pathEdit, setPathEdit] = useState<{ x: number; y: number; lineIndex: number; doneFile: boolean; value: string } | null>(null)
   const [brainstormKeys, setBrainstormKeys] = useState<Set<string>>(new Set())
   const addInputRef = useRef<HTMLInputElement>(null)
-  const pathInputRef = useRef<HTMLInputElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   const unchecked = todos.filter(t => !t.done).sort((a, b) => a.line_index - b.line_index)
@@ -345,12 +344,43 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
     if (!groupMap.has(key)) groupMap.set(key, [])
     groupMap.get(key)!.push(item)
   }
+  // Gap 4: compute display names (basename, dedup by walking up segments)
+  function computeGroupDisplayNames(paths: string[]): Map<string, string> {
+    const result = new Map<string, string>()
+    const baseCount = new Map<string, string[]>()
+    for (const p of paths) {
+      const base = p.split('/').pop() || p
+      if (!baseCount.has(base)) baseCount.set(base, [])
+      baseCount.get(base)!.push(p)
+    }
+    for (const p of paths) {
+      const segments = p.split('/')
+      const base = segments[segments.length - 1] || p
+      const siblings = baseCount.get(base)!
+      if (siblings.length === 1) {
+        result.set(p, base)
+      } else {
+        let display = base
+        for (let depth = 2; depth <= segments.length; depth++) {
+          const candidate = segments.slice(-depth).join('/')
+          const isUnique = siblings.every(s => s === p || !s.endsWith(candidate))
+          if (isUnique) { display = candidate; break }
+        }
+        result.set(p, display)
+      }
+    }
+    return result
+  }
+
+  // Gap 1: preserve insertion order (Map preserves first-appearance order)
   const groups: Array<{ key: string; path: string | null; items: TodoItem[] }> = []
   if (groupMap.has('__inbox__')) groups.push({ key: '__inbox__', path: null, items: groupMap.get('__inbox__')! })
-  for (const [key, items] of [...groupMap.entries()].filter(([k]) => k !== '__inbox__').sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [key, items] of [...groupMap.entries()].filter(([k]) => k !== '__inbox__')) {
     groups.push({ key, path: key, items })
   }
   const multiGroup = groups.length > 1
+  const nonInboxPaths = groups.filter(g => g.path !== null).map(g => g.path!)
+  const displayNames = computeGroupDisplayNames(nonInboxPaths)
 
   const refreshBrainstormKeys = useCallback(() => {
     listBrainstormKeys()
@@ -360,7 +390,6 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
 
   useEffect(() => { refreshBrainstormKeys() }, [todos, refreshBrainstormKeys])
   useEffect(() => { if (addingGroup !== null && addInputRef.current) addInputRef.current.focus() }, [addingGroup])
-  useEffect(() => { if (pathEdit && pathInputRef.current) pathInputRef.current.focus() }, [pathEdit])
 
   useEffect(() => {
     if (!contextMenu) return
@@ -422,12 +451,16 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             {multiGroup && (
               <div
                 onClick={() => toggleGroup(key)}
+                title={path ?? undefined}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px', cursor: 'pointer', userSelect: 'none' as const }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               >
                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
-                  {collapsed ? '▸' : '▾'} {path ?? t('pathGroupInbox')}
+                  {collapsed ? '▸' : '▾'}{' '}
+                  {path === null
+                    ? <>journal <span style={{ opacity: 0.45, fontWeight: 400 }}>{t('pathGroupDefault')}</span></>
+                    : displayNames.get(path) ?? path.split('/').pop() ?? path}
                 </span>
                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)', opacity: 0.6 }}>{items.length}</span>
               </div>
@@ -553,9 +586,12 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           )}
           {!contextMenu.doneFile && (
             <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-              onClick={e => {
-                e.stopPropagation()
-                setPathEdit({ x: contextMenu.x, y: contextMenu.y, lineIndex: contextMenu.lineIndex, doneFile: contextMenu.doneFile, value: contextMenu.path ?? '' })
+              onClick={async () => {
+                const picked = await pickFolder()
+                if (picked) {
+                  const homePath = picked.replace(/^\/Users\/[^/]+/, '~')
+                  onSetPath(contextMenu.lineIndex, homePath, contextMenu.doneFile)
+                }
                 setContextMenu(null)
               }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -566,7 +602,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
           )}
           {!contextMenu.doneFile && contextMenu.path && (
             <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
-              onClick={() => { onSetPath(contextMenu.lineIndex, null, contextMenu.doneFile); setContextMenu(null) }}>
+              onClick={() => { onRemovePath(contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 <line x1="9" y1="14" x2="15" y2="14"/>
@@ -587,27 +623,6 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
         </div>
       )}
 
-      {/* Path edit floating input */}
-      {pathEdit && (
-        <div style={{ position: 'fixed', left: pathEdit.x, top: pathEdit.y, zIndex: 1001, background: 'var(--sidebar-bg)', border: '0.5px solid var(--divider)', borderRadius: 6, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', minWidth: 200 }}>
-          <input
-            ref={pathInputRef}
-            value={pathEdit.value}
-            onChange={e => setPathEdit(p => p ? { ...p, value: e.target.value } : null)}
-            placeholder="~/Projects/app-x"
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                const v = pathEdit.value.trim()
-                onSetPath(pathEdit.lineIndex, v || null, pathEdit.doneFile)
-                setPathEdit(null)
-              }
-              if (e.key === 'Escape') setPathEdit(null)
-            }}
-            onBlur={() => setPathEdit(null)}
-            style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
-          />
-        </div>
-      )}
     </div>
   )
 }

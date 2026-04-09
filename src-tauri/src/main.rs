@@ -360,6 +360,7 @@ fn main() {
             todos::delete_todo,
             todos::set_todo_due,
             todos::set_todo_path,
+            todos::remove_todo_path,
             todos::update_todo_text,
             brainstorm::open_brainstorm_terminal,
             brainstorm::list_brainstorm_keys,

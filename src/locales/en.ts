@@ -146,7 +146,7 @@ export const en = {
   exploreInDepth: 'Explore',
   setPath: 'Set path…',
   removePath: 'Remove path',
-  pathGroupInbox: 'Inbox',
+  pathGroupDefault: 'Default',
   weekdaysFull: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   monthsFull: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 

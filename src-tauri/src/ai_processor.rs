@@ -100,8 +100,8 @@ const SKILL_IDEATE_MD: &str =
 const SKILL_IDEATE_VISUAL_COMPANION: &str =
     include_str!("../resources/workspace-template/.claude/skills/ideate/visual-companion.md");
 
-const SKILL_DREAM_MD: &str =
-    include_str!("../resources/workspace-template/.claude/skills/dream/SKILL.md");
+const SKILL_LINT_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/lint/SKILL.md");
 
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -159,11 +159,11 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     }
 
     // ── Dream skill template ────────────────────────
-    let dream_dir = dot_claude.join("skills").join("dream");
-    if let Err(e) = std::fs::create_dir_all(&dream_dir) {
-        eprintln!("[ai_processor] warn: failed to create skills/dream dir: {}", e);
+    let lint_dir = dot_claude.join("skills").join("lint");
+    if let Err(e) = std::fs::create_dir_all(&lint_dir) {
+        eprintln!("[ai_processor] warn: failed to create skills/lint dir: {}", e);
     } else {
-        let _ = std::fs::write(dream_dir.join("SKILL.md"), SKILL_DREAM_MD);
+        let _ = std::fs::write(lint_dir.join("SKILL.md"), SKILL_LINT_MD);
     }
 
     // Ensure workspace/CLAUDE.md exists (only create if missing — never overwrite user edits)

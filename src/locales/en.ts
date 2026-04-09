@@ -333,6 +333,22 @@ export const en = {
   dreamFailed: 'Last run failed',
   entries: 'entries',
   organized: 'organized',
+
+  // Settings: Feishu bridge
+  feishu: 'Feishu',
+  feishuTitle: 'Feishu IM Bridge',
+  feishuDesc: 'Receive messages from Feishu and process them as journal materials',
+  feishuEnable: 'Enable Feishu bridge',
+  feishuAppId: 'App ID',
+  feishuAppSecret: 'App Secret',
+  feishuAppIdPlaceholder: 'cli_xxxxxxxxxxxxxxxx',
+  feishuAppSecretPlaceholder: 'App secret from Feishu Open Platform',
+  feishuStatus: 'Status',
+  feishuStatusIdle: 'Disabled',
+  feishuStatusConnecting: 'Connecting…',
+  feishuStatusConnected: 'Connected',
+  feishuStatusError: 'Error',
+  feishuSave: 'Save',
 }
 
 export type Strings = typeof en

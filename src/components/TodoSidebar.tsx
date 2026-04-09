@@ -309,6 +309,33 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
   )
 }
 
+function computeGroupDisplayNames(paths: string[]): Map<string, string> {
+  const result = new Map<string, string>()
+  const baseCount = new Map<string, string[]>()
+  for (const p of paths) {
+    const base = p.split('/').pop() || p
+    if (!baseCount.has(base)) baseCount.set(base, [])
+    baseCount.get(base)!.push(p)
+  }
+  for (const p of paths) {
+    const segments = p.split('/')
+    const base = segments[segments.length - 1] || p
+    const siblings = baseCount.get(base)!
+    if (siblings.length === 1) {
+      result.set(p, base)
+    } else {
+      let display = base
+      for (let depth = 2; depth <= segments.length; depth++) {
+        const candidate = segments.slice(-depth).join('/')
+        const isUnique = siblings.every(s => s === p || !s.endsWith(candidate))
+        if (isUnique) { display = candidate; break }
+      }
+      result.set(p, display)
+    }
+  }
+  return result
+}
+
 // ── TodoSidebar ──────────────────────────────────────────────────────────────
 interface TodoSidebarProps {
   width: number
@@ -344,34 +371,6 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
     if (!groupMap.has(key)) groupMap.set(key, [])
     groupMap.get(key)!.push(item)
   }
-  // Gap 4: compute display names (basename, dedup by walking up segments)
-  function computeGroupDisplayNames(paths: string[]): Map<string, string> {
-    const result = new Map<string, string>()
-    const baseCount = new Map<string, string[]>()
-    for (const p of paths) {
-      const base = p.split('/').pop() || p
-      if (!baseCount.has(base)) baseCount.set(base, [])
-      baseCount.get(base)!.push(p)
-    }
-    for (const p of paths) {
-      const segments = p.split('/')
-      const base = segments[segments.length - 1] || p
-      const siblings = baseCount.get(base)!
-      if (siblings.length === 1) {
-        result.set(p, base)
-      } else {
-        let display = base
-        for (let depth = 2; depth <= segments.length; depth++) {
-          const candidate = segments.slice(-depth).join('/')
-          const isUnique = siblings.every(s => s === p || !s.endsWith(candidate))
-          if (isUnique) { display = candidate; break }
-        }
-        result.set(p, display)
-      }
-    }
-    return result
-  }
-
   // Gap 1: preserve insertion order (Map preserves first-appearance order)
   const groups: Array<{ key: string; path: string | null; items: TodoItem[] }> = []
   if (groupMap.has('__inbox__')) groups.push({ key: '__inbox__', path: null, items: groupMap.get('__inbox__')! })

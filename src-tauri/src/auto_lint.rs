@@ -299,7 +299,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
     };
 
     let (args, extra_envs) = build_claude_args_with_creds(
-        "auto-dream",
+        "auto-lint",
         "",
         None,
         Some("/dream"),

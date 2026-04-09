@@ -10,7 +10,7 @@ use tokio::sync::Notify;
 // ── Types ────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AutoDreamStatus {
+pub struct AutoLintStatus {
     pub state: String, // "idle" | "running" | "never_run" | "error"
     pub last_run: Option<String>,
     pub last_run_entries: Option<u32>,
@@ -20,28 +20,38 @@ pub struct AutoDreamStatus {
 }
 
 #[derive(Debug, Deserialize)]
-struct LastDream {
+struct LastLint {
     last_run: Option<String>,
     entries_at_last_run: Option<u32>,
 }
 
 /// Shared state: signals the scheduler loop to re-evaluate config.
-pub struct AutoDreamNotify(pub std::sync::Arc<Notify>);
+pub struct AutoLintNotify(pub std::sync::Arc<Notify>);
 
 /// Whether a dream is currently running (prevents concurrent runs).
-pub struct DreamRunning(pub Mutex<bool>);
+pub struct LintRunning(pub Mutex<bool>);
 
 // ── Helpers ──────────────────────────────────────────────
 
-fn last_dream_path(workspace: &str) -> std::path::PathBuf {
+fn last_lint_path(workspace: &str) -> std::path::PathBuf {
     std::path::PathBuf::from(workspace)
         .join(".claude")
-        .join("last-dream.json")
+        .join("last-lint.json")
 }
 
-fn read_last_dream(workspace: &str) -> Option<LastDream> {
-    let path = last_dream_path(workspace);
-    let data = std::fs::read_to_string(path).ok()?;
+fn read_last_lint(workspace: &str) -> Option<LastLint> {
+    // Try new filename first
+    let path = last_lint_path(workspace);
+    if let Ok(data) = std::fs::read_to_string(&path) {
+        if let Ok(ld) = serde_json::from_str(&data) {
+            return Some(ld);
+        }
+    }
+    // Fall back to old filename for existing users
+    let old_path = std::path::PathBuf::from(workspace)
+        .join(".claude")
+        .join("last-dream.json");
+    let data = std::fs::read_to_string(old_path).ok()?;
     serde_json::from_str(&data).ok()
 }
 
@@ -71,7 +81,7 @@ fn count_journal_entries(workspace: &str) -> u32 {
 
 fn compute_new_entries(workspace: &str) -> u32 {
     let total = count_journal_entries(workspace);
-    let last = read_last_dream(workspace)
+    let last = read_last_lint(workspace)
         .and_then(|ld| ld.entries_at_last_run)
         .unwrap_or(0);
     total.saturating_sub(last)
@@ -134,7 +144,7 @@ fn parse_time(time: &str) -> Option<(u32, u32)> {
 // ── Scheduler ────────────────────────────────────────────
 
 pub fn start_scheduler(app: AppHandle) {
-    let notify = app.state::<AutoDreamNotify>().0.clone();
+    let notify = app.state::<AutoLintNotify>().0.clone();
 
     tauri::async_runtime::spawn(async move {
         loop {
@@ -166,10 +176,10 @@ pub fn start_scheduler(app: AppHandle) {
             let workspace = workspace_settings::get_workspace_path_for_auto_dream(&app)
                 .unwrap_or_default();
             let new_entries = compute_new_entries(&workspace);
-            let last = read_last_dream(&workspace);
+            let last = read_last_lint(&workspace);
             let _ = app.emit(
-                "auto-dream-status",
-                AutoDreamStatus {
+                "auto-lint-status",
+                AutoLintStatus {
                     state: "idle".to_string(),
                     last_run: last.as_ref().and_then(|l| l.last_run.clone()),
                     last_run_entries: last.as_ref().and_then(|l| l.entries_at_last_run),
@@ -193,7 +203,7 @@ pub fn start_scheduler(app: AppHandle) {
                     let new_entries = compute_new_entries(&workspace);
                     let cfg = workspace_settings::load_auto_dream_config(&app).unwrap_or_default();
                     if cfg.enabled && new_entries >= cfg.min_entries {
-                        run_dream(&app, &workspace, false).await;
+                        run_lint(&app, &workspace, false).await;
                     }
                 }
                 _ = notify.notified() => {
@@ -218,7 +228,7 @@ pub fn check_missed_run(app: &AppHandle) {
         Ok(w) => w,
         Err(_) => return,
     };
-    let last = read_last_dream(&workspace);
+    let last = read_last_lint(&workspace);
     let last_run = last
         .and_then(|l| l.last_run)
         .and_then(|s| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z").ok()
@@ -239,17 +249,17 @@ pub fn check_missed_run(app: &AppHandle) {
                 let app = app.clone();
                 let ws = workspace.clone();
                 tauri::async_runtime::spawn(async move {
-                    run_dream(&app, &ws, false).await;
+                    run_lint(&app, &ws, false).await;
                 });
             }
         }
     }
 }
 
-pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
+pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
     // Prevent concurrent runs
     {
-        let running = app.state::<DreamRunning>();
+        let running = app.state::<LintRunning>();
         let mut guard = running.0.lock().unwrap();
         if *guard {
             return;
@@ -261,15 +271,15 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
         let new_entries = compute_new_entries(workspace);
         let cfg = workspace_settings::load_auto_dream_config(app).unwrap_or_default();
         if new_entries < cfg.min_entries {
-            let running = app.state::<DreamRunning>();
+            let running = app.state::<LintRunning>();
             *running.0.lock().unwrap() = false;
             return;
         }
     }
 
     let _ = app.emit(
-        "auto-dream-status",
-        AutoDreamStatus {
+        "auto-lint-status",
+        AutoLintStatus {
             state: "running".to_string(),
             last_run: None,
             last_run_entries: None,
@@ -298,7 +308,7 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
         &cfg.claude_code_base_url,
     );
 
-    eprintln!("[auto_dream] running: {} {}", cli, args.join(" "));
+    eprintln!("[auto_lint] running: {} {}", cli, args.join(" "));
 
     let mut cmd = tokio::process::Command::new(&cli);
     cmd.args(&args)
@@ -315,10 +325,10 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
         Ok(child) => child.wait_with_output().await,
         Err(e) => {
             let error = format!("启动 Claude CLI 失败: {}", e);
-            eprintln!("[auto_dream] {}", error);
+            eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
-                "auto-dream-status",
-                AutoDreamStatus {
+                "auto-lint-status",
+                AutoLintStatus {
                     state: "error".to_string(),
                     last_run: None,
                     last_run_entries: None,
@@ -327,24 +337,24 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
                     error: Some(error),
                 },
             );
-            let running = app.state::<DreamRunning>();
+            let running = app.state::<LintRunning>();
             *running.0.lock().unwrap() = false;
             return;
         }
     };
 
-    let running = app.state::<DreamRunning>();
+    let running = app.state::<LintRunning>();
     *running.0.lock().unwrap() = false;
 
     match result {
         Ok(output) if output.status.success() => {
-            eprintln!("[auto_dream] completed successfully");
-            // Re-read last-dream.json for updated status
-            let last = read_last_dream(workspace);
+            eprintln!("[auto_lint] completed successfully");
+            // Re-read last-lint.json for updated status
+            let last = read_last_lint(workspace);
             let new_entries = compute_new_entries(workspace);
             let _ = app.emit(
-                "auto-dream-status",
-                AutoDreamStatus {
+                "auto-lint-status",
+                AutoLintStatus {
                     state: "idle".to_string(),
                     last_run: last.as_ref().and_then(|l| l.last_run.clone()),
                     last_run_entries: last.as_ref().and_then(|l| l.entries_at_last_run),
@@ -358,10 +368,10 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let error = format!("dream 执行失败 (exit {}): {}", output.status, stderr.chars().take(200).collect::<String>());
-            eprintln!("[auto_dream] {}", error);
+            eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
-                "auto-dream-status",
-                AutoDreamStatus {
+                "auto-lint-status",
+                AutoLintStatus {
                     state: "error".to_string(),
                     last_run: None,
                     last_run_entries: None,
@@ -373,10 +383,10 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
         }
         Err(e) => {
             let error = format!("dream 执行异常: {}", e);
-            eprintln!("[auto_dream] {}", error);
+            eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
-                "auto-dream-status",
-                AutoDreamStatus {
+                "auto-lint-status",
+                AutoLintStatus {
                     state: "error".to_string(),
                     last_run: None,
                     last_run_entries: None,
@@ -392,10 +402,10 @@ pub async fn run_dream(app: &AppHandle, workspace: &str, force: bool) {
 // ── Tauri Commands ───────────────────────────────────────
 
 #[tauri::command]
-pub fn get_auto_dream_status(app: AppHandle) -> Result<AutoDreamStatus, String> {
+pub fn get_auto_lint_status(app: AppHandle) -> Result<AutoLintStatus, String> {
     let workspace = workspace_settings::get_workspace_path_for_auto_dream(&app)?;
     let cfg = workspace_settings::load_auto_dream_config(&app)?;
-    let last = read_last_dream(&workspace);
+    let last = read_last_lint(&workspace);
     let new_entries = compute_new_entries(&workspace);
 
     let next_check = if cfg.enabled {
@@ -405,7 +415,7 @@ pub fn get_auto_dream_status(app: AppHandle) -> Result<AutoDreamStatus, String> 
         None
     };
 
-    let running = app.state::<DreamRunning>();
+    let running = app.state::<LintRunning>();
     let is_running = *running.0.lock().unwrap();
 
     let state = if is_running {
@@ -416,7 +426,7 @@ pub fn get_auto_dream_status(app: AppHandle) -> Result<AutoDreamStatus, String> 
         "idle"
     };
 
-    Ok(AutoDreamStatus {
+    Ok(AutoLintStatus {
         state: state.to_string(),
         last_run: last.as_ref().and_then(|l| l.last_run.clone()),
         last_run_entries: last.as_ref().and_then(|l| l.entries_at_last_run),
@@ -427,8 +437,8 @@ pub fn get_auto_dream_status(app: AppHandle) -> Result<AutoDreamStatus, String> 
 }
 
 #[tauri::command]
-pub async fn trigger_dream_now(app: AppHandle) -> Result<(), String> {
+pub async fn trigger_lint_now(app: AppHandle) -> Result<(), String> {
     let workspace = workspace_settings::get_workspace_path_for_auto_dream(&app)?;
-    run_dream(&app, &workspace, true).await;
+    run_lint(&app, &workspace, true).await;
     Ok(())
 }

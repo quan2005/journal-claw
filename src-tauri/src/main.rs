@@ -145,8 +145,8 @@ fn main() {
         .manage(ai_processor::CancelledPaths(std::sync::Mutex::new(
             std::collections::HashSet::new(),
         )))
-        .manage(auto_lint::AutoDreamNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
-        .manage(auto_lint::DreamRunning(std::sync::Mutex::new(false)))
+        .manage(auto_lint::AutoLintNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
+        .manage(auto_lint::LintRunning(std::sync::Mutex::new(false)))
         .manage(feishu_bridge::BridgeStatusState(std::sync::Mutex::new(
             config::FeishuStatus { state: "idle".to_string(), error: None },
         )))
@@ -375,8 +375,8 @@ fn main() {
             brainstorm::list_brainstorm_keys,
             workspace_settings::get_auto_dream_config,
             workspace_settings::set_auto_dream_config,
-            auto_lint::get_auto_dream_status,
-            auto_lint::trigger_dream_now,
+            auto_lint::get_auto_lint_status,
+            auto_lint::trigger_lint_now,
             config::get_feishu_config,
             config::set_feishu_config,
             config::get_feishu_status,

@@ -50,7 +50,7 @@ export const zh: Strings = {
   todoTooltipClose: '收起待办 (⌘T)',
 
   // Context menus (journal + identity)
-  copyTitle: '复制标题',
+  referenceEntry: '引用',
   copyContent: '复制内容',
   copyFilePath: '复制文件路径',
   openInEditor: '用默认编辑器打开',
@@ -317,8 +317,8 @@ export const zh: Strings = {
 
   // Settings: Automation
   automation: '自动整理',
-  autoDreamTitle: '日志库自动整理',
-  autoDreamDesc: '扫描日志条目，修复引用、标注演进、更新档案',
+  autoLintTitle: '日志库自动整理',
+  autoLintDesc: '扫描日志条目，修复引用、标注演进、更新档案',
   frequency: '整理频率',
   freqDaily: '每天',
   freqWeekly: '每周',
@@ -330,9 +330,9 @@ export const zh: Strings = {
   nextCheck: '下次检查',
   currentNew: '当前新增',
   runNow: '立即整理',
-  dreamRunning: '正在整理中…',
+  lintRunning: '正在整理中…',
   neverRun: '尚未执行过自动整理',
-  dreamFailed: '上次整理失败',
+  lintFailed: '上次整理失败',
   entries: '篇',
   organized: '整理了',
 

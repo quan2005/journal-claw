@@ -48,7 +48,7 @@ export const en = {
   todoTooltipClose: 'Hide Todo (⌘T)',
 
   // Context menus (journal + identity)
-  copyTitle: 'Copy title',
+  referenceEntry: 'Reference',
   copyContent: 'Copy content',
   copyFilePath: 'Copy file path',
   openInEditor: 'Open in default editor',
@@ -315,8 +315,8 @@ export const en = {
 
   // Settings: Automation
   automation: 'Auto Maintenance',
-  autoDreamTitle: 'Auto journal maintenance',
-  autoDreamDesc: 'Scan entries, fix references, annotate changes, update profiles',
+  autoLintTitle: 'Auto journal maintenance',
+  autoLintDesc: 'Scan entries, fix references, annotate changes, update profiles',
   frequency: 'Frequency',
   freqDaily: 'Daily',
   freqWeekly: 'Weekly',
@@ -328,9 +328,9 @@ export const en = {
   nextCheck: 'Next check',
   currentNew: 'current new',
   runNow: 'Run now',
-  dreamRunning: 'Running…',
+  lintRunning: 'Running…',
   neverRun: 'Never run',
-  dreamFailed: 'Last run failed',
+  lintFailed: 'Last run failed',
   entries: 'entries',
   organized: 'organized',
 

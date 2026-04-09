@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getAutoDreamConfig, setAutoDreamConfig, getAutoDreamStatus, triggerDreamNow } from '../../lib/tauri'
-import type { AutoDreamConfig, AutoDreamStatus } from '../../lib/tauri'
+import { getAutoLintConfig, setAutoLintConfig, getAutoLintStatus, triggerLintNow } from '../../lib/tauri'
+import type { AutoLintConfig, AutoLintStatus } from '../../lib/tauri'
 import { listen } from '@tauri-apps/api/event'
 import { useTranslation } from '../../contexts/I18nContext'
 
@@ -39,17 +39,17 @@ function Segment<T extends string | number>({ options, value, onChange }: {
 
 export default function SectionAutomation() {
   const { t } = useTranslation()
-  const [config, setConfig] = useState<AutoDreamConfig>({
+  const [config, setConfig] = useState<AutoLintConfig>({
     enabled: false,
     frequency: 'daily',
     time: '03:00',
     min_entries: 10,
   })
-  const [status, setStatus] = useState<AutoDreamStatus | null>(null)
+  const [status, setStatus] = useState<AutoLintStatus | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getAutoDreamConfig(), getAutoDreamStatus()]).then(([cfg, st]) => {
+    Promise.all([getAutoLintConfig(), getAutoLintStatus()]).then(([cfg, st]) => {
       setConfig(cfg)
       setStatus(st)
       setLoading(false)
@@ -57,19 +57,19 @@ export default function SectionAutomation() {
   }, [])
 
   useEffect(() => {
-    const unlisten = listen<AutoDreamStatus>('auto-dream-status', (event) => {
+    const unlisten = listen<AutoLintStatus>('auto-lint-status', (event) => {
       setStatus(event.payload)
     })
     return () => { unlisten.then(fn => fn()) }
   }, [])
 
-  const updateConfig = useCallback(async (patch: Partial<AutoDreamConfig>) => {
+  const updateConfig = useCallback(async (patch: Partial<AutoLintConfig>) => {
     const next = { ...config, ...patch }
     setConfig(next)
     try {
-      await setAutoDreamConfig(next)
+      await setAutoLintConfig(next)
       // Refresh status after config change
-      const st = await getAutoDreamStatus()
+      const st = await getAutoLintStatus()
       setStatus(st)
     } catch (e) {
       console.error('[SectionAutomation] save failed', e)
@@ -78,7 +78,7 @@ export default function SectionAutomation() {
 
   const handleRunNow = useCallback(async () => {
     try {
-      await triggerDreamNow()
+      await triggerLintNow()
     } catch (e) {
       console.error('[SectionAutomation] trigger failed', e)
     }
@@ -86,19 +86,19 @@ export default function SectionAutomation() {
 
   const isRunning = status?.state === 'running'
 
-  const freqOptions: SegmentOption<AutoDreamConfig['frequency']>[] = [
+  const freqOptions: SegmentOption<AutoLintConfig['frequency']>[] = [
     { value: 'daily', label: t('freqDaily') },
     { value: 'weekly', label: t('freqWeekly') },
     { value: 'monthly', label: t('freqMonthly') },
   ]
 
-  const timeOptions: SegmentOption<AutoDreamConfig['time']>[] = [
+  const timeOptions: SegmentOption<AutoLintConfig['time']>[] = [
     { value: '03:00', label: '03:00' },
     { value: '12:00', label: '12:00' },
     { value: '22:00', label: '22:00' },
   ]
 
-  const entryOptions: SegmentOption<AutoDreamConfig['min_entries']>[] = [
+  const entryOptions: SegmentOption<AutoLintConfig['min_entries']>[] = [
     { value: 10, label: '10' },
     { value: 20, label: '20' },
     { value: 30, label: '30' },
@@ -132,8 +132,8 @@ export default function SectionAutomation() {
               fontSize: 18, flexShrink: 0,
             }}>🗂</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: 'var(--item-text)' }}>{t('autoDreamTitle')}</div>
-              <div style={{ fontSize: 11, color: 'var(--duration-text)', marginTop: 2 }}>{t('autoDreamDesc')}</div>
+              <div style={{ fontSize: 14, color: 'var(--item-text)' }}>{t('autoLintTitle')}</div>
+              <div style={{ fontSize: 11, color: 'var(--duration-text)', marginTop: 2 }}>{t('autoLintDesc')}</div>
             </div>
             {/* Toggle */}
             <button
@@ -185,9 +185,9 @@ export default function SectionAutomation() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   {status?.state === 'running' ? (
-                    <div style={{ fontSize: 11, color: 'var(--record-btn)' }}>{t('dreamRunning')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--record-btn)' }}>{t('lintRunning')}</div>
                   ) : status?.state === 'error' ? (
-                    <div style={{ fontSize: 11, color: 'var(--status-warning)' }}>{t('dreamFailed')}: {status.error}</div>
+                    <div style={{ fontSize: 11, color: 'var(--status-warning)' }}>{t('lintFailed')}: {status.error}</div>
                   ) : status?.state === 'never_run' ? (
                     <div style={{ fontSize: 11, color: 'var(--duration-text)' }}>{t('neverRun')}</div>
                   ) : (
@@ -221,7 +221,7 @@ export default function SectionAutomation() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {isRunning ? t('dreamRunning') : t('runNow')}
+                  {isRunning ? t('lintRunning') : t('runNow')}
                 </button>
               </div>
             </>

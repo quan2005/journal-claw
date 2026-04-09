@@ -691,24 +691,14 @@ pub async fn process_material(
         api_key,
         base_url,
     );
-    // Generate session ID for resume support
-    let t = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let nanos = t.as_nanos();
-    let session_id = format!(
-        "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
-        (nanos & 0xFFFFFFFF) as u32,
-        ((nanos >> 32) & 0xFFFF) as u16,
-        ((nanos >> 48) & 0x0FFF) as u16,
-        ((nanos >> 60) & 0xFFFF) as u16,
-        ((nanos >> 76) & 0xFFFFFFFFFFFF) as u64 & 0xFFFFFFFFFFFF,
-    );
-    let session_file = std::env::temp_dir().join("journal-claude-session-id");
-    let _ = std::fs::write(&session_file, &session_id);
     let mut args = args;
-    args.push("--session-id".to_string());
-    args.push(session_id);
+    // Feishu session resume: only for tasks that came from Feishu (have reply_ctx)
+    if reply_ctx.is_some() {
+        if let Some(ref sid) = cfg.feishu_session_id {
+            args.push("--resume".to_string());
+            args.push(sid.clone());
+        }
+    }
     let command_display = build_command_display(&cli, &args);
 
     // Emit startup log
@@ -834,6 +824,15 @@ pub async fn process_material(
                     final_result = Err(msg.to_string());
                 } else if let Some(text) = val.get("result").and_then(|v| v.as_str()) {
                     final_output = text.to_string();
+                }
+                // Persist Feishu session_id for future --resume
+                if reply_ctx.is_some() {
+                    if let Some(sid) = val.get("session_id").and_then(|v| v.as_str()) {
+                        if let Ok(mut c) = config::load_config(app) {
+                            c.feishu_session_id = Some(sid.to_string());
+                            let _ = config::save_config(app, &c);
+                        }
+                    }
                 }
                 // result 行是 stream-json 的最后一条，主动 break 避免等待
                 // Node worker 继承 stdout fd 导致 pipe 不关闭而卡死

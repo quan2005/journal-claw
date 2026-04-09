@@ -6,8 +6,8 @@ export const ALL_NAV_IDS: NavId[] = [
   'voice',
   'permissions',
   'automation',
-  'feishu',
   'plugins',
+  'feishu',
   'about',
 ]
 

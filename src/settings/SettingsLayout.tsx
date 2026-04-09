@@ -55,8 +55,8 @@ const SettingsContent = memo(function SettingsContent({ registerSectionRef }: Se
       <section id="voice" ref={(el) => registerSectionRef('voice', el)}><SectionVoice /></section>
       <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}><SectionPermissions /></section>
       <section id="automation" ref={(el) => registerSectionRef('automation', el)}><SectionAutomation /></section>
-      <section id="feishu" ref={(el) => registerSectionRef('feishu', el)}><SectionFeishu /></section>
       <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}><SectionPlugins /></section>
+      <section id="feishu" ref={(el) => registerSectionRef('feishu', el)}><SectionFeishu /></section>
       <section id="about" ref={(el) => registerSectionRef('about', el)} style={{ paddingBottom: 40 }}><SectionAbout /></section>
     </>
   )
@@ -70,8 +70,8 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
     { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
-    { id: 'feishu', label: t('feishu'), icon: MessageSquare },
     { id: 'plugins', label: t('plugins'), icon: Puzzle },
+    { id: 'feishu', label: t('feishu'), icon: MessageSquare },
     { id: 'about', label: t('about'), icon: Info },
   ]
   const [activeNav, setActiveNav] = useState<NavId>('general')

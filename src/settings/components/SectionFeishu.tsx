@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getFeishuConfig, setFeishuConfig, getFeishuStatus } from '../../lib/tauri'
 import type { FeishuConfig, FeishuStatus } from '../../lib/tauri'
-import { listen } from '@tauri-apps/api/event'
 import { useTranslation } from '../../contexts/I18nContext'
 
 const sectionStyle: React.CSSProperties = { padding: '28px 28px 40px', borderBottom: '1px solid var(--divider)' }
@@ -31,10 +30,10 @@ export default function SectionFeishu() {
   }, [])
 
   useEffect(() => {
-    const unlisten = listen<FeishuStatus>('feishu-status-changed', (event) => {
-      setStatus(event.payload)
-    })
-    return () => { unlisten.then(fn => fn()) }
+    const id = setInterval(() => {
+      getFeishuStatus().then(setStatus)
+    }, 3000)
+    return () => clearInterval(id)
   }, [])
 
   const handleToggle = useCallback(async () => {
@@ -165,7 +164,8 @@ export default function SectionFeishu() {
 
               {/* Status + Save */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 11, color: STATUS_COLOR[status.state] }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: STATUS_COLOR[status.state] }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLOR[status.state], flexShrink: 0, display: 'inline-block' }} />
                   {t('feishuStatus')}: {statusLabel()}
                 </div>
                 {dirty && (

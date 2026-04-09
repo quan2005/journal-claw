@@ -7,6 +7,7 @@ import { MarkdownLi } from '../lib/markdownLi'
 import type { JournalEntry } from '../types'
 import { getJournalEntryContent } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
+import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
 import { createTranslator, detectLang } from '../lib/i18n'
 
@@ -402,6 +403,42 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                   {cfg.label}
                 </span>
               ))}
+            </div>
+          )}
+
+          {entry.sources.length > 0 && (
+            <div
+              data-testid="sources-row"
+              style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: displayTags.length > 0 ? 8 : 0 }}
+            >
+              {entry.sources.map((src, i) => {
+                const filename = src.split('/').pop() ?? src
+                const kind = fileKindFromName(filename)
+                const audioPath = 'M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z'
+                const filePath = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'
+                const iconPath = kind === 'audio' ? audioPath : filePath
+                return (
+                  <span key={i} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 'var(--text-xs)',
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    color: 'var(--item-meta)',
+                    background: 'var(--item-icon-bg)',
+                    fontFamily: 'var(--font-mono)',
+                    whiteSpace: 'nowrap',
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d={iconPath} />
+                    </svg>
+                    {filename}
+                  </span>
+                )
+              })}
             </div>
           )}
         </div>

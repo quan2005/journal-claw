@@ -81,4 +81,20 @@ describe('empty state guidance cards', () => {
     fireEvent.click(screen.getByText('创建示例条目').closest('button')!)
     expect(onSelectSample).toHaveBeenCalledOnce()
   })
+
+  it('renders source filenames when entry has sources', async () => {
+    const entryWithSources: JournalEntry = {
+      ...fakeEntry,
+      sources: ['2604/raw/录音-abc123.m4a', '2604/raw/paste-20260409.txt'],
+    }
+    render(<DetailPanel {...baseProps} entry={entryWithSources} entries={[entryWithSources]} />)
+    await screen.findByText('录音-abc123.m4a')
+    expect(screen.getByText('paste-20260409.txt')).toBeTruthy()
+  })
+
+  it('does not render sources section when sources is empty', async () => {
+    render(<DetailPanel {...baseProps} entry={fakeEntry} entries={[fakeEntry]} />)
+    await new Promise(r => setTimeout(r, 50))
+    expect(screen.queryByTestId('sources-row')).toBeNull()
+  })
 })

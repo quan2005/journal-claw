@@ -197,9 +197,9 @@ export default function SectionAiEngine() {
                   {!isComingSoon && s === 'installed' && (
                     <div style={{
                       position: 'absolute', top: 8, right: 8,
-                      width: 16, height: 16, background: '#27c93f', borderRadius: '50%',
+                      width: 16, height: 16, background: 'var(--status-success)', borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}><Check size={9} strokeWidth={2.5} color="#fff" /></div>
+                    }}><Check size={9} strokeWidth={2.5} color="var(--status-on-fill)" /></div>
                   )}
                   <div style={{ marginBottom: 6, opacity: (!isComingSoon && (s === 'not_installed' || s === 'installing')) ? 0.5 : 1, display: 'flex', justifyContent: 'center' }}>
                     <Icon size={22} strokeWidth={1.5} />
@@ -215,18 +215,18 @@ export default function SectionAiEngine() {
           {status['claude'] === 'not_installed' && (
             <div style={{
               marginBottom: 16, padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.3)',
+              background: 'rgba(255,159,10,0.08)', border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
               fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ fontWeight: 600, color: '#ff9f0a' }}>{t('claudeNotFound')}</div>
+                <div style={{ fontWeight: 600, color: 'var(--status-warning)' }}>{t('claudeNotFound')}</div>
                 <button
                   onClick={() => handleInstall('claude')}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
                     border: '1px solid rgba(255,159,10,0.4)',
-                    background: 'rgba(255,159,10,0.14)', color: '#ff9f0a', cursor: 'pointer',
+                    background: 'var(--status-warning-bg)', color: 'var(--status-warning)', cursor: 'pointer',
                   }}
                 >
                   <Download size={11} strokeWidth={1.8} />
@@ -251,16 +251,16 @@ export default function SectionAiEngine() {
           {ENGINES.filter(({ id }) => status[id] === 'installing').map(({ id, label }) => (
             <div key={id} style={{
               marginBottom: 16, padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.3)',
+              background: 'rgba(255,159,10,0.08)', border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
               fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <div style={{
                   width: 10, height: 10, flexShrink: 0,
-                  border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
+                  border: '1.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)', borderTopColor: 'var(--status-warning)',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                 }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#ff9f0a' }}>{t('installing', { label })}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--status-warning)' }}>{t('installing', { label })}</span>
               </div>
               <div style={{
                 fontFamily: 'ui-monospace, monospace', fontSize: 10,
@@ -351,9 +351,9 @@ export default function SectionAiEngine() {
                 <span style={{
                   fontSize: 13,
                   color: saveStatus === 'error'
-                    ? '#ff9f0a'
+                    ? 'var(--status-warning)'
                     : saveStatus === 'saved'
-                      ? '#34c759'
+                      ? 'var(--status-success)'
                       : 'var(--duration-text)',
                   minHeight: 16,
                 }}>

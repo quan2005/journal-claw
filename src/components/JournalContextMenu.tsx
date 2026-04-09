@@ -115,7 +115,7 @@ export function JournalContextMenu({ x, y, entry, onDelete, onClose }: JournalCo
 }
 
 function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
-  const color = danger ? '#ff3b30' : 'var(--item-meta)'
+  const color = danger ? 'var(--status-danger)' : 'var(--item-meta)'
   const size = 14
   const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
@@ -147,7 +147,7 @@ function MenuItemRow({ label, icon, danger, onClick }: { label: string; icon: st
         padding: '7px 12px',
         fontSize: 'var(--text-sm)',
         cursor: 'pointer',
-        color: danger ? '#ff3b30' : 'var(--item-text)',
+        color: danger ? 'var(--status-danger)' : 'var(--item-text)',
       }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLDivElement).style.background = danger ? 'rgba(255,59,48,0.06)' : 'var(--item-hover-bg)'

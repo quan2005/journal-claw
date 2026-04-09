@@ -88,8 +88,8 @@ function DatePicker({ initialValue, onSelect, onClose }: {
               style={{
                 width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 'var(--text-xs)', borderRadius: 4, cursor: 'pointer',
-                color: isSelected ? 'var(--bg)' : isToday ? '#ff3b30' : 'var(--item-text)',
-                background: isSelected ? '#ff3b30' : 'transparent',
+                color: isSelected ? 'var(--bg)' : isToday ? 'var(--status-danger)' : 'var(--item-text)',
+                background: isSelected ? 'var(--status-danger)' : 'transparent',
                 fontWeight: isToday || isSelected ? 'var(--font-semibold)' : 'var(--font-normal)',
               }}
             >{day}</div>
@@ -113,7 +113,7 @@ function statusBarColor(item: TodoItem): string {
   if (item.due) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    if (new Date(item.due + 'T00:00:00') <= today) return '#ff3b30'
+    if (new Date(item.due + 'T00:00:00') <= today) return 'var(--status-danger)'
   }
   return 'var(--divider)'
 }
@@ -122,8 +122,8 @@ function dueBadgeStyle(due: string): { color: string; background: string } {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const d = new Date(due + 'T00:00:00')
-  if (d.getTime() < today.getTime()) return { color: '#ff3b30', background: 'rgba(255,59,48,0.1)' }
-  if (d.getTime() === today.getTime()) return { color: '#ff3b30', background: 'rgba(255,59,48,0.08)' }
+  if (d.getTime() < today.getTime()) return { color: 'var(--status-danger)', background: 'var(--status-danger-bg)' }
+  if (d.getTime() === today.getTime()) return { color: 'var(--status-danger)', background: 'var(--status-danger-bg)' }
   return { color: 'var(--duration-text)', background: 'var(--item-hover-bg)' }
 }
 
@@ -182,15 +182,11 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       onContextMenu={onContextMenu}
       onMouseEnter={e => {
         (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
-        const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
-        if (cal) cal.style.display = 'flex'
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
         if (src) src.style.opacity = '0.6'
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLElement).style.background = 'transparent'
-        const cal = (e.currentTarget as HTMLElement).querySelector('.todo-calendar-icon') as HTMLElement | null
-        if (cal) cal.style.display = 'none'
         const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
         if (src) src.style.opacity = '0.35'
       }}
@@ -226,17 +222,18 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
             if (e.key === 'Enter') { e.preventDefault(); handleTextSubmit() }
             if (e.key === 'Escape') { if (textRef.current) textRef.current.textContent = item.text; setEditingText(false) }
           }}
+          onPaste={e => { e.preventDefault(); const text = e.clipboardData.getData('text/plain').replace(/\n/g, ' '); document.execCommand('insertText', false, text) }}
           onBlur={() => handleTextSubmit()}
-          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)', color: 'var(--item-text)', outline: 'none', cursor: 'text' }}
+          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)', color: 'var(--item-text)', outline: 'none', cursor: 'text', userSelect: 'text' }}
         >{item.text}</div>
       ) : (
         <span onClick={() => !item.done && setEditingText(true)}
           style={{
             flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px',
             fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)',
-            color: item.done ? '#555' : 'var(--item-text)',
+            color: item.done ? 'var(--muted-text)' : 'var(--item-text)',
             textDecoration: item.done ? 'line-through' : 'none',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' as const,
             cursor: item.done ? 'default' : 'text',
           }}
         >{item.text}</span>
@@ -251,7 +248,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
         <span className="todo-calendar-icon" onMouseDown={e => e.preventDefault()} onClick={openPicker}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
-          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'none', alignItems: 'center', flexShrink: 0 }}
+          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
           title={t('setDueDate')}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -268,7 +265,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
           title={item.source}
           style={{ cursor: 'pointer', opacity: 0.35, display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'opacity 0.1s', willChange: 'opacity' }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted-icon)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
           </svg>
@@ -490,10 +487,10 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--muted-icon)" strokeWidth="2" strokeLinecap="round">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                   </svg>
-                  <span style={{ fontSize: 'var(--text-xs)', color: '#555' }}>{t('addTodoBtn')}</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-text)' }}>{t('addTodoBtn')}</span>
                 </div>
               )
             )}
@@ -518,10 +515,10 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--muted-icon)" strokeWidth="2" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            <span style={{ fontSize: 'var(--text-xs)', color: '#555' }}>{t('addTodoBtn')}</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-text)' }}>{t('addTodoBtn')}</span>
           </div>
         )
       )}
@@ -530,7 +527,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       {checked.length > 0 && (
         <>
           <div onClick={() => setShowCompleted(!showCompleted)}
-            style={{ fontSize: 'var(--text-xs)', color: '#555', marginTop: 8, padding: '6px 14px 4px', cursor: 'pointer', userSelect: 'none' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}
+            style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-text)', marginTop: 8, padding: '6px 14px 4px', cursor: 'pointer', userSelect: 'none' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}
           >{t('completedSection', { count: checked.length })} {showCompleted ? '▾' : '▸'}</div>
           {showCompleted && checked.map(item => (
             <div key={item.line_index} style={{ opacity: 0.5 }}>
@@ -610,11 +607,11 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             </div>
           )}
           <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
-          <div style={{ ...menuItemStyle, color: '#ff3b30' }}
+          <div style={{ ...menuItemStyle, color: 'var(--status-danger)' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)' }}
             onMouseLeave={ho}
             onClick={() => { onDelete(contextMenu.lineIndex, contextMenu.doneFile); setContextMenu(null) }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--status-danger)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
             {t('deleteTodo')}

@@ -28,11 +28,11 @@ function Avatar({ identity }: { identity: IdentityEntry }) {
   if (isSoul(identity)) {
     char = 'AI'
     bg = 'rgba(90,154,106,0.15)'
-    color = '#5a9a6a'
+    color = 'var(--status-success)'
   } else if (isUserSelf(identity)) {
     char = createTranslator(detectLang())('me')
     bg = 'rgba(200,147,58,0.15)'
-    color = '#c8933a'
+    color = 'var(--record-btn)'
   } else {
     char = identity.name.charAt(0) || '?'
     bg = 'rgba(128,128,128,0.12)'
@@ -122,7 +122,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
 
 // ── Context Menu ─────────────────────────────────────────────────────────────
 function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
-  const color = danger ? '#ff3b30' : 'var(--item-meta)'
+  const color = danger ? 'var(--status-danger)' : 'var(--item-meta)'
   const size = 14
   const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
@@ -150,7 +150,7 @@ function MenuItemRow({ label, icon, danger, onClick }: { label: string; icon: st
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer',
-        color: danger ? '#ff3b30' : 'var(--item-text)',
+        color: danger ? 'var(--status-danger)' : 'var(--item-text)',
       }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLDivElement).style.background = danger ? 'rgba(255,59,48,0.06)' : 'var(--item-hover-bg)'

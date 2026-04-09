@@ -99,7 +99,7 @@ function StatusIndicator({ item, onDismiss, onRetry }: { item: QueueItem; onDism
   if (item.status === 'failed') {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ color: '#ff453a', fontSize: 'var(--text-xs)' }}>{t('failed')}</span>
+        <span style={{ color: 'var(--status-danger)', fontSize: 'var(--text-xs)' }}>{t('failed')}</span>
         <button
           onClick={(e) => { e.stopPropagation(); onRetry() }}
           style={{
@@ -234,7 +234,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
               <span style={{
                 flex: 1,
                 fontSize: 'var(--text-xs)',
-                color: item.status === 'failed' ? '#ff453a' : 'var(--item-meta)',
+                color: item.status === 'failed' ? 'var(--status-danger)' : 'var(--item-meta)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -248,7 +248,7 @@ export function ProcessingQueue({ items, onDismiss, onCancel, onRetry, activeLog
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.7 }}>{t('confirmCancel')}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingPath(null); onCancel(item) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 'var(--text-xs)', color: '#ff453a' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: 'var(--text-xs)', color: 'var(--status-danger)' }}
                   >
                     {t('confirm')}
                   </button>

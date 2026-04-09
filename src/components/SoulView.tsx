@@ -80,7 +80,7 @@ export default function SoulView() {
           border: '0.5px solid rgba(90,154,106,0.18)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--soul-color, #5a9a6a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--soul-color, var(--status-success))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/>
             <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 12 0"/>
             <path d="M12 12a2 2 0 0 0-2 2c0 2 1 4 1 6"/>

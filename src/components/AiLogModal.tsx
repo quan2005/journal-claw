@@ -75,7 +75,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           </span>
           <span style={{
             fontSize: 'var(--text-xs)',
-            color: item.status === 'failed' ? '#ff453a'
+            color: item.status === 'failed' ? 'var(--status-danger)'
               : item.status === 'completed' ? 'var(--ai-pill-text)'
               : 'var(--ai-pill-active-text)',
             opacity: 0.8,
@@ -107,14 +107,14 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
         >
           {item.logs.length === 0 ? (
             item.error
-              ? <span style={{ color: '#ff453a', whiteSpace: 'pre-wrap' }}>{item.error}</span>
+              ? <span style={{ color: 'var(--status-danger)', whiteSpace: 'pre-wrap' }}>{item.error}</span>
               : <span style={{ opacity: 0.4 }}>{t('waitingOutput')}</span>
           ) : (
             item.logs.map((line, i) => (
               <div
                 key={i}
                 style={{
-                  color: line.startsWith('[error]') ? '#ff453a' : 'var(--item-meta)',
+                  color: line.startsWith('[error]') ? 'var(--status-danger)' : 'var(--item-meta)',
                   whiteSpace: 'pre-wrap',
                   marginBottom: 1,
                 }}
@@ -145,7 +145,7 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
                 borderRadius: 5,
                 padding: '4px 12px',
                 fontSize: 'var(--text-xs)',
-                color: '#ff453a',
+                color: 'var(--status-danger)',
                 cursor: 'pointer',
               }}
             >

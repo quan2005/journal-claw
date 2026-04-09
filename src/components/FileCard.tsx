@@ -8,15 +8,15 @@ interface FileCardProps {
   onOpen?: () => void
 }
 
-function iconGradient(kind: FileKind): string {
+function iconColor(kind: FileKind): string {
   switch (kind) {
-    case 'pdf':      return 'linear-gradient(160deg, #c63c3c 0%, #9e2828 100%)'
-    case 'docx':     return 'linear-gradient(160deg, #3a6fd8 0%, #2756b0 100%)'
+    case 'pdf':      return 'var(--file-pdf)'
+    case 'docx':     return 'var(--file-docx)'
     case 'text':
-    case 'markdown': return 'linear-gradient(160deg, #4a4a54 0%, #36363e 100%)'
-    case 'audio':    return 'linear-gradient(160deg, #a03ad8 0%, #7828b0 100%)'
-    case 'image':    return 'linear-gradient(160deg, #3aa87a 0%, #288a62 100%)'
-    default:         return 'linear-gradient(160deg, #4a4a54 0%, #36363e 100%)'
+    case 'markdown': return 'var(--file-markdown)'
+    case 'audio':    return 'var(--file-audio)'
+    case 'image':    return 'var(--file-image)'
+    default:         return 'var(--file-default)'
   }
 }
 
@@ -55,7 +55,7 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
           width: 44,
           height: 46,
           borderRadius: 9,
-          background: iconGradient(kind),
+          background: iconColor(kind),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -65,7 +65,7 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
           userSelect: 'none',
         }}
       >
-        <Icon size={20} strokeWidth={1.5} color="#fff" />
+        <Icon size={20} strokeWidth={1.5} color="var(--status-on-fill)" />
         {ext && (
           <span style={{
             position: 'absolute',
@@ -111,8 +111,8 @@ export function FileCard({ filename, kind, onRemove, onOpen }: FileCardProps) {
           width: 16,
           height: 16,
           borderRadius: '50%',
-          background: '#555',
-          color: '#fff',
+          background: 'var(--file-badge-bg)',
+          color: 'var(--status-on-fill)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

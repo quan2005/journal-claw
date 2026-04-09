@@ -260,7 +260,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
             justifyContent: 'center',
             fontSize: 14,
             fontWeight: 600,
-            color: '#fff',
+            color: 'var(--status-on-fill)',
             flexShrink: 0,
           }}
         >
@@ -292,7 +292,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               <button
                 onMouseDown={e => { e.preventDefault(); commitName() }}
                 title={t('save')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#27c93f', padding: 2 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-success)', padding: 2 }}
               >
                 <Check size={13} />
               </button>

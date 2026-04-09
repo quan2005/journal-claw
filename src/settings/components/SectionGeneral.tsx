@@ -109,9 +109,9 @@ export default function SectionGeneral() {
             <span style={{
               fontSize: 13,
               color: saveStatus === 'error'
-                ? '#ff9f0a'
+                ? 'var(--status-warning)'
                 : saveStatus === 'saved'
-                  ? '#34c759'
+                  ? 'var(--status-success)'
                   : 'var(--duration-text)',
               minHeight: 16,
             }}>

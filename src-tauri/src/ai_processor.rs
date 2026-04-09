@@ -88,6 +88,8 @@ const SCRIPT_RECENT_SUMMARIES: &str =
     include_str!("../resources/workspace-template/.claude/scripts/recent-summaries");
 const SCRIPT_IDENTITY_CREATE: &str =
     include_str!("../resources/workspace-template/.claude/scripts/identity-create");
+const SCRIPT_FIX_FRONTMATTER: &str =
+    include_str!("../resources/workspace-template/.claude/scripts/fix-frontmatter");
 
 const WORKSPACE_USER_CLAUDE_MD: &str =
     include_str!("../resources/workspace-template/CLAUDE.md");
@@ -121,6 +123,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         ("journal-create", SCRIPT_JOURNAL_CREATE),
         ("recent-summaries", SCRIPT_RECENT_SUMMARIES),
         ("identity-create", SCRIPT_IDENTITY_CREATE),
+        ("fix-frontmatter", SCRIPT_FIX_FRONTMATTER),
     ];
     for (name, content) in scripts {
         let path = scripts_dir.join(name);

@@ -187,7 +187,7 @@ export default function SectionAutomation() {
                   {status?.state === 'running' ? (
                     <div style={{ fontSize: 11, color: 'var(--record-btn)' }}>{t('dreamRunning')}</div>
                   ) : status?.state === 'error' ? (
-                    <div style={{ fontSize: 11, color: '#ff9f0a' }}>{t('dreamFailed')}: {status.error}</div>
+                    <div style={{ fontSize: 11, color: 'var(--status-warning)' }}>{t('dreamFailed')}: {status.error}</div>
                   ) : status?.state === 'never_run' ? (
                     <div style={{ fontSize: 11, color: 'var(--duration-text)' }}>{t('neverRun')}</div>
                   ) : (

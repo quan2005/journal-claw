@@ -82,9 +82,9 @@ function panelStatusCopy(status: WhisperDownloadPanelStatus) {
     return { label: t('downloading'), color: 'var(--record-btn)', background: 'rgba(200,147,58,0.12)' }
   }
   if (status === 'success') {
-    return { label: t('downloaded'), color: '#27c93f', background: 'rgba(39,201,63,0.12)' }
+    return { label: t('downloaded'), color: 'var(--status-success)', background: 'rgba(39,201,63,0.12)' }
   }
-  return { label: t('downloadFailed'), color: '#ff9f0a', background: 'rgba(255,159,10,0.12)' }
+  return { label: t('downloadFailed'), color: 'var(--status-warning)', background: 'var(--status-warning-bg)' }
 }
 
 function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
@@ -358,10 +358,10 @@ export default function SectionVoice() {
                   {ready && (
                     <div style={{
                       position: 'absolute', top: 8, right: 8,
-                      width: 16, height: 16, background: '#27c93f', borderRadius: '50%',
+                      width: 16, height: 16, background: 'var(--status-success)', borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Check size={9} strokeWidth={2.5} color="#fff" />
+                      <Check size={9} strokeWidth={2.5} color="var(--status-on-fill)" />
                     </div>
                   )}
                   <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}>
@@ -383,14 +383,14 @@ export default function SectionVoice() {
               padding: '10px 14px',
               borderRadius: 8,
               background: 'rgba(255,159,10,0.08)',
-              border: '1px solid rgba(255,159,10,0.3)',
+              border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
               fontSize: 11,
               color: 'var(--item-meta)',
               lineHeight: 1.6,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <AlertTriangle size={13} strokeWidth={1.8} color="#ff9f0a" />
-                <span style={{ fontWeight: 600, color: '#ff9f0a' }}>{t('speakerEmbedderUnavailable')}</span>
+                <AlertTriangle size={13} strokeWidth={1.8} color="var(--status-warning)" />
+                <span style={{ fontWeight: 600, color: 'var(--status-warning)' }}>{t('speakerEmbedderUnavailable')}</span>
               </div>
               <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
                 {t('speakerEmbedderHint')}
@@ -407,13 +407,13 @@ export default function SectionVoice() {
                   padding: '10px 14px',
                   borderRadius: 8,
                   background: 'rgba(255,159,10,0.08)',
-                  border: '1px solid rgba(255,159,10,0.3)',
+                  border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
                   fontSize: 11,
                   color: 'var(--item-meta)',
                   lineHeight: 1.6,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: '#ff9f0a' }}>{t('whisperNotFound')}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--status-warning)' }}>{t('whisperNotFound')}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         onClick={() => checkWhisperkitCliInstalled().then(setCliInstalled)}
@@ -438,7 +438,7 @@ export default function SectionVoice() {
                           padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
                           border: '1px solid rgba(255,159,10,0.4)',
                           background: cliInstalling ? 'rgba(255,159,10,0.06)' : 'rgba(255,159,10,0.14)',
-                          color: cliInstalling ? 'rgba(255,159,10,0.5)' : '#ff9f0a',
+                          color: cliInstalling ? 'color-mix(in srgb, var(--status-warning) 50%, transparent)' : 'var(--status-warning)',
                           cursor: cliInstalling ? 'default' : 'pointer',
                           flexShrink: 0,
                         }}
@@ -447,7 +447,7 @@ export default function SectionVoice() {
                           <>
                             <div style={{
                               width: 10, height: 10,
-                              border: '1.5px solid rgba(255,159,10,0.3)', borderTopColor: '#ff9f0a',
+                              border: '1.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)', borderTopColor: 'var(--status-warning)',
                               borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                             }} />
                             {t('installingDots')}
@@ -535,7 +535,7 @@ export default function SectionVoice() {
                       {/* 下载状态 / 按钮 */}
                       <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0 }}>
                         {isDownloaded ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#27c93f', fontSize: 10 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--status-success)', fontSize: 10 }}>
                             <Check size={12} strokeWidth={2.5} />{t('alreadyDownloaded')}
                           </span>
                         ) : isThisDownloading ? (
@@ -703,7 +703,7 @@ export default function SectionVoice() {
                           </>
                         ) : (
                           <>
-                            <Check size={12} strokeWidth={1.8} color={downloadSession.status === 'success' ? '#27c93f' : 'currentColor'} />
+                            <Check size={12} strokeWidth={1.8} color={downloadSession.status === 'success' ? 'var(--status-success)' : 'currentColor'} />
                             {t('switchModelHint')}
                           </>
                         )}
@@ -769,9 +769,9 @@ export default function SectionVoice() {
             <span style={{
               fontSize: 13,
               color: saveStatus === 'error'
-                ? '#ff9f0a'
+                ? 'var(--status-warning)'
                 : saveStatus === 'saved'
-                  ? '#34c759'
+                  ? 'var(--status-success)'
                   : 'var(--duration-text)',
               minHeight: 16,
             }}>

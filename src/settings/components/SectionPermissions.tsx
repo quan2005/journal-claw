@@ -279,7 +279,7 @@ export default function SectionPermissions() {
               borderRadius: 7,
               border: 'none',
               background: 'var(--record-btn, #ff3b30)',
-              color: '#fff',
+              color: 'var(--status-on-fill)',
               fontSize: 14,
               fontWeight: 500,
               cursor: 'pointer',

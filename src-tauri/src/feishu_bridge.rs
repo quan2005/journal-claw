@@ -189,8 +189,6 @@ async fn submit_batch(app: &AppHandle, text: String, reply_ctx: FeishuReplyCtx) 
 
 #[derive(Debug, Deserialize)]
 struct WsEvent {
-    #[serde(rename = "type")]
-    event_type: Option<String>,
     header: Option<WsHeader>,
     event: Option<WsMessageEvent>,
 }
@@ -620,7 +618,6 @@ pub async fn run(app: AppHandle) {
 
         let token = match fetch_token(&cfg.feishu_app_id, &cfg.feishu_app_secret).await {
             Ok((t, _expire)) => {
-                backoff_secs = 1;
                 *token_holder.lock().unwrap_or_else(|e| e.into_inner()) = t.clone();
                 t
             }

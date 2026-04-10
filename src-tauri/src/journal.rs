@@ -280,6 +280,65 @@ pub async fn list_all_journal_entries(app: AppHandle) -> Result<Vec<JournalEntry
 }
 
 #[tauri::command]
+pub async fn list_available_months(app: AppHandle) -> Result<Vec<String>, String> {
+    let cfg = config::load_config(&app)?;
+    if cfg.workspace_path.is_empty() {
+        return Ok(vec![]);
+    }
+    let workspace = cfg.workspace_path.clone();
+    tokio::task::spawn_blocking(move || {
+        let ws_path = std::path::PathBuf::from(&workspace);
+        if !ws_path.exists() {
+            return Ok(vec![]);
+        }
+        let read_dir = std::fs::read_dir(&ws_path).map_err(|e| e.to_string())?;
+        let mut months: Vec<String> = read_dir
+            .flatten()
+            .filter_map(|entry| {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.len() == 4 && name.chars().all(|c| c.is_ascii_digit()) {
+                    Some(name)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        months.sort_by(|a, b| b.cmp(a));
+        Ok(months)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn list_journal_entries_by_months(
+    app: AppHandle,
+    months: Vec<String>,
+) -> Result<Vec<JournalEntry>, String> {
+    let cfg = config::load_config(&app)?;
+    if cfg.workspace_path.is_empty() {
+        return Ok(vec![]);
+    }
+    let workspace = cfg.workspace_path.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut all: Vec<JournalEntry> = vec![];
+        for ym in &months {
+            let mut batch = list_entries(&workspace, ym)?;
+            all.append(&mut batch);
+        }
+        all.sort_by(|a, b| {
+            b.year_month
+                .cmp(&a.year_month)
+                .then(b.day.cmp(&a.day))
+                .then(b.created_at_secs.cmp(&a.created_at_secs))
+        });
+        Ok(all)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub fn get_journal_entry_content(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }

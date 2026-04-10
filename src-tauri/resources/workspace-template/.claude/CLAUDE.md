@@ -21,15 +21,15 @@ Respond in the same language as the source material unless the user specifies ot
 
 ## Identity System
 
-`identity/` is the people directory you maintain. Track everyone the user interacts with at work.
+`identity/` is the profile directory you maintain. The core is people profiles — everyone the user interacts with at work. In rare cases, key non-person entities (products, organizations, projects) may also be profiled here.
 
-### Two types of profiles
-
+### Profile types
 
 | File                          | Meaning                                           | Rules                                                              |
 | ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
 | `identity/README.md`          | **The user themselves** — name, role, preferences | User edits directly; you add info when you learn it from materials |
-| `identity/{region}-{name}.md` | **Other people** the user works with              | You create and maintain these                                      |
+| `identity/{region}-{name}.md` | **People** the user works with                    | You create and maintain these                                      |
+| `identity/{type}-{name}.md`   | **Key entities** — products, orgs, projects       | High bar; see admission rules below                                |
 
 
 ### Identity behavior when processing materials
@@ -52,10 +52,21 @@ Respond in the same language as the source material unless the user specifies ot
 6. **Unidentifiable speaker → skip**: if a speaker_id only says "mm-hmm" or "okay" with no identity signal, don't create a profile. The voice system retains the voice data for future matching.
 7. **In-journal references**: write names naturally in the body — no special markup needed
 
+### Non-person entity admission rules
+
+Only create an entity profile when **all three** conditions are met:
+
+1. **Recurrence** — mentioned in 2+ independent materials (not just one meeting)
+2. **Recall value** — you need its background to write better future entries (e.g. product positioning, project phase)
+3. **Evolving attributes** — it has properties that change over time (version, stage, owner, key decisions)
+
+If in doubt, keep the information in the journal entry. Entity profiles use `{type}-{name}.md` where type is `product`, `org`, or `project`. Add a `type` field in frontmatter to distinguish from people.
+
 ### Notes
 
 - Only profile people with **meaningful interaction** — meeting participants, collaborators, report targets
 - `speaker_id` is assigned by voice recognition; link it via `identity-create --speaker-id` and `identity-link`; don't hand-edit the frontmatter directly
+- Keep entity profiles minimal — if it can be a one-liner in a journal tag or summary, don't create a profile
 
 ## Core Behavior
 

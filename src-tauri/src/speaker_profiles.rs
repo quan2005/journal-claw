@@ -29,6 +29,7 @@ pub struct SpeakerProfile {
 }
 
 impl SpeakerProfile {
+    #[allow(dead_code)]
     /// The display name: user name if set, otherwise auto_name.
     pub fn display_name(&self) -> &str {
         if self.name.is_empty() {

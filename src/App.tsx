@@ -45,6 +45,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
   const [dockOpen, setDockOpen] = useState(false)
+  const [dockAppendText, setDockAppendText] = useState('')
   const [todoOpen, setTodoOpen] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
   const sidebarAnimRef = useRef<HTMLDivElement>(null)
@@ -441,6 +442,10 @@ export default function App() {
                     loading={loading}
                     selectedPath={selectedEntry?.path ?? null}
                     onSelect={setSelectedEntry}
+                    onProcess={(entry) => {
+                      const rel = `${entry.year_month}/${entry.filename}`
+                      setDockAppendText(`@${rel}`)
+                    }}
                   />
                 </div>
                 <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column' }}>
@@ -449,6 +454,10 @@ export default function App() {
                     loading={identityLoading}
                     selectedPath={selectedIdentity?.path ?? null}
                     onSelect={identity => setSelectedIdentity(identity)}
+                    onProcess={(identity) => {
+                      const rel = `identity/${identity.filename}`
+                      setDockAppendText(`@${rel}`)
+                    }}
                     onMerge={identity => setMergeSource(identity)}
                     onDelete={handleDeleteIdentity}
                   />
@@ -485,6 +494,10 @@ export default function App() {
                   onAddToTodo={(text: string, source: string) => {
                     addTodo(text, undefined, source)
                     setTodoOpen(true)
+                  }}
+                  onProcess={(entry) => {
+                    const rel = `${entry.year_month}/${entry.filename}`
+                    setDockAppendText(`@${rel}`)
                   }}
                 />
               ) : (
@@ -560,6 +573,8 @@ export default function App() {
               onOpenSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
               externalOpen={dockOpen}
               onExternalOpenConsumed={() => setDockOpen(false)}
+              appendText={dockAppendText}
+              onAppendTextConsumed={() => setDockAppendText('')}
             />
             {aiReady === false && (
               <div

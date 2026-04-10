@@ -433,7 +433,6 @@ async fn run_websocket(
                                                 // Check for Feishu doc link
                                                 if let Some(doc_token) = extract_feishu_doc_token(&text) {
                                                     let token_clone = token.clone();
-                                                    let app_clone = app.clone();
                                                     let bridge_clone = bridge_state.clone();
                                                     let debounce_tx_clone = debounce_tx.clone();
                                                     let mid = message_id.clone();

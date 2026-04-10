@@ -10,6 +10,7 @@ interface JournalListProps {
   loading?: boolean
   selectedPath: string | null
   onSelect: (entry: JournalEntry) => void
+  onProcess?: (entry: JournalEntry) => void
 }
 
 function SkeletonItem({ width, delay }: { width: number; delay: number }) {
@@ -54,7 +55,7 @@ function isToday(yearMonth: string, day: number): boolean {
   return year === now.getFullYear() && month === now.getMonth() + 1 && day === now.getDate()
 }
 
-export function JournalList({ entries, loading, selectedPath, onSelect }: JournalListProps) {
+export function JournalList({ entries, loading, selectedPath, onSelect, onProcess }: JournalListProps) {
   const { t, s, lang } = useTranslation()
   const [contextMenu, setContextMenu] = useState<{ entry: JournalEntry; x: number; y: number } | null>(null)
 
@@ -164,6 +165,10 @@ export function JournalList({ entries, loading, selectedPath, onSelect }: Journa
           x={contextMenu.x}
           y={contextMenu.y}
           entry={contextMenu.entry}
+          onProcess={() => {
+            onProcess?.(contextMenu.entry)
+            setContextMenu(null)
+          }}
           onDelete={async () => {
             await deleteJournalEntry(contextMenu.entry.path)
             window.dispatchEvent(new CustomEvent('journal-entry-deleted', { detail: { path: contextMenu.entry.path } }))

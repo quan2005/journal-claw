@@ -122,10 +122,12 @@ BridgeState {
 ```
 
 **When `running == false` (idle mode):**
+
 - New message → append to `pending`, start/reset a 3s debounce timer
 - Timer fires → flush `pending` as one batch, set `running = true`, call `submit_batch()`
 
 **When `running == true` (accumulate mode):**
+
 - New message → append to `pending` (no timer)
 - When Claude finishes → if `pending` is non-empty, immediately flush as next batch (no debounce wait)
 
@@ -231,14 +233,16 @@ tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 
 ## Error handling
 
-| Scenario | Behavior |
-|---|---|
-| Token fetch fails | Status → error, retry after 30s |
-| WebSocket disconnect | Reconnect with backoff, status → connecting |
-| Claude session not found | Clear session_id, retry as new session |
-| Claude CLI exits non-zero | Reply "处理失败，请重试" to Feishu |
-| Feishu reply API fails | Log error, do not retry (avoid duplicate replies) |
-| App quits mid-processing | Pending messages lost (acceptable — user can resend) |
+
+| Scenario                  | Behavior                                             |
+| ------------------------- | ---------------------------------------------------- |
+| Token fetch fails         | Status → error, retry after 30s                      |
+| WebSocket disconnect      | Reconnect with backoff, status → connecting          |
+| Claude session not found  | Clear session_id, retry as new session               |
+| Claude CLI exits non-zero | Reply "处理失败，请重试" to Feishu                           |
+| Feishu reply API fails    | Log error, do not retry (avoid duplicate replies)    |
+| App quits mid-processing  | Pending messages lost (acceptable — user can resend) |
+
 
 ---
 
@@ -249,3 +253,4 @@ tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 - File/image attachments from Feishu
 - Feishu card messages (rich format replies)
 - Rate limiting per user
+

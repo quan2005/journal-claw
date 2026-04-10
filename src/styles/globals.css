@@ -155,27 +155,27 @@
   --todo-checkbox-border: #b4b8c0;
 
   /* Status — semantic colors for danger/warning/success */
-  --status-danger: #d63030;
-  --status-danger-bg: rgba(214,48,48,0.08);
-  --status-danger-muted: #c05050;
-  --status-warning: #c07800;
-  --status-warning-bg: rgba(192,120,0,0.10);
-  --status-success: #2d8a4e;
-  --status-success-bg: rgba(45,138,78,0.10);
-  --status-on-fill: #fff;
+  --status-danger: #B5312A;           /* 5.9:1 on #FAFAF8 */
+  --status-danger-bg: #FDE8E5;
+  --status-danger-muted: #C04040;
+  --status-warning: #8A6500;          /* gold-orange text, 5.1:1 on #FAFAF8 */
+  --status-warning-bg: #FBF3E5;       /* --ac-bg */
+  --status-success: #266B45;          /* 6.1:1 on #FAFAF8 */
+  --status-success-bg: #E5F2EA;
+  --status-on-fill: #FAFAF8;          /* text/icon on colored fill */
 
   /* File type icons — flat, no gradients */
-  --file-pdf: #b83a3a;
-  --file-docx: #3a6fd8;
-  --file-markdown: #5a5a64;
-  --file-audio: #8a3ab0;
-  --file-image: #3a8a62;
-  --file-default: #5a5a64;
-  --file-badge-bg: #6a7278;
+  --file-pdf: #B5312A;
+  --file-docx: #3A5FA8;
+  --file-markdown: #635850;           /* --t2 warm brown */
+  --file-audio: #5F4290;              /* purple */
+  --file-image: #266B45;
+  --file-default: #635850;
+  --file-badge-bg: #8A8078;           /* --t3 */
 
   /* Muted interactive (done items, disabled) */
-  --muted-text: #8a9098;
-  --muted-icon: #8a9098;
+  --muted-text: #8A8078;              /* --t3 */
+  --muted-icon: #8A8078;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -297,23 +297,23 @@
     --todo-row-bg: rgba(255,255,255,0.02);
     --todo-checkbox-border: #4a4a50;
     /* Status */
-    --status-danger: #e06060;
-    --status-danger-bg: rgba(224,96,96,0.10);
-    --status-danger-muted: #b06060;
-    --status-warning: #d9930d;
-    --status-warning-bg: rgba(217,147,13,0.10);
-    --status-success: #5ba67a;
-    --status-success-bg: rgba(91,166,122,0.10);
-    --status-on-fill: #0f0f0f;
-    --file-pdf: #c85050;
+    --status-danger: #e06c60;           /* 5.9:1 on #0F0F0F */
+    --status-danger-bg: rgba(224,108,96,0.12);
+    --status-danger-muted: #c06060;
+    --status-warning: #C8933B;          /* gold-orange accent, 7.0:1 on #0F0F0F */
+    --status-warning-bg: rgba(200,147,59,0.12);
+    --status-success: #5ba67a;          /* 6.6:1 on #0F0F0F */
+    --status-success-bg: rgba(91,166,122,0.12);
+    --status-on-fill: #0F0F0F;
+    --file-pdf: #e06c60;
     --file-docx: #5a8ae0;
-    --file-markdown: #6a6a74;
-    --file-audio: #a060c8;
-    --file-image: #50a07a;
-    --file-default: #6a6a74;
-    --file-badge-bg: #4a4a50;
-    --muted-text: #585c64;
-    --muted-icon: #585c64;
+    --file-markdown: #A89880;           /* --t2 warm */
+    --file-audio: #9a7ec7;              /* purple */
+    --file-image: #5ba67a;
+    --file-default: #A89880;
+    --file-badge-bg: #736D65;           /* --t3 warm */
+    --muted-text: #736D65;              /* --t3 */
+    --muted-icon: #736D65;
   }
 }
 
@@ -416,23 +416,23 @@
   --todo-checkbox-border: #4a4a50;
 
   /* Status */
-  --status-danger: #e06060;
-  --status-danger-bg: rgba(224,96,96,0.10);
-  --status-danger-muted: #b06060;
-  --status-warning: #d9930d;
-  --status-warning-bg: rgba(217,147,13,0.10);
-  --status-success: #5ba67a;
-  --status-success-bg: rgba(91,166,122,0.10);
-  --status-on-fill: #0f0f0f;
-  --file-pdf: #c85050;
+  --status-danger: #e06c60;           /* 5.9:1 on #0F0F0F */
+  --status-danger-bg: rgba(224,108,96,0.12);
+  --status-danger-muted: #c06060;
+  --status-warning: #C8933B;          /* gold-orange accent, 7.0:1 on #0F0F0F */
+  --status-warning-bg: rgba(200,147,59,0.12);
+  --status-success: #5ba67a;          /* 6.6:1 on #0F0F0F */
+  --status-success-bg: rgba(91,166,122,0.12);
+  --status-on-fill: #0F0F0F;
+  --file-pdf: #e06c60;
   --file-docx: #5a8ae0;
-  --file-markdown: #6a6a74;
-  --file-audio: #a060c8;
-  --file-image: #50a07a;
-  --file-default: #6a6a74;
-  --file-badge-bg: #4a4a50;
-  --muted-text: #585c64;
-  --muted-icon: #585c64;
+  --file-markdown: #A89880;           /* --t2 warm */
+  --file-audio: #9a7ec7;              /* purple */
+  --file-image: #5ba67a;
+  --file-default: #A89880;
+  --file-badge-bg: #736D65;           /* --t3 warm */
+  --muted-text: #736D65;              /* --t3 */
+  --muted-icon: #736D65;
 }
 
 html, body, #root {
@@ -711,23 +711,23 @@ html, body, #root {
   --queue-shadow: rgba(0,0,0,0.06);
   --context-menu-bg: #f5f6f7;
   --context-menu-border: #d8dce0;
-  --status-danger: #d63030;
-  --status-danger-bg: rgba(214,48,48,0.08);
-  --status-danger-muted: #c05050;
-  --status-warning: #c07800;
-  --status-warning-bg: rgba(192,120,0,0.10);
-  --status-success: #2d8a4e;
-  --status-success-bg: rgba(45,138,78,0.10);
-  --status-on-fill: #fff;
-  --file-pdf: #b83a3a;
-  --file-docx: #3a6fd8;
-  --file-markdown: #5a5a64;
-  --file-audio: #8a3ab0;
-  --file-image: #3a8a62;
-  --file-default: #5a5a64;
-  --file-badge-bg: #6a7278;
-  --muted-text: #8a9098;
-  --muted-icon: #8a9098;
+  --status-danger: #B5312A;           /* 5.9:1 on #FAFAF8 */
+  --status-danger-bg: #FDE8E5;
+  --status-danger-muted: #C04040;
+  --status-warning: #8A6500;          /* gold-orange text, 5.1:1 on #FAFAF8 */
+  --status-warning-bg: #FBF3E5;
+  --status-success: #266B45;          /* 6.1:1 on #FAFAF8 */
+  --status-success-bg: #E5F2EA;
+  --status-on-fill: #FAFAF8;
+  --file-pdf: #B5312A;
+  --file-docx: #3A5FA8;
+  --file-markdown: #635850;
+  --file-audio: #5F4290;
+  --file-image: #266B45;
+  --file-default: #635850;
+  --file-badge-bg: #8A8078;
+  --muted-text: #8A8078;
+  --muted-icon: #8A8078;
 }
 
 /* ── hljs light-mode overrides for manual [data-theme="light"] ── */

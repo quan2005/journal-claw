@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 import type { JournalEntry } from '../types'
-import { getJournalEntryContent, revealInFinder, openFile } from '../lib/tauri'
+import { revealInFinder, openFile } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface JournalContextMenuProps {
   x: number
   y: number
   entry: JournalEntry
+  onProcess: () => void
   onDelete: () => void
   onClose: () => void
 }
@@ -15,7 +16,7 @@ type MenuItem =
   | { type: 'action'; label: string; icon: string; danger?: boolean; onClick: () => void }
   | { type: 'divider' }
 
-export function JournalContextMenu({ x, y, entry, onDelete, onClose }: JournalContextMenuProps) {
+export function JournalContextMenu({ x, y, entry, onProcess, onDelete, onClose }: JournalContextMenuProps) {
   const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -47,17 +48,6 @@ export function JournalContextMenu({ x, y, entry, onDelete, onClose }: JournalCo
     if (rect.bottom > vh) ref.current.style.top = `${Math.max(4, vh - rect.height - 8)}px`
   }, [])
 
-  async function copyTitle() {
-    await navigator.clipboard.writeText(entry.title)
-  }
-
-  async function copyContent() {
-    try {
-      const content = await getJournalEntryContent(entry.path)
-      await navigator.clipboard.writeText(content)
-    } catch { /* silent */ }
-  }
-
   async function copyPath() {
     await navigator.clipboard.writeText(entry.path)
   }
@@ -71,8 +61,7 @@ export function JournalContextMenu({ x, y, entry, onDelete, onClose }: JournalCo
   }
 
   const items: MenuItem[] = [
-    { type: 'action', label: t('copyTitle'), icon: 'title', onClick: copyTitle },
-    { type: 'action', label: t('copyContent'), icon: 'content', onClick: copyContent },
+    { type: 'action', label: t('referenceEntry'), icon: 'process', onClick: () => { onProcess(); onClose() } },
     { type: 'action', label: t('copyFilePath'), icon: 'path', onClick: copyPath },
     { type: 'divider' },
     { type: 'action', label: t('openInEditor'), icon: 'edit', onClick: handleOpenWithEditor },
@@ -120,10 +109,8 @@ function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
   const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
   switch (icon) {
-    case 'title':
-      return <svg {...props}><path d="M4 7V4h16v3"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/></svg>
-    case 'content':
-      return <svg {...props}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
+    case 'process':
+      return <svg {...props}><text x="12" y="18" textAnchor="middle" fontSize="22" fontWeight="700" fill={color} stroke="none">@</text></svg>
     case 'path':
       return <svg {...props}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
     case 'edit':

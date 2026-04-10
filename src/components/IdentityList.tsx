@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { IdentityEntry } from '../types'
 import { pickDisplayTags } from '../lib/tags'
-import { getIdentityContent, revealInFinder, openFile } from '../lib/tauri'
+import { revealInFinder, openFile } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { detectLang, createTranslator } from '../lib/i18n'
 
@@ -127,6 +127,8 @@ function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
   const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
   switch (icon) {
+    case 'process':
+      return <svg {...props}><text x="12" y="18" textAnchor="middle" fontSize="22" fontWeight="700" fill={color} stroke="none">@</text></svg>
     case 'merge':
       return <svg {...props}><path d="M18 21V8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v13"/><path d="M6 13h12"/><polyline points="9 3 12 6 15 3"/></svg>
     case 'content':
@@ -174,12 +176,13 @@ interface IdentityContextMenuProps {
   x: number
   y: number
   identity: IdentityEntry
+  onProcess: () => void
   onMerge: () => void
   onDelete: () => void
   onClose: () => void
 }
 
-function IdentityContextMenu({ x, y, identity, onMerge, onDelete, onClose }: IdentityContextMenuProps) {
+function IdentityContextMenu({ x, y, identity, onProcess, onMerge, onDelete, onClose }: IdentityContextMenuProps) {
   const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -208,13 +211,6 @@ function IdentityContextMenu({ x, y, identity, onMerge, onDelete, onClose }: Ide
     if (rect.bottom > vh) ref.current.style.top = `${Math.max(4, vh - rect.height - 8)}px`
   }, [])
 
-  async function copyContent() {
-    try {
-      const content = await getIdentityContent(identity.path)
-      await navigator.clipboard.writeText(content)
-    } catch { /* silent */ }
-  }
-
   async function copyPath() {
     await navigator.clipboard.writeText(identity.path)
   }
@@ -227,14 +223,15 @@ function IdentityContextMenu({ x, y, identity, onMerge, onDelete, onClose }: Ide
     await openFile(identity.path)
   }
 
-  const items: ContextMenuItem[] = []
+  const items: ContextMenuItem[] = [
+    { type: 'action', label: t('referenceEntry'), icon: 'process', onClick: () => { onProcess(); onClose() } },
+  ]
 
   if (!isSoul(identity) && !isUserSelf(identity)) {
     items.push({ type: 'action', label: t('mergeTo'), icon: 'merge', onClick: () => { onMerge(); onClose() } })
   }
 
   items.push(
-    { type: 'action', label: t('copyContent'), icon: 'content', onClick: () => { copyContent(); onClose() } },
     { type: 'action', label: t('copyFilePath'), icon: 'path', onClick: () => { copyPath(); onClose() } },
     { type: 'divider' },
     { type: 'action', label: t('openInEditor'), icon: 'edit', onClick: () => { handleOpenWithEditor(); onClose() } },
@@ -274,12 +271,13 @@ interface IdentityListProps {
   loading?: boolean
   selectedPath: string | null
   onSelect: (identity: IdentityEntry) => void
+  onProcess: (identity: IdentityEntry) => void
   onMerge: (identity: IdentityEntry) => void
   onDelete: (identity: IdentityEntry) => void
 }
 
 export function IdentityList({
-  identities, loading, selectedPath, onSelect, onMerge, onDelete,
+  identities, loading, selectedPath, onSelect, onProcess, onMerge, onDelete,
 }: IdentityListProps) {
   const { t } = useTranslation()
   const [contextMenu, setContextMenu] = useState<{ identity: IdentityEntry; x: number; y: number } | null>(null)
@@ -394,6 +392,7 @@ export function IdentityList({
           x={contextMenu.x}
           y={contextMenu.y}
           identity={contextMenu.identity}
+          onProcess={() => { onProcess(contextMenu.identity); setContextMenu(null) }}
           onMerge={() => onMerge(contextMenu.identity)}
           onDelete={() => onDelete(contextMenu.identity)}
           onClose={() => setContextMenu(null)}

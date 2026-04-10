@@ -21,12 +21,15 @@ interface CommandDockProps {
   onOpenSettings: () => void
   externalOpen?: boolean
   onExternalOpenConsumed?: () => void
+  appendText?: string
+  onAppendTextConsumed?: () => void
 }
 
 export function CommandDock({
   isDragOver, pendingFiles, onPasteSubmit, onFilesSubmit,
   onFilesCancel, onRemoveFile, onPasteFiles, recorderStatus, onRecord,
   asrReady, audioRejected, onOpenSettings, externalOpen, onExternalOpenConsumed,
+  appendText, onAppendTextConsumed,
 }: CommandDockProps) {
   const { t } = useTranslation()
   const [inputOpen, setInputOpen] = useState(false)
@@ -60,6 +63,15 @@ export function CommandDock({
       onExternalOpenConsumed?.()
     }
   }, [externalOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 外部追加文本到输入框
+  useEffect(() => {
+    if (appendText) {
+      setInputOpen(true)
+      setInputText(prev => prev ? prev + ' ' + appendText : appendText)
+      onAppendTextConsumed?.()
+    }
+  }, [appendText]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextClipboard(text: string) {
     if (text.length > 300) {

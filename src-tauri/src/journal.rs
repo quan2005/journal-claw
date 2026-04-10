@@ -133,7 +133,8 @@ pub fn parse_entry_filename(filename: &str) -> Option<(u32, String)> {
     Some((day, title.to_string()))
 }
 
-pub fn material_kind(filename: &str) -> String {
+#[allow(dead_code)]
+pub(crate) fn material_kind(filename: &str) -> String {
     let ext = std::path::Path::new(filename)
         .extension()
         .and_then(|e| e.to_str())

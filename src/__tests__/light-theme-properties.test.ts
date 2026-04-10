@@ -269,21 +269,26 @@ describe('Feature: light-theme-optimization, Property 3: Alpha replacement visua
  * colors (e.g. warm/red/green tints).
  */
 
-/** Tinted neutral variables — from design doc categories */
+/** Tinted neutral variables — from design doc categories
+ *
+ * NOTE: Amber-tinted interactive states (--item-icon-bg, --item-hover-bg,
+ * --item-selected-bg, --record-highlight, --dock-dropzone-hover-bg) are
+ * intentionally warm amber in light mode (accent family). They are excluded
+ * from this neutral hue check.
+ */
 const TINTED_NEUTRAL_VARIABLES = [
   // Background / Surface
-  '--bg', '--sidebar-bg', '--dock-bg', '--titlebar-bg', '--item-icon-bg',
+  '--bg', '--sidebar-bg', '--dock-bg', '--titlebar-bg',
   '--detail-case-bg', '--md-pre-bg', '--queue-bg', '--context-menu-bg',
   // Borders
-  '--divider', '--dock-border', '--detail-case-border', '--dock-kbd-border',
+  '--divider', '--dock-border', '--detail-case-border',
   '--sheet-handle', '--queue-border', '--context-menu-border',
   // Auxiliary text
   '--item-meta', '--month-label', '--sidebar-month', '--duration-text',
   '--detail-section-label', '--dock-dropzone-text', '--dock-dropzone-hint',
   '--detail-summary', '--detail-case-key', '--md-quote-text', '--md-bullet',
-  // Interactive states
-  '--item-selected-bg', '--item-hover-bg', '--dock-dropzone-hover-bg',
-  '--record-highlight', '--md-code-bg', '--scrollbar-thumb', '--scrollbar-thumb-hover',
+  // Interactive states (ink-cyan only — amber states excluded)
+  '--md-code-bg', '--scrollbar-thumb', '--scrollbar-thumb-hover',
 ] as const
 
 describe('Feature: light-theme-optimization, Property 1: Tinted Neutral hue range', () => {
@@ -433,17 +438,16 @@ describe('Feature: light-theme-optimization, Property 4: Tag palette contrast', 
     )
   })
 
-  it('should verify light theme alpha values in tags.ts match design spec', () => {
-    const tagsSource = fs.readFileSync(
-      path.resolve(__dirname, '../lib/tags.ts'),
+  it('should verify tag CSS tokens match design spec', () => {
+    const css = fs.readFileSync(
+      path.resolve(__dirname, '../styles/globals.css'),
       'utf-8',
     )
-    // Verify textAlpha for light theme is 0.80
-    expect(tagsSource).toContain('0.80')
-    // Verify bgAlpha for light theme is 0.12
-    expect(tagsSource).toContain('0.12')
-    // Verify dark theme values
-    expect(tagsSource).toContain('0.65')
-    expect(tagsSource).toContain('0.10')
+    // Light theme tag tokens
+    expect(css).toContain('--tag-text: rgba(90,100,112,0.80)')
+    expect(css).toContain('--tag-bg: rgba(90,100,112,0.10)')
+    // Dark theme tag tokens
+    expect(css).toContain('--tag-text: rgba(200,147,59,0.65)')
+    expect(css).toContain('--tag-bg: rgba(200,147,59,0.10)')
   })
 })

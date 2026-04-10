@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
-import { openBrainstormTerminal, listBrainstormKeys, pickFolder } from '../lib/tauri'
+import { openBrainstormTerminal, listBrainstormKeys, listOpenBrainstormKeys, pickFolder } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({ initialValue, onSelect, onClose }: {
@@ -108,14 +108,11 @@ function DatePicker({ initialValue, onSelect, onClose }: {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function statusBarColor(item: TodoItem): string {
-  if (item.done) return 'var(--divider)'
-  if (item.due) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    if (new Date(item.due + 'T00:00:00') <= today) return 'var(--status-danger)'
-  }
-  return 'var(--divider)'
+function statusBarStyle(item: TodoItem, hasBrainstorm?: boolean, isBrainstormOpen?: boolean): { background: string; opacity?: number } {
+  if (item.done) return { background: 'var(--divider)' }
+  if (isBrainstormOpen) return { background: 'var(--record-btn)' }
+  if (hasBrainstorm) return { background: 'var(--record-btn)', opacity: 0.45 }
+  return { background: 'var(--divider)' }
 }
 
 function dueBadgeStyle(due: string): { color: string; background: string } {
@@ -133,7 +130,7 @@ function formatDueShort(due: string): string {
 }
 
 // ── TodoRow ──────────────────────────────────────────────────────────────────
-function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMenu, onNavigateToSource, hasBrainstorm, onBrainstorm }: {
+function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMenu, onNavigateToSource, hasBrainstorm, isBrainstormOpen, onBrainstorm }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
   onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
@@ -142,6 +139,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
   onContextMenu: (e: React.MouseEvent) => void
   onNavigateToSource?: (filename: string) => void
   hasBrainstorm?: boolean
+  isBrainstormOpen?: boolean
   onBrainstorm?: () => void
 }) {
   const { t } = useTranslation()
@@ -193,7 +191,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '0.5px solid var(--divider)', transition: 'background 0.1s' }}
     >
       {/* Status bar */}
-      <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 1.5, flexShrink: 0, background: statusBarColor(item) }} />
+      <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 1.5, flexShrink: 0, ...statusBarStyle(item, hasBrainstorm, isBrainstormOpen) }} />
 
       {/* Checkbox */}
       <div
@@ -224,13 +222,13 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
           }}
           onPaste={e => { e.preventDefault(); const text = e.clipboardData.getData('text/plain').replace(/\n/g, ' '); document.execCommand('insertText', false, text) }}
           onBlur={() => handleTextSubmit()}
-          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)', color: 'var(--item-text)', outline: 'none', cursor: 'text', userSelect: 'text' }}
+          style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px', fontFamily: 'var(--font-body)', fontWeight: 'var(--font-normal)', color: 'var(--item-text)', outline: 'none', cursor: 'text', userSelect: 'text' }}
         >{item.text}</div>
       ) : (
         <span onClick={() => !item.done && setEditingText(true)}
           style={{
             flex: 1, minWidth: 0, fontSize: 'var(--text-xs)', lineHeight: '18px',
-            fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-normal)',
+            fontFamily: 'var(--font-body)', fontWeight: 'var(--font-normal)',
             color: item.done ? 'var(--muted-text)' : 'var(--item-text)',
             textDecoration: item.done ? 'line-through' : 'none',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' as const,
@@ -242,7 +240,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       {/* Due badge or calendar icon */}
       {item.due ? (
         <span onMouseDown={e => e.preventDefault()} onClick={e => { if (!item.done) openPicker(e) }}
-          style={{ fontSize: 'var(--text-xs)', padding: '1px 4px', borderRadius: 3, flexShrink: 0, cursor: item.done ? 'default' : 'pointer', whiteSpace: 'nowrap', ...dueBadgeStyle(item.due) }}
+          style={{ fontSize: 10, padding: '1px 4px', borderRadius: 3, flexShrink: 0, cursor: item.done ? 'default' : 'pointer', whiteSpace: 'nowrap', ...dueBadgeStyle(item.due) }}
         >{formatDueShort(item.due)}</span>
       ) : !item.done ? (
         <span className="todo-calendar-icon" onMouseDown={e => e.preventDefault()} onClick={openPicker}
@@ -282,13 +280,17 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
               .catch(console.error)
           }}
           onMouseEnter={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', 'var(--record-btn)') }}
-          onMouseLeave={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', hasBrainstorm ? 'var(--record-btn)' : 'var(--duration-text)') }}
+          onMouseLeave={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', (hasBrainstorm || isBrainstormOpen) ? 'var(--record-btn)' : 'var(--duration-text)') }}
           title={t('exploreInDepth')}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasBrainstorm ? 'var(--record-btn)' : 'var(--duration-text)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="12" height="12" viewBox="0 0 24 24"
+            fill={isBrainstormOpen ? 'var(--record-btn)' : 'none'}
+            stroke={(hasBrainstorm || isBrainstormOpen) ? 'var(--record-btn)' : 'var(--duration-text)'}
+            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+          >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+            {!isBrainstormOpen && <path d="M8 10h.01M12 10h.01M16 10h.01"/>}
           </svg>
         </span>
       )}
@@ -355,6 +357,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
   const [addingText, setAddingText] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lineIndex: number; text: string; due: string | null; path: string | null; doneFile: boolean } | null>(null)
   const [brainstormKeys, setBrainstormKeys] = useState<Set<string>>(new Set())
+  const [openBrainstormKeys, setOpenBrainstormKeys] = useState<Set<string>>(new Set())
   const addInputRef = useRef<HTMLInputElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
@@ -384,7 +387,19 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
       .catch(console.error)
   }, [])
 
+  const refreshOpenBrainstormKeys = useCallback(() => {
+    listOpenBrainstormKeys()
+      .then(keys => setOpenBrainstormKeys(new Set(keys)))
+      .catch(console.error)
+  }, [])
+
   useEffect(() => { refreshBrainstormKeys() }, [todos, refreshBrainstormKeys])
+  // Poll open terminals every 3s so the icon updates when a window is closed
+  useEffect(() => {
+    refreshOpenBrainstormKeys()
+    const id = setInterval(refreshOpenBrainstormKeys, 3000)
+    return () => clearInterval(id)
+  }, [refreshOpenBrainstormKeys])
   useEffect(() => { if (addingGroup !== null && addInputRef.current) addInputRef.current.focus() }, [addingGroup])
 
   useEffect(() => {
@@ -465,7 +480,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
             {/* Rows */}
             {!collapsed && items.map(item => (
               <TodoRow key={item.line_index} item={item} onToggle={onToggle} onSetDue={onSetDue} onUpdateText={onUpdateText} onDelete={onDelete} onNavigateToSource={onNavigateToSource}
-                hasBrainstorm={brainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
+                hasBrainstorm={brainstormKeys.has(item.text)} isBrainstormOpen={openBrainstormKeys.has(item.text)} onBrainstorm={refreshBrainstormKeys}
                 onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, lineIndex: item.line_index, text: item.text, due: item.due, path: item.path, doneFile: item.done_file }) }}
               />
             ))}
@@ -478,7 +493,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
                     onKeyDown={e => handleAddKeyDown(e, key, path)}
                     onBlur={() => handleAddSubmit(key, path)}
                     placeholder={t('addTodo')}
-                    style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
+                    style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
                   />
                 </div>
               ) : (
@@ -506,7 +521,7 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
               onKeyDown={e => handleAddKeyDown(e, '__inbox__', null)}
               onBlur={() => handleAddSubmit('__inbox__', null)}
               placeholder={t('addTodo')}
-              style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
+              style={{ width: '100%', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', background: 'transparent', border: 'none', outline: 'none', color: 'var(--item-text)', padding: 0 }}
             />
           </div>
         ) : (

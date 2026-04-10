@@ -236,9 +236,12 @@ export function CommandDock({
         }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+          <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>
+          <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>
+          <circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/>
         </svg>
       </button>
 
@@ -273,7 +276,7 @@ export function CommandDock({
           }}>
             <div style={{
               width: 32, height: 32,
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--item-icon-bg)',
               borderRadius: 6,
               display: 'flex',
               alignItems: 'center',

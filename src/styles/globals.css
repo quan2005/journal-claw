@@ -44,20 +44,20 @@
   --item-meta: #6a7278;
   --duration-text: #a0a8ad;
   --accent: #ff3b30;
-  --record-btn: #4a6a7a;
-  --record-btn-hover: #3a5a6a;
+  --record-btn: #B8782A;
+  --record-btn-hover: #A06820;
   --record-btn-icon: #f5f6f7;
   --segment-bg: rgba(128,128,128,0.06);
-  --segment-active-bg: rgba(74,106,122,0.10);
+  --segment-active-bg: rgba(184,120,42,0.10);
   --segment-text: #6a7278;
   --segment-active-text: var(--record-btn);
-  --record-highlight: #ebeef0;
-  --record-highlight-bar: rgba(74,106,122,1);
-  --item-icon-bg: #eef1f3;
-  --item-hover-bg: #eff1f2;
-  --item-selected-bg: #ebeef0;
-  --item-selected-text: #3a5a6a;
-  --item-selected-meta: #5a7a8a;
+  --record-highlight: #FBF3E5;
+  --record-highlight-bar: rgba(184,120,42,1);
+  --item-icon-bg: #F5EDD8;
+  --item-hover-bg: #F7F0E4;
+  --item-selected-bg: #F0E4CC;
+  --item-selected-text: #7A5800;
+  --item-selected-meta: #A07828;
   --card-selected-bar: var(--record-btn);
   --date-number: var(--item-text);
   --date-secondary: var(--item-meta);
@@ -65,59 +65,63 @@
   --sheet-bg: var(--bg);
   --sheet-handle: #b8c0c6;
 
+  /* Tags */
+  --tag-text: rgba(90,100,112,0.80);
+  --tag-bg: rgba(90,100,112,0.10);
+
   /* Active day (today) */
-  --date-today-number: #3a5a6a;
-  --date-today-weekday: #5a7a8a;
+  --date-today-number: #8A6500;
+  --date-today-weekday: #A07828;
 
   /* Sidebar */
   --sidebar-bg: #f0f2f3;
   --sidebar-month: #6a7278;
 
   /* AI Status Pill */
-  --ai-pill-bg: #eaf0f3;
-  --ai-pill-border: #a8bcc8;
-  --ai-pill-text: #3a5a6a;
-  --ai-pill-dot: #5a7a8a;
-  --ai-pill-active-text: #2a4a5a;
-  --ai-pill-active-bg: #dce6ec;
-  --ai-pill-active-border: #4a6a7a;
+  --ai-pill-bg: #FBF3E5;
+  --ai-pill-border: #D4A855;
+  --ai-pill-text: #8A6500;
+  --ai-pill-dot: #A07828;
+  --ai-pill-active-text: #6A4E00;
+  --ai-pill-active-bg: #F0E4CC;
+  --ai-pill-active-border: #B8782A;
 
   /* Command Dock */
   --dock-bg: #f0f2f3;
   --dock-border: #d8dce0;
-  --dock-dropzone-border: #98a4ac;
+  --dock-dropzone-border: #C8B898;
   --dock-dropzone-text: #6a7278;
   --dock-dropzone-hint: #8a9298;
-  --dock-dropzone-hover-border: #4a6a7a;
-  --dock-dropzone-hover-bg: #ebeef0;
-  --dock-paste-border: #4a6a7a;
-  --dock-paste-bg: #eaf0f3;
-  --dock-paste-label: #3a5a6a;
-  --dock-kbd-bg: #e0e4e8;
-  --dock-kbd-text: #3a5a6a;
-  --dock-kbd-border: #b8c8d0;
+  --dock-dropzone-hover-border: #B8782A;
+  --dock-dropzone-hover-bg: #F0E4CC;
+  --dock-paste-border: #B8782A;
+  --dock-paste-bg: #FBF3E5;
+  --dock-paste-label: #8A6500;
+  --dock-kbd-bg: #EDE0C8;
+  --dock-kbd-text: #8A6500;
+  --dock-kbd-border: #D4B878;
 
   /* Markdown typography */
   --md-h1: #1c1c1e;
   --md-h2: #2a3038;
-  --md-h3: #404850;
+  --md-h3: #2a3038;
   --md-text: #2a3038;
   --md-strong: #1c1c1e;
   --md-em: #2a3038;
   --md-bullet: #586068;
   --md-code-bg: #e8eaec;
-  --md-code-text: #2d6a9f;
+  --md-code-text: #8A6500;
   --md-pre-bg: #f7f8f9;
   --md-pre-text: #2d2d2d;
   --md-quote-bar: #c0c8ce;
   --md-quote-text: #586068;
   --md-checkbox-border: #b8c0c6;
-  --md-checkbox-checked: #5a8ab5;
+  --md-checkbox-checked: #B8782A;
   --md-checkbox-done-text: #a0a8ad;
 
   /* Markdown links */
-  --md-link: #2d6a9f;
-  --md-link-hover: #1a5080;
+  --md-link: #8A6500;
+  --md-link-hover: #6A4E00;
 
   /* Detail panel */
   --detail-bg: var(--bg);
@@ -130,9 +134,9 @@
   --detail-case-val: #3a3a3c;
 
   /* Source badges */
-  --badge-voice-bg: #f0f4f6;
-  --badge-voice-text: #4a6a7a;
-  --badge-voice-border: #c8d8e0;
+  --badge-voice-bg: #FBF3E5;
+  --badge-voice-text: #8A6500;
+  --badge-voice-border: #D4B878;
   --badge-doc-bg: #e8f0fa;
   --badge-doc-text: #3a6a9a;
   --badge-doc-border: #c0d4ea;
@@ -185,7 +189,7 @@
     --divider: #1e2228;
     --scrollbar-thumb: rgba(255,255,255,0.10);
     --scrollbar-thumb-hover: rgba(255,255,255,0.18);
-    --month-label: #353840;
+    --month-label: #5a5e68;
     --item-text: #e8e8e8;
     --item-meta: #a2a6ae;
     --duration-text: #48484a;
@@ -207,13 +211,17 @@
     --sheet-bg: var(--bg);
     --sheet-handle: #48484a;
 
+    /* Tags */
+    --tag-text: rgba(200,147,59,0.65);
+    --tag-bg: rgba(200,147,59,0.10);
+
     /* Active day (today) */
     --date-today-number: #C8933B;
     --date-today-weekday: #9a6a20;
 
     /* Sidebar */
     --sidebar-bg: #141414;
-    --sidebar-month: #353840;
+    --sidebar-month: #5a5e68;
 
     /* AI Status Pill */
     --ai-pill-bg: #1a1708;
@@ -254,7 +262,7 @@
     --md-quote-bar: #48484a;
     --md-quote-text: #a8acb4;
     --md-checkbox-border: #48484a;
-    --md-checkbox-checked: #0a84ff;
+    --md-checkbox-checked: #C8933B;
     --md-checkbox-done-text: #48484a;
 
     /* Markdown links — dark */
@@ -324,7 +332,7 @@
   --divider: #1e2228;
   --scrollbar-thumb: rgba(255,255,255,0.10);
   --scrollbar-thumb-hover: rgba(255,255,255,0.18);
-  --month-label: #353840;
+  --month-label: #5a5e68;
   --item-text: #e8e8e8;
   --item-meta: #a2a6ae;
   --duration-text: #48484a;
@@ -345,10 +353,12 @@
   --item-selected-meta: #a07830;
   --sheet-bg: var(--bg);
   --sheet-handle: #48484a;
+  --tag-text: rgba(200,147,59,0.65);
+  --tag-bg: rgba(200,147,59,0.10);
   --date-today-number: #C8933B;
   --date-today-weekday: #9a6a20;
   --sidebar-bg: #141414;
-  --sidebar-month: #353840;
+  --sidebar-month: #5a5e68;
   --ai-pill-bg: #1a1708;
   --ai-pill-border: #3a3018;
   --ai-pill-text: #C8933B;
@@ -383,7 +393,7 @@
   --md-quote-bar: #48484a;
   --md-quote-text: #a8acb4;
   --md-checkbox-border: #48484a;
-  --md-checkbox-checked: #0a84ff;
+  --md-checkbox-checked: #C8933B;
   --md-checkbox-done-text: #48484a;
   --md-link: #6cb6ff;
   --md-link-hover: #8cc8ff;
@@ -631,64 +641,66 @@ html, body, #root {
   --item-meta: #6a7278;
   --duration-text: #a0a8ad;
   --accent: #ff3b30;
-  --record-btn: #4a6a7a;
-  --record-btn-hover: #3a5a6a;
+  --record-btn: #B8782A;
+  --record-btn-hover: #A06820;
   --record-btn-icon: #f5f6f7;
   --segment-bg: rgba(128,128,128,0.06);
-  --segment-active-bg: rgba(74,106,122,0.10);
+  --segment-active-bg: rgba(184,120,42,0.10);
   --segment-text: #6a7278;
   --segment-active-text: var(--record-btn);
-  --record-highlight: #ebeef0;
-  --record-highlight-bar: rgba(74,106,122,1);
-  --item-icon-bg: #eef1f3;
-  --item-hover-bg: #eff1f2;
-  --item-selected-bg: #ebeef0;
-  --item-selected-text: #3a5a6a;
-  --item-selected-meta: #5a7a8a;
+  --record-highlight: #FBF3E5;
+  --record-highlight-bar: rgba(184,120,42,1);
+  --item-icon-bg: #F5EDD8;
+  --item-hover-bg: #F7F0E4;
+  --item-selected-bg: #F0E4CC;
+  --item-selected-text: #7A5800;
+  --item-selected-meta: #A07828;
   --sheet-bg: var(--bg);
   --sheet-handle: #b8c0c6;
-  --date-today-number: #3a5a6a;
-  --date-today-weekday: #5a7a8a;
+  --tag-text: rgba(90,100,112,0.80);
+  --tag-bg: rgba(90,100,112,0.10);
+  --date-today-number: #8A6500;
+  --date-today-weekday: #A07828;
   --sidebar-bg: #f0f2f3;
   --sidebar-month: #6a7278;
-  --ai-pill-bg: #eaf0f3;
-  --ai-pill-border: #a8bcc8;
-  --ai-pill-text: #3a5a6a;
-  --ai-pill-dot: #5a7a8a;
-  --ai-pill-active-text: #2a4a5a;
-  --ai-pill-active-bg: #dce6ec;
-  --ai-pill-active-border: #4a6a7a;
+  --ai-pill-bg: #FBF3E5;
+  --ai-pill-border: #D4A855;
+  --ai-pill-text: #8A6500;
+  --ai-pill-dot: #A07828;
+  --ai-pill-active-text: #6A4E00;
+  --ai-pill-active-bg: #F0E4CC;
+  --ai-pill-active-border: #B8782A;
   --dock-bg: #f0f2f3;
   --dock-border: #d8dce0;
-  --dock-dropzone-border: #98a4ac;
+  --dock-dropzone-border: #C8B898;
   --dock-dropzone-text: #6a7278;
   --dock-dropzone-hint: #8a9298;
-  --dock-dropzone-hover-border: #4a6a7a;
-  --dock-dropzone-hover-bg: #ebeef0;
-  --dock-paste-border: #4a6a7a;
-  --dock-paste-bg: #eaf0f3;
-  --dock-paste-label: #3a5a6a;
-  --dock-kbd-bg: #e0e4e8;
-  --dock-kbd-text: #3a5a6a;
-  --dock-kbd-border: #b8c8d0;
+  --dock-dropzone-hover-border: #B8782A;
+  --dock-dropzone-hover-bg: #F0E4CC;
+  --dock-paste-border: #B8782A;
+  --dock-paste-bg: #FBF3E5;
+  --dock-paste-label: #8A6500;
+  --dock-kbd-bg: #EDE0C8;
+  --dock-kbd-text: #8A6500;
+  --dock-kbd-border: #D4B878;
   --md-h1: #1c1c1e;
   --md-h2: #2a3038;
-  --md-h3: #404850;
+  --md-h3: #2a3038;
   --md-text: #2a3038;
   --md-strong: #1c1c1e;
   --md-em: #2a3038;
   --md-bullet: #586068;
   --md-code-bg: #e8eaec;
-  --md-code-text: #2d6a9f;
+  --md-code-text: #8A6500;
   --md-pre-bg: #f7f8f9;
   --md-pre-text: #2d2d2d;
   --md-quote-bar: #c0c8ce;
   --md-quote-text: #586068;
   --md-checkbox-border: #b8c0c6;
-  --md-checkbox-checked: #5a8ab5;
+  --md-checkbox-checked: #B8782A;
   --md-checkbox-done-text: #a0a8ad;
-  --md-link: #2d6a9f;
-  --md-link-hover: #1a5080;
+  --md-link: #8A6500;
+  --md-link-hover: #6A4E00;
   --detail-bg: var(--bg);
   --detail-section-label: #6a7278;
   --detail-summary: #586068;
@@ -697,9 +709,9 @@ html, body, #root {
   --detail-case-title: #1c1c1e;
   --detail-case-key: #6a7278;
   --detail-case-val: #3a3a3c;
-  --badge-voice-bg: #f0f4f6;
-  --badge-voice-text: #4a6a7a;
-  --badge-voice-border: #c8d8e0;
+  --badge-voice-bg: #FBF3E5;
+  --badge-voice-text: #8A6500;
+  --badge-voice-border: #D4B878;
   --badge-doc-bg: #e8f0fa;
   --badge-doc-text: #3a6a9a;
   --badge-doc-border: #c0d4ea;

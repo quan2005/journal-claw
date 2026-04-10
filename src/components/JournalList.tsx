@@ -11,6 +11,9 @@ interface JournalListProps {
   selectedPath: string | null
   onSelect: (entry: JournalEntry) => void
   onProcess?: (entry: JournalEntry) => void
+  hasMore?: boolean
+  loadingMore?: boolean
+  onLoadMore?: () => void
 }
 
 function SkeletonItem({ width, delay }: { width: number; delay: number }) {
@@ -55,7 +58,7 @@ function isToday(yearMonth: string, day: number): boolean {
   return year === now.getFullYear() && month === now.getMonth() + 1 && day === now.getDate()
 }
 
-export function JournalList({ entries, loading, selectedPath, onSelect, onProcess }: JournalListProps) {
+export function JournalList({ entries, loading, selectedPath, onSelect, onProcess, hasMore, loadingMore, onLoadMore }: JournalListProps) {
   const { t, s, lang } = useTranslation()
   const [contextMenu, setContextMenu] = useState<{ entry: JournalEntry; x: number; y: number } | null>(null)
 
@@ -156,6 +159,29 @@ export function JournalList({ entries, loading, selectedPath, onSelect, onProces
         {entries.length === 0 && (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--item-meta)', fontSize: 'var(--text-sm)' }}>
             {t('noEntries')}
+          </div>
+        )}
+
+        {hasMore && (
+          <div style={{ padding: '8px 14px 16px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              style={{
+                background: 'none',
+                border: '0.5px solid var(--divider)',
+                borderRadius: 6,
+                padding: '5px 14px',
+                fontSize: 'var(--text-xs)',
+                color: loadingMore ? 'var(--item-meta)' : 'var(--item-title)',
+                cursor: loadingMore ? 'default' : 'pointer',
+                letterSpacing: '0.04em',
+                opacity: loadingMore ? 0.5 : 1,
+                transition: 'opacity 0.15s ease-out',
+              }}
+            >
+              {loadingMore ? t('loadingMore') : t('loadMore')}
+            </button>
           </div>
         )}
       </div>

@@ -29,7 +29,7 @@ const DIVIDER_WIDTH = 7
 export default function App() {
   const { t } = useTranslation()
   const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
-  const { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
+  const { entries, loading, loadingMore, hasMore, loadMore, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
   const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue, updateTodoText, setTodoPath, removeTodoPath } = useTodos()
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
@@ -297,14 +297,33 @@ export default function App() {
   const handleRemoveFile = (index: number) =>
     setPendingFiles(prev => prev.filter((_, i) => i !== index))
 
-  const handleRecord = async () => {
+  const handleRecord = useCallback(async () => {
     if (status === 'idle') {
       await start()
     } else {
       await stop()
       addConvertingItem(RECORDING_PLACEHOLDER, t('recordingConverting'))
     }
-  }
+  }, [status, start, stop, addConvertingItem, t])
+
+  const handleDeselect = useCallback(() => setSelectedEntry(null), [])
+  const handleOpenDock = useCallback(() => setDockOpen(true), [])
+  const handleSelectSample = useCallback(() => {
+    createSampleEntry().then(async () => {
+      await refresh()
+      const all = await listAllJournalEntries()
+      const sample = all.find(e => e.title === '产品评审示例')
+      if (sample) setSelectedEntry(sample)
+    }).catch(() => {})
+  }, [refresh])
+  const handleAddToTodo = useCallback((text: string, source: string) => {
+    addTodo(text, undefined, source)
+    setTodoOpen(true)
+  }, [addTodo])
+  const handleProcessEntry = useCallback((entry: JournalEntry) => {
+    const rel = `${entry.year_month}/${entry.filename}`
+    setDockAppendText(`@${rel}`)
+  }, [])
 
   const handlePasteSubmit = async (text: string) => {
     await triggerAiPrompt(text)
@@ -446,6 +465,9 @@ export default function App() {
                       const rel = `${entry.year_month}/${entry.filename}`
                       setDockAppendText(`@${rel}`)
                     }}
+                    hasMore={hasMore}
+                    loadingMore={loadingMore}
+                    onLoadMore={loadMore}
                   />
                 </div>
                 <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column' }}>
@@ -480,25 +502,12 @@ export default function App() {
                 <DetailPanel
                   entry={selectedEntry}
                   entries={entries}
-                  onDeselect={() => setSelectedEntry(null)}
+                  onDeselect={handleDeselect}
                   onRecord={handleRecord}
-                  onOpenDock={() => setDockOpen(true)}
-                  onSelectSample={() => {
-                    createSampleEntry().then(async () => {
-                      await refresh()
-                      const all = await listAllJournalEntries()
-                      const sample = all.find(e => e.title === '产品评审示例')
-                      if (sample) setSelectedEntry(sample)
-                    }).catch(() => {})
-                  }}
-                  onAddToTodo={(text: string, source: string) => {
-                    addTodo(text, undefined, source)
-                    setTodoOpen(true)
-                  }}
-                  onProcess={(entry) => {
-                    const rel = `${entry.year_month}/${entry.filename}`
-                    setDockAppendText(`@${rel}`)
-                  }}
+                  onOpenDock={handleOpenDock}
+                  onSelectSample={handleSelectSample}
+                  onAddToTodo={handleAddToTodo}
+                  onProcess={handleProcessEntry}
                 />
               ) : (
                 <IdentityDetail identity={selectedIdentity} onRecord={handleRecord} onOpenDock={() => setDockOpen(true)} />

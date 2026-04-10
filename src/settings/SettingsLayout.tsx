@@ -256,6 +256,8 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
     return () => cancelAnimationFrame(frame)
   }, [initialSection]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const DISABLED_NAVS: ReadonlySet<NavId> = new Set(['im'])
+
   const navBtnStyle = (id: NavId): React.CSSProperties => ({
     width: '100%',
     display: 'grid',
@@ -265,12 +267,13 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
     padding: '8px 10px',
     borderRadius: 8,
     border: 'none',
-    cursor: 'pointer',
+    cursor: DISABLED_NAVS.has(id) ? 'default' : 'pointer',
     fontSize: 14,
     fontWeight: 500,
     textAlign: 'left',
-    background: activeNav === id ? 'rgba(200,147,58,0.12)' : 'transparent',
-    color: activeNav === id ? 'var(--record-btn)' : 'var(--item-meta)',
+    background: DISABLED_NAVS.has(id) ? 'transparent' : (activeNav === id ? 'rgba(200,147,58,0.12)' : 'transparent'),
+    color: DISABLED_NAVS.has(id) ? 'var(--item-meta)' : (activeNav === id ? 'var(--record-btn)' : 'var(--item-meta)'),
+    opacity: DISABLED_NAVS.has(id) ? 0.35 : 1,
   })
 
   return (
@@ -297,7 +300,7 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
         }}
       >
         {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => jumpTo(id)} style={navBtnStyle(id)}>
+          <button key={id} onClick={() => { if (!DISABLED_NAVS.has(id)) jumpTo(id) }} style={navBtnStyle(id)}>
             <span style={navIconStyle}>
               <Icon size={14} strokeWidth={1.5} />
             </span>

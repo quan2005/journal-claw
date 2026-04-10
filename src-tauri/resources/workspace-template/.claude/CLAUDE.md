@@ -29,7 +29,7 @@ Respond in the same language as the source material unless the user specifies ot
 | ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
 | `identity/README.md`          | **The user themselves** — name, role, preferences | User edits directly; you add info when you learn it from materials |
 | `identity/{region}-{name}.md` | **People** the user works with                    | You create and maintain these                                      |
-| `identity/{type}-{name}.md`   | **Key entities** — products, orgs, projects       | High bar; see admission rules below                                |
+| `identity/{type}-{name}.md`   | **Key entities** — products, orgs, projects, concepts | High bar; see admission rules below                            |
 
 
 ### Identity behavior when processing materials
@@ -60,7 +60,9 @@ Only create an entity profile when **all three** conditions are met:
 2. **Recall value** — you need its background to write better future entries (e.g. product positioning, project phase)
 3. **Evolving attributes** — it has properties that change over time (version, stage, owner, key decisions)
 
-If in doubt, keep the information in the journal entry. Entity profiles use `{type}-{name}.md` where type is `product`, `org`, or `project`. Add a `type` field in frontmatter to distinguish from people.
+If in doubt, keep the information in the journal entry. Entity profiles use `{type}-{name}.md` where type is `product`, `org`, `project`, or `concept`. Add a `type` field in frontmatter to distinguish from people.
+
+**`concept` type** is for internal/private concepts only — product codenames, proprietary systems, team-specific terminology that cannot be looked up externally. Do NOT create concept profiles for public tools or frameworks (Claude Code, RAG, Dify, etc.). Use `.claude/scripts/identity-create "concept" "{name}"` to create them.
 
 ### Notes
 

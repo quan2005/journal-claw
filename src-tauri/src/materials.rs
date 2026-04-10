@@ -87,10 +87,8 @@ fn write_paste_text(dest: &std::path::Path, text: &str) -> Result<(), String> {
 /// Temp files are cleaned up automatically by the OS.
 #[tauri::command]
 pub fn import_text_temp(text: String) -> Result<ImportResult, String> {
-    let now = chrono::Local::now();
-    let ts = now.format("%Y%m%d-%H%M%S").to_string();
-    let day = now.day();
-    let filename = format!("{:02}-paste-{}.txt", day, ts);
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
+    let filename = format!("paste-{}.txt", ts);
     let dest = std::env::temp_dir().join(&filename);
     write_paste_text(&dest, &text)?;
     Ok(ImportResult {

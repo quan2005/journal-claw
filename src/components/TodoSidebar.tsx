@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
-import { openBrainstormTerminal, listBrainstormKeys, listOpenBrainstormKeys, pickFolder } from '../lib/tauri'
+import { openBrainstormTerminal, listBrainstormKeys, listOpenBrainstormKeys, clearBrainstormSession, pickFolder } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({ initialValue, onSelect, onClose }: {
@@ -180,15 +180,11 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       onContextMenu={onContextMenu}
       onMouseEnter={e => {
         (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
-        const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
-        if (src) src.style.opacity = '0.6'
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLElement).style.background = 'transparent'
-        const src = (e.currentTarget as HTMLElement).querySelector('.todo-source-icon') as HTMLElement | null
-        if (src) src.style.opacity = '0.35'
       }}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '0.5px solid var(--divider)', transition: 'background 0.1s' }}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 14px', borderBottom: '0.5px solid var(--divider)', transition: 'background 0.1s' }}
     >
       {/* Status bar */}
       <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 1.5, flexShrink: 0, ...statusBarStyle(item, hasBrainstorm, isBrainstormOpen) }} />
@@ -199,7 +195,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
         onMouseEnter={e => { if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--record-btn)' }}
         onMouseLeave={e => { if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--divider)' }}
         style={{
-          width: 13, height: 13, flexShrink: 0, cursor: 'pointer',
+          width: 12, height: 12, flexShrink: 0, cursor: 'pointer', marginTop: 3,
           border: `1.5px solid ${item.done ? 'var(--record-btn)' : 'var(--divider)'}`,
           borderRadius: 3, background: item.done ? 'var(--record-btn)' : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -240,13 +236,13 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       {/* Due badge or calendar icon */}
       {item.due ? (
         <span onMouseDown={e => e.preventDefault()} onClick={e => { if (!item.done) openPicker(e) }}
-          style={{ fontSize: 10, padding: '1px 4px', borderRadius: 3, flexShrink: 0, cursor: item.done ? 'default' : 'pointer', whiteSpace: 'nowrap', ...dueBadgeStyle(item.due) }}
+          style={{ fontSize: 10, padding: '1px 4px', borderRadius: 3, flexShrink: 0, cursor: item.done ? 'default' : 'pointer', whiteSpace: 'nowrap', marginTop: 3, ...dueBadgeStyle(item.due) }}
         >{formatDueShort(item.due)}</span>
       ) : !item.done ? (
         <span className="todo-calendar-icon" onMouseDown={e => e.preventDefault()} onClick={openPicker}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
-          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0, marginTop: 3 }}
           title={t('setDueDate')}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -258,12 +254,12 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
       {/* Source icon */}
       {item.source && (
         <span className="todo-source-icon" onMouseDown={e => e.preventDefault()} onClick={() => onNavigateToSource?.(item.source!)}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.35' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--record-btn)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--duration-text)' }}
           title={item.source}
-          style={{ cursor: 'pointer', opacity: 0.35, display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'opacity 0.1s', willChange: 'opacity' }}
+          style={{ cursor: 'pointer', color: 'var(--duration-text)', display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'color 0.1s', marginTop: 3 }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted-icon)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
           </svg>
@@ -282,7 +278,7 @@ function TodoRow({ item, onToggle, onSetDue, onUpdateText, onDelete, onContextMe
           onMouseEnter={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', 'var(--record-btn)') }}
           onMouseLeave={e => { (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('stroke', (hasBrainstorm || isBrainstormOpen) ? 'var(--record-btn)' : 'var(--duration-text)') }}
           title={t('exploreInDepth')}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0, marginTop: 3 }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24"
             fill={isBrainstormOpen ? 'var(--record-btn)' : 'none'}
@@ -577,6 +573,22 @@ export function TodoSidebar({ width, todos, onToggle, onAdd, onDelete, onSetDue,
                 <path d="M8 10h.01M12 10h.01M16 10h.01"/>
               </svg>
               {t('exploreInDepth')}
+            </div>
+          )}
+          {!contextMenu.doneFile && brainstormKeys.has(contextMenu.text) && (
+            <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}
+              onClick={() => {
+                clearBrainstormSession(contextMenu.text)
+                  .then(() => listBrainstormKeys())
+                  .then(keys => setBrainstormKeys(new Set(keys)))
+                  .catch(console.error)
+                setContextMenu(null)
+              }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <line x1="9" y1="10" x2="15" y2="10"/>
+              </svg>
+              {t('clearExploreSession')}
             </div>
           )}
           <div style={menuItemStyle} onMouseEnter={hi} onMouseLeave={ho}

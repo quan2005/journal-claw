@@ -98,15 +98,14 @@ describe('Dark theme invariance', () => {
     }
   })
 
-  it('should preserve dark theme tags.ts alpha values', () => {
-    const tagsSource = fs.readFileSync(
-      path.resolve(__dirname, '../lib/tags.ts'),
+  it('should preserve dark theme tag CSS tokens', () => {
+    const css = fs.readFileSync(
+      path.resolve(__dirname, '../styles/globals.css'),
       'utf-8',
     )
-    // Dark theme textAlpha = 0.65
-    expect(tagsSource).toMatch(/0\.65/)
-    // Dark theme bgAlpha = 0.10
-    expect(tagsSource).toMatch(/0\.10/)
+    // Dark theme tag tokens
+    expect(css).toContain('--tag-text: rgba(200,147,59,0.65)')
+    expect(css).toContain('--tag-bg: rgba(200,147,59,0.10)')
   })
 })
 
@@ -159,25 +158,25 @@ describe('Accent colors unchanged', () => {
   const rootVars = rootMatch ? parseVarsFromBlock(rootMatch[1]) : new Map()
 
   const ACCENT_SNAPSHOT: Record<string, string> = {
-    '--record-btn': '#4a6a7a',
-    '--record-btn-hover': '#3a5a6a',
-    '--item-selected-text': '#3a5a6a',
+    '--record-btn': '#B8782A',
+    '--record-btn-hover': '#A06820',
+    '--item-selected-text': '#7A5800',
     '--md-h1': '#1c1c1e',
     '--md-h2': '#2a3038',
     '--md-strong': '#1c1c1e',
-    '--ai-pill-text': '#3a5a6a',
-    '--ai-pill-active-text': '#2a4a5a',
-    '--ai-pill-active-border': '#4a6a7a',
-    '--dock-paste-border': '#4a6a7a',
-    '--dock-paste-label': '#3a5a6a',
-    '--dock-kbd-text': '#3a5a6a',
-    '--dock-dropzone-hover-border': '#4a6a7a',
-    '--date-today-number': '#3a5a6a',
-    '--date-today-weekday': '#5a7a8a',
-    '--item-selected-meta': '#5a7a8a',
-    '--md-link': '#2d6a9f',
-    '--md-link-hover': '#1a5080',
-    '--md-code-text': '#2d6a9f',
+    '--ai-pill-text': '#8A6500',
+    '--ai-pill-active-text': '#6A4E00',
+    '--ai-pill-active-border': '#B8782A',
+    '--dock-paste-border': '#B8782A',
+    '--dock-paste-label': '#8A6500',
+    '--dock-kbd-text': '#8A6500',
+    '--dock-dropzone-hover-border': '#B8782A',
+    '--date-today-number': '#8A6500',
+    '--date-today-weekday': '#A07828',
+    '--item-selected-meta': '#A07828',
+    '--md-link': '#8A6500',
+    '--md-link-hover': '#6A4E00',
+    '--md-code-text': '#8A6500',
   }
 
   for (const [varName, expectedValue] of Object.entries(ACCENT_SNAPSHOT)) {

@@ -5,7 +5,7 @@ import rehypeHighlight from 'rehype-highlight'
 import { Check } from 'lucide-react'
 import { MarkdownLi } from '../lib/markdownLi'
 import type { JournalEntry } from '../types'
-import { getJournalEntryContent } from '../lib/tauri'
+import { getJournalEntryContent, getWorkspacePath, openFile } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
@@ -166,7 +166,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo, onProcess }: DetailPanelProps) {
+export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo, onProcess }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
@@ -398,42 +398,65 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
             </div>
           )}
 
-          {displayTags.length > 0 && (
-            <div style={{
-              display: 'flex',
-              gap: 6,
-              flexWrap: 'wrap',
-            }}>
+          {(displayTags.length > 0 || entry.sources.length > 0) && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {displayTags.map((cfg, i) => (
                 <span key={i} style={{
                   fontSize: 'var(--text-xs)',
                   padding: '2px 8px',
                   borderRadius: 4,
                   fontWeight: 'var(--font-medium)',
-                  color: cfg.color,
-                  background: cfg.bg,
+                  color: "var(--tag-text)",
+                  background: "var(--tag-bg)",
                   fontFamily: 'var(--font-mono)',
                   whiteSpace: 'nowrap',
                 }}>
                   {cfg.label}
                 </span>
               ))}
-            </div>
-          )}
-
-          {entry.sources.length > 0 && (
-            <div
-              data-testid="sources-row"
-              style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: displayTags.length > 0 ? 8 : 0 }}
-            >
               {entry.sources.map((src, i) => {
                 const filename = src.split('/').pop() ?? src
                 const kind = fileKindFromName(filename)
-                const audioPath = 'M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z'
-                const filePath = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'
-                const iconPath = kind === 'audio' ? audioPath : filePath
+                const iconPaths: Record<typeof kind, React.ReactNode> = {
+                  audio: <><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>,
+                  text: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></>,
+                  markdown: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="10 15 12 17 14 15"/><line x1="12" y1="12" x2="12" y2="17"/></>,
+                  pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M9 13h1.5a1 1 0 0 0 0-2H9v4"/><path d="M14 11h2"/><path d="M14 13h2"/><path d="M14 15h1"/></>,
+                  docx: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="9" x2="14" y2="9"/></>,
+                  image: <><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>,
+                  other: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>,
+                }
+                const handleSourceClick = async () => {
+                  const srcFilename = src.split('/').pop() ?? src
+                  if (kind === 'markdown') {
+                    // If entry is loaded, navigate to it; otherwise open with system default
+                    const match = entries.find(e => e.filename === srcFilename)
+                    if (match) {
+                      window.dispatchEvent(new CustomEvent('journal-entry-navigate', { detail: { filename: srcFilename } }))
+                    } else {
+                      try {
+                        const ws = await getWorkspacePath()
+                        await openFile(`${ws}/${src}`)
+                      } catch (e) {
+                        console.error('[source-click] open failed:', e)
+                      }
+                    }
+                  } else {
+                    // Open with system default app
+                    try {
+                      const ws = await getWorkspacePath()
+                      await openFile(`${ws}/${src}`)
+                    } catch (e) {
+                      console.error('[source-click] open failed:', e)
+                    }
+                  }
+                }
                 return (
-                  <span key={i} style={{
+                  <span key={`src-${i}`} data-testid="sources-row"
+                    onClick={handleSourceClick}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--item-selected-text)' }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--item-meta)' }}
+                    style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                     fontSize: 'var(--text-xs)',
                     padding: '2px 7px',
@@ -442,13 +465,16 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
                     background: 'var(--item-icon-bg)',
                     fontFamily: 'var(--font-mono)',
                     whiteSpace: 'nowrap',
-                    maxWidth: 200,
+                    maxWidth: 240,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
+                    cursor: 'pointer',
+                    transition: 'color 0.15s ease-out',
                   }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d={iconPath} />
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}>
+                      {iconPaths[kind]}
                     </svg>
                     {filename}
                   </span>
@@ -617,7 +643,7 @@ export function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, 
       />
     </div>
   )
-}
+})
 
 function resolveRelativePath(baseDir: string, relative: string): string {
   const parts = baseDir.split('/')

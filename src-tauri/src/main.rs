@@ -376,6 +376,7 @@ fn main() {
             brainstorm::open_brainstorm_terminal,
             brainstorm::list_brainstorm_keys,
             brainstorm::list_open_brainstorm_keys,
+            brainstorm::clear_brainstorm_session,
             workspace_settings::get_auto_lint_config,
             workspace_settings::set_auto_lint_config,
             auto_lint::get_auto_lint_status,

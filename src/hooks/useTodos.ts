@@ -24,9 +24,12 @@ export function useTodos() {
     refresh()
 
     const unlistenTodos = listen('todos-updated', () => refresh())
+    // Poll every 3s to catch external edits (e.g. brainstorm terminal)
+    const pollId = setInterval(refresh, 3000)
 
     return () => {
       unlistenTodos.then(fn => fn())
+      clearInterval(pollId)
     }
   }, [refresh])
 

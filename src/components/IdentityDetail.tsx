@@ -810,7 +810,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                 {displayTags.map((cfg, i) => (
                   <span key={i} style={{
                     fontSize: 'var(--text-xs)', padding: '2px 9px', borderRadius: 4,
-                    fontWeight: 'var(--font-medium)', color: cfg.color, background: cfg.bg,
+                    fontWeight: 'var(--font-medium)', color: 'var(--tag-text)', background: 'var(--tag-bg)',
                     fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
                   }}>
                     {cfg.label}

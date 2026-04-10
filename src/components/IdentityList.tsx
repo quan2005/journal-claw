@@ -98,7 +98,7 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
           {displayTags.length > 0 && displayTags.map((cfg, i) => (
             <span key={i} style={{
               fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 3,
-              fontWeight: 'var(--font-medium)', color: cfg.color, background: cfg.bg,
+              fontWeight: 'var(--font-medium)', color: 'var(--tag-text)', background: 'var(--tag-bg)',
               fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
               flexShrink: 0,
             }}>

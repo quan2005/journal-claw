@@ -48,19 +48,8 @@ export default function App() {
   const [dockAppendText, setDockAppendText] = useState('')
   const [todoOpen, setTodoOpen] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
-  const sidebarAnimRef = useRef<HTMLDivElement>(null)
-  const detailAnimRef = useRef<HTMLDivElement>(null)
 
   const handleTabChange = useCallback((tab: SidebarTab) => {
-    const anim = 'tab-crossfade 0.12s ease-out'
-    // Restart animation by removing then re-adding
-    for (const ref of [sidebarAnimRef, detailAnimRef]) {
-      if (ref.current) {
-        ref.current.style.animation = 'none'
-        void ref.current.offsetHeight // force reflow
-        ref.current.style.animation = anim
-      }
-    }
     setSidebarTab(tab)
   }, [])
   const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
@@ -454,7 +443,7 @@ export default function App() {
             {/* Left: Journal list / Identity list */}
             <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
               <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
-              <div ref={sidebarAnimRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column' }}>
                   <JournalList
                     entries={entries}
@@ -497,7 +486,7 @@ export default function App() {
             />
 
             {/* Right: Detail panel / Identity detail */}
-            <div ref={detailAnimRef} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {sidebarTab === 'journal' ? (
                 <DetailPanel
                   entry={selectedEntry}
@@ -557,7 +546,7 @@ export default function App() {
               }}
             />
           )}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ position: 'relative', flexShrink: 0, display: view === 'settings' ? 'none' : undefined }}>
             <div style={{
               position: 'absolute',
               bottom: '100%',

@@ -132,7 +132,7 @@ export function CommandDock({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (inputOpen) { handleCancel(); return }
+        if (inputOpen) { e.stopImmediatePropagation(); handleCancel(); return }
       }
       if (inputOpen && e.key === 'Enter' && !e.shiftKey) {
         if (inputRef.current && document.activeElement === inputRef.current) return
@@ -164,8 +164,8 @@ export function CommandDock({
         return
       }
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
   }, [inputOpen, hasFiles, pendingFiles])
 
   function showToast(msg: string) {

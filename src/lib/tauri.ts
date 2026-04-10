@@ -292,6 +292,9 @@ export const listBrainstormKeys = (): Promise<string[]> =>
 export const listOpenBrainstormKeys = (): Promise<string[]> =>
   invoke<string[]>('list_open_brainstorm_keys')
 
+export const clearBrainstormSession = (text: string): Promise<void> =>
+  invoke<void>('clear_brainstorm_session', { text })
+
 // Auto lint (自动整理)
 export interface AutoLintConfig {
   enabled: boolean

@@ -147,6 +147,7 @@ export const en = {
   copyText: 'Copy text',
   deleteTodo: 'Delete',
   exploreInDepth: 'Explore',
+  clearExploreSession: 'Clear explore session',
   setPath: 'Set path…',
   removePath: 'Remove path',
   pathGroupDefault: 'Default',

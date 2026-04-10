@@ -149,6 +149,7 @@ export const zh: Strings = {
   copyText: '复制文本',
   deleteTodo: '删除',
   exploreInDepth: '探讨',
+  clearExploreSession: '清理探讨进程',
   setPath: '设置路径…',
   removePath: '移除路径',
   pathGroupDefault: '默认',

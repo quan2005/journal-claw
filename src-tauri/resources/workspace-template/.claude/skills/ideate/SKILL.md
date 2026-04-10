@@ -1,8 +1,7 @@
 ---
-
-## name: ideate
-
+name: ideate
 description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感的互动式头脑风暴体验。通过优雅的浏览器可视化画布，将用户的模糊想法打磨成产品级设计方案。"
+---
 
 # 灵感探讨 (Ideate Pro Max)
 
@@ -52,7 +51,7 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
 在决定输出路径前，请观察项目根目录结构：
 
 - **如果是日记工作区** (存在 `yyMM/` 目录或 `identity/` 目录)：
-  1. **可视化探索稿 (HTML)**：写入当前年月的素材目录 `yyMM/raw/DD-ideate-{topic}-v{n}.html`
+  1. **可视化探索稿 (HTML)**：写入当前年月的素材目录 `yyMM/raw/{topic}/DD-ideate-{topic}-v{n}.html`
   2. **最终设计方案 (Markdown)**：写入 `yyMM/DD-ideate-{标题}.md` (可使用 `journal-create` 脚本或直接创建)
 - **如果是普通代码项目** (无日记结构特征)：
   1. **可视化探索稿 (HTML)**：写入项目根目录下的 `.ideate/{topic}-v{n}.html` (提示用户将其加入 `.gitignore`)
@@ -70,6 +69,8 @@ description: "灵感探讨与设计咨询 (Ideate Pro) — 提供极具设计感
     ---
     summary: 一句话精准概括设计方向与核心决策
     tags: [idea, design]
+    sources: [yyMM/raw/{topic}/DD-ideate-{topic}-v1.html, yyMM/raw/{topic}/DD-ideate-{topic}-v2.html]
     ---
     ```
+    `sources` 列出本次 ideate 过程中生成的所有 HTML 探索稿路径（工作区相对路径），方便日后回溯设计演进。
 

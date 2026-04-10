@@ -79,6 +79,17 @@ fn app_file(session_short: &str) -> PathBuf {
     std::env::temp_dir().join(format!("journal-ideate-{}.app", session_short))
 }
 
+/// Check if a terminal process is still alive (no side effects).
+fn is_process_alive(session_short: &str) -> bool {
+    let pf = pid_file(session_short);
+    if let Ok(pid_str) = std::fs::read_to_string(&pf) {
+        if let Ok(pid) = pid_str.trim().parse::<i32>() {
+            return unsafe { libc::kill(pid, 0) == 0 };
+        }
+    }
+    false
+}
+
 /// Check if a terminal process is still alive, and activate it if so.
 fn try_activate_existing(session_short: &str) -> bool {
     let pf = pid_file(session_short);
@@ -128,8 +139,54 @@ fn setup_ideate_symlink(workspace: &str, target_dir: &str) {
     let _ = std::os::unix::fs::symlink(&src, &link);
 }
 
+/// Detect the user's preferred terminal app for opening .command files.
+/// Checks TERM_PROGRAM env var first, then looks for running terminal processes.
+fn detect_preferred_terminal() -> Option<String> {
+    // 1. Check TERM_PROGRAM (set when app is launched from a terminal)
+    if let Ok(term) = std::env::var("TERM_PROGRAM") {
+        let app = match term.as_str() {
+            "ghostty" => "Ghostty",
+            "iTerm.app" => "iTerm",
+            "Apple_Terminal" => "Terminal",
+            "WarpTerminal" => "Warp",
+            "Alacritty" => "Alacritty",
+            "kitty" => "kitty",
+            "WezTerm" => "WezTerm",
+            "Hyper" => "Hyper",
+            _ => "",
+        };
+        if !app.is_empty() {
+            return Some(app.to_string());
+        }
+    }
+
+    // 2. Check running terminal processes (covers Finder/Spotlight launch)
+    if let Ok(output) = std::process::Command::new("ps")
+        .args(["-eo", "comm="])
+        .output()
+    {
+        let ps_out = String::from_utf8_lossy(&output.stdout);
+        // Order: prefer non-Apple terminals first
+        let known = [
+            ("ghostty", "Ghostty"),
+            ("iTerm2", "iTerm"),
+            ("Warp", "Warp"),
+            ("Alacritty", "Alacritty"),
+            ("kitty", "kitty"),
+            ("WezTerm", "WezTerm"),
+            ("Hyper", "Hyper"),
+        ];
+        for (pattern, app) in known {
+            if ps_out.lines().any(|l| l.contains(pattern)) {
+                return Some(app.to_string());
+            }
+        }
+    }
+
+    None
+}
+
 /// Spawn a terminal running a command, tracking PID and terminal app name.
-/// Uses the same .command file approach as open_claude_terminal.
 fn spawn_tracked_terminal(
     session_short: &str,
     workspace: &str,
@@ -168,11 +225,22 @@ fn spawn_tracked_terminal(
             .map_err(|e| e.to_string())?;
     }
 
-    std::process::Command::new("open")
-        .arg(&tmp_path)
+    let mut cmd = std::process::Command::new("open");
+    if let Some(app) = detect_preferred_terminal() {
+        cmd.args(["-a", &app]);
+    }
+    cmd.arg(&tmp_path)
         .spawn()
         .map(|_| ())
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn clear_brainstorm_session(app: tauri::AppHandle, text: String) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    let mut store = load_sessions(&cfg.workspace_path);
+    store.sessions.remove(&text);
+    save_sessions(&cfg.workspace_path, &store)
 }
 
 #[tauri::command]
@@ -180,6 +248,20 @@ pub fn list_brainstorm_keys(app: tauri::AppHandle) -> Result<Vec<String>, String
     let cfg = crate::config::load_config(&app)?;
     let store = load_sessions(&cfg.workspace_path);
     Ok(store.sessions.keys().cloned().collect())
+}
+
+/// Returns keys whose terminal process is currently alive (no window activation).
+#[tauri::command]
+pub fn list_open_brainstorm_keys(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let cfg = crate::config::load_config(&app)?;
+    let store = load_sessions(&cfg.workspace_path);
+    let open: Vec<String> = store
+        .sessions
+        .iter()
+        .filter(|(_, info)| is_process_alive(&info.session_id[..8]))
+        .map(|(key, _)| key.clone())
+        .collect();
+    Ok(open)
 }
 
 #[tauri::command]

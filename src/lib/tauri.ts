@@ -283,7 +283,7 @@ export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile
 export const listBrainstormKeys = (): Promise<string[]> =>
   invoke<string[]>('list_brainstorm_keys')
 
-// Auto dream (自动整理)
+// Auto lint (自动整理)
 export interface AutoLintConfig {
   enabled: boolean
   frequency: 'daily' | 'weekly' | 'monthly'

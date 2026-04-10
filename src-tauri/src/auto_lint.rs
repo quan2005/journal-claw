@@ -28,7 +28,7 @@ struct LastLint {
 /// Shared state: signals the scheduler loop to re-evaluate config.
 pub struct AutoLintNotify(pub std::sync::Arc<Notify>);
 
-/// Whether a dream is currently running (prevents concurrent runs).
+/// Whether a lint run is currently running (prevents concurrent runs).
 pub struct LintRunning(pub Mutex<bool>);
 
 // ── Helpers ──────────────────────────────────────────────

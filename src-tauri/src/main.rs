@@ -162,7 +162,7 @@ fn main() {
                     recorder::recover_interrupted_recordings(app.handle().clone(), &cfg.workspace_path);
                 }
 
-                // ── Auto dream scheduler ──
+                // ── Auto lint scheduler ──
                 auto_lint::check_missed_run(app.handle());
                 auto_lint::start_scheduler(app.handle().clone());
                 // ── Feishu bridge ──

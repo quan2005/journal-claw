@@ -102,6 +102,9 @@ export const zh: Strings = {
   noEntries: '还没有日志条目。点击录音按钮或拖入文件开始记录。',
   weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
   monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  loadMore: '加载更多',
+  loadingMore: '加载中…',
+  allLoaded: '已加载全部',
 
   // ProcessingQueue
   converting: '转换中',
@@ -271,7 +274,7 @@ export const zh: Strings = {
   assistantDesc: '定义谨迹的角色与工作偏好',
 
   // DetailPanel context menu + code block
-  addToTodo: '添加到待办',
+  addToTodo: '添加到想法',
 
   // IdentityDetail / SoulView editing
   search: '搜索…',

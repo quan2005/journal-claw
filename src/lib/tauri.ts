@@ -47,6 +47,12 @@ export const setClaudeCliPath = (path: string) =>
   invoke<void>('set_claude_cli_path', { path })
 
 // Journal
+export const listAvailableMonths = () =>
+  invoke<string[]>('list_available_months')
+
+export const listJournalEntriesByMonths = (months: string[]) =>
+  invoke<JournalEntry[]>('list_journal_entries_by_months', { months })
+
 export const listAllJournalEntries = () =>
   invoke<JournalEntry[]>('list_all_journal_entries')
 
@@ -282,6 +288,9 @@ export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile
 
 export const listBrainstormKeys = (): Promise<string[]> =>
   invoke<string[]>('list_brainstorm_keys')
+
+export const listOpenBrainstormKeys = (): Promise<string[]> =>
+  invoke<string[]>('list_open_brainstorm_keys')
 
 // Auto lint (自动整理)
 export interface AutoLintConfig {

@@ -100,6 +100,9 @@ export const en = {
   noEntries: 'No journal entries yet. Start recording or drop a file.',
   weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  loadMore: 'Load more',
+  loadingMore: 'Loading…',
+  allLoaded: 'All entries loaded',
 
   // ProcessingQueue
   converting: 'Converting',
@@ -269,7 +272,7 @@ export const en = {
   assistantDesc: 'Define how JournalClaw organizes and understands your notes',
 
   // DetailPanel context menu + code block
-  addToTodo: 'Add to Todo',
+  addToTodo: 'Add to Ideas',
 
   // IdentityDetail / SoulView editing
   search: 'Search…',

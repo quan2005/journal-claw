@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use crate::workspace;
 use std::path::PathBuf;
 
@@ -37,7 +38,8 @@ pub fn copy_to_raw(src_path: &str, workspace: &str, year_month: &str) -> Result<
         .extension()
         .map(|e| format!(".{}", e.to_string_lossy()))
         .unwrap_or_default();
-    let dest_name = format!("{}-{}{}", stem, hash8, ext);
+    let day = chrono::Local::now().day();
+    let dest_name = format!("{:02}-{}-{}{}", day, stem, hash8, ext);
     let dest = raw.join(&dest_name);
     if dest.exists() {
         return Ok(dest);
@@ -86,7 +88,8 @@ fn write_paste_text(dest: &std::path::Path, text: &str) -> Result<(), String> {
 #[tauri::command]
 pub fn import_text_temp(text: String) -> Result<ImportResult, String> {
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
-    let filename = format!("paste-{}.txt", ts);
+    let day = chrono::Local::now().day();
+    let filename = format!("{:02}-paste-{}.txt", day, ts);
     let dest = std::env::temp_dir().join(&filename);
     write_paste_text(&dest, &text)?;
     Ok(ImportResult {
@@ -106,7 +109,8 @@ pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String>
     ws::ensure_dirs(&cfg.workspace_path, &ym)?;
     let raw = ws::raw_dir(&cfg.workspace_path, &ym);
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
-    let filename = format!("paste-{}.txt", ts);
+    let day = chrono::Local::now().day();
+    let filename = format!("{:02}-paste-{}.txt", day, ts);
     let dest = raw.join(&filename);
     write_paste_text(&dest, &text)?;
     Ok(ImportResult {

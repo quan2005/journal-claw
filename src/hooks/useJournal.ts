@@ -1,36 +1,87 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import { listAllJournalEntries } from '../lib/tauri'
+import { listAvailableMonths, listJournalEntriesByMonths } from '../lib/tauri'
 import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
 
 export const RECORDING_PLACEHOLDER = '__recording__'
 
+const BATCH_SIZE = 3
+
 export function useJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [availableMonths, setAvailableMonths] = useState<string[]>([])
+  const [loadedMonths, setLoadedMonths] = useState<string[]>([])
+  const [loadingMore, setLoadingMore] = useState(false)
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const removalTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const refreshing = useRef(false)
+  const availableMonthsRef = useRef<string[]>([])
+  const loadedMonthsRef = useRef<string[]>([])
 
   const refresh = useCallback(async () => {
     if (refreshing.current) return
     refreshing.current = true
     try {
-      const result = await listAllJournalEntries()
-      // Only update state when data actually changed to avoid unnecessary re-renders
-      // that clear text selection in DetailPanel
-      setEntries(prev => {
-        if (prev.length !== result.length) return result
-        for (let i = 0; i < prev.length; i++) {
-          if (prev[i].path !== result[i].path || prev[i].mtime_secs !== result[i].mtime_secs) return result
+      const allMonths = await listAvailableMonths()
+      availableMonthsRef.current = allMonths
+      setAvailableMonths(allMonths)
+
+      const currentLoaded = loadedMonthsRef.current
+      if (currentLoaded.length === 0) {
+        // Initial load: first BATCH_SIZE months
+        const initial = allMonths.slice(0, BATCH_SIZE)
+        if (initial.length > 0) {
+          const result = await listJournalEntriesByMonths(initial)
+          loadedMonthsRef.current = initial
+          setLoadedMonths(initial)
+          setEntries(result)
         }
-        return prev
-      })
+      } else {
+        // Refresh already-loaded months only
+        const result = await listJournalEntriesByMonths(currentLoaded)
+        setEntries(prev => {
+          if (prev.length !== result.length) return result
+          for (let i = 0; i < prev.length; i++) {
+            if (prev[i].path !== result[i].path || prev[i].mtime_secs !== result[i].mtime_secs) return result
+          }
+          return prev
+        })
+      }
     } catch (e) {
       console.error('Failed to load journal entries:', e)
     } finally {
       setLoading(false)
       refreshing.current = false
+    }
+  }, [])
+
+  const loadMore = useCallback(async () => {
+    const currentLoaded = loadedMonthsRef.current
+    const allMonths = availableMonthsRef.current
+    const remaining = allMonths.filter(m => !currentLoaded.includes(m))
+    if (remaining.length === 0) return
+
+    const nextBatch = remaining.slice(0, BATCH_SIZE)
+    setLoadingMore(true)
+    try {
+      const result = await listJournalEntriesByMonths(nextBatch)
+      const newLoaded = [...currentLoaded, ...nextBatch]
+      loadedMonthsRef.current = newLoaded
+      setLoadedMonths(newLoaded)
+      setEntries(prev => {
+        const combined = [...prev, ...result]
+        combined.sort((a, b) =>
+          b.year_month.localeCompare(a.year_month) ||
+          b.day - a.day ||
+          b.created_at_secs - a.created_at_secs
+        )
+        return combined
+      })
+    } catch (e) {
+      console.error('Failed to load more entries:', e)
+    } finally {
+      setLoadingMore(false)
     }
   }, [])
 
@@ -89,7 +140,6 @@ export function useJournal() {
       } else if (status === 'processing') {
         setQueueItems(prev => {
           const filename = material_path.split('/').pop() ?? material_path
-          // Case 1: recording placeholder still present — upgrade it directly
           const hasPlaceholder = prev.some(i => i.path === RECORDING_PLACEHOLDER)
           if (hasPlaceholder) {
             return prev.map(i =>
@@ -98,11 +148,9 @@ export function useJournal() {
                 : i
             )
           }
-          // Case 2: item already in queue (normal path) — just update status
           if (prev.some(i => i.path === material_path)) {
             return prev.map(i => i.path === material_path ? { ...i, status: 'processing' as const } : i)
           }
-          // Case 3: processing event arrived before addQueuedItem (race) — insert directly
           return [{ path: material_path, filename, status: 'processing' as const, addedAt: Date.now(), logs: [] }, ...prev]
         })
       } else if (status === 'completed') {
@@ -212,5 +260,21 @@ export function useJournal() {
     i => i.status === 'processing' || i.status === 'queued'
   )
 
-  return { entries, loading, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh }
+  const hasMore = loadedMonths.length < availableMonths.length
+
+  return {
+    entries,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    queueItems,
+    isProcessing,
+    dismissQueueItem,
+    addConvertingItem,
+    addQueuedItem,
+    markItemFailed,
+    retryQueueItem,
+    refresh,
+  }
 }

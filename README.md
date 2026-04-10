@@ -29,12 +29,17 @@ Your questions answered
 - **Paste text** — Meeting notes, web clips, rough ideas. Submit and move on.
 - **AI compilation** — LLM incrementally compiles raw materials into structured Markdown: title, tags, summary, body. Knowledge base updates automatically with each new input.
 - **Timeline memory** — All knowledge entries are arranged chronologically, forming a continuously growing personal memory system.
-- **Profiles** — Build profiles for people, projects, and more to help AI understand context and connections with greater precision.
-- **Ideas** — Capture thoughts anytime. When ready to go deeper, right-click and select "Explore in Depth" to let AI expand your thinking.
+- **Source traceability** — Every journal entry links back to its raw materials. Click a source chip to open the original file.
+- **Profiles** — Build profiles for people, projects, and concepts to help AI understand context and connections with greater precision.
+- **Ideas** — Capture thoughts anytime. When ready to go deeper, right-click and select "Explore in Depth" to open an AI-powered brainstorm session in your terminal.
+- **Auto-lint** — Scheduled knowledge base maintenance: contradiction detection, orphan profile cleanup, concept extraction, and gap filling.
+- **Todos** — Capture action items from journal entries, organize by workspace path, set due dates, and explore ideas in depth.
 - **Speaker profiles** — On-device speaker identification. Name the voices once; AI uses the names.
-- **Immersive reading** — Markdown rendering, code highlighting, left-list right-detail layout.
+- **Immersive reading** — Markdown rendering, code highlighting, left-list right-detail layout, paginated timeline loading.
+- **@-reference** — Right-click any entry or profile to insert an @-reference into the input dock.
+- **Feishu bridge** — Connect to Feishu (Lark) via WebSocket to receive messages and process them as journal materials.
 - **Multi-workspace** — Monthly archive, configurable workspace path.
-- **Light / Dark theme** — System-adaptive or manual.
+- **Light / Dark theme** — System-adaptive or manual. Amber-gold accent, ink-cyan neutral palette.
 - **Voice engines** — Apple on-device (zero config), WhisperKit (on-device, offline), DashScope (cloud).
 
 ## Quick Start
@@ -46,9 +51,10 @@ Your questions answered
 ## Roadmap
 
 - [x] **Ideas** — Capture thoughts anytime; right-click "Explore in Depth" to let AI expand your thinking
-- [ ] **Multi-AI** — plug in different providers (Claude, OpenAI, local models)
-- [ ] **Skill plugins** — extensible processing pipeline, user-defined workflows
-- [ ] **Auto-organize** — scheduled or trigger-based tagging and summarization
+- [x] **Auto-lint** — Scheduled knowledge base maintenance with contradiction detection and gap filling
+- [x] **Feishu bridge** — Receive Feishu messages as journal materials via WebSocket
+- [ ] **Multi-AI** — Plug in different providers (Claude, OpenAI, local models)
+- [ ] **Skill plugins** — Extensible processing pipeline, user-defined workflows
 - [ ] **Remote control** — Telegram / WeChat bot to trigger recordings and query journal from anywhere
 
 ## Tech Stack
@@ -60,12 +66,13 @@ Your questions answered
 | Audio capture | cpal 0.17 |
 | Audio processing | nnnoiseless (denoising) + rubato (resampling) + afconvert (M4A) |
 | AI processing | Claude CLI (external process) |
+| IM integration | Feishu WebSocket bridge |
 | Serialization | serde / serde_json |
 
 ## Architecture
 
 ```
-User action (record / drop / paste)
+User action (record / drop / paste / Feishu message)
   → Frontend invoke() → src/lib/tauri.ts
   → Rust command → workspace/yyMM/raw/ (raw materials)
   → Claude CLI spawned → writes workspace/yyMM/DD-title.md
@@ -76,7 +83,7 @@ User action (record / drop / paste)
 ```
 src/                     # Frontend
   components/            # React components
-  hooks/                 # useJournal, useRecorder, useTheme
+  hooks/                 # useJournal, useRecorder, useTheme, useTodos
   lib/tauri.ts           # All IPC calls
   types.ts               # Shared types
 src-tauri/src/           # Rust backend
@@ -86,6 +93,14 @@ src-tauri/src/           # Rust backend
   journal.rs             # Journal entry scanning and parsing
   config.rs              # App config read/write
   workspace.rs           # Workspace path helpers
+  identity.rs            # Profile management (people, projects, concepts)
+  todos.rs               # Todo items with path grouping
+  brainstorm.rs          # Terminal-based AI brainstorm sessions
+  auto_lint.rs           # Scheduled knowledge base maintenance
+  feishu_bridge.rs       # Feishu WebSocket client
+  speaker_profiles.rs    # On-device speaker identification
+  materials.rs           # File import and text paste handling
+  workspace_settings.rs  # Per-workspace settings (theme, auto-lint)
 ```
 
 ## Development

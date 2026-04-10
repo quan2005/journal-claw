@@ -302,7 +302,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
         "auto-lint",
         "",
         None,
-        Some("/dream"),
+        Some("/lint"),
         &cfg.claude_code_model,
         &cfg.claude_code_api_key,
         &cfg.claude_code_base_url,
@@ -367,7 +367,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
         }
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            let error = format!("dream 执行失败 (exit {}): {}", output.status, stderr.chars().take(200).collect::<String>());
+            let error = format!("lint 执行失败 (exit {}): {}", output.status, stderr.chars().take(200).collect::<String>());
             eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
                 "auto-lint-status",
@@ -382,7 +382,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
             );
         }
         Err(e) => {
-            let error = format!("dream 执行异常: {}", e);
+            let error = format!("lint 执行异常: {}", e);
             eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
                 "auto-lint-status",

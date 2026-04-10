@@ -48,7 +48,7 @@ fn valid_min_entries(n: u32) -> bool {
 struct WorkspaceSettings {
     #[serde(default = "default_theme")]
     theme: String,
-    #[serde(default)]
+    #[serde(default, alias = "auto_dream")]
     auto_lint: AutoLintConfig,
 }
 

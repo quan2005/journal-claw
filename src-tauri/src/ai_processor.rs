@@ -166,6 +166,12 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         let _ = std::fs::write(lint_dir.join("SKILL.md"), SKILL_LINT_MD);
     }
 
+    // Remove old dream dir if it exists (cleanup for existing users)
+    let old_dream_dir = dot_claude.join("skills").join("dream");
+    if old_dream_dir.exists() {
+        let _ = std::fs::remove_dir_all(&old_dream_dir);
+    }
+
     // Ensure workspace/CLAUDE.md exists (only create if missing — never overwrite user edits)
     let user_claude_md = std::path::PathBuf::from(workspace_path).join("CLAUDE.md");
     if !user_claude_md.exists() {

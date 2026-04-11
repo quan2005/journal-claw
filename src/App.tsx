@@ -329,11 +329,13 @@ export default function App() {
   }
 
   const handleRetryQueueItem = async (item: QueueItem) => {
-    const yearMonth = item.path.split('/').slice(-2, -1)[0] ?? ''
+    const parts = item.path.split('/')
+    const rawIdx = parts.lastIndexOf('raw')
+    const yearMonth = rawIdx > 0 ? parts[rawIdx - 1] : parts.slice(-2, -1)[0] ?? ''
     const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
     const isAudioSourceFile = audioExts.some(ext => item.path.toLowerCase().endsWith(ext))
 
-    retryQueueItem(item.path)
+    retryQueueItem(item.path, isAudioSourceFile ? 'converting' : 'queued')
     try {
       if (isAudioSourceFile) {
         // Audio source file: need full pipeline (transcription + AI)

@@ -250,9 +250,9 @@ export function useJournal() {
     }
   }, [refresh])
 
-  const retryQueueItem = useCallback((path: string) => {
+  const retryQueueItem = useCallback((path: string, status: 'queued' | 'converting' = 'queued') => {
     setQueueItems(prev =>
-      prev.map(i => i.path === path ? { ...i, status: 'queued' as const, error: undefined, logs: [] } : i)
+      prev.map(i => i.path === path ? { ...i, status, error: undefined, logs: [] } : i)
     )
   }, [])
 

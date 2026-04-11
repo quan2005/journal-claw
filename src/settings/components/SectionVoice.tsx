@@ -138,6 +138,7 @@ export default function SectionVoice() {
       checkSpeakerEmbedder().then(r => setEmbedderAvailable(r.available)).catch(() => setEmbedderAvailable(false)),
     ]).then(() => {
       setLoading(false)
+      refreshDownloadedModels()
     })
 
     // listen for download progress events from Rust

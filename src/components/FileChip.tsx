@@ -60,6 +60,14 @@ function FileKindIcon({ kind }: { kind: FileKind }) {
           <polyline points="21 15 16 10 5 21" />
         </svg>
       )
+    case 'html':
+      return (
+        <svg {...svgBase}>
+          <polyline points="8 7 3 12 8 17" />
+          <polyline points="16 7 21 12 16 17" />
+          <line x1="14" y1="4" x2="10" y2="20" />
+        </svg>
+      )
     default:
       return (
         <svg {...svgBase}>
@@ -78,6 +86,7 @@ function chipColors(kind: FileKind) {
     case 'docx':
     case 'text':
     case 'markdown':
+    case 'html':
       return { bg: 'var(--badge-doc-bg)', color: 'var(--badge-doc-text)', border: 'var(--badge-doc-border)' }
     default:
       return { bg: 'var(--badge-ai-bg)', color: 'var(--badge-ai-text)', border: 'var(--badge-ai-border)' }
@@ -86,6 +95,9 @@ function chipColors(kind: FileKind) {
 
 export function FileChip({ filename, kind, onRemove }: FileChipProps) {
   const colors = chipColors(kind)
+  const extIdx = filename.lastIndexOf('.')
+  const namePart = extIdx > 0 ? filename.slice(0, extIdx) : filename
+  const extPart = extIdx > 0 ? filename.slice(extIdx) : ''
 
   return (
     <span
@@ -109,10 +121,11 @@ export function FileChip({ filename, kind, onRemove }: FileChipProps) {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        maxWidth: 140,
+        minWidth: 0,
       }}>
-        {filename}
+        {namePart}
       </span>
+      {extPart && <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{extPart}</span>}
       <span
         role="button"
         onClick={(e) => { e.stopPropagation(); onRemove() }}

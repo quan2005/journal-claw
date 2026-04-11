@@ -6,7 +6,7 @@ use tauri::AppHandle;
 pub struct RawMaterial {
     pub filename: String,
     pub path: String,
-    pub kind: String, // "audio" | "text" | "pdf" | "docx" | "markdown" | "other"
+    pub kind: String, // "audio" | "text" | "pdf" | "docx" | "markdown" | "html" | "other"
     pub size_bytes: u64,
 }
 
@@ -146,6 +146,7 @@ pub(crate) fn material_kind(filename: &str) -> String {
         "md" | "markdown" => "markdown",
         "pdf" => "pdf",
         "docx" | "doc" => "docx",
+        "html" | "htm" => "html",
         _ => "other",
     }
     .to_string()

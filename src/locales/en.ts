@@ -205,6 +205,8 @@ export const en = {
   baseModelBundled: 'Base model is bundled with the app. The directory above is for additionally downloaded Small/Large models.',
   downloadFromHF: 'Click Download to fetch automatically from HuggingFace. You can also place model files manually into the directory above.',
   dashscopeHint: 'When configured, recordings are automatically uploaded to Alibaba Cloud for transcription',
+  asrModel: 'ASR Model',
+  asrModelHint: 'Flash for real-time recognition; File Trans for async transcription of long audio',
   speakerEmbedderUnavailable: 'Speaker recognition unavailable',
   speakerEmbedderHint: 'SpeakerEmbedder model not found — speaker IDs cannot be generated during transcription. Ensure the speakerkit-models resource is included in the app bundle.',
 

@@ -1,5 +1,6 @@
 use crate::config;
 use crate::speaker_profiles;
+use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -9,10 +10,8 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
-const UPLOAD_URL: &str = "https://dashscope.aliyuncs.com/api/v1/uploads";
-const TRANSCRIBE_URL: &str =
-    "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription";
-const MIN_DURATION_SECS: f64 = 30.0;
+const DASHSCOPE_CHAT_URL: &str =
+    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpeakerSegment {
@@ -89,232 +88,6 @@ fn audio_mime_type(path: &Path) -> &'static str {
         "aac" | "m4a" | "mp4" => "audio/mp4",
         _ => "application/octet-stream",
     }
-}
-
-/// Upload a local audio file to DashScope temporary storage and return the oss:// URL.
-async fn upload_file(
-    client: &reqwest::Client,
-    api_key: &str,
-    path: &Path,
-) -> Result<String, String> {
-    let file_name = path
-        .file_name()
-        .ok_or("no filename")?
-        .to_string_lossy()
-        .to_string();
-
-    // Step 1: Get upload policy (OSS credentials)
-    let policy_resp = client
-        .get(UPLOAD_URL)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .query(&[
-            ("action", "getPolicy"),
-            ("model", "qwen3-asr-flash-filetrans"),
-        ])
-        .send()
-        .await
-        .map_err(|e| format!("Get policy failed: {}", e))?;
-
-    if !policy_resp.status().is_success() {
-        let status = policy_resp.status();
-        let body = policy_resp.text().await.unwrap_or_default();
-        return Err(format!("Get policy failed ({}): {}", status, body));
-    }
-
-    let policy_data: serde_json::Value = policy_resp.json().await.map_err(|e| e.to_string())?;
-    let data = policy_data
-        .get("data")
-        .ok_or("No data in policy response")?;
-
-    let upload_host = data
-        .get("upload_host")
-        .and_then(|v| v.as_str())
-        .ok_or("No upload_host in policy response")?;
-    let upload_dir = data
-        .get("upload_dir")
-        .and_then(|v| v.as_str())
-        .ok_or("No upload_dir in policy response")?;
-    let oss_access_key_id = data
-        .get("oss_access_key_id")
-        .and_then(|v| v.as_str())
-        .ok_or("No oss_access_key_id")?;
-    let signature = data
-        .get("signature")
-        .and_then(|v| v.as_str())
-        .ok_or("No signature")?;
-    let policy = data
-        .get("policy")
-        .and_then(|v| v.as_str())
-        .ok_or("No policy")?;
-    let x_oss_object_acl = data
-        .get("x_oss_object_acl")
-        .and_then(|v| v.as_str())
-        .ok_or("No x_oss_object_acl")?;
-    let x_oss_forbid_overwrite = data
-        .get("x_oss_forbid_overwrite")
-        .and_then(|v| v.as_str())
-        .ok_or("No x_oss_forbid_overwrite")?;
-
-    // Step 2: Upload file to OSS via multipart POST
-    let key = format!("{}/{}", upload_dir, file_name);
-    let file_bytes = fs::read(path).map_err(|e| format!("Read file failed: {}", e))?;
-
-    let file_part = reqwest::multipart::Part::bytes(file_bytes)
-        .file_name(file_name.clone())
-        .mime_str(audio_mime_type(path))
-        .map_err(|e| e.to_string())?;
-
-    let form = reqwest::multipart::Form::new()
-        .text("OSSAccessKeyId", oss_access_key_id.to_string())
-        .text("Signature", signature.to_string())
-        .text("policy", policy.to_string())
-        .text("x-oss-object-acl", x_oss_object_acl.to_string())
-        .text("x-oss-forbid-overwrite", x_oss_forbid_overwrite.to_string())
-        .text("key", key.clone())
-        .text("success_action_status", "200".to_string())
-        .part("file", file_part);
-
-    let upload_resp = client
-        .post(upload_host)
-        .multipart(form)
-        .send()
-        .await
-        .map_err(|e| format!("Upload to OSS failed: {}", e))?;
-
-    if !upload_resp.status().is_success() {
-        let status = upload_resp.status();
-        let body = upload_resp.text().await.unwrap_or_default();
-        return Err(format!("Upload to OSS failed ({}): {}", status, body));
-    }
-
-    // Step 3: Construct the oss:// URL
-    Ok(format!("oss://{}", key))
-}
-
-/// Submit a transcription task and return the task_id.
-async fn submit_transcription(
-    client: &reqwest::Client,
-    api_key: &str,
-    file_url: &str,
-) -> Result<String, String> {
-    let body = serde_json::json!({
-        "model": "qwen3-asr-flash-filetrans",
-        "input": {
-            "file_url": file_url
-        },
-        "parameters": {
-            "channel_id": [0]
-        }
-    });
-
-    let resp = client
-        .post(TRANSCRIBE_URL)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .header("X-DashScope-Async", "enable")
-        .header("X-DashScope-OssResourceResolve", "enable")
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Submit failed ({}): {}", status, body));
-    }
-
-    let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    let task_id = data
-        .get("output")
-        .and_then(|o| o.get("task_id"))
-        .and_then(|v| v.as_str())
-        .ok_or("No task_id in submit response")?;
-    Ok(task_id.to_string())
-}
-
-/// Poll a task until it reaches a terminal state. Returns the transcription URL if available.
-async fn poll_task(
-    client: &reqwest::Client,
-    api_key: &str,
-    task_id: &str,
-    app: &AppHandle,
-    filename: &str,
-) -> Result<Option<String>, String> {
-    let url = format!("https://dashscope.aliyuncs.com/api/v1/tasks/{}", task_id);
-
-    loop {
-        tokio::time::sleep(Duration::from_secs(3)).await;
-
-        let resp = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", api_key))
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if !resp.status().is_success() {
-            let body = resp.text().await.unwrap_or_default();
-            return Err(format!("Poll failed: {}", body));
-        }
-
-        let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-        let status = data
-            .get("output")
-            .and_then(|o| o.get("task_status"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("UNKNOWN");
-
-        match status {
-            "PENDING" | "RUNNING" => {
-                emit_progress(app, filename, "transcribing");
-            }
-            "SUCCEEDED" => {
-                let transcription_url = data
-                    .get("output")
-                    .and_then(|o| o.get("result"))
-                    .and_then(|r| r.get("transcription_url"))
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                if transcription_url.is_none() {
-                    return Err(format!(
-                        "Task {}: SUCCEEDED but no transcription_url",
-                        task_id
-                    ));
-                }
-                return Ok(transcription_url);
-            }
-            "FAILED" | "UNKNOWN" => {
-                return Err(format!("Task {}: {}", task_id, status));
-            }
-            _ => {
-                emit_progress(app, filename, "transcribing");
-            }
-        }
-    }
-}
-
-/// Fetch transcription text from a transcription_url.
-async fn fetch_transcription_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
-    let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Fetch transcription failed: {}", resp.status()));
-    }
-
-    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-
-    // Format: { "transcripts": [{ "text": "full text", "sentences": [...] }] }
-    let text = body
-        .get("transcripts")
-        .and_then(|t| t.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|t| t.get("text"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    Ok(text)
 }
 
 /// 将说话人分段列表格式化为 markdown 纯文本。
@@ -734,6 +507,12 @@ fn format_ai_body(transcript: &Transcript) -> String {
         return normalize_text_line(&transcript.text);
     }
 
+    // 检查是否所有 segments 文本为空（DashScope + SpeakerKit 场景：有说话人时间段但无分段文本）
+    let all_text_empty = transcript.segments.iter().all(|s| s.text.trim().is_empty());
+    if all_text_empty {
+        return format_speaker_timeline_with_text(transcript);
+    }
+
     let mut speaker_map: std::collections::HashMap<String, char> = std::collections::HashMap::new();
     let mut next_label = b'A';
     let mut blocks: Vec<(Option<String>, String)> = Vec::new();
@@ -747,7 +526,6 @@ fn format_ai_body(transcript: &Transcript) -> String {
         match blocks.last_mut() {
             Some((speaker, content)) if *speaker == segment.speaker => {
                 if !content.is_empty() {
-                    // 中文字符之间不加空格，其他语言加空格
                     let needs_space = !ends_with_cjk(content) || !starts_with_cjk(&cleaned);
                     if needs_space {
                         content.push(' ');
@@ -767,6 +545,42 @@ fn format_ai_body(transcript: &Transcript) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n\n")
+}
+
+/// DashScope 等引擎只有纯文本 + SpeakerKit 说话人时间段（无分段文本）时，
+/// 输出说话人时间线 + 完整转写文本。
+fn format_speaker_timeline_with_text(transcript: &Transcript) -> String {
+    let mut speaker_map: std::collections::HashMap<String, char> = std::collections::HashMap::new();
+    let mut next_label = b'A';
+
+    // 合并相邻同说话人段落
+    let mut blocks: Vec<(Option<String>, f64, f64)> = Vec::new();
+    for seg in &transcript.segments {
+        match blocks.last_mut() {
+            Some((speaker, _start, end)) if *speaker == seg.speaker => {
+                *end = seg.end;
+            }
+            _ => blocks.push((seg.speaker.clone(), seg.start, seg.end)),
+        }
+    }
+
+    let fmt_time = |secs: f64| -> String {
+        let total = secs as u64;
+        let m = total / 60;
+        let s = total % 60;
+        format!("{}:{:02}", m, s)
+    };
+
+    let timeline: Vec<String> = blocks
+        .into_iter()
+        .map(|(speaker, start, end)| {
+            let label = format_ai_speaker_label(&mut speaker_map, &speaker, &mut next_label);
+            format!("**{}** ({} – {})", label, fmt_time(start), fmt_time(end))
+        })
+        .collect();
+
+    let full_text = normalize_text_line(&transcript.text);
+    format!("{}\n\n{}", timeline.join("\n"), full_text)
 }
 
 fn render_audio_ai_markdown(
@@ -796,7 +610,7 @@ fn render_audio_ai_markdown(
 async fn transcribe_with_dashscope(
     app: &AppHandle,
     file_path: &Path,
-    duration_secs: f64,
+    _duration_secs: f64,
 ) -> Result<Transcript, String> {
     let filename = file_path
         .file_name()
@@ -804,76 +618,94 @@ async fn transcribe_with_dashscope(
         .to_string_lossy()
         .to_string();
 
-    if duration_secs > 0.0 && duration_secs <= MIN_DURATION_SECS {
-        let message = format!(
-            "DashScope 文件转写仅支持大于 {:.0} 秒的音频",
-            MIN_DURATION_SECS
-        );
+    let cfg = config::load_config(app).map_err(|e| {
+        save_transcript(app, file_path, "failed", &e);
+        e
+    })?;
+
+    if cfg.dashscope_api_key.is_empty() {
+        let message = "请先配置 DashScope API Key".to_string();
         save_transcript(app, file_path, "failed", &message);
         return Err(message);
     }
 
-    let api_key = match config::load_config(app) {
-        Ok(cfg) if !cfg.dashscope_api_key.is_empty() => cfg.dashscope_api_key,
-        Ok(_) => {
-            let message = "请先配置 DashScope API Key".to_string();
-            save_transcript(app, file_path, "failed", &message);
-            return Err(message);
-        }
-        Err(error) => {
-            save_transcript(app, file_path, "failed", &error);
-            return Err(error);
-        }
-    };
-
-    let client = reqwest::Client::new();
-    emit_progress(app, &filename, "uploading");
-
-    let file_url = match upload_file(&client, &api_key, file_path).await {
-        Ok(url) => url,
-        Err(error) => {
-            eprintln!("Upload failed: {}", error);
-            let message = format!("上传失败: {}", error);
-            save_transcript(app, file_path, "failed", &message);
-            return Err(message);
-        }
+    let model = if cfg.dashscope_asr_model.is_empty() {
+        "qwen3-asr-flash".to_string()
+    } else {
+        cfg.dashscope_asr_model.clone()
     };
 
     emit_progress(app, &filename, "transcribing");
 
-    let task_id = match submit_transcription(&client, &api_key, &file_url).await {
-        Ok(id) => id,
-        Err(error) => {
-            eprintln!("Submit failed: {}", error);
-            let message = format!("提交失败: {}", error);
-            save_transcript(app, file_path, "failed", &message);
-            return Err(message);
-        }
-    };
+    // Read audio file and encode as base64 data URI
+    let file_bytes = fs::read(file_path)
+        .map_err(|e| {
+            let msg = format!("读取音频文件失败: {}", e);
+            save_transcript(app, file_path, "failed", &msg);
+            msg
+        })?;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+    let mime = audio_mime_type(file_path);
+    let data_uri = format!("data:{};base64,{}", mime, b64);
 
-    let transcription_url = match poll_task(&client, &api_key, &task_id, app, &filename).await {
-        Ok(Some(url)) => url,
-        Ok(None) => {
-            let message = "未获取到转写结果".to_string();
-            save_transcript(app, file_path, "failed", &message);
-            return Err(message);
-        }
-        Err(error) => {
-            eprintln!("Poll failed: {}", error);
-            let message = format!("转写失败: {}", error);
-            save_transcript(app, file_path, "failed", &message);
-            return Err(message);
-        }
-    };
+    // Call OpenAI-compatible chat completions API
+    let body = serde_json::json!({
+        "model": model,
+        "messages": [{
+            "role": "user",
+            "content": [{
+                "type": "input_audio",
+                "input_audio": {
+                    "data": data_uri
+                }
+            }]
+        }],
+        "stream": false
+    });
 
-    let text = match fetch_transcription_text(&client, &transcription_url).await {
-        Ok(value) => value,
-        Err(error) => {
-            let message = format!("获取转写文本失败: {}", error);
-            save_transcript(app, file_path, "failed", &message);
-            return Err(message);
-        }
-    };
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(DASHSCOPE_CHAT_URL)
+        .header("Authorization", format!("Bearer {}", cfg.dashscope_api_key))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| {
+            let msg = format!("DashScope ASR 请求失败: {}", e);
+            save_transcript(app, file_path, "failed", &msg);
+            msg
+        })?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let resp_body = resp.text().await.unwrap_or_default();
+        let msg = format!("DashScope ASR 失败 ({}): {}", status, resp_body);
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
+    }
+
+    let data: serde_json::Value = resp.json().await.map_err(|e| {
+        let msg = format!("解析 DashScope 响应失败: {}", e);
+        save_transcript(app, file_path, "failed", &msg);
+        msg
+    })?;
+
+    let text = data
+        .get("choices")
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|c| c.get("message"))
+        .and_then(|m| m.get("content"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    if text.is_empty() {
+        let msg = "DashScope ASR 返回空文本".to_string();
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
+    }
 
     let transcript = Transcript {
         status: "completed".to_string(),
@@ -953,17 +785,37 @@ pub async fn transcribe_audio_to_ai_markdown(
                 }
                 // 清除引擎自带的说话人标签，让 SpeakerKit 的档案名通过时间重叠匹配覆盖
                 // （否则 merge_transcript_with_speakers 会保留 WhisperKit 的 SPEAKER_XX 原始标签）
-                let transcript_unlabeled = Transcript {
-                    status: transcript.status.clone(),
-                    text: transcript.text.clone(),
-                    segments: transcript
-                        .segments
+                let merged = if transcript.segments.is_empty() && !speakers.is_empty() {
+                    // DashScope 等引擎只返回纯文本无时间戳 segments，
+                    // 直接用 SpeakerKit 的 diarize 结果作为 segments 骨架
+                    let speaker_segments: Vec<WhisperSegment> = speakers
                         .iter()
-                        .map(|s| WhisperSegment { speaker: None, ..s.clone() })
-                        .collect(),
-                    engine: transcript.engine.clone(),
+                        .map(|sp| WhisperSegment {
+                            speaker: Some(sp.label.clone()),
+                            start: sp.start,
+                            end: sp.end,
+                            text: String::new(),
+                        })
+                        .collect();
+                    Transcript {
+                        status: transcript.status.clone(),
+                        text: transcript.text.clone(),
+                        segments: speaker_segments,
+                        engine: transcript.engine.clone(),
+                    }
+                } else {
+                    let transcript_unlabeled = Transcript {
+                        status: transcript.status.clone(),
+                        text: transcript.text.clone(),
+                        segments: transcript
+                            .segments
+                            .iter()
+                            .map(|s| WhisperSegment { speaker: None, ..s.clone() })
+                            .collect(),
+                        engine: transcript.engine.clone(),
+                    };
+                    merge_transcript_with_speakers(&transcript_unlabeled, &speakers)
                 };
-                let merged = merge_transcript_with_speakers(&transcript_unlabeled, &speakers);
                 save_transcript_data(&file_path, &merged);
                 merged
             }

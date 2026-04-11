@@ -91,7 +91,8 @@ function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
   return (
     a.asr_engine === b.asr_engine &&
     a.dashscope_api_key === b.dashscope_api_key &&
-    a.whisperkit_model === b.whisperkit_model
+    a.whisperkit_model === b.whisperkit_model &&
+    a.dashscope_asr_model === b.dashscope_asr_model
   )
 }
 
@@ -101,6 +102,7 @@ export default function SectionVoice() {
     asr_engine: 'whisperkit',
     dashscope_api_key: '',
     whisperkit_model: 'base',
+    dashscope_asr_model: 'qwen3-asr-flash',
   }
   const [cfg, setCfg] = useState<AsrConfig>(defaultConfig)
   const [persistedCfg, setPersistedCfg] = useState<AsrConfig>(defaultConfig)
@@ -762,6 +764,29 @@ export default function SectionVoice() {
                 }}
               />
               <div style={hintStyle}>{t('dashscopeHint')}</div>
+
+              <label style={{ ...labelStyle, marginTop: 16 }}>{t('asrModel')}</label>
+              <select
+                value={cfg.dashscope_asr_model || 'qwen3-asr-flash'}
+                onChange={e => {
+                  setCfg(prev => ({ ...prev, dashscope_asr_model: e.target.value }))
+                  setSaveStatus('idle')
+                }}
+                style={{
+                  ...inputStyle,
+                  fontFamily: 'inherit',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 10px center',
+                  paddingRight: 28,
+                }}
+              >
+                <option value="qwen3-asr-flash">Qwen3 ASR Flash</option>
+                <option value="qwen3-asr-flash-filetrans">Qwen3 ASR Flash (File Trans)</option>
+              </select>
+              <div style={hintStyle}>{t('asrModelHint')}</div>
             </div>
           )}
 

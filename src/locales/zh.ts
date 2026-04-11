@@ -207,6 +207,8 @@ export const zh: Strings = {
   baseModelBundled: 'Base 模型已内置在应用包中。上方目录用于存放额外下载的 Small / Large 模型。',
   downloadFromHF: '点击下载按钮自动从 HuggingFace 下载，之后离线可用。也可手动将模型文件放入上方目录。',
   dashscopeHint: '配置后，录音将自动上传至阿里云转写',
+  asrModel: '语音识别模型',
+  asrModelHint: 'Flash 为实时识别，File Trans 适合长音频异步转写',
   speakerEmbedderUnavailable: '声纹识别不可用',
   speakerEmbedderHint: '未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。',
 

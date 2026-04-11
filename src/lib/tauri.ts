@@ -159,6 +159,7 @@ export interface AsrConfig {
   asr_engine: 'apple' | 'dashscope' | 'whisperkit'
   dashscope_api_key: string
   whisperkit_model: 'base' | 'small' | 'large-v3-turbo'
+  dashscope_asr_model: string
 }
 
 export const getAsrConfig = (): Promise<AsrConfig> =>
@@ -172,6 +173,7 @@ export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
     asrEngine: cfg.asr_engine,
     dashscopeApiKey: cfg.dashscope_api_key,
     whisperkitModel: cfg.whisperkit_model,
+    dashscopeAsrModel: cfg.dashscope_asr_model,
   })
 
 export const getWhisperkitModelsDir = (): Promise<string> =>

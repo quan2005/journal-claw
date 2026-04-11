@@ -1,6 +1,6 @@
 [package]
 name = "journal"
-version = "0.12.0"
+version = "0.12.1"
 description = "谨迹 — 知识工作者的日志助手"
 authors = ["you"]
 edition = "2021"
@@ -20,6 +20,7 @@ hound = "3.5"
 chrono = { version = "0.4", features = ["clock"] }
 mp4ameta = "0.13"
 nnnoiseless = "0.5"
+base64 = "0.22"
 reqwest = { version = "0.12", features = ["multipart", "json"] }
 rubato = "0.15"
 tokio = { version = "1", features = ["full"] }

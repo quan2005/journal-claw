@@ -16,6 +16,7 @@ pub struct AsrConfig {
     pub asr_engine: String,
     pub dashscope_api_key: String,
     pub whisperkit_model: String,
+    pub dashscope_asr_model: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -59,6 +60,8 @@ pub struct Config {
     pub asr_engine: String, // "apple" | "dashscope" | "whisperkit"
     #[serde(default = "default_whisperkit_model")]
     pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
+    #[serde(default = "default_dashscope_asr_model")]
+    pub dashscope_asr_model: String, // "qwen3-asr-flash" | "qwen3-asr-flash-filetrans"
     // 首次启动引导
     #[serde(default)]
     pub sample_entry_created: bool,
@@ -184,6 +187,10 @@ fn default_asr_engine() -> String {
 
 fn default_whisperkit_model() -> String {
     "base".to_string()
+}
+
+fn default_dashscope_asr_model() -> String {
+    "qwen3-asr-flash".to_string()
 }
 
 pub fn normalize_whisperkit_model(model: &str) -> Option<&'static str> {
@@ -537,6 +544,7 @@ pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
         asr_engine: c.asr_engine,
         dashscope_api_key: c.dashscope_api_key,
         whisperkit_model: c.whisperkit_model,
+        dashscope_asr_model: c.dashscope_asr_model,
     })
 }
 
@@ -566,6 +574,7 @@ pub fn set_asr_config(
     asr_engine: String,
     dashscope_api_key: String,
     whisperkit_model: String,
+    dashscope_asr_model: String,
 ) -> Result<(), String> {
     let valid_engines = ["apple", "dashscope", "whisperkit"];
     if !valid_engines.contains(&asr_engine.as_str()) {
@@ -574,10 +583,17 @@ pub fn set_asr_config(
     let Some(normalized_model) = normalize_whisperkit_model(&whisperkit_model) else {
         return Err(format!("invalid whisperkit_model: {}", whisperkit_model));
     };
+    let valid_asr_models = ["qwen3-asr-flash", "qwen3-asr-flash-filetrans"];
+    let asr_model = if valid_asr_models.contains(&dashscope_asr_model.as_str()) {
+        dashscope_asr_model
+    } else {
+        default_dashscope_asr_model()
+    };
     let mut c = load_config(&app)?;
     c.asr_engine = asr_engine;
     c.dashscope_api_key = dashscope_api_key;
     c.whisperkit_model = normalized_model.to_string();
+    c.dashscope_asr_model = asr_model;
     save_config(&app, &c)
 }
 

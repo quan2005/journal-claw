@@ -36,6 +36,7 @@ describe('tauri config commands', () => {
       asr_engine: 'whisperkit',
       dashscope_api_key: 'sk-dashscope-test',
       whisperkit_model: 'large-v3-turbo',
+      dashscope_asr_model: 'qwen3-asr-flash',
     }
 
     await setAsrConfig(cfg)
@@ -44,6 +45,7 @@ describe('tauri config commands', () => {
       asrEngine: 'whisperkit',
       dashscopeApiKey: 'sk-dashscope-test',
       whisperkitModel: 'large-v3-turbo',
+      dashscopeAsrModel: 'qwen3-asr-flash',
     })
   })
 })

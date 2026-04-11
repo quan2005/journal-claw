@@ -88,6 +88,7 @@ describe('SectionVoice', () => {
       asr_engine: 'whisperkit',
       dashscope_api_key: '',
       whisperkit_model: 'small',
+      dashscope_asr_model: 'qwen3-asr-flash',
     })
     mockSetAsrConfig.mockResolvedValue(undefined)
     mockGetWhisperkitModelsDir.mockResolvedValue('/tmp/whisperkit-models')
@@ -179,6 +180,7 @@ describe('SectionVoice', () => {
         asr_engine: 'whisperkit',
         dashscope_api_key: '',
         whisperkit_model: 'large-v3-turbo',
+        dashscope_asr_model: 'qwen3-asr-flash',
       })
     })
 
@@ -190,6 +192,7 @@ describe('SectionVoice', () => {
       asr_engine: 'whisperkit',
       dashscope_api_key: '',
       whisperkit_model: 'large-v3-turbo',
+      dashscope_asr_model: 'qwen3-asr-flash',
     })
 
     render(<SectionVoice />)

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>{{产品名}} · 设计说明书</title>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    /* ========== 色彩变量 ========== */
+    :root,[data-theme="light"]{
+      --bg:#FAFAF8;--bg-s:#F5F4F1;--bg-h:#EFEEE9;--bg-e:#E5E3DD;
+      --bd:#E5E3DD;--bd-l:#EFEEE9;
+      --t1:#3D352C;--t2:#635850;--t3:#8A8078;
+      --ac:#C8933B;--ac-text:#8A6500;--ac-bg:#FBF3E5;--ac-hover:#F5EAD4;
+      --body-bg:#F2F1ED;
+      --card-bg:#fff;--card-bd:1px solid #E5E3DD;--card-shadow:0 1px 3px rgba(0,0,0,0.05);
+      --green:#266B45;--green-bg:#E5F2EA;--green-light:#dcfce7;
+      --orange:#A85400;--orange-bg:#FDF0D5;
+      --red:#B5312A;--red-bg:#FDE8E5;
+      --purple:#5F4290;--purple-bg:#EDE5F5;
+      --scrollbar-track:#F5F4F1;--scrollbar-thumb:#D5D3CC;--scrollbar-hover:#C0BDB5;
+      --quote-bg:#FBF3E5;--highlight-bg:#F7F5F0;
+      --final-grad:linear-gradient(135deg,#3D352C 0%,#5C4A3A 50%,#3D352C 100%);
+      --accent-grad:linear-gradient(90deg,#C8933B,#D4A854);
+    }
+    [data-theme="dark"]{
+      --bg:#0F0F0F;--bg-s:#181818;--bg-h:#222222;--bg-e:#2a2a2a;
+      --bd:#2a2a2a;--bd-l:#222222;
+      --t1:#E8E0D4;--t2:#A89880;--t3:#736D65;
+      --ac:#C8933B;--ac-text:#C8933B;--ac-bg:rgba(200,147,59,0.12);--ac-hover:rgba(200,147,59,0.18);
+      --body-bg:#0a0a0a;
+      --card-bg:#181818;--card-bd:1px solid #2a2a2a;--card-shadow:none;
+      --green:#5ba67a;--green-bg:rgba(91,166,122,0.12);--green-light:rgba(91,166,122,0.08);
+      --orange:#d9930d;--orange-bg:rgba(217,147,13,0.12);
+      --red:#e06c60;--red-bg:rgba(224,108,96,0.12);
+      --purple:#9a7ec7;--purple-bg:rgba(154,126,199,0.12);
+      --scrollbar-track:#181818;--scrollbar-thumb:#333;--scrollbar-hover:#444;
+      --quote-bg:rgba(200,147,59,0.08);--highlight-bg:#1a1a1a;
+      --final-grad:linear-gradient(135deg,#1a1510 0%,#2a2018 50%,#1a1510 100%);
+      --accent-grad:linear-gradient(90deg,#C8933B,#D4A854);
+    }
+
+    /* ========== 全局重置 ========== */
+    *{margin:0;padding:0;box-sizing:border-box;scrollbar-width:thin}
+    *::-webkit-scrollbar{width:6px;height:6px}
+    *::-webkit-scrollbar-track{background:var(--scrollbar-track)}
+    *::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:3px}
+    *::-webkit-scrollbar-thumb:hover{background:var(--scrollbar-hover)}
+    body{
+      font-family:'Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-serif;
+      background:var(--body-bg);color:var(--t1);
+      padding:48px 24px;line-height:1.6;transition:background .3s,color .3s;
+    }
+
+    /* ========== 页面布局 ========== */
+    .page{max-width:1100px;margin:0 auto}
+    .page-header{text-align:center;margin-bottom:56px}
+    .page-header h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:var(--t1)}
+    .page-header .slogan{font-size:15px;color:var(--ac);font-weight:600;margin-top:8px}
+    .page-header p{font-size:14px;color:var(--t3);margin-top:4px}
+
+    /* ========== 章节结构 ========== */
+    .chapter{margin-bottom:64px}
+    .ch-num{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:32px;height:32px;background:var(--ac);color:#fff;
+      border-radius:50%;font-size:15px;font-weight:700;margin-right:12px;flex-shrink:0;
+    }
+    .ch-title{font-size:20px;font-weight:700;display:flex;align-items:center;margin-bottom:6px;color:var(--t1)}
+    .ch-subtitle{font-size:14px;color:var(--t3);padding-left:44px;margin-bottom:24px}
+    .ch-body{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .ch-logic,.ch-ui{
+      background:var(--card-bg);border-radius:8px;padding:24px;
+      border:var(--card-bd);box-shadow:var(--card-shadow);transition:background .3s,border-color .3s;
+    }
+    .ch-ui{overflow:hidden}
+    .ch-connector{text-align:center;color:var(--t3);padding:20px 0;font-size:14px;letter-spacing:4px}
+
+    /* ========== 逻辑面板元素 ========== */
+    .logic-text{font-size:13px;line-height:1.8;color:var(--t2)}
+    .logic-quote{
+      background:var(--quote-bg);padding:12px 16px;border-radius:6px;
+      margin:12px 0;font-size:13px;color:var(--t1);line-height:1.7;
+    }
+    .logic-highlight{background:var(--highlight-bg);border-radius:6px;padding:14px 16px;margin:12px 0;font-size:13px;color:var(--t2);line-height:1.7}
+
+    /* ========== 终章样式 ========== */
+    .final{
+      background:var(--final-grad);color:#E8E0D4;
+      border-radius:8px;padding:32px 28px;position:relative;overflow:hidden;
+    }
+    .final-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:16px 0}
+    .final-node{background:rgba(200,147,59,0.2);border:1px solid rgba(200,147,59,0.3);padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500}
+    .final-arrow{opacity:0.5;font-size:14px}
+
+    /* ========== 主题切换 ========== */
+    .theme-toggle{
+      position:fixed;top:16px;right:16px;z-index:100;
+      display:flex;align-items:center;gap:6px;
+      padding:6px 14px;border-radius:20px;border:1px solid var(--bd);
+      background:var(--bg-s);color:var(--t2);
+      font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .3s;
+    }
+    .theme-toggle:hover{background:var(--bg-h);color:var(--t1)}
+
+    /* ========== 响应式 ========== */
+    @media(max-width:768px){
+      .ch-body{grid-template-columns:1fr}
+      body{padding:20px 12px}
+      .page-header h1{font-size:24px}
+    }
+
+    /* ========== 打印 ========== */
+    @media print{
+      body{padding:20px;background:var(--card-bg);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .page{max-width:100%}
+      .chapter{page-break-before:always;page-break-inside:avoid;margin-bottom:0}
+      .ch-connector{display:none}
+      .ch-logic,.ch-ui{box-shadow:none;border:1px solid #ddd}
+      .theme-toggle{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">
+  <span id="theme-label">深色</span>
+</button>
+
+<div class="page">
+  <!-- ===== Hero ===== -->
+  <div class="page-header">
+    <h1>{{产品名}} · 设计说明书</h1>
+    <div class="slogan">{{slogan — 一句话，有节奏感}}</div>
+    <p>{{副标题 — 解释 slogan}}</p>
+  </div>
+
+  <!-- ===== 北极星愿景 ===== -->
+  <div style="background:var(--card-bg);border-radius:8px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid var(--bd);margin-bottom:48px;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:0;left:0;width:100%;height:4px;border-radius:8px 14px 0 0;background:var(--accent-grad);"></div>
+
+    <!-- 核心理念 -->
+    <div style="background:var(--highlight-bg);border:1px solid var(--bd);border-radius:8px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:flex-start;gap:16px;">
+      <div style="width:42px;height:42px;flex-shrink:0;background:var(--bg-e);border:1px solid var(--bd);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">🧠</div>
+      <div>
+        <h3 style="margin:0 0 5px;font-size:14px;color:var(--t1);font-weight:650;">核心理念：{{一句话定义}}</h3>
+        <p style="margin:0;font-size:13px;color:var(--t2);line-height:1.7;">{{核心理念阐释，用 <span style="color:var(--ac);font-weight:600;">强调色</span> 高亮关键词}}</p>
+      </div>
+    </div>
+
+    <!-- 战略产出（2-3 个并列卡片） -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+      <div style="background:var(--highlight-bg);border:1px solid var(--bd);border-radius:8px;padding:18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--green-light);border:1px solid var(--green-bg);">🧬</div>
+          <h4 style="margin:0;font-size:14px;font-weight:650;color:var(--t1);">战略产出一：{{名称}}</h4>
+        </div>
+        <p style="margin:0 0 10px;font-size:12px;color:var(--t3);line-height:1.6;">{{描述}}</p>
+        <div style="background:var(--card-bg);border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.65;color:var(--t2);">
+          <strong style="color:var(--t1);">案例：</strong>{{具体案例}}<br><br>
+          <strong style="color:var(--t1);">度量：</strong>{{度量方式}}
+        </div>
+      </div>
+      <!-- 第二个战略产出卡片结构相同 -->
+    </div>
+
+    <!-- 终极目标 -->
+    <div style="border-radius:8px;padding:18px 22px;background:var(--highlight-bg);border:1px solid var(--bd);">
+      <h3 style="margin:0 0 14px;font-size:14px;color:var(--t1);font-weight:650;display:flex;align-items:center;gap:8px;">🎯 终极目标：{{一句话}}</h3>
+      <!-- 现状 → 未来 的对比视觉 -->
+    </div>
+  </div>
+
+  <!-- ===== 第 1 章 ===== -->
+  <div class="chapter">
+    <div class="ch-title"><span class="ch-num">1</span>{{问句标题}}</div>
+    <div class="ch-subtitle">{{一句话回答}}</div>
+    <div class="ch-body">
+      <div class="ch-logic">
+        <!-- 核心概念 -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:8px;">{{概念标题}}</div>
+          <p style="color:var(--t2);font-size:14px;line-height:1.7;margin:0;">
+            {{阐释文字，用 <strong style="color:var(--ac);">强调色</strong> 高亮关键概念}}
+          </p>
+        </div>
+        <!-- 高亮引用框 -->
+        <div style="background:var(--quote-bg);padding:14px 16px;border-radius:6px;margin-bottom:18px;">
+          <p style="color:var(--t1);font-size:14px;line-height:1.6;margin:0;">
+            <strong>核心机制：</strong>{{机制说明}}
+          </p>
+        </div>
+        <!-- 载体/细节 -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:8px;">{{子标题}}</div>
+          <p style="color:var(--t2);font-size:14px;line-height:1.7;margin:0;">{{细节说明}}</p>
+        </div>
+        <!-- 举例框 -->
+        <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;">
+          <div style="font-size:12px;color:var(--t3);margin-bottom:6px;">举个例子</div>
+          <p style="color:var(--t2);font-size:13px;line-height:1.7;margin:0;">{{具体案例}}</p>
+        </div>
+      </div>
+      <div class="ch-ui">
+        <!--
+          右侧面板：用纯 HTML/CSS 绘制 UI mockup
+          常见模式：
+          - Tab栏 + 搜索 + 列表项 = 信息展示界面
+          - 对话气泡 + 输入框 = 交互过程
+          - 节点 + 箭头 = 流程图
+          - 四象限 = 分类矩阵
+          - 进度条 + 数字 = 数据看板
+        -->
+        <div style="background:var(--card-bg);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.06);overflow:hidden;border:1px solid var(--bd);">
+          <!-- 在这里构建 mockup -->
+        </div>
+        <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--t3);">{{mockup 标注}}</div>
+      </div>
+    </div>
+  </div>
+  <div class="ch-connector">▼ ▼ ▼</div>
+
+  <!-- ===== 更多章节... ===== -->
+
+  <!-- ===== 终章 ===== -->
+  <div class="chapter" style="margin-bottom:32px;">
+    <div class="ch-title"><span class="ch-num">N</span>{{终章标题}}</div>
+    <div class="ch-subtitle">{{路径汇聚的一句话}}</div>
+    <div class="ch-body">
+      <div class="ch-logic">
+        <!-- 路径汇聚流程图 -->
+      </div>
+      <div class="ch-ui">
+        <!-- 产品全景 mockup -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== 暗色主题：快照恢复 + 两阶段占位符替换 =====
+// 原理：切到深色前保存浅色快照，切回浅色时直接恢复快照（避免反向映射丢失信息）
+// 深色替换使用两阶段占位符，防止链式碰撞（如 #3D→#E0 再 #E0→#2a 导致文字变成边框色）
+
+let lightSnapshot = null;
+
+// {{根据你的配色方案填写映射表}}
+const darkMap = {
+  // 文字：浅色值 → 深色值
+  '#3D352C':'#E8E0D4','#635850':'#A89880','#8A8078':'#736D65',
+  '#fff':'#E8E0D4',
+  // 强调色通常不变或微调
+  '#C8933B':'#C8933B',
+  // 背景：浅色值 → 深色值
+  '#FAFAF8':'#0F0F0F','#F2F1ED':'#181818','#F5F4F1':'#222222',
+  '#E5E3DD':'#2a2a2a','#EFEEE9':'#222222',
+  '#FBF3E5':'rgba(200,147,59,0.08)',
+  '#F7F5F0':'#1a1a1a',
+};
+
+const darkGrads = [
+  // [浅色渐变, 深色渐变]
+  ['linear-gradient(135deg,#3D352C 0%,#5C4A3A 50%,#3D352C 100%)','linear-gradient(135deg,#1a1510 0%,#2a2018 50%,#1a1510 100%)'],
+];
+
+function saveSnapshot() {
+  lightSnapshot = [];
+  document.querySelectorAll('[style]').forEach(el => {
+    lightSnapshot.push({ el, style: el.getAttribute('style') });
+  });
+}
+
+function restoreSnapshot() {
+  if (!lightSnapshot) return;
+  lightSnapshot.forEach(({ el, style }) => {
+    el.setAttribute('style', style);
+  });
+}
+
+function applyDark() {
+  const entries = Object.entries(darkMap);
+  const placeholders = entries.map((_,i) => '@@DARK'+i+'@@');
+
+  document.querySelectorAll('[style]').forEach(el => {
+    let s = el.getAttribute('style');
+    let changed = false;
+    // Pass 0: gradients
+    darkGrads.forEach(([from, to]) => {
+      if (s.includes(from)) { s = s.split(from).join(to); changed = true; }
+    });
+    // Pass 1: source colors → placeholders
+    entries.forEach(([from, _], i) => {
+      if (from === darkMap[from]) return;
+      if (s.includes(from)) { s = s.split(from).join(placeholders[i]); changed = true; }
+    });
+    // Pass 2: placeholders → dark values
+    if (changed) {
+      entries.forEach(([_, to], i) => {
+        s = s.split(placeholders[i]).join(to);
+      });
+      el.setAttribute('style', s);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', saveSnapshot);
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'light';
+  const next = current === 'light' ? 'dark' : 'light';
+
+  if (next === 'dark') {
+    if (!lightSnapshot) saveSnapshot();
+    applyDark();
+  } else {
+    restoreSnapshot();
+  }
+
+  html.setAttribute('data-theme', next);
+  document.getElementById('theme-label').textContent = next === 'light' ? '深色' : '浅色';
+}
+</script>
+</body>
+</html>

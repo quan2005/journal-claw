@@ -51,6 +51,7 @@ export const zh: Strings = {
 
   // Context menus (journal + identity)
   referenceEntry: '引用',
+  visualDesignBook: '转化为可视化设计',
   copyContent: '复制内容',
   copyFilePath: '复制文件路径',
   openInEditor: '用默认编辑器打开',

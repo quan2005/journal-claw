@@ -49,6 +49,7 @@ export const en = {
 
   // Context menus (journal + identity)
   referenceEntry: 'Reference',
+  visualDesignBook: 'Visual Design Book',
   copyContent: 'Copy content',
   copyFilePath: 'Copy file path',
   openInEditor: 'Open in default editor',

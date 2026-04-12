@@ -23,12 +23,14 @@ interface DetailPanelProps {
   onSelectSample: () => void
   onAddToTodo?: (text: string, source: string) => void
   onProcess?: (entry: JournalEntry) => void
+  onVisualDesign?: (entry: JournalEntry) => void
 }
 
 // ── Detail context menu ───────────────────────────────────────────────────────
-function DetailContextMenu({ menuRef, onProcess, onCopySelection, onCopyRaw, onAddToTodo, onClose }: {
+function DetailContextMenu({ menuRef, onProcess, onVisualDesign, onCopySelection, onCopyRaw, onAddToTodo, onClose }: {
   menuRef: React.RefObject<HTMLDivElement | null>
   onProcess: () => void
+  onVisualDesign: () => void
   onCopySelection: () => void
   onCopyRaw: () => void
   onAddToTodo: () => void
@@ -63,6 +65,18 @@ function DetailContextMenu({ menuRef, onProcess, onCopySelection, onCopyRaw, onA
           <text x="12" y="18" textAnchor="middle" fontSize="22" fontWeight="700" fill={iconColor} stroke="none">@</text>
         </svg>
         <span>{getT()('referenceEntry')}</span>
+      </div>
+      {/* Visual design book */}
+      <div style={itemStyle}
+        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
+        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => { onVisualDesign(); onClose() }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>{getT()('visualDesignBook')}</span>
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Add to todo */}
@@ -166,7 +180,7 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo, onProcess }: DetailPanelProps) {
+export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo, onProcess, onVisualDesign }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
@@ -623,6 +637,9 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
         menuRef={ctxMenuRef}
         onProcess={() => {
           if (entry && onProcess) onProcess(entry)
+        }}
+        onVisualDesign={() => {
+          if (entry && onVisualDesign) onVisualDesign(entry)
         }}
         onCopySelection={() => {
           const sel = window.getSelection()?.toString()

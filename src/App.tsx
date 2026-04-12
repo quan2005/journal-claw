@@ -499,6 +499,10 @@ export default function App() {
                   onSelectSample={handleSelectSample}
                   onAddToTodo={handleAddToTodo}
                   onProcess={handleProcessEntry}
+                  onVisualDesign={(entry) => {
+                    const rel = `${entry.year_month}/${entry.filename}`
+                    setDockAppendText(`/visual-design-book @${rel}`)
+                  }}
                 />
               ) : (
                 <IdentityDetail identity={selectedIdentity} onRecord={handleRecord} onOpenDock={() => setDockOpen(true)} />

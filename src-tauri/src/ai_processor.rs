@@ -100,6 +100,12 @@ const SKILL_IDEATE_MD: &str =
 const SKILL_IDEATE_VISUAL_COMPANION: &str =
     include_str!("../resources/workspace-template/.claude/skills/ideate/visual-companion.md");
 
+// ── Visual Design Book skill template ──────────
+const SKILL_VISUAL_DESIGN_BOOK_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/visual-design-book/SKILL.md");
+const SKILL_VISUAL_DESIGN_BOOK_TEMPLATE: &str =
+    include_str!("../resources/workspace-template/.claude/skills/visual-design-book/references/structure-template.html");
+
 const SKILL_LINT_MD: &str =
     include_str!("../resources/workspace-template/.claude/skills/lint/SKILL.md");
 
@@ -166,6 +172,16 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         let _ = std::fs::write(lint_dir.join("SKILL.md"), SKILL_LINT_MD);
     }
 
+
+    // ── Visual Design Book skill template ────────
+    let vdb_dir = dot_claude.join("skills").join("visual-design-book");
+    let vdb_refs = vdb_dir.join("references");
+    if let Err(e) = std::fs::create_dir_all(&vdb_refs) {
+        eprintln!("[ai_processor] warn: failed to create skills/visual-design-book/references dir: {}", e);
+    } else {
+        let _ = std::fs::write(vdb_dir.join("SKILL.md"), SKILL_VISUAL_DESIGN_BOOK_MD);
+        let _ = std::fs::write(vdb_refs.join("structure-template.html"), SKILL_VISUAL_DESIGN_BOOK_TEMPLATE);
+    }
     // Remove old dream dir if it exists (cleanup for existing users)
     let old_dream_dir = dot_claude.join("skills").join("dream");
     if old_dream_dir.exists() {

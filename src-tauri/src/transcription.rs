@@ -844,9 +844,9 @@ pub async fn transcribe_audio_to_ai_markdown(
     Ok(markdown_path)
 }
 
-/// 计算 CLI 调用超时：max(duration_secs * 3, 60) 秒
+/// 计算 CLI 调用超时：max(duration_secs * 10, 600) 秒
 pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
-    let secs = (duration_secs * 3.0).max(60.0);
+    let secs = (duration_secs * 10.0).max(600.0);
     Duration::from_secs(secs as u64)
 }
 

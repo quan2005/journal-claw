@@ -391,7 +391,7 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
       {/* Scrollable body */}
       <div
         ref={bodyRef}
-        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
+        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', userSelect: 'text' }}
         onContextMenu={(e) => {
           e.preventDefault()
           showContextMenu(e.clientX, e.clientY)

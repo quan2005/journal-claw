@@ -179,6 +179,39 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             None => continue,
         };
 
+        // Skip iCloud evicted (dataless) files — reading them would block on download
+        #[cfg(target_os = "macos")]
+        {
+            use std::os::macos::fs::MetadataExt;
+            if let Ok(meta) = std::fs::metadata(&path) {
+                const SF_DATALESS: u32 = 0x40000000;
+                if meta.st_flags() & SF_DATALESS != 0 {
+                    // File not downloaded from iCloud — use title from filename only
+                    let meta_opt = entry.metadata().ok();
+                    let mtime = meta_opt.as_ref().and_then(|m| m.modified().ok());
+                    let mtime_secs = mtime
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs() as i64)
+                        .unwrap_or(0);
+                    entries.push(JournalEntry {
+                        filename,
+                        path: path.to_string_lossy().to_string(),
+                        title,
+                        summary: String::new(),
+                        tags: vec![],
+                        year_month: year_month.to_string(),
+                        day,
+                        created_time: String::new(),
+                        created_at_secs: mtime_secs,
+                        mtime_secs,
+                        materials: vec![],
+                        sources: vec![],
+                    });
+                    continue;
+                }
+            }
+        }
+
         let content = std::fs::read_to_string(&path).unwrap_or_default();
 
         let matter = Matter::<YAML>::new();

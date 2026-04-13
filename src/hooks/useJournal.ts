@@ -7,6 +7,17 @@ export const RECORDING_PLACEHOLDER = '__recording__'
 
 const BATCH_SIZE = 3
 
+/** Wrap a promise with a timeout — rejects if not settled within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    promise.then(
+      v => { clearTimeout(timer); resolve(v) },
+      e => { clearTimeout(timer); reject(e) },
+    )
+  })
+}
+
 export function useJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,27 +34,45 @@ export function useJournal() {
     if (refreshing.current) return
     refreshing.current = true
     try {
-      const allMonths = await listAvailableMonths()
+      const allMonths = await withTimeout(listAvailableMonths(), 5000, 'listAvailableMonths')
       availableMonthsRef.current = allMonths
       setAvailableMonths(allMonths)
 
       const currentLoaded = loadedMonthsRef.current
       if (currentLoaded.length === 0) {
-        // Initial load: first BATCH_SIZE months
+        // Initial load: load months one by one to keep IPC payload small
         const initial = allMonths.slice(0, BATCH_SIZE)
+        const results: JournalEntry[] = []
+        for (const m of initial) {
+          const batch = await withTimeout(listJournalEntriesByMonths([m]), 8000, `listEntries(${m})`)
+          results.push(...batch)
+        }
         if (initial.length > 0) {
-          const result = await listJournalEntriesByMonths(initial)
           loadedMonthsRef.current = initial
           setLoadedMonths(initial)
-          setEntries(result)
+          results.sort((a, b) =>
+            b.year_month.localeCompare(a.year_month) ||
+            b.day - a.day ||
+            b.created_at_secs - a.created_at_secs
+          )
+          setEntries(results)
         }
       } else {
-        // Refresh already-loaded months only
-        const result = await listJournalEntriesByMonths(currentLoaded)
+        // Refresh: also load one month at a time
+        const results: JournalEntry[] = []
+        for (const m of currentLoaded) {
+          const batch = await withTimeout(listJournalEntriesByMonths([m]), 8000, `listEntries(${m})`)
+          results.push(...batch)
+        }
+        results.sort((a, b) =>
+          b.year_month.localeCompare(a.year_month) ||
+          b.day - a.day ||
+          b.created_at_secs - a.created_at_secs
+        )
         setEntries(prev => {
-          if (prev.length !== result.length) return result
+          if (prev.length !== results.length) return results
           for (let i = 0; i < prev.length; i++) {
-            if (prev[i].path !== result[i].path || prev[i].mtime_secs !== result[i].mtime_secs) return result
+            if (prev[i].path !== results[i].path || prev[i].mtime_secs !== results[i].mtime_secs) return results
           }
           return prev
         })
@@ -238,6 +267,7 @@ export function useJournal() {
 
     return () => {
       clearInterval(pollInterval)
+      refreshing.current = false
       unlistenProcessing.then(fn => fn())
       unlistenLog.then(fn => fn())
       unlistenUpdated.then(fn => fn())

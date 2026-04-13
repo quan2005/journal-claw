@@ -1412,7 +1412,7 @@ pub async fn transcribe_with_whisperkit(
     };
 
     // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
-    let timeout = std::time::Duration::from_secs(300); // whisperkit 模型加载较慢，给 5 分钟
+    let timeout = std::time::Duration::from_secs(1800); // whisperkit 首次需编译模型，给 30 分钟
     let stdout_bytes = if let Some(stdout) = child.stdout.take() {
         let mut reader = BufReader::new(stdout);
         let mut buf = String::new();
@@ -1425,8 +1425,8 @@ pub async fn transcribe_with_whisperkit(
                 if let Some(h) = stderr_handle {
                     let _ = h.await;
                 }
-                save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（300秒），已终止进程");
-                return Err("WhisperKit 转录超时（300秒），已终止进程".to_string());
+                save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（1800秒），已终止进程");
+                return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
             }
         }
     } else {
@@ -1447,8 +1447,8 @@ pub async fn transcribe_with_whisperkit(
         }
         Err(_) => {
             let _ = child.kill().await;
-            save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（300秒），已终止进程");
-            return Err("WhisperKit 转录超时（300秒），已终止进程".to_string());
+            save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（1800秒），已终止进程");
+            return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
         }
     };
 
@@ -1718,27 +1718,27 @@ SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
     }
 
     #[test]
-    fn compute_stt_timeout_uses_duration_times_three() {
+    fn compute_stt_timeout_uses_duration_times_ten() {
         let timeout = compute_stt_timeout(30.0);
-        assert_eq!(timeout, Duration::from_secs(90));
+        assert_eq!(timeout, Duration::from_secs(600));
     }
 
     #[test]
-    fn compute_stt_timeout_minimum_60_seconds() {
+    fn compute_stt_timeout_minimum_600_seconds() {
         let timeout = compute_stt_timeout(10.0);
-        assert_eq!(timeout, Duration::from_secs(60));
+        assert_eq!(timeout, Duration::from_secs(600));
     }
 
     #[test]
-    fn compute_stt_timeout_zero_duration_returns_60() {
+    fn compute_stt_timeout_zero_duration_returns_600() {
         let timeout = compute_stt_timeout(0.0);
-        assert_eq!(timeout, Duration::from_secs(60));
+        assert_eq!(timeout, Duration::from_secs(600));
     }
 
     #[test]
     fn compute_stt_timeout_large_duration() {
         let timeout = compute_stt_timeout(120.0);
-        assert_eq!(timeout, Duration::from_secs(360));
+        assert_eq!(timeout, Duration::from_secs(1200));
     }
 
     #[test]

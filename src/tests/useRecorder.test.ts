@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useRecorder } from '../hooks/useRecorder'
 
@@ -12,13 +12,11 @@ vi.mock('@tauri-apps/api/event', () => ({
 }))
 
 describe('useRecorder', () => {
-  beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers() })
 
   it('starts in idle state', () => {
     const { result } = renderHook(() => useRecorder())
     expect(result.current.status).toBe('idle')
-    expect(result.current.elapsedSecs).toBe(0)
   })
 
   it('transitions to recording on start()', async () => {
@@ -27,18 +25,10 @@ describe('useRecorder', () => {
     expect(result.current.status).toBe('recording')
   })
 
-  it('increments elapsedSecs each second while recording', async () => {
-    const { result } = renderHook(() => useRecorder())
-    await act(async () => { await result.current.start() })
-    act(() => { vi.advanceTimersByTime(3000) })
-    expect(result.current.elapsedSecs).toBe(3)
-  })
-
   it('returns to idle on stop()', async () => {
     const { result } = renderHook(() => useRecorder())
     await act(async () => { await result.current.start() })
     await act(async () => { await result.current.stop() })
     expect(result.current.status).toBe('idle')
-    expect(result.current.elapsedSecs).toBe(0)
   })
 })

@@ -28,7 +28,7 @@ const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { t } = useTranslation()
-  const { status, elapsedSecs, audioLevel, start, stop } = useRecorder()
+  const { status, start, stop } = useRecorder()
   const { entries, loading, loadingMore, hasMore, loadMore, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
   const { theme, setTheme } = useTheme()
   const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue, updateTodoText, setTodoPath, removeTodoPath } = useTodos()
@@ -396,7 +396,7 @@ export default function App() {
 
   // Inject a virtual 'recording' item at the front of the queue when recording
   const visibleQueueItems = status === 'recording'
-    ? [{ path: RECORDING_PLACEHOLDER, filename: t('recordingStatus'), status: 'recording' as const, addedAt: Date.now(), logs: [], elapsedSecs, audioLevel }, ...queueItems]
+    ? [{ path: RECORDING_PLACEHOLDER, filename: t('recordingStatus'), status: 'recording' as const, addedAt: Date.now(), logs: [] }, ...queueItems]
     : queueItems
 
   const SOUL_ENTRY: IdentityEntry = {

@@ -243,6 +243,22 @@ pub fn whisperkit_models_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .map(|dir| dir.join("whisperkit-models"))
 }
 
+/// 检查 WhisperKit 模型目录是否包含所有必需文件。
+/// 下载中断会留下不完整的目录，仅检查 exists() 不够。
+fn is_whisperkit_model_complete(path: &std::path::Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    const REQUIRED: &[&str] = &[
+        "config.json",
+        "generation_config.json",
+        "AudioEncoder.mlmodelc",
+        "MelSpectrogram.mlmodelc",
+        "TextDecoder.mlmodelc",
+    ];
+    REQUIRED.iter().all(|f| path.join(f).exists())
+}
+
 pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf> {
     let model_key = whisperkit_cli_model_name(model);
     let relative = PathBuf::from("models")
@@ -255,7 +271,7 @@ pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf
         .resource_dir()
         .ok()
         .map(|dir| dir.join("whisperkit-models").join(&relative))
-        .filter(|path| path.exists());
+        .filter(|path| is_whisperkit_model_complete(path));
     if bundled.is_some() {
         return bundled;
     }
@@ -264,14 +280,14 @@ pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf
         .join("resources")
         .join("whisperkit-models")
         .join(&relative);
-    if source_resource.exists() {
+    if is_whisperkit_model_complete(&source_resource) {
         return Some(source_resource);
     }
 
     whisperkit_models_dir(app)
         .ok()
         .map(|dir| dir.join(relative))
-        .filter(|path| path.exists())
+        .filter(|path| is_whisperkit_model_complete(path))
 }
 
 /// 在 PATH（含 /usr/local/bin, /opt/homebrew/bin）中查找 whisperkit-cli。

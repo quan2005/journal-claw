@@ -1,0 +1,140 @@
+use serde::Serialize;
+use std::fs;
+use std::path::PathBuf;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SkillInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub scope: String,
+    pub dir_name: String,
+}
+
+fn parse_skill_frontmatter(content: &str) -> Option<(String, String)> {
+    let content = content.trim();
+    if !content.starts_with("---") {
+        return None;
+    }
+    let rest = &content[3..];
+    let end = rest.find("---")?;
+    let yaml_block = &rest[..end];
+
+    let mut name = String::new();
+    let mut description = String::new();
+
+    for line in yaml_block.lines() {
+        let line = line.trim();
+        if let Some(val) = line.strip_prefix("name:") {
+            name = val.trim().trim_matches('"').trim_matches('\'').to_string();
+        } else if let Some(val) = line.strip_prefix("description:") {
+            description = val.trim().trim_matches('"').trim_matches('\'').to_string();
+        }
+    }
+
+    if name.is_empty() {
+        return None;
+    }
+
+    Some((name, description))
+}
+
+fn scan_skills_dir(dir: &PathBuf, scope: &str) -> Vec<SkillInfo> {
+    let mut skills = Vec::new();
+
+    let entries = match fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return skills,
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let skill_md = path.join("SKILL.md");
+        if !skill_md.exists() {
+            continue;
+        }
+
+        let dir_name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        if dir_name.is_empty() {
+            continue;
+        }
+
+        let content = match fs::read_to_string(&skill_md) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        let (name, description) = match parse_skill_frontmatter(&content) {
+            Some(pair) => pair,
+            None => continue,
+        };
+
+        let id = format!("{}:{}", scope, dir_name);
+
+        skills.push(SkillInfo {
+            id,
+            name,
+            description,
+            scope: scope.to_string(),
+            dir_name,
+        });
+    }
+
+    skills.sort_by(|a, b| a.name.cmp(&b.name));
+    skills
+}
+
+#[tauri::command]
+pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
+    let mut all_skills = Vec::new();
+
+    // 1. Project skills: <workspace>/.claude/skills/
+    let config = crate::config::load_config(&app)?;
+    if !config.workspace_path.is_empty() {
+        let project_skills_dir = PathBuf::from(&config.workspace_path)
+            .join(".claude")
+            .join("skills");
+        all_skills.extend(scan_skills_dir(&project_skills_dir, "project"));
+    }
+
+    // 2. Global skills: ~/.claude/skills/
+    if let Some(home) = dirs::home_dir() {
+        let global_skills_dir = home.join(".claude").join("skills");
+        all_skills.extend(scan_skills_dir(&global_skills_dir, "global"));
+    }
+
+    Ok(all_skills)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_valid_frontmatter() {
+        let content = "---\nname: ideate\ndescription: \"灵感探讨与设计咨询\"\n---\n\n# Content here\n";
+        let (name, desc) = parse_skill_frontmatter(content).unwrap();
+        assert_eq!(name, "ideate");
+        assert_eq!(desc, "灵感探讨与设计咨询");
+    }
+
+    #[test]
+    fn parse_no_frontmatter_returns_none() {
+        assert!(parse_skill_frontmatter("# Just a heading").is_none());
+    }
+
+    #[test]
+    fn parse_missing_name_returns_none() {
+        let content = "---\ndescription: test\n---\n";
+        assert!(parse_skill_frontmatter(content).is_none());
+    }
+}

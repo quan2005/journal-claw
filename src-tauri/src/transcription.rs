@@ -1372,6 +1372,7 @@ pub async fn transcribe_with_whisperkit(
         ]);
     }
 
+    cmd.env("HF_ENDPOINT", "https://hf-mirror.com");
     use std::process::Stdio;
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = cmd

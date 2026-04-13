@@ -711,6 +711,7 @@ pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<
         "--model",
         &cli_model,
     ]);
+    cmd.env("HF_ENDPOINT", "https://hf-mirror.com");
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
     let app_for_spawn_error = app.clone();

@@ -346,3 +346,21 @@ export const setFeishuConfig = (config: FeishuConfig): Promise<void> =>
 
 export const getFeishuStatus = (): Promise<FeishuStatus> =>
   invoke<FeishuStatus>('get_feishu_status')
+
+// Skills (技能插件)
+export interface SkillInfo {
+  id: string
+  name: string
+  description: string
+  scope: 'project' | 'global'
+  dir_name: string
+}
+
+export const listSkills = (): Promise<SkillInfo[]> =>
+  invoke<SkillInfo[]>('list_skills')
+
+export const getDisabledSkills = (): Promise<string[]> =>
+  invoke<string[]>('get_disabled_skills')
+
+export const setDisabledSkills = (skills: string[]): Promise<void> =>
+  invoke<void>('set_disabled_skills', { skills })

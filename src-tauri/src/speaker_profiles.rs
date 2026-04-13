@@ -207,11 +207,8 @@ pub fn identify_or_register_all(
                 profile.last_seen_at = now;
                 profile.recording_count += 1;
                 profile.add_embedding(embedding.clone());
-                let label_value = if profile.name.is_empty() {
-                    format!("未识别 {}", profile.id)
-                } else {
-                    format!("{} {}", profile.name, profile.id)
-                };
+                let display = if profile.name.is_empty() { &profile.auto_name } else { &profile.name };
+                let label_value = format!("{} {}", display, profile.id);
                 mapping.insert(label.clone(), label_value);
                 continue;
             }
@@ -230,7 +227,7 @@ pub fn identify_or_register_all(
             last_seen_at: now,
             recording_count: 1,
         };
-        mapping.insert(label.clone(), format!("未识别 {}", new_id));
+        mapping.insert(label.clone(), format!("{} {}", auto_name, new_id));
         profiles.push(new_profile);
     }
 

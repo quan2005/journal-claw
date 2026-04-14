@@ -708,8 +708,8 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
       setContent(null)
       setEditing(false)
       setShowFind(false)
-      CSS.highlights?.delete('search-result')
-      CSS.highlights?.delete('search-current')
+      typeof CSS !== 'undefined' && CSS.highlights?.delete('search-result')
+      typeof CSS !== 'undefined' && CSS.highlights?.delete('search-current')
       return
     }
     if (editing) return
@@ -1140,8 +1140,8 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
         <FindBar
           containerRef={bodyRef}
           onClose={() => {
-            CSS.highlights?.delete('search-result')
-            CSS.highlights?.delete('search-current')
+            typeof CSS !== 'undefined' && CSS.highlights?.delete('search-result')
+            typeof CSS !== 'undefined' && CSS.highlights?.delete('search-current')
             setShowFind(false)
           }}
         />

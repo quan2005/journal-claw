@@ -185,6 +185,17 @@ pub fn identify_or_register_all(
     let now = now_secs();
     let mut mapping: HashMap<String, String> = HashMap::new();
 
+    // Build speaker_id → identity name lookup so matched speakers use their identity name
+    let identity_names: HashMap<String, String> = crate::config::load_config(app)
+        .ok()
+        .filter(|cfg| !cfg.workspace_path.is_empty())
+        .and_then(|cfg| crate::identity::list_identity_entries(&cfg.workspace_path).ok())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|e| !e.speaker_id.is_empty())
+        .map(|e| (e.speaker_id, e.name))
+        .collect();
+
     // Sort speaker labels for deterministic ordering (SPEAKER_00 before SPEAKER_01, etc.)
     let mut labels: Vec<&String> = speaker_embeddings.keys().collect();
     labels.sort();
@@ -207,7 +218,9 @@ pub fn identify_or_register_all(
                 profile.last_seen_at = now;
                 profile.recording_count += 1;
                 profile.add_embedding(embedding.clone());
-                let display = if profile.name.is_empty() { &profile.auto_name } else { &profile.name };
+                let display = identity_names.get(&profile.id)
+                    .cloned()
+                    .unwrap_or_else(|| profile.auto_name.clone());
                 let label_value = format!("{} {}", display, profile.id);
                 mapping.insert(label.clone(), label_value);
                 continue;

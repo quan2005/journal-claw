@@ -27,17 +27,17 @@ pub struct ActiveRecording {
 }
 
 /// Generate a unique filename for a new recording.
-/// Format: "录音 YYYY-MM-DD HH:mm.m4a", with ":SS" appended if that file already exists.
+/// Format: "DD-rec-HHmm.m4a", with "ss" appended if that file already exists.
 fn unique_filename(dir: &Path) -> String {
     use chrono::Datelike;
     let now = Local::now();
     let day = now.day();
-    let base = format!("{:02}-录音 {}", day, now.format("%Y-%m-%d %H:%M"));
+    let base = format!("{:02}-rec-{}", day, now.format("%H%M"));
     let candidate = format!("{}.m4a", base);
     if !dir.join(&candidate).exists() {
         return candidate;
     }
-    format!("{:02}-录音 {}.m4a", day, now.format("%Y-%m-%d %H:%M:%S"))
+    format!("{:02}-rec-{}.m4a", day, now.format("%H%M%S"))
 }
 
 #[tauri::command]

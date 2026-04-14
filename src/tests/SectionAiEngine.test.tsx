@@ -22,7 +22,9 @@ vi.mock('@tauri-apps/api/event', () => ({
 describe('SectionAiEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCheckEngineInstalled.mockImplementation(async (engine: 'claude' | 'qwen') => engine === 'claude')
+    mockCheckEngineInstalled.mockImplementation(
+      async (engine: 'claude' | 'qwen') => engine === 'claude',
+    )
     mockInstallEngine.mockResolvedValue(undefined)
     mockGetEngineConfig.mockResolvedValue({
       active_ai_engine: 'claude',

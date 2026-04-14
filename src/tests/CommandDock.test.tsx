@@ -15,7 +15,10 @@ vi.mock('../lib/tauri', () => ({
   openFile: vi.fn(),
 }))
 
-function renderDock(recorderStatus: 'idle' | 'recording' = 'idle', asrReady: boolean | null = true) {
+function renderDock(
+  recorderStatus: 'idle' | 'recording' = 'idle',
+  asrReady: boolean | null = true,
+) {
   const onRecord = vi.fn()
 
   render(
@@ -72,7 +75,7 @@ describe('CommandDock', () => {
         onOpenSettings={vi.fn()}
         externalOpen={false}
         onExternalOpenConsumed={consumed}
-      />
+      />,
     )
     // Initially no cancel button (dock closed)
     expect(screen.queryByText('取消')).toBeNull()
@@ -92,7 +95,7 @@ describe('CommandDock', () => {
         onOpenSettings={vi.fn()}
         externalOpen={true}
         onExternalOpenConsumed={consumed}
-      />
+      />,
     )
     await waitFor(() => {
       expect(screen.getByText('取消')).toBeTruthy()

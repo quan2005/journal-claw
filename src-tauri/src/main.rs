@@ -387,8 +387,6 @@ fn main() {
             config::get_feishu_status,
             skills::list_skills,
             skills::open_skills_dir,
-            workspace_settings::get_disabled_skills,
-            workspace_settings::set_disabled_skills,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

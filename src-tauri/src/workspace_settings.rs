@@ -48,8 +48,6 @@ fn valid_min_entries(n: u32) -> bool {
 struct WorkspaceSettings {
     #[serde(default = "default_theme")]
     theme: String,
-    #[serde(default)]
-    disabled_skills: Vec<String>,
     #[serde(default, alias = "auto_dream")]
     auto_lint: AutoLintConfig,
 }
@@ -58,7 +56,6 @@ impl Default for WorkspaceSettings {
     fn default() -> Self {
         WorkspaceSettings {
             theme: default_theme(),
-            disabled_skills: Vec::new(),
             auto_lint: AutoLintConfig::default(),
         }
     }
@@ -150,18 +147,6 @@ pub fn get_workspace_path_for_auto_lint(app: &AppHandle) -> Result<String, Strin
 /// Load auto_lint config without going through Tauri command interface.
 pub fn load_auto_lint_config(app: &AppHandle) -> Result<AutoLintConfig, String> {
     Ok(load_settings(app)?.auto_lint)
-}
-
-#[tauri::command]
-pub fn get_disabled_skills(app: AppHandle) -> Result<Vec<String>, String> {
-    Ok(load_settings(&app)?.disabled_skills)
-}
-
-#[tauri::command]
-pub fn set_disabled_skills(app: AppHandle, skills: Vec<String>) -> Result<(), String> {
-    let mut settings = load_settings(&app)?;
-    settings.disabled_skills = skills;
-    save_settings(&app, &settings)
 }
 
 #[cfg(test)]

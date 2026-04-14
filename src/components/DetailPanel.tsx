@@ -9,6 +9,7 @@ import { getJournalEntryContent, getWorkspacePath, openFile } from '../lib/tauri
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
+import { FindBar } from './FindBar'
 import { createTranslator, detectLang } from '../lib/i18n'
 
 // Module-level translator for components that can't use hooks (CodeBlock is defined outside component)
@@ -182,12 +183,14 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 // ── Component ─────────────────────────────────────────────────────────────────
 export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo, onProcess, onVisualDesign }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
+  const [showFind, setShowFind] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!entry) { setContent(null); return }
     setContent(null)
+    setShowFind(false)
     getJournalEntryContent(entry.path).then(setContent)
   }, [entry?.path, entry?.mtime_secs])
 
@@ -242,10 +245,24 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
   }, [])
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onDeselect() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !showFind) onDeselect()
+    }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onDeselect])
+  }, [onDeselect, showFind])
+
+  // Cmd+F opens find bar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowFind(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -518,8 +535,9 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
   return (
     <div style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      background: 'var(--detail-bg)',
+      background: 'var(--detail-bg)', position: 'relative',
     }}>
+      {showFind && <FindBar containerRef={bodyRef} onClose={() => setShowFind(false)} />}
       {/* Scrollable body */}
       <div
         ref={bodyRef}

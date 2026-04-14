@@ -777,3 +777,27 @@ html, body, #root {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── CMD+F in-page search highlights (CSS Custom Highlight API) ── */
+::highlight(search-result) {
+  background-color: rgba(200, 147, 59, 0.25);
+  color: inherit;
+}
+::highlight(search-current) {
+  background-color: rgba(200, 147, 59, 0.6);
+  color: inherit;
+}
+[data-theme="light"] ::highlight(search-result),
+:root:not([data-theme]) ::highlight(search-result) {
+  background-color: rgba(184, 120, 42, 0.2);
+}
+[data-theme="light"] ::highlight(search-current),
+:root:not([data-theme]) ::highlight(search-current) {
+  background-color: rgba(184, 120, 42, 0.45);
+}
+
+/* ── Find bar slide-in animation ── */
+@keyframes find-bar-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

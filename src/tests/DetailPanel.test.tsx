@@ -88,8 +88,12 @@ describe('empty state guidance cards', () => {
       sources: ['2604/raw/录音-abc123.m4a', '2604/raw/paste-20260409.txt'],
     }
     render(<DetailPanel {...baseProps} entry={entryWithSources} entries={[entryWithSources]} />)
-    await screen.findByText('录音-abc123.m4a')
-    expect(screen.getByText('paste-20260409.txt')).toBeTruthy()
+    const rows = await screen.findAllByTestId('sources-row')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].textContent).toContain('录音-abc123')
+    expect(rows[0].textContent).toContain('M4A')
+    expect(rows[1].textContent).toContain('paste-20260409')
+    expect(rows[1].textContent).toContain('TXT')
   })
 
   it('does not render sources section when sources is empty', async () => {

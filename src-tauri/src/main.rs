@@ -386,6 +386,7 @@ fn main() {
             config::set_feishu_config,
             config::get_feishu_status,
             skills::list_skills,
+            skills::open_skills_dir,
             workspace_settings::get_disabled_skills,
             workspace_settings::set_disabled_skills,
         ])

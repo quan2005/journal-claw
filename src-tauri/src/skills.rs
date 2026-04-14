@@ -115,6 +115,33 @@ pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
     Ok(all_skills)
 }
 
+#[tauri::command]
+pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), String> {
+    let dir = match scope.as_str() {
+        "project" => {
+            let config = crate::config::load_config(&app)?;
+            if config.workspace_path.is_empty() {
+                return Err("workspace_path not set".to_string());
+            }
+            PathBuf::from(&config.workspace_path).join(".claude").join("skills")
+        }
+        "global" => {
+            dirs::home_dir()
+                .ok_or("cannot resolve home directory")?
+                .join(".claude")
+                .join("skills")
+        }
+        _ => return Err(format!("invalid scope: {}", scope)),
+    };
+
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::process::Command::new("open")
+        .arg(&dir)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

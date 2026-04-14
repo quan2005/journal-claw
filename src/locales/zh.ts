@@ -262,12 +262,9 @@ export const zh: Strings = {
   pluginsSection: '技能插件',
   pluginScopeProject: '项目',
   pluginScopeGlobal: '全局',
-  pluginEnabled: '已启用',
-  pluginDisabled: '已禁用',
   noSkillsFound: '未发现技能插件',
   noSkillsHint: '在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能',
-  enableAll: '全部启用',
-  disableAll: '全部禁用',
+  openSkillDir: '打开目录',
 
   // Settings: About
   version: '版本 {version}',

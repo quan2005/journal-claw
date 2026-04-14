@@ -359,8 +359,5 @@ export interface SkillInfo {
 export const listSkills = (): Promise<SkillInfo[]> =>
   invoke<SkillInfo[]>('list_skills')
 
-export const getDisabledSkills = (): Promise<string[]> =>
-  invoke<string[]>('get_disabled_skills')
-
-export const setDisabledSkills = (skills: string[]): Promise<void> =>
-  invoke<void>('set_disabled_skills', { skills })
+export const openSkillsDir = (scope: 'project' | 'global'): Promise<void> =>
+  invoke<void>('open_skills_dir', { scope })

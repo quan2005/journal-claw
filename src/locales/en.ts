@@ -260,12 +260,9 @@ export const en = {
   pluginsSection: 'Skill Plugins',
   pluginScopeProject: 'Project',
   pluginScopeGlobal: 'Global',
-  pluginEnabled: 'Enabled',
-  pluginDisabled: 'Disabled',
   noSkillsFound: 'No skills found',
   noSkillsHint: 'Add skills to .claude/skills/ in your project or ~/.claude/skills/ globally',
-  enableAll: 'Enable all',
-  disableAll: 'Disable all',
+  openSkillDir: 'Open directory',
 
   // Settings: About
   version: 'Version {version}',

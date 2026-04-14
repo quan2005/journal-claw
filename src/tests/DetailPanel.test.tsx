@@ -6,7 +6,7 @@ import type { JournalEntry } from '../types'
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -34,9 +34,18 @@ describe('empty state guidance cards', () => {
   }
 
   const fakeEntry: JournalEntry = {
-    filename: '01-test.md', path: '/ws/2604/01-test.md',
-    title: 'test', summary: '', tags: [], sources: [], year_month: '2604',
-    day: 1, created_time: '10:00', created_at_secs: 0, mtime_secs: 0, materials: [],
+    filename: '01-test.md',
+    path: '/ws/2604/01-test.md',
+    title: 'test',
+    summary: '',
+    tags: [],
+    sources: [],
+    year_month: '2604',
+    day: 1,
+    created_time: '10:00',
+    created_at_secs: 0,
+    mtime_secs: 0,
+    materials: [],
   }
 
   it('shows recording and paste cards when entries is empty', () => {
@@ -88,13 +97,13 @@ describe('empty state guidance cards', () => {
       sources: ['2604/raw/录音-abc123.m4a', '2604/raw/paste-20260409.txt'],
     }
     render(<DetailPanel {...baseProps} entry={entryWithSources} entries={[entryWithSources]} />)
-    await screen.findByText('录音-abc123.m4a')
-    expect(screen.getByText('paste-20260409.txt')).toBeTruthy()
+    await screen.findByText('录音-abc123')
+    expect(screen.getByText('paste-20260409')).toBeTruthy()
   })
 
   it('does not render sources section when sources is empty', async () => {
     render(<DetailPanel {...baseProps} entry={fakeEntry} entries={[fakeEntry]} />)
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(screen.queryByTestId('sources-row')).toBeNull()
   })
 })

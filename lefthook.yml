@@ -1,0 +1,25 @@
+pre-commit:
+  parallel: true
+  commands:
+    frontend-lint:
+      glob: "src/**/*.{ts,tsx}"
+      run: npx eslint {staged_files} --no-warn-ignored
+    frontend-format:
+      glob: "src/**/*.{ts,tsx,css,json}"
+      run: npx prettier --check {staged_files}
+    rust-fmt:
+      glob: "src-tauri/src/**/*.rs"
+      run: cd src-tauri && cargo fmt -- --check
+    typecheck:
+      glob: "src/**/*.{ts,tsx}"
+      run: npx tsc --noEmit
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: |
+        msg=$(cat {1})
+        if ! echo "$msg" | grep -qE '^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?!?:'; then
+          echo "Commit message must follow Conventional Commits format"
+          exit 1
+        fi

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import {
-  checkEngineInstalled, installEngine,
-  getEngineConfig, setEngineConfig,
+  checkEngineInstalled,
+  installEngine,
+  getEngineConfig,
+  setEngineConfig,
   type EngineConfig,
 } from '../../lib/tauri'
 import { Terminal, Sparkles, Check, Download, type LucideIcon } from 'lucide-react'
@@ -13,21 +15,41 @@ type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
 type EngineId = 'claude' | 'qwen'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
-const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
-const hintStyle: React.CSSProperties = { fontSize: 12, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
+const sectionStyle: React.CSSProperties = {
+  padding: '28px 28px 180px',
+  borderBottom: '1px solid var(--divider)',
+}
+const labelStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: 'var(--item-meta)',
+  marginBottom: 5,
+  display: 'block',
+}
+const hintStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: 'var(--duration-text)',
+  marginTop: 4,
+  lineHeight: 1.5,
+}
 const inputStyle: React.CSSProperties = {
-  width: '100%', background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-  borderRadius: 6, padding: '7px 10px', fontSize: 14, color: 'var(--item-text)',
-  fontFamily: 'ui-monospace, monospace', outline: 'none', boxSizing: 'border-box',
+  width: '100%',
+  background: 'var(--detail-case-bg)',
+  border: '1px solid var(--divider)',
+  borderRadius: 6,
+  padding: '7px 10px',
+  fontSize: 14,
+  color: 'var(--item-text)',
+  fontFamily: 'ui-monospace, monospace',
+  outline: 'none',
+  boxSizing: 'border-box',
 }
 
 import { createTranslator, detectLang } from '../../lib/i18n'
 const getT = () => createTranslator(detectLang())
 
 const ENGINES: { id: EngineId; label: string; vendor: string; icon: LucideIcon }[] = [
-  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic',       icon: Terminal },
-  { id: 'qwen',   label: 'Qwen Code',   vendor: getT()('qwenVendor'), icon: Sparkles },
+  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic', icon: Terminal },
+  { id: 'qwen', label: 'Qwen Code', vendor: getT()('qwenVendor'), icon: Sparkles },
 ]
 
 function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
@@ -45,15 +67,21 @@ function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
 export default function SectionAiEngine() {
   const { t } = useTranslation()
   const [status, setStatus] = useState<Record<EngineId, InstallStatus>>({
-    claude: 'checking', qwen: 'checking',
+    claude: 'checking',
+    qwen: 'checking',
   })
   const [installLogs, setInstallLogs] = useState<Record<EngineId, string[]>>({
-    claude: [], qwen: [],
+    claude: [],
+    qwen: [],
   })
   const defaultConfig: EngineConfig = {
     active_ai_engine: 'claude',
-    claude_code_api_key: '', claude_code_base_url: '', claude_code_model: '',
-    qwen_code_api_key: '', qwen_code_base_url: '', qwen_code_model: '',
+    claude_code_api_key: '',
+    claude_code_base_url: '',
+    claude_code_model: '',
+    qwen_code_api_key: '',
+    qwen_code_base_url: '',
+    qwen_code_model: '',
   }
   const [cfg, setCfg] = useState<EngineConfig>(defaultConfig)
   const [persistedCfg, setPersistedCfg] = useState<EngineConfig>(defaultConfig)
@@ -64,11 +92,11 @@ export default function SectionAiEngine() {
   useEffect(() => {
     Promise.all([
       ...ENGINES.map(({ id }) =>
-        checkEngineInstalled(id).then(installed => {
-          setStatus(prev => ({ ...prev, [id]: installed ? 'installed' : 'not_installed' }))
-        })
+        checkEngineInstalled(id).then((installed) => {
+          setStatus((prev) => ({ ...prev, [id]: installed ? 'installed' : 'not_installed' }))
+        }),
       ),
-      getEngineConfig().then(loadedConfig => {
+      getEngineConfig().then((loadedConfig) => {
         setCfg(loadedConfig)
         setPersistedCfg(loadedConfig)
       }),
@@ -81,25 +109,29 @@ export default function SectionAiEngine() {
       'engine-install-log',
       ({ payload }) => {
         if (payload.engine !== 'claude' && payload.engine !== 'qwen') return
-        setInstallLogs(prev => ({
+        setInstallLogs((prev) => ({
           ...prev,
           [payload.engine]: [...prev[payload.engine], payload.line],
         }))
         if (payload.done) {
-          setStatus(prev => ({
+          setStatus((prev) => ({
             ...prev,
             [payload.engine]: payload.success ? 'installed' : 'not_installed',
           }))
         }
         logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }
-    ).then(fn => { unlistenFn = fn })
-    return () => { unlistenFn?.() }
+      },
+    ).then((fn) => {
+      unlistenFn = fn
+    })
+    return () => {
+      unlistenFn?.()
+    }
   }, [])
 
   const handleInstall = (engine: EngineId) => {
-    setStatus(prev => ({ ...prev, [engine]: 'installing' }))
-    setInstallLogs(prev => ({ ...prev, [engine]: [] }))
+    setStatus((prev) => ({ ...prev, [engine]: 'installing' }))
+    setInstallLogs((prev) => ({ ...prev, [engine]: [] }))
     installEngine(engine)
   }
 
@@ -109,7 +141,7 @@ export default function SectionAiEngine() {
       await setEngineConfig(cfg)
       setPersistedCfg(cfg)
       setSaveStatus('saved')
-      setTimeout(() => setSaveStatus(current => current === 'saved' ? 'idle' : current), 2000)
+      setTimeout(() => setSaveStatus((current) => (current === 'saved' ? 'idle' : current)), 2000)
     } catch (error) {
       console.error('[settings/ai-engine] save failed', error)
       setSaveStatus('error')
@@ -118,24 +150,38 @@ export default function SectionAiEngine() {
 
   const active = cfg.active_ai_engine as EngineId
   const hasUnsavedChanges = !isEngineConfigEqual(cfg, persistedCfg)
-  const saveHint = saveStatus === 'saving'
-    ? t('savingDots')
-    : saveStatus === 'saved'
-      ? t('saved')
-      : saveStatus === 'error'
-        ? t('saveFailedMsg')
-        : hasUnsavedChanges
-          ? t('unsavedChanges')
-          : ''
+  const saveHint =
+    saveStatus === 'saving'
+      ? t('savingDots')
+      : saveStatus === 'saved'
+        ? t('saved')
+        : saveStatus === 'error'
+          ? t('saveFailedMsg')
+          : hasUnsavedChanges
+            ? t('unsavedChanges')
+            : ''
   const canSave = hasUnsavedChanges && saveStatus !== 'saving'
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('aiEngineSection')}</div>
+      <div
+        style={{
+          fontSize: 13,
+          color: 'var(--month-label)',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          marginBottom: 16,
+          fontWeight: 500,
+        }}
+      >
+        {t('aiEngineSection')}
+      </div>
 
       {loading ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+          <div
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}
+          >
             <SkeletonRow height={90} mb={0} />
             <SkeletonRow height={90} mb={0} />
           </div>
@@ -153,7 +199,9 @@ export default function SectionAiEngine() {
       ) : (
         <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
           {/* Engine cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+          <div
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}
+          >
             {ENGINES.map(({ id, label, vendor, icon: Icon }) => {
               const s = status[id]
               const isActive = active === id
@@ -163,7 +211,7 @@ export default function SectionAiEngine() {
                   key={id}
                   onClick={() => {
                     if (!isComingSoon && s === 'installed') {
-                      setCfg(prev => ({ ...prev, active_ai_engine: id }))
+                      setCfg((prev) => ({ ...prev, active_ai_engine: id }))
                       setSaveStatus('idle')
                     }
                   }}
@@ -171,41 +219,93 @@ export default function SectionAiEngine() {
                   style={{
                     background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
                     border: `1px solid ${isActive ? 'var(--record-btn)' : 'var(--divider)'}`,
-                    borderRadius: 10, padding: '14px 12px 12px',
-                    textAlign: 'center', position: 'relative',
-                    cursor: isComingSoon ? 'not-allowed' : s === 'installed' ? 'pointer' : 'default',
+                    borderRadius: 10,
+                    padding: '14px 12px 12px',
+                    textAlign: 'center',
+                    position: 'relative',
+                    cursor: isComingSoon
+                      ? 'not-allowed'
+                      : s === 'installed'
+                        ? 'pointer'
+                        : 'default',
                     opacity: isComingSoon ? 0.4 : s === 'checking' ? 0.6 : 1,
                     pointerEvents: isComingSoon ? 'none' : undefined,
                   }}
                 >
                   {isComingSoon && (
-                    <div style={{
-                      position: 'absolute', top: 8, right: 8,
-                      fontSize: 9, color: 'var(--duration-text)',
-                      background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                      borderRadius: 4, padding: '1px 5px', letterSpacing: '0.04em',
-                    }}>{t('inDevelopment')}</div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        fontSize: 9,
+                        color: 'var(--duration-text)',
+                        background: 'var(--detail-case-bg)',
+                        border: '1px solid var(--divider)',
+                        borderRadius: 4,
+                        padding: '1px 5px',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {t('inDevelopment')}
+                    </div>
                   )}
                   {!isComingSoon && s === 'checking' && (
-                    <div style={{
-                      position: 'absolute', top: 8, right: 8,
-                      width: 14, height: 14, border: '2px solid var(--divider)',
-                      borderTopColor: 'var(--record-btn)', borderRadius: '50%',
-                      animation: 'spin 0.8s linear infinite',
-                    }} />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        width: 14,
+                        height: 14,
+                        border: '2px solid var(--divider)',
+                        borderTopColor: 'var(--record-btn)',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                      }}
+                    />
                   )}
                   {!isComingSoon && s === 'installed' && (
-                    <div style={{
-                      position: 'absolute', top: 8, right: 8,
-                      width: 16, height: 16, background: 'var(--status-success)', borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}><Check size={9} strokeWidth={2.5} color="var(--status-on-fill)" /></div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        width: 16,
+                        height: 16,
+                        background: 'var(--status-success)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Check size={9} strokeWidth={2.5} color="var(--status-on-fill)" />
+                    </div>
                   )}
-                  <div style={{ marginBottom: 6, opacity: (!isComingSoon && (s === 'not_installed' || s === 'installing')) ? 0.5 : 1, display: 'flex', justifyContent: 'center' }}>
+                  <div
+                    style={{
+                      marginBottom: 6,
+                      opacity:
+                        !isComingSoon && (s === 'not_installed' || s === 'installing') ? 0.5 : 1,
+                      display: 'flex',
+                      justifyContent: 'center',
+                    }}
+                  >
                     <Icon size={22} strokeWidth={1.5} />
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: isActive ? 'var(--record-btn)' : 'var(--item-meta)' }}>{label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>{vendor}</div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: isActive ? 'var(--record-btn)' : 'var(--item-meta)',
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>
+                    {vendor}
+                  </div>
                 </div>
               )
             })}
@@ -213,20 +313,43 @@ export default function SectionAiEngine() {
 
           {/* Claude not installed — install banner */}
           {status['claude'] === 'not_installed' && (
-            <div style={{
-              marginBottom: 16, padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(255,159,10,0.08)', border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
-              fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ fontWeight: 600, color: 'var(--status-warning)' }}>{t('claudeNotFound')}</div>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: '10px 14px',
+                borderRadius: 8,
+                background: 'rgba(255,159,10,0.08)',
+                border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
+                fontSize: 11,
+                color: 'var(--item-meta)',
+                lineHeight: 1.6,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6,
+                }}
+              >
+                <div style={{ fontWeight: 600, color: 'var(--status-warning)' }}>
+                  {t('claudeNotFound')}
+                </div>
                 <button
                   onClick={() => handleInstall('claude')}
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '4px 10px',
+                    borderRadius: 5,
+                    fontSize: 11,
+                    fontWeight: 600,
                     border: '1px solid rgba(255,159,10,0.4)',
-                    background: 'var(--status-warning-bg)', color: 'var(--status-warning)', cursor: 'pointer',
+                    background: 'var(--status-warning-bg)',
+                    color: 'var(--status-warning)',
+                    cursor: 'pointer',
                   }}
                 >
                   <Download size={11} strokeWidth={1.8} />
@@ -235,12 +358,19 @@ export default function SectionAiEngine() {
               </div>
               <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
                 {t('requiresHomebrew')}
-                <code style={{
-                  display: 'block', marginTop: 5, padding: '4px 8px',
-                  background: 'rgba(0,0,0,0.2)', borderRadius: 4,
-                  fontFamily: 'ui-monospace, monospace', fontSize: 10,
-                  color: 'var(--item-text)', userSelect: 'text' as const,
-                }}>
+                <code
+                  style={{
+                    display: 'block',
+                    marginTop: 5,
+                    padding: '4px 8px',
+                    background: 'rgba(0,0,0,0.2)',
+                    borderRadius: 4,
+                    fontFamily: 'ui-monospace, monospace',
+                    fontSize: 10,
+                    color: 'var(--item-text)',
+                    userSelect: 'text' as const,
+                  }}
+                >
                   brew install --cask claude-code
                 </code>
               </div>
@@ -249,24 +379,49 @@ export default function SectionAiEngine() {
 
           {/* Install progress */}
           {ENGINES.filter(({ id }) => status[id] === 'installing').map(({ id, label }) => (
-            <div key={id} style={{
-              marginBottom: 16, padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(255,159,10,0.08)', border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
-              fontSize: 11, color: 'var(--item-meta)', lineHeight: 1.6,
-            }}>
+            <div
+              key={id}
+              style={{
+                marginBottom: 16,
+                padding: '10px 14px',
+                borderRadius: 8,
+                background: 'rgba(255,159,10,0.08)',
+                border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
+                fontSize: 11,
+                color: 'var(--item-meta)',
+                lineHeight: 1.6,
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <div style={{
-                  width: 10, height: 10, flexShrink: 0,
-                  border: '1.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)', borderTopColor: 'var(--status-warning)',
-                  borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-                }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--status-warning)' }}>{t('installing', { label })}</span>
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    flexShrink: 0,
+                    border:
+                      '1.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
+                    borderTopColor: 'var(--status-warning)',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--status-warning)' }}>
+                  {t('installing', { label })}
+                </span>
               </div>
-              <div style={{
-                fontFamily: 'ui-monospace, monospace', fontSize: 10,
-                color: 'var(--item-meta)', maxHeight: 120, overflowY: 'auto', lineHeight: 1.7,
-              }}>
-                {installLogs[id].map((line, i) => <div key={i}>{line}</div>)}
+              <div
+                style={{
+                  fontFamily: 'ui-monospace, monospace',
+                  fontSize: 10,
+                  color: 'var(--item-meta)',
+                  maxHeight: 120,
+                  overflowY: 'auto',
+                  lineHeight: 1.7,
+                }}
+              >
+                {installLogs[id].map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
                 <div ref={logsEndRef} />
               </div>
             </div>
@@ -281,32 +436,42 @@ export default function SectionAiEngine() {
                 <>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>API Key</label>
-                    <input type="password" style={inputStyle} placeholder="sk-ant-…"
+                    <input
+                      type="password"
+                      style={inputStyle}
+                      placeholder="sk-ant-…"
                       value={cfg.claude_code_api_key}
-                      onChange={e => {
-                        setCfg(prev => ({ ...prev, claude_code_api_key: e.target.value }))
+                      onChange={(e) => {
+                        setCfg((prev) => ({ ...prev, claude_code_api_key: e.target.value }))
                         setSaveStatus('idle')
-                      }} />
+                      }}
+                    />
                     <div style={hintStyle}>{t('leaveBlankDefault')}</div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>Base URL</label>
-                    <input style={inputStyle} placeholder="https://api.anthropic.com"
+                    <input
+                      style={inputStyle}
+                      placeholder="https://api.anthropic.com"
                       value={cfg.claude_code_base_url}
-                      onChange={e => {
-                        setCfg(prev => ({ ...prev, claude_code_base_url: e.target.value }))
+                      onChange={(e) => {
+                        setCfg((prev) => ({ ...prev, claude_code_base_url: e.target.value }))
                         setSaveStatus('idle')
-                      }} />
+                      }}
+                    />
                     <div style={hintStyle}>{t('customEndpoint')}</div>
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
-                    <input style={inputStyle} placeholder="claude-sonnet-4-6"
+                    <input
+                      style={inputStyle}
+                      placeholder="claude-sonnet-4-6"
                       value={cfg.claude_code_model}
-                      onChange={e => {
-                        setCfg(prev => ({ ...prev, claude_code_model: e.target.value }))
+                      onChange={(e) => {
+                        setCfg((prev) => ({ ...prev, claude_code_model: e.target.value }))
                         setSaveStatus('idle')
-                      }} />
+                      }}
+                    />
                     <div style={hintStyle}>{t('leaveBlankModel')}</div>
                   </div>
                 </>
@@ -316,60 +481,90 @@ export default function SectionAiEngine() {
                 <>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>API Key</label>
-                    <input type="password" style={inputStyle} placeholder="sk-…"
+                    <input
+                      type="password"
+                      style={inputStyle}
+                      placeholder="sk-…"
                       value={cfg.qwen_code_api_key}
-                      onChange={e => {
-                        setCfg(prev => ({ ...prev, qwen_code_api_key: e.target.value }))
+                      onChange={(e) => {
+                        setCfg((prev) => ({ ...prev, qwen_code_api_key: e.target.value }))
                         setSaveStatus('idle')
-                      }} />
+                      }}
+                    />
                     <div style={hintStyle}>{t('dashscopeKeyHint')}</div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <label style={labelStyle}>Base URL</label>
-                    <input style={inputStyle} placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                    <input
+                      style={inputStyle}
+                      placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
                       value={cfg.qwen_code_base_url}
-                      onChange={e => {
-                        setCfg(prev => ({ ...prev, qwen_code_base_url: e.target.value }))
+                      onChange={(e) => {
+                        setCfg((prev) => ({ ...prev, qwen_code_base_url: e.target.value }))
                         setSaveStatus('idle')
-                      }} />
+                      }}
+                    />
                     <div style={hintStyle}>{t('customEndpointHint')}</div>
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Model</label>
-                    <input style={inputStyle} placeholder="qwen-coder-plus"
+                    <input
+                      style={inputStyle}
+                      placeholder="qwen-coder-plus"
                       value={cfg.qwen_code_model}
-                      onChange={e => {
-                        setCfg(prev => ({ ...prev, qwen_code_model: e.target.value }))
+                      onChange={(e) => {
+                        setCfg((prev) => ({ ...prev, qwen_code_model: e.target.value }))
                         setSaveStatus('idle')
-                      }} />
+                      }}
+                    />
                     <div style={hintStyle}>{t('leaveBlankModelHint')}</div>
                   </div>
                 </>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-                <span style={{
-                  fontSize: 13,
-                  color: saveStatus === 'error'
-                    ? 'var(--status-warning)'
-                    : saveStatus === 'saved'
-                      ? 'var(--status-success)'
-                      : 'var(--duration-text)',
-                  minHeight: 16,
-                }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: 10,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 13,
+                    color:
+                      saveStatus === 'error'
+                        ? 'var(--status-warning)'
+                        : saveStatus === 'saved'
+                          ? 'var(--status-success)'
+                          : 'var(--duration-text)',
+                    minHeight: 16,
+                  }}
+                >
                   {saveHint}
                 </span>
-                <button onClick={handleSave} disabled={!canSave} style={{
-                  background: canSave ? 'var(--record-btn)' : 'var(--divider)', border: 'none', borderRadius: 5,
-                  padding: '6px 18px', fontSize: 14, fontWeight: 600,
-                  color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
-                }}>{saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}</button>
+                <button
+                  onClick={handleSave}
+                  disabled={!canSave}
+                  style={{
+                    background: canSave ? 'var(--record-btn)' : 'var(--divider)',
+                    border: 'none',
+                    borderRadius: 5,
+                    padding: '6px 18px',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: canSave ? 'var(--bg)' : 'var(--duration-text)',
+                    cursor: canSave ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}
+                </button>
               </div>
             </>
           )}
         </div>
       )}
-
     </div>
   )
 }

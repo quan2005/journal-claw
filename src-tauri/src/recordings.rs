@@ -28,13 +28,19 @@ pub(crate) fn read_duration_pub(path: &PathBuf) -> f64 {
 /// outside of the codec declaration.
 pub(crate) fn is_unsupported_codec(path: &PathBuf) -> bool {
     // Only check m4a/mp4 files
-    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     if !matches!(ext.as_str(), "m4a" | "mp4") {
         return false;
     }
 
     // Read up to 1MB — the stsd atom is always near the beginning
-    let Ok(data) = std::fs::read(path) else { return false };
+    let Ok(data) = std::fs::read(path) else {
+        return false;
+    };
     let search_region = &data[..data.len().min(1_048_576)];
 
     // Opus codec fourcc in stsd atom

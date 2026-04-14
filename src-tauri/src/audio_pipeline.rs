@@ -32,6 +32,14 @@ fn emit_failed(app: &AppHandle, audio_path: &Path, error: String) {
     );
 }
 
+fn has_transcript_content(content: &str) -> bool {
+    content
+        .split("## 转写内容")
+        .nth(1)
+        .map(|body| !body.trim().is_empty())
+        .unwrap_or(false)
+}
+
 async fn run_audio_pipeline(
     app: AppHandle,
     audio_path: PathBuf,
@@ -74,11 +82,7 @@ async fn run_audio_pipeline(
     if enqueue_ai {
         // 转写内容为空时跳过 AI 处理
         let material_content = std::fs::read_to_string(&material_path).unwrap_or_default();
-        let has_content = material_content
-            .split("## 转写内容")
-            .nth(1)
-            .map(|body| body.trim().len() > 0)
-            .unwrap_or(false);
+        let has_content = has_transcript_content(&material_content);
 
         if !has_content {
             eprintln!("[audio_pipeline] 转写内容为空，跳过 AI 处理: {}", filename);
@@ -146,4 +150,40 @@ pub fn prepare_audio_for_ai(
 
     start_audio_pipeline(app, audio_path_buf, year_month, true, note);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_string_has_no_content() {
+        assert!(!has_transcript_content(""));
+    }
+
+    #[test]
+    fn no_transcript_section() {
+        assert!(!has_transcript_content("# 标题\n\n一些文字"));
+    }
+
+    #[test]
+    fn empty_transcript_section() {
+        assert!(!has_transcript_content("## 转写内容\n\n   \n"));
+    }
+
+    #[test]
+    fn transcript_with_content() {
+        assert!(has_transcript_content("## 转写内容\n\n你好世界"));
+    }
+
+    #[test]
+    fn transcript_with_preceding_content() {
+        let md = "# 录音信息\n\n- 时长: 5分钟\n\n## 转写内容\n\n会议讨论了项目进度";
+        assert!(has_transcript_content(md));
+    }
+
+    #[test]
+    fn transcript_section_whitespace_only() {
+        assert!(!has_transcript_content("## 转写内容\n   \n  \n\t\n"));
+    }
 }

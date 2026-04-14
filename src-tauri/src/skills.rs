@@ -143,14 +143,14 @@ pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), Strin
             if config.workspace_path.is_empty() {
                 return Err("workspace_path not set".to_string());
             }
-            PathBuf::from(&config.workspace_path).join(".claude").join("skills")
-        }
-        "global" => {
-            dirs::home_dir()
-                .ok_or("cannot resolve home directory")?
+            PathBuf::from(&config.workspace_path)
                 .join(".claude")
                 .join("skills")
         }
+        "global" => dirs::home_dir()
+            .ok_or("cannot resolve home directory")?
+            .join(".claude")
+            .join("skills"),
         _ => return Err(format!("invalid scope: {}", scope)),
     };
 
@@ -168,7 +168,8 @@ mod tests {
 
     #[test]
     fn parse_valid_frontmatter() {
-        let content = "---\nname: ideate\ndescription: \"灵感探讨与设计咨询\"\n---\n\n# Content here\n";
+        let content =
+            "---\nname: ideate\ndescription: \"灵感探讨与设计咨询\"\n---\n\n# Content here\n";
         let (name, desc) = parse_skill_frontmatter(content).unwrap();
         assert_eq!(name, "ideate");
         assert_eq!(desc, "灵感探讨与设计咨询");

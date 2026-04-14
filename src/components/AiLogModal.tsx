@@ -35,7 +35,8 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
       <div
         onClick={handleClose}
         style={{
-          position: 'fixed', inset: 0,
+          position: 'fixed',
+          inset: 0,
           background: 'rgba(0,0,0,0.4)',
           zIndex: 100,
           animation: `${closing ? 'modal-backdrop-out' : 'modal-backdrop-in'} ${ANIM_DURATION}ms ease-out both`,
@@ -45,7 +46,8 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
       <div
         style={{
           position: 'fixed',
-          top: '50%', left: '50%',
+          top: '50%',
+          left: '50%',
           transform: 'translate(-50%, -50%)',
           width: 520,
           maxWidth: 'calc(100vw - 48px)',
@@ -62,31 +64,59 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
         }}
       >
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 16px',
-          borderBottom: '0.5px solid var(--queue-border)',
-          flexShrink: 0,
-          color: 'var(--item-meta)',
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            borderBottom: '0.5px solid var(--queue-border)',
+            flexShrink: 0,
+            color: 'var(--item-meta)',
+          }}
+        >
           {isActive && <Spinner size={12} borderWidth={1.5} />}
-          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              flex: 1,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--item-meta)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {item.filename}
           </span>
-          <span style={{
-            fontSize: 'var(--text-xs)',
-            color: item.status === 'failed' ? 'var(--status-danger)'
-              : item.status === 'completed' ? 'var(--ai-pill-text)'
-              : 'var(--ai-pill-active-text)',
-            opacity: 0.8,
-          }}>
-            {item.status === 'failed' ? t('failedStatus')
-              : item.status === 'completed' ? t('completedStatus')
-              : null}
+          <span
+            style={{
+              fontSize: 'var(--text-xs)',
+              color:
+                item.status === 'failed'
+                  ? 'var(--status-danger)'
+                  : item.status === 'completed'
+                    ? 'var(--ai-pill-text)'
+                    : 'var(--ai-pill-active-text)',
+              opacity: 0.8,
+            }}
+          >
+            {item.status === 'failed'
+              ? t('failedStatus')
+              : item.status === 'completed'
+                ? t('completedStatus')
+                : null}
           </span>
           <button
             onClick={handleClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--item-meta)', fontSize: 'var(--text-md)', lineHeight: 1, padding: '0 2px' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-md)',
+              lineHeight: 1,
+              padding: '0 2px',
+            }}
           >
             ×
           </button>
@@ -106,9 +136,13 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
           }}
         >
           {item.logs.length === 0 ? (
-            item.error
-              ? <span style={{ color: 'var(--status-danger)', whiteSpace: 'pre-wrap' }}>{item.error}</span>
-              : <span style={{ opacity: 0.4 }}>{t('waitingOutput')}</span>
+            item.error ? (
+              <span style={{ color: 'var(--status-danger)', whiteSpace: 'pre-wrap' }}>
+                {item.error}
+              </span>
+            ) : (
+              <span style={{ opacity: 0.4 }}>{t('waitingOutput')}</span>
+            )
           ) : (
             item.logs.map((line, i) => (
               <div
@@ -127,13 +161,15 @@ export function AiLogModal({ item, onClose, onCancel }: AiLogModalProps) {
 
         {/* Footer — cancel button only when active */}
         {isActive && (
-          <div style={{
-            padding: '8px 16px',
-            borderTop: '0.5px solid var(--queue-border)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            flexShrink: 0,
-          }}>
+          <div
+            style={{
+              padding: '8px 16px',
+              borderTop: '0.5px solid var(--queue-border)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              flexShrink: 0,
+            }}
+          >
             <button
               onClick={() => {
                 onCancel()

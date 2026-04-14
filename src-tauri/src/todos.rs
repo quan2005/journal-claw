@@ -122,7 +122,13 @@ pub fn list_todos_from_workspace(workspace: &str) -> Vec<TodoItem> {
     items
 }
 
-pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, source: Option<&str>, path: Option<&str>) -> Result<(), String> {
+pub fn add_todo_to_workspace(
+    workspace: &str,
+    text: &str,
+    due: Option<&str>,
+    source: Option<&str>,
+    path: Option<&str>,
+) -> Result<(), String> {
     let p = todos_path(workspace);
     let mut content = if p.exists() {
         std::fs::read_to_string(&p).map_err(|e| e.to_string())?
@@ -151,7 +157,12 @@ pub fn add_todo_to_workspace(workspace: &str, text: &str, due: Option<&str>, sou
     write_todos_file(workspace, &content)
 }
 
-pub fn toggle_todo_in_workspace(workspace: &str, line_index: usize, checked: bool, done_file: bool) -> Result<(), String> {
+pub fn toggle_todo_in_workspace(
+    workspace: &str,
+    line_index: usize,
+    checked: bool,
+    done_file: bool,
+) -> Result<(), String> {
     if checked && !done_file {
         // 勾选：从 todos.md 删除，插入到 todos.done.md 顶部
         let content = read_todos_file(workspace);
@@ -165,10 +176,16 @@ pub fn toggle_todo_in_workspace(workspace: &str, line_index: usize, checked: boo
             return Err("该行不是未完成待办项".to_string());
         }
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        let done_line = format!("{} <!-- done:{} -->", line.replacen("- [ ] ", "- [x] ", 1), today);
+        let done_line = format!(
+            "{} <!-- done:{} -->",
+            line.replacen("- [ ] ", "- [x] ", 1),
+            today
+        );
 
         // 从 todos.md 删除
-        let new_lines: Vec<&str> = lines.into_iter().enumerate()
+        let new_lines: Vec<&str> = lines
+            .into_iter()
+            .enumerate()
             .filter(|(i, _)| *i != line_index)
             .map(|(_, l)| l)
             .collect();
@@ -181,7 +198,10 @@ pub fn toggle_todo_in_workspace(workspace: &str, line_index: usize, checked: boo
         } else {
             let done_lines: Vec<&str> = done_content.lines().collect();
             let insert_pos = first_line_after_frontmatter(&done_lines);
-            let mut new_done: Vec<String> = done_lines[..insert_pos].iter().map(|s| s.to_string()).collect();
+            let mut new_done: Vec<String> = done_lines[..insert_pos]
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
             new_done.push(done_line);
             new_done.extend(done_lines[insert_pos..].iter().map(|s| s.to_string()));
             write_done_file(workspace, &(new_done.join("\n") + "\n"))?;
@@ -201,7 +221,9 @@ pub fn toggle_todo_in_workspace(workspace: &str, line_index: usize, checked: boo
         let unchecked_line = remove_comment(&unchecked_line, "done:");
 
         // 从 todos.done.md 删除
-        let new_done: Vec<&str> = done_lines.into_iter().enumerate()
+        let new_done: Vec<&str> = done_lines
+            .into_iter()
+            .enumerate()
             .filter(|(i, _)| *i != line_index)
             .map(|(_, l)| l)
             .collect();
@@ -221,7 +243,11 @@ pub fn toggle_todo_in_workspace(workspace: &str, line_index: usize, checked: boo
     }
 }
 
-pub fn delete_todo_in_workspace(workspace: &str, line_index: usize, done_file: bool) -> Result<(), String> {
+pub fn delete_todo_in_workspace(
+    workspace: &str,
+    line_index: usize,
+    done_file: bool,
+) -> Result<(), String> {
     let (content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
         (read_done_file(workspace), Box::new(write_done_file))
     } else {
@@ -233,7 +259,9 @@ pub fn delete_todo_in_workspace(workspace: &str, line_index: usize, done_file: b
         return Err(format!("行号 {} 超出范围", line_index));
     }
 
-    let new_lines: Vec<&str> = lines.into_iter().enumerate()
+    let new_lines: Vec<&str> = lines
+        .into_iter()
+        .enumerate()
         .filter(|(i, _)| *i != line_index)
         .map(|(_, l)| l)
         .collect();
@@ -246,7 +274,11 @@ fn remove_comment(line: &str, prefix: &str) -> String {
     let pattern = format!("<!-- {}", prefix);
     if let Some(start) = result.find(&pattern) {
         if let Some(end) = result[start..].find("-->") {
-            result = format!("{}{}", result[..start].trim_end(), &result[start + end + 3..]);
+            result = format!(
+                "{}{}",
+                result[..start].trim_end(),
+                &result[start + end + 3..]
+            );
         }
     }
     result.trim_end().to_string()
@@ -259,27 +291,56 @@ pub fn list_todos(app: tauri::AppHandle) -> Result<Vec<TodoItem>, String> {
 }
 
 #[tauri::command]
-pub fn add_todo(app: tauri::AppHandle, text: String, due: Option<String>, source: Option<String>, path: Option<String>) -> Result<TodoItem, String> {
+pub fn add_todo(
+    app: tauri::AppHandle,
+    text: String,
+    due: Option<String>,
+    source: Option<String>,
+    path: Option<String>,
+) -> Result<TodoItem, String> {
     let cfg = crate::config::load_config(&app)?;
-    add_todo_to_workspace(&cfg.workspace_path, &text, due.as_deref(), source.as_deref(), path.as_deref())?;
+    add_todo_to_workspace(
+        &cfg.workspace_path,
+        &text,
+        due.as_deref(),
+        source.as_deref(),
+        path.as_deref(),
+    )?;
     let items = list_todos_from_workspace(&cfg.workspace_path);
-    items.into_iter().filter(|t| !t.done && t.text == text).last()
+    items
+        .into_iter()
+        .filter(|t| !t.done && t.text == text)
+        .last()
         .ok_or_else(|| "添加后未找到该待办".to_string())
 }
 
 #[tauri::command]
-pub fn toggle_todo(app: tauri::AppHandle, line_index: usize, checked: bool, done_file: bool) -> Result<(), String> {
+pub fn toggle_todo(
+    app: tauri::AppHandle,
+    line_index: usize,
+    checked: bool,
+    done_file: bool,
+) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     toggle_todo_in_workspace(&cfg.workspace_path, line_index, checked, done_file)
 }
 
 #[tauri::command]
-pub fn delete_todo(app: tauri::AppHandle, line_index: usize, done_file: bool) -> Result<(), String> {
+pub fn delete_todo(
+    app: tauri::AppHandle,
+    line_index: usize,
+    done_file: bool,
+) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     delete_todo_in_workspace(&cfg.workspace_path, line_index, done_file)
 }
 
-pub fn set_todo_due_in_workspace(workspace: &str, line_index: usize, due: Option<&str>, done_file: bool) -> Result<(), String> {
+pub fn set_todo_due_in_workspace(
+    workspace: &str,
+    line_index: usize,
+    due: Option<&str>,
+    done_file: bool,
+) -> Result<(), String> {
     let (content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
         (read_done_file(workspace), Box::new(write_done_file))
     } else {
@@ -301,12 +362,22 @@ pub fn set_todo_due_in_workspace(workspace: &str, line_index: usize, due: Option
 }
 
 #[tauri::command]
-pub fn set_todo_due(app: tauri::AppHandle, line_index: usize, due: Option<String>, done_file: bool) -> Result<(), String> {
+pub fn set_todo_due(
+    app: tauri::AppHandle,
+    line_index: usize,
+    due: Option<String>,
+    done_file: bool,
+) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     set_todo_due_in_workspace(&cfg.workspace_path, line_index, due.as_deref(), done_file)
 }
 
-pub fn update_todo_text_in_workspace(workspace: &str, line_index: usize, new_text: &str, done_file: bool) -> Result<(), String> {
+pub fn update_todo_text_in_workspace(
+    workspace: &str,
+    line_index: usize,
+    new_text: &str,
+    done_file: bool,
+) -> Result<(), String> {
     let (content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
         (read_done_file(workspace), Box::new(write_done_file))
     } else {
@@ -353,13 +424,18 @@ pub fn update_todo_text_in_workspace(workspace: &str, line_index: usize, new_tex
     writer(workspace, &(lines.join("\n") + "\n"))
 }
 
-
-pub fn set_todo_path_in_workspace(workspace: &str, line_index: usize, path: Option<&str>, done_file: bool) -> Result<(), String> {
-    let (file_content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
-        (read_done_file(workspace), Box::new(write_done_file))
-    } else {
-        (read_todos_file(workspace), Box::new(write_todos_file))
-    };
+pub fn set_todo_path_in_workspace(
+    workspace: &str,
+    line_index: usize,
+    path: Option<&str>,
+    done_file: bool,
+) -> Result<(), String> {
+    let (file_content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) =
+        if done_file {
+            (read_done_file(workspace), Box::new(write_done_file))
+        } else {
+            (read_todos_file(workspace), Box::new(write_todos_file))
+        };
     let mut lines: Vec<String> = file_content.lines().map(String::from).collect();
 
     if line_index >= lines.len() {
@@ -376,23 +452,41 @@ pub fn set_todo_path_in_workspace(workspace: &str, line_index: usize, path: Opti
 }
 
 #[tauri::command]
-pub fn set_todo_path(app: tauri::AppHandle, line_index: usize, path: Option<String>, done_file: bool) -> Result<(), String> {
+pub fn set_todo_path(
+    app: tauri::AppHandle,
+    line_index: usize,
+    path: Option<String>,
+    done_file: bool,
+) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     set_todo_path_in_workspace(&cfg.workspace_path, line_index, path.as_deref(), done_file)
 }
 
 #[tauri::command]
-pub fn remove_todo_path(app: tauri::AppHandle, line_index: usize, done_file: bool) -> Result<(), String> {
+pub fn remove_todo_path(
+    app: tauri::AppHandle,
+    line_index: usize,
+    done_file: bool,
+) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     set_todo_path_in_workspace(&cfg.workspace_path, line_index, None, done_file)
 }
 
 #[tauri::command]
-pub fn update_todo_text(app: tauri::AppHandle, line_index: usize, text: String, done_file: bool) -> Result<(), String> {
+pub fn update_todo_text(
+    app: tauri::AppHandle,
+    line_index: usize,
+    text: String,
+    done_file: bool,
+) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
     // Read old text before updating
     let old_text = {
-        let content = if done_file { read_done_file(&cfg.workspace_path) } else { read_todos_file(&cfg.workspace_path) };
+        let content = if done_file {
+            read_done_file(&cfg.workspace_path)
+        } else {
+            read_todos_file(&cfg.workspace_path)
+        };
         let lines: Vec<&str> = content.lines().collect();
         if line_index < lines.len() {
             parse_todo_line(lines[line_index], line_index).map(|t| t.text)
@@ -466,7 +560,11 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_list_test");
         std::fs::create_dir_all(&tmp).unwrap();
         let path = tmp.join("todos.md");
-        std::fs::write(&path, "# 待办\n\n- [ ] 任务一\n- [x] 任务二 <!-- done:2026-04-01 -->\n").unwrap();
+        std::fs::write(
+            &path,
+            "# 待办\n\n- [ ] 任务一\n- [x] 任务二 <!-- done:2026-04-01 -->\n",
+        )
+        .unwrap();
         let items = list_todos_from_workspace(tmp.to_str().unwrap());
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].text, "任务一");
@@ -502,7 +600,14 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_due_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "截止任务", Some("2026-04-10"), None, None).unwrap();
+        add_todo_to_workspace(
+            tmp.to_str().unwrap(),
+            "截止任务",
+            Some("2026-04-10"),
+            None,
+            None,
+        )
+        .unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 截止任务 <!-- due:2026-04-10 -->"));
         std::fs::remove_dir_all(&tmp).ok();
@@ -513,7 +618,11 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_order_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 已有任务\n- [x] 已完成\n").unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "# 待办\n\n- [ ] 已有任务\n- [x] 已完成\n",
+        )
+        .unwrap();
         add_todo_to_workspace(tmp.to_str().unwrap(), "新增任务", None, None, None).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         let lines: Vec<&str> = content.lines().collect();
@@ -545,7 +654,11 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("todos.md"), "# 待办\n\n").unwrap();
-        std::fs::write(tmp.join("todos.done.md"), "- [x] 已完成 <!-- done:2026-04-01 -->\n").unwrap();
+        std::fs::write(
+            tmp.join("todos.done.md"),
+            "- [x] 已完成 <!-- done:2026-04-01 -->\n",
+        )
+        .unwrap();
         toggle_todo_in_workspace(tmp.to_str().unwrap(), 0, false, true).unwrap();
         // 应从 todos.done.md 移除，追加到 todos.md
         let done = std::fs::read_to_string(tmp.join("todos.done.md")).unwrap();
@@ -562,7 +675,11 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("todos.md"), "- [ ] 第一\n- [ ] 第二\n").unwrap();
-        std::fs::write(tmp.join("todos.done.md"), "- [x] 旧完成 <!-- done:2026-04-01 -->\n").unwrap();
+        std::fs::write(
+            tmp.join("todos.done.md"),
+            "- [x] 旧完成 <!-- done:2026-04-01 -->\n",
+        )
+        .unwrap();
         toggle_todo_in_workspace(tmp.to_str().unwrap(), 0, true, false).unwrap();
         let done = std::fs::read_to_string(tmp.join("todos.done.md")).unwrap();
         let lines: Vec<&str> = done.lines().collect();
@@ -578,7 +695,11 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_delete_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("todos.md"), "# 待办\n\n- [ ] 保留\n- [ ] 删除\n- [ ] 也保留\n").unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "# 待办\n\n- [ ] 保留\n- [ ] 删除\n- [ ] 也保留\n",
+        )
+        .unwrap();
         delete_todo_in_workspace(tmp.to_str().unwrap(), 3, false).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("保留"));
@@ -615,7 +736,8 @@ mod tests {
 
     #[test]
     fn parse_item_with_path_and_due() {
-        let items = parse_todos("- [ ] 更新文档 <!-- path:~/Projects/app-x --> <!-- due:2026-04-15 -->\n");
+        let items =
+            parse_todos("- [ ] 更新文档 <!-- path:~/Projects/app-x --> <!-- due:2026-04-15 -->\n");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].text, "更新文档");
         assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
@@ -634,7 +756,14 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_add_source_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "确认权限", None, Some("02-研发沟通.md"), None).unwrap();
+        add_todo_to_workspace(
+            tmp.to_str().unwrap(),
+            "确认权限",
+            None,
+            Some("02-研发沟通.md"),
+            None,
+        )
+        .unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 确认权限 <!-- source:02-研发沟通.md -->"));
         std::fs::remove_dir_all(&tmp).ok();
@@ -644,9 +773,14 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_set_path_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug
-").unwrap();
-        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, Some("~/Projects/app-x"), false).unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "- [ ] 修复 bug
+",
+        )
+        .unwrap();
+        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, Some("~/Projects/app-x"), false)
+            .unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("<!-- path:~/Projects/app-x -->"));
         std::fs::remove_dir_all(&tmp).ok();
@@ -657,8 +791,12 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_remove_path_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug <!-- path:~/Projects/app-x -->
-").unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "- [ ] 修复 bug <!-- path:~/Projects/app-x -->
+",
+        )
+        .unwrap();
         set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, None, false).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(!content.contains("<!-- path:"));
@@ -671,39 +809,61 @@ mod tests {
         let tmp = std::env::temp_dir().join("journal_todo_replace_path_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug <!-- path:~/Projects/old -->
-").unwrap();
-        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, Some("~/Projects/new"), false).unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "- [ ] 修复 bug <!-- path:~/Projects/old -->
+",
+        )
+        .unwrap();
+        set_todo_path_in_workspace(tmp.to_str().unwrap(), 0, Some("~/Projects/new"), false)
+            .unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("<!-- path:~/Projects/new -->"));
         assert!(!content.contains("old"));
         std::fs::remove_dir_all(&tmp).ok();
     }
 
-
     #[test]
     fn add_todo_with_path() {
         let tmp = std::env::temp_dir().join("journal_todo_add_path_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        add_todo_to_workspace(tmp.to_str().unwrap(), "修复 bug", None, None, Some("~/Projects/app-x")).unwrap();
+        add_todo_to_workspace(
+            tmp.to_str().unwrap(),
+            "修复 bug",
+            None,
+            None,
+            Some("~/Projects/app-x"),
+        )
+        .unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 修复 bug <!-- path:~/Projects/app-x -->"));
         std::fs::remove_dir_all(&tmp).ok();
     }
-
 
     #[test]
     fn toggle_check_preserves_path_comment() {
         let tmp = std::env::temp_dir().join("journal_todo_toggle_path_check_test");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("todos.md"), "- [ ] 修复 bug <!-- path:~/Projects/app-x -->
-").unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "- [ ] 修复 bug <!-- path:~/Projects/app-x -->
+",
+        )
+        .unwrap();
         toggle_todo_in_workspace(tmp.to_str().unwrap(), 0, true, false).unwrap();
         let done = std::fs::read_to_string(tmp.join("todos.done.md")).unwrap();
-        assert!(done.contains("<!-- path:~/Projects/app-x -->"), "path comment should survive check: {}", done);
-        assert!(done.contains("<!-- done:"), "done comment should be added: {}", done);
+        assert!(
+            done.contains("<!-- path:~/Projects/app-x -->"),
+            "path comment should survive check: {}",
+            done
+        );
+        assert!(
+            done.contains("<!-- done:"),
+            "done comment should be added: {}",
+            done
+        );
         std::fs::remove_dir_all(&tmp).ok();
     }
 
@@ -713,12 +873,24 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("todos.md"), "").unwrap();
-        std::fs::write(tmp.join("todos.done.md"), "- [x] 修复 bug <!-- path:~/Projects/app-x --> <!-- done:2026-04-01 -->
-").unwrap();
+        std::fs::write(
+            tmp.join("todos.done.md"),
+            "- [x] 修复 bug <!-- path:~/Projects/app-x --> <!-- done:2026-04-01 -->
+",
+        )
+        .unwrap();
         toggle_todo_in_workspace(tmp.to_str().unwrap(), 0, false, true).unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
-        assert!(content.contains("<!-- path:~/Projects/app-x -->"), "path comment should survive uncheck: {}", content);
-        assert!(!content.contains("<!-- done:"), "done comment should be stripped: {}", content);
+        assert!(
+            content.contains("<!-- path:~/Projects/app-x -->"),
+            "path comment should survive uncheck: {}",
+            content
+        );
+        assert!(
+            !content.contains("<!-- done:"),
+            "done comment should be stripped: {}",
+            content
+        );
         // Verify parse round-trip
         let items = parse_todos(&content);
         assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
@@ -736,6 +908,4 @@ mod tests {
         assert_eq!(items[0].source.as_deref(), Some("25-泼墨体.md"));
         assert_eq!(items[0].path.as_deref(), Some("~/Projects/app-x"));
     }
-
-
 }

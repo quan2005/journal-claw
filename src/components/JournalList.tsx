@@ -18,7 +18,8 @@ interface JournalListProps {
 
 function SkeletonItem({ width, delay }: { width: number; delay: number }) {
   const shimmer: React.CSSProperties = {
-    background: 'linear-gradient(90deg, var(--skeleton-base, rgba(128,128,128,0.10)) 25%, var(--skeleton-shine, rgba(128,128,128,0.20)) 50%, var(--skeleton-base, rgba(128,128,128,0.10)) 75%)',
+    background:
+      'linear-gradient(90deg, var(--skeleton-base, rgba(128,128,128,0.10)) 25%, var(--skeleton-shine, rgba(128,128,128,0.20)) 50%, var(--skeleton-base, rgba(128,128,128,0.10)) 75%)',
     backgroundSize: '200% 100%',
     animation: 'shimmer 1.6s ease-in-out infinite',
     animationDelay: `${delay}ms`,
@@ -27,7 +28,9 @@ function SkeletonItem({ width, delay }: { width: number; delay: number }) {
   return (
     <div style={{ padding: '7px 14px', display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div style={{ height: 13, width: `${width}%`, ...shimmer }} />
-      <div style={{ height: 11, width: `${Math.round(width * 0.65)}%`, ...shimmer, opacity: 0.7 }} />
+      <div
+        style={{ height: 11, width: `${Math.round(width * 0.65)}%`, ...shimmer, opacity: 0.7 }}
+      />
     </div>
   )
 }
@@ -58,13 +61,34 @@ function isToday(yearMonth: string, day: number): boolean {
   return year === now.getFullYear() && month === now.getMonth() + 1 && day === now.getDate()
 }
 
-export function JournalList({ entries, loading, selectedPath, onSelect, onProcess, hasMore, loadingMore, onLoadMore }: JournalListProps) {
+export function JournalList({
+  entries,
+  loading,
+  selectedPath,
+  onSelect,
+  onProcess,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+}: JournalListProps) {
   const { t, s, lang } = useTranslation()
-  const [contextMenu, setContextMenu] = useState<{ entry: JournalEntry; x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    entry: JournalEntry
+    x: number
+    y: number
+  } | null>(null)
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          overflow: 'hidden',
+          background: 'var(--sidebar-bg)',
+        }}
+      >
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <ListSkeleton />
         </div>
@@ -90,57 +114,75 @@ export function JournalList({ entries, loading, selectedPath, onSelect, onProces
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+        background: 'var(--sidebar-bg)',
+      }}
+    >
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
-        {months.map(ym => {
-          const days = Object.keys(grouped[ym]).map(Number).sort((a, b) => b - a)
+        {months.map((ym) => {
+          const days = Object.keys(grouped[ym])
+            .map(Number)
+            .sort((a, b) => b - a)
 
           return (
             <div key={ym}>
               {/* Month label */}
               <div style={{ padding: '14px 16px 6px' }}>
-                <span style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--sidebar-month)',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase' as const,
-                }}>
+                <span
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--sidebar-month)',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase' as const,
+                  }}
+                >
                   {formatMonthLabel(ym)}
                 </span>
               </div>
 
-              {days.map(day => {
+              {days.map((day) => {
                 const dayEntries = grouped[ym][day]
                 const today = isToday(ym, day)
 
                 return (
                   <div key={day} style={{ marginBottom: 2 }}>
                     {/* Date header — separate row */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: 6,
-                      padding: '10px 14px 4px',
-                    }}>
-                      <span style={{
-                        fontSize: 'var(--text-xl)',
-                        fontWeight: 'var(--font-medium)',
-                        lineHeight: 1,
-                        color: today ? 'var(--date-today-number)' : 'var(--item-meta)',
-                      }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: 6,
+                        padding: '10px 14px 4px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 'var(--text-xl)',
+                          fontWeight: 'var(--font-medium)',
+                          lineHeight: 1,
+                          color: today ? 'var(--date-today-number)' : 'var(--item-meta)',
+                        }}
+                      >
                         {day}
                       </span>
-                      <span style={{
-                        fontSize: 'var(--text-xs)',
-                        letterSpacing: '0.08em',
-                        color: today ? 'var(--date-today-weekday)' : 'var(--item-meta)',
-                      }}>
+                      <span
+                        style={{
+                          fontSize: 'var(--text-xs)',
+                          letterSpacing: '0.08em',
+                          color: today ? 'var(--date-today-weekday)' : 'var(--item-meta)',
+                        }}
+                      >
                         {getDayOfWeek(ym, day, s.weekdays)}
                       </span>
                     </div>
 
                     {/* Entries for this day */}
-                    {dayEntries.map(entry => (
+                    {dayEntries.map((entry) => (
                       <JournalItem
                         key={entry.path}
                         entry={entry}
@@ -157,7 +199,14 @@ export function JournalList({ entries, loading, selectedPath, onSelect, onProces
         })}
 
         {entries.length === 0 && (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--item-meta)', fontSize: 'var(--text-sm)' }}>
+          <div
+            style={{
+              padding: 32,
+              textAlign: 'center',
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
             {t('noEntries')}
           </div>
         )}
@@ -197,7 +246,11 @@ export function JournalList({ entries, loading, selectedPath, onSelect, onProces
           }}
           onDelete={async () => {
             await deleteJournalEntry(contextMenu.entry.path)
-            window.dispatchEvent(new CustomEvent('journal-entry-deleted', { detail: { path: contextMenu.entry.path } }))
+            window.dispatchEvent(
+              new CustomEvent('journal-entry-deleted', {
+                detail: { path: contextMenu.entry.path },
+              }),
+            )
           }}
           onClose={() => setContextMenu(null)}
         />

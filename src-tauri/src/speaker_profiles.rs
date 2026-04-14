@@ -93,7 +93,10 @@ pub fn load_profiles(app: &AppHandle) -> Vec<SpeakerProfile> {
             match result {
                 Ok(profiles) => profiles,
                 Err(e) => {
-                    eprintln!("[speaker_profiles] Failed to parse {}: {}", PROFILES_FILE, e);
+                    eprintln!(
+                        "[speaker_profiles] Failed to parse {}: {}",
+                        PROFILES_FILE, e
+                    );
                     Vec::new()
                 }
             }
@@ -110,8 +113,7 @@ fn save_profiles(app: &AppHandle, profiles: &[SpeakerProfile]) -> Result<(), Str
     }
     let json = serde_json::to_string_pretty(profiles)
         .map_err(|e| format!("Failed to serialize profiles: {}", e))?;
-    std::fs::write(&path, json)
-        .map_err(|e| format!("Failed to write {}: {}", PROFILES_FILE, e))
+    std::fs::write(&path, json).map_err(|e| format!("Failed to write {}: {}", PROFILES_FILE, e))
 }
 
 /// Cosine similarity between two vectors. Returns 0.0 if either vector has zero norm.
@@ -218,7 +220,8 @@ pub fn identify_or_register_all(
                 profile.last_seen_at = now;
                 profile.recording_count += 1;
                 profile.add_embedding(embedding.clone());
-                let display = identity_names.get(&profile.id)
+                let display = identity_names
+                    .get(&profile.id)
                     .cloned()
                     .unwrap_or_else(|| profile.auto_name.clone());
                 let label_value = format!("{} {}", display, profile.id);
@@ -278,8 +281,7 @@ pub fn check_speaker_embedder(app: AppHandle) -> Result<serde_json::Value, Strin
     // 3. Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
     //    (Tauri dev copies sidecar to target/debug/, so binary-relative path misses)
     let cargo_resources = Some(
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("resources/speakerkit-models"),
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/speakerkit-models"),
     );
 
     let model_folder = [app_resources, dev_resources, cargo_resources]
@@ -290,8 +292,8 @@ pub fn check_speaker_embedder(app: AppHandle) -> Result<serde_json::Value, Strin
 
     let (available, model_path) = match model_folder {
         Some(folder) => {
-            let embedder = folder
-                .join("speaker_embedder/pyannote-v3/W8A16/SpeakerEmbedder.mlmodelc");
+            let embedder =
+                folder.join("speaker_embedder/pyannote-v3/W8A16/SpeakerEmbedder.mlmodelc");
             let preprocessor = folder
                 .join("speaker_embedder/pyannote-v3/W8A16/SpeakerEmbedderPreprocessor.mlmodelc");
             let ok = embedder.exists() && preprocessor.exists();
@@ -478,12 +480,22 @@ mod tests {
     fn next_speaker_id_increments_max() {
         let profiles = vec![
             SpeakerProfile {
-                id: "00001".into(), name: String::new(), auto_name: "说话人 1".into(),
-                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
+                id: "00001".into(),
+                name: String::new(),
+                auto_name: "说话人 1".into(),
+                embeddings: vec![],
+                created_at: 0,
+                last_seen_at: 0,
+                recording_count: 1,
             },
             SpeakerProfile {
-                id: "00005".into(), name: String::new(), auto_name: "说话人 5".into(),
-                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
+                id: "00005".into(),
+                name: String::new(),
+                auto_name: "说话人 5".into(),
+                embeddings: vec![],
+                created_at: 0,
+                last_seen_at: 0,
+                recording_count: 1,
             },
         ];
         assert_eq!(next_speaker_id(&profiles), "00006".to_string());
@@ -491,20 +503,28 @@ mod tests {
 
     #[test]
     fn next_speaker_id_ignores_non_numeric() {
-        let profiles = vec![
-            SpeakerProfile {
-                id: "some-uuid-string".into(), name: String::new(), auto_name: "说话人 1".into(),
-                embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 1,
-            },
-        ];
+        let profiles = vec![SpeakerProfile {
+            id: "some-uuid-string".into(),
+            name: String::new(),
+            auto_name: "说话人 1".into(),
+            embeddings: vec![],
+            created_at: 0,
+            last_seen_at: 0,
+            recording_count: 1,
+        }];
         assert_eq!(next_speaker_id(&profiles), "00001".to_string());
     }
 
     #[test]
     fn add_embedding_rolling_window() {
         let mut profile = SpeakerProfile {
-            id: "1".into(), name: String::new(), auto_name: "说话人 1".into(),
-            embeddings: vec![], created_at: 0, last_seen_at: 0, recording_count: 0,
+            id: "1".into(),
+            name: String::new(),
+            auto_name: "说话人 1".into(),
+            embeddings: vec![],
+            created_at: 0,
+            last_seen_at: 0,
+            recording_count: 0,
         };
         for i in 0..7 {
             profile.add_embedding(vec![i as f32]);

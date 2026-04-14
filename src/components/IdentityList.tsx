@@ -40,14 +40,23 @@ function Avatar({ identity }: { identity: IdentityEntry }) {
   }
 
   return (
-    <div style={{
-      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-      background: bg, color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: char === 'AI' ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 'var(--font-semibold)',
-      fontFamily: char === 'AI' ? 'var(--font-mono)' : undefined,
-      userSelect: 'none',
-    }}>
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        flexShrink: 0,
+        background: bg,
+        color,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: char === 'AI' ? 'var(--text-xs)' : 'var(--text-sm)',
+        fontWeight: 'var(--font-semibold)',
+        fontFamily: char === 'AI' ? 'var(--font-mono)' : undefined,
+        userSelect: 'none',
+      }}
+    >
       {char}
     </div>
   )
@@ -67,51 +76,82 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
   return (
     <div
       onClick={onClick}
-      onContextMenu={e => { e.preventDefault(); onContextMenu(identity, e) }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onContextMenu(identity, e)
+      }}
       style={{
         padding: '10px 14px 4px',
         cursor: 'pointer',
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
-        display: 'flex', alignItems: 'flex-start', gap: 10,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
       }}
-      onMouseEnter={e => {
-        if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'
+      onMouseEnter={(e) => {
+        if (!isSelected)
+          (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'
       }}
-      onMouseLeave={e => {
+      onMouseLeave={(e) => {
         if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'
       }}
     >
       <Avatar identity={identity} />
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          lineHeight: 1.4, marginBottom: identity.summary ? 2 : 0,
-        }}>
-          <span style={{
-            fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)',
-            color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            flexShrink: 1, minWidth: 0,
-          }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            lineHeight: 1.4,
+            marginBottom: identity.summary ? 2 : 0,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--font-semibold)',
+              color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              flexShrink: 1,
+              minWidth: 0,
+            }}
+          >
             {identity.name}
           </span>
-          {displayTags.length > 0 && displayTags.map((cfg, i) => (
-            <span key={i} style={{
-              fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 3,
-              fontWeight: 'var(--font-medium)', color: 'var(--tag-text)', background: 'var(--tag-bg)',
-              fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}>
-              {cfg.label}
-            </span>
-          ))}
+          {displayTags.length > 0 &&
+            displayTags.map((cfg, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  fontWeight: 'var(--font-medium)',
+                  color: 'var(--tag-text)',
+                  background: 'var(--tag-bg)',
+                  fontFamily: 'var(--font-mono)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {cfg.label}
+              </span>
+            ))}
         </div>
         {identity.summary && (
-          <div style={{
-            fontSize: 'var(--text-sm)', color: 'var(--item-meta)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            lineHeight: 1.4,
-          }}>
+          <div
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--item-meta)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              lineHeight: 1.4,
+            }}
+          >
             {identity.summary}
           </div>
         )}
@@ -124,41 +164,112 @@ function IdentityItem({ identity, isSelected, onClick, onContextMenu }: Identity
 function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
   const color = danger ? 'var(--status-danger)' : 'var(--item-meta)'
   const size = 14
-  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  const props = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: color,
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }
 
   switch (icon) {
     case 'process':
-      return <svg {...props}><text x="12" y="18" textAnchor="middle" fontSize="22" fontWeight="700" fill={color} stroke="none">@</text></svg>
+      return (
+        <svg {...props}>
+          <text
+            x="12"
+            y="18"
+            textAnchor="middle"
+            fontSize="22"
+            fontWeight="700"
+            fill={color}
+            stroke="none"
+          >
+            @
+          </text>
+        </svg>
+      )
     case 'merge':
-      return <svg {...props}><path d="M18 21V8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v13"/><path d="M6 13h12"/><polyline points="9 3 12 6 15 3"/></svg>
+      return (
+        <svg {...props}>
+          <path d="M18 21V8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v13" />
+          <path d="M6 13h12" />
+          <polyline points="9 3 12 6 15 3" />
+        </svg>
+      )
     case 'content':
-      return <svg {...props}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="7" y1="8" x2="17" y2="8" />
+          <line x1="7" y1="12" x2="17" y2="12" />
+          <line x1="7" y1="16" x2="13" y2="16" />
+        </svg>
+      )
     case 'path':
-      return <svg {...props}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      return (
+        <svg {...props}>
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+      )
     case 'edit':
-      return <svg {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      return (
+        <svg {...props}>
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      )
     case 'finder':
-      return <svg {...props}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      return (
+        <svg {...props}>
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+      )
     case 'delete':
-      return <svg {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      return (
+        <svg {...props}>
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+      )
     default:
       return null
   }
 }
 
-function MenuItemRow({ label, icon, danger, onClick }: { label: string; icon: string; danger?: boolean; onClick: () => void }) {
+function MenuItemRow({
+  label,
+  icon,
+  danger,
+  onClick,
+}: {
+  label: string
+  icon: string
+  danger?: boolean
+  onClick: () => void
+}) {
   return (
     <div
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '7px 12px',
+        fontSize: 'var(--text-sm)',
+        cursor: 'pointer',
         color: danger ? 'var(--status-danger)' : 'var(--item-text)',
       }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.background = danger ? 'rgba(255,59,48,0.06)' : 'var(--item-hover-bg)'
+      onMouseEnter={(e) => {
+        ;(e.currentTarget as HTMLDivElement).style.background = danger
+          ? 'rgba(255,59,48,0.06)'
+          : 'var(--item-hover-bg)'
       }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.background = 'transparent'
+      onMouseLeave={(e) => {
+        ;(e.currentTarget as HTMLDivElement).style.background = 'transparent'
       }}
       onClick={onClick}
     >
@@ -182,7 +293,15 @@ interface IdentityContextMenuProps {
   onClose: () => void
 }
 
-function IdentityContextMenu({ x, y, identity, onProcess, onMerge, onDelete, onClose }: IdentityContextMenuProps) {
+function IdentityContextMenu({
+  x,
+  y,
+  identity,
+  onProcess,
+  onMerge,
+  onDelete,
+  onClose,
+}: IdentityContextMenuProps) {
   const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -224,42 +343,108 @@ function IdentityContextMenu({ x, y, identity, onProcess, onMerge, onDelete, onC
   }
 
   const items: ContextMenuItem[] = [
-    { type: 'action', label: t('referenceEntry'), icon: 'process', onClick: () => { onProcess(); onClose() } },
+    {
+      type: 'action',
+      label: t('referenceEntry'),
+      icon: 'process',
+      onClick: () => {
+        onProcess()
+        onClose()
+      },
+    },
   ]
 
   if (!isSoul(identity) && !isUserSelf(identity)) {
-    items.push({ type: 'action', label: t('mergeTo'), icon: 'merge', onClick: () => { onMerge(); onClose() } })
+    items.push({
+      type: 'action',
+      label: t('mergeTo'),
+      icon: 'merge',
+      onClick: () => {
+        onMerge()
+        onClose()
+      },
+    })
   }
 
   items.push(
-    { type: 'action', label: t('copyFilePath'), icon: 'path', onClick: () => { copyPath(); onClose() } },
+    {
+      type: 'action',
+      label: t('copyFilePath'),
+      icon: 'path',
+      onClick: () => {
+        copyPath()
+        onClose()
+      },
+    },
     { type: 'divider' },
-    { type: 'action', label: t('openInEditor'), icon: 'edit', onClick: () => { handleOpenWithEditor(); onClose() } },
-    { type: 'action', label: t('showInFinder'), icon: 'finder', onClick: () => { handleShowInFinder(); onClose() } },
+    {
+      type: 'action',
+      label: t('openInEditor'),
+      icon: 'edit',
+      onClick: () => {
+        handleOpenWithEditor()
+        onClose()
+      },
+    },
+    {
+      type: 'action',
+      label: t('showInFinder'),
+      icon: 'finder',
+      onClick: () => {
+        handleShowInFinder()
+        onClose()
+      },
+    },
   )
 
   if (!isSoul(identity) && !isUserSelf(identity)) {
     items.push(
       { type: 'divider' },
-      { type: 'action', label: t('delete'), icon: 'delete', danger: true, onClick: () => { onDelete(); onClose() } },
+      {
+        type: 'action',
+        label: t('delete'),
+        icon: 'delete',
+        danger: true,
+        onClick: () => {
+          onDelete()
+          onClose()
+        },
+      },
     )
   }
 
   return (
-    <div ref={ref} style={{
-      position: 'fixed', top: y, left: x, zIndex: 9999,
-      background: 'var(--context-menu-bg)',
-      border: '1px solid var(--context-menu-border)',
-      borderRadius: 8,
-      boxShadow: '0 4px 20px var(--context-menu-shadow)',
-      minWidth: 180, overflow: 'hidden',
-      padding: '4px 0',
-    }}>
+    <div
+      ref={ref}
+      style={{
+        position: 'fixed',
+        top: y,
+        left: x,
+        zIndex: 9999,
+        background: 'var(--context-menu-bg)',
+        border: '1px solid var(--context-menu-border)',
+        borderRadius: 8,
+        boxShadow: '0 4px 20px var(--context-menu-shadow)',
+        minWidth: 180,
+        overflow: 'hidden',
+        padding: '4px 0',
+      }}
+    >
       {items.map((item, i) => {
         if (item.type === 'divider') {
-          return <div key={i} style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
+          return (
+            <div key={i} style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
+          )
         }
-        return <MenuItemRow key={i} label={item.label} icon={item.icon} danger={item.danger} onClick={item.onClick} />
+        return (
+          <MenuItemRow
+            key={i}
+            label={item.label}
+            icon={item.icon}
+            danger={item.danger}
+            onClick={item.onClick}
+          />
+        )
       })}
     </div>
   )
@@ -267,7 +452,7 @@ function IdentityContextMenu({ x, y, identity, onProcess, onMerge, onDelete, onC
 
 // ── List ──────────────────────────────────────────────────────────────────────
 interface IdentityListProps {
-  identities: IdentityEntry[]   // includes virtual soul entry
+  identities: IdentityEntry[] // includes virtual soul entry
   loading?: boolean
   selectedPath: string | null
   onSelect: (identity: IdentityEntry) => void
@@ -277,10 +462,20 @@ interface IdentityListProps {
 }
 
 export function IdentityList({
-  identities, loading, selectedPath, onSelect, onProcess, onMerge, onDelete,
+  identities,
+  loading,
+  selectedPath,
+  onSelect,
+  onProcess,
+  onMerge,
+  onDelete,
 }: IdentityListProps) {
   const { t } = useTranslation()
-  const [contextMenu, setContextMenu] = useState<{ identity: IdentityEntry; x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    identity: IdentityEntry
+    x: number
+    y: number
+  } | null>(null)
 
   const handleContextMenu = useCallback((identity: IdentityEntry, e: React.MouseEvent) => {
     if (isSoul(identity)) return
@@ -289,22 +484,42 @@ export function IdentityList({
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          overflow: 'hidden',
+          background: 'var(--sidebar-bg)',
+        }}
+      >
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }}>
           {[70, 55, 80, 60].map((w, i) => (
-            <div key={i} style={{ padding: '7px 14px', display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                background: 'var(--skeleton-base, rgba(128,128,128,0.10))',
-              }} />
+            <div
+              key={i}
+              style={{ padding: '7px 14px', display: 'flex', gap: 10, alignItems: 'center' }}
+            >
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  flexShrink: 0,
+                  background: 'var(--skeleton-base, rgba(128,128,128,0.10))',
+                }}
+              />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <div style={{
-                  height: 12, width: `${w}%`,
-                  background: 'linear-gradient(90deg, var(--skeleton-base, rgba(128,128,128,0.10)) 25%, var(--skeleton-shine, rgba(128,128,128,0.20)) 50%, var(--skeleton-base, rgba(128,128,128,0.10)) 75%)',
-                  backgroundSize: '200% 100%',
-                  animation: `shimmer 1.6s ease-in-out ${i * 80}ms infinite`,
-                  borderRadius: 3,
-                }} />
+                <div
+                  style={{
+                    height: 12,
+                    width: `${w}%`,
+                    background:
+                      'linear-gradient(90deg, var(--skeleton-base, rgba(128,128,128,0.10)) 25%, var(--skeleton-shine, rgba(128,128,128,0.20)) 50%, var(--skeleton-base, rgba(128,128,128,0.10)) 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: `shimmer 1.6s ease-in-out ${i * 80}ms infinite`,
+                    borderRadius: 3,
+                  }}
+                />
               </div>
             </div>
           ))}
@@ -314,7 +529,7 @@ export function IdentityList({
   }
 
   const pinned = identities.filter(isPinned)
-  const regular = identities.filter(i => !isPinned(i))
+  const regular = identities.filter((i) => !isPinned(i))
 
   // Group regular by region
   const grouped: Record<string, IdentityEntry[]> = {}
@@ -327,18 +542,31 @@ export function IdentityList({
   const hasRegular = regular.length > 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--sidebar-bg)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+        background: 'var(--sidebar-bg)',
+      }}
+    >
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
-
         {/* Pinned section */}
         {pinned.length > 0 && (
           <div>
             <div style={{ padding: '14px 16px 6px' }}>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--sidebar-month)',
+                  letterSpacing: '0.12em',
+                }}
+              >
                 {t('builtin')}
               </span>
             </div>
-            {pinned.map(identity => (
+            {pinned.map((identity) => (
               <IdentityItem
                 key={identity.path}
                 identity={identity}
@@ -356,14 +584,20 @@ export function IdentityList({
         )}
 
         {/* Regular section grouped by region */}
-        {regions.map(region => (
+        {regions.map((region) => (
           <div key={region}>
             <div style={{ padding: '14px 16px 6px' }}>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sidebar-month)', letterSpacing: '0.12em' }}>
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--sidebar-month)',
+                  letterSpacing: '0.12em',
+                }}
+              >
                 {region}
               </span>
             </div>
-            {grouped[region].map(identity => (
+            {grouped[region].map((identity) => (
               <IdentityItem
                 key={identity.path}
                 identity={identity}
@@ -377,11 +611,17 @@ export function IdentityList({
 
         {/* Empty state (no real identities, only soul) */}
         {regular.length === 0 && !loading && (
-          <div style={{
-            padding: '24px 16px', textAlign: 'center',
-            color: 'var(--item-meta)', fontSize: 'var(--text-base)', lineHeight: 1.6,
-          }}>
-            {t('noProfiles')}<br />
+          <div
+            style={{
+              padding: '24px 16px',
+              textAlign: 'center',
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-base)',
+              lineHeight: 1.6,
+            }}
+          >
+            {t('noProfiles')}
+            <br />
             <span style={{ fontSize: 'var(--text-sm)' }}>{t('recordingHint')}</span>
           </div>
         )}
@@ -392,7 +632,10 @@ export function IdentityList({
           x={contextMenu.x}
           y={contextMenu.y}
           identity={contextMenu.identity}
-          onProcess={() => { onProcess(contextMenu.identity); setContextMenu(null) }}
+          onProcess={() => {
+            onProcess(contextMenu.identity)
+            setContextMenu(null)
+          }}
           onMerge={() => onMerge(contextMenu.identity)}
           onDelete={() => onDelete(contextMenu.identity)}
           onClose={() => setContextMenu(null)}

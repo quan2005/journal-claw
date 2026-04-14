@@ -12,12 +12,12 @@ mod materials;
 mod permissions;
 mod recorder;
 mod recordings;
+mod skills;
 mod speaker_profiles;
 mod todos;
 mod transcription;
 mod types;
 mod workspace;
-mod skills;
 mod workspace_settings;
 
 use std::sync::{
@@ -146,10 +146,15 @@ fn main() {
         .manage(ai_processor::CancelledPaths(std::sync::Mutex::new(
             std::collections::HashSet::new(),
         )))
-        .manage(auto_lint::AutoLintNotify(std::sync::Arc::new(tokio::sync::Notify::new())))
+        .manage(auto_lint::AutoLintNotify(std::sync::Arc::new(
+            tokio::sync::Notify::new(),
+        )))
         .manage(auto_lint::LintRunning(std::sync::Mutex::new(false)))
         .manage(feishu_bridge::BridgeStatusState(std::sync::Mutex::new(
-            config::FeishuStatus { state: "idle".to_string(), error: None },
+            config::FeishuStatus {
+                state: "idle".to_string(),
+                error: None,
+            },
         )))
         .setup({
             let allow_exit = Arc::clone(&allow_exit);
@@ -160,7 +165,10 @@ fn main() {
                 // ── Initialize workspace .claude/ on startup ──
                 if let Ok(cfg) = config::load_config(app.handle()) {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
-                    recorder::recover_interrupted_recordings(app.handle().clone(), &cfg.workspace_path);
+                    recorder::recover_interrupted_recordings(
+                        app.handle().clone(),
+                        &cfg.workspace_path,
+                    );
                 }
 
                 // ── Auto lint scheduler ──

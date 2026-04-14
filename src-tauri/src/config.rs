@@ -82,7 +82,14 @@ pub fn augmented_path() -> String {
     let mut dirs: Vec<String> = path_env.split(':').map(|s| s.to_string()).collect();
 
     // Standard locations
-    for d in &["/usr/bin", "/bin", "/usr/sbin", "/sbin", "/usr/local/bin", "/opt/homebrew/bin"] {
+    for d in &[
+        "/usr/bin",
+        "/bin",
+        "/usr/sbin",
+        "/sbin",
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+    ] {
         dirs.push(d.to_string());
     }
     if !home.is_empty() {
@@ -378,7 +385,16 @@ pub fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String> {
         }
 
         let success = child.wait().map(|s| s.success()).unwrap_or(false);
-        emit(&app, if success { "安装完成" } else { "安装失败" }, true, success);
+        emit(
+            &app,
+            if success {
+                "安装完成"
+            } else {
+                "安装失败"
+            },
+            true,
+            success,
+        );
     });
 
     Ok(())
@@ -810,8 +826,8 @@ pub fn get_feishu_config(app: AppHandle) -> Result<FeishuConfig, String> {
 #[tauri::command]
 pub fn set_feishu_config(app: AppHandle, config: FeishuConfig) -> Result<(), String> {
     let mut cfg = load_config(&app)?;
-    let creds_changed = cfg.feishu_app_id != config.app_id
-        || cfg.feishu_app_secret != config.app_secret;
+    let creds_changed =
+        cfg.feishu_app_id != config.app_id || cfg.feishu_app_secret != config.app_secret;
     cfg.feishu_enabled = config.enabled;
     cfg.feishu_app_id = config.app_id;
     cfg.feishu_app_secret = config.app_secret;

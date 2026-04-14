@@ -193,27 +193,33 @@ export const en = {
   downloadBtn: 'Download',
   downloadingBtn: 'Downloading',
   alreadyDownloaded: 'Downloaded',
-  downloadInBackground: 'Download continues in background — switching models or scrolling won\'t interrupt it.',
+  downloadInBackground:
+    "Download continues in background — switching models or scrolling won't interrupt it.",
   modelDownloadTask: 'Model download task',
   latestStatus: 'Latest status',
   recentLogs: 'Recent logs',
   reDownload: 'Re-download',
   openModelDir: 'Open model directory',
   retryHint: 'You can retry directly after failure — no need to re-select the model.',
-  switchModelHint: 'Switching models won\'t interrupt the current download.',
+  switchModelHint: "Switching models won't interrupt the current download.",
   modelStoreDir: 'Model storage directory',
   openInFinder: 'Open in Finder',
-  baseModelBundled: 'Base model is bundled with the app. The directory above is for additionally downloaded Small/Large models.',
-  downloadFromHF: 'Click Download to fetch automatically from HuggingFace. You can also place model files manually into the directory above.',
-  dashscopeHint: 'When configured, recordings are automatically uploaded to Alibaba Cloud for transcription',
+  baseModelBundled:
+    'Base model is bundled with the app. The directory above is for additionally downloaded Small/Large models.',
+  downloadFromHF:
+    'Click Download to fetch automatically from HuggingFace. You can also place model files manually into the directory above.',
+  dashscopeHint:
+    'When configured, recordings are automatically uploaded to Alibaba Cloud for transcription',
   asrModel: 'ASR Model',
   asrModelHint: 'Flash for real-time recognition; File Trans for async transcription of long audio',
   speakerEmbedderUnavailable: 'Speaker recognition unavailable',
-  speakerEmbedderHint: 'SpeakerEmbedder model not found — speaker IDs cannot be generated during transcription. Ensure the speakerkit-models resource is included in the app bundle.',
+  speakerEmbedderHint:
+    'SpeakerEmbedder model not found — speaker IDs cannot be generated during transcription. Ensure the speakerkit-models resource is included in the app bundle.',
 
   // Settings: Permissions
   permissionsSection: 'Permissions',
-  permissionsDesc: 'JournalClaw needs the following system permissions. Click "Check permissions" to view current status, or "Grant all" to authorize.',
+  permissionsDesc:
+    'JournalClaw needs the following system permissions. Click "Check permissions" to view current status, or "Grant all" to authorize.',
   checkPermissions: 'Check permissions',
   rechecking: 'Re-check',
   checking: 'Checking…',
@@ -223,7 +229,8 @@ export const en = {
   permMic: 'Microphone',
   permMicDesc: 'Required for recording — used for voice transcription and meeting capture.',
   permSpeech: 'Speech recognition',
-  permSpeechDesc: 'Required when using Apple speech recognition engine (not needed for DashScope / WhisperKit).',
+  permSpeechDesc:
+    'Required when using Apple speech recognition engine (not needed for DashScope / WhisperKit).',
   permClaude: 'Claude CLI',
   permClaudeDesc: 'AI journal processing requires the Claude CLI to be installed.',
   installClaude: 'Please install Claude CLI:',
@@ -240,7 +247,8 @@ export const en = {
 
   // Settings: Speakers
   speakersSection: 'Speaker Profiles',
-  speakersDesc: 'Speakers are automatically identified after recording. Name them here — AI will use your names when organizing notes.',
+  speakersDesc:
+    'Speakers are automatically identified after recording. Name them here — AI will use your names when organizing notes.',
   noSpeakers: 'No speakers detected yet',
   noSpeakersHint: 'Complete a recording and the system will automatically detect speakers here',
   speakerCount: 'Speaker profiles ({count})',
@@ -251,7 +259,8 @@ export const en = {
   deleteTooltip: 'Delete',
   confirmDelete: 'Confirm delete',
   mergeVoice: 'Merge voice',
-  mergeVoiceDesc: 'Merge {name} into another speaker. The source profile will be deleted after merging.',
+  mergeVoiceDesc:
+    'Merge {name} into another speaker. The source profile will be deleted after merging.',
   noOtherSpeakers: 'No other speaker profiles available to merge.',
   selectTargetSpeaker: 'Select target speaker…',
   merge: 'Merge',
@@ -268,7 +277,8 @@ export const en = {
   version: 'Version {version}',
   addWeChat: 'Add on WeChat',
   wechatQr: 'WeChat QR',
-  whisperCredit: 'Includes WhisperKit (MIT License) by Argmax, Inc. — on-device speech recognition engine',
+  whisperCredit:
+    'Includes WhisperKit (MIT License) by Argmax, Inc. — on-device speech recognition engine',
 
   // App (AI config warning)
   aiNotConfigured: 'AI engine not configured',
@@ -289,7 +299,8 @@ export const en = {
   reset: 'Reset',
   edit: 'Edit',
   resetAssistantTitle: 'Reset Assistant',
-  confirmResetAssistant: 'Reset to default assistant settings? Current custom content will be overwritten.',
+  confirmResetAssistant:
+    'Reset to default assistant settings? Current custom content will be overwritten.',
 
   // App confirm dialog
   confirmDeleteIdentity: 'Delete "{name}"\'s profile?',

@@ -37,22 +37,24 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
   return (
     <div
       onClick={() => openClaudeTerminal()}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        background: active ? 'var(--ai-pill-active-bg)' : 'var(--ai-pill-bg)',
-        border: `0.5px solid ${active ? 'var(--ai-pill-active-border)' : 'var(--ai-pill-border)'}`,
-        borderRadius: 20,
-        padding: '3px 11px',
-        fontSize: 'var(--text-sm)',
-        color: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-text)',
-        letterSpacing: '0.05em',
-        userSelect: 'none',
-        transition: 'background 0.3s, color 0.3s, opacity 0.3s',
-        WebkitAppRegion: 'no-drag',
-        cursor: 'pointer',
-      } as React.CSSProperties}
+      style={
+        {
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: active ? 'var(--ai-pill-active-bg)' : 'var(--ai-pill-bg)',
+          border: `0.5px solid ${active ? 'var(--ai-pill-active-border)' : 'var(--ai-pill-border)'}`,
+          borderRadius: 20,
+          padding: '3px 11px',
+          fontSize: 'var(--text-sm)',
+          color: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-text)',
+          letterSpacing: '0.05em',
+          userSelect: 'none',
+          transition: 'background 0.3s, color 0.3s, opacity 0.3s',
+          WebkitAppRegion: 'no-drag',
+          cursor: 'pointer',
+        } as React.CSSProperties
+      }
     >
       <div
         style={{
@@ -64,14 +66,18 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
           flexShrink: 0,
         }}
       />
-      <span style={{
-        maxWidth: 180,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
+      <span
+        style={{
+          maxWidth: 180,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {active
-          ? lingerName ? t('processingNamed', { name: lingerName }) : t('processing')
+          ? lingerName
+            ? t('processingNamed', { name: lingerName })
+            : t('processing')
           : t('aiReady')}
       </span>
     </div>

@@ -1,26 +1,27 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { RecordingItem, Transcript, JournalEntry, SpeakerProfile, IdentityEntry, MergeMode, TodoItem } from '../types'
+import type {
+  RecordingItem,
+  Transcript,
+  JournalEntry,
+  SpeakerProfile,
+  IdentityEntry,
+  MergeMode,
+  TodoItem,
+} from '../types'
 
-export const listRecordings = (): Promise<RecordingItem[]> =>
-  invoke('list_recordings')
+export const listRecordings = (): Promise<RecordingItem[]> => invoke('list_recordings')
 
-export const startRecording = (): Promise<string> =>
-  invoke('start_recording')
+export const startRecording = (): Promise<string> => invoke('start_recording')
 
-export const stopRecording = (): Promise<void> =>
-  invoke('stop_recording')
+export const stopRecording = (): Promise<void> => invoke('stop_recording')
 
-export const deleteRecording = (path: string): Promise<void> =>
-  invoke('delete_recording', { path })
+export const deleteRecording = (path: string): Promise<void> => invoke('delete_recording', { path })
 
-export const revealInFinder = (path: string): Promise<void> =>
-  invoke('reveal_in_finder', { path })
+export const revealInFinder = (path: string): Promise<void> => invoke('reveal_in_finder', { path })
 
-export const playRecording = (path: string): Promise<void> =>
-  invoke('play_recording', { path })
+export const playRecording = (path: string): Promise<void> => invoke('play_recording', { path })
 
-export const openSettings = (): Promise<void> =>
-  invoke('open_settings')
+export const openSettings = (): Promise<void> => invoke('open_settings')
 
 export const getTranscript = (path: string): Promise<Transcript | null> =>
   invoke('get_transcript', { path })
@@ -28,33 +29,25 @@ export const getTranscript = (path: string): Promise<Transcript | null> =>
 export const retryTranscription = (path: string): Promise<void> =>
   invoke('retry_transcription', { path })
 
-export const getApiKey = (): Promise<string | null> =>
-  invoke<string | null>('get_api_key')
+export const getApiKey = (): Promise<string | null> => invoke<string | null>('get_api_key')
 
-export const setApiKey = (key: string): Promise<void> =>
-  invoke('set_api_key', { key })
+export const setApiKey = (key: string): Promise<void> => invoke('set_api_key', { key })
 
-export const getWorkspacePath = () =>
-  invoke<string>('get_workspace_path')
+export const getWorkspacePath = () => invoke<string>('get_workspace_path')
 
-export const setWorkspacePath = (path: string) =>
-  invoke<void>('set_workspace_path', { path })
+export const setWorkspacePath = (path: string) => invoke<void>('set_workspace_path', { path })
 
-export const getClaudeCliPath = () =>
-  invoke<string>('get_claude_cli_path')
+export const getClaudeCliPath = () => invoke<string>('get_claude_cli_path')
 
-export const setClaudeCliPath = (path: string) =>
-  invoke<void>('set_claude_cli_path', { path })
+export const setClaudeCliPath = (path: string) => invoke<void>('set_claude_cli_path', { path })
 
 // Journal
-export const listAvailableMonths = () =>
-  invoke<string[]>('list_available_months')
+export const listAvailableMonths = () => invoke<string[]>('list_available_months')
 
 export const listJournalEntriesByMonths = (months: string[]) =>
   invoke<JournalEntry[]>('list_journal_entries_by_months', { months })
 
-export const listAllJournalEntries = () =>
-  invoke<JournalEntry[]>('list_all_journal_entries')
+export const listAllJournalEntries = () => invoke<JournalEntry[]>('list_all_journal_entries')
 
 export const getJournalEntryContent = (path: string) =>
   invoke<string>('get_journal_entry_content', { path })
@@ -67,8 +60,7 @@ export const importFile = (srcPath: string) =>
 export const triggerAiProcessing = (materialPath: string, yearMonth: string, note?: string) =>
   invoke<void>('trigger_ai_processing', { materialPath, yearMonth, note: note ?? null })
 
-export const deleteJournalEntry = (path: string) =>
-  invoke<void>('delete_journal_entry', { path })
+export const deleteJournalEntry = (path: string) => invoke<void>('delete_journal_entry', { path })
 
 // 粘贴文本 → 写入系统 temp 目录 → 返回路径（不自动触发 AI，OS 自动清理）
 export const importTextTemp = (text: string) =>
@@ -85,28 +77,24 @@ export const triggerAiPrompt = (prompt: string): Promise<void> =>
 // Paste text → save as raw material → trigger AI processing
 export const submitPasteText = async (text: string): Promise<void> => {
   const result = await invoke<{ path: string; filename: string; year_month: string }>(
-    'import_text', { text }
+    'import_text',
+    { text },
   )
   await triggerAiProcessing(result.path, result.year_month)
 }
 
-export const getWorkspacePrompt = () =>
-  invoke<string>('get_workspace_prompt')
+export const getWorkspacePrompt = () => invoke<string>('get_workspace_prompt')
 
 export const setWorkspacePrompt = (content: string) =>
   invoke<void>('set_workspace_prompt', { content })
 
-export const resetWorkspacePrompt = () =>
-  invoke<string>('reset_workspace_prompt')
+export const resetWorkspacePrompt = () => invoke<string>('reset_workspace_prompt')
 
-export const openFile = (path: string): Promise<void> =>
-  invoke('open_with_system', { path })
+export const openFile = (path: string): Promise<void> => invoke('open_with_system', { path })
 
-export const openClaudeTerminal = (): Promise<void> =>
-  invoke('open_claude_terminal')
+export const openClaudeTerminal = (): Promise<void> => invoke('open_claude_terminal')
 
-export const cancelAiProcessing = () =>
-  invoke<void>('cancel_ai_processing')
+export const cancelAiProcessing = () => invoke<void>('cancel_ai_processing')
 
 export const cancelQueuedItem = (materialPath: string) =>
   invoke<void>('cancel_queued_item', { materialPath })
@@ -119,8 +107,8 @@ export const prepareAudioForAi = (audioPath: string, yearMonth: string, note?: s
 
 // Folder picker
 export const pickFolder = (): Promise<string | null> => {
-  return import('@tauri-apps/plugin-dialog').then(({ open }) =>
-    open({ directory: true, multiple: false }) as Promise<string | null>
+  return import('@tauri-apps/plugin-dialog').then(
+    ({ open }) => open({ directory: true, multiple: false }) as Promise<string | null>,
   )
 }
 
@@ -132,8 +120,7 @@ export const installEngine = (engine: 'claude' | 'qwen'): Promise<void> =>
   invoke<void>('install_engine', { engine })
 
 // App version
-export const getAppVersion = (): Promise<string> =>
-  invoke<string>('get_app_version')
+export const getAppVersion = (): Promise<string> => invoke<string>('get_app_version')
 
 // Engine config
 export interface EngineConfig {
@@ -162,11 +149,9 @@ export interface AsrConfig {
   dashscope_asr_model: string
 }
 
-export const getAsrConfig = (): Promise<AsrConfig> =>
-  invoke<AsrConfig>('get_asr_config')
+export const getAsrConfig = (): Promise<AsrConfig> => invoke<AsrConfig>('get_asr_config')
 
-export const getAppleSttVariant = (): Promise<string> =>
-  invoke<string>('get_apple_stt_variant')
+export const getAppleSttVariant = (): Promise<string> => invoke<string>('get_apple_stt_variant')
 
 export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
   invoke<void>('set_asr_config', {
@@ -188,14 +173,12 @@ export const downloadWhisperkitModel = (model: string): Promise<void> =>
 export const checkWhisperkitCliInstalled = (): Promise<boolean> =>
   invoke<boolean>('check_whisperkit_cli_installed')
 
-export const installWhisperkitCli = (): Promise<void> =>
-  invoke<void>('install_whisperkit_cli')
+export const installWhisperkitCli = (): Promise<void> => invoke<void>('install_whisperkit_cli')
 
 export const createSampleEntryIfNeeded = (): Promise<boolean> =>
   invoke<boolean>('create_sample_entry_if_needed')
 
-export const createSampleEntry = (): Promise<void> =>
-  invoke<void>('create_sample_entry')
+export const createSampleEntry = (): Promise<void> => invoke<void>('create_sample_entry')
 
 // Speaker profiles (声纹档案)
 export const getSpeakerProfiles = (): Promise<SpeakerProfile[]> =>
@@ -210,8 +193,11 @@ export const deleteSpeakerProfile = (id: string): Promise<void> =>
 export const mergeSpeakerProfiles = (sourceId: string, targetId: string): Promise<void> =>
   invoke<void>('merge_speaker_profiles', { sourceId, targetId })
 
-export const checkSpeakerEmbedder = (): Promise<{ available: boolean; binary_path: string | null; model_path: string | null }> =>
-  invoke('check_speaker_embedder')
+export const checkSpeakerEmbedder = (): Promise<{
+  available: boolean
+  binary_path: string | null
+  model_path: string | null
+}> => invoke('check_speaker_embedder')
 
 // Permissions
 export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
@@ -249,22 +235,29 @@ export const createIdentity = (
   summary: string,
   tags: string[],
   speakerId: string,
-): Promise<string> =>
-  invoke<string>('create_identity', { region, name, summary, tags, speakerId })
+): Promise<string> => invoke<string>('create_identity', { region, name, summary, tags, speakerId })
 
 export const mergeIdentity = (
   sourcePath: string,
   targetPath: string,
   mode: MergeMode,
-): Promise<void> =>
-  invoke<void>('merge_identity', { sourcePath, targetPath, mode })
+): Promise<void> => invoke<void>('merge_identity', { sourcePath, targetPath, mode })
 
 // Todos (待办事项)
-export const listTodos = (): Promise<TodoItem[]> =>
-  invoke<TodoItem[]>('list_todos')
+export const listTodos = (): Promise<TodoItem[]> => invoke<TodoItem[]>('list_todos')
 
-export const addTodo = (text: string, due?: string, source?: string, path?: string): Promise<TodoItem> =>
-  invoke<TodoItem>('add_todo', { text, due: due ?? null, source: source ?? null, path: path ?? null })
+export const addTodo = (
+  text: string,
+  due?: string,
+  source?: string,
+  path?: string,
+): Promise<TodoItem> =>
+  invoke<TodoItem>('add_todo', {
+    text,
+    due: due ?? null,
+    source: source ?? null,
+    path: path ?? null,
+  })
 
 export const toggleTodo = (lineIndex: number, checked: boolean, doneFile: boolean): Promise<void> =>
   invoke<void>('toggle_todo', { lineIndex, checked, doneFile })
@@ -272,11 +265,17 @@ export const toggleTodo = (lineIndex: number, checked: boolean, doneFile: boolea
 export const deleteTodo = (lineIndex: number, doneFile: boolean): Promise<void> =>
   invoke<void>('delete_todo', { lineIndex, doneFile })
 
-export const setTodoDue = (lineIndex: number, due: string | null, doneFile: boolean): Promise<void> =>
-  invoke<void>('set_todo_due', { lineIndex, due, doneFile })
+export const setTodoDue = (
+  lineIndex: number,
+  due: string | null,
+  doneFile: boolean,
+): Promise<void> => invoke<void>('set_todo_due', { lineIndex, due, doneFile })
 
-export const setTodoPath = (lineIndex: number, path: string | null, doneFile: boolean): Promise<void> =>
-  invoke<void>('set_todo_path', { lineIndex, path, doneFile })
+export const setTodoPath = (
+  lineIndex: number,
+  path: string | null,
+  doneFile: boolean,
+): Promise<void> => invoke<void>('set_todo_path', { lineIndex, path, doneFile })
 
 export const removeTodoPath = (lineIndex: number, doneFile: boolean): Promise<void> =>
   invoke<void>('remove_todo_path', { lineIndex, doneFile })
@@ -285,11 +284,15 @@ export const updateTodoText = (lineIndex: number, text: string, doneFile: boolea
   invoke<void>('update_todo_text', { lineIndex, text, doneFile })
 
 // Brainstorm terminal
-export const openBrainstormTerminal = (text: string, lineIndex: number, doneFile: boolean, path?: string | null): Promise<void> =>
+export const openBrainstormTerminal = (
+  text: string,
+  lineIndex: number,
+  doneFile: boolean,
+  path?: string | null,
+): Promise<void> =>
   invoke<void>('open_brainstorm_terminal', { text, lineIndex, doneFile, path: path ?? null })
 
-export const listBrainstormKeys = (): Promise<string[]> =>
-  invoke<string[]>('list_brainstorm_keys')
+export const listBrainstormKeys = (): Promise<string[]> => invoke<string[]>('list_brainstorm_keys')
 
 export const listOpenBrainstormKeys = (): Promise<string[]> =>
   invoke<string[]>('list_open_brainstorm_keys')
@@ -323,8 +326,7 @@ export const setAutoLintConfig = (config: AutoLintConfig): Promise<void> =>
 export const getAutoLintStatus = (): Promise<AutoLintStatus> =>
   invoke<AutoLintStatus>('get_auto_lint_status')
 
-export const triggerLintNow = (): Promise<void> =>
-  invoke<void>('trigger_lint_now')
+export const triggerLintNow = (): Promise<void> => invoke<void>('trigger_lint_now')
 
 // Feishu bridge
 export interface FeishuConfig {
@@ -356,8 +358,7 @@ export interface SkillInfo {
   dir_name: string
 }
 
-export const listSkills = (): Promise<SkillInfo[]> =>
-  invoke<SkillInfo[]>('list_skills')
+export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_skills')
 
 export const openSkillsDir = (scope: 'project' | 'global'): Promise<void> =>
   invoke<void>('open_skills_dir', { scope })

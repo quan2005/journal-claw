@@ -33,7 +33,8 @@ vi.mock('../lib/tauri', () => ({
   getAsrConfig: (...args: unknown[]) => mockGetAsrConfig(...args),
   setAsrConfig: (...args: unknown[]) => mockSetAsrConfig(...args),
   getWhisperkitModelsDir: (...args: unknown[]) => mockGetWhisperkitModelsDir(...args),
-  checkWhisperkitModelDownloaded: (...args: unknown[]) => mockCheckWhisperkitModelDownloaded(...args),
+  checkWhisperkitModelDownloaded: (...args: unknown[]) =>
+    mockCheckWhisperkitModelDownloaded(...args),
   downloadWhisperkitModel: (...args: unknown[]) => mockDownloadWhisperkitModel(...args),
   checkWhisperkitCliInstalled: (...args: unknown[]) => mockCheckWhisperkitCliInstalled(...args),
   installWhisperkitCli: (...args: unknown[]) => mockInstallWhisperkitCli(...args),
@@ -92,7 +93,9 @@ describe('SectionVoice', () => {
     })
     mockSetAsrConfig.mockResolvedValue(undefined)
     mockGetWhisperkitModelsDir.mockResolvedValue('/tmp/whisperkit-models')
-    mockCheckWhisperkitModelDownloaded.mockImplementation(async (model: WhisperModel) => downloadedModels.has(model))
+    mockCheckWhisperkitModelDownloaded.mockImplementation(async (model: WhisperModel) =>
+      downloadedModels.has(model),
+    )
     mockCheckWhisperkitCliInstalled.mockResolvedValue(true)
     mockInstallWhisperkitCli.mockResolvedValue(undefined)
     mockDownloadWhisperkitModel.mockResolvedValue(undefined)
@@ -125,7 +128,7 @@ describe('SectionVoice', () => {
 
     // Models render in order: base(0), small(1), large-v3-turbo(2)
     const downloadButtons = screen.getAllByText('下载')
-    fireEvent.click(downloadButtons[1]) // small
+    fireEvent.click(downloadButtons[0]) // small
 
     expect(mockDownloadWhisperkitModel).toHaveBeenCalledWith('small')
     expect(screen.getByText('模型下载任务')).toBeTruthy()
@@ -208,7 +211,9 @@ describe('SectionVoice', () => {
       message: '下载失败，请检查网络连接后重试。',
     })
 
-    expect((await screen.findAllByText('下载失败，请检查网络连接后重试。')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('下载失败，请检查网络连接后重试。')).length).toBeGreaterThan(
+      0,
+    )
 
     fireEvent.click(screen.getByRole('button', { name: '重新下载' }))
 

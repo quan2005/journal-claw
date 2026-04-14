@@ -28,7 +28,15 @@ interface DetailPanelProps {
 }
 
 // ── Detail context menu ───────────────────────────────────────────────────────
-function DetailContextMenu({ menuRef, onProcess, onVisualDesign, onCopySelection, onCopyRaw, onAddToTodo, onClose }: {
+function DetailContextMenu({
+  menuRef,
+  onProcess,
+  onVisualDesign,
+  onCopySelection,
+  onCopyRaw,
+  onAddToTodo,
+  onClose,
+}: {
   menuRef: React.RefObject<HTMLDivElement | null>
   onProcess: () => void
   onVisualDesign: () => void
@@ -39,82 +47,188 @@ function DetailContextMenu({ menuRef, onProcess, onVisualDesign, onCopySelection
 }) {
   const iconColor = 'var(--item-meta)'
   const itemStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '7px 12px', fontSize: 'var(--text-sm)', cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '7px 12px',
+    fontSize: 'var(--text-sm)',
+    cursor: 'pointer',
     color: 'var(--item-text)',
   }
 
   return (
-    <div ref={menuRef} style={{
-      position: 'fixed', top: 0, left: 0, zIndex: 9999,
-      background: 'var(--context-menu-bg)',
-      border: '1px solid var(--context-menu-border)',
-      borderRadius: 8,
-      boxShadow: '0 4px 20px var(--context-menu-shadow)',
-      minWidth: 160, overflow: 'hidden',
-      padding: '4px 0',
-      display: 'none',
-    }}>
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 9999,
+        background: 'var(--context-menu-bg)',
+        border: '1px solid var(--context-menu-border)',
+        borderRadius: 8,
+        boxShadow: '0 4px 20px var(--context-menu-shadow)',
+        minWidth: 160,
+        overflow: 'hidden',
+        padding: '4px 0',
+        display: 'none',
+      }}
+    >
       {/* Process entry */}
-      <div style={itemStyle}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
-        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => { onProcess(); onClose() }}
+      <div
+        style={itemStyle}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)')
+        }
+        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          onProcess()
+          onClose()
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <text x="12" y="18" textAnchor="middle" fontSize="22" fontWeight="700" fill={iconColor} stroke="none">@</text>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <text
+            x="12"
+            y="18"
+            textAnchor="middle"
+            fontSize="22"
+            fontWeight="700"
+            fill={iconColor}
+            stroke="none"
+          >
+            @
+          </text>
         </svg>
         <span>{getT()('referenceEntry')}</span>
       </div>
       {/* Visual design book */}
-      <div style={itemStyle}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
-        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => { onVisualDesign(); onClose() }}
+      <div
+        style={itemStyle}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)')
+        }
+        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          onVisualDesign()
+          onClose()
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
         <span>{getT()('visualDesignBook')}</span>
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Add to todo */}
-      <div data-role="add-to-todo" style={itemStyle}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
-        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => { onAddToTodo(); onClose() }}
+      <div
+        data-role="add-to-todo"
+        style={itemStyle}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)')
+        }
+        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          onAddToTodo()
+          onClose()
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
         <span>{getT()('addToTodo')}</span>
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Copy selection */}
-      <div data-role="copy-selection" style={itemStyle}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
-        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => { onCopySelection(); onClose() }}
+      <div
+        data-role="copy-selection"
+        style={itemStyle}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)')
+        }
+        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          onCopySelection()
+          onClose()
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
         <span>{getT()('copySelected')}</span>
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '4px 0' }} />
       {/* Copy raw markdown */}
-      <div style={itemStyle}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'}
-        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => { onCopyRaw(); onClose() }}
+      <div
+        style={itemStyle}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)')
+        }
+        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          onCopyRaw()
+          onClose()
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="7" y1="8" x2="17" y2="8" />
+          <line x1="7" y1="12" x2="17" y2="12" />
+          <line x1="7" y1="16" x2="13" y2="16" />
         </svg>
         <span>{getT()('copyMarkdown')}</span>
       </div>
@@ -123,7 +237,14 @@ function DetailContextMenu({ menuRef, onProcess, onVisualDesign, onCopySelection
 }
 
 // ── Code block with copy button ───────────────────────────────────────────────
-function CodeBlock({ children, rawText }: { className?: string; children?: React.ReactNode; rawText?: string }) {
+function CodeBlock({
+  children,
+  rawText,
+}: {
+  className?: string
+  children?: React.ReactNode
+  rawText?: string
+}) {
   const [copied, setCopied] = useState(false)
   const [hovered, setHovered] = useState(false)
 
@@ -160,20 +281,33 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
             userSelect: 'none',
           }}
         >
-          {copied ? <><Check size={12} strokeWidth={2} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{getT()('copied')}</> : getT()('copy')}
+          {copied ? (
+            <>
+              <Check
+                size={12}
+                strokeWidth={2}
+                style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
+              />
+              {getT()('copied')}
+            </>
+          ) : (
+            getT()('copy')
+          )}
         </button>
       )}
-      <pre style={{
-        margin: 0,
-        background: 'var(--md-pre-bg)',
-        borderRadius: 8,
-        padding: '10px 14px',
-        overflowX: 'auto',
-        fontSize: 'var(--text-base)',
-        lineHeight: 1.7,
-        color: 'var(--md-pre-text)',
-        fontFamily: 'var(--font-mono)',
-      }}>
+      <pre
+        style={{
+          margin: 0,
+          background: 'var(--md-pre-bg)',
+          borderRadius: 8,
+          padding: '10px 14px',
+          overflowX: 'auto',
+          fontSize: 'var(--text-base)',
+          lineHeight: 1.7,
+          color: 'var(--md-pre-text)',
+          fontFamily: 'var(--font-mono)',
+        }}
+      >
         {children}
       </pre>
     </div>
@@ -181,14 +315,27 @@ function CodeBlock({ children, rawText }: { className?: string; children?: React
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onDeselect, onRecord, onOpenDock, onSelectSample, onAddToTodo, onProcess, onVisualDesign }: DetailPanelProps) {
+export const DetailPanel = React.memo(function DetailPanel({
+  entry,
+  entries,
+  onDeselect,
+  onRecord,
+  onOpenDock,
+  onSelectSample,
+  onAddToTodo,
+  onProcess,
+  onVisualDesign,
+}: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
   const [showFind, setShowFind] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!entry) { setContent(null); return }
+    if (!entry) {
+      setContent(null)
+      return
+    }
     setContent(null)
     CSS.highlights?.delete('search-result')
     CSS.highlights?.delete('search-current')
@@ -295,44 +442,129 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
           rehypePlugins={[[rehypeHighlight, { detect: false }]]}
           components={{
             h1: ({ children }) => (
-              <h1 style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
-              }}>{children}</h1>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 'var(--font-semibold)',
+                  color: 'var(--md-h1)',
+                  margin: '0 0 16px',
+                  lineHeight: 1.4,
+                }}
+              >
+                {children}
+              </h1>
             ),
             h2: ({ children }) => (
-              <h2 style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
-              }}>{children}</h2>
+              <h2
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: 'var(--text-lg)',
+                  fontWeight: 'var(--font-semibold)',
+                  color: 'var(--md-h2)',
+                  margin: '28px 0 10px',
+                  lineHeight: 1.5,
+                }}
+              >
+                {children}
+              </h2>
             ),
             h3: ({ children }) => (
-              <h3 style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
-              }}>{children}</h3>
+              <h3
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: 'var(--text-md)',
+                  fontWeight: 'var(--font-semibold)',
+                  color: 'var(--md-h3)',
+                  margin: '20px 0 6px',
+                  lineHeight: 1.5,
+                }}
+              >
+                {children}
+              </h3>
             ),
             h4: ({ children }) => (
-              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
+              <h4
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-semibold)',
+                  color: 'var(--md-h3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  margin: '14px 0 5px',
+                }}
+              >
+                {children}
+              </h4>
             ),
             h5: ({ children }) => (
-              <h5 style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
+              <h5
+                style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--font-semibold)',
+                  color: 'var(--md-h3)',
+                  margin: '12px 0 4px',
+                }}
+              >
+                {children}
+              </h5>
             ),
             h6: ({ children }) => (
-              <h6 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
+              <h6
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-medium)',
+                  color: 'var(--md-h3)',
+                  margin: '10px 0 4px',
+                }}
+              >
+                {children}
+              </h6>
             ),
             p: ({ children }) => (
-              <p style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
+              <p
+                style={{
+                  fontSize: 'var(--text-md)',
+                  color: 'var(--md-text)',
+                  lineHeight: 1.9,
+                  margin: '0 0 10px',
+                }}
+              >
+                {children}
+              </p>
             ),
             ul: ({ children }) => (
-              <ul style={{ paddingLeft: 0, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3, listStyle: 'none' }}>{children}</ul>
+              <ul
+                style={{
+                  paddingLeft: 0,
+                  margin: '6px 0 10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                  listStyle: 'none',
+                }}
+              >
+                {children}
+              </ul>
             ),
             ol: ({ children }) => (
-              <ol style={{ paddingLeft: 20, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>{children}</ol>
+              <ol
+                style={{
+                  paddingLeft: 20,
+                  margin: '6px 0 10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                }}
+              >
+                {children}
+              </ol>
             ),
             li: MarkdownLi,
             strong: ({ children }) => (
-              <strong style={{ fontWeight: 'var(--font-semibold)', color: 'var(--md-strong)' }}>{children}</strong>
+              <strong style={{ fontWeight: 'var(--font-semibold)', color: 'var(--md-strong)' }}>
+                {children}
+              </strong>
             ),
             em: ({ children }) => (
               <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
@@ -341,7 +573,10 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
               return <code className={className}>{children}</code>
             },
             pre: ({ children }) => {
-              const codeEl = children as React.ReactElement<{ className?: string; children?: React.ReactNode }>
+              const codeEl = children as React.ReactElement<{
+                className?: string
+                children?: React.ReactNode
+              }>
               const rawText = extractCodeText(codeEl?.props?.children)
               return (
                 <CodeBlock className={codeEl?.props?.className} rawText={rawText}>
@@ -357,16 +592,24 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
                   target={isMdLink ? undefined : '_blank'}
                   rel={isMdLink ? undefined : 'noopener noreferrer'}
                   className="md-link"
-                  onClick={isMdLink ? (e) => {
-                    e.preventDefault()
-                    const decodedHref = decodeURIComponent(href!)
-                    const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
-                    const targetPath = resolveRelativePath(entryDir, decodedHref)
-                    const targetFilename = targetPath.substring(targetPath.lastIndexOf('/') + 1)
-                    window.dispatchEvent(new CustomEvent('journal-entry-navigate', {
-                      detail: { path: targetPath, filename: targetFilename },
-                    }))
-                  } : undefined}
+                  onClick={
+                    isMdLink
+                      ? (e) => {
+                          e.preventDefault()
+                          const decodedHref = decodeURIComponent(href!)
+                          const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
+                          const targetPath = resolveRelativePath(entryDir, decodedHref)
+                          const targetFilename = targetPath.substring(
+                            targetPath.lastIndexOf('/') + 1,
+                          )
+                          window.dispatchEvent(
+                            new CustomEvent('journal-entry-navigate', {
+                              detail: { path: targetPath, filename: targetFilename },
+                            }),
+                          )
+                        }
+                      : undefined
+                  }
                   style={{ cursor: 'pointer' }}
                 >
                   {children}
@@ -374,37 +617,66 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
               )
             },
             blockquote: ({ children }) => (
-              <blockquote style={{
-                borderLeft: '3px solid var(--md-quote-bar)',
-                paddingLeft: 12,
-                margin: '8px 0',
-                color: 'var(--md-quote-text)',
-              }}>
+              <blockquote
+                style={{
+                  borderLeft: '3px solid var(--md-quote-bar)',
+                  paddingLeft: 12,
+                  margin: '8px 0',
+                  color: 'var(--md-quote-text)',
+                }}
+              >
                 {children}
               </blockquote>
             ),
             hr: () => (
-              <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }} />
+              <hr
+                style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }}
+              />
             ),
             table: ({ children }) => (
               <div style={{ overflowX: 'auto', margin: '10px 0' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-base)' }}>{children}</table>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: 'var(--text-base)',
+                  }}
+                >
+                  {children}
+                </table>
               </div>
             ),
             th: ({ children }) => (
-              <th style={{
-                padding: '6px 10px', textAlign: 'left', fontWeight: 'var(--font-semibold)',
-                fontSize: 'var(--text-sm)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
-                borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap',
-                minWidth: 72,
-              }}>{children}</th>
+              <th
+                style={{
+                  padding: '6px 10px',
+                  textAlign: 'left',
+                  fontWeight: 'var(--font-semibold)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--md-h3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  borderBottom: '2px solid var(--divider)',
+                  whiteSpace: 'nowrap',
+                  minWidth: 72,
+                }}
+              >
+                {children}
+              </th>
             ),
             td: ({ children }) => (
-              <td style={{
-                padding: '5px 10px', color: 'var(--md-text)', lineHeight: 1.6,
-                verticalAlign: 'top', borderBottom: '1px solid var(--divider)',
-                minWidth: 72,
-              }}>{children}</td>
+              <td
+                style={{
+                  padding: '5px 10px',
+                  color: 'var(--md-text)',
+                  lineHeight: 1.6,
+                  verticalAlign: 'top',
+                  borderBottom: '1px solid var(--divider)',
+                  minWidth: 72,
+                }}
+              >
+                {children}
+              </td>
             ),
           }}
         >
@@ -417,42 +689,60 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
   if (!entry) {
     const isEmpty = entries.length === 0
     return (
-      <div style={{
-        width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        background: 'var(--detail-bg)',
-        userSelect: 'none',
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
-        {/* Watermark */}
-        <span style={{
-          fontSize: '84vh',
-          fontWeight: 900,
-          letterSpacing: '0.06em',
-          color: 'var(--item-text)',
-          opacity: 0.035,
-          lineHeight: 1,
-          fontFamily: '"Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "Songti SC", serif',
-          whiteSpace: 'nowrap',
-          pointerEvents: 'none',
-          position: 'absolute',
-        }}>
-          謹跡
-        </span>
-
-        <div style={{
-          position: 'relative',
-          zIndex: 1,
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16,
-          padding: '0 32px',
-          width: '100%',
-          maxWidth: 520,
-        }}>
-          <div style={{ fontSize: 'var(--text-base)', color: 'var(--item-meta)', letterSpacing: '0.04em', opacity: 0.6 }}>
+          justifyContent: 'center',
+          background: 'var(--detail-bg)',
+          userSelect: 'none',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {/* Watermark */}
+        <span
+          style={{
+            fontSize: '84vh',
+            fontWeight: 900,
+            letterSpacing: '0.06em',
+            color: 'var(--item-text)',
+            opacity: 0.035,
+            lineHeight: 1,
+            fontFamily:
+              '"Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "Songti SC", serif',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            position: 'absolute',
+          }}
+        >
+          謹跡
+        </span>
+
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
+            padding: '0 32px',
+            width: '100%',
+            maxWidth: 520,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 'var(--text-base)',
+              color: 'var(--item-meta)',
+              letterSpacing: '0.04em',
+              opacity: 0.6,
+            }}
+          >
             通过以下方式开始记录
           </div>
           <div style={{ display: 'flex', gap: 12, width: '100%' }}>
@@ -460,47 +750,145 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
             <button
               onClick={onRecord}
               style={{
-                flex: 1, background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)', border: '1px solid var(--divider)',
-                borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                flex: 1,
+                background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
+                border: '1px solid var(--divider)',
+                borderRadius: 10,
+                padding: '16px 12px',
+                textAlign: 'center',
+                cursor: 'pointer',
                 transition: 'opacity 0.15s, background 0.15s',
-                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--detail-bg) 25%, transparent)' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
+                ;(e.currentTarget as HTMLButtonElement).style.background =
+                  'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
+                ;(e.currentTarget as HTMLButtonElement).style.background =
+                  'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
+              }}
             >
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-                  <path d="M19 10a7 7 0 0 1-14 0"/>
-                  <line x1="12" y1="19" x2="12" y2="22"/>
-                  <line x1="8" y1="22" x2="16" y2="22"/>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: 'var(--item-icon-bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px',
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--item-meta)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+                  <path d="M19 10a7 7 0 0 1-14 0" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                  <line x1="8" y1="22" x2="16" y2="22" />
                 </svg>
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 'var(--font-semibold)', marginBottom: 4 }}>录音记录</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>说出你的想法<br/>AI 自动整理成日志</div>
+              <div
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--item-text)',
+                  fontWeight: 'var(--font-semibold)',
+                  marginBottom: 4,
+                }}
+              >
+                录音记录
+              </div>
+              <div
+                style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}
+              >
+                说出你的想法
+                <br />
+                AI 自动整理成日志
+              </div>
             </button>
 
             {/* 粘贴卡片 */}
             <button
               onClick={onOpenDock}
               style={{
-                flex: 1, background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)', border: '1px solid var(--divider)',
-                borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                flex: 1,
+                background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
+                border: '1px solid var(--divider)',
+                borderRadius: 10,
+                padding: '16px 12px',
+                textAlign: 'center',
+                cursor: 'pointer',
                 transition: 'opacity 0.15s, background 0.15s',
-                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--detail-bg) 25%, transparent)' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
+                ;(e.currentTarget as HTMLButtonElement).style.background =
+                  'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
+                ;(e.currentTarget as HTMLButtonElement).style.background =
+                  'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
+              }}
             >
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: 'var(--item-icon-bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px',
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--item-meta)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 'var(--font-semibold)', marginBottom: 4 }}>粘贴 / 拖文件</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>会议记录、日记<br/>AI 自动提炼关键信息</div>
+              <div
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--item-text)',
+                  fontWeight: 'var(--font-semibold)',
+                  marginBottom: 4,
+                }}
+              >
+                粘贴 / 拖文件
+              </div>
+              <div
+                style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}
+              >
+                会议记录、日记
+                <br />
+                AI 自动提炼关键信息
+              </div>
             </button>
 
             {/* 创建示例卡片：只在工作目录为空时显示 */}
@@ -508,24 +896,75 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
               <button
                 onClick={onSelectSample}
                 style={{
-                  flex: 1, background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
-                  border: '1px dashed var(--divider)', borderStyle: 'dashed',
-                  borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
+                  flex: 1,
+                  background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
+                  border: '1px dashed var(--divider)',
+                  borderStyle: 'dashed',
+                  borderRadius: 10,
+                  padding: '16px 12px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
                   transition: 'opacity 0.15s, background 0.15s',
-                  backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--detail-bg) 25%, transparent)' }}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
+                  ;(e.currentTarget as HTMLButtonElement).style.background =
+                    'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
+                  ;(e.currentTarget as HTMLButtonElement).style.background =
+                    'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
+                }}
               >
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z"/>
-                    <line x1="9" y1="21" x2="15" y2="21"/>
-                    <line x1="10" y1="17" x2="14" y2="17"/>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: 'var(--item-icon-bg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px',
+                  }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--item-meta)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z" />
+                    <line x1="9" y1="21" x2="15" y2="21" />
+                    <line x1="10" y1="17" x2="14" y2="17" />
                   </svg>
                 </div>
-                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-text)', fontWeight: 'var(--font-semibold)', marginBottom: 4 }}>创建示例条目</div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}>生成一条示例<br/>了解 AI 整理效果</div>
+                <div
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--item-text)',
+                    fontWeight: 'var(--font-semibold)',
+                    marginBottom: 4,
+                  }}
+                >
+                  创建示例条目
+                </div>
+                <div
+                  style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}
+                >
+                  生成一条示例
+                  <br />
+                  了解 AI 整理效果
+                </div>
               </button>
             )}
           </div>
@@ -535,11 +974,26 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
   }
 
   return (
-    <div style={{
-      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      background: 'var(--detail-bg)', position: 'relative',
-    }}>
-      {showFind && <FindBar containerRef={bodyRef} onClose={() => { CSS.highlights?.delete('search-result'); CSS.highlights?.delete('search-current'); setShowFind(false) }} />}
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--detail-bg)',
+        position: 'relative',
+      }}
+    >
+      {showFind && (
+        <FindBar
+          containerRef={bodyRef}
+          onClose={() => {
+            CSS.highlights?.delete('search-result')
+            CSS.highlights?.delete('search-current')
+            setShowFind(false)
+          }}
+        />
+      )}
       {/* Scrollable body */}
       <div
         ref={bodyRef}
@@ -549,17 +1003,24 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
           showContextMenu(e.clientX, e.clientY)
         }}
       >
-
         {/* Header: summary + tags */}
-        <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid var(--divider)' }}>
+        <div
+          style={{
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '0.5px solid var(--divider)',
+          }}
+        >
           {/* Summary */}
           {entry.summary && (
-            <div style={{
-              fontSize: 'var(--text-base)',
-              color: 'var(--detail-summary)',
-              lineHeight: 1.8,
-              marginBottom: displayTags.length > 0 ? 10 : 0,
-            }}>
+            <div
+              style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--detail-summary)',
+                lineHeight: 1.8,
+                marginBottom: displayTags.length > 0 ? 10 : 0,
+              }}
+            >
               {entry.summary}
             </div>
           )}
@@ -567,16 +1028,19 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
           {(displayTags.length > 0 || entry.sources.length > 0) && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {displayTags.map((cfg, i) => (
-                <span key={i} style={{
-                  fontSize: 'var(--text-xs)',
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  fontWeight: 'var(--font-medium)',
-                  color: "var(--tag-text)",
-                  background: "var(--tag-bg)",
-                  fontFamily: 'var(--font-mono)',
-                  whiteSpace: 'nowrap',
-                }}>
+                <span
+                  key={i}
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontWeight: 'var(--font-medium)',
+                    color: 'var(--tag-text)',
+                    background: 'var(--tag-bg)',
+                    fontFamily: 'var(--font-mono)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {cfg.label}
                 </span>
               ))}
@@ -589,9 +1053,13 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
                 const handleSourceClick = async () => {
                   const srcFilename = src.split('/').pop() ?? src
                   if (kind === 'markdown') {
-                    const match = entries.find(e => e.filename === srcFilename)
+                    const match = entries.find((e) => e.filename === srcFilename)
                     if (match) {
-                      window.dispatchEvent(new CustomEvent('journal-entry-navigate', { detail: { filename: srcFilename } }))
+                      window.dispatchEvent(
+                        new CustomEvent('journal-entry-navigate', {
+                          detail: { filename: srcFilename },
+                        }),
+                      )
                     } else {
                       try {
                         const ws = await getWorkspacePath()
@@ -610,35 +1078,52 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
                   }
                 }
                 return (
-                  <span key={`src-${i}`} data-testid="sources-row"
+                  <span
+                    key={`src-${i}`}
+                    data-testid="sources-row"
                     onClick={handleSourceClick}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--item-selected-text)' }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--item-meta)' }}
+                    onMouseEnter={(e) => {
+                      ;(e.currentTarget as HTMLElement).style.color = 'var(--item-selected-text)'
+                    }}
+                    onMouseLeave={(e) => {
+                      ;(e.currentTarget as HTMLElement).style.color = 'var(--item-meta)'
+                    }}
                     style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 'var(--text-xs)',
-                    padding: '2px 7px',
-                    borderRadius: 4,
-                    color: 'var(--item-meta)',
-                    background: 'var(--item-icon-bg)',
-                    fontFamily: 'var(--font-mono)',
-                    maxWidth: 240,
-                    cursor: 'pointer',
-                    transition: 'color 0.15s ease-out',
-                  }}>
-                    <span style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      minWidth: 0,
-                    }}>
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 'var(--text-xs)',
+                      padding: '2px 7px',
+                      borderRadius: 4,
+                      color: 'var(--item-meta)',
+                      background: 'var(--item-icon-bg)',
+                      fontFamily: 'var(--font-mono)',
+                      maxWidth: 240,
+                      cursor: 'pointer',
+                      transition: 'color 0.15s ease-out',
+                    }}
+                  >
+                    <span
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        minWidth: 0,
+                      }}
+                    >
                       {namePart}
                     </span>
-                    {extLabel && <span style={{
-                      flexShrink: 0,
-                      fontWeight: 'var(--font-medium)',
-                      opacity: 0.5,
-                    }}>{extLabel}</span>}
+                    {extLabel && (
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          fontWeight: 'var(--font-medium)',
+                          opacity: 0.5,
+                        }}
+                      >
+                        {extLabel}
+                      </span>
+                    )}
                   </span>
                 )
               })}
@@ -651,7 +1136,9 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
             <Spinner size={20} />
           </div>
-        ) : markdownNode}
+        ) : (
+          markdownNode
+        )}
       </div>
 
       <DetailContextMenu

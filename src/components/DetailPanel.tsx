@@ -290,7 +290,7 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
           pointerEvents: 'none',
           position: 'absolute',
         }}>
-          谨迹
+          謹跡
         </span>
 
         <div style={{
@@ -312,12 +312,13 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
             <button
               onClick={onRecord}
               style={{
-                flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
+                flex: 1, background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)', border: '1px solid var(--divider)',
                 borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
                 transition: 'opacity 0.15s, background 0.15s',
+                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--detail-bg) 25%, transparent)' }}
             >
               <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -335,12 +336,13 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
             <button
               onClick={onOpenDock}
               style={{
-                flex: 1, background: 'var(--detail-bg)', border: '1px solid var(--divider)',
+                flex: 1, background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)', border: '1px solid var(--divider)',
                 borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
                 transition: 'opacity 0.15s, background 0.15s',
+                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--detail-bg) 25%, transparent)' }}
             >
               <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -358,13 +360,14 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
               <button
                 onClick={onSelectSample}
                 style={{
-                  flex: 1, background: 'var(--detail-bg)',
+                  flex: 1, background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
                   border: '1px dashed var(--divider)', borderStyle: 'dashed',
                   borderRadius: 10, padding: '16px 12px', textAlign: 'center', cursor: 'pointer',
                   transition: 'opacity 0.15s, background 0.15s',
+                  backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'; (e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'; (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--detail-bg) 25%, transparent)' }}
               >
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--item-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

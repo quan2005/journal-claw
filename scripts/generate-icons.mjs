@@ -27,8 +27,8 @@ function lines(strokeWidth) {
 function dot(show) {
   if (!show) return '';
   return `
-    <circle cx="220" cy="225" r="13" fill="${DOT_COLOR}" opacity="0.18"/>
-    <circle cx="220" cy="225" r="6.5" fill="${DOT_COLOR}"/>`;
+    <circle cx="220" cy="225" r="18" fill="${DOT_COLOR}" opacity="0.15"/>
+    <circle cx="220" cy="225" r="9" fill="${DOT_COLOR}"/>`;
 }
 
 function makeSvg(size, strokeWidth, showDot) {
@@ -53,7 +53,7 @@ const sizes = [
   ['128x128@2x.png', 256, 4, true],
   ['128x128.png', 128, 4.5, true],
   ['32x32@2x.png', 64, 5, true],
-  ['32x32.png', 32, 7, false],
+  ['32x32.png', 32, 7, true],
 ];
 
 const storeSizes = [
@@ -65,7 +65,7 @@ const storeSizes = [
   ['Square89x89Logo.png', 89, 5, true],
   ['Square71x71Logo.png', 71, 5, true],
   ['Square44x44Logo.png', 44, 5.5, true],
-  ['Square30x30Logo.png', 30, 7, false],
+  ['Square30x30Logo.png', 30, 7, true],
   ['StoreLogo.png', 50, 5.5, true],
 ];
 
@@ -89,9 +89,9 @@ console.log('\nGenerating icon.icns...');
 if (!existsSync(ICONSET_DIR)) mkdirSync(ICONSET_DIR);
 
 const icnsMap = [
-  ['icon_16x16.png', 16, 8, false],
-  ['icon_16x16@2x.png', 32, 7, false],
-  ['icon_32x32.png', 32, 7, false],
+  ['icon_16x16.png', 16, 8, true],
+  ['icon_16x16@2x.png', 32, 7, true],
+  ['icon_32x32.png', 32, 7, true],
   ['icon_32x32@2x.png', 64, 5, true],
   ['icon_128x128.png', 128, 4.5, true],
   ['icon_128x128@2x.png', 256, 4, true],

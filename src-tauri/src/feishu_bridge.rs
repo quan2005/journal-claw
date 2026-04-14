@@ -711,3 +711,103 @@ pub async fn run(app: AppHandle) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chunks_ascii_within_limit() {
+        assert_eq!(safe_utf8_chunks("hello", 10), vec!["hello"]);
+    }
+
+    #[test]
+    fn chunks_ascii_exact_boundary() {
+        assert_eq!(safe_utf8_chunks("abcdef", 3), vec!["abc", "def"]);
+    }
+
+    #[test]
+    fn chunks_ascii_uneven() {
+        assert_eq!(safe_utf8_chunks("abcdefg", 3), vec!["abc", "def", "g"]);
+    }
+
+    #[test]
+    fn chunks_empty_string() {
+        assert_eq!(safe_utf8_chunks("", 10), vec![""]);
+    }
+
+    #[test]
+    fn chunks_chinese_within_limit() {
+        assert_eq!(safe_utf8_chunks("你好", 10), vec!["你好"]);
+    }
+
+    #[test]
+    fn chunks_chinese_split_respects_boundary() {
+        // 4 chars x 3 bytes = 12 bytes; max=7 -> 2 chars (6 bytes) per chunk
+        assert_eq!(safe_utf8_chunks("你好世界", 7), vec!["你好", "世界"]);
+    }
+
+    #[test]
+    fn chunks_chinese_one_per_chunk() {
+        assert_eq!(safe_utf8_chunks("你好世", 3), vec!["你", "好", "世"]);
+    }
+
+    #[test]
+    fn chunks_mixed_ascii_chinese() {
+        assert_eq!(safe_utf8_chunks("hi你好", 5), vec!["hi你", "好"]);
+    }
+
+    #[test]
+    fn chunks_emoji_4byte() {
+        assert_eq!(safe_utf8_chunks("😀😀", 5), vec!["😀", "😀"]);
+    }
+
+    #[test]
+    fn chunks_preserves_all_content() {
+        let text = "Hello你好World世界";
+        let result = safe_utf8_chunks(text, 6);
+        let reassembled: String = result.into_iter().collect();
+        assert_eq!(reassembled, text);
+    }
+
+    #[test]
+    fn chunks_realistic_4000_limit() {
+        let text = "会议纪要：".repeat(500); // 7500 bytes
+        let chunks = safe_utf8_chunks(&text, 4000);
+        assert!(chunks.len() >= 2);
+        let reassembled: String = chunks.iter().cloned().collect();
+        assert_eq!(reassembled, text);
+        for chunk in &chunks {
+            assert!(chunk.len() <= 4000);
+        }
+    }
+
+    #[test]
+    fn extract_docx_token() {
+        let url = "https://example.feishu.cn/docx/ABC123def456_xyz";
+        assert_eq!(extract_feishu_doc_token(url), Some("ABC123def456_xyz".to_string()));
+    }
+
+    #[test]
+    fn extract_docs_token() {
+        let url = "https://example.feishu.cn/docs/LONGTOKEN12345678";
+        assert_eq!(extract_feishu_doc_token(url), Some("LONGTOKEN12345678".to_string()));
+    }
+
+    #[test]
+    fn extract_token_stops_at_query() {
+        let url = "https://example.feishu.cn/docx/ABC123def456?from=share";
+        assert_eq!(extract_feishu_doc_token(url), Some("ABC123def456".to_string()));
+    }
+
+    #[test]
+    fn extract_token_too_short() {
+        assert_eq!(extract_feishu_doc_token("https://feishu.cn/docx/short"), None);
+    }
+
+    #[test]
+    fn extract_no_doc_link() {
+        assert_eq!(extract_feishu_doc_token("just some text"), None);
+        assert_eq!(extract_feishu_doc_token(""), None);
+    }
+}

@@ -785,24 +785,36 @@ mod tests {
     #[test]
     fn extract_docx_token() {
         let url = "https://example.feishu.cn/docx/ABC123def456_xyz";
-        assert_eq!(extract_feishu_doc_token(url), Some("ABC123def456_xyz".to_string()));
+        assert_eq!(
+            extract_feishu_doc_token(url),
+            Some("ABC123def456_xyz".to_string())
+        );
     }
 
     #[test]
     fn extract_docs_token() {
         let url = "https://example.feishu.cn/docs/LONGTOKEN12345678";
-        assert_eq!(extract_feishu_doc_token(url), Some("LONGTOKEN12345678".to_string()));
+        assert_eq!(
+            extract_feishu_doc_token(url),
+            Some("LONGTOKEN12345678".to_string())
+        );
     }
 
     #[test]
     fn extract_token_stops_at_query() {
         let url = "https://example.feishu.cn/docx/ABC123def456?from=share";
-        assert_eq!(extract_feishu_doc_token(url), Some("ABC123def456".to_string()));
+        assert_eq!(
+            extract_feishu_doc_token(url),
+            Some("ABC123def456".to_string())
+        );
     }
 
     #[test]
     fn extract_token_too_short() {
-        assert_eq!(extract_feishu_doc_token("https://feishu.cn/docx/short"), None);
+        assert_eq!(
+            extract_feishu_doc_token("https://feishu.cn/docx/short"),
+            None
+        );
     }
 
     #[test]

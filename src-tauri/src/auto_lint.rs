@@ -455,8 +455,8 @@ pub async fn trigger_lint_now(app: AppHandle) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Timelike;
     use super::*;
+    use chrono::Timelike;
 
     #[test]
     fn parse_time_valid() {
@@ -476,7 +476,10 @@ mod tests {
     #[test]
     fn last_lint_path_construction() {
         let p = last_lint_path("/tmp/ws");
-        assert_eq!(p, std::path::PathBuf::from("/tmp/ws/.claude/last-lint.json"));
+        assert_eq!(
+            p,
+            std::path::PathBuf::from("/tmp/ws/.claude/last-lint.json")
+        );
     }
 
     #[test]

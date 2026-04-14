@@ -350,7 +350,10 @@ mod tests {
         assert_eq!(parts[2].len(), 4);
         assert_eq!(parts[3].len(), 4);
         assert_eq!(parts[4].len(), 12);
-        assert!(parts[2].starts_with('4'), "third segment should start with 4");
+        assert!(
+            parts[2].starts_with('4'),
+            "third segment should start with 4"
+        );
     }
 
     #[test]
@@ -392,10 +395,13 @@ mod tests {
         std::fs::create_dir_all(&tmp).unwrap();
         let ws = tmp.to_str().unwrap();
         let mut store = SessionStore::default();
-        store.sessions.insert("topic-a".into(), SessionInfo {
-            session_id: "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee".into(),
-            created_at: "2026-04-14T10:00:00".into(),
-        });
+        store.sessions.insert(
+            "topic-a".into(),
+            SessionInfo {
+                session_id: "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee".into(),
+                created_at: "2026-04-14T10:00:00".into(),
+            },
+        );
         save_sessions(ws, &store).unwrap();
         let loaded = load_sessions(ws);
         assert_eq!(loaded.sessions.len(), 1);
@@ -422,10 +428,13 @@ mod tests {
         std::fs::create_dir_all(&tmp).unwrap();
         let ws = tmp.to_str().unwrap();
         let mut store = SessionStore::default();
-        store.sessions.insert("old-name".into(), SessionInfo {
-            session_id: "11111111-2222-4333-4444-555555555555".into(),
-            created_at: "2026-04-14T12:00:00".into(),
-        });
+        store.sessions.insert(
+            "old-name".into(),
+            SessionInfo {
+                session_id: "11111111-2222-4333-4444-555555555555".into(),
+                created_at: "2026-04-14T12:00:00".into(),
+            },
+        );
         save_sessions(ws, &store).unwrap();
         rename_session_key(ws, "old-name", "new-name");
         let loaded = load_sessions(ws);
@@ -441,10 +450,13 @@ mod tests {
         std::fs::create_dir_all(&tmp).unwrap();
         let ws = tmp.to_str().unwrap();
         let mut store = SessionStore::default();
-        store.sessions.insert("keep-me".into(), SessionInfo {
-            session_id: "abcdefab-1234-4567-89ab-cdef01234567".into(),
-            created_at: "2026-04-14T12:00:00".into(),
-        });
+        store.sessions.insert(
+            "keep-me".into(),
+            SessionInfo {
+                session_id: "abcdefab-1234-4567-89ab-cdef01234567".into(),
+                created_at: "2026-04-14T12:00:00".into(),
+            },
+        );
         save_sessions(ws, &store).unwrap();
         rename_session_key(ws, "does-not-exist", "whatever");
         let loaded = load_sessions(ws);

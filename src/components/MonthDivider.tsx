@@ -1,7 +1,7 @@
 import { useTranslation } from '../contexts/I18nContext'
 
 interface MonthDividerProps {
-  yearMonth: string  // "202603" or "2603"
+  yearMonth: string // "202603" or "2603"
 }
 
 export function MonthDivider({ yearMonth }: MonthDividerProps) {
@@ -15,12 +15,14 @@ export function MonthDivider({ yearMonth }: MonthDividerProps) {
 
   return (
     <div style={{ paddingTop: 24, paddingBottom: 0 }}>
-      <div style={{
-        padding: '0 20px 10px',
-        fontSize: 'var(--text-md)',
-        fontWeight: 'var(--font-semibold)',
-        color: 'var(--item-text)',
-      }}>
+      <div
+        style={{
+          padding: '0 20px 10px',
+          fontSize: 'var(--text-md)',
+          fontWeight: 'var(--font-semibold)',
+          color: 'var(--item-text)',
+        }}
+      >
         {label}
       </div>
       <div style={{ height: 1, background: 'var(--divider)', margin: '0 0' }} />

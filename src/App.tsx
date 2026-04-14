@@ -18,7 +18,24 @@ import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
 import { useTodos } from './hooks/useTodos'
-import { importFile, importAudioFile, prepareAudioForAi, triggerAiProcessing, triggerAiPrompt, cancelAiProcessing, cancelQueuedItem, getEngineConfig, checkEngineInstalled, getAsrConfig, checkWhisperkitCliInstalled, checkWhisperkitModelDownloaded, createSampleEntryIfNeeded, createSampleEntry, listAllJournalEntries, deleteIdentity } from './lib/tauri'
+import {
+  importFile,
+  importAudioFile,
+  prepareAudioForAi,
+  triggerAiProcessing,
+  triggerAiPrompt,
+  cancelAiProcessing,
+  cancelQueuedItem,
+  getEngineConfig,
+  checkEngineInstalled,
+  getAsrConfig,
+  checkWhisperkitCliInstalled,
+  checkWhisperkitModelDownloaded,
+  createSampleEntryIfNeeded,
+  createSampleEntry,
+  listAllJournalEntries,
+  deleteIdentity,
+} from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry } from './types'
 import { useTranslation } from './contexts/I18nContext'
@@ -29,16 +46,41 @@ const DIVIDER_WIDTH = 7
 export default function App() {
   const { t } = useTranslation()
   const { status, start, stop } = useRecorder()
-  const { entries, loading, loadingMore, hasMore, loadMore, queueItems, isProcessing, dismissQueueItem, addConvertingItem, addQueuedItem, markItemFailed, retryQueueItem, refresh } = useJournal()
+  const {
+    entries,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    queueItems,
+    isProcessing,
+    dismissQueueItem,
+    addConvertingItem,
+    addQueuedItem,
+    markItemFailed,
+    retryQueueItem,
+    refresh,
+  } = useJournal()
   const { theme, setTheme } = useTheme()
-  const { todos, addTodo, toggleTodo, deleteTodo, setTodoDue, updateTodoText, setTodoPath, removeTodoPath } = useTodos()
+  const {
+    todos,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    setTodoDue,
+    updateTodoText,
+    setTodoPath,
+    removeTodoPath,
+  } = useTodos()
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
   const [aiReady, setAiReady] = useState<boolean | null>(null)
   const [asrReady, setAsrReady] = useState<boolean | null>(null)
   const [audioRejected, setAudioRejected] = useState(false)
   const [view, setView] = useState<'journal' | 'settings'>('journal')
-  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
+  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(
+    undefined,
+  )
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
@@ -72,49 +114,62 @@ export default function App() {
 
   // Check AI engine availability on mount
   useEffect(() => {
-    getEngineConfig().then(cfg =>
-      checkEngineInstalled(cfg.active_ai_engine as 'claude' | 'qwen').then(setAiReady)
-    ).catch(() => setAiReady(false))
+    getEngineConfig()
+      .then((cfg) =>
+        checkEngineInstalled(cfg.active_ai_engine as 'claude' | 'qwen').then(setAiReady),
+      )
+      .catch(() => setAiReady(false))
   }, [view]) // re-check after user closes settings
 
   // Check ASR readiness on mount and after settings are closed
   useEffect(() => {
-    getAsrConfig().then(async cfg => {
-      if (cfg.asr_engine === 'apple') {
-        setAsrReady(true)
-        return
-      }
-      if (cfg.asr_engine === 'dashscope') {
-        setAsrReady(cfg.dashscope_api_key.trim().length > 0)
-        return
-      }
-      // whisperkit: need both CLI installed and model downloaded
-      const [cliOk, modelOk] = await Promise.all([
-        checkWhisperkitCliInstalled(),
-        checkWhisperkitModelDownloaded(cfg.whisperkit_model),
-      ])
-      setAsrReady(cliOk && modelOk)
-    }).catch(() => setAsrReady(false))
+    getAsrConfig()
+      .then(async (cfg) => {
+        if (cfg.asr_engine === 'apple') {
+          setAsrReady(true)
+          return
+        }
+        if (cfg.asr_engine === 'dashscope') {
+          setAsrReady(cfg.dashscope_api_key.trim().length > 0)
+          return
+        }
+        // whisperkit: need both CLI installed and model downloaded
+        const [cliOk, modelOk] = await Promise.all([
+          checkWhisperkitCliInstalled(),
+          checkWhisperkitModelDownloaded(cfg.whisperkit_model),
+        ])
+        setAsrReady(cliOk && modelOk)
+      })
+      .catch(() => setAsrReady(false))
   }, [view]) // re-check after settings closed
 
   // Immediately clear overlay when an engine finishes installing successfully
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    listen<{ engine: string; done: boolean; success: boolean }>('engine-install-log', ({ payload }) => {
-      if (payload.done && payload.success) setAiReady(true)
-    }).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
+    listen<{ engine: string; done: boolean; success: boolean }>(
+      'engine-install-log',
+      ({ payload }) => {
+        if (payload.done && payload.success) setAiReady(true)
+      },
+    ).then((fn) => {
+      unlisten = fn
+    })
+    return () => {
+      unlisten?.()
+    }
   }, [])
 
   // 首次启动：写入示例条目并自动选中
   useEffect(() => {
-    createSampleEntryIfNeeded().then(async created => {
-      if (!created) return
-      await refresh()
-      const all = await listAllJournalEntries()
-      const sample = all.find(e => e.title === '产品评审示例')
-      if (sample) setSelectedEntry(sample)
-    }).catch(() => {})
+    createSampleEntryIfNeeded()
+      .then(async (created) => {
+        if (!created) return
+        await refresh()
+        const all = await listAllJournalEntries()
+        const sample = all.find((e) => e.title === '产品评审示例')
+        if (sample) setSelectedEntry(sample)
+      })
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Divider drag
@@ -134,7 +189,10 @@ export default function App() {
     const onUp = () => setIsDragging(false)
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
   }, [isDragging])
 
   // Todo sidebar divider drag
@@ -155,7 +213,10 @@ export default function App() {
     const onUp = () => setIsTodoDragging(false)
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
   }, [isTodoDragging])
 
   // journal-entry-deleted event
@@ -173,9 +234,9 @@ export default function App() {
   // Also sync selectedEntry so DetailPanel sees updated mtime_secs after file changes
   useEffect(() => {
     entriesRef.current = entries
-    setSelectedEntry(prev => {
+    setSelectedEntry((prev) => {
       if (!prev) return prev
-      const updated = entries.find(e => e.path === prev.path)
+      const updated = entries.find((e) => e.path === prev.path)
       return updated && updated.mtime_secs !== prev.mtime_secs ? updated : prev
     })
   }, [entries])
@@ -186,9 +247,9 @@ export default function App() {
       const { path: targetPath, filename: targetFilename } = (e as CustomEvent).detail ?? {}
       if (!targetPath && !targetFilename) return
       const current = entriesRef.current
-      let match = targetPath ? current.find(entry => entry.path === targetPath) : undefined
+      let match = targetPath ? current.find((entry) => entry.path === targetPath) : undefined
       if (!match && targetFilename) {
-        match = current.find(entry => entry.filename === targetFilename)
+        match = current.find((entry) => entry.filename === targetFilename)
       }
       if (match) setSelectedEntry(match)
     }
@@ -202,8 +263,12 @@ export default function App() {
     listen('open-settings', () => {
       setSettingsInitialSection(undefined)
       setView('settings')
-    }).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
+    }).then((fn) => {
+      unlisten = fn
+    })
+    return () => {
+      unlisten?.()
+    }
   }, [])
 
   // Open settings → about section from Rust menu
@@ -212,21 +277,28 @@ export default function App() {
     listen('open-settings-about', () => {
       setSettingsInitialSection('about')
       setView('settings')
-    }).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
+    }).then((fn) => {
+      unlisten = fn
+    })
+    return () => {
+      unlisten?.()
+    }
   }, [])
 
   // Esc closes settings; Cmd+, toggles settings
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setView('journal'); return }
+      if (e.key === 'Escape') {
+        setView('journal')
+        return
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault()
-        setView(v => v === 'settings' ? 'journal' : 'settings')
+        setView((v) => (v === 'settings' ? 'journal' : 'settings'))
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 't') {
         e.preventDefault()
-        setTodoOpen(prev => !prev)
+        setTodoOpen((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handler)
@@ -284,7 +356,7 @@ export default function App() {
   const handleFilesCancel = () => setPendingFiles([])
 
   const handleRemoveFile = (index: number) =>
-    setPendingFiles(prev => prev.filter((_, i) => i !== index))
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index))
 
   const handleRecord = useCallback(async () => {
     if (status === 'idle') {
@@ -298,17 +370,22 @@ export default function App() {
   const handleDeselect = useCallback(() => setSelectedEntry(null), [])
   const handleOpenDock = useCallback(() => setDockOpen(true), [])
   const handleSelectSample = useCallback(() => {
-    createSampleEntry().then(async () => {
-      await refresh()
-      const all = await listAllJournalEntries()
-      const sample = all.find(e => e.title === '产品评审示例')
-      if (sample) setSelectedEntry(sample)
-    }).catch(() => {})
+    createSampleEntry()
+      .then(async () => {
+        await refresh()
+        const all = await listAllJournalEntries()
+        const sample = all.find((e) => e.title === '产品评审示例')
+        if (sample) setSelectedEntry(sample)
+      })
+      .catch(() => {})
   }, [refresh])
-  const handleAddToTodo = useCallback((text: string, source: string) => {
-    addTodo(text, undefined, source)
-    setTodoOpen(true)
-  }, [addTodo])
+  const handleAddToTodo = useCallback(
+    (text: string, source: string) => {
+      addTodo(text, undefined, source)
+      setTodoOpen(true)
+    },
+    [addTodo],
+  )
   const handleProcessEntry = useCallback((entry: JournalEntry) => {
     const rel = `${entry.year_month}/${entry.filename}`
     setDockAppendText(`@${rel}`)
@@ -331,9 +408,9 @@ export default function App() {
   const handleRetryQueueItem = async (item: QueueItem) => {
     const parts = item.path.split('/')
     const rawIdx = parts.lastIndexOf('raw')
-    const yearMonth = rawIdx > 0 ? parts[rawIdx - 1] : parts.slice(-2, -1)[0] ?? ''
+    const yearMonth = rawIdx > 0 ? parts[rawIdx - 1] : (parts.slice(-2, -1)[0] ?? '')
     const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
-    const isAudioSourceFile = audioExts.some(ext => item.path.toLowerCase().endsWith(ext))
+    const isAudioSourceFile = audioExts.some((ext) => item.path.toLowerCase().endsWith(ext))
 
     retryQueueItem(item.path, isAudioSourceFile ? 'converting' : 'queued')
     try {
@@ -349,55 +426,74 @@ export default function App() {
     }
   }
 
-  const handlePasteFiles = useCallback((paths: string[]) => {
-    const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
-    const isAudio = (p: string) => audioExts.some(ext => p.toLowerCase().endsWith(ext))
+  const handlePasteFiles = useCallback(
+    (paths: string[]) => {
+      const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
+      const isAudio = (p: string) => audioExts.some((ext) => p.toLowerCase().endsWith(ext))
 
-    let filteredPaths = paths
-    if (asrReady === false) {
-      const audioCount = paths.filter(isAudio).length
-      if (audioCount > 0) {
-        filteredPaths = paths.filter(p => !isAudio(p))
-        setAudioRejected(true)
-        setTimeout(() => setAudioRejected(false), 2500)
+      let filteredPaths = paths
+      if (asrReady === false) {
+        const audioCount = paths.filter(isAudio).length
+        if (audioCount > 0) {
+          filteredPaths = paths.filter((p) => !isAudio(p))
+          setAudioRejected(true)
+          setTimeout(() => setAudioRejected(false), 2500)
+        }
       }
-    }
 
-    setPendingFiles(prev => {
-      const existing = new Set(prev)
-      const newPaths = filteredPaths.filter(p => !existing.has(p))
-      if (newPaths.length === 0) return prev
-      return [...prev, ...newPaths].slice(0, 6)
-    })
-  }, [asrReady])
+      setPendingFiles((prev) => {
+        const existing = new Set(prev)
+        const newPaths = filteredPaths.filter((p) => !existing.has(p))
+        if (newPaths.length === 0) return prev
+        return [...prev, ...newPaths].slice(0, 6)
+      })
+    },
+    [asrReady],
+  )
 
   // Drop handling via Tauri native file drop
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    getCurrentWebview().onDragDropEvent((event) => {
-      const type = event.payload.type
-      if (type === 'enter' || type === 'over') {
-        setIsDragOver(true)
-      } else if (type === 'leave') {
-        setIsDragOver(false)
-      } else if (type === 'drop') {
-        setIsDragOver(false)
-        const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
-        if (paths.length > 0) {
-          handlePasteFiles(paths)
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        const type = event.payload.type
+        if (type === 'enter' || type === 'over') {
+          setIsDragOver(true)
+        } else if (type === 'leave') {
+          setIsDragOver(false)
+        } else if (type === 'drop') {
+          setIsDragOver(false)
+          const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
+          if (paths.length > 0) {
+            handlePasteFiles(paths)
+          }
         }
-      }
-    }).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
+      })
+      .then((fn) => {
+        unlisten = fn
+      })
+    return () => {
+      unlisten?.()
+    }
   }, [refresh, handlePasteFiles])
 
-  const processingItem = queueItems.find(i => i.status === 'processing')
+  const processingItem = queueItems.find((i) => i.status === 'processing')
   const processingFilename = processingItem?.filename
 
   // Inject a virtual 'recording' item at the front of the queue when recording
-  const visibleQueueItems = status === 'recording'
-    ? [{ path: RECORDING_PLACEHOLDER, filename: t('recordingStatus'), status: 'recording' as const, addedAt: Date.now(), logs: [] }, ...queueItems]
-    : queueItems
+  const visibleQueueItems =
+    status === 'recording'
+      ? [
+          {
+            path: RECORDING_PLACEHOLDER,
+            filename: t('recordingStatus'),
+            status: 'recording' as const,
+            addedAt: Date.now(),
+            logs: [],
+          },
+          ...queueItems,
+        ]
+      : queueItems
 
   const SOUL_ENTRY: IdentityEntry = {
     filename: '__soul__',
@@ -423,7 +519,15 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'var(--bg)',
+        overflow: 'hidden',
+      }}
+    >
       <TitleBar
         theme={theme}
         onThemeChange={setTheme}
@@ -431,192 +535,279 @@ export default function App() {
         processingFilename={processingFilename}
         view={view}
         todoOpen={todoOpen}
-        todoCount={todos.filter(t => !t.done).length}
-        onToggleTodo={() => setTodoOpen(prev => !prev)}
+        todoCount={todos.filter((t) => !t.done).length}
+        onToggleTodo={() => setTodoOpen((prev) => !prev)}
       />
 
       {view === 'settings' && (
-        <div style={{ position: 'absolute', inset: 0, top: 38, zIndex: 10, overflow: 'hidden', animation: 'view-enter 0.2s ease-out', background: 'var(--bg)' }}>
-          <SettingsPanel initialSection={settingsInitialSection} onSectionConsumed={() => setSettingsInitialSection(undefined)} onClose={() => setView('journal')} />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            top: 38,
+            zIndex: 10,
+            overflow: 'hidden',
+            animation: 'view-enter 0.2s ease-out',
+            background: 'var(--bg)',
+          }}
+        >
+          <SettingsPanel
+            initialSection={settingsInitialSection}
+            onSectionConsumed={() => setSettingsInitialSection(undefined)}
+            onClose={() => setView('journal')}
+          />
         </div>
       )}
 
-          <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
-            {/* Left: Journal list / Identity list */}
-            <div style={{ width: baseWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '0.5px solid var(--divider)' }}>
-              <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column' }}>
-                  <JournalList
-                    entries={entries}
-                    loading={loading}
-                    selectedPath={selectedEntry?.path ?? null}
-                    onSelect={setSelectedEntry}
-                    onProcess={(entry) => {
-                      const rel = `${entry.year_month}/${entry.filename}`
-                      setDockAppendText(`@${rel}`)
-                    }}
-                    hasMore={hasMore}
-                    loadingMore={loadingMore}
-                    onLoadMore={loadMore}
-                  />
-                </div>
-                <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column' }}>
-                  <IdentityList
-                    identities={allIdentities}
-                    loading={identityLoading}
-                    selectedPath={selectedIdentity?.path ?? null}
-                    onSelect={identity => setSelectedIdentity(identity)}
-                    onProcess={(identity) => {
-                      const rel = `identity/${identity.filename}`
-                      setDockAppendText(`@${rel}`)
-                    }}
-                    onMerge={identity => setMergeSource(identity)}
-                    onDelete={handleDeleteIdentity}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
+      <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Left: Journal list / Identity list */}
+        <div
+          style={{
+            width: baseWidth,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderRight: '0.5px solid var(--divider)',
+          }}
+        >
+          <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <div
-              onMouseDown={onDividerMouseDown}
               style={{
-                width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
+                flex: 1,
+                minHeight: 0,
+                display: sidebarTab === 'journal' ? 'flex' : 'none',
+                flexDirection: 'column',
+              }}
+            >
+              <JournalList
+                entries={entries}
+                loading={loading}
+                selectedPath={selectedEntry?.path ?? null}
+                onSelect={setSelectedEntry}
+                onProcess={(entry) => {
+                  const rel = `${entry.year_month}/${entry.filename}`
+                  setDockAppendText(`@${rel}`)
+                }}
+                hasMore={hasMore}
+                loadingMore={loadingMore}
+                onLoadMore={loadMore}
+              />
+            </div>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: sidebarTab === 'identity' ? 'flex' : 'none',
+                flexDirection: 'column',
+              }}
+            >
+              <IdentityList
+                identities={allIdentities}
+                loading={identityLoading}
+                selectedPath={selectedIdentity?.path ?? null}
+                onSelect={(identity) => setSelectedIdentity(identity)}
+                onProcess={(identity) => {
+                  const rel = `identity/${identity.filename}`
+                  setDockAppendText(`@${rel}`)
+                }}
+                onMerge={(identity) => setMergeSource(identity)}
+                onDelete={handleDeleteIdentity}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div
+          onMouseDown={onDividerMouseDown}
+          style={{
+            width: DIVIDER_WIDTH,
+            flexShrink: 0,
+            background: 'transparent',
+            cursor: 'col-resize',
+          }}
+        />
+
+        {/* Right: Detail panel / Identity detail */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          {sidebarTab === 'journal' ? (
+            <DetailPanel
+              entry={selectedEntry}
+              entries={entries}
+              onDeselect={handleDeselect}
+              onRecord={handleRecord}
+              onOpenDock={handleOpenDock}
+              onSelectSample={handleSelectSample}
+              onAddToTodo={handleAddToTodo}
+              onProcess={handleProcessEntry}
+              onVisualDesign={(entry) => {
+                const rel = `${entry.year_month}/${entry.filename}`
+                setDockAppendText(`/visual-design-book @${rel}`)
+              }}
+            />
+          ) : (
+            <IdentityDetail
+              identity={selectedIdentity}
+              onRecord={handleRecord}
+              onOpenDock={() => setDockOpen(true)}
+            />
+          )}
+        </div>
+
+        {/* Todo sidebar */}
+        {todoOpen && (
+          <>
+            <div
+              onMouseDown={onTodoDividerMouseDown}
+              style={{
+                width: DIVIDER_WIDTH,
+                flexShrink: 0,
+                background: 'transparent',
                 cursor: 'col-resize',
               }}
             />
-
-            {/* Right: Detail panel / Identity detail */}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              {sidebarTab === 'journal' ? (
-                <DetailPanel
-                  entry={selectedEntry}
-                  entries={entries}
-                  onDeselect={handleDeselect}
-                  onRecord={handleRecord}
-                  onOpenDock={handleOpenDock}
-                  onSelectSample={handleSelectSample}
-                  onAddToTodo={handleAddToTodo}
-                  onProcess={handleProcessEntry}
-                  onVisualDesign={(entry) => {
-                    const rel = `${entry.year_month}/${entry.filename}`
-                    setDockAppendText(`/visual-design-book @${rel}`)
-                  }}
-                />
-              ) : (
-                <IdentityDetail identity={selectedIdentity} onRecord={handleRecord} onOpenDock={() => setDockOpen(true)} />
-              )}
-            </div>
-
-            {/* Todo sidebar */}
-            {todoOpen && (
-              <>
-                <div
-                  onMouseDown={onTodoDividerMouseDown}
-                  style={{
-                    width: DIVIDER_WIDTH, flexShrink: 0, background: 'transparent',
-                    cursor: 'col-resize',
-                  }}
-                />
-                <TodoSidebar
-                  width={todoWidth}
-                  todos={todos}
-                  onToggle={toggleTodo}
-                  onAdd={addTodo}
-                  onDelete={deleteTodo}
-                  onSetDue={setTodoDue}
-                  onUpdateText={updateTodoText}
-                  onSetPath={setTodoPath}
-                  onRemovePath={removeTodoPath}
-                  onNavigateToSource={(filename: string) => {
-                    const match = entries.find(e => e.filename === filename)
-                    if (match) {
-                      setSidebarTab('journal')
-                      setSelectedEntry(match)
-                    }
-                  }}
-                />
-              </>
-            )}
-          </div>
-
-          {mergeSource && (
-            <MergeIdentityDialog
-              source={mergeSource}
-              onClose={() => setMergeSource(null)}
-              onMerged={() => {
-                setMergeSource(null)
-                if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
-                refreshIdentity()
+            <TodoSidebar
+              width={todoWidth}
+              todos={todos}
+              onToggle={toggleTodo}
+              onAdd={addTodo}
+              onDelete={deleteTodo}
+              onSetDue={setTodoDue}
+              onUpdateText={updateTodoText}
+              onSetPath={setTodoPath}
+              onRemovePath={removeTodoPath}
+              onNavigateToSource={(filename: string) => {
+                const match = entries.find((e) => e.filename === filename)
+                if (match) {
+                  setSidebarTab('journal')
+                  setSelectedEntry(match)
+                }
               }}
             />
-          )}
-          <div style={{ position: 'relative', flexShrink: 0, display: view === 'settings' ? 'none' : undefined }}>
-            <div style={{
+          </>
+        )}
+      </div>
+
+      {mergeSource && (
+        <MergeIdentityDialog
+          source={mergeSource}
+          onClose={() => setMergeSource(null)}
+          onMerged={() => {
+            setMergeSource(null)
+            if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
+            refreshIdentity()
+          }}
+        />
+      )}
+      <div
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+          display: view === 'settings' ? 'none' : undefined,
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 10,
+          }}
+        >
+          <ProcessingQueue
+            items={visibleQueueItems}
+            onDismiss={dismissQueueItem}
+            onCancel={handleCancelQueueItem}
+            onRetry={handleRetryQueueItem}
+            activeLogPath={activeLogPath}
+            onSetActiveLogPath={setActiveLogPath}
+          />
+        </div>
+        <CommandDock
+          isDragOver={isDragOver}
+          pendingFiles={pendingFiles}
+          onPasteSubmit={handlePasteSubmit}
+          onFilesSubmit={handleFilesSubmit}
+          onFilesCancel={handleFilesCancel}
+          onRemoveFile={handleRemoveFile}
+          onPasteFiles={handlePasteFiles}
+          recorderStatus={status}
+          onRecord={handleRecord}
+          asrReady={asrReady}
+          audioRejected={audioRejected}
+          onOpenSettings={() => setView((v) => (v === 'settings' ? 'journal' : 'settings'))}
+          externalOpen={dockOpen}
+          onExternalOpenConsumed={() => setDockOpen(false)}
+          appendText={dockAppendText}
+          onAppendTextConsumed={() => setDockAppendText('')}
+        />
+        {aiReady === false && (
+          <div
+            onClick={() => setView('settings')}
+            style={{
               position: 'absolute',
-              bottom: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 10,
-            }}>
-              <ProcessingQueue items={visibleQueueItems} onDismiss={dismissQueueItem} onCancel={handleCancelQueueItem} onRetry={handleRetryQueueItem} activeLogPath={activeLogPath} onSetActiveLogPath={setActiveLogPath} />
-            </div>
-            <CommandDock
-              isDragOver={isDragOver}
-              pendingFiles={pendingFiles}
-              onPasteSubmit={handlePasteSubmit}
-              onFilesSubmit={handleFilesSubmit}
-              onFilesCancel={handleFilesCancel}
-              onRemoveFile={handleRemoveFile}
-              onPasteFiles={handlePasteFiles}
-              recorderStatus={status}
-              onRecord={handleRecord}
-              asrReady={asrReady}
-              audioRejected={audioRejected}
-              onOpenSettings={() => setView(v => v === 'settings' ? 'journal' : 'settings')}
-              externalOpen={dockOpen}
-              onExternalOpenConsumed={() => setDockOpen(false)}
-              appendText={dockAppendText}
-              onAppendTextConsumed={() => setDockAppendText('')}
-            />
-            {aiReady === false && (
-              <div
-                onClick={() => setView('settings')}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'var(--bg)',
-                  opacity: 0.93,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                  zIndex: 20,
-                  borderTop: '1px solid var(--divider)',
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--item-meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', letterSpacing: '0.03em' }}>
-                  AI 引擎未配置
-                </span>
-                <span style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--dock-paste-label)',
-                  background: 'var(--dock-paste-bg)',
-                  border: '0.5px solid var(--dock-paste-border)',
-                  borderRadius: 5,
-                  padding: '2px 8px',
-                  letterSpacing: '0.04em',
-                }}>
-                  前往设置 →
-                </span>
-              </div>
-            )}
+              inset: 0,
+              background: 'var(--bg)',
+              opacity: 0.93,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              cursor: 'pointer',
+              zIndex: 20,
+              borderTop: '1px solid var(--divider)',
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--item-meta)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--item-meta)',
+                letterSpacing: '0.03em',
+              }}
+            >
+              AI 引擎未配置
+            </span>
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--dock-paste-label)',
+                background: 'var(--dock-paste-bg)',
+                border: '0.5px solid var(--dock-paste-border)',
+                borderRadius: 5,
+                padding: '2px 8px',
+                letterSpacing: '0.04em',
+              }}
+            >
+              前往设置 →
+            </span>
           </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -47,22 +47,49 @@ const navIconStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-const SettingsContent = memo(function SettingsContent({ registerSectionRef }: SettingsContentProps) {
+const SettingsContent = memo(function SettingsContent({
+  registerSectionRef,
+}: SettingsContentProps) {
   return (
     <>
-      <section id="general" ref={(el) => registerSectionRef('general', el)}><SectionGeneral /></section>
-      <section id="im" ref={(el) => registerSectionRef('im', el)}><SectionIM /></section>
-      <section id="ai" ref={(el) => registerSectionRef('ai', el)}><SectionAiEngine /></section>
-      <section id="voice" ref={(el) => registerSectionRef('voice', el)}><SectionVoice /></section>
-      <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}><SectionPermissions /></section>
-      <section id="automation" ref={(el) => registerSectionRef('automation', el)}><SectionAutomation /></section>
-      <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}><SectionPlugins /></section>
-      <section id="about" ref={(el) => registerSectionRef('about', el)} style={{ paddingBottom: 40 }}><SectionAbout /></section>
+      <section id="general" ref={(el) => registerSectionRef('general', el)}>
+        <SectionGeneral />
+      </section>
+      <section id="im" ref={(el) => registerSectionRef('im', el)}>
+        <SectionIM />
+      </section>
+      <section id="ai" ref={(el) => registerSectionRef('ai', el)}>
+        <SectionAiEngine />
+      </section>
+      <section id="voice" ref={(el) => registerSectionRef('voice', el)}>
+        <SectionVoice />
+      </section>
+      <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}>
+        <SectionPermissions />
+      </section>
+      <section id="automation" ref={(el) => registerSectionRef('automation', el)}>
+        <SectionAutomation />
+      </section>
+      <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}>
+        <SectionPlugins />
+      </section>
+      <section
+        id="about"
+        ref={(el) => registerSectionRef('about', el)}
+        style={{ paddingBottom: 40 }}
+      >
+        <SectionAbout />
+      </section>
     </>
   )
 })
 
-export function SettingsLayout({ height, initialSection, onSectionConsumed, onClose }: SettingsLayoutProps) {
+export function SettingsLayout({
+  height,
+  initialSection,
+  onSectionConsumed,
+  onClose,
+}: SettingsLayoutProps) {
   const { t } = useTranslation()
   const NAV_ITEMS: NavItem[] = [
     { id: 'general', label: t('general'), icon: Settings2 },
@@ -162,12 +189,13 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
       scheduleActiveNavSync()
     }
 
-    const resizeObserver = typeof ResizeObserver === 'undefined'
-      ? null
-      : new ResizeObserver(() => {
-          refreshSectionTops()
-          scheduleActiveNavSync()
-        })
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            refreshSectionTops()
+            scheduleActiveNavSync()
+          })
 
     if (resizeObserver) {
       for (const id of ALL_NAV_IDS) {
@@ -271,8 +299,16 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
     fontSize: 14,
     fontWeight: 500,
     textAlign: 'left',
-    background: DISABLED_NAVS.has(id) ? 'transparent' : (activeNav === id ? 'rgba(200,147,58,0.12)' : 'transparent'),
-    color: DISABLED_NAVS.has(id) ? 'var(--item-meta)' : (activeNav === id ? 'var(--record-btn)' : 'var(--item-meta)'),
+    background: DISABLED_NAVS.has(id)
+      ? 'transparent'
+      : activeNav === id
+        ? 'rgba(200,147,58,0.12)'
+        : 'transparent',
+    color: DISABLED_NAVS.has(id)
+      ? 'var(--item-meta)'
+      : activeNav === id
+        ? 'var(--record-btn)'
+        : 'var(--item-meta)',
     opacity: DISABLED_NAVS.has(id) ? 0.35 : 1,
   })
 
@@ -300,7 +336,13 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
         }}
       >
         {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => { if (!DISABLED_NAVS.has(id)) jumpTo(id) }} style={navBtnStyle(id)}>
+          <button
+            key={id}
+            onClick={() => {
+              if (!DISABLED_NAVS.has(id)) jumpTo(id)
+            }}
+            style={navBtnStyle(id)}
+          >
             <span style={navIconStyle}>
               <Icon size={14} strokeWidth={1.5} />
             </span>
@@ -310,25 +352,37 @@ export function SettingsLayout({ height, initialSection, onSectionConsumed, onCl
         {onClose && (
           <>
             <div style={{ flex: 1 }} />
-            <button onClick={onClose} style={{
-              width: '100%',
-              display: 'grid',
-              gridTemplateColumns: '16px minmax(0, 1fr)',
-              alignItems: 'center',
-              columnGap: 10,
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 500,
-              textAlign: 'left',
-              background: 'transparent',
-              color: 'var(--item-meta)',
-            }}>
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%',
+                display: 'grid',
+                gridTemplateColumns: '16px minmax(0, 1fr)',
+                alignItems: 'center',
+                columnGap: 10,
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 500,
+                textAlign: 'left',
+                background: 'transparent',
+                color: 'var(--item-meta)',
+              }}
+            >
               <span style={navIconStyle}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="15 18 9 12 15 6" />
                 </svg>
               </span>
               <span style={{ minWidth: 0 }}>{t('back')}</span>

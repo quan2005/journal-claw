@@ -7,5 +7,12 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ initialSection, onSectionConsumed, onClose }: SettingsPanelProps) {
-  return <SettingsLayout height="100%" initialSection={initialSection} onSectionConsumed={onSectionConsumed} onClose={onClose} />
+  return (
+    <SettingsLayout
+      height="100%"
+      initialSection={initialSection}
+      onSectionConsumed={onSectionConsumed}
+      onClose={onClose}
+    />
+  )
 }

@@ -114,7 +114,6 @@ fn try_activate_existing(session_short: &str) -> bool {
     false
 }
 
-
 fn expand_tilde(path: &str) -> String {
     if let Some(rest) = path.strip_prefix("~/") {
         if let Ok(home) = std::env::var("HOME") {

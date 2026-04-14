@@ -173,8 +173,8 @@ pub fn start_scheduler(app: AppHandle) {
             };
 
             // Emit status with next check time
-            let workspace = workspace_settings::get_workspace_path_for_auto_lint(&app)
-                .unwrap_or_default();
+            let workspace =
+                workspace_settings::get_workspace_path_for_auto_lint(&app).unwrap_or_default();
             let new_entries = compute_new_entries(&workspace);
             let last = read_last_lint(&workspace);
             let _ = app.emit(
@@ -190,7 +190,9 @@ pub fn start_scheduler(app: AppHandle) {
             );
 
             let now = chrono::Local::now().naive_local();
-            let wait_duration = (next - now).to_std().unwrap_or(std::time::Duration::from_secs(60));
+            let wait_duration = (next - now)
+                .to_std()
+                .unwrap_or(std::time::Duration::from_secs(60));
 
             // Wait until next check time OR config change
             tokio::select! {
@@ -229,11 +231,16 @@ pub fn check_missed_run(app: &AppHandle) {
         Err(_) => return,
     };
     let last = read_last_lint(&workspace);
-    let last_run = last
-        .and_then(|l| l.last_run)
-        .and_then(|s| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z").ok()
-            .or_else(|| chrono::DateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z").ok().map(|dt| dt.naive_local()))
-            .or_else(|| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S").ok()));
+    let last_run = last.and_then(|l| l.last_run).and_then(|s| {
+        chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z")
+            .ok()
+            .or_else(|| {
+                chrono::DateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z")
+                    .ok()
+                    .map(|dt| dt.naive_local())
+            })
+            .or_else(|| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S").ok())
+    });
 
     if let Some(last_run) = last_run {
         let now = chrono::Local::now().naive_local();
@@ -367,7 +374,11 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
         }
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            let error = format!("lint 执行失败 (exit {}): {}", output.status, stderr.chars().take(200).collect::<String>());
+            let error = format!(
+                "lint 执行失败 (exit {}): {}",
+                output.status,
+                stderr.chars().take(200).collect::<String>()
+            );
             eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
                 "auto-lint-status",
@@ -409,8 +420,7 @@ pub fn get_auto_lint_status(app: AppHandle) -> Result<AutoLintStatus, String> {
     let new_entries = compute_new_entries(&workspace);
 
     let next_check = if cfg.enabled {
-        next_check_time(&cfg.frequency, &cfg.time)
-            .map(|t| t.format("%Y-%m-%d %H:%M").to_string())
+        next_check_time(&cfg.frequency, &cfg.time).map(|t| t.format("%Y-%m-%d %H:%M").to_string())
     } else {
         None
     };

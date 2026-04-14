@@ -102,7 +102,20 @@ export const zh: Strings = {
   // JournalList / MonthDivider
   noEntries: '还没有日志条目。点击录音按钮或拖入文件开始记录。',
   weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
-  monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  monthNames: [
+    '1月',
+    '2月',
+    '3月',
+    '4月',
+    '5月',
+    '6月',
+    '7月',
+    '8月',
+    '9月',
+    '10月',
+    '11月',
+    '12月',
+  ],
   loadMore: '加载更多',
   loadingMore: '加载中…',
   allLoaded: '已加载全部',
@@ -155,7 +168,20 @@ export const zh: Strings = {
   removePath: '移除路径',
   pathGroupDefault: '默认',
   weekdaysFull: ['日', '一', '二', '三', '四', '五', '六'],
-  monthsFull: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  monthsFull: [
+    '1月',
+    '2月',
+    '3月',
+    '4月',
+    '5月',
+    '6月',
+    '7月',
+    '8月',
+    '9月',
+    '10月',
+    '11月',
+    '12月',
+  ],
 
   // Settings: General
   workspacePath: 'Workspace 路径',
@@ -206,16 +232,19 @@ export const zh: Strings = {
   modelStoreDir: '模型存放目录',
   openInFinder: '在 Finder 中打开',
   baseModelBundled: 'Base 模型已内置在应用包中。上方目录用于存放额外下载的 Small / Large 模型。',
-  downloadFromHF: '点击下载按钮自动从 HuggingFace 下载，之后离线可用。也可手动将模型文件放入上方目录。',
+  downloadFromHF:
+    '点击下载按钮自动从 HuggingFace 下载，之后离线可用。也可手动将模型文件放入上方目录。',
   dashscopeHint: '配置后，录音将自动上传至阿里云转写',
   asrModel: '语音识别模型',
   asrModelHint: 'Flash 为实时识别，File Trans 适合长音频异步转写',
   speakerEmbedderUnavailable: '声纹识别不可用',
-  speakerEmbedderHint: '未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。',
+  speakerEmbedderHint:
+    '未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。',
 
   // Settings: Permissions
   permissionsSection: '授权管理',
-  permissionsDesc: '谨迹需要以下系统权限才能正常工作。点击「检测权限」查看当前状态，或点击「一键授权」完成授权。',
+  permissionsDesc:
+    '谨迹需要以下系统权限才能正常工作。点击「检测权限」查看当前状态，或点击「一键授权」完成授权。',
   checkPermissions: '检测权限',
   rechecking: '重新检测',
   checking: '检测中…',
@@ -242,7 +271,8 @@ export const zh: Strings = {
 
   // Settings: Speakers
   speakersSection: '声纹管理',
-  speakersDesc: '录音后自动识别说话人并注册声纹档案。在此处为说话人命名，AI 整理时将使用您设置的名称。',
+  speakersDesc:
+    '录音后自动识别说话人并注册声纹档案。在此处为说话人命名，AI 整理时将使用您设置的名称。',
   noSpeakers: '暂未检测到说话人',
   noSpeakersHint: '完成一次录音后，系统将自动识别说话人并在此处显示',
   speakerCount: '说话人档案（共 {count} 人）',

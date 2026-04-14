@@ -76,61 +76,80 @@ export function RecordingList({
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 88 }}>
-
       {status === 'recording' && activeItem && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '12px 16px',
-          background: 'var(--record-highlight)',
-          borderLeft: '3px solid var(--record-btn)',
-          borderBottom: '1px solid var(--divider)',
-        }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--record-btn)',
-            animation: 'pulse 2.4s ease-in-out infinite',
-            flexShrink: 0,
-          }} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '12px 16px',
+            background: 'var(--record-highlight)',
+            borderLeft: '3px solid var(--record-btn)',
+            borderBottom: '1px solid var(--divider)',
+          }}
+        >
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: 'var(--record-btn)',
+              animation: 'pulse 2.4s ease-in-out infinite',
+              flexShrink: 0,
+            }}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--record-btn)' }}>
+            <div
+              style={{
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--font-medium)',
+                color: 'var(--record-btn)',
+              }}
+            >
               {t('recording')}
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', marginTop: 2 }}>
               {t('today')} {currentTime}
             </div>
           </div>
-          <div style={{
-            fontSize: 'var(--text-sm)',
-            color: 'var(--record-btn)',
-            fontVariantNumeric: 'tabular-nums',
-            animation: 'blink 1s ease-in-out infinite',
-          }}>
+          <div
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--record-btn)',
+              fontVariantNumeric: 'tabular-nums',
+              animation: 'blink 1s ease-in-out infinite',
+            }}
+          >
             {String(Math.floor(elapsedSecs / 60)).padStart(2, '0')}:
             {String(elapsedSecs % 60).padStart(2, '0')}
           </div>
         </div>
       )}
 
-      {groups.map(group => (
+      {groups.map((group) => (
         <div key={group.yearMonth} style={{ marginBottom: 8 }}>
           <MonthDivider yearMonth={group.yearMonth} />
-          {group.dayGroups.map(dayGroup =>
+          {group.dayGroups.map((dayGroup) =>
             dayGroup.items.map((item, idx) => {
-              const isProcessingOnly = processingStates[item.filename] && !transcriptionStates[item.filename]
+              const isProcessingOnly =
+                processingStates[item.filename] && !transcriptionStates[item.filename]
               if (isProcessingOnly && item.path === '__active__') {
                 return (
-                  <div key={item.path} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--divider)',
-                  }}>
+                  <div
+                    key={item.path}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '12px 16px',
+                      borderBottom: '1px solid var(--divider)',
+                    }}
+                  >
                     <div style={{ width: 52, flexShrink: 0 }} />
                     <Spinner size={12} borderWidth={1.5} />
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>{t('processingDots')}</span>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>
+                      {t('processingDots')}
+                    </span>
                   </div>
                 )
               }
@@ -148,7 +167,7 @@ export function RecordingList({
                   isNew={item.filename === newFilename}
                 />
               )
-            })
+            }),
           )}
         </div>
       ))}

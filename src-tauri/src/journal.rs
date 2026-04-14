@@ -19,9 +19,9 @@ pub struct JournalEntry {
     pub tags: Vec<String>,    // from frontmatter
     pub year_month: String,   // "2603"
     pub day: u32,             // 28
-    pub created_time: String,   // "10:15" (from file birthtime, falls back to mtime)
-    pub created_at_secs: i64,  // birthtime Unix timestamp for stable same-day sorting
-    pub mtime_secs: i64,       // mtime Unix timestamp for change detection
+    pub created_time: String, // "10:15" (from file birthtime, falls back to mtime)
+    pub created_at_secs: i64, // birthtime Unix timestamp for stable same-day sorting
+    pub mtime_secs: i64,      // mtime Unix timestamp for change detection
     pub materials: Vec<RawMaterial>,
     pub sources: Vec<String>,
 }
@@ -64,7 +64,11 @@ fn parse_frontmatter_fallback(content: &str) -> FrontMatter {
         }
     }
 
-    FrontMatter { summary, tags, sources }
+    FrontMatter {
+        summary,
+        tags,
+        sources,
+    }
 }
 
 /// Strip outer single or double quotes from a YAML scalar value, returning the raw content.
@@ -96,7 +100,10 @@ pub fn strip_surrounding_quotes(s: &str) -> String {
             continue;
         }
         // Curly/smart quotes: \u{201c}…\u{201d}
-        if let Some(inner) = t.strip_prefix('\u{201c}').and_then(|s| s.strip_suffix('\u{201d}')) {
+        if let Some(inner) = t
+            .strip_prefix('\u{201c}')
+            .and_then(|s| s.strip_suffix('\u{201d}'))
+        {
             result = inner.to_string();
             continue;
         }
@@ -261,7 +268,11 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
     }
 
     // Sort by day descending, then by creation time descending within same day
-    entries.sort_by(|a, b| b.day.cmp(&a.day).then(b.created_at_secs.cmp(&a.created_at_secs)));
+    entries.sort_by(|a, b| {
+        b.day
+            .cmp(&a.day)
+            .then(b.created_at_secs.cmp(&a.created_at_secs))
+    });
     Ok(entries)
 }
 
@@ -665,7 +676,10 @@ mod tests {
         let ws = tmp.to_str().unwrap();
         // Workspace dir exists but has no yyMM dirs
         std::fs::create_dir_all(&tmp).unwrap();
-        assert!(!workspace_has_any_md(ws), "empty workspace should return false");
+        assert!(
+            !workspace_has_any_md(ws),
+            "empty workspace should return false"
+        );
         std::fs::remove_dir_all(&tmp).ok();
     }
 
@@ -683,7 +697,10 @@ mod tests {
 
     #[test]
     fn strip_quotes_smart_curly() {
-        assert_eq!(strip_surrounding_quotes("\u{201c}摘要内容\u{201d}"), "摘要内容");
+        assert_eq!(
+            strip_surrounding_quotes("\u{201c}摘要内容\u{201d}"),
+            "摘要内容"
+        );
     }
 
     #[test]
@@ -717,7 +734,8 @@ mod tests {
     }
 
     #[test]
-    fn write_sample_entry_does_not_overwrite_existing() {        let tmp = std::env::temp_dir().join(format!(
+    fn write_sample_entry_does_not_overwrite_existing() {
+        let tmp = std::env::temp_dir().join(format!(
             "journal_sample_test_no_overwrite_{}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -740,7 +758,10 @@ mod tests {
     fn fallback_extracts_sources() {
         let content = "---\ntags: [journal]\nsummary: 摘要\nsources: [2604/raw/rec-abc.m4a, 2604/raw/paste-20260409.txt]\n---\n\n# 标题\n";
         let fm = parse_frontmatter_fallback(content);
-        assert_eq!(fm.sources, vec!["2604/raw/rec-abc.m4a", "2604/raw/paste-20260409.txt"]);
+        assert_eq!(
+            fm.sources,
+            vec!["2604/raw/rec-abc.m4a", "2604/raw/paste-20260409.txt"]
+        );
     }
 
     #[test]

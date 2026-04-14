@@ -33,77 +33,95 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
         borderLeft: isSelected ? '2px solid var(--record-btn)' : '2px solid transparent',
       }}
-      onMouseEnter={e => {
-        if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'
+      onMouseEnter={(e) => {
+        if (!isSelected)
+          (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'
       }}
-      onMouseLeave={e => {
+      onMouseLeave={(e) => {
         if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'
       }}
     >
       {/* Title */}
-      <div style={{
-        fontSize: 'var(--text-base)',
-        fontWeight: 'var(--font-semibold)',
-        color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-        fontFamily: 'var(--font-serif)',
-lineHeight: 1.4,
-        marginBottom: 4,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}>
+      <div
+        style={{
+          fontSize: 'var(--text-base)',
+          fontWeight: 'var(--font-semibold)',
+          color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+          fontFamily: 'var(--font-serif)',
+          lineHeight: 1.4,
+          marginBottom: 4,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
         {entry.title}
       </div>
 
       {/* Preview / summary */}
       {entry.summary && (
-        <div style={{
-          fontSize: 'var(--text-xs)',
-          color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)',
-          lineHeight: 1.4,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          marginBottom: 5,
-        }}>
+        <div
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)',
+            lineHeight: 1.4,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            marginBottom: 5,
+          }}
+        >
           {entry.summary}
         </div>
       )}
 
       {/* Meta row: tags + time */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 5,
-        overflow: 'hidden',
-      }}>
-        {/* Tags — flex shrink and hide overflow */}
-        <div style={{
+      <div
+        style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          flex: 1,
-          minWidth: 0,
+          gap: 5,
           overflow: 'hidden',
-        }}>
+        }}
+      >
+        {/* Tags — flex shrink and hide overflow */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+          }}
+        >
           {tags.map((tag, i) => (
-            <span key={i} style={{
-              fontSize: 'var(--text-xs)',
-              padding: '1px 5px',
-              borderRadius: 3,
-              background: "var(--tag-bg)",
-              color: "var(--tag-text)",
-              border: '0.5px solid var(--tag-bg)',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}>
+            <span
+              key={i}
+              style={{
+                fontSize: 'var(--text-xs)',
+                padding: '1px 5px',
+                borderRadius: 3,
+                background: 'var(--tag-bg)',
+                color: 'var(--tag-text)',
+                border: '0.5px solid var(--tag-bg)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
               {tag.label}
             </span>
           ))}
         </div>
 
         {/* Time — pushed right */}
-        <span style={{ fontSize: 'var(--text-xs)', color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)', flexShrink: 0 }}>
+        <span
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: isSelected ? 'var(--item-selected-meta)' : 'var(--item-meta)',
+            flexShrink: 0,
+          }}
+        >
           {entry.created_time}
         </span>
       </div>

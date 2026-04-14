@@ -36,8 +36,7 @@ pub fn identity_dir(workspace: &str) -> PathBuf {
 
 pub fn ensure_identity_dir(workspace: &str) -> Result<(), String> {
     let dir = identity_dir(workspace);
-    std::fs::create_dir_all(&dir)
-        .map_err(|e| format!("创建 identity 目录失败: {}", e))
+    std::fs::create_dir_all(&dir).map_err(|e| format!("创建 identity 目录失败: {}", e))
 }
 
 /// Build the canonical filename for an identity: `{region}-{name}.md`
@@ -68,7 +67,10 @@ pub fn create_identity_file(
         .join(", ");
     let content = format!(
         "---\nsummary: {}\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n# {}\n",
-        summary, tags_yaml, yaml_escape(speaker_id), name
+        summary,
+        tags_yaml,
+        yaml_escape(speaker_id),
+        name
     );
     std::fs::write(&path, content).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().to_string())
@@ -216,7 +218,14 @@ pub fn create_identity(
     if cfg.workspace_path.is_empty() {
         return Err("workspace not configured".to_string());
     }
-    let path = create_identity_file(&cfg.workspace_path, &region, &name, &summary, &tags, &speaker_id)?;
+    let path = create_identity_file(
+        &cfg.workspace_path,
+        &region,
+        &name,
+        &summary,
+        &tags,
+        &speaker_id,
+    )?;
     let _ = app.emit("identity-updated", ());
     Ok(path)
 }
@@ -259,7 +268,8 @@ pub fn merge_identity(
     };
 
     // Update target's speaker_id in frontmatter (both modes need this)
-    let tags_yaml = tgt_fm.tags
+    let tags_yaml = tgt_fm
+        .tags
         .iter()
         .map(|t| format!("\"{}\"", yaml_escape(t)))
         .collect::<Vec<_>>()
@@ -267,13 +277,20 @@ pub fn merge_identity(
     let tgt_body = extract_body(&target_content);
     let new_target = format!(
         "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
-        yaml_escape(&tgt_fm.summary), tags_yaml, yaml_escape(&merged_speaker_id), tgt_body.trim_start()
+        yaml_escape(&tgt_fm.summary),
+        tags_yaml,
+        yaml_escape(&merged_speaker_id),
+        tgt_body.trim_start()
     );
     std::fs::write(&target_path, new_target).map_err(|e| e.to_string())?;
 
     // Reassign speaker profiles
     if !src_fm.speaker_id.is_empty() && src_fm.speaker_id != merged_speaker_id {
-        let _ = crate::speaker_profiles::reassign_speaker_id(&app, &src_fm.speaker_id, &merged_speaker_id);
+        let _ = crate::speaker_profiles::reassign_speaker_id(
+            &app,
+            &src_fm.speaker_id,
+            &merged_speaker_id,
+        );
     }
 
     if mode == "voice_only" {

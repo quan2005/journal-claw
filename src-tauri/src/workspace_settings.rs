@@ -28,9 +28,15 @@ impl Default for AutoLintConfig {
     }
 }
 
-fn default_frequency() -> String { "daily".to_string() }
-fn default_time() -> String { "03:00".to_string() }
-fn default_min_entries() -> u32 { 10 }
+fn default_frequency() -> String {
+    "daily".to_string()
+}
+fn default_time() -> String {
+    "03:00".to_string()
+}
+fn default_min_entries() -> u32 {
+    10
+}
 
 fn valid_frequency(s: &str) -> bool {
     matches!(s, "daily" | "weekly" | "monthly")

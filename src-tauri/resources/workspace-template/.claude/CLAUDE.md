@@ -34,6 +34,8 @@ Respond in the same language as the source material unless the user specifies ot
 
 ### Identity behavior when processing materials
 
+**提炼规范：** 创建或更新任何档案前，先加载 `/identity-profiling` skill 获取提炼维度、结构范式和更新策略。以下只列操作流程，提炼质量标准由 skill 定义。
+
 1. **Identify people**: note names, titles, organizations mentioned
 2. **Identify speaker IDs**: in transcribed recordings, speakers are marked with 5-digit IDs (e.g. `00003: Hello everyone`). These are assigned by the voice identification system
 3. **New person → create profile and link voice**: for first-time appearances, use the script:
@@ -43,12 +45,12 @@ Respond in the same language as the source material unless the user specifies ot
   - `region`: the organization/company/city this person belongs to (e.g. `Acme`, `London`); use `unknown` if unclear
   - `name`: real name
   - `--speaker-id`: the 5-digit ID from the transcript (omit if material is not a recording)
-   After creating, edit the profile immediately to add details from the material (organization, title, relationship to user, key statements). Add meaningful tags to `tags`, e.g. `["product", "ai-platform"]`. Don't leave the template empty.
+   After creating, follow `/identity-profiling` skill 的人物档案结构范式填充内容。Don't leave the template empty.
 4. **Existing person + new voice ID → link**: if a speaker is already profiled but has a new speaker_id, link them:
   ```bash
    .claude/scripts/identity-link 00003 identity/london-alice.md
   ```
-5. **Existing person → add information**: if new details appear for a known person, edit their profile directly
+5. **Existing person → update profile**: follow `/identity-profiling` skill 的更新策略——合并而非追加，按维度归类而非按日期堆叠
 6. **Unidentifiable speaker → skip**: if a speaker_id only says "mm-hmm" or "okay" with no identity signal, don't create a profile. The voice system retains the voice data for future matching.
 7. **In-journal references**: write names naturally in the body — no special markup needed
 
@@ -67,7 +69,7 @@ If in doubt, keep the information in the journal entry. Entity profiles use \`pr
 
 - Only profile people with **meaningful interaction** — meeting participants, collaborators, report targets
 - `speaker_id` is assigned by voice recognition; link it via `identity-create --speaker-id` and `identity-link`; don't hand-edit the frontmatter directly
-- Keep entity profiles minimal — if it can be a one-liner in a journal tag or summary, don't create a profile
+- 产品档案的提炼维度和结构范式同样由 `/identity-profiling` skill 定义
 
 ## Core Behavior
 

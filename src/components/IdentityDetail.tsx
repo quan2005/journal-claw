@@ -14,6 +14,7 @@ import {
 } from '../lib/tauri'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { pickDisplayTags } from '../lib/tags'
+import { FindBar } from './FindBar'
 import { Spinner } from './Spinner'
 import { SOUL_PATH } from './IdentityList'
 import { createTranslator, detectLang } from '../lib/i18n'
@@ -691,6 +692,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [btnCooldown, setBtnCooldown] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [showFind, setShowFind] = useState(false)
   const [showReplace, setShowReplace] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -705,6 +707,9 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
     if (!identity) {
       setContent(null)
       setEditing(false)
+      setShowFind(false)
+      if (typeof CSS !== 'undefined') CSS.highlights?.delete('search-result')
+      if (typeof CSS !== 'undefined') CSS.highlights?.delete('search-current')
       return
     }
     if (editing) return
@@ -779,6 +784,19 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [editing, identity, content])
+
+  // Cmd+F opens find bar in read mode
+  useEffect(() => {
+    if (editing) return
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowFind(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [editing])
 
   // Cmd+F / Cmd+R / Cmd+S in edit mode; Escape cancels edit (no save)
   useEffect(() => {
@@ -1118,6 +1136,16 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
         position: 'relative',
       }}
     >
+      {!editing && showFind && (
+        <FindBar
+          containerRef={bodyRef}
+          onClose={() => {
+            if (typeof CSS !== 'undefined') CSS.highlights?.delete('search-result')
+            if (typeof CSS !== 'undefined') CSS.highlights?.delete('search-current')
+            setShowFind(false)
+          }}
+        />
+      )}
       {/* Toolbar with title + button */}
       <div
         style={{

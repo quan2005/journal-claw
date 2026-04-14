@@ -390,6 +390,10 @@ export default function App() {
     const rel = `${entry.year_month}/${entry.filename}`
     setDockAppendText(`@${rel}`)
   }, [])
+  const handleVisualDesign = useCallback((entry: JournalEntry) => {
+    const rel = `${entry.year_month}/${entry.filename}`
+    setDockAppendText(`/visual-design-book @${rel}`)
+  }, [])
 
   const handlePasteSubmit = async (text: string) => {
     await triggerAiPrompt(text)
@@ -626,6 +630,7 @@ export default function App() {
             width: DIVIDER_WIDTH,
             flexShrink: 0,
             background: 'transparent',
+            userSelect: 'none' as const,
             cursor: 'col-resize',
           }}
         />
@@ -650,16 +655,13 @@ export default function App() {
               onSelectSample={handleSelectSample}
               onAddToTodo={handleAddToTodo}
               onProcess={handleProcessEntry}
-              onVisualDesign={(entry) => {
-                const rel = `${entry.year_month}/${entry.filename}`
-                setDockAppendText(`/visual-design-book @${rel}`)
-              }}
+              onVisualDesign={handleVisualDesign}
             />
           ) : (
             <IdentityDetail
               identity={selectedIdentity}
               onRecord={handleRecord}
-              onOpenDock={() => setDockOpen(true)}
+              onOpenDock={handleOpenDock}
             />
           )}
         </div>
@@ -673,6 +675,7 @@ export default function App() {
                 width: DIVIDER_WIDTH,
                 flexShrink: 0,
                 background: 'transparent',
+                userSelect: 'none' as const,
                 cursor: 'col-resize',
               }}
             />

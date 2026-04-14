@@ -38,6 +38,7 @@ export function SidebarTabs({ active, onChange }: SidebarTabsProps) {
         margin: 0,
         background: 'transparent',
         borderBottom: '1px solid var(--divider)',
+        userSelect: 'none' as const,
         padding: 0,
         flexShrink: 0,
       }}

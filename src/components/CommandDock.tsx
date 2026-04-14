@@ -82,6 +82,15 @@ export function CommandDock({
       setInputOpen(true)
       setInputText((prev) => (prev ? prev + ' ' + appendText : appendText))
       onAppendTextConsumed?.()
+      // Focus textarea and place cursor after appended text
+      setTimeout(() => {
+        const el = inputRef.current
+        if (el) {
+          el.focus()
+          const len = el.value.length
+          el.setSelectionRange(len, len)
+        }
+      }, 40)
     }
   }, [appendText]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -101,6 +110,14 @@ export function CommandDock({
     } else {
       setInputOpen(true)
       setInputText(text)
+      setTimeout(() => {
+        const el = inputRef.current
+        if (el) {
+          el.focus()
+          const len = el.value.length
+          el.setSelectionRange(len, len)
+        }
+      }, 40)
     }
   }
 

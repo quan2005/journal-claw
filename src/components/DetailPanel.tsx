@@ -190,6 +190,8 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
   useEffect(() => {
     if (!entry) { setContent(null); return }
     setContent(null)
+    CSS.highlights?.delete('search-result')
+    CSS.highlights?.delete('search-current')
     setShowFind(false)
     getJournalEntryContent(entry.path).then(setContent)
   }, [entry?.path, entry?.mtime_secs])
@@ -537,7 +539,7 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: 'var(--detail-bg)', position: 'relative',
     }}>
-      {showFind && <FindBar containerRef={bodyRef} onClose={() => setShowFind(false)} />}
+      {showFind && <FindBar containerRef={bodyRef} onClose={() => { CSS.highlights?.delete('search-result'); CSS.highlights?.delete('search-current'); setShowFind(false) }} />}
       {/* Scrollable body */}
       <div
         ref={bodyRef}

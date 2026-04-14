@@ -156,6 +156,7 @@ pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), Strin
 
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::process::Command::new("open")
+        .arg("-R")
         .arg(&dir)
         .spawn()
         .map(|_| ())

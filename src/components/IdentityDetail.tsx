@@ -8,6 +8,7 @@ import type { IdentityEntry } from '../types'
 import { getIdentityContent, saveIdentityContent, getWorkspacePrompt, setWorkspacePrompt, resetWorkspacePrompt } from '../lib/tauri'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { pickDisplayTags } from '../lib/tags'
+import { FindBar } from './FindBar'
 import { Spinner } from './Spinner'
 import { SOUL_PATH } from './IdentityList'
 import { createTranslator, detectLang } from '../lib/i18n'
@@ -356,6 +357,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [btnCooldown, setBtnCooldown] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [showFind, setShowFind] = useState(false)
   const [showReplace, setShowReplace] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -367,7 +369,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
 
   // Load content (skip when editing — mtime changes from our own saves)
   useEffect(() => {
-    if (!identity) { setContent(null); setEditing(false); return }
+    if (!identity) { setContent(null); setEditing(false); setShowFind(false); CSS.highlights?.delete('search-result'); CSS.highlights?.delete('search-current'); return }
     if (editing) return
     setContent(null)
     if (isSoul) {
@@ -437,6 +439,20 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [editing, identity, content])
+
+
+  // Cmd+F opens find bar in read mode
+  useEffect(() => {
+    if (editing) return
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowFind(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [editing])
 
   // Cmd+F / Cmd+R / Cmd+S in edit mode; Escape cancels edit (no save)
   useEffect(() => {
@@ -639,6 +655,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--detail-bg)', overflow: 'hidden', position: 'relative' }}>
+      {!editing && showFind && <FindBar containerRef={bodyRef} onClose={() => { CSS.highlights?.delete('search-result'); CSS.highlights?.delete('search-current'); setShowFind(false) }} />}
 
       {/* Toolbar with title + button */}
       <div style={{

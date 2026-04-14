@@ -75,6 +75,7 @@
 
   /* Sidebar */
   --sidebar-bg: #f0f2f3;
+  --sidebar-bg-translucent: rgba(240, 242, 243, 0.72);
   --sidebar-month: #6a7278;
 
   /* AI Status Pill */
@@ -221,6 +222,7 @@
 
     /* Sidebar */
     --sidebar-bg: #141414;
+  --sidebar-bg-translucent: rgba(20, 20, 20, 0.72);
     --sidebar-month: #5a5e68;
 
     /* AI Status Pill */
@@ -358,6 +360,7 @@
   --date-today-number: #C8933B;
   --date-today-weekday: #9a6a20;
   --sidebar-bg: #141414;
+  --sidebar-bg-translucent: rgba(20, 20, 20, 0.72);
   --sidebar-month: #5a5e68;
   --ai-pill-bg: #1a1708;
   --ai-pill-border: #3a3018;
@@ -661,6 +664,7 @@ html, body, #root {
   --date-today-number: #8A6500;
   --date-today-weekday: #A07828;
   --sidebar-bg: #f0f2f3;
+  --sidebar-bg-translucent: rgba(240, 242, 243, 0.72);
   --sidebar-month: #6a7278;
   --ai-pill-bg: #FBF3E5;
   --ai-pill-border: #D4A855;

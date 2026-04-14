@@ -101,7 +101,12 @@ export function JournalList({
   // Filter entries by query
   const lowerFilter = filterQuery.toLowerCase()
   const filtered = filterQuery
-    ? entries.filter(e => e.title.toLowerCase().includes(lowerFilter) || (e.summary ?? '').toLowerCase().includes(lowerFilter) || e.tags.some(t => t.toLowerCase().includes(lowerFilter)))
+    ? entries.filter(
+        (e) =>
+          e.title.toLowerCase().includes(lowerFilter) ||
+          (e.summary ?? '').toLowerCase().includes(lowerFilter) ||
+          e.tags.some((t) => t.toLowerCase().includes(lowerFilter)),
+      )
     : entries
 
   // Group by year_month, then by day

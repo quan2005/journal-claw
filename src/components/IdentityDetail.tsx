@@ -785,7 +785,6 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [editing, identity, content])
 
-
   // Cmd+F opens find bar in read mode
   useEffect(() => {
     if (editing) return

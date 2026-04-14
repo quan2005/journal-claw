@@ -224,7 +224,7 @@
 
     /* Sidebar */
     --sidebar-bg: #141414;
-  --sidebar-bg-translucent: rgba(20, 20, 20, 0.72);
+    --sidebar-bg-translucent: rgba(20, 20, 20, 0.72);
     --sidebar-month: #5a5e68;
 
     /* AI Status Pill */

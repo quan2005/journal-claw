@@ -258,10 +258,13 @@ export const zh: Strings = {
   selectTargetSpeaker: '选择目标说话人…',
   merge: '合并',
 
-  // Settings: Plugins
+  // Settings: Plugins (skills)
   pluginsSection: '技能插件',
-  pluginMarketSoon: '插件市场即将开放',
-  morePlugins: '更多插件',
+  pluginScopeProject: '项目',
+  pluginScopeGlobal: '全局',
+  noSkillsFound: '未发现技能插件',
+  noSkillsHint: '在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能',
+  openSkillDir: '打开目录',
 
   // Settings: About
   version: '版本 {version}',
@@ -315,12 +318,6 @@ export const zh: Strings = {
 
   // SectionAiEngine
   qwenVendor: '阿里云',
-
-  // SectionPlugins
-  pluginScheduledSort: '定时文件整理',
-  pluginScheduledSortDesc: '按规则自动归档 Workspace 中的素材和日志，保持目录整洁',
-  pluginVisualizer: '图文可视化美化',
-  pluginVisualizerDesc: '将日志内容转换为图文并茂的可视化卡片，便于分享',
 
   // Settings: Automation
   automation: '自动整理',

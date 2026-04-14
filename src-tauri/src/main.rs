@@ -17,6 +17,7 @@ mod todos;
 mod transcription;
 mod types;
 mod workspace;
+mod skills;
 mod workspace_settings;
 
 use std::sync::{
@@ -384,6 +385,8 @@ fn main() {
             config::get_feishu_config,
             config::set_feishu_config,
             config::get_feishu_status,
+            skills::list_skills,
+            skills::open_skills_dir,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

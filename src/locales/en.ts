@@ -256,10 +256,13 @@ export const en = {
   selectTargetSpeaker: 'Select target speaker…',
   merge: 'Merge',
 
-  // Settings: Plugins
-  pluginsSection: 'Plugins',
-  pluginMarketSoon: 'Plugin marketplace coming soon',
-  morePlugins: 'More plugins',
+  // Settings: Plugins (skills)
+  pluginsSection: 'Skill Plugins',
+  pluginScopeProject: 'Project',
+  pluginScopeGlobal: 'Global',
+  noSkillsFound: 'No skills found',
+  noSkillsHint: 'Add skills to .claude/skills/ in your project or ~/.claude/skills/ globally',
+  openSkillDir: 'Open directory',
 
   // Settings: About
   version: 'Version {version}',
@@ -313,12 +316,6 @@ export const en = {
 
   // SectionAiEngine
   qwenVendor: 'Alibaba Cloud',
-
-  // SectionPlugins
-  pluginScheduledSort: 'Scheduled file organization',
-  pluginScheduledSortDesc: 'Auto-archive materials and logs in Workspace by rules, keeping directories tidy',
-  pluginVisualizer: 'Visual card generator',
-  pluginVisualizerDesc: 'Convert journal entries into visually rich cards for easy sharing',
 
   // Settings: Automation
   automation: 'Auto Maintenance',

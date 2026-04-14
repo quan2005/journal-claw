@@ -28,7 +28,7 @@ export function TitleBar({ theme, onThemeChange, isProcessing, processingFilenam
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center',
-        borderBottom: '0.5px solid var(--divider)',
+        borderBottom: '0.5px solid var(--divider)', userSelect: 'none' as const,
       }}
     >
       {/* Left: empty */}

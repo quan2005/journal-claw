@@ -451,7 +451,6 @@ html, body, #root {
   background: var(--bg);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-  user-select: none;
   overflow: hidden;
 }
 

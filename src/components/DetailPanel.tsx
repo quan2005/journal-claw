@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -266,6 +266,135 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
 
   const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
 
+  // Memoize markdown DOM so text selection survives parent re-renders
+  const markdownNode = useMemo(() => {
+    if (content === null) return null
+    return (
+      <div className="md-body">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[[rehypeHighlight, { detect: false }]]}
+          components={{
+            h1: ({ children }) => (
+              <h1 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
+              }}>{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
+              }}>{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
+              }}>{children}</h3>
+            ),
+            h4: ({ children }) => (
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
+            ),
+            h5: ({ children }) => (
+              <h5 style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
+            ),
+            h6: ({ children }) => (
+              <h6 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
+            ),
+            p: ({ children }) => (
+              <p style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
+            ),
+            ul: ({ children }) => (
+              <ul style={{ paddingLeft: 0, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3, listStyle: 'none' }}>{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol style={{ paddingLeft: 20, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>{children}</ol>
+            ),
+            li: MarkdownLi,
+            strong: ({ children }) => (
+              <strong style={{ fontWeight: 'var(--font-semibold)', color: 'var(--md-strong)' }}>{children}</strong>
+            ),
+            em: ({ children }) => (
+              <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
+            ),
+            code: ({ className, children }) => {
+              return <code className={className}>{children}</code>
+            },
+            pre: ({ children }) => {
+              const codeEl = children as React.ReactElement<{ className?: string; children?: React.ReactNode }>
+              const rawText = extractCodeText(codeEl?.props?.children)
+              return (
+                <CodeBlock className={codeEl?.props?.className} rawText={rawText}>
+                  {children}
+                </CodeBlock>
+              )
+            },
+            a: ({ href, children }) => {
+              const isMdLink = href && /\.md$/i.test(href) && !href.startsWith('http')
+              return (
+                <a
+                  href={isMdLink ? undefined : href}
+                  target={isMdLink ? undefined : '_blank'}
+                  rel={isMdLink ? undefined : 'noopener noreferrer'}
+                  className="md-link"
+                  onClick={isMdLink ? (e) => {
+                    e.preventDefault()
+                    const decodedHref = decodeURIComponent(href!)
+                    const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
+                    const targetPath = resolveRelativePath(entryDir, decodedHref)
+                    const targetFilename = targetPath.substring(targetPath.lastIndexOf('/') + 1)
+                    window.dispatchEvent(new CustomEvent('journal-entry-navigate', {
+                      detail: { path: targetPath, filename: targetFilename },
+                    }))
+                  } : undefined}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {children}
+                </a>
+              )
+            },
+            blockquote: ({ children }) => (
+              <blockquote style={{
+                borderLeft: '3px solid var(--md-quote-bar)',
+                paddingLeft: 12,
+                margin: '8px 0',
+                color: 'var(--md-quote-text)',
+              }}>
+                {children}
+              </blockquote>
+            ),
+            hr: () => (
+              <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }} />
+            ),
+            table: ({ children }) => (
+              <div style={{ overflowX: 'auto', margin: '10px 0' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-base)' }}>{children}</table>
+              </div>
+            ),
+            th: ({ children }) => (
+              <th style={{
+                padding: '6px 10px', textAlign: 'left', fontWeight: 'var(--font-semibold)',
+                fontSize: 'var(--text-sm)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+                borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap',
+                minWidth: 72,
+              }}>{children}</th>
+            ),
+            td: ({ children }) => (
+              <td style={{
+                padding: '5px 10px', color: 'var(--md-text)', lineHeight: 1.6,
+                verticalAlign: 'top', borderBottom: '1px solid var(--divider)',
+                minWidth: 72,
+              }}>{children}</td>
+            ),
+          }}
+        >
+          {stripFrontmatter(content)}
+        </ReactMarkdown>
+      </div>
+    )
+  }, [content, entry?.path])
+
   if (!entry) {
     const isEmpty = entries.length === 0
     return (
@@ -391,7 +520,7 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
       {/* Scrollable body */}
       <div
         ref={bodyRef}
-        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', userSelect: 'text' }}
+        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
         onContextMenu={(e) => {
           e.preventDefault()
           showContextMenu(e.clientX, e.clientY)
@@ -499,138 +628,7 @@ export const DetailPanel = React.memo(function DetailPanel({ entry, entries, onD
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
             <Spinner size={20} />
           </div>
-        ) : (
-          <div className="md-body">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[[rehypeHighlight, { detect: false }]]}
-              components={{
-                // Headings
-                h1: ({ children }) => (
-                  <h1 style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h1)', margin: '0 0 16px', lineHeight: 1.4,
-                  }}>{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h2)', margin: '28px 0 10px', lineHeight: 1.5,
-                  }}>{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '20px 0 6px', lineHeight: 1.5,
-                  }}>{children}</h3>
-                ),
-                h4: ({ children }) => (
-                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 5px' }}>{children}</h4>
-                ),
-                h5: ({ children }) => (
-                  <h5 style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)', color: 'var(--md-h3)', margin: '12px 0 4px' }}>{children}</h5>
-                ),
-                h6: ({ children }) => (
-                  <h6 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--md-h3)', margin: '10px 0 4px' }}>{children}</h6>
-                ),
-                // Paragraph
-                p: ({ children }) => (
-                  <p style={{ fontSize: 'var(--text-md)', color: 'var(--md-text)', lineHeight: 1.9, margin: '0 0 10px' }}>{children}</p>
-                ),
-                // Lists
-                ul: ({ children }) => (
-                  <ul style={{ paddingLeft: 0, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3, listStyle: 'none' }}>{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol style={{ paddingLeft: 20, margin: '6px 0 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>{children}</ol>
-                ),
-                li: MarkdownLi,
-                // Inline
-                strong: ({ children }) => (
-                  <strong style={{ fontWeight: 'var(--font-semibold)', color: 'var(--md-strong)' }}>{children}</strong>
-                ),
-                em: ({ children }) => (
-                  <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
-                ),
-                code: ({ className, children }) => {
-                  return <code className={className}>{children}</code>
-                },
-                pre: ({ children }) => {
-                  const codeEl = children as React.ReactElement<{ className?: string; children?: React.ReactNode }>
-                  const rawText = extractCodeText(codeEl?.props?.children)
-                  return (
-                    <CodeBlock className={codeEl?.props?.className} rawText={rawText}>
-                      {children}
-                    </CodeBlock>
-                  )
-                },
-                // Links
-                a: ({ href, children }) => {
-                  const isMdLink = href && /\.md$/i.test(href) && !href.startsWith('http')
-                  return (
-                    <a
-                      href={isMdLink ? undefined : href}
-                      target={isMdLink ? undefined : '_blank'}
-                      rel={isMdLink ? undefined : 'noopener noreferrer'}
-                      className="md-link"
-                      onClick={isMdLink ? (e) => {
-                        e.preventDefault()
-                        const decodedHref = decodeURIComponent(href!)
-                        const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
-                        const targetPath = resolveRelativePath(entryDir, decodedHref)
-                        const targetFilename = targetPath.substring(targetPath.lastIndexOf('/') + 1)
-                        window.dispatchEvent(new CustomEvent('journal-entry-navigate', {
-                          detail: { path: targetPath, filename: targetFilename },
-                        }))
-                      } : undefined}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {children}
-                    </a>
-                  )
-                },
-                // Blockquote
-                blockquote: ({ children }) => (
-                  <blockquote style={{
-                    borderLeft: '3px solid var(--md-quote-bar)',
-                    paddingLeft: 12,
-                    margin: '8px 0',
-                    color: 'var(--md-quote-text)',
-                  }}>
-                    {children}
-                  </blockquote>
-                ),
-                // HR
-                hr: () => (
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }} />
-                ),
-                // Table
-                table: ({ children }) => (
-                  <div style={{ overflowX: 'auto', margin: '10px 0' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-base)' }}>{children}</table>
-                  </div>
-                ),
-                th: ({ children }) => (
-                  <th style={{
-                    padding: '6px 10px', textAlign: 'left', fontWeight: 'var(--font-semibold)',
-                    fontSize: 'var(--text-sm)', color: 'var(--md-h3)', textTransform: 'uppercase', letterSpacing: '0.05em',
-                    borderBottom: '2px solid var(--divider)', whiteSpace: 'nowrap',
-                    minWidth: 72,
-                  }}>{children}</th>
-                ),
-                td: ({ children }) => (
-                  <td style={{
-                    padding: '5px 10px', color: 'var(--md-text)', lineHeight: 1.6,
-                    verticalAlign: 'top', borderBottom: '1px solid var(--divider)',
-                    minWidth: 72,
-                  }}>{children}</td>
-                ),
-              }}
-            >
-              {stripFrontmatter(content)}
-            </ReactMarkdown>
-          </div>
-        )}
+        ) : markdownNode}
       </div>
 
       <DetailContextMenu

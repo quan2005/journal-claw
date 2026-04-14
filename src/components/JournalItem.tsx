@@ -28,7 +28,7 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
         onContextMenu?.(entry, e.clientX, e.clientY)
       }}
       style={{
-        padding: '9px 14px',
+        padding: '9px 14px', userSelect: 'none' as const,
         cursor: 'pointer',
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
         borderLeft: isSelected ? '2px solid var(--record-btn)' : '2px solid transparent',

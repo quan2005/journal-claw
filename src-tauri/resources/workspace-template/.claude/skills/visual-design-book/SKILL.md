@@ -1,8 +1,7 @@
 ---
-
-## name: visual-design-book
+name: visual-design-book
 description: 将日志条目转化为可视化网页设计说明书。当用户在日志详情右键选择"转化为可视化设计"、在 dock 栏输入 /visual-design-book @日志路径、或提到"可视化设计""design book""设计说明书"时触发。读取日志 markdown 内容，自动识别内容类型（产品设计 / 会议纪要 / 通用知识），生成自包含 HTML 页面，输出到同目录并关联回日志元数据 sources。
-
+---
 # Visual Design Book — 日志可视化说明书
 
 ## 这个 skill 做什么

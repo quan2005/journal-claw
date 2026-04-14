@@ -16,15 +16,6 @@ function parseVarsFromBlock(block: string): Map<string, string> {
   return vars
 }
 
-/** Extract the content of a specific CSS selector block */
-function extractBlock(css: string, selector: string): string | null {
-  // Escape brackets for regex
-  const escaped = selector.replace(/[[\]()]/g, '\\$&')
-  const re = new RegExp(escaped + '\\s*\\{([^}]+)\\}')
-  const m = css.match(re)
-  return m ? m[1] : null
-}
-
 /** Parse hex to [r,g,b] 0-255 */
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -33,8 +24,8 @@ function hexToRgb(hex: string): [number, number, number] {
 
 /** WCAG relative luminance */
 function relativeLuminance(r: number, g: number, b: number): number {
-  const [rs, gs, bs] = [r / 255, g / 255, b / 255].map(c =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  const [rs, gs, bs] = [r / 255, g / 255, b / 255].map((c) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4),
   )
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
 }
@@ -55,13 +46,14 @@ function contrastRatio(hex1: string, hex2: string): number {
 describe('Dark theme invariance', () => {
   // Extract the last [data-theme="dark"] block (the manual override one after @media)
   const darkBlocks: string[] = []
-  const darkRe = /\[data-theme="dark"\]\s*\{([^}]+)\}/g
+  const darkRe = /\[data-theme=.dark.\]\s*\{([^}]+)\}/g
   let m: RegExpExecArray | null
   while ((m = darkRe.exec(css)) !== null) {
     darkBlocks.push(m[1])
   }
   // Use the last dark block (the manual override)
-  const darkVars = darkBlocks.length > 0 ? parseVarsFromBlock(darkBlocks[darkBlocks.length - 1]) : new Map()
+  const darkVars =
+    darkBlocks.length > 0 ? parseVarsFromBlock(darkBlocks[darkBlocks.length - 1]) : new Map()
 
   /** Expected dark theme values (snapshot of key variables) */
   const DARK_THEME_SNAPSHOT: Record<string, string> = {
@@ -71,41 +63,40 @@ describe('Dark theme invariance', () => {
     '--item-text': '#e8e8e8',
     '--item-meta': '#a2a6ae',
     '--duration-text': '#48484a',
-    '--record-btn': '#C8933B',
+    '--record-btn': '#c8933b',
     '--record-btn-hover': '#d9a44b',
     '--record-btn-icon': '#0f0f0f',
     '--item-selected-bg': '#1a1c20',
-    '--item-selected-text': '#C8933B',
+    '--item-selected-text': '#c8933b',
     '--sidebar-bg': '#141414',
     '--dock-bg': '#141414',
     '--dock-border': '#252525',
-    '--md-h1': '#C8933B',
-    '--md-h2': '#C8933B',
+    '--md-h1': '#c8933b',
+    '--md-h2': '#c8933b',
     '--md-text': '#a8acb4',
-    '--md-strong': '#C8933B',
-    '--md-code-bg': 'rgba(255,255,255,0.08)',
+    '--md-strong': '#c8933b',
+    '--md-code-bg': 'rgba(255, 255, 255, 0.08)',
     '--md-pre-bg': '#141414',
     '--queue-bg': '#1c1c1e',
     '--ai-pill-bg': '#1a1708',
-    '--ai-pill-text': '#C8933B',
+    '--ai-pill-text': '#c8933b',
   }
 
   it('should have all expected dark theme variables unchanged', () => {
     for (const [varName, expectedValue] of Object.entries(DARK_THEME_SNAPSHOT)) {
       const actual = darkVars.get(varName)
       expect(actual, `${varName} should exist in [data-theme="dark"]`).toBeDefined()
-      expect(actual, `${varName}: expected "${expectedValue}" but got "${actual}"`).toBe(expectedValue)
+      expect(actual, `${varName}: expected "${expectedValue}" but got "${actual}"`).toBe(
+        expectedValue,
+      )
     }
   })
 
   it('should preserve dark theme tag CSS tokens', () => {
-    const css = fs.readFileSync(
-      path.resolve(__dirname, '../styles/globals.css'),
-      'utf-8',
-    )
+    const css = fs.readFileSync(path.resolve(__dirname, '../styles/globals.css'), 'utf-8')
     // Dark theme tag tokens
-    expect(css).toContain('--tag-text: rgba(200,147,59,0.65)')
-    expect(css).toContain('--tag-bg: rgba(200,147,59,0.10)')
+    expect(css).toContain('--tag-text: rgba(200, 147, 59, 0.65)')
+    expect(css).toContain('--tag-bg: rgba(200, 147, 59, 0.1)')
   })
 })
 
@@ -134,7 +125,10 @@ describe('Key contrast ratios', () => {
   })
 
   it('--item-selected-text / --item-selected-bg contrast ≥ 4.5:1 (AA)', () => {
-    const ratio = contrastRatio(rootVars.get('--item-selected-text')!, rootVars.get('--item-selected-bg')!)
+    const ratio = contrastRatio(
+      rootVars.get('--item-selected-text')!,
+      rootVars.get('--item-selected-bg')!,
+    )
     expect(ratio, `selected-text/selected-bg ratio=${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5)
   })
 
@@ -158,25 +152,25 @@ describe('Accent colors unchanged', () => {
   const rootVars = rootMatch ? parseVarsFromBlock(rootMatch[1]) : new Map()
 
   const ACCENT_SNAPSHOT: Record<string, string> = {
-    '--record-btn': '#B8782A',
-    '--record-btn-hover': '#A06820',
-    '--item-selected-text': '#7A5800',
+    '--record-btn': '#b8782a',
+    '--record-btn-hover': '#a06820',
+    '--item-selected-text': '#7a5800',
     '--md-h1': '#1c1c1e',
     '--md-h2': '#2a3038',
     '--md-strong': '#1c1c1e',
-    '--ai-pill-text': '#8A6500',
-    '--ai-pill-active-text': '#6A4E00',
-    '--ai-pill-active-border': '#B8782A',
-    '--dock-paste-border': '#B8782A',
-    '--dock-paste-label': '#8A6500',
-    '--dock-kbd-text': '#8A6500',
-    '--dock-dropzone-hover-border': '#B8782A',
-    '--date-today-number': '#8A6500',
-    '--date-today-weekday': '#A07828',
-    '--item-selected-meta': '#A07828',
-    '--md-link': '#8A6500',
-    '--md-link-hover': '#6A4E00',
-    '--md-code-text': '#8A6500',
+    '--ai-pill-text': '#8a6500',
+    '--ai-pill-active-text': '#6a4e00',
+    '--ai-pill-active-border': '#b8782a',
+    '--dock-paste-border': '#b8782a',
+    '--dock-paste-label': '#8a6500',
+    '--dock-kbd-text': '#8a6500',
+    '--dock-dropzone-hover-border': '#b8782a',
+    '--date-today-number': '#8a6500',
+    '--date-today-weekday': '#a07828',
+    '--item-selected-meta': '#a07828',
+    '--md-link': '#8a6500',
+    '--md-link-hover': '#6a4e00',
+    '--md-code-text': '#8a6500',
   }
 
   for (const [varName, expectedValue] of Object.entries(ACCENT_SNAPSHOT)) {

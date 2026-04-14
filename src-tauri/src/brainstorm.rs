@@ -114,7 +114,6 @@ fn try_activate_existing(session_short: &str) -> bool {
     false
 }
 
-
 fn expand_tilde(path: &str) -> String {
     if let Some(rest) = path.strip_prefix("~/") {
         if let Ok(home) = std::env::var("HOME") {
@@ -335,4 +334,146 @@ pub fn open_brainstorm_terminal(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_id_has_uuid_like_format() {
+        let id = generate_session_id();
+        let parts: Vec<&str> = id.split('-').collect();
+        assert_eq!(parts.len(), 5, "should have 5 dash-separated segments");
+        assert_eq!(parts[0].len(), 8);
+        assert_eq!(parts[1].len(), 4);
+        assert_eq!(parts[2].len(), 4);
+        assert_eq!(parts[3].len(), 4);
+        assert_eq!(parts[4].len(), 12);
+        assert!(
+            parts[2].starts_with('4'),
+            "third segment should start with 4"
+        );
+    }
+
+    #[test]
+    fn session_id_is_hex() {
+        let id = generate_session_id();
+        for ch in id.chars() {
+            assert!(ch == '-' || ch.is_ascii_hexdigit(), "unexpected char in id");
+        }
+    }
+
+    #[test]
+    fn session_ids_are_unique() {
+        let a = generate_session_id();
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        let b = generate_session_id();
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn sessions_path_joins_correctly() {
+        let p = sessions_path("/tmp/ws");
+        assert_eq!(p, PathBuf::from("/tmp/ws/.brainstorm-sessions.json"));
+    }
+
+    #[test]
+    fn load_returns_default_when_file_missing() {
+        let tmp = std::env::temp_dir().join("brainstorm_load_missing");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let store = load_sessions(tmp.to_str().unwrap());
+        assert!(store.sessions.is_empty());
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn save_then_load_round_trips() {
+        let tmp = std::env::temp_dir().join("brainstorm_roundtrip");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let ws = tmp.to_str().unwrap();
+        let mut store = SessionStore::default();
+        store.sessions.insert(
+            "topic-a".into(),
+            SessionInfo {
+                session_id: "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee".into(),
+                created_at: "2026-04-14T10:00:00".into(),
+            },
+        );
+        save_sessions(ws, &store).unwrap();
+        let loaded = load_sessions(ws);
+        assert_eq!(loaded.sessions.len(), 1);
+        let info = loaded.sessions.get("topic-a").unwrap();
+        assert_eq!(info.session_id, "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee");
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn load_returns_default_on_corrupt_json() {
+        let tmp = std::env::temp_dir().join("brainstorm_corrupt");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(sessions_path(tmp.to_str().unwrap()), "NOT JSON!!!").unwrap();
+        let store = load_sessions(tmp.to_str().unwrap());
+        assert!(store.sessions.is_empty());
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn rename_session_key_moves_entry() {
+        let tmp = std::env::temp_dir().join("brainstorm_rename");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let ws = tmp.to_str().unwrap();
+        let mut store = SessionStore::default();
+        store.sessions.insert(
+            "old-name".into(),
+            SessionInfo {
+                session_id: "11111111-2222-4333-4444-555555555555".into(),
+                created_at: "2026-04-14T12:00:00".into(),
+            },
+        );
+        save_sessions(ws, &store).unwrap();
+        rename_session_key(ws, "old-name", "new-name");
+        let loaded = load_sessions(ws);
+        assert!(loaded.sessions.get("old-name").is_none());
+        assert!(loaded.sessions.get("new-name").is_some());
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn rename_nonexistent_key_is_noop() {
+        let tmp = std::env::temp_dir().join("brainstorm_rename_noop");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let ws = tmp.to_str().unwrap();
+        let mut store = SessionStore::default();
+        store.sessions.insert(
+            "keep-me".into(),
+            SessionInfo {
+                session_id: "abcdefab-1234-4567-89ab-cdef01234567".into(),
+                created_at: "2026-04-14T12:00:00".into(),
+            },
+        );
+        save_sessions(ws, &store).unwrap();
+        rename_session_key(ws, "does-not-exist", "whatever");
+        let loaded = load_sessions(ws);
+        assert_eq!(loaded.sessions.len(), 1);
+        assert!(loaded.sessions.contains_key("keep-me"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn expand_tilde_replaces_home() {
+        let expanded = expand_tilde("~/Documents/journal");
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expanded, format!("{}/Documents/journal", home));
+    }
+
+    #[test]
+    fn expand_tilde_ignores_absolute_path() {
+        assert_eq!(expand_tilde("/usr/local/bin"), "/usr/local/bin");
+    }
 }

@@ -296,10 +296,7 @@ fn repair_wav_header(path: &Path) -> Result<(), String> {
         .open(path)
         .map_err(|e| format!("open failed: {}", e))?;
 
-    let file_size = f
-        .metadata()
-        .map_err(|e| format!("metadata: {}", e))?
-        .len();
+    let file_size = f.metadata().map_err(|e| format!("metadata: {}", e))?.len();
     if file_size < 44 {
         return Err("file too small to be a valid WAV".into());
     }
@@ -341,12 +338,16 @@ fn repair_wav_header(path: &Path) -> Result<(), String> {
         }
 
         // Skip to next chunk: current pos + 8 (header) + declared chunk size
-        let chunk_size = u32::from_le_bytes([chunk_hdr[4], chunk_hdr[5], chunk_hdr[6], chunk_hdr[7]]);
+        let chunk_size =
+            u32::from_le_bytes([chunk_hdr[4], chunk_hdr[5], chunk_hdr[6], chunk_hdr[7]]);
         pos += 8 + chunk_size as u64;
     }
 
     f.flush().map_err(|e| format!("flush: {}", e))?;
-    eprintln!("[recorder] repaired WAV header: {:?} ({} bytes)", path, file_size);
+    eprintln!(
+        "[recorder] repaired WAV header: {:?} ({} bytes)",
+        path, file_size
+    );
     Ok(())
 }
 
@@ -406,7 +407,10 @@ pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
 
                 let status = std::process::Command::new("afconvert")
                     .args([
-                        "-f", "m4af", "-d", "aac",
+                        "-f",
+                        "m4af",
+                        "-d",
+                        "aac",
                         wav_path.to_str().unwrap(),
                         m4a_path.to_str().unwrap(),
                     ])
@@ -420,7 +424,10 @@ pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
                         return;
                     }
                 } else {
-                    eprintln!("[recorder] afconvert error for {:?}: {:?}", wav_path, status);
+                    eprintln!(
+                        "[recorder] afconvert error for {:?}: {:?}",
+                        wav_path, status
+                    );
                     return;
                 }
 

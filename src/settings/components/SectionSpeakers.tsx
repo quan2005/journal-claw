@@ -31,8 +31,14 @@ const hintStyle: React.CSSProperties = {
 
 // Deterministic avatar color from profile id
 const AVATAR_COLORS = [
-  '#5e81f4', '#3eb489', '#e8a838', '#e05252',
-  '#9b59b6', '#1abc9c', '#e67e22', '#e74c3c',
+  '#5e81f4',
+  '#3eb489',
+  '#e8a838',
+  '#e05252',
+  '#9b59b6',
+  '#1abc9c',
+  '#e67e22',
+  '#e74c3c',
 ]
 
 function avatarColor(id: string): string {
@@ -65,19 +71,23 @@ interface MergeModalProps {
 function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) {
   const { t } = useTranslation()
   const [targetId, setTargetId] = useState('')
-  const candidates = profiles.filter(p => p.id !== source.id)
+  const candidates = profiles.filter((p) => p.id !== source.id)
 
   return (
     <div
       onClick={onCancel}
       style={{
-        position: 'fixed', inset: 0, zIndex: 999,
+        position: 'fixed',
+        inset: 0,
+        zIndex: 999,
         background: 'rgba(0,0,0,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <div
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--bg)',
           border: '1px solid var(--divider)',
@@ -97,13 +107,11 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
         </div>
 
         {candidates.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--duration-text)' }}>
-            {t('noOtherSpeakers')}
-          </div>
+          <div style={{ fontSize: 13, color: 'var(--duration-text)' }}>{t('noOtherSpeakers')}</div>
         ) : (
           <select
             value={targetId}
-            onChange={e => setTargetId(e.target.value)}
+            onChange={(e) => setTargetId(e.target.value)}
             style={{
               background: 'var(--detail-case-bg)',
               border: '1px solid var(--divider)',
@@ -116,8 +124,10 @@ function MergeModal({ source, profiles, onConfirm, onCancel }: MergeModalProps) 
             }}
           >
             <option value="">{t('selectTargetSpeaker')}</option>
-            {candidates.map(p => (
-              <option key={p.id} value={p.id}>{displayName(p)}</option>
+            {candidates.map((p) => (
+              <option key={p.id} value={p.id}>
+                {displayName(p)}
+              </option>
             ))}
           </select>
         )}
@@ -274,7 +284,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               <input
                 ref={inputRef}
                 value={nameInput}
-                onChange={e => setNameInput(e.target.value)}
+                onChange={(e) => setNameInput(e.target.value)}
                 onBlur={commitName}
                 onKeyDown={handleKeyDown}
                 placeholder={profile.auto_name}
@@ -290,20 +300,35 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
                 }}
               />
               <button
-                onMouseDown={e => { e.preventDefault(); commitName() }}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  commitName()
+                }}
                 title={t('save')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-success)', padding: 2 }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--status-success)',
+                  padding: 2,
+                }}
               >
                 <Check size={13} />
               </button>
               <button
-                onMouseDown={e => {
+                onMouseDown={(e) => {
                   e.preventDefault()
                   setNameInput(profile.name)
                   setEditing(false)
                 }}
                 title={t('cancel')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--item-meta)', padding: 2 }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--item-meta)',
+                  padding: 2,
+                }}
               >
                 <X size={13} />
               </button>
@@ -339,8 +364,12 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               onClick={() => setEditing(true)}
               title={t('nameTooltip')}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--item-meta)', padding: '4px 6px', borderRadius: 4,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--item-meta)',
+                padding: '4px 6px',
+                borderRadius: 4,
               }}
             >
               <Pencil size={13} />
@@ -349,8 +378,12 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               onClick={() => setMerging(true)}
               title={t('mergeTooltip')}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--item-meta)', padding: '4px 6px', borderRadius: 4,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--item-meta)',
+                padding: '4px 6px',
+                borderRadius: 4,
               }}
             >
               <GitMerge size={13} />
@@ -360,9 +393,12 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               onBlur={() => setConfirmDelete(false)}
               title={t('deleteTooltip')}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
                 color: confirmDelete ? '#ff3b30' : 'var(--item-meta)',
-                padding: '4px 6px', borderRadius: 4,
+                padding: '4px 6px',
+                borderRadius: 4,
                 fontSize: confirmDelete ? 10 : undefined,
                 fontWeight: confirmDelete ? 600 : undefined,
               }}
@@ -387,7 +423,7 @@ export default function SectionSpeakers() {
   const reload = () => {
     getSpeakerProfiles()
       .then(setProfiles)
-      .catch(err => console.error('[speakers] load failed', err))
+      .catch((err) => console.error('[speakers] load failed', err))
       .finally(() => setLoading(false))
   }
 
@@ -399,9 +435,13 @@ export default function SectionSpeakers() {
     listen('speakers-updated', () => {
       getSpeakerProfiles()
         .then(setProfiles)
-        .catch(err => console.error('[speakers] event reload failed', err))
-    }).then(fn => { unlisten = fn })
-    return () => { unlisten?.() }
+        .catch((err) => console.error('[speakers] event reload failed', err))
+    }).then((fn) => {
+      unlisten = fn
+    })
+    return () => {
+      unlisten?.()
+    }
   }, [])
 
   return (
@@ -409,13 +449,11 @@ export default function SectionSpeakers() {
       <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--item-text)', marginBottom: 4 }}>
         {t('speakersSection')}
       </div>
-      <div style={{ ...hintStyle, marginBottom: 20 }}>
-        {t('speakersDesc')}
-      </div>
+      <div style={{ ...hintStyle, marginBottom: 20 }}>{t('speakersDesc')}</div>
 
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[1, 2].map(i => (
+          {[1, 2].map((i) => (
             <div
               key={i}
               style={{
@@ -451,7 +489,7 @@ export default function SectionSpeakers() {
             <span style={labelStyle}>{t('speakerCount', { count: profiles.length })}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {profiles.map(profile => (
+            {profiles.map((profile) => (
               <ProfileRow
                 key={profile.id}
                 profile={profile}

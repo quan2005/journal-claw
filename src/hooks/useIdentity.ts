@@ -10,9 +10,7 @@ export function useIdentity() {
   const refresh = useCallback(async () => {
     try {
       const result = await listIdentities()
-      setIdentities(prev =>
-        JSON.stringify(prev) === JSON.stringify(result) ? prev : result
-      )
+      setIdentities((prev) => (JSON.stringify(prev) === JSON.stringify(result) ? prev : result))
     } catch (e) {
       console.error('[useIdentity] failed to load identities:', e)
     } finally {
@@ -33,8 +31,8 @@ export function useIdentity() {
 
     return () => {
       clearInterval(pollInterval)
-      unlistenSpeakers.then(fn => fn())
-      unlistenIdentity.then(fn => fn())
+      unlistenSpeakers.then((fn) => fn())
+      unlistenIdentity.then((fn) => fn())
     }
   }, [refresh])
 

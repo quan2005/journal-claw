@@ -20,8 +20,8 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
 
   // Load on first render
   useState(() => {
-    listIdentities().then(all => {
-      setIdentities(all.filter(i => i.path !== source.path))
+    listIdentities().then((all) => {
+      setIdentities(all.filter((i) => i.path !== source.path))
       setLoaded(true)
     })
   })
@@ -38,12 +38,12 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
         const tgtRel = targetPath.split('/identity/').pop() || targetPath
         await triggerAiPrompt(
           `将身份档案 identity/${srcRel} 的内容智能合并到 identity/${tgtRel} 中。\n` +
-          `要求：\n` +
-          `- 阅读两份档案，将来源档案中的有用信息整合进目标档案（去重、补充、更新）\n` +
-          `- 合并 tags（去重）\n` +
-          `- 更新 summary 使其反映合并后的完整信息\n` +
-          `- 完成后删除来源文件 identity/${srcRel}\n` +
-          `- 直接操作文件，不要输出解释`
+            `要求：\n` +
+            `- 阅读两份档案，将来源档案中的有用信息整合进目标档案（去重、补充、更新）\n` +
+            `- 合并 tags（去重）\n` +
+            `- 更新 summary 使其反映合并后的完整信息\n` +
+            `- 完成后删除来源文件 identity/${srcRel}\n` +
+            `- 直接操作文件，不要输出解释`,
         )
       }
       onMerged()
@@ -54,9 +54,13 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
   }
 
   const overlay: React.CSSProperties = {
-    position: 'fixed', inset: 0, zIndex: 1000,
+    position: 'fixed',
+    inset: 0,
+    zIndex: 1000,
     background: 'rgba(0,0,0,0.45)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   }
 
   const dialog: React.CSSProperties = {
@@ -65,19 +69,26 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
     borderRadius: 12,
     padding: '24px 28px',
     width: 360,
-    display: 'flex', flexDirection: 'column', gap: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
   }
 
   const label: React.CSSProperties = {
-    fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginBottom: 4,
+    fontSize: 'var(--text-sm)',
+    color: 'var(--item-meta)',
+    marginBottom: 4,
   }
 
   const select: React.CSSProperties = {
-    width: '100%', padding: '7px 10px',
+    width: '100%',
+    padding: '7px 10px',
     background: 'var(--detail-case-bg)',
     border: '1px solid var(--divider)',
-    borderRadius: 6, color: 'var(--item-text)',
-    fontSize: 'var(--text-md)', outline: 'none',
+    borderRadius: 6,
+    color: 'var(--item-text)',
+    fontSize: 'var(--text-md)',
+    outline: 'none',
   }
 
   const modeBtn = (m: MergeMode, label: string, desc: string) => (
@@ -85,20 +96,43 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
       key={m}
       onClick={() => setMode(m)}
       style={{
-        padding: '8px 12px', borderRadius: 7, cursor: 'pointer',
+        padding: '8px 12px',
+        borderRadius: 7,
+        cursor: 'pointer',
         border: `1px solid ${mode === m ? 'var(--record-btn)' : 'var(--divider)'}`,
         background: mode === m ? 'rgba(255,59,48,0.06)' : 'transparent',
       }}
     >
-      <div style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)' }}>{label}</div>
-      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginTop: 2 }}>{desc}</div>
+      <div
+        style={{
+          fontSize: 'var(--text-base)',
+          fontWeight: 'var(--font-semibold)',
+          color: 'var(--item-text)',
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)', marginTop: 2 }}>
+        {desc}
+      </div>
     </div>
   )
 
   return (
-    <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+    <div
+      style={overlay}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <div style={dialog}>
-        <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)' }}>
+        <div
+          style={{
+            fontSize: 'var(--text-md)',
+            fontWeight: 'var(--font-semibold)',
+            color: 'var(--item-text)',
+          }}
+        >
           {t('mergeProfiles')}
         </div>
 
@@ -107,11 +141,11 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
           <select
             style={select}
             value={targetPath}
-            onChange={e => setTargetPath(e.target.value)}
+            onChange={(e) => setTargetPath(e.target.value)}
             disabled={!loaded}
           >
             <option value="">{t('selectTarget')}</option>
-            {identities.map(i => (
+            {identities.map((i) => (
               <option key={i.path} value={i.path}>
                 {i.region}-{i.name}
               </option>
@@ -135,8 +169,13 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
           <button
             onClick={onClose}
             style={{
-              padding: '7px 16px', borderRadius: 6, border: '1px solid var(--divider)',
-              background: 'transparent', color: 'var(--item-text)', fontSize: 'var(--text-base)', cursor: 'pointer',
+              padding: '7px 16px',
+              borderRadius: 6,
+              border: '1px solid var(--divider)',
+              background: 'transparent',
+              color: 'var(--item-text)',
+              fontSize: 'var(--text-base)',
+              cursor: 'pointer',
             }}
           >
             {t('cancel')}
@@ -145,10 +184,13 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
             onClick={handleMerge}
             disabled={!targetPath || merging}
             style={{
-              padding: '7px 16px', borderRadius: 6, border: 'none',
+              padding: '7px 16px',
+              borderRadius: 6,
+              border: 'none',
               background: !targetPath || merging ? 'var(--divider)' : 'var(--record-btn)',
               color: !targetPath || merging ? 'var(--item-meta)' : '#fff',
-              fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)',
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--font-semibold)',
               cursor: !targetPath || merging ? 'not-allowed' : 'pointer',
             }}
           >

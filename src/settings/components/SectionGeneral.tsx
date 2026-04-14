@@ -5,13 +5,32 @@ import { useTranslation } from '../../contexts/I18nContext'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-const sectionStyle: React.CSSProperties = { padding: '28px 28px 180px', borderBottom: '1px solid var(--divider)' }
-const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--item-meta)', marginBottom: 5, display: 'block' }
-const hintStyle: React.CSSProperties = { fontSize: 12, color: 'var(--duration-text)', marginTop: 4, lineHeight: 1.5 }
+const sectionStyle: React.CSSProperties = {
+  padding: '28px 28px 180px',
+  borderBottom: '1px solid var(--divider)',
+}
+const labelStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: 'var(--item-meta)',
+  marginBottom: 5,
+  display: 'block',
+}
+const hintStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: 'var(--duration-text)',
+  marginTop: 4,
+  lineHeight: 1.5,
+}
 const inputStyle: React.CSSProperties = {
-  flex: 1, background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-  borderRadius: 6, padding: '7px 10px', fontSize: 14, color: 'var(--item-text)',
-  fontFamily: 'ui-monospace, monospace', outline: 'none',
+  flex: 1,
+  background: 'var(--detail-case-bg)',
+  border: '1px solid var(--divider)',
+  borderRadius: 6,
+  padding: '7px 10px',
+  fontSize: 14,
+  color: 'var(--item-text)',
+  fontFamily: 'ui-monospace, monospace',
+  outline: 'none',
 }
 
 export default function SectionGeneral() {
@@ -22,7 +41,7 @@ export default function SectionGeneral() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getWorkspacePath().then(path => {
+    getWorkspacePath().then((path) => {
       setWorkspacePathState(path)
       setPersistedWorkspacePath(path)
       setLoading(false)
@@ -43,7 +62,7 @@ export default function SectionGeneral() {
       await setWorkspacePath(workspacePath)
       setPersistedWorkspacePath(workspacePath)
       setSaveStatus('saved')
-      setTimeout(() => setSaveStatus(current => current === 'saved' ? 'idle' : current), 2000)
+      setTimeout(() => setSaveStatus((current) => (current === 'saved' ? 'idle' : current)), 2000)
     } catch (error) {
       console.error('[settings/general] save failed', error)
       setSaveStatus('error')
@@ -52,19 +71,31 @@ export default function SectionGeneral() {
 
   const hasUnsavedChanges = workspacePath !== persistedWorkspacePath
   const canSave = workspacePath.trim().length > 0 && hasUnsavedChanges && saveStatus !== 'saving'
-  const saveHint = saveStatus === 'saving'
-    ? t('savingDots')
-    : saveStatus === 'saved'
-      ? t('saved')
-      : saveStatus === 'error'
-        ? t('saveFailedMsg')
-        : hasUnsavedChanges
-          ? t('unsavedChanges')
-          : ''
+  const saveHint =
+    saveStatus === 'saving'
+      ? t('savingDots')
+      : saveStatus === 'saved'
+        ? t('saved')
+        : saveStatus === 'error'
+          ? t('saveFailedMsg')
+          : hasUnsavedChanges
+            ? t('unsavedChanges')
+            : ''
 
   return (
     <div style={sectionStyle}>
-      <div style={{ fontSize: 13, color: 'var(--month-label)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 500 }}>{t('general')}</div>
+      <div
+        style={{
+          fontSize: 13,
+          color: 'var(--month-label)',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          marginBottom: 16,
+          fontWeight: 500,
+        }}
+      >
+        {t('general')}
+      </div>
 
       {loading ? (
         <>
@@ -84,7 +115,7 @@ export default function SectionGeneral() {
               <input
                 style={inputStyle}
                 value={workspacePath}
-                onChange={e => {
+                onChange={(e) => {
                   setWorkspacePathState(e.target.value)
                   setSaveStatus('idle')
                 }}
@@ -93,9 +124,15 @@ export default function SectionGeneral() {
               <button
                 onClick={handlePickFolder}
                 style={{
-                  background: 'var(--detail-case-bg)', border: '1px solid var(--divider)',
-                  borderRadius: 6, padding: '0 12px', fontSize: 14, color: 'var(--item-meta)',
-                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  background: 'var(--detail-case-bg)',
+                  border: '1px solid var(--divider)',
+                  borderRadius: 6,
+                  padding: '0 12px',
+                  fontSize: 14,
+                  color: 'var(--item-meta)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 {t('browse')}
@@ -105,25 +142,35 @@ export default function SectionGeneral() {
           </div>
 
           {/* 保存 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-            <span style={{
-              fontSize: 13,
-              color: saveStatus === 'error'
-                ? 'var(--status-warning)'
-                : saveStatus === 'saved'
-                  ? 'var(--status-success)'
-                  : 'var(--duration-text)',
-              minHeight: 16,
-            }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}
+          >
+            <span
+              style={{
+                fontSize: 13,
+                color:
+                  saveStatus === 'error'
+                    ? 'var(--status-warning)'
+                    : saveStatus === 'saved'
+                      ? 'var(--status-success)'
+                      : 'var(--duration-text)',
+                minHeight: 16,
+              }}
+            >
               {saveHint}
             </span>
             <button
               onClick={handleSave}
               disabled={!canSave}
               style={{
-                background: canSave ? 'var(--record-btn)' : 'var(--divider)', border: 'none', borderRadius: 5,
-                padding: '6px 18px', fontSize: 14, fontWeight: 600,
-                color: canSave ? 'var(--bg)' : 'var(--duration-text)', cursor: canSave ? 'pointer' : 'not-allowed',
+                background: canSave ? 'var(--record-btn)' : 'var(--divider)',
+                border: 'none',
+                borderRadius: 5,
+                padding: '6px 18px',
+                fontSize: 14,
+                fontWeight: 600,
+                color: canSave ? 'var(--bg)' : 'var(--duration-text)',
+                cursor: canSave ? 'pointer' : 'not-allowed',
               }}
             >
               {saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}

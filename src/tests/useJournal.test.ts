@@ -16,6 +16,20 @@ vi.mock('../lib/tauri', () => ({
       materials: [],
     },
   ]),
+  listAvailableMonths: vi.fn().mockResolvedValue(['2603']),
+  listJournalEntriesByMonths: vi.fn().mockResolvedValue([
+    {
+      filename: '28-AI平台产品会议纪要.md',
+      path: '/nb/2603/28-AI平台产品会议纪要.md',
+      title: 'AI平台产品会议纪要',
+      summary: '探索可继续',
+      tags: ['meeting'],
+      year_month: '2603',
+      day: 28,
+      created_time: '10:15',
+      materials: [],
+    },
+  ]),
 }))
 
 type EventCallback = (event: { payload: unknown }) => void
@@ -24,7 +38,9 @@ const listenerMap = new Map<string, EventCallback>()
 vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn((eventName: string, cb: EventCallback) => {
     listenerMap.set(eventName, cb)
-    return Promise.resolve(() => { listenerMap.delete(eventName) })
+    return Promise.resolve(() => {
+      listenerMap.delete(eventName)
+    })
   }),
 }))
 
@@ -146,7 +162,7 @@ describe('useJournal', () => {
       status: 'converting',
     })
     // placeholder must be gone
-    expect(result.current.queueItems.some(i => i.path === '__recording__')).toBe(false)
+    expect(result.current.queueItems.some((i) => i.path === '__recording__')).toBe(false)
   })
 
   it('audio-ai-material-ready upgrades converting audio item to queued markdown item', async () => {

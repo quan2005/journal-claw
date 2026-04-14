@@ -31,7 +31,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
     setText(null)
     setLoading(true)
     prevCompletedRef.current = false
-    getTranscript(item.filename).then(t => {
+    getTranscript(item.filename).then((t) => {
       setText(t?.text ?? null)
       setLoading(false)
     })
@@ -40,7 +40,7 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
   useEffect(() => {
     if (transcriptionState === 'completed' && !prevCompletedRef.current) {
       prevCompletedRef.current = true
-      getTranscript(item.filename).then(t => setText(t?.text ?? null))
+      getTranscript(item.filename).then((t) => setText(t?.text ?? null))
     }
     if (transcriptionState !== 'completed') {
       prevCompletedRef.current = false
@@ -48,42 +48,47 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
   }, [transcriptionState, item.filename])
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
-    dragStartY.current = e.clientY
-    dragCurrentOffset.current = 0
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      dragStartY.current = e.clientY
+      dragCurrentOffset.current = 0
 
-    const onMove = (ev: MouseEvent) => {
-      if (dragStartY.current === null) return
-      const offset = Math.max(0, ev.clientX - dragStartY.current)
-      dragCurrentOffset.current = offset
-      if (sheetRef.current) {
-        sheetRef.current.style.transform = `translateX(${offset}px)`
-        sheetRef.current.style.transition = 'none'
-      }
-    }
-
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-      if (dragCurrentOffset.current > 80) {
-        onClose()
-      } else {
+      const onMove = (ev: MouseEvent) => {
+        if (dragStartY.current === null) return
+        const offset = Math.max(0, ev.clientX - dragStartY.current)
+        dragCurrentOffset.current = offset
         if (sheetRef.current) {
-          sheetRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)'
-          sheetRef.current.style.transform = 'translateX(0)'
+          sheetRef.current.style.transform = `translateX(${offset}px)`
+          sheetRef.current.style.transition = 'none'
         }
       }
-      dragStartY.current = null
-    }
 
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }, [onClose])
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+        if (dragCurrentOffset.current > 80) {
+          onClose()
+        } else {
+          if (sheetRef.current) {
+            sheetRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)'
+            sheetRef.current.style.transform = 'translateX(0)'
+          }
+        }
+        dragStartY.current = null
+      }
+
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    },
+    [onClose],
+  )
 
   const status = transcriptionState || item.transcript_status || undefined
   const { time } = getDateParts(item.display_name)
@@ -100,7 +105,9 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
         background: 'var(--sheet-bg)',
       }}
     >
-        <div onMouseDown={handleDragStart} style={{
+      <div
+        onMouseDown={handleDragStart}
+        style={{
           height: 52,
           padding: '0 20px',
           borderBottom: '1px solid var(--divider)',
@@ -109,90 +116,120 @@ export function DetailSheet({ item, transcriptionState, onClose }: DetailSheetPr
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
-        }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--item-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {item.display_name}
-            </div>
-            <div style={{ fontSize: 'var(--text-base)', color: 'var(--item-meta)', fontVariantNumeric: 'tabular-nums' }}>
-              {time} · {duration}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--item-meta)',
-              cursor: 'pointer',
-              width: 24,
-              height: 24,
-              borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-              flexShrink: 0,
+              fontSize: 'var(--text-lg)',
+              fontWeight: 'var(--font-semibold)',
+              color: 'var(--item-text)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <line x1="1" y1="1" x2="11" y2="11" />
-              <line x1="11" y1="1" x2="1" y2="11" />
-            </svg>
-          </button>
+            {item.display_name}
+          </div>
+          <div
+            style={{
+              fontSize: 'var(--text-base)',
+              color: 'var(--item-meta)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {time} · {duration}
+          </div>
         </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--item-meta)',
+            cursor: 'pointer',
+            width: 24,
+            height: 24,
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            flexShrink: 0,
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          >
+            <line x1="1" y1="1" x2="11" y2="11" />
+            <line x1="11" y1="1" x2="1" y2="11" />
+          </svg>
+        </button>
+      </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
-          {(status === 'uploading' || status === 'transcribing') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-meta)' }}>
-              <Spinner size={14} />
-              <span style={{ fontSize: 'var(--text-md)' }}>
-                {status === 'uploading' ? '上传中...' : '转写中...'}
-              </span>
-            </div>
-          )}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
+        {(status === 'uploading' || status === 'transcribing') && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-meta)' }}>
+            <Spinner size={14} />
+            <span style={{ fontSize: 'var(--text-md)' }}>
+              {status === 'uploading' ? '上传中...' : '转写中...'}
+            </span>
+          </div>
+        )}
 
-          {status === 'failed' && text === null && (
-            <div>
-              <p style={{ fontSize: 'var(--text-md)', color: 'var(--item-meta)', marginBottom: 10 }}>转写失败</p>
-              <button
-                onClick={() => retryTranscription(item.filename)}
-                style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--record-btn)',
-                  background: 'none',
-                  border: '1px solid var(--record-btn)',
-                  borderRadius: 5,
-                  padding: '4px 10px',
-                  cursor: 'pointer',
-                }}
-              >
-                重试
-              </button>
-            </div>
-          )}
+        {status === 'failed' && text === null && (
+          <div>
+            <p style={{ fontSize: 'var(--text-md)', color: 'var(--item-meta)', marginBottom: 10 }}>
+              转写失败
+            </p>
+            <button
+              onClick={() => retryTranscription(item.filename)}
+              style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--record-btn)',
+                background: 'none',
+                border: '1px solid var(--record-btn)',
+                borderRadius: 5,
+                padding: '4px 10px',
+                cursor: 'pointer',
+              }}
+            >
+              重试
+            </button>
+          </div>
+        )}
 
-          {text && (
-            <p style={{
+        {text && (
+          <p
+            style={{
               fontSize: 'var(--text-md)',
               color: 'var(--item-text)',
               lineHeight: 1.75,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               margin: 0,
-            }}>
-              {text}
-            </p>
-          )}
+            }}
+          >
+            {text}
+          </p>
+        )}
 
-          {!status && loading && (
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>加载中...</span>
-          )}
+        {!status && loading && (
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>加载中...</span>
+        )}
 
-          {!status && !loading && text === null && (
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>暂无转写内容</span>
-          )}
-        </div>
+        {!status && !loading && text === null && (
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--item-meta)' }}>
+            暂无转写内容
+          </span>
+        )}
+      </div>
     </div>
   )
 }

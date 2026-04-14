@@ -7,9 +7,14 @@ interface FileChipProps {
 }
 
 const svgBase = {
-  width: 12, height: 12, viewBox: '0 0 24 24',
-  fill: 'none', stroke: 'currentColor', strokeWidth: 1.5,
-  strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+  width: 12,
+  height: 12,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.5,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
 }
 
 function FileKindIcon({ kind }: { kind: FileKind }) {
@@ -81,15 +86,27 @@ function FileKindIcon({ kind }: { kind: FileKind }) {
 function chipColors(kind: FileKind) {
   switch (kind) {
     case 'audio':
-      return { bg: 'var(--badge-voice-bg)', color: 'var(--badge-voice-text)', border: 'var(--badge-voice-border)' }
+      return {
+        bg: 'var(--badge-voice-bg)',
+        color: 'var(--badge-voice-text)',
+        border: 'var(--badge-voice-border)',
+      }
     case 'pdf':
     case 'docx':
     case 'text':
     case 'markdown':
     case 'html':
-      return { bg: 'var(--badge-doc-bg)', color: 'var(--badge-doc-text)', border: 'var(--badge-doc-border)' }
+      return {
+        bg: 'var(--badge-doc-bg)',
+        color: 'var(--badge-doc-text)',
+        border: 'var(--badge-doc-border)',
+      }
     default:
-      return { bg: 'var(--badge-ai-bg)', color: 'var(--badge-ai-text)', border: 'var(--badge-ai-border)' }
+      return {
+        bg: 'var(--badge-ai-bg)',
+        color: 'var(--badge-ai-text)',
+        border: 'var(--badge-ai-border)',
+      }
   }
 }
 
@@ -117,18 +134,23 @@ export function FileChip({ filename, kind, onRemove }: FileChipProps) {
       }}
     >
       <FileKindIcon kind={kind} />
-      <span style={{
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        minWidth: 0,
-      }}>
+      <span
+        style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          minWidth: 0,
+        }}
+      >
         {namePart}
       </span>
       {extPart && <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{extPart}</span>}
       <span
         role="button"
-        onClick={(e) => { e.stopPropagation(); onRemove() }}
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove()
+        }}
         style={{
           cursor: 'pointer',
           opacity: 0.4,
@@ -137,10 +159,22 @@ export function FileChip({ filename, kind, onRemove }: FileChipProps) {
           marginLeft: 2,
           transition: 'opacity 0.15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8' }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '0.8'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.4'
+        }}
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <line x1="6" y1="6" x2="18" y2="18" />
           <line x1="18" y1="6" x2="6" y2="18" />
         </svg>

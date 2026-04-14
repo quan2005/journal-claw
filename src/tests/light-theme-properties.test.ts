@@ -56,28 +56,24 @@ describe('Feature: light-theme-optimization, Property 2: Alpha-free opaque value
 
   it('property: alpha-free variables must not contain rgba/hsla and must be valid hex colors', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...ALPHA_FREE_VARIABLES),
-        (varName) => {
-          const value = rootVars.get(varName)
-          expect(value).toBeDefined()
+      fc.property(fc.constantFrom(...ALPHA_FREE_VARIABLES), (varName) => {
+        const value = rootVars.get(varName)
+        expect(value).toBeDefined()
 
-          // Must NOT contain rgba or hsla
-          expect(value!.toLowerCase()).not.toContain('rgba')
-          expect(value!.toLowerCase()).not.toContain('hsla')
+        // Must NOT contain rgba or hsla
+        expect(value!.toLowerCase()).not.toContain('rgba')
+        expect(value!.toLowerCase()).not.toContain('hsla')
 
-          // Must NOT contain any alpha channel syntax (e.g. / 0.5 in modern color functions)
-          expect(value!).not.toMatch(/\/\s*[\d.]+/)
+        // Must NOT contain any alpha channel syntax (e.g. / 0.5 in modern color functions)
+        expect(value!).not.toMatch(/\/\s*[\d.]+/)
 
-          // Must be a valid 6-digit hex color
-          expect(value!).toMatch(HEX_COLOR_REGEX)
-        }
-      ),
-      { numRuns: 100, verbose: true }
+        // Must be a valid 6-digit hex color
+        expect(value!).toMatch(HEX_COLOR_REGEX)
+      }),
+      { numRuns: 100, verbose: true },
     )
   })
 })
-
 
 /**
  * Validates: Requirements 2.10
@@ -93,11 +89,7 @@ describe('Feature: light-theme-optimization, Property 2: Alpha-free opaque value
 /** Parse a 6-digit hex string (#RRGGBB) into [r, g, b] in 0..255 */
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
-  return [
-    parseInt(h.slice(0, 2), 16),
-    parseInt(h.slice(2, 4), 16),
-    parseInt(h.slice(4, 6), 16),
-  ]
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
 }
 
 /** sRGB channel (0..1) → linear RGB */
@@ -109,8 +101,8 @@ function srgbToLinear(c: number): number {
 function linearRgbToXyz(r: number, g: number, b: number): [number, number, number] {
   // sRGB to XYZ (D65) matrix
   const x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
-  const y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
-  const z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b
+  const y = 0.2126729 * r + 0.7151522 * g + 0.072175 * b
+  const z = 0.0193339 * r + 0.119192 * g + 0.9503041 * b
   return [x, y, z]
 }
 
@@ -119,7 +111,7 @@ function xyzToOklab(x: number, y: number, z: number): [number, number, number] {
   // XYZ to LMS (using Ottosson's M1 matrix)
   const l_ = 0.8189330101 * x + 0.3618667424 * y - 0.1288597137 * z
   const m_ = 0.0329845436 * x + 0.9293118715 * y + 0.0361456387 * z
-  const s_ = 0.0482003018 * x + 0.2643662691 * y + 0.6338517070 * z
+  const s_ = 0.0482003018 * x + 0.2643662691 * y + 0.633851707 * z
 
   // Cube root
   const l = Math.cbrt(l_)
@@ -127,9 +119,9 @@ function xyzToOklab(x: number, y: number, z: number): [number, number, number] {
   const s = Math.cbrt(s_)
 
   // LMS to OKLAB (M2 matrix)
-  const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s
-  const a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s
-  const b2 = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+  const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s
+  const a = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s
+  const b2 = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s
 
   return [L, a, b2]
 }
@@ -155,8 +147,13 @@ function hexToOklch(hex: string): [number, number, number] {
 
 /** Alpha-composite a foreground rgba on a background rgb, return hex */
 function alphaComposite(
-  fgR: number, fgG: number, fgB: number, alpha: number,
-  bgR: number, bgG: number, bgB: number,
+  fgR: number,
+  fgG: number,
+  fgB: number,
+  alpha: number,
+  bgR: number,
+  bgG: number,
+  bgB: number,
 ): string {
   const r = Math.round(fgR * alpha + bgR * (1 - alpha))
   const g = Math.round(fgG * alpha + bgG * (1 - alpha))
@@ -184,37 +181,58 @@ function deltaE_oklch(
 const ALPHA_REPLACEMENT_MAP = [
   {
     name: '--item-selected-bg',
-    fgR: 58, fgG: 90, fgB: 106, alpha: 0.05,
+    fgR: 58,
+    fgG: 90,
+    fgB: 106,
+    alpha: 0.05,
     newHex: '#ebeef0',
   },
   {
     name: '--item-hover-bg',
-    fgR: 0, fgG: 0, fgB: 0, alpha: 0.04,
+    fgR: 0,
+    fgG: 0,
+    fgB: 0,
+    alpha: 0.04,
     newHex: '#eff1f2',
   },
   {
     name: '--dock-dropzone-hover-bg',
-    fgR: 58, fgG: 90, fgB: 106, alpha: 0.06,
+    fgR: 58,
+    fgG: 90,
+    fgB: 106,
+    alpha: 0.06,
     newHex: '#ebeef0',
   },
   {
     name: '--record-highlight',
-    fgR: 58, fgG: 90, fgB: 106, alpha: 0.06,
+    fgR: 58,
+    fgG: 90,
+    fgB: 106,
+    alpha: 0.06,
     newHex: '#ebeef0',
   },
   {
     name: '--md-code-bg',
-    fgR: 0, fgG: 0, fgB: 0, alpha: 0.055,
+    fgR: 0,
+    fgG: 0,
+    fgB: 0,
+    alpha: 0.055,
     newHex: '#e8eaec',
   },
   {
     name: '--scrollbar-thumb',
-    fgR: 0, fgG: 0, fgB: 0, alpha: 0.12,
+    fgR: 0,
+    fgG: 0,
+    fgB: 0,
+    alpha: 0.12,
     newHex: '#d2d5d8',
   },
   {
     name: '--scrollbar-thumb-hover',
-    fgR: 0, fgG: 0, fgB: 0, alpha: 0.22,
+    fgR: 0,
+    fgG: 0,
+    fgB: 0,
+    alpha: 0.22,
     newHex: '#bec2c5',
   },
 ] as const
@@ -225,33 +243,34 @@ const [bgR, bgG, bgB] = hexToRgb(BG_HEX)
 describe('Feature: light-theme-optimization, Property 3: Alpha replacement visual fidelity', () => {
   it('property: replaced alpha colors must have ΔE < 2 compared to composited original', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...ALPHA_REPLACEMENT_MAP),
-        (entry) => {
-          // Compute the composited color (original rgba on bg)
-          const compositedHex = alphaComposite(
-            entry.fgR, entry.fgG, entry.fgB, entry.alpha,
-            bgR, bgG, bgB,
-          )
+      fc.property(fc.constantFrom(...ALPHA_REPLACEMENT_MAP), (entry) => {
+        // Compute the composited color (original rgba on bg)
+        const compositedHex = alphaComposite(
+          entry.fgR,
+          entry.fgG,
+          entry.fgB,
+          entry.alpha,
+          bgR,
+          bgG,
+          bgB,
+        )
 
-          // Convert both to OKLCH
-          const compositedOklch = hexToOklch(compositedHex)
-          const newOklch = hexToOklch(entry.newHex)
+        // Convert both to OKLCH
+        const compositedOklch = hexToOklch(compositedHex)
+        const newOklch = hexToOklch(entry.newHex)
 
-          // Compute ΔE
-          const dE = deltaE_oklch(compositedOklch, newOklch)
+        // Compute ΔE
+        const dE = deltaE_oklch(compositedOklch, newOklch)
 
-          expect(
-            dE,
-            `${entry.name}: composited=${compositedHex} vs new=${entry.newHex}, ΔE=${dE.toFixed(4)} should be < 2`,
-          ).toBeLessThan(2)
-        },
-      ),
+        expect(
+          dE,
+          `${entry.name}: composited=${compositedHex} vs new=${entry.newHex}, ΔE=${dE.toFixed(4)} should be < 2`,
+        ).toBeLessThan(2)
+      }),
       { numRuns: 100, verbose: true },
     )
   })
 })
-
 
 /**
  * Validates: Requirements 1.2, 4.5, 5.5, 7.5, 9.8
@@ -278,17 +297,37 @@ describe('Feature: light-theme-optimization, Property 3: Alpha replacement visua
  */
 const TINTED_NEUTRAL_VARIABLES = [
   // Background / Surface
-  '--bg', '--sidebar-bg', '--dock-bg', '--titlebar-bg',
-  '--detail-case-bg', '--md-pre-bg', '--queue-bg', '--context-menu-bg',
+  '--bg',
+  '--sidebar-bg',
+  '--dock-bg',
+  '--titlebar-bg',
+  '--detail-case-bg',
+  '--md-pre-bg',
+  '--queue-bg',
+  '--context-menu-bg',
   // Borders
-  '--divider', '--dock-border', '--detail-case-border',
-  '--sheet-handle', '--queue-border', '--context-menu-border',
+  '--divider',
+  '--dock-border',
+  '--detail-case-border',
+  '--sheet-handle',
+  '--queue-border',
+  '--context-menu-border',
   // Auxiliary text
-  '--item-meta', '--month-label', '--sidebar-month', '--duration-text',
-  '--detail-section-label', '--dock-dropzone-text', '--dock-dropzone-hint',
-  '--detail-summary', '--detail-case-key', '--md-quote-text', '--md-bullet',
+  '--item-meta',
+  '--month-label',
+  '--sidebar-month',
+  '--duration-text',
+  '--detail-section-label',
+  '--dock-dropzone-text',
+  '--dock-dropzone-hint',
+  '--detail-summary',
+  '--detail-case-key',
+  '--md-quote-text',
+  '--md-bullet',
   // Interactive states (ink-cyan only — amber states excluded)
-  '--md-code-bg', '--scrollbar-thumb', '--scrollbar-thumb-hover',
+  '--md-code-bg',
+  '--scrollbar-thumb',
+  '--scrollbar-thumb-hover',
 ] as const
 
 describe('Feature: light-theme-optimization, Property 1: Tinted Neutral hue range', () => {
@@ -303,35 +342,31 @@ describe('Feature: light-theme-optimization, Property 1: Tinted Neutral hue rang
 
   it('property: tinted neutral variables must have hue in cool-blue range when chroma > 0.003', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...TINTED_NEUTRAL_VARIABLES),
-        (varName) => {
-          const value = rootVars.get(varName)
-          expect(value).toBeDefined()
+      fc.property(fc.constantFrom(...TINTED_NEUTRAL_VARIABLES), (varName) => {
+        const value = rootVars.get(varName)
+        expect(value).toBeDefined()
 
-          // Only test hex colors (skip var() references)
-          if (!HEX_COLOR_REGEX.test(value!)) return
+        // Only test hex colors (skip var() references)
+        if (!HEX_COLOR_REGEX.test(value!)) return
 
-          const [, chroma, hue] = hexToOklch(value!)
+        const [, chroma, hue] = hexToOklch(value!)
 
-          // If chroma is very low (essentially achromatic), skip hue check
-          if (chroma <= 0.003) return
+        // If chroma is very low (essentially achromatic), skip hue check
+        if (chroma <= 0.003) return
 
-          expect(
-            hue,
-            `${varName} (${value}): hue=${hue.toFixed(2)}° should be in 195°~250° (chroma=${chroma.toFixed(4)})`,
-          ).toBeGreaterThanOrEqual(195)
-          expect(
-            hue,
-            `${varName} (${value}): hue=${hue.toFixed(2)}° should be in 195°~250° (chroma=${chroma.toFixed(4)})`,
-          ).toBeLessThanOrEqual(250)
-        },
-      ),
+        expect(
+          hue,
+          `${varName} (${value}): hue=${hue.toFixed(2)}° should be in 195°~250° (chroma=${chroma.toFixed(4)})`,
+        ).toBeGreaterThanOrEqual(195)
+        expect(
+          hue,
+          `${varName} (${value}): hue=${hue.toFixed(2)}° should be in 195°~250° (chroma=${chroma.toFixed(4)})`,
+        ).toBeLessThanOrEqual(250)
+      }),
       { numRuns: 100, verbose: true },
     )
   })
 })
-
 
 /**
  * Validates: Requirements 6.3
@@ -344,28 +379,32 @@ describe('Feature: light-theme-optimization, Property 1: Tinted Neutral hue rang
 
 /** The PALETTE from tags.ts — monochrome ink-cyan tinted neutrals */
 const TAG_PALETTE: [number, number, number][] = [
-  [100, 110, 120],  // ink-cyan neutral 1
-  [110, 118, 128],  // ink-cyan neutral 2
-  [ 90, 100, 112],  // ink-cyan neutral 3
-  [105, 112, 122],  // ink-cyan neutral 4
-  [ 95, 105, 116],  // ink-cyan neutral 5
+  [100, 110, 120], // ink-cyan neutral 1
+  [110, 118, 128], // ink-cyan neutral 2
+  [90, 100, 112], // ink-cyan neutral 3
+  [105, 112, 122], // ink-cyan neutral 4
+  [95, 105, 116], // ink-cyan neutral 5
 ]
 
-const LIGHT_TEXT_ALPHA = 0.80
+const LIGHT_TEXT_ALPHA = 0.8
 const LIGHT_BG_ALPHA = 0.12
 
 /** Compute relative luminance per WCAG 2.1 */
 function relativeLuminance(r: number, g: number, b: number): number {
-  const [rs, gs, bs] = [r / 255, g / 255, b / 255].map(c =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  const [rs, gs, bs] = [r / 255, g / 255, b / 255].map((c) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4),
   )
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
 }
 
 /** Compute WCAG contrast ratio between two colors */
 function contrastRatio(
-  r1: number, g1: number, b1: number,
-  r2: number, g2: number, b2: number,
+  r1: number,
+  g1: number,
+  b1: number,
+  r2: number,
+  g2: number,
+  b2: number,
 ): number {
   const l1 = relativeLuminance(r1, g1, b1)
   const l2 = relativeLuminance(r2, g2, b2)
@@ -376,8 +415,13 @@ function contrastRatio(
 
 /** Alpha-composite a foreground color on a background, returning [r,g,b] */
 function compositeRgba(
-  fgR: number, fgG: number, fgB: number, fgA: number,
-  bgR: number, bgG: number, bgB: number,
+  fgR: number,
+  fgG: number,
+  fgB: number,
+  fgA: number,
+  bgR: number,
+  bgG: number,
+  bgB: number,
 ): [number, number, number] {
   return [
     Math.round(fgR * fgA + bgR * (1 - fgA)),
@@ -388,66 +432,107 @@ function compositeRgba(
 
 describe('Feature: light-theme-optimization, Property 4: Tag palette contrast', () => {
   // Page background: --bg #f5f6f7
-  const pageBgR = 245, pageBgG = 246, pageBgB = 247
+  const pageBgR = 245,
+    pageBgG = 246,
+    pageBgB = 247
 
   it('property: new alpha values must improve contrast over old values for all palette colors', () => {
     const OLD_TEXT_ALPHA = 0.72
-    const OLD_BG_ALPHA = 0.10
+    const OLD_BG_ALPHA = 0.1
 
     fc.assert(
-      fc.property(
-        fc.constantFrom(...TAG_PALETTE),
-        ([r, g, b]) => {
-          // Old contrast
-          const [oldBgR, oldBgG, oldBgB] = compositeRgba(r, g, b, OLD_BG_ALPHA, pageBgR, pageBgG, pageBgB)
-          const [oldTextR, oldTextG, oldTextB] = compositeRgba(r, g, b, OLD_TEXT_ALPHA, oldBgR, oldBgG, oldBgB)
-          const oldRatio = contrastRatio(oldTextR, oldTextG, oldTextB, oldBgR, oldBgG, oldBgB)
+      fc.property(fc.constantFrom(...TAG_PALETTE), ([r, g, b]) => {
+        // Old contrast
+        const [oldBgR, oldBgG, oldBgB] = compositeRgba(
+          r,
+          g,
+          b,
+          OLD_BG_ALPHA,
+          pageBgR,
+          pageBgG,
+          pageBgB,
+        )
+        const [oldTextR, oldTextG, oldTextB] = compositeRgba(
+          r,
+          g,
+          b,
+          OLD_TEXT_ALPHA,
+          oldBgR,
+          oldBgG,
+          oldBgB,
+        )
+        const oldRatio = contrastRatio(oldTextR, oldTextG, oldTextB, oldBgR, oldBgG, oldBgB)
 
-          // New contrast
-          const [tagBgR, tagBgG, tagBgB] = compositeRgba(r, g, b, LIGHT_BG_ALPHA, pageBgR, pageBgG, pageBgB)
-          const [textR, textG, textB] = compositeRgba(r, g, b, LIGHT_TEXT_ALPHA, tagBgR, tagBgG, tagBgB)
-          const newRatio = contrastRatio(textR, textG, textB, tagBgR, tagBgG, tagBgB)
+        // New contrast
+        const [tagBgR, tagBgG, tagBgB] = compositeRgba(
+          r,
+          g,
+          b,
+          LIGHT_BG_ALPHA,
+          pageBgR,
+          pageBgG,
+          pageBgB,
+        )
+        const [textR, textG, textB] = compositeRgba(
+          r,
+          g,
+          b,
+          LIGHT_TEXT_ALPHA,
+          tagBgR,
+          tagBgG,
+          tagBgB,
+        )
+        const newRatio = contrastRatio(textR, textG, textB, tagBgR, tagBgG, tagBgB)
 
-          // New values must produce equal or better contrast than old values
-          expect(
-            newRatio,
-            `Tag rgb(${r},${g},${b}): new ratio ${newRatio.toFixed(2)} should be ≥ old ratio ${oldRatio.toFixed(2)}`,
-          ).toBeGreaterThanOrEqual(oldRatio * 0.99) // 1% tolerance for rounding
-        },
-      ),
+        // New values must produce equal or better contrast than old values
+        expect(
+          newRatio,
+          `Tag rgb(${r},${g},${b}): new ratio ${newRatio.toFixed(2)} should be ≥ old ratio ${oldRatio.toFixed(2)}`,
+        ).toBeGreaterThanOrEqual(oldRatio * 0.99) // 1% tolerance for rounding
+      }),
       { numRuns: 100, verbose: true },
     )
   })
 
   it('property: all palette colors must achieve contrast ≥ 1.5:1 (muted monochrome palette)', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...TAG_PALETTE),
-        ([r, g, b]) => {
-          const [tagBgR, tagBgG, tagBgB] = compositeRgba(r, g, b, LIGHT_BG_ALPHA, pageBgR, pageBgG, pageBgB)
-          const [textR, textG, textB] = compositeRgba(r, g, b, LIGHT_TEXT_ALPHA, tagBgR, tagBgG, tagBgB)
-          const ratio = contrastRatio(textR, textG, textB, tagBgR, tagBgG, tagBgB)
+      fc.property(fc.constantFrom(...TAG_PALETTE), ([r, g, b]) => {
+        const [tagBgR, tagBgG, tagBgB] = compositeRgba(
+          r,
+          g,
+          b,
+          LIGHT_BG_ALPHA,
+          pageBgR,
+          pageBgG,
+          pageBgB,
+        )
+        const [textR, textG, textB] = compositeRgba(
+          r,
+          g,
+          b,
+          LIGHT_TEXT_ALPHA,
+          tagBgR,
+          tagBgG,
+          tagBgB,
+        )
+        const ratio = contrastRatio(textR, textG, textB, tagBgR, tagBgG, tagBgB)
 
-          expect(
-            ratio,
-            `Tag rgb(${r},${g},${b}): ratio=${ratio.toFixed(2)} should be ≥ 1.5:1`,
-          ).toBeGreaterThanOrEqual(1.5)
-        },
-      ),
+        expect(
+          ratio,
+          `Tag rgb(${r},${g},${b}): ratio=${ratio.toFixed(2)} should be ≥ 1.5:1`,
+        ).toBeGreaterThanOrEqual(1.5)
+      }),
       { numRuns: 100, verbose: true },
     )
   })
 
   it('should verify tag CSS tokens match design spec', () => {
-    const css = fs.readFileSync(
-      path.resolve(__dirname, '../styles/globals.css'),
-      'utf-8',
-    )
+    const css = fs.readFileSync(path.resolve(__dirname, '../styles/globals.css'), 'utf-8')
     // Light theme tag tokens
-    expect(css).toContain('--tag-text: rgba(90,100,112,0.80)')
-    expect(css).toContain('--tag-bg: rgba(90,100,112,0.10)')
+    expect(css).toContain('--tag-text: rgba(90, 100, 112, 0.8)')
+    expect(css).toContain('--tag-bg: rgba(90, 100, 112, 0.1)')
     // Dark theme tag tokens
-    expect(css).toContain('--tag-text: rgba(200,147,59,0.65)')
-    expect(css).toContain('--tag-bg: rgba(200,147,59,0.10)')
+    expect(css).toContain('--tag-text: rgba(200, 147, 59, 0.65)')
+    expect(css).toContain('--tag-bg: rgba(200, 147, 59, 0.1)')
   })
 })

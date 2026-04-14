@@ -82,7 +82,10 @@ mod macos {
         let make_fn: MakeFn = std::mem::transmute(objc_msgSend as *const ());
         let ns_arg = make_fn(ns_cls, make_sel, arg_cstr.as_ptr());
         if ns_arg.is_null() {
-            eprintln!("[permissions] NSString stringWithUTF8String returned null for arg '{}'", arg);
+            eprintln!(
+                "[permissions] NSString stringWithUTF8String returned null for arg '{}'",
+                arg
+            );
             return None;
         }
 
@@ -111,7 +114,13 @@ mod macos {
 
     pub fn microphone_status() -> super::PermStatus {
         // AVMediaTypeAudio = "soun"
-        match unsafe { cls_msg_nsstr_arg("AVCaptureDevice", "authorizationStatusForMediaType:", "soun") } {
+        match unsafe {
+            cls_msg_nsstr_arg(
+                "AVCaptureDevice",
+                "authorizationStatusForMediaType:",
+                "soun",
+            )
+        } {
             Some(n) => super::PermStatus::from_av(n),
             None => {
                 eprintln!("[permissions] failed to query microphone permission via ObjC FFI");
@@ -124,7 +133,9 @@ mod macos {
         match unsafe { cls_msg_no_arg("SFSpeechRecognizer", "authorizationStatus") } {
             Some(n) => super::PermStatus::from_speech(n),
             None => {
-                eprintln!("[permissions] failed to query speech recognition permission via ObjC FFI");
+                eprintln!(
+                    "[permissions] failed to query speech recognition permission via ObjC FFI"
+                );
                 super::PermStatus::Unknown
             }
         }
@@ -141,7 +152,11 @@ fn find_claude_cli() -> Option<String> {
     match output {
         Ok(out) if out.status.success() => {
             let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if path.is_empty() { None } else { Some(path) }
+            if path.is_empty() {
+                None
+            } else {
+                Some(path)
+            }
         }
         Ok(_) => None,
         Err(e) => {
@@ -228,7 +243,11 @@ pub fn open_privacy_settings(pane: String) -> Result<(), String> {
         .status()
         .map_err(|e| format!("failed to open privacy settings: {}", e))?;
     if !status.success() {
-        return Err(format!("`open {}` exited with code {}", url, status.code().unwrap_or(-1)));
+        return Err(format!(
+            "`open {}` exited with code {}",
+            url,
+            status.code().unwrap_or(-1)
+        ));
     }
     Ok(())
 }
@@ -287,7 +306,10 @@ mod tests {
         let parsed: AppPermissions = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.microphone, PermStatus::Granted);
         assert_eq!(parsed.speech_recognition, PermStatus::NotDetermined);
-        assert_eq!(parsed.claude_cli_path, Some("/usr/local/bin/claude".to_string()));
+        assert_eq!(
+            parsed.claude_cli_path,
+            Some("/usr/local/bin/claude".to_string())
+        );
     }
 
     #[test]

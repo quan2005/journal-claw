@@ -30,7 +30,11 @@ struct BridgeState {
 
 impl BridgeState {
     fn new() -> Self {
-        Self { running: false, pending: vec![], reply_ctx: None }
+        Self {
+            running: false,
+            pending: vec![],
+            reply_ctx: None,
+        }
     }
 }
 
@@ -45,15 +49,22 @@ async fn fetch_token(app_id: &str, app_secret: &str) -> Result<(String, u64), St
         .send()
         .await
         .map_err(|e| format!("token request failed: {}", e))?;
-    let val: serde_json::Value = resp.json().await.map_err(|e| format!("token parse failed: {}", e))?;
+    let val: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("token parse failed: {}", e))?;
     // Check for API-level error
     if let Some(code) = val.get("code").and_then(|v| v.as_i64()) {
         if code != 0 {
-            let msg = val.get("msg").and_then(|v| v.as_str()).unwrap_or("unknown error");
+            let msg = val
+                .get("msg")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown error");
             return Err(format!("API error {}: {}", code, msg));
         }
     }
-    let token = val.get("tenant_access_token")
+    let token = val
+        .get("tenant_access_token")
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("missing tenant_access_token in response: {}", val))?
         .to_string();
@@ -116,9 +127,14 @@ pub async fn send_reply(token: &str, message_id: &str, text: &str) -> Result<(),
 // ── Status helpers ────────────────────────────────────────
 
 fn set_status(app: &AppHandle, state: &str, error: Option<String>) {
-    let status = FeishuStatus { state: state.to_string(), error };
+    let status = FeishuStatus {
+        state: state.to_string(),
+        error,
+    };
     if let Some(s) = app.try_state::<BridgeStatusState>() {
-        let mut guard = s.0.lock().unwrap_or_else(|e: std::sync::PoisonError<_>| e.into_inner());
+        let mut guard =
+            s.0.lock()
+                .unwrap_or_else(|e: std::sync::PoisonError<_>| e.into_inner());
         *guard = status.clone();
     }
     let _ = app.emit("feishu-status-changed", status);
@@ -134,7 +150,10 @@ fn push_message(
 ) {
     let mut s = bridge_state.lock().unwrap_or_else(|e| e.into_inner());
     s.pending.push(text);
-    s.reply_ctx = Some(FeishuReplyCtx { message_id, chat_id });
+    s.reply_ctx = Some(FeishuReplyCtx {
+        message_id,
+        chat_id,
+    });
 }
 
 fn flush_pending(bridge_state: &Arc<Mutex<BridgeState>>) -> Option<(String, FeishuReplyCtx)> {
@@ -156,11 +175,18 @@ fn set_not_running(bridge_state: &Arc<Mutex<BridgeState>>) {
 }
 
 fn is_running(bridge_state: &Arc<Mutex<BridgeState>>) -> bool {
-    bridge_state.lock().unwrap_or_else(|e| e.into_inner()).running
+    bridge_state
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .running
 }
 
 fn has_pending(bridge_state: &Arc<Mutex<BridgeState>>) -> bool {
-    !bridge_state.lock().unwrap_or_else(|e| e.into_inner()).pending.is_empty()
+    !bridge_state
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .pending
+        .is_empty()
 }
 
 // ── submit_batch ──────────────────────────────────────────
@@ -248,7 +274,10 @@ async fn download_resource(
     if !resp.status().is_success() {
         return Err(format!("download HTTP {}", resp.status()));
     }
-    let bytes = resp.bytes().await.map_err(|e| format!("read bytes failed: {}", e))?;
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("read bytes failed: {}", e))?;
     let tmp_path = std::env::temp_dir().join(filename);
     std::fs::write(&tmp_path, &bytes).map_err(|e| format!("write temp failed: {}", e))?;
     Ok(tmp_path)
@@ -268,8 +297,12 @@ async fn export_feishu_doc(token: &str, doc_token: &str) -> Result<String, Strin
         .send()
         .await
         .map_err(|e| format!("export task failed: {}", e))?;
-    let val: serde_json::Value = resp.json().await.map_err(|e| format!("export parse failed: {}", e))?;
-    let ticket = val.pointer("/data/ticket")
+    let val: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("export parse failed: {}", e))?;
+    let ticket = val
+        .pointer("/data/ticket")
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("no ticket in response: {}", val))?
         .to_string();
@@ -287,12 +320,17 @@ async fn export_feishu_doc(token: &str, doc_token: &str) -> Result<String, Strin
             .send()
             .await
             .map_err(|e| format!("poll failed: {}", e))?;
-        let poll_val: serde_json::Value = poll_resp.json().await.map_err(|e| format!("poll parse: {}", e))?;
-        let status = poll_val.pointer("/data/result/job_status")
+        let poll_val: serde_json::Value = poll_resp
+            .json()
+            .await
+            .map_err(|e| format!("poll parse: {}", e))?;
+        let status = poll_val
+            .pointer("/data/result/job_status")
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
         if status == 0 {
-            file_token = poll_val.pointer("/data/result/file_token")
+            file_token = poll_val
+                .pointer("/data/result/file_token")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
@@ -316,7 +354,10 @@ async fn export_feishu_doc(token: &str, doc_token: &str) -> Result<String, Strin
         .send()
         .await
         .map_err(|e| format!("download failed: {}", e))?;
-    let bytes = dl_resp.bytes().await.map_err(|e| format!("read bytes: {}", e))?;
+    let bytes = dl_resp
+        .bytes()
+        .await
+        .map_err(|e| format!("read bytes: {}", e))?;
     String::from_utf8(bytes.to_vec()).map_err(|e| format!("utf8: {}", e))
 }
 
@@ -325,7 +366,8 @@ fn extract_feishu_doc_token(text: &str) -> Option<String> {
     for pat in &patterns {
         if let Some(pos) = text.find(pat) {
             let after = &text[pos + pat.len()..];
-            let token: String = after.chars()
+            let token: String = after
+                .chars()
                 .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
                 .collect();
             if token.len() > 8 {
@@ -562,7 +604,10 @@ pub async fn run(app: AppHandle) {
         let payload_str = event.payload().to_string();
         let reply_state = reply_state.clone();
         let reply_app = reply_app.clone();
-        let token = reply_token_holder.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let token = reply_token_holder
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
         tauri::async_runtime::spawn(async move {
             if let Ok(payload) = serde_json::from_str::<FeishuReplyPayload>(&payload_str) {
                 if token.is_empty() {
@@ -571,7 +616,9 @@ pub async fn run(app: AppHandle) {
                     match send_reply(&token, &payload.reply_ctx.message_id, &payload.result).await {
                         Ok(()) => {}
                         Err(ref e) if e == "TOKEN_EXPIRED" => {
-                            eprintln!("[feishu_bridge] token expired, will refresh on next reconnect");
+                            eprintln!(
+                                "[feishu_bridge] token expired, will refresh on next reconnect"
+                            );
                         }
                         Err(e) => eprintln!("[feishu_bridge] send_reply error: {}", e),
                     }
@@ -653,11 +700,126 @@ pub async fn run(app: AppHandle) {
                 backoff_secs = 1;
             }
             Err(e) => {
-                eprintln!("[feishu_bridge] error: {}, reconnecting in {}s", e, backoff_secs);
+                eprintln!(
+                    "[feishu_bridge] error: {}, reconnecting in {}s",
+                    e, backoff_secs
+                );
                 set_status(&app, "connecting", None);
                 sleep(Duration::from_secs(backoff_secs)).await;
                 backoff_secs = (backoff_secs * 2).min(60);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chunks_ascii_within_limit() {
+        assert_eq!(safe_utf8_chunks("hello", 10), vec!["hello"]);
+    }
+
+    #[test]
+    fn chunks_ascii_exact_boundary() {
+        assert_eq!(safe_utf8_chunks("abcdef", 3), vec!["abc", "def"]);
+    }
+
+    #[test]
+    fn chunks_ascii_uneven() {
+        assert_eq!(safe_utf8_chunks("abcdefg", 3), vec!["abc", "def", "g"]);
+    }
+
+    #[test]
+    fn chunks_empty_string() {
+        assert_eq!(safe_utf8_chunks("", 10), vec![""]);
+    }
+
+    #[test]
+    fn chunks_chinese_within_limit() {
+        assert_eq!(safe_utf8_chunks("你好", 10), vec!["你好"]);
+    }
+
+    #[test]
+    fn chunks_chinese_split_respects_boundary() {
+        // 4 chars x 3 bytes = 12 bytes; max=7 -> 2 chars (6 bytes) per chunk
+        assert_eq!(safe_utf8_chunks("你好世界", 7), vec!["你好", "世界"]);
+    }
+
+    #[test]
+    fn chunks_chinese_one_per_chunk() {
+        assert_eq!(safe_utf8_chunks("你好世", 3), vec!["你", "好", "世"]);
+    }
+
+    #[test]
+    fn chunks_mixed_ascii_chinese() {
+        assert_eq!(safe_utf8_chunks("hi你好", 5), vec!["hi你", "好"]);
+    }
+
+    #[test]
+    fn chunks_emoji_4byte() {
+        assert_eq!(safe_utf8_chunks("😀😀", 5), vec!["😀", "😀"]);
+    }
+
+    #[test]
+    fn chunks_preserves_all_content() {
+        let text = "Hello你好World世界";
+        let result = safe_utf8_chunks(text, 6);
+        let reassembled: String = result.into_iter().collect();
+        assert_eq!(reassembled, text);
+    }
+
+    #[test]
+    fn chunks_realistic_4000_limit() {
+        let text = "会议纪要：".repeat(500); // 7500 bytes
+        let chunks = safe_utf8_chunks(&text, 4000);
+        assert!(chunks.len() >= 2);
+        let reassembled: String = chunks.iter().cloned().collect();
+        assert_eq!(reassembled, text);
+        for chunk in &chunks {
+            assert!(chunk.len() <= 4000);
+        }
+    }
+
+    #[test]
+    fn extract_docx_token() {
+        let url = "https://example.feishu.cn/docx/ABC123def456_xyz";
+        assert_eq!(
+            extract_feishu_doc_token(url),
+            Some("ABC123def456_xyz".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_docs_token() {
+        let url = "https://example.feishu.cn/docs/LONGTOKEN12345678";
+        assert_eq!(
+            extract_feishu_doc_token(url),
+            Some("LONGTOKEN12345678".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_token_stops_at_query() {
+        let url = "https://example.feishu.cn/docx/ABC123def456?from=share";
+        assert_eq!(
+            extract_feishu_doc_token(url),
+            Some("ABC123def456".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_token_too_short() {
+        assert_eq!(
+            extract_feishu_doc_token("https://feishu.cn/docx/short"),
+            None
+        );
+    }
+
+    #[test]
+    fn extract_no_doc_link() {
+        assert_eq!(extract_feishu_doc_token("just some text"), None);
+        assert_eq!(extract_feishu_doc_token(""), None);
     }
 }

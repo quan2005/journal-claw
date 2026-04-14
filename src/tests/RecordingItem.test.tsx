@@ -6,7 +6,7 @@ import type { RecordingItem as RecordingItemType } from '../types'
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -32,38 +32,17 @@ const noop = vi.fn()
 
 describe('RecordingItem', () => {
   it('shows date number when showDate=true', () => {
-    render(
-      <RecordingItem
-        item={baseItem}
-        showDate={true}
-        onContextMenu={noop}
-        onClick={noop}
-      />
-    )
+    render(<RecordingItem item={baseItem} showDate={true} onContextMenu={noop} onClick={noop} />)
     expect(screen.getByText('28')).toBeTruthy()
   })
 
   it('hides date number when showDate=false', () => {
-    render(
-      <RecordingItem
-        item={baseItem}
-        showDate={false}
-        onContextMenu={noop}
-        onClick={noop}
-      />
-    )
+    render(<RecordingItem item={baseItem} showDate={false} onContextMenu={noop} onClick={noop} />)
     expect(screen.queryByText('28')).toBeNull()
   })
 
   it('shows display_name', () => {
-    render(
-      <RecordingItem
-        item={baseItem}
-        showDate={true}
-        onContextMenu={noop}
-        onClick={noop}
-      />
-    )
+    render(<RecordingItem item={baseItem} showDate={true} onContextMenu={noop} onClick={noop} />)
     expect(screen.getByText('录音 2026-03-28 19:54')).toBeTruthy()
   })
 })

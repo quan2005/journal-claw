@@ -269,11 +269,13 @@ fn extract_whisperkit_transcription_text(stdout_text: &str) -> String {
         // so we must find the ": " that follows the filename extension, not the
         // first ':' in the string.  We look for ": " (colon + space) after a
         // known audio extension to skip colons inside the filename.
-        let sep_idx = ["m4a: ", "mp4: ", "wav: ", "mp3: ", "aac: ", "ogg: ", "flac: "]
-            .iter()
-            .filter_map(|ext| suffix.find(ext).map(|i| i + ext.len() - 2)) // point at ': '
-            .min()
-            .or_else(|| suffix.find(": "));
+        let sep_idx = [
+            "m4a: ", "mp4: ", "wav: ", "mp3: ", "aac: ", "ogg: ", "flac: ",
+        ]
+        .iter()
+        .filter_map(|ext| suffix.find(ext).map(|i| i + ext.len() - 2)) // point at ': '
+        .min()
+        .or_else(|| suffix.find(": "));
         if let Some(colon_idx) = sep_idx {
             let body = truncate_at_first_marker(
                 &suffix[colon_idx + 2..],
@@ -421,7 +423,11 @@ fn merge_word_segments_to_sentences(segments: &[WhisperSegment]) -> Vec<WhisperS
     let mut current_speaker = segments[0].speaker.clone();
 
     for (i, seg) in segments.iter().enumerate() {
-        let gap = if i > 0 { seg.start - segments[i - 1].end } else { 0.0 };
+        let gap = if i > 0 {
+            seg.start - segments[i - 1].end
+        } else {
+            0.0
+        };
         let speaker_changed = seg.speaker != current_speaker;
 
         if i > 0 && (gap > PAUSE_THRESHOLD || speaker_changed) {
@@ -638,12 +644,11 @@ async fn transcribe_with_dashscope(
     emit_progress(app, &filename, "transcribing");
 
     // Read audio file and encode as base64 data URI
-    let file_bytes = fs::read(file_path)
-        .map_err(|e| {
-            let msg = format!("读取音频文件失败: {}", e);
-            save_transcript(app, file_path, "failed", &msg);
-            msg
-        })?;
+    let file_bytes = fs::read(file_path).map_err(|e| {
+        let msg = format!("读取音频文件失败: {}", e);
+        save_transcript(app, file_path, "failed", &msg);
+        msg
+    })?;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
     let mime = audio_mime_type(file_path);
     let data_uri = format!("data:{};base64,{}", mime, b64);
@@ -750,9 +755,7 @@ pub async fn transcribe_audio_to_ai_markdown(
 
     // Step 1: 转写（根据引擎选择）
     let transcript = match asr_engine.as_str() {
-        "apple" => {
-            transcribe_with_apple_stt(app.clone(), file_path.clone(), duration_secs).await?
-        }
+        "apple" => transcribe_with_apple_stt(app.clone(), file_path.clone(), duration_secs).await?,
         "whisperkit" => {
             transcribe_with_whisperkit(app.clone(), file_path.clone(), cfg.whisperkit_model).await?
         }
@@ -810,7 +813,10 @@ pub async fn transcribe_audio_to_ai_markdown(
                         segments: transcript
                             .segments
                             .iter()
-                            .map(|s| WhisperSegment { speaker: None, ..s.clone() })
+                            .map(|s| WhisperSegment {
+                                speaker: None,
+                                ..s.clone()
+                            })
                             .collect(),
                         engine: transcript.engine.clone(),
                     };
@@ -1029,10 +1035,7 @@ pub async fn transcribe_with_apple_stt(
         }
         Err(_) => {
             // 超时：终止子进程
-            let msg = format!(
-                "Apple STT 转写超时（{}秒），已终止进程",
-                timeout.as_secs()
-            );
+            let msg = format!("Apple STT 转写超时（{}秒），已终止进程", timeout.as_secs());
             save_transcript(&app, &file_path, "failed", &msg);
             return Err(msg);
         }
@@ -1106,11 +1109,19 @@ pub async fn transcribe_with_apple_stt(
     // SFSpeechRecognizer 返回词级别 segments，合并为句子级别
     let merged_segments = merge_word_segments_to_sentences(&segments);
     // 用合并后的句子文本替换原始 text（带标点）
-    let merged_text = merged_segments.iter().map(|s| s.text.as_str()).collect::<Vec<_>>().join("");
+    let merged_text = merged_segments
+        .iter()
+        .map(|s| s.text.as_str())
+        .collect::<Vec<_>>()
+        .join("");
 
     let transcript = Transcript {
         status: "completed".to_string(),
-        text: if merged_segments.is_empty() { text } else { merged_text },
+        text: if merged_segments.is_empty() {
+            text
+        } else {
+            merged_text
+        },
         segments: merged_segments,
         engine,
     };
@@ -1140,24 +1151,32 @@ pub async fn diarize_with_speakerkit(
     emit_progress(&app, &filename, "diarizing");
 
     let mut cmd = Command::new(&cli_path);
-    cmd.args([
-        "diarize",
-        "--audio",
-        file_path.to_str().unwrap_or(""),
-    ]);
+    cmd.args(["diarize", "--audio", file_path.to_str().unwrap_or("")]);
 
     // Pass model folder explicitly so Swift CLI can find models in dev mode
     // (Tauri dev copies sidecar to target/debug/, breaking relative path resolution)
     let model_candidates = [
         // Packaged .app: Contents/MacOS/../Resources/resources/speakerkit-models
-        cli_path.parent().and_then(|d| d.parent()).map(|p| p.join("Resources/resources/speakerkit-models")),
+        cli_path
+            .parent()
+            .and_then(|d| d.parent())
+            .map(|p| p.join("Resources/resources/speakerkit-models")),
         // Dev: binary dir/../resources/speakerkit-models
-        cli_path.parent().map(|d| d.join("../resources/speakerkit-models")),
+        cli_path
+            .parent()
+            .map(|d| d.join("../resources/speakerkit-models")),
         // Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
-        Some(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/speakerkit-models")),
+        Some(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("resources/speakerkit-models"),
+        ),
     ];
     if let Some(folder) = model_candidates.into_iter().flatten().find(|p| p.exists()) {
-        if let Some(s) = folder.canonicalize().ok().and_then(|p| p.to_str().map(String::from)) {
+        if let Some(s) = folder
+            .canonicalize()
+            .ok()
+            .and_then(|p| p.to_str().map(String::from))
+        {
             cmd.args(["--model-folder", &s]);
         }
     }
@@ -1165,9 +1184,9 @@ pub async fn diarize_with_speakerkit(
     use std::process::Stdio;
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    let mut child = cmd.spawn().map_err(|e| {
-        format!("启动 journal-speech diarize 失败: {}", e)
-    })?;
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("启动 journal-speech diarize 失败: {}", e))?;
 
     // 流式读取 stderr 日志
     let stderr_handle = if let Some(stderr) = child.stderr.take() {
@@ -1294,7 +1313,11 @@ pub async fn diarize_with_speakerkit(
                         .iter()
                         .filter_map(|x| x.as_f64().map(|f| f as f32))
                         .collect();
-                    if vec.is_empty() { None } else { Some((label.clone(), vec)) }
+                    if vec.is_empty() {
+                        None
+                    } else {
+                        Some((label.clone(), vec))
+                    }
                 })
                 .collect()
         })
@@ -1332,7 +1355,8 @@ pub async fn transcribe_with_whisperkit(
     let cli_path = match config::find_whisperkit_cli_path() {
         Some(path) => path,
         None => {
-            let message = "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
+            let message =
+                "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
             save_transcript(&app, &file_path, "failed", &message);
             return Err(message);
         }
@@ -1425,7 +1449,12 @@ pub async fn transcribe_with_whisperkit(
                 if let Some(h) = stderr_handle {
                     let _ = h.await;
                 }
-                save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（1800秒），已终止进程");
+                save_transcript(
+                    &app,
+                    &file_path,
+                    "failed",
+                    "WhisperKit 转录超时（1800秒），已终止进程",
+                );
                 return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
             }
         }
@@ -1447,7 +1476,12 @@ pub async fn transcribe_with_whisperkit(
         }
         Err(_) => {
             let _ = child.kill().await;
-            save_transcript(&app, &file_path, "failed", "WhisperKit 转录超时（1800秒），已终止进程");
+            save_transcript(
+                &app,
+                &file_path,
+                "failed",
+                "WhisperKit 转录超时（1800秒），已终止进程",
+            );
             return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
         }
     };
@@ -1570,11 +1604,7 @@ pub fn merge_transcript_with_speakers(
             }
 
             WhisperSegment {
-                speaker: Some(
-                    best_label
-                        .unwrap_or("SPEAKER_UNKNOWN")
-                        .to_string(),
-                ),
+                speaker: Some(best_label.unwrap_or("SPEAKER_UNKNOWN").to_string()),
                 start: seg.start,
                 end: seg.end,
                 text: seg.text.clone(),
@@ -1583,7 +1613,11 @@ pub fn merge_transcript_with_speakers(
         .collect();
 
     // Sort by start time ascending
-    merged_segments.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(std::cmp::Ordering::Equal));
+    merged_segments.sort_by(|a, b| {
+        a.start
+            .partial_cmp(&b.start)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     Transcript {
         status: transcript.status.clone(),
@@ -1747,14 +1781,32 @@ SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
             status: "completed".into(),
             text: "大家好 今天讨论排期".into(),
             segments: vec![
-                WhisperSegment { speaker: None, start: 0.0, end: 3.0, text: "大家好".into() },
-                WhisperSegment { speaker: None, start: 3.5, end: 7.0, text: "今天讨论排期".into() },
+                WhisperSegment {
+                    speaker: None,
+                    start: 0.0,
+                    end: 3.0,
+                    text: "大家好".into(),
+                },
+                WhisperSegment {
+                    speaker: None,
+                    start: 3.5,
+                    end: 7.0,
+                    text: "今天讨论排期".into(),
+                },
             ],
             engine: None,
         };
         let speakers = vec![
-            SpeakerSegment { label: "SPEAKER_00".into(), start: 0.0, end: 3.2 },
-            SpeakerSegment { label: "SPEAKER_01".into(), start: 3.3, end: 7.5 },
+            SpeakerSegment {
+                label: "SPEAKER_00".into(),
+                start: 0.0,
+                end: 3.2,
+            },
+            SpeakerSegment {
+                label: "SPEAKER_01".into(),
+                start: 3.3,
+                end: 7.5,
+            },
         ];
 
         let merged = merge_transcript_with_speakers(&transcript, &speakers);
@@ -1770,14 +1822,19 @@ SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
         let transcript = Transcript {
             status: "completed".into(),
             text: "独白内容".into(),
-            segments: vec![
-                WhisperSegment { speaker: None, start: 0.0, end: 5.0, text: "独白内容".into() },
-            ],
+            segments: vec![WhisperSegment {
+                speaker: None,
+                start: 0.0,
+                end: 5.0,
+                text: "独白内容".into(),
+            }],
             engine: None,
         };
-        let speakers = vec![
-            SpeakerSegment { label: "SPEAKER_00".into(), start: 0.0, end: 10.0 },
-        ];
+        let speakers = vec![SpeakerSegment {
+            label: "SPEAKER_00".into(),
+            start: 0.0,
+            end: 10.0,
+        }];
 
         let merged = merge_transcript_with_speakers(&transcript, &speakers);
         assert_eq!(merged.segments.len(), 1);
@@ -1791,18 +1848,38 @@ SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
             status: "completed".into(),
             text: "已有标签".into(),
             segments: vec![
-                WhisperSegment { speaker: Some("EXISTING_A".into()), start: 0.0, end: 3.0, text: "已有标签".into() },
-                WhisperSegment { speaker: None, start: 3.5, end: 6.0, text: "无标签".into() },
+                WhisperSegment {
+                    speaker: Some("EXISTING_A".into()),
+                    start: 0.0,
+                    end: 3.0,
+                    text: "已有标签".into(),
+                },
+                WhisperSegment {
+                    speaker: None,
+                    start: 3.5,
+                    end: 6.0,
+                    text: "无标签".into(),
+                },
             ],
             engine: None,
         };
-        let speakers = vec![
-            SpeakerSegment { label: "SPEAKER_01".into(), start: 0.0, end: 7.0 },
-        ];
+        let speakers = vec![SpeakerSegment {
+            label: "SPEAKER_01".into(),
+            start: 0.0,
+            end: 7.0,
+        }];
 
         let merged = merge_transcript_with_speakers(&transcript, &speakers);
-        assert_eq!(merged.segments[0].speaker.as_deref(), Some("EXISTING_A"), "existing speaker label should not be overwritten");
-        assert_eq!(merged.segments[1].speaker.as_deref(), Some("SPEAKER_01"), "missing speaker should be assigned from speakers list");
+        assert_eq!(
+            merged.segments[0].speaker.as_deref(),
+            Some("EXISTING_A"),
+            "existing speaker label should not be overwritten"
+        );
+        assert_eq!(
+            merged.segments[1].speaker.as_deref(),
+            Some("SPEAKER_01"),
+            "missing speaker should be assigned from speakers list"
+        );
     }
 
     #[test]
@@ -1810,15 +1887,21 @@ SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
         let transcript = Transcript {
             status: "completed".into(),
             text: "无说话人数据".into(),
-            segments: vec![
-                WhisperSegment { speaker: None, start: 0.0, end: 3.0, text: "无说话人数据".into() },
-            ],
+            segments: vec![WhisperSegment {
+                speaker: None,
+                start: 0.0,
+                end: 3.0,
+                text: "无说话人数据".into(),
+            }],
             engine: None,
         };
         let speakers: Vec<SpeakerSegment> = vec![];
 
         let merged = merge_transcript_with_speakers(&transcript, &speakers);
         assert_eq!(merged.segments.len(), 1);
-        assert_eq!(merged.segments[0].speaker.as_deref(), Some("SPEAKER_UNKNOWN"));
+        assert_eq!(
+            merged.segments[0].speaker.as_deref(),
+            Some("SPEAKER_UNKNOWN")
+        );
     }
 }

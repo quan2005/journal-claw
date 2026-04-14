@@ -4,9 +4,15 @@ import { DetailPanel } from '../components/DetailPanel'
 import type { JournalEntry } from '../types'
 
 beforeAll(() => {
+  // Mock CSS.highlights (not available in jsdom)
+  Object.defineProperty(globalThis, 'CSS', {
+    value: { highlights: new Map() },
+    writable: true,
+    configurable: true,
+  })
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -34,9 +40,18 @@ describe('empty state guidance cards', () => {
   }
 
   const fakeEntry: JournalEntry = {
-    filename: '01-test.md', path: '/ws/2604/01-test.md',
-    title: 'test', summary: '', tags: [], sources: [], year_month: '2604',
-    day: 1, created_time: '10:00', created_at_secs: 0, mtime_secs: 0, materials: [],
+    filename: '01-test.md',
+    path: '/ws/2604/01-test.md',
+    title: 'test',
+    summary: '',
+    tags: [],
+    sources: [],
+    year_month: '2604',
+    day: 1,
+    created_time: '10:00',
+    created_at_secs: 0,
+    mtime_secs: 0,
+    materials: [],
   }
 
   it('shows recording and paste cards when entries is empty', () => {
@@ -98,7 +113,7 @@ describe('empty state guidance cards', () => {
 
   it('does not render sources section when sources is empty', async () => {
     render(<DetailPanel {...baseProps} entry={fakeEntry} entries={[fakeEntry]} />)
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(screen.queryByTestId('sources-row')).toBeNull()
   })
 })

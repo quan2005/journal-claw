@@ -173,8 +173,8 @@ pub fn start_scheduler(app: AppHandle) {
             };
 
             // Emit status with next check time
-            let workspace = workspace_settings::get_workspace_path_for_auto_lint(&app)
-                .unwrap_or_default();
+            let workspace =
+                workspace_settings::get_workspace_path_for_auto_lint(&app).unwrap_or_default();
             let new_entries = compute_new_entries(&workspace);
             let last = read_last_lint(&workspace);
             let _ = app.emit(
@@ -190,7 +190,9 @@ pub fn start_scheduler(app: AppHandle) {
             );
 
             let now = chrono::Local::now().naive_local();
-            let wait_duration = (next - now).to_std().unwrap_or(std::time::Duration::from_secs(60));
+            let wait_duration = (next - now)
+                .to_std()
+                .unwrap_or(std::time::Duration::from_secs(60));
 
             // Wait until next check time OR config change
             tokio::select! {
@@ -229,11 +231,16 @@ pub fn check_missed_run(app: &AppHandle) {
         Err(_) => return,
     };
     let last = read_last_lint(&workspace);
-    let last_run = last
-        .and_then(|l| l.last_run)
-        .and_then(|s| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z").ok()
-            .or_else(|| chrono::DateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z").ok().map(|dt| dt.naive_local()))
-            .or_else(|| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S").ok()));
+    let last_run = last.and_then(|l| l.last_run).and_then(|s| {
+        chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z")
+            .ok()
+            .or_else(|| {
+                chrono::DateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z")
+                    .ok()
+                    .map(|dt| dt.naive_local())
+            })
+            .or_else(|| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S").ok())
+    });
 
     if let Some(last_run) = last_run {
         let now = chrono::Local::now().naive_local();
@@ -367,7 +374,11 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
         }
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            let error = format!("lint 执行失败 (exit {}): {}", output.status, stderr.chars().take(200).collect::<String>());
+            let error = format!(
+                "lint 执行失败 (exit {}): {}",
+                output.status,
+                stderr.chars().take(200).collect::<String>()
+            );
             eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
                 "auto-lint-status",
@@ -409,8 +420,7 @@ pub fn get_auto_lint_status(app: AppHandle) -> Result<AutoLintStatus, String> {
     let new_entries = compute_new_entries(&workspace);
 
     let next_check = if cfg.enabled {
-        next_check_time(&cfg.frequency, &cfg.time)
-            .map(|t| t.format("%Y-%m-%d %H:%M").to_string())
+        next_check_time(&cfg.frequency, &cfg.time).map(|t| t.format("%Y-%m-%d %H:%M").to_string())
     } else {
         None
     };
@@ -441,4 +451,203 @@ pub async fn trigger_lint_now(app: AppHandle) -> Result<(), String> {
     let workspace = workspace_settings::get_workspace_path_for_auto_lint(&app)?;
     run_lint(&app, &workspace, true).await;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Timelike;
+
+    #[test]
+    fn parse_time_valid() {
+        assert_eq!(parse_time("09:30"), Some((9, 30)));
+        assert_eq!(parse_time("00:00"), Some((0, 0)));
+        assert_eq!(parse_time("23:59"), Some((23, 59)));
+    }
+
+    #[test]
+    fn parse_time_invalid() {
+        assert_eq!(parse_time("invalid"), None);
+        assert_eq!(parse_time("09"), None);
+        assert_eq!(parse_time("09:30:00"), None);
+        assert_eq!(parse_time("ab:cd"), None);
+    }
+
+    #[test]
+    fn last_lint_path_construction() {
+        let p = last_lint_path("/tmp/ws");
+        assert_eq!(
+            p,
+            std::path::PathBuf::from("/tmp/ws/.claude/last-lint.json")
+        );
+    }
+
+    #[test]
+    fn count_entries_empty_workspace() {
+        let tmp = std::env::temp_dir().join("auto_lint_count_empty");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        assert_eq!(count_journal_entries(tmp.to_str().unwrap()), 0);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn count_entries_with_md_files() {
+        let tmp = std::env::temp_dir().join("auto_lint_count_md");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let d1 = tmp.join("2603");
+        let d2 = tmp.join("2604");
+        std::fs::create_dir_all(&d1).unwrap();
+        std::fs::create_dir_all(&d2).unwrap();
+        std::fs::write(d1.join("01-a.md"), "a").unwrap();
+        std::fs::write(d2.join("01-b.md"), "b").unwrap();
+        std::fs::write(d2.join("02-c.md"), "c").unwrap();
+        assert_eq!(count_journal_entries(tmp.to_str().unwrap()), 3);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn count_entries_ignores_non_yymm_dirs() {
+        let tmp = std::env::temp_dir().join("auto_lint_count_ignore");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join("notes")).unwrap();
+        std::fs::create_dir_all(tmp.join("2604")).unwrap();
+        std::fs::write(tmp.join("notes").join("01-x.md"), "x").unwrap();
+        std::fs::write(tmp.join("2604").join("01-y.md"), "y").unwrap();
+        assert_eq!(count_journal_entries(tmp.to_str().unwrap()), 1);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn count_entries_nonexistent_workspace() {
+        assert_eq!(count_journal_entries("/tmp/auto_lint_no_such_dir_xyz"), 0);
+    }
+
+    #[test]
+    fn read_last_lint_missing_file() {
+        let tmp = std::env::temp_dir().join("auto_lint_read_missing");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        assert!(read_last_lint(tmp.to_str().unwrap()).is_none());
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn read_last_lint_valid_json() {
+        let tmp = std::env::temp_dir().join("auto_lint_read_valid");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let claude_dir = tmp.join(".claude");
+        std::fs::create_dir_all(&claude_dir).unwrap();
+        std::fs::write(
+            claude_dir.join("last-lint.json"),
+            r#"{"last_run":"2026-04-10T09:00:00","entries_at_last_run":15}"#,
+        )
+        .unwrap();
+        let result = read_last_lint(tmp.to_str().unwrap()).unwrap();
+        assert_eq!(result.last_run.as_deref(), Some("2026-04-10T09:00:00"));
+        assert_eq!(result.entries_at_last_run, Some(15));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn read_last_lint_falls_back_to_old_filename() {
+        let tmp = std::env::temp_dir().join("auto_lint_read_fallback");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let claude_dir = tmp.join(".claude");
+        std::fs::create_dir_all(&claude_dir).unwrap();
+        std::fs::write(
+            claude_dir.join("last-dream.json"),
+            r#"{"last_run":"2026-03-01T08:00:00","entries_at_last_run":5}"#,
+        )
+        .unwrap();
+        let result = read_last_lint(tmp.to_str().unwrap()).unwrap();
+        assert_eq!(result.entries_at_last_run, Some(5));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn read_last_lint_invalid_json() {
+        let tmp = std::env::temp_dir().join("auto_lint_read_invalid");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let claude_dir = tmp.join(".claude");
+        std::fs::create_dir_all(&claude_dir).unwrap();
+        std::fs::write(claude_dir.join("last-lint.json"), "not json").unwrap();
+        assert!(read_last_lint(tmp.to_str().unwrap()).is_none());
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn compute_new_entries_no_prior_lint() {
+        let tmp = std::env::temp_dir().join("auto_lint_compute_no_prior");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let dir = tmp.join("2604");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("01-a.md"), "a").unwrap();
+        std::fs::write(dir.join("02-b.md"), "b").unwrap();
+        assert_eq!(compute_new_entries(tmp.to_str().unwrap()), 2);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn compute_new_entries_saturates_at_zero() {
+        let tmp = std::env::temp_dir().join("auto_lint_compute_saturate");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let claude_dir = tmp.join(".claude");
+        std::fs::create_dir_all(&claude_dir).unwrap();
+        std::fs::write(
+            claude_dir.join("last-lint.json"),
+            r#"{"last_run":"2026-04-10T09:00:00","entries_at_last_run":100}"#,
+        )
+        .unwrap();
+        assert_eq!(compute_new_entries(tmp.to_str().unwrap()), 0);
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn next_check_time_invalid_frequency() {
+        assert!(next_check_time("biweekly", "09:00").is_none());
+    }
+
+    #[test]
+    fn next_check_time_invalid_time() {
+        assert!(next_check_time("daily", "invalid").is_none());
+    }
+
+    #[test]
+    fn next_check_time_daily_returns_some() {
+        let result = next_check_time("daily", "03:00");
+        assert!(result.is_some());
+        let dt = result.unwrap();
+        assert_eq!(dt.time().hour(), 3);
+        assert_eq!(dt.time().minute(), 0);
+    }
+
+    #[test]
+    fn next_check_time_weekly_returns_sunday() {
+        use chrono::Datelike;
+        let result = next_check_time("weekly", "10:00");
+        assert!(result.is_some());
+        let dt = result.unwrap();
+        assert_eq!(dt.date().weekday(), chrono::Weekday::Sun);
+    }
+
+    #[test]
+    fn next_check_time_monthly_returns_first() {
+        use chrono::Datelike;
+        let result = next_check_time("monthly", "08:30");
+        assert!(result.is_some());
+        let dt = result.unwrap();
+        assert_eq!(dt.date().day(), 1);
+        assert_eq!(dt.time().hour(), 8);
+        assert_eq!(dt.time().minute(), 30);
+    }
+
+    #[test]
+    fn next_check_time_is_in_the_future() {
+        let now = chrono::Local::now().naive_local();
+        for freq in &["daily", "weekly", "monthly"] {
+            let result = next_check_time(freq, "00:00").unwrap();
+            assert!(result >= now, "{} next_check should be >= now", freq);
+        }
+    }
 }

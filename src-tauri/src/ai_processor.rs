@@ -91,8 +91,7 @@ const SCRIPT_IDENTITY_CREATE: &str =
 const SCRIPT_FIX_FRONTMATTER: &str =
     include_str!("../resources/workspace-template/.claude/scripts/fix-frontmatter");
 
-const WORKSPACE_USER_CLAUDE_MD: &str =
-    include_str!("../resources/workspace-template/CLAUDE.md");
+const WORKSPACE_USER_CLAUDE_MD: &str = include_str!("../resources/workspace-template/CLAUDE.md");
 
 // ── Ideate skill template ───────────────────────
 const SKILL_IDEATE_MD: &str =
@@ -146,19 +145,62 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let ideate_dir = dot_claude.join("skills").join("ideate");
     let ideate_scripts = ideate_dir.join("scripts");
     if let Err(e) = std::fs::create_dir_all(&ideate_scripts) {
-        eprintln!("[ai_processor] warn: failed to create skills/ideate/scripts dir: {}", e);
+        eprintln!(
+            "[ai_processor] warn: failed to create skills/ideate/scripts dir: {}",
+            e
+        );
     } else {
         let _ = std::fs::write(ideate_dir.join("SKILL.md"), SKILL_IDEATE_MD);
-        let _ = std::fs::write(ideate_dir.join("visual-companion.md"), SKILL_IDEATE_VISUAL_COMPANION);
+        let _ = std::fs::write(
+            ideate_dir.join("visual-companion.md"),
+            SKILL_IDEATE_VISUAL_COMPANION,
+        );
 
-        let _ = std::fs::write(ideate_scripts.join("ab-test.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/ab-test.html"));
-        let _ = std::fs::write(ideate_scripts.join("bento.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/bento.html"));
-        let _ = std::fs::write(ideate_scripts.join("flow.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/flow.html"));
-        let _ = std::fs::write(ideate_scripts.join("styleguide.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/styleguide.html"));
-        let _ = std::fs::write(ideate_scripts.join("wireframe.html"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/wireframe.html"));
-        let _ = std::fs::write(ideate_scripts.join("canvas.css"), include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/canvas.css"));
+        let _ = std::fs::write(
+            ideate_scripts.join("ab-test.html"),
+            include_str!(
+                "../resources/workspace-template/.claude/skills/ideate/scripts/ab-test.html"
+            ),
+        );
+        let _ = std::fs::write(
+            ideate_scripts.join("bento.html"),
+            include_str!(
+                "../resources/workspace-template/.claude/skills/ideate/scripts/bento.html"
+            ),
+        );
+        let _ = std::fs::write(
+            ideate_scripts.join("flow.html"),
+            include_str!("../resources/workspace-template/.claude/skills/ideate/scripts/flow.html"),
+        );
+        let _ = std::fs::write(
+            ideate_scripts.join("styleguide.html"),
+            include_str!(
+                "../resources/workspace-template/.claude/skills/ideate/scripts/styleguide.html"
+            ),
+        );
+        let _ = std::fs::write(
+            ideate_scripts.join("wireframe.html"),
+            include_str!(
+                "../resources/workspace-template/.claude/skills/ideate/scripts/wireframe.html"
+            ),
+        );
+        let _ = std::fs::write(
+            ideate_scripts.join("canvas.css"),
+            include_str!(
+                "../resources/workspace-template/.claude/skills/ideate/scripts/canvas.css"
+            ),
+        );
 
-        for obsolete in &["start-server.sh", "stop-server.sh", "server.cjs", "helper.js", "frame-template.html", "template-compare.html", "template-mockup.html", "template-bento.html"] {
+        for obsolete in &[
+            "start-server.sh",
+            "stop-server.sh",
+            "server.cjs",
+            "helper.js",
+            "frame-template.html",
+            "template-compare.html",
+            "template-mockup.html",
+            "template-bento.html",
+        ] {
             let _ = std::fs::remove_file(ideate_scripts.join(obsolete));
         }
         let _ = std::fs::remove_dir_all(ideate_scripts.join("templates"));
@@ -167,20 +209,28 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     // ── Dream skill template ────────────────────────
     let lint_dir = dot_claude.join("skills").join("lint");
     if let Err(e) = std::fs::create_dir_all(&lint_dir) {
-        eprintln!("[ai_processor] warn: failed to create skills/lint dir: {}", e);
+        eprintln!(
+            "[ai_processor] warn: failed to create skills/lint dir: {}",
+            e
+        );
     } else {
         let _ = std::fs::write(lint_dir.join("SKILL.md"), SKILL_LINT_MD);
     }
-
 
     // ── Visual Design Book skill template ────────
     let vdb_dir = dot_claude.join("skills").join("visual-design-book");
     let vdb_refs = vdb_dir.join("references");
     if let Err(e) = std::fs::create_dir_all(&vdb_refs) {
-        eprintln!("[ai_processor] warn: failed to create skills/visual-design-book/references dir: {}", e);
+        eprintln!(
+            "[ai_processor] warn: failed to create skills/visual-design-book/references dir: {}",
+            e
+        );
     } else {
         let _ = std::fs::write(vdb_dir.join("SKILL.md"), SKILL_VISUAL_DESIGN_BOOK_MD);
-        let _ = std::fs::write(vdb_refs.join("structure-template.html"), SKILL_VISUAL_DESIGN_BOOK_TEMPLATE);
+        let _ = std::fs::write(
+            vdb_refs.join("structure-template.html"),
+            SKILL_VISUAL_DESIGN_BOOK_TEMPLATE,
+        );
     }
     // Remove old dream dir if it exists (cleanup for existing users)
     let old_dream_dir = dot_claude.join("skills").join("dream");
@@ -777,8 +827,14 @@ pub async fn process_material(
         msg
     })?;
 
-    let stdout = child.stdout.take().ok_or_else(|| "无法获取 stdout".to_string())?;
-    let stderr_handle = child.stderr.take().ok_or_else(|| "无法获取 stderr".to_string())?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "无法获取 stdout".to_string())?;
+    let stderr_handle = child
+        .stderr
+        .take()
+        .ok_or_else(|| "无法获取 stderr".to_string())?;
 
     // Store child (without stdout/stderr — they're taken above)
     {
@@ -1090,9 +1146,12 @@ pub fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(), Strin
         use tauri::Emitter;
 
         let emit = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
-            let _ = app.emit("engine-install-log", serde_json::json!({
-                "engine": engine, "line": line, "done": done, "success": success,
-            }));
+            let _ = app.emit(
+                "engine-install-log",
+                serde_json::json!({
+                    "engine": engine, "line": line, "done": done, "success": success,
+                }),
+            );
         };
 
         if let Some(stderr) = child.stderr.take() {
@@ -1102,9 +1161,12 @@ pub fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(), Strin
                 for line in BufReader::new(stderr).lines().map_while(Result::ok) {
                     let t = line.trim().to_string();
                     if !t.is_empty() {
-                        let _ = app_c.emit("engine-install-log", serde_json::json!({
-                            "engine": eng, "line": t, "done": false, "success": false,
-                        }));
+                        let _ = app_c.emit(
+                            "engine-install-log",
+                            serde_json::json!({
+                                "engine": eng, "line": t, "done": false, "success": false,
+                            }),
+                        );
                     }
                 }
             });
@@ -1116,16 +1178,28 @@ pub fn install_engine(app: tauri::AppHandle, engine: String) -> Result<(), Strin
                 for line in BufReader::new(stdout).lines().map_while(Result::ok) {
                     let t = line.trim().to_string();
                     if !t.is_empty() {
-                        let _ = app_c.emit("engine-install-log", serde_json::json!({
-                            "engine": eng, "line": t, "done": false, "success": false,
-                        }));
+                        let _ = app_c.emit(
+                            "engine-install-log",
+                            serde_json::json!({
+                                "engine": eng, "line": t, "done": false, "success": false,
+                            }),
+                        );
                     }
                 }
             });
         }
 
         let success = child.wait().map(|s| s.success()).unwrap_or(false);
-        emit(&app, if success { "安装完成" } else { "安装失败" }, true, success);
+        emit(
+            &app,
+            if success {
+                "安装完成"
+            } else {
+                "安装失败"
+            },
+            true,
+            success,
+        );
     });
 
     Ok(())
@@ -1410,7 +1484,10 @@ mod tests {
         ensure_workspace_dot_claude(tmp.to_str().unwrap());
         let content2 = std::fs::read_to_string(&claude_md).unwrap();
         assert_ne!(content2, "用户自定义内容", "second call must overwrite");
-        assert!(content2.contains("tags"), "overwritten CLAUDE.md should have template content");
+        assert!(
+            content2.contains("tags"),
+            "overwritten CLAUDE.md should have template content"
+        );
 
         // settings.json exists and contains the SessionStart hook
         let settings_json = dot_claude.join("settings.json");
@@ -1481,12 +1558,8 @@ mod tests {
 
     #[test]
     fn extract_panic_message_from_string() {
-        let payload: Box<dyn std::any::Any + Send> =
-            Box::new("formatted error".to_string());
-        assert_eq!(
-            super::extract_panic_message(&payload),
-            "formatted error"
-        );
+        let payload: Box<dyn std::any::Any + Send> = Box::new("formatted error".to_string());
+        assert_eq!(super::extract_panic_message(&payload), "formatted error");
     }
 
     #[test]

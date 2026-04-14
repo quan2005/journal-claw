@@ -35,17 +35,17 @@ export interface RawMaterial {
 }
 
 export interface JournalEntry {
-  filename: string        // "28-AI平台产品会议纪要.md"
-  path: string            // absolute path
-  title: string           // "AI平台产品会议纪要"
-  summary: string         // from frontmatter summary field
-  tags: string[]          // from frontmatter tags field
-  sources: string[]       // workspace-relative paths of source materials
-  year_month: string      // "2603"
-  day: number             // 28
-  created_time: string    // "10:15" (from file birthtime)
+  filename: string // "28-AI平台产品会议纪要.md"
+  path: string // absolute path
+  title: string // "AI平台产品会议纪要"
+  summary: string // from frontmatter summary field
+  tags: string[] // from frontmatter tags field
+  sources: string[] // workspace-relative paths of source materials
+  year_month: string // "2603"
+  day: number // 28
+  created_time: string // "10:15" (from file birthtime)
   created_at_secs: number // birthtime Unix timestamp for stable same-day sorting
-  mtime_secs: number      // mtime Unix timestamp for change detection
+  mtime_secs: number // mtime Unix timestamp for change detection
   materials: RawMaterial[]
 }
 
@@ -75,14 +75,14 @@ export interface SpeakerProfile {
 
 // ── 身份档案 ─────────────────────────────────────────────
 export interface IdentityEntry {
-  filename: string       // "广州-张三.md"
-  path: string           // absolute path
-  name: string           // "张三"
-  region: string         // "广州"
-  summary: string        // from frontmatter
-  tags: string[]         // from frontmatter
-  speaker_id: string     // linked speaker profile id
-  mtime_secs: number     // Unix timestamp for sorting
+  filename: string // "广州-张三.md"
+  path: string // absolute path
+  name: string // "张三"
+  region: string // "广州"
+  summary: string // from frontmatter
+  tags: string[] // from frontmatter
+  speaker_id: string // linked speaker profile id
+  mtime_secs: number // Unix timestamp for sorting
 }
 
 export type MergeMode = 'voice_only' | 'full'
@@ -100,7 +100,13 @@ export interface TodoItem {
 }
 
 // ── Processing queue ────────────────────────────────────
-export type QueueItemStatus = 'recording' | 'converting' | 'queued' | 'processing' | 'completed' | 'failed'
+export type QueueItemStatus =
+  | 'recording'
+  | 'converting'
+  | 'queued'
+  | 'processing'
+  | 'completed'
+  | 'failed'
 
 export interface QueueItem {
   path: string
@@ -109,6 +115,6 @@ export interface QueueItem {
   error?: string
   addedAt: number
   logs: string[]
-  elapsedSecs?: number   // only for 'recording' status
-  audioLevel?: number    // only for 'recording' status, 0.0–1.0 RMS
+  elapsedSecs?: number // only for 'recording' status
+  audioLevel?: number // only for 'recording' status, 0.0–1.0 RMS
 }

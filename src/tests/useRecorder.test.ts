@@ -12,7 +12,9 @@ vi.mock('@tauri-apps/api/event', () => ({
 }))
 
 describe('useRecorder', () => {
-  afterEach(() => { vi.useRealTimers() })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   it('starts in idle state', () => {
     const { result } = renderHook(() => useRecorder())
@@ -21,14 +23,20 @@ describe('useRecorder', () => {
 
   it('transitions to recording on start()', async () => {
     const { result } = renderHook(() => useRecorder())
-    await act(async () => { await result.current.start() })
+    await act(async () => {
+      await result.current.start()
+    })
     expect(result.current.status).toBe('recording')
   })
 
   it('returns to idle on stop()', async () => {
     const { result } = renderHook(() => useRecorder())
-    await act(async () => { await result.current.start() })
-    await act(async () => { await result.current.stop() })
+    await act(async () => {
+      await result.current.start()
+    })
+    await act(async () => {
+      await result.current.stop()
+    })
     expect(result.current.status).toBe('idle')
   })
 })

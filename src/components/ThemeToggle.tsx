@@ -7,8 +7,8 @@ interface ThemeToggleProps {
 }
 
 const SEGMENTS: { value: Theme; icon: LucideIcon }[] = [
-  { value: 'light',  icon: Sun },
-  { value: 'dark',   icon: Moon },
+  { value: 'light', icon: Sun },
+  { value: 'dark', icon: Moon },
   { value: 'system', icon: Monitor },
 ]
 

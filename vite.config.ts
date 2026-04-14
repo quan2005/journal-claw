@@ -10,6 +10,7 @@ export default defineConfig(async () => ({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    exclude: ["e2e/**", "node_modules/**"],
     globals: true,
     setupFiles: ['./src/tests/setup.ts'],
   },

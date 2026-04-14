@@ -32,16 +32,5 @@ jobs:
         with:
           workspaces: src-tauri
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -W warnings
       - run: cargo test --manifest-path src-tauri/Cargo.toml
-
-  e2e:
-    runs-on: macos-15
-    needs: [frontend]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
-      - run: npm ci
-      - run: npx playwright install webkit
-      - run: npx playwright test

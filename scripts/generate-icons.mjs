@@ -8,7 +8,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ICONS_DIR = join(__dirname, '..', 'src-tauri', 'icons');
 const ICONSET_DIR = join(ICONS_DIR, 'icon.iconset');
 
-const COLOR = '#C8933B';
+const LINE_COLOR = '#3d4044';  // 低调墨青灰，日志行
+const DOT_COLOR = '#C8933B';   // 琥珀金，仅录音点
 const BG = '#0f0f0f';
 const VB = 320;
 const FONT_SIZE = 260;
@@ -18,7 +19,7 @@ const LINE_START = 6;
 function lines(strokeWidth) {
   let result = '';
   for (let y = LINE_START; y <= VB; y += LINE_GAP) {
-    result += `<line x1="0" y1="${y}" x2="${VB}" y2="${y}" stroke="${COLOR}" stroke-width="${strokeWidth}"/>`;
+    result += `<line x1="0" y1="${y}" x2="${VB}" y2="${y}" stroke="${LINE_COLOR}" stroke-width="${strokeWidth}"/>`;
   }
   return result;
 }
@@ -26,8 +27,8 @@ function lines(strokeWidth) {
 function dot(show) {
   if (!show) return '';
   return `
-    <circle cx="220" cy="225" r="13" fill="${COLOR}" opacity="0.18"/>
-    <circle cx="220" cy="225" r="6.5" fill="${COLOR}"/>`;
+    <circle cx="220" cy="225" r="13" fill="${DOT_COLOR}" opacity="0.18"/>
+    <circle cx="220" cy="225" r="6.5" fill="${DOT_COLOR}"/>`;
 }
 
 function makeSvg(size, strokeWidth, showDot) {

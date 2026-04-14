@@ -97,12 +97,9 @@ fn scan_skills_dir(dir: &PathBuf, scope: &str) -> Vec<SkillInfo> {
 pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
     let mut all_skills = Vec::new();
 
-    // 1. Project skills: <workspace>/.claude/skills/
-    let config = crate::config::load_config(&app)?;
-    if !config.workspace_path.is_empty() {
-        let project_skills_dir = PathBuf::from(&config.workspace_path)
-            .join(".claude")
-            .join("skills");
+    // 1. Project skills: <cwd>/.claude/skills/
+    if let Ok(cwd) = std::env::current_dir() {
+        let project_skills_dir = cwd.join(".claude").join("skills");
         all_skills.extend(scan_skills_dir(&project_skills_dir, "project"));
     }
 
@@ -116,14 +113,13 @@ pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
 }
 
 #[tauri::command]
-pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), String> {
+pub fn open_skills_dir(_app: tauri::AppHandle, scope: String) -> Result<(), String> {
     let dir = match scope.as_str() {
         "project" => {
-            let config = crate::config::load_config(&app)?;
-            if config.workspace_path.is_empty() {
-                return Err("workspace_path not set".to_string());
-            }
-            PathBuf::from(&config.workspace_path).join(".claude").join("skills")
+            std::env::current_dir()
+                .map_err(|e| e.to_string())?
+                .join(".claude")
+                .join("skills")
         }
         "global" => {
             dirs::home_dir()

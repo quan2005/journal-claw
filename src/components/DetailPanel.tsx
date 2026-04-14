@@ -9,6 +9,7 @@ import { getJournalEntryContent, getWorkspacePath, openFile } from '../lib/tauri
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
+import { FindBar } from './FindBar'
 import { createTranslator, detectLang } from '../lib/i18n'
 
 // Module-level translator for components that can't use hooks (CodeBlock is defined outside component)
@@ -326,6 +327,7 @@ export const DetailPanel = React.memo(function DetailPanel({
   onVisualDesign,
 }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
+  const [showFind, setShowFind] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
@@ -335,6 +337,9 @@ export const DetailPanel = React.memo(function DetailPanel({
       return
     }
     setContent(null)
+    CSS.highlights?.delete('search-result')
+    CSS.highlights?.delete('search-current')
+    setShowFind(false)
     getJournalEntryContent(entry.path).then(setContent)
   }, [entry?.path, entry?.mtime_secs])
 
@@ -390,11 +395,23 @@ export const DetailPanel = React.memo(function DetailPanel({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onDeselect()
+      if (e.key === 'Escape' && !showFind) onDeselect()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onDeselect])
+  }, [onDeselect, showFind])
+
+  // Cmd+F opens find bar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowFind(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -964,8 +981,19 @@ export const DetailPanel = React.memo(function DetailPanel({
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--detail-bg)',
+        position: 'relative',
       }}
     >
+      {showFind && (
+        <FindBar
+          containerRef={bodyRef}
+          onClose={() => {
+            CSS.highlights?.delete('search-result')
+            CSS.highlights?.delete('search-current')
+            setShowFind(false)
+          }}
+        />
+      )}
       {/* Scrollable body */}
       <div
         ref={bodyRef}

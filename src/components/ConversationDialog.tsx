@@ -44,6 +44,16 @@ export function ConversationDialog({
   const userScrolledUp = useRef(false)
   const initialized = useRef(false)
   const [closing, setClosing] = useState(false)
+  const prevVisible = useRef(visible)
+
+  // Detect visible going false → trigger close animation
+  useEffect(() => {
+    if (prevVisible.current && !visible && !closing) {
+      setClosing(true)
+      setTimeout(() => setClosing(false), ANIM_DURATION)
+    }
+    prevVisible.current = visible
+  }, [visible, closing])
 
   // Create or load session on first mount
   useEffect(() => {
@@ -74,15 +84,10 @@ export function ConversationDialog({
     }
   }, [messages, visible])
 
-  // Animate close: set closing state, wait for animation, then call onClose
+  // Close just notifies parent; animation is driven by visible prop change
   const handleClose = useCallback(() => {
-    if (closing) return
-    setClosing(true)
-    setTimeout(() => {
-      setClosing(false)
-      onClose()
-    }, ANIM_DURATION)
-  }, [onClose, closing])
+    onClose()
+  }, [onClose])
 
   // ESC to close
   useEffect(() => {
@@ -118,7 +123,7 @@ export function ConversationDialog({
         : t('conversationChat')
       : t('conversationAgent'))
 
-  if (!visible) return null
+  if (!visible && !closing) return null
 
   return (
     <>

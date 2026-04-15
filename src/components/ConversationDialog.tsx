@@ -134,8 +134,6 @@ export function ConversationDialog({
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
           zIndex: 100,
           animation: `${closing ? 'modal-backdrop-out' : 'modal-backdrop-in'} ${ANIM_DURATION}ms ease-out both`,
         }}

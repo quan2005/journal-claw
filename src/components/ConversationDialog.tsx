@@ -43,6 +43,7 @@ export function ConversationDialog({
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const initialized = useRef(false)
+  const [closing, setClosing] = useState(false)
 
   // Create or load session on first mount
   useEffect(() => {
@@ -73,8 +74,13 @@ export function ConversationDialog({
     }
   }, [messages, visible])
 
+  // Animate close: set closing state, wait for animation, then call onClose
   const handleClose = useCallback(() => {
-    onClose()
+    setClosing(true)
+    setTimeout(() => {
+      setClosing(false)
+      onClose()
+    }, ANIM_DURATION)
   }, [onClose])
 
   const handleSelectSession = useCallback(
@@ -110,7 +116,7 @@ export function ConversationDialog({
           inset: 0,
           background: 'var(--sheet-overlay)',
           zIndex: 100,
-          animation: `modal-backdrop-in ${ANIM_DURATION}ms ease-out both`,
+          animation: `${closing ? 'modal-backdrop-out' : 'modal-backdrop-in'} ${ANIM_DURATION}ms ease-out both`,
         }}
       />
       {/* Dialog */}
@@ -131,7 +137,7 @@ export function ConversationDialog({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: `modal-panel-in ${ANIM_DURATION}ms ease-out both`,
+          animation: `${closing ? 'modal-panel-out' : 'modal-panel-in'} ${ANIM_DURATION}ms ease-out both`,
         }}
       >
         {/* Header */}

@@ -144,80 +144,63 @@ export function ConversationDialog({
           transition: `opacity ${ANIM_DURATION}ms ease-out, transform ${ANIM_DURATION}ms ease-out`,
         }}
       >
-        {/* Thin header strip */}
+        {/* Thin header strip — visual cap only */}
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: 6,
-            padding: '6px 12px',
+            height: 8,
             borderBottom: '0.5px solid var(--dialog-glass-divider)',
             flexShrink: 0,
           }}
-        >
-          {isStreaming && (
-            <span
-              style={{
-                fontSize: '0.625rem',
-                padding: '1px 6px',
-                borderRadius: 100,
-                border: '0.5px solid var(--status-success)',
-                color: 'var(--status-success)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                marginRight: 'auto',
-              }}
-            >
-              <span
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  background: 'var(--status-success)',
-                }}
-              />
-              输出中
-            </span>
-          )}
-          <button
-            onClick={handleNewSession}
-            title="⌘N"
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: 'var(--dialog-kbd-bg)',
-              border: '0.5px solid var(--dialog-glass-divider)',
-              cursor: 'pointer',
-              color: 'var(--item-meta)',
-              fontSize: 'var(--text-sm)',
-              lineHeight: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'background 0.15s ease-out, color 0.15s ease-out',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--item-hover-bg)'
-              e.currentTarget.style.color = 'var(--item-text)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
-              e.currentTarget.style.color = 'var(--item-meta)'
-            }}
-          >
-            +
-          </button>
-        </div>
+        />
 
         {/* Body: split layout */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
           <SessionList activeSessionId={sessionId} onSelect={handleSelectSession} />
 
           {/* Right: conversation */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              position: 'relative',
+            }}
+          >
+            {/* Floating new session button */}
+            <button
+              onClick={handleNewSession}
+              title="⌘N"
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 12,
+                zIndex: 10,
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: 'var(--dialog-kbd-bg)',
+                border: '0.5px solid var(--dialog-glass-divider)',
+                cursor: 'pointer',
+                color: 'var(--item-meta)',
+                fontSize: 'var(--text-sm)',
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.15s ease-out, color 0.15s ease-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--item-hover-bg)'
+                e.currentTarget.style.color = 'var(--item-text)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
+                e.currentTarget.style.color = 'var(--item-meta)'
+              }}
+            >
+              +
+            </button>
             {/* Messages */}
             <div
               ref={scrollRef}

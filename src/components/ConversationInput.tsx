@@ -46,6 +46,7 @@ export function ConversationInput({
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState('')
   const [dragOver, setDragOver] = useState(false)
+  const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pendingMessages = useRef<string[]>([])
 
@@ -270,11 +271,8 @@ export function ConversationInput({
       onDrop={handleDrop}
       style={{
         padding: '8px 16px 12px',
-        borderTop: '0.5px solid var(--queue-border)',
         flexShrink: 0,
         position: 'relative',
-        background: dragOver ? 'var(--item-hover-bg)' : undefined,
-        transition: 'background 0.15s ease-out',
       }}
     >
       {slashOpen && (
@@ -285,97 +283,95 @@ export function ConversationInput({
         />
       )}
 
-      {/* Attachments */}
-      {hasAttachments && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 6,
-            flexWrap: 'wrap',
-            marginBottom: 6,
-          }}
-        >
-          {attachments.map((att) => (
-            <div
-              key={att.path}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                background:
-                  att.status === 'transcribed' ? 'var(--status-success-bg)' : 'var(--segment-bg)',
-                border:
-                  att.status === 'transcribed'
-                    ? '0.5px solid var(--status-success)'
-                    : '0.5px solid var(--queue-border)',
-                borderRadius: 6,
-                padding: '3px 8px',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--item-text)',
-              }}
-            >
-              {att.status === 'transcribing' && <Spinner size={10} borderWidth={1.5} />}
-              {att.status === 'transcribed' && (
-                <span style={{ color: 'var(--status-success)', fontSize: '0.6875rem' }}>✓</span>
-              )}
-              <span
+      {/* Unified input container */}
+      <div
+        style={{
+          border: focused ? '0.5px solid var(--record-btn)' : '0.5px solid var(--queue-border)',
+          borderRadius: 10,
+          background: dragOver ? 'var(--item-hover-bg)' : 'var(--segment-bg)',
+          overflow: 'hidden',
+          transition: 'border-color 0.15s ease-out, background 0.15s ease-out',
+        }}
+      >
+        {/* Attachments */}
+        {hasAttachments && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 6,
+              flexWrap: 'wrap',
+              padding: '8px 12px 0',
+            }}
+          >
+            {attachments.map((att) => (
+              <div
+                key={att.path}
                 style={{
-                  maxWidth: 120,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background:
+                    att.status === 'transcribed' ? 'var(--status-success-bg)' : 'var(--queue-bg)',
+                  border:
+                    att.status === 'transcribed'
+                      ? '0.5px solid var(--status-success)'
+                      : '0.5px solid var(--queue-border)',
+                  borderRadius: 6,
+                  padding: '3px 8px',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-text)',
                 }}
               >
-                {att.filename}
-              </span>
-              <span
-                onClick={() => removeAttachment(att.path)}
-                style={{
-                  color: 'var(--item-meta)',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  marginLeft: 2,
-                }}
-              >
-                ×
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+                {att.status === 'transcribing' && <Spinner size={10} borderWidth={1.5} />}
+                {att.status === 'transcribed' && (
+                  <span style={{ color: 'var(--status-success)', fontSize: 'var(--text-xs)' }}>
+                    ✓
+                  </span>
+                )}
+                <span
+                  style={{
+                    maxWidth: 120,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {att.filename}
+                </span>
+                <span
+                  onClick={() => removeAttachment(att.path)}
+                  style={{
+                    color: 'var(--item-meta)',
+                    cursor: 'pointer',
+                    fontSize: 'var(--text-xs)',
+                    marginLeft: 2,
+                  }}
+                >
+                  ×
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Input row */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <button
-          onClick={handleAddFile}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--item-meta)',
-            fontSize: '1.125rem',
-            cursor: 'pointer',
-            padding: '4px 2px',
-            lineHeight: 1,
-            flexShrink: 0,
-          }}
-          title="Add file"
-        >
-          +
-        </button>
+        {/* Textarea */}
         <textarea
           ref={inputRef}
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           placeholder={placeholder ?? t('conversationInputPlaceholder')}
           rows={1}
           style={{
-            flex: 1,
+            display: 'block',
+            width: '100%',
             resize: 'none',
-            border: '0.5px solid var(--queue-border)',
-            borderRadius: 6,
-            padding: '8px 10px',
+            border: 'none',
+            borderRadius: 0,
+            padding: '10px 12px 4px',
             fontSize: 'var(--text-sm)',
             fontFamily: 'var(--font-body)',
             background: 'transparent',
@@ -386,40 +382,68 @@ export function ConversationInput({
             overflow: 'auto',
           }}
         />
-        {isStreaming && (
-          <button
-            onClick={onCancel}
-            style={{
-              background: 'none',
-              border: '0.5px solid var(--queue-border)',
-              borderRadius: 6,
-              padding: '6px 12px',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--status-danger)',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            {t('conversationStop')}
-          </button>
-        )}
-        <button
-          onClick={handleSend}
-          disabled={!input.trim()}
+
+        {/* Bottom toolbar */}
+        <div
           style={{
-            background: input.trim() ? 'var(--item-text)' : 'var(--queue-border)',
-            border: 'none',
-            borderRadius: 6,
-            padding: '6px 12px',
-            fontSize: 'var(--text-xs)',
-            color: input.trim() ? 'var(--bg)' : 'var(--item-meta)',
-            cursor: input.trim() ? 'pointer' : 'default',
-            flexShrink: 0,
-            transition: 'background 0.15s ease-out, color 0.15s ease-out',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '4px 8px 6px',
           }}
         >
-          {t('conversationSend')}
-        </button>
+          <button
+            onClick={handleAddFile}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-md)',
+              cursor: 'pointer',
+              padding: '2px 4px',
+              lineHeight: 1,
+              borderRadius: 4,
+            }}
+            title="Add file"
+          >
+            +
+          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {isStreaming && (
+              <button
+                onClick={onCancel}
+                style={{
+                  background: 'none',
+                  border: '0.5px solid var(--queue-border)',
+                  borderRadius: 6,
+                  padding: '4px 10px',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--status-danger)',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s ease-out',
+                }}
+              >
+                {t('conversationStop')}
+              </button>
+            )}
+            <button
+              onClick={handleSend}
+              disabled={!input.trim()}
+              style={{
+                background: input.trim() ? 'var(--record-btn)' : 'var(--queue-border)',
+                border: 'none',
+                borderRadius: 6,
+                padding: '4px 10px',
+                fontSize: 'var(--text-xs)',
+                color: input.trim() ? 'var(--record-btn-icon)' : 'var(--item-meta)',
+                cursor: input.trim() ? 'pointer' : 'default',
+                transition: 'background 0.15s ease-out, color 0.15s ease-out',
+              }}
+            >
+              {t('conversationSend')}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,13 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
-import {
-  openBrainstormTerminal,
-  listBrainstormKeys,
-  listOpenBrainstormKeys,
-  clearBrainstormSession,
-  pickFolder,
-} from '../lib/tauri'
+import { pickFolder } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 function DatePicker({
@@ -105,7 +99,7 @@ function DatePicker({
         borderRadius: 8,
         padding: 8,
         zIndex: 1001,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        boxShadow: '0 4px 20px var(--context-menu-shadow)',
         width: 210,
       }}
     >
@@ -205,11 +199,11 @@ function DatePicker({
                 borderRadius: 4,
                 cursor: 'pointer',
                 color: isSelected
-                  ? 'var(--bg)'
+                  ? 'var(--record-btn-icon)'
                   : isToday
-                    ? 'var(--status-danger)'
+                    ? 'var(--record-btn)'
                     : 'var(--item-text)',
-                background: isSelected ? 'var(--status-danger)' : 'transparent',
+                background: isSelected ? 'var(--record-btn)' : 'transparent',
                 fontWeight: isToday || isSelected ? 'var(--font-semibold)' : 'var(--font-normal)',
               }}
             >
@@ -245,14 +239,8 @@ function DatePicker({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function statusBarStyle(
-  item: TodoItem,
-  hasBrainstorm?: boolean,
-  isBrainstormOpen?: boolean,
-): { background: string; opacity?: number } {
+function statusBarStyle(item: TodoItem): { background: string; opacity?: number } {
   if (item.done) return { background: 'var(--divider)' }
-  if (isBrainstormOpen) return { background: 'var(--record-btn)' }
-  if (hasBrainstorm) return { background: 'var(--record-btn)', opacity: 0.45 }
   return { background: 'var(--divider)' }
 }
 
@@ -281,9 +269,7 @@ function TodoRow({
   onDelete,
   onContextMenu,
   onNavigateToSource,
-  hasBrainstorm,
-  isBrainstormOpen,
-  onBrainstorm,
+  onOpenConversation,
 }: {
   item: TodoItem
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
@@ -292,9 +278,7 @@ function TodoRow({
   onDelete: (lineIndex: number, doneFile: boolean) => void
   onContextMenu: (e: React.MouseEvent) => void
   onNavigateToSource?: (filename: string) => void
-  hasBrainstorm?: boolean
-  isBrainstormOpen?: boolean
-  onBrainstorm?: () => void
+  onOpenConversation?: (opts: { mode: 'chat'; context: string }) => void
 }) {
   const { t } = useTranslation()
   const [editingDue, setEditingDue] = useState(false)
@@ -347,7 +331,7 @@ function TodoRow({
         gap: 8,
         padding: '6px 14px',
         borderBottom: '0.5px solid var(--divider)',
-        transition: 'background 0.1s',
+        transition: 'background 0.1s ease-out',
       }}
     >
       {/* Status bar */}
@@ -357,7 +341,7 @@ function TodoRow({
           alignSelf: 'stretch',
           borderRadius: 1.5,
           flexShrink: 0,
-          ...statusBarStyle(item, hasBrainstorm, isBrainstormOpen),
+          ...statusBarStyle(item),
         }}
       />
 
@@ -382,7 +366,7 @@ function TodoRow({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'background 0.15s ease, opacity 0.15s ease',
+          transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
         }}
       >
         {item.done && (
@@ -560,15 +544,11 @@ function TodoRow({
         </span>
       )}
 
-      {/* Brainstorm icon */}
+      {/* Discuss icon */}
       {!item.done && (
         <span
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            openBrainstormTerminal(item.text, item.line_index, item.done_file, item.path)
-              .then(() => onBrainstorm?.())
-              .catch(console.error)
-          }}
+          onClick={() => onOpenConversation?.({ mode: 'chat', context: item.text })}
           onMouseEnter={(e) => {
             ;(e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute(
               'stroke',
@@ -578,7 +558,7 @@ function TodoRow({
           onMouseLeave={(e) => {
             ;(e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute(
               'stroke',
-              hasBrainstorm || isBrainstormOpen ? 'var(--record-btn)' : 'var(--duration-text)',
+              'var(--duration-text)',
             )
           }}
           title={t('exploreInDepth')}
@@ -594,16 +574,14 @@ function TodoRow({
             width="12"
             height="12"
             viewBox="0 0 24 24"
-            fill={isBrainstormOpen ? 'var(--record-btn)' : 'none'}
-            stroke={
-              hasBrainstorm || isBrainstormOpen ? 'var(--record-btn)' : 'var(--duration-text)'
-            }
+            fill="none"
+            stroke="var(--duration-text)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            {!isBrainstormOpen && <path d="M8 10h.01M12 10h.01M16 10h.01" />}
+            <path d="M8 10h.01M12 10h.01M16 10h.01" />
           </svg>
         </span>
       )}
@@ -666,6 +644,7 @@ interface TodoSidebarProps {
   onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
   onSetPath: (lineIndex: number, path: string | null, doneFile: boolean) => void
   onRemovePath: (lineIndex: number, doneFile: boolean) => void
+  onOpenConversation?: (opts: { mode: 'chat'; context: string }) => void
   onNavigateToSource?: (filename: string) => void
 }
 
@@ -679,6 +658,7 @@ export function TodoSidebar({
   onUpdateText,
   onSetPath,
   onRemovePath,
+  onOpenConversation,
   onNavigateToSource,
 }: TodoSidebarProps) {
   const { t } = useTranslation()
@@ -695,8 +675,6 @@ export function TodoSidebar({
     path: string | null
     doneFile: boolean
   } | null>(null)
-  const [brainstormKeys, setBrainstormKeys] = useState<Set<string>>(new Set())
-  const [openBrainstormKeys, setOpenBrainstormKeys] = useState<Set<string>>(new Set())
   const addInputRef = useRef<HTMLInputElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
 
@@ -721,27 +699,6 @@ export function TodoSidebar({
   const nonInboxPaths = groups.filter((g) => g.path !== null).map((g) => g.path!)
   const displayNames = computeGroupDisplayNames(nonInboxPaths)
 
-  const refreshBrainstormKeys = useCallback(() => {
-    listBrainstormKeys()
-      .then((keys) => setBrainstormKeys(new Set(keys)))
-      .catch(console.error)
-  }, [])
-
-  const refreshOpenBrainstormKeys = useCallback(() => {
-    listOpenBrainstormKeys()
-      .then((keys) => setOpenBrainstormKeys(new Set(keys)))
-      .catch(console.error)
-  }, [])
-
-  useEffect(() => {
-    refreshBrainstormKeys()
-  }, [todos, refreshBrainstormKeys])
-  // Poll open terminals every 3s so the icon updates when a window is closed
-  useEffect(() => {
-    refreshOpenBrainstormKeys()
-    const id = setInterval(refreshOpenBrainstormKeys, 3000)
-    return () => clearInterval(id)
-  }, [refreshOpenBrainstormKeys])
   useEffect(() => {
     if (addingGroup !== null && addInputRef.current) addInputRef.current.focus()
   }, [addingGroup])
@@ -917,9 +874,7 @@ export function TodoSidebar({
                   onUpdateText={onUpdateText}
                   onDelete={onDelete}
                   onNavigateToSource={onNavigateToSource}
-                  hasBrainstorm={brainstormKeys.has(item.text)}
-                  isBrainstormOpen={openBrainstormKeys.has(item.text)}
-                  onBrainstorm={refreshBrainstormKeys}
+                  onOpenConversation={onOpenConversation}
                   onContextMenu={(e) => {
                     e.preventDefault()
                     setContextMenu({
@@ -971,7 +926,7 @@ export function TodoSidebar({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    transition: 'background 0.1s',
+                    transition: 'background 0.1s ease-out',
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
@@ -1037,7 +992,7 @@ export function TodoSidebar({
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              transition: 'background 0.1s',
+              transition: 'background 0.1s ease-out',
             }}
             onMouseEnter={(e) => {
               ;(e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
@@ -1092,8 +1047,7 @@ export function TodoSidebar({
                   onUpdateText={onUpdateText}
                   onDelete={onDelete}
                   onNavigateToSource={onNavigateToSource}
-                  hasBrainstorm={brainstormKeys.has(item.text)}
-                  onBrainstorm={refreshBrainstormKeys}
+                  onOpenConversation={onOpenConversation}
                   onContextMenu={(e) => {
                     e.preventDefault()
                     setContextMenu({
@@ -1125,7 +1079,7 @@ export function TodoSidebar({
             borderRadius: 8,
             padding: '4px 0',
             zIndex: 1000,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 20px var(--context-menu-shadow)',
             minWidth: 160,
           }}
         >
@@ -1135,15 +1089,7 @@ export function TodoSidebar({
               onMouseEnter={hi}
               onMouseLeave={ho}
               onClick={() => {
-                openBrainstormTerminal(
-                  contextMenu.text,
-                  contextMenu.lineIndex,
-                  contextMenu.doneFile,
-                  contextMenu.path,
-                )
-                  .then(() => listBrainstormKeys())
-                  .then((keys) => setBrainstormKeys(new Set(keys)))
-                  .catch(console.error)
+                onOpenConversation?.({ mode: 'chat', context: contextMenu.text })
                 setContextMenu(null)
               }}
             >
@@ -1161,35 +1107,6 @@ export function TodoSidebar({
                 <path d="M8 10h.01M12 10h.01M16 10h.01" />
               </svg>
               {t('exploreInDepth')}
-            </div>
-          )}
-          {!contextMenu.doneFile && brainstormKeys.has(contextMenu.text) && (
-            <div
-              style={menuItemStyle}
-              onMouseEnter={hi}
-              onMouseLeave={ho}
-              onClick={() => {
-                clearBrainstormSession(contextMenu.text)
-                  .then(() => listBrainstormKeys())
-                  .then((keys) => setBrainstormKeys(new Set(keys)))
-                  .catch(console.error)
-                setContextMenu(null)
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--item-meta)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <line x1="9" y1="10" x2="15" y2="10" />
-              </svg>
-              {t('clearExploreSession')}
             </div>
           )}
           <div
@@ -1304,7 +1221,7 @@ export function TodoSidebar({
           <div
             style={{ ...menuItemStyle, color: 'var(--status-danger)' }}
             onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,59,48,0.06)'
+              ;(e.currentTarget as HTMLElement).style.background = 'var(--status-danger-bg)'
             }}
             onMouseLeave={ho}
             onClick={() => {

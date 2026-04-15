@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { listen } from '@tauri-apps/api/event'
-import type { SessionMode, ConversationMessage, AiLogLine, MessageBlock } from '../types'
+import type { SessionMode, ConversationMessage, MessageBlock } from '../types'
 import { useConversation } from '../hooks/useConversation'
 import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
@@ -15,9 +14,7 @@ interface ConversationDialogProps {
   context?: string
   contextFiles?: string[]
   initialInput?: string
-  /** For observe mode: the material_path of the in-progress task */
-  observePath?: string
-  observeLogs?: string[]
+  initialSessionId?: string
   visible: boolean
   onClose: () => void
 }
@@ -27,8 +24,7 @@ export function ConversationDialog({
   context,
   contextFiles,
   initialInput,
-  observePath,
-  observeLogs,
+  initialSessionId,
   visible,
   onClose,
 }: ConversationDialogProps) {
@@ -44,16 +40,19 @@ export function ConversationDialog({
     close,
     load,
   } = useConversation()
-  const [logs, setLogs] = useState<string[]>(observeLogs ?? [])
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const initialized = useRef(false)
 
-  // Create session on first mount
+  // Create or load session on first mount
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true
-      create(mode, context, contextFiles)
+      if (initialSessionId) {
+        load(initialSessionId)
+      } else {
+        create(mode, context, contextFiles)
+      }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -72,20 +71,7 @@ export function ConversationDialog({
     if (el && !userScrolledUp.current) {
       el.scrollTop = el.scrollHeight
     }
-  }, [messages, logs, visible])
-
-  // Observe mode: listen to ai-log events
-  useEffect(() => {
-    if (mode !== 'observe' || !observePath) return
-    const unlisten = listen<AiLogLine>('ai-log', (event) => {
-      if (event.payload.material_path === observePath) {
-        setLogs((prev) => [...prev, event.payload.message])
-      }
-    })
-    return () => {
-      unlisten.then((fn) => fn())
-    }
-  }, [mode, observePath])
+  }, [messages, visible])
 
   const handleClose = useCallback(() => {
     onClose()
@@ -110,9 +96,9 @@ export function ConversationDialog({
       ? context
         ? `${t('conversationChat')}：${context.slice(0, 30)}`
         : t('conversationChat')
-      : mode === 'agent'
-        ? t('conversationAgent')
-        : t('conversationObserve'))
+      : t('conversationAgent'))
+
+  if (!visible) return null
 
   return (
     <>
@@ -122,7 +108,7 @@ export function ConversationDialog({
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.4)',
+          background: 'var(--sheet-overlay)',
           zIndex: 100,
           animation: `modal-backdrop-in ${ANIM_DURATION}ms ease-out both`,
         }}
@@ -140,7 +126,7 @@ export function ConversationDialog({
           background: 'var(--queue-bg)',
           border: '0.5px solid var(--queue-border)',
           borderRadius: 10,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          boxShadow: '0 8px 32px var(--context-menu-shadow)',
           zIndex: 101,
           display: 'flex',
           flexDirection: 'column',
@@ -245,36 +231,7 @@ export function ConversationDialog({
                 gap: 12,
               }}
             >
-              {/* Observe mode: show logs */}
-              {mode === 'observe' && logs.length > 0 && (
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 'var(--text-xs)',
-                    lineHeight: 1.6,
-                    color: 'var(--item-meta)',
-                    borderBottom: '0.5px solid var(--queue-border)',
-                    paddingBottom: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  {logs.map((line, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        color: line.startsWith('[error]')
-                          ? 'var(--status-danger)'
-                          : 'var(--item-meta)',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {messages.length === 0 && mode !== 'observe' && (
+              {messages.length === 0 && (
                 <div
                   style={{
                     flex: 1,
@@ -290,7 +247,7 @@ export function ConversationDialog({
                 </div>
               )}
 
-              {messages.map((msg, i) => (
+              {messages.map((msg: ConversationMessage, i: number) => (
                 <MessageBubble key={i} message={msg} />
               ))}
 
@@ -298,7 +255,11 @@ export function ConversationDialog({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
                   <Spinner size={12} borderWidth={1.5} />
                   <span
-                    style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.6 }}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      opacity: 0.6,
+                    }}
                   >
                     {t('conversationThinking')}
                   </span>
@@ -323,7 +284,6 @@ export function ConversationDialog({
 function MessageBubble({ message }: { message: ConversationMessage }) {
   const isUser = message.role === 'user'
 
-  // For user messages, render simple bubble
   if (isUser) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -346,19 +306,17 @@ function MessageBubble({ message }: { message: ConversationMessage }) {
     )
   }
 
-  // For assistant messages, render blocks in order
   const blocks = message.blocks
   if (blocks && blocks.length > 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-        {blocks.map((block, i) => (
+        {blocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={i} block={block} />
         ))}
       </div>
     )
   }
 
-  // Fallback: no blocks (legacy or empty)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
       {message.thinking && <ThinkingBlock thinking={message.thinking} />}
@@ -413,25 +371,28 @@ function ToolBlock({
   tool: { name: string; label: string; output?: string; isError?: boolean }
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   return (
     <div
       onClick={() => setExpanded(!expanded)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         maxWidth: '85%',
         padding: '4px 10px',
         borderRadius: 6,
-        background: 'var(--segment-bg)',
+        background: hovered ? 'var(--item-hover-bg)' : 'var(--segment-bg)',
         fontSize: 'var(--text-xs)',
         fontFamily: 'var(--font-mono)',
         color: tool.isError ? 'var(--status-danger)' : 'var(--item-meta)',
         cursor: 'pointer',
         userSelect: 'none',
         border: tool.isError ? '0.5px solid var(--status-danger)' : '0.5px solid transparent',
-        transition: 'border-color 0.15s ease-out',
+        transition: 'background 0.15s ease-out, border-color 0.15s ease-out',
       }}
     >
-      <span style={{ fontSize: '0.625rem', marginRight: 4 }}>{expanded ? '▾' : '▸'}</span>
+      <span style={{ fontSize: 'var(--text-xs)', marginRight: 4 }}>{expanded ? '▾' : '▸'}</span>
       {tool.label}
       {expanded && tool.output && (
         <div
@@ -455,25 +416,29 @@ function ToolBlock({
 
 function ThinkingBlock({ thinking }: { thinking: string }) {
   const [expanded, setExpanded] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const summary = thinking.slice(0, 60).replace(/\n/g, ' ') + (thinking.length > 60 ? '…' : '')
 
   return (
     <div
       onClick={() => setExpanded(!expanded)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         maxWidth: '85%',
         padding: '4px 10px',
         borderRadius: 6,
-        background: 'var(--segment-bg)',
+        background: hovered ? 'var(--item-hover-bg)' : 'var(--segment-bg)',
         fontSize: 'var(--text-xs)',
         color: 'var(--item-meta)',
         cursor: 'pointer',
         userSelect: 'none',
         border: '0.5px solid transparent',
         fontStyle: 'italic',
+        transition: 'background 0.15s ease-out',
       }}
     >
-      <span style={{ fontSize: '0.625rem', marginRight: 4 }}>{expanded ? '▾' : '▸'}</span>
+      <span style={{ fontSize: 'var(--text-xs)', marginRight: 4 }}>{expanded ? '▾' : '▸'}</span>
       {expanded ? (
         <span
           style={{

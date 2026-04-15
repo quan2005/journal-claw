@@ -16,6 +16,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  const [newBtnHover, setNewBtnHover] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -182,7 +183,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
             cursor: 'pointer',
             opacity: 0,
             padding: '0 2px',
-            transition: 'opacity 0.1s',
+            transition: 'opacity 0.1s ease-out',
           }}
           className="session-delete-btn"
         >
@@ -212,16 +213,18 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
 
       <div
         onClick={onNewSession}
+        onMouseEnter={() => setNewBtnHover(true)}
+        onMouseLeave={() => setNewBtnHover(false)}
         style={{
           margin: '6px 4px',
           padding: '5px 8px',
           borderRadius: 6,
-          border: '0.5px dashed var(--queue-border)',
+          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'var(--queue-border)'}`,
           fontSize: '0.6875rem',
-          color: 'var(--item-meta)',
+          color: newBtnHover ? 'var(--item-text)' : 'var(--item-meta)',
           textAlign: 'center',
           cursor: 'pointer',
-          transition: 'border-color 0.15s ease, color 0.15s ease',
+          transition: 'border-color 0.15s ease-out, color 0.15s ease-out',
         }}
       >
         + 新建会话

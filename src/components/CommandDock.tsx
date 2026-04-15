@@ -330,7 +330,7 @@ export function CommandDock({
           border: dropZoneBorder,
           background: dropZoneBg,
           cursor: activeMode === 'idle' ? 'pointer' : 'default',
-          transition: 'background 0.2s, opacity 0.2s',
+          transition: 'background 0.2s ease-out, opacity 0.2s ease-out',
           overflow: 'visible',
         }}
       >

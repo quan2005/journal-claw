@@ -14,6 +14,7 @@ import { SidebarTabs } from './components/SidebarTabs'
 import type { SidebarTab } from './components/SidebarTabs'
 import { useIdentity } from './hooks/useIdentity'
 import { TodoSidebar } from './components/TodoSidebar'
+import { ConversationDialog } from './components/ConversationDialog'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
@@ -27,7 +28,6 @@ import {
   cancelAiProcessing,
   cancelQueuedItem,
   getEngineConfig,
-  checkEngineInstalled,
   getAsrConfig,
   checkWhisperkitCliInstalled,
   checkWhisperkitModelDownloaded,
@@ -37,7 +37,7 @@ import {
   deleteIdentity,
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
-import type { JournalEntry, QueueItem, IdentityEntry } from './types'
+import type { JournalEntry, QueueItem, IdentityEntry, SessionMode } from './types'
 import { useTranslation } from './contexts/I18nContext'
 
 const BASE_WIDTH = 320
@@ -89,6 +89,14 @@ export default function App() {
   const [dockOpen, setDockOpen] = useState(false)
   const [dockAppendText, setDockAppendText] = useState('')
   const [todoOpen, setTodoOpen] = useState(false)
+  const [conversationState, setConversationState] = useState<{
+    mode: SessionMode
+    context?: string
+    contextFiles?: string[]
+    initialInput?: string
+    initialSessionId?: string
+    visible: boolean
+  } | null>(null)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
 
   const handleTabChange = useCallback((tab: SidebarTab) => {
@@ -115,9 +123,13 @@ export default function App() {
   // Check AI engine availability on mount
   useEffect(() => {
     getEngineConfig()
-      .then((cfg) =>
-        checkEngineInstalled(cfg.active_ai_engine as 'claude' | 'qwen').then(setAiReady),
-      )
+      .then((cfg) => {
+        const hasKey =
+          cfg.active_ai_engine === 'openai'
+            ? cfg.openai_code_api_key.trim().length > 0
+            : cfg.claude_code_api_key.trim().length > 0
+        setAiReady(hasKey)
+      })
       .catch(() => setAiReady(false))
   }, [view]) // re-check after user closes settings
 
@@ -299,6 +311,17 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 't') {
         e.preventDefault()
         setTodoOpen((prev) => !prev)
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setConversationState((prev) => {
+          if (prev) return { ...prev, visible: !prev.visible }
+          return {
+            mode: 'agent',
+            contextFiles: selectedEntry ? [selectedEntry.path] : undefined,
+            visible: true,
+          }
+        })
       }
     }
     window.addEventListener('keydown', handler)
@@ -541,6 +564,16 @@ export default function App() {
         todoOpen={todoOpen}
         todoCount={todos.filter((t) => !t.done).length}
         onToggleTodo={() => setTodoOpen((prev) => !prev)}
+        onOpenConversation={() => {
+          setConversationState((prev) => {
+            if (prev) return { ...prev, visible: !prev.visible }
+            return {
+              mode: 'agent',
+              contextFiles: selectedEntry ? [selectedEntry.path] : undefined,
+              visible: true,
+            }
+          })
+        }}
       />
 
       {view === 'settings' && (
@@ -689,6 +722,13 @@ export default function App() {
               onUpdateText={updateTodoText}
               onSetPath={setTodoPath}
               onRemovePath={removeTodoPath}
+              onOpenConversation={(opts: { mode: SessionMode; context: string }) => {
+                setConversationState({
+                  mode: 'agent',
+                  initialInput: `/ideate ${opts.context}`,
+                  visible: true,
+                })
+              }}
               onNavigateToSource={(filename: string) => {
                 const match = entries.find((e) => e.filename === filename)
                 if (match) {
@@ -700,6 +740,20 @@ export default function App() {
           </>
         )}
       </div>
+
+      {conversationState && (
+        <ConversationDialog
+          mode={conversationState.mode}
+          context={conversationState.context}
+          contextFiles={conversationState.contextFiles}
+          initialInput={conversationState.initialInput}
+          initialSessionId={conversationState.initialSessionId}
+          visible={conversationState.visible}
+          onClose={() =>
+            setConversationState((prev) => (prev ? { ...prev, visible: false } : null))
+          }
+        />
+      )}
 
       {mergeSource && (
         <MergeIdentityDialog
@@ -735,6 +789,9 @@ export default function App() {
             onRetry={handleRetryQueueItem}
             activeLogPath={activeLogPath}
             onSetActiveLogPath={setActiveLogPath}
+            onOpenConversation={(path: string) => {
+              setConversationState({ mode: 'agent', contextFiles: [path], visible: true })
+            }}
           />
         </div>
         <CommandDock
@@ -769,7 +826,7 @@ export default function App() {
               gap: 10,
               cursor: 'pointer',
               zIndex: 20,
-              borderTop: '1px solid var(--divider)',
+              borderTop: '0.5px solid var(--divider)',
             }}
           >
             <svg

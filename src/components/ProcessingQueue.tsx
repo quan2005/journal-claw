@@ -13,6 +13,7 @@ interface ProcessingQueueProps {
   onRetry: (item: QueueItem) => void
   activeLogPath: string | null
   onSetActiveLogPath: (path: string | null) => void
+  onOpenConversation?: (path: string) => void
 }
 
 function KindIcon({ kind }: { kind: string }) {
@@ -339,6 +340,7 @@ export function ProcessingQueue({
   onRetry,
   activeLogPath,
   onSetActiveLogPath,
+  onOpenConversation,
 }: ProcessingQueueProps) {
   const { t } = useTranslation()
   const [confirmingPath, setConfirmingPath] = useState<string | null>(null)
@@ -358,7 +360,7 @@ export function ProcessingQueue({
       <div
         style={{
           background: 'var(--queue-bg)',
-          borderTop: '1px solid var(--queue-border)',
+          borderTop: '0.5px solid var(--queue-border)',
           borderRadius: '8px 8px 0 0',
           maxHeight: 160,
           overflowY: 'auto',
@@ -387,7 +389,15 @@ export function ProcessingQueue({
             <div
               key={item.path}
               onClick={
-                isClickable && !isConfirming ? () => onSetActiveLogPath(item.path) : undefined
+                isClickable && !isConfirming
+                  ? () => {
+                      if (item.status === 'processing' && onOpenConversation) {
+                        onOpenConversation(item.path)
+                      } else {
+                        onSetActiveLogPath(item.path)
+                      }
+                    }
+                  : undefined
               }
               style={{
                 display: 'flex',

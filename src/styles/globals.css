@@ -152,6 +152,9 @@
   --queue-border: #d0d4d8;
   --queue-shadow: rgba(0, 0, 0, 0.06);
 
+  /* Dialog glass */
+  --dialog-glass-rgb: 247, 248, 249;
+
   /* Context menu */
   --context-menu-bg: #f5f6f7;
   --context-menu-border: #d8dce0;
@@ -298,6 +301,9 @@
     --queue-bg: #1c1c1e;
     --queue-border: #2e3238;
     --queue-shadow: rgba(0, 0, 0, 0.3);
+
+    /* Dialog glass */
+    --dialog-glass-rgb: 28, 28, 30;
 
     /* Context menu */
     --context-menu-bg: #1e1e1e;

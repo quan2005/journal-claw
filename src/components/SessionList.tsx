@@ -17,6 +17,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [newBtnHover, setNewBtnHover] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const refresh = useCallback(async () => {
     try {
@@ -35,6 +36,15 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
 
   const streaming = sessions.filter((s) => s.is_streaming)
   const done = sessions.filter((s) => !s.is_streaming)
+
+  // #7 搜索过滤
+  const filterByQuery = (list: SessionSummary[]) => {
+    if (!searchQuery.trim()) return list
+    const q = searchQuery.toLowerCase()
+    return list.filter((s) => s.title?.toLowerCase().includes(q))
+  }
+  const filteredStreaming = filterByQuery(streaming)
+  const filteredDone = filterByQuery(done)
 
   const handleDelete = useCallback(
     async (e: React.MouseEvent, id: string) => {
@@ -197,10 +207,10 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
     <div
       style={{
         width: 200,
-        borderRight: '0.5px solid var(--queue-border)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--queue-bg)',
+        background: 'rgba(0,0,0,0.15)',
         flexShrink: 0,
         overflow: 'hidden',
       }}
@@ -211,27 +221,67 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
         .session-delete-btn:hover { opacity: 1 !important; }
       `}</style>
 
+      {/* #7 搜索框 */}
+      <div style={{ padding: '6px 4px 2px' }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="搜索对话"
+          style={{
+            width: '100%',
+            height: 28,
+            border: 'none',
+            borderRadius: 6,
+            padding: '0 8px',
+            fontSize: 'var(--text-xs)',
+            fontFamily: 'var(--font-body)',
+            background: 'rgba(255,255,255,0.06)',
+            color: 'var(--item-text)',
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      {/* #8 新建会话 + 快捷键标注 */}
       <div
         onClick={onNewSession}
         onMouseEnter={() => setNewBtnHover(true)}
         onMouseLeave={() => setNewBtnHover(false)}
         style={{
-          margin: '6px 4px',
+          margin: '4px 4px',
           padding: '5px 8px',
-          borderRadius: 6,
-          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'var(--queue-border)'}`,
+          borderRadius: 8,
+          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'rgba(255,255,255,0.1)'}`,
           fontSize: '0.6875rem',
           color: newBtnHover ? 'var(--item-text)' : 'var(--item-meta)',
           textAlign: 'center',
           cursor: 'pointer',
           transition: 'border-color 0.15s ease-out, color 0.15s ease-out',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
         }}
       >
         + 新建会话
+        <kbd
+          style={{
+            fontSize: '0.5625rem',
+            padding: '1px 4px',
+            borderRadius: 4,
+            background: 'rgba(255,255,255,0.06)',
+            color: 'var(--item-meta)',
+            opacity: 0.6,
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          ⌘N
+        </kbd>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {streaming.length > 0 && (
+        {filteredStreaming.length > 0 && (
           <>
             <div
               style={{
@@ -247,15 +297,15 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
             >
               输出中
             </div>
-            {streaming.map(renderItem)}
+            {filteredStreaming.map(renderItem)}
           </>
         )}
 
-        {streaming.length > 0 && done.length > 0 && (
-          <div style={{ borderTop: '0.5px solid var(--queue-border)', margin: '4px 12px' }} />
+        {filteredStreaming.length > 0 && filteredDone.length > 0 && (
+          <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', margin: '4px 12px' }} />
         )}
 
-        {done.length > 0 && (
+        {filteredDone.length > 0 && (
           <>
             <div
               style={{
@@ -271,7 +321,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
             >
               已完成
             </div>
-            {done.map(renderItem)}
+            {filteredDone.map(renderItem)}
           </>
         )}
 

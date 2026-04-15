@@ -7,7 +7,7 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import { ConversationInput } from './ConversationInput'
 import { SessionList } from './SessionList'
 
-const ANIM_DURATION = 180
+const ANIM_DURATION = 200
 
 interface ConversationDialogProps {
   mode: SessionMode
@@ -127,18 +127,20 @@ export function ConversationDialog({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — #10 底层模糊遮罩 */}
       <div
         onClick={handleClose}
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'var(--sheet-overlay)',
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
           zIndex: 100,
           animation: `${closing ? 'modal-backdrop-out' : 'modal-backdrop-in'} ${ANIM_DURATION}ms ease-out both`,
         }}
       />
-      {/* Dialog */}
+      {/* Dialog — #1 毛玻璃 #2 分层阴影 #3 边框光晕 #5 圆角16px */}
       <div
         style={{
           position: 'fixed',
@@ -148,10 +150,12 @@ export function ConversationDialog({
           width: 720,
           maxWidth: 'calc(100vw - 48px)',
           height: '75vh',
-          background: 'var(--queue-bg)',
-          border: '0.5px solid var(--queue-border)',
-          borderRadius: 10,
-          boxShadow: '0 8px 32px var(--context-menu-shadow)',
+          background: 'rgba(var(--dialog-glass-rgb, 28,28,30), 0.78)',
+          backdropFilter: 'blur(20px) saturate(1.2)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 16,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.4)',
           zIndex: 101,
           display: 'flex',
           flexDirection: 'column',
@@ -166,7 +170,7 @@ export function ConversationDialog({
             alignItems: 'center',
             gap: 8,
             padding: '10px 16px',
-            borderBottom: '0.5px solid var(--queue-border)',
+            borderBottom: '0.5px solid rgba(255,255,255,0.08)',
             flexShrink: 0,
           }}
         >
@@ -216,20 +220,23 @@ export function ConversationDialog({
           >
             ⌘K
           </span>
-          <button
+          {/* #8 快捷键标注 ESC */}
+          <kbd
             onClick={handleClose}
             style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
+              fontSize: '0.5625rem',
+              padding: '2px 5px',
+              borderRadius: 4,
+              background: 'rgba(255,255,255,0.06)',
               color: 'var(--item-meta)',
-              fontSize: 'var(--text-md)',
-              lineHeight: 1,
-              padding: '0 2px',
+              opacity: 0.6,
+              cursor: 'pointer',
+              border: 'none',
+              fontFamily: 'var(--font-body)',
             }}
           >
-            ×
-          </button>
+            ESC
+          </kbd>
         </div>
 
         {/* Body: split layout */}

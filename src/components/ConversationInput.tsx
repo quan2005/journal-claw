@@ -283,14 +283,16 @@ export function ConversationInput({
         />
       )}
 
-      {/* Unified input container */}
+      {/* Unified input container — #9 内凹质感 */}
       <div
         style={{
-          border: focused ? '0.5px solid var(--record-btn)' : '0.5px solid var(--queue-border)',
-          borderRadius: 10,
-          background: dragOver ? 'var(--item-hover-bg)' : 'var(--segment-bg)',
+          border: focused ? '0.5px solid var(--record-btn)' : '0.5px solid rgba(255,255,255,0.1)',
+          borderRadius: 12,
+          background: dragOver ? 'var(--item-hover-bg)' : 'rgba(0,0,0,0.2)',
           overflow: 'hidden',
-          transition: 'border-color 0.15s ease-out, background 0.15s ease-out',
+          transition:
+            'border-color 0.15s ease-out, background 0.15s ease-out, box-shadow 0.15s ease-out',
+          boxShadow: focused ? 'inset 0 1px 3px rgba(0,0,0,0.2)' : 'none',
         }}
       >
         {/* Attachments */}
@@ -430,7 +432,7 @@ export function ConversationInput({
               onClick={handleSend}
               disabled={!input.trim()}
               style={{
-                background: input.trim() ? 'var(--record-btn)' : 'var(--queue-border)',
+                background: input.trim() ? 'var(--record-btn)' : 'rgba(255,255,255,0.06)',
                 border: 'none',
                 borderRadius: 6,
                 padding: '4px 10px',
@@ -438,9 +440,21 @@ export function ConversationInput({
                 color: input.trim() ? 'var(--record-btn-icon)' : 'var(--item-meta)',
                 cursor: input.trim() ? 'pointer' : 'default',
                 transition: 'background 0.15s ease-out, color 0.15s ease-out',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
               }}
             >
               {t('conversationSend')}
+              <kbd
+                style={{
+                  fontSize: '0.5625rem',
+                  opacity: 0.6,
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                ↵
+              </kbd>
             </button>
           </div>
         </div>

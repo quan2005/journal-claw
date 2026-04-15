@@ -207,10 +207,10 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
     <div
       style={{
         width: 200,
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        borderRight: '1px solid var(--dialog-glass-divider)',
         display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(0,0,0,0.15)',
+        background: 'var(--dialog-sidebar-bg)',
         flexShrink: 0,
         overflow: 'hidden',
       }}
@@ -236,7 +236,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
             padding: '0 8px',
             fontSize: 'var(--text-xs)',
             fontFamily: 'var(--font-body)',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--dialog-kbd-bg)',
             color: 'var(--item-text)',
             outline: 'none',
           }}
@@ -265,7 +265,9 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
         )}
 
         {filteredStreaming.length > 0 && filteredDone.length > 0 && (
-          <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', margin: '4px 12px' }} />
+          <div
+            style={{ borderTop: '0.5px solid var(--dialog-glass-divider)', margin: '4px 12px' }}
+          />
         )}
 
         {filteredDone.length > 0 && (
@@ -312,7 +314,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
           margin: '4px 4px 6px',
           padding: '5px 8px',
           borderRadius: 8,
-          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'rgba(255,255,255,0.1)'}`,
+          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'var(--dialog-glass-divider)'}`,
           fontSize: '0.6875rem',
           color: newBtnHover ? 'var(--item-text)' : 'var(--item-meta)',
           textAlign: 'center',
@@ -331,7 +333,7 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
             fontSize: '0.5625rem',
             padding: '1px 4px',
             borderRadius: 4,
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--dialog-kbd-bg)',
             color: 'var(--item-meta)',
             opacity: 0.6,
             fontFamily: 'var(--font-body)',

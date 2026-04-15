@@ -286,9 +286,11 @@ export function ConversationInput({
       {/* Unified input container — #9 内凹质感 */}
       <div
         style={{
-          border: focused ? '0.5px solid var(--record-btn)' : '0.5px solid rgba(255,255,255,0.1)',
+          border: focused
+            ? '0.5px solid var(--record-btn)'
+            : '0.5px solid var(--dialog-inset-border)',
           borderRadius: 12,
-          background: dragOver ? 'var(--item-hover-bg)' : 'rgba(0,0,0,0.2)',
+          background: dragOver ? 'var(--item-hover-bg)' : 'var(--dialog-inset-bg)',
           overflow: 'hidden',
           transition:
             'border-color 0.15s ease-out, background 0.15s ease-out, box-shadow 0.15s ease-out',
@@ -432,7 +434,7 @@ export function ConversationInput({
               onClick={handleSend}
               disabled={!input.trim()}
               style={{
-                background: input.trim() ? 'var(--record-btn)' : 'rgba(255,255,255,0.06)',
+                background: input.trim() ? 'var(--record-btn)' : 'var(--dialog-kbd-bg)',
                 border: 'none',
                 borderRadius: 6,
                 padding: '4px 10px',

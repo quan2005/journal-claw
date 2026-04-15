@@ -29,17 +29,7 @@ export function ConversationDialog({
   onClose,
 }: ConversationDialogProps) {
   const { t } = useTranslation()
-  const {
-    sessionId,
-    messages,
-    isStreaming,
-    title: autoTitle,
-    create,
-    send,
-    cancel,
-    close,
-    load,
-  } = useConversation()
+  const { sessionId, messages, isStreaming, create, send, cancel, close, load } = useConversation()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const initialized = useRef(false)
@@ -78,7 +68,12 @@ export function ConversationDialog({
     onClose()
   }, [onClose])
 
-  // ESC to close — capture phase + stopPropagation 确保对话框优先级最高
+  const handleNewSession = useCallback(() => {
+    close()
+    create(mode, context, contextFiles)
+  }, [close, create, mode, context, contextFiles])
+
+  // ESC to close, ⌘N to new session — capture phase + stopPropagation 确保对话框优先级最高
   useEffect(() => {
     if (!visible) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -87,10 +82,15 @@ export function ConversationDialog({
         e.stopPropagation()
         handleClose()
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault()
+        e.stopPropagation()
+        handleNewSession()
+      }
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [visible, handleClose])
+  }, [visible, handleClose, handleNewSession])
 
   const handleSelectSession = useCallback(
     (id: string) => {
@@ -99,19 +99,6 @@ export function ConversationDialog({
     },
     [sessionId, load],
   )
-
-  const handleNewSession = useCallback(() => {
-    close()
-    create(mode, context, contextFiles)
-  }, [close, create, mode, context, contextFiles])
-
-  const headerTitle =
-    autoTitle ??
-    (mode === 'chat'
-      ? context
-        ? `${t('conversationChat')}：${context.slice(0, 30)}`
-        : t('conversationChat')
-      : t('conversationAgent'))
 
   const show = visible
 
@@ -157,90 +144,88 @@ export function ConversationDialog({
           transition: `opacity ${ANIM_DURATION}ms ease-out, transform ${ANIM_DURATION}ms ease-out`,
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
-            borderBottom: '0.5px solid var(--dialog-glass-divider)',
-            flexShrink: 0,
-          }}
-        >
-          <span
+        {/* Body: split layout */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, position: 'relative' }}>
+          {/* 右上角新建会话 + ESC */}
+          <div
             style={{
-              flex: 1,
-              fontSize: 'var(--text-sm)',
-              color: 'var(--item-text)',
-              fontWeight: 'var(--font-medium)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              position: 'absolute',
+              top: 8,
+              right: 12,
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            {headerTitle}
-          </span>
-          {isStreaming && (
-            <span
-              style={{
-                fontSize: '0.625rem',
-                padding: '1px 6px',
-                borderRadius: 100,
-                border: '0.5px solid var(--status-success)',
-                color: 'var(--status-success)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
+            {isStreaming && (
               <span
                 style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  background: 'var(--status-success)',
+                  fontSize: '0.625rem',
+                  padding: '1px 6px',
+                  borderRadius: 100,
+                  border: '0.5px solid var(--status-success)',
+                  color: 'var(--status-success)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
-              />
-              输出中
-            </span>
-          )}
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--item-meta)',
-              opacity: 0.5,
-            }}
-          >
-            ⌘K
-          </span>
-          {/* #8 快捷键标注 ESC */}
-          <kbd
-            onClick={handleClose}
-            style={{
-              fontSize: '0.5625rem',
-              padding: '2px 5px',
-              borderRadius: 4,
-              background: 'var(--dialog-kbd-bg)',
-              color: 'var(--item-meta)',
-              opacity: 0.6,
-              cursor: 'pointer',
-              border: 'none',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            ESC
-          </kbd>
-        </div>
+              >
+                <span
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--status-success)',
+                  }}
+                />
+                输出中
+              </span>
+            )}
+            <button
+              onClick={handleNewSession}
+              title="⌘N"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--item-meta)',
+                fontSize: 'var(--text-md)',
+                lineHeight: 1,
+                padding: '2px 4px',
+                borderRadius: 4,
+                opacity: 0.7,
+                transition: 'opacity 0.15s ease-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.7'
+              }}
+            >
+              +
+            </button>
+            <kbd
+              onClick={handleClose}
+              style={{
+                fontSize: '0.5625rem',
+                padding: '2px 5px',
+                borderRadius: 4,
+                background: 'var(--dialog-kbd-bg)',
+                color: 'var(--item-meta)',
+                opacity: 0.6,
+                cursor: 'pointer',
+                border: 'none',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              ESC
+            </kbd>
+          </div>
 
-        {/* Body: split layout */}
-        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
           {/* Left: session list */}
-          <SessionList
-            activeSessionId={sessionId}
-            onSelect={handleSelectSession}
-            onNewSession={handleNewSession}
-          />
+          <SessionList activeSessionId={sessionId} onSelect={handleSelectSession} />
 
           {/* Right: conversation */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>

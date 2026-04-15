@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import type { JournalEntry } from '../types'
 import { JournalItem } from './JournalItem'
 import { JournalContextMenu } from './JournalContextMenu'
@@ -78,7 +78,46 @@ export function JournalList({
     y: number
   } | null>(null)
   const [filterQuery, setFilterQuery] = useState('')
+  const [searchActive, setSearchActive] = useState(false)
   const filterRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const searchBarRef = useRef<HTMLDivElement>(null)
+  const didInitialScroll = useRef(false)
+
+  // Hide search bar on mount by scrolling past it
+  useLayoutEffect(() => {
+    if (
+      !didInitialScroll.current &&
+      scrollRef.current &&
+      searchBarRef.current &&
+      entries.length > 0
+    ) {
+      scrollRef.current.scrollTop = searchBarRef.current.offsetHeight
+      didInitialScroll.current = true
+    }
+  }, [entries.length])
+
+  // Keep search bar hidden when entries change and search is inactive
+  useEffect(() => {
+    if (!searchActive && didInitialScroll.current && scrollRef.current && searchBarRef.current) {
+      const barH = searchBarRef.current.offsetHeight
+      if (scrollRef.current.scrollTop < barH) {
+        scrollRef.current.scrollTop = barH
+      }
+    }
+  }, [entries.length, searchActive])
+
+  function dismissSearch() {
+    setFilterQuery('')
+    filterRef.current?.blur()
+    setSearchActive(false)
+    if (scrollRef.current && searchBarRef.current) {
+      scrollRef.current.scrollTo({
+        top: searchBarRef.current.offsetHeight,
+        behavior: 'smooth',
+      })
+    }
+  }
 
   if (loading) {
     return (
@@ -136,97 +175,98 @@ export function JournalList({
         background: 'var(--sidebar-bg)',
       }}
     >
-      {/* Filter input */}
-      <div
-        style={{
-          padding: '8px 12px',
-          flexShrink: 0,
-          borderBottom: '0.5px solid var(--divider)',
-          background: 'var(--sidebar-bg-translucent, rgba(30,30,30,0.72))',
-          backdropFilter: 'saturate(180%) blur(20px)',
-          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        }}
-      >
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
+        {/* Filter input — inside scroll container, hidden above fold */}
         <div
+          ref={searchBarRef}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '5px 8px',
-            background: 'var(--filter-input-bg, rgba(128,128,128,0.08))',
-            borderRadius: 6,
+            padding: '8px 12px',
+            borderBottom: '0.5px solid var(--divider)',
+            background: 'var(--sidebar-bg-translucent, rgba(30,30,30,0.72))',
+            backdropFilter: 'saturate(180%) blur(20px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+            ...(searchActive ? { position: 'sticky' as const, top: 0, zIndex: 10 } : {}),
           }}
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--item-meta)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ flexShrink: 0, opacity: 0.45 }}
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            ref={filterRef}
-            type="text"
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setFilterQuery('')
-                filterRef.current?.blur()
-              }
-            }}
-            placeholder={t('search')}
+          <div
             style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--item-text)',
-              fontFamily: 'var(--font-body)',
-              padding: '2px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 8px',
+              background: 'var(--filter-input-bg, rgba(128,128,128,0.08))',
+              borderRadius: 6,
             }}
-          />
-          {filterQuery && (
-            <button
-              onClick={() => {
-                setFilterQuery('')
-                filterRef.current?.focus()
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--item-meta)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0, opacity: 0.45 }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              ref={filterRef}
+              type="text"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              onFocus={() => setSearchActive(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  dismissSearch()
+                }
               }}
+              placeholder={t('search')}
               style={{
+                flex: 1,
                 background: 'transparent',
                 border: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                display: 'flex',
-                opacity: 0.35,
+                outline: 'none',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--item-text)',
+                fontFamily: 'var(--font-body)',
+                padding: '2px 0',
               }}
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--item-meta)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            />
+            {filterQuery && (
+              <button
+                onClick={() => {
+                  setFilterQuery('')
+                  filterRef.current?.focus()
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  opacity: 0.35,
+                }}
               >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--item-meta)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
         {months.map((ym) => {
           const days = Object.keys(grouped[ym])
             .map(Number)

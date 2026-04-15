@@ -123,190 +123,196 @@ export function ConversationDialog({
         : t('conversationChat')
       : t('conversationAgent'))
 
-  if (!visible && !closing) return null
+  const show = visible || closing
 
   return (
     <>
-      {/* Backdrop — #10 底层模糊遮罩 */}
+      {/* Backdrop — 始终在 DOM 中，用 transition 控制显隐，避免 blur 跳变 */}
       <div
         onClick={handleClose}
         style={{
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.4)',
-          zIndex: 100,
-          animation: `${closing ? 'modal-backdrop-out' : 'modal-backdrop-in'} ${ANIM_DURATION}ms ease-out both`,
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          zIndex: show ? 100 : -1,
+          opacity: show ? 1 : 0,
+          pointerEvents: show ? 'auto' : 'none',
+          transition: `opacity ${ANIM_DURATION}ms ease-out`,
         }}
       />
-      {/* Dialog — #1 毛玻璃 #2 分层阴影 #3 边框光晕 #5 圆角16px */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 720,
-          maxWidth: 'calc(100vw - 48px)',
-          height: '75vh',
-          background: 'rgba(var(--dialog-glass-rgb, 28,28,30), 0.78)',
-          backdropFilter: 'blur(20px) saturate(1.2)',
-          WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 16,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.4)',
-          zIndex: 101,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: `${closing ? 'modal-panel-out' : 'modal-panel-in'} ${ANIM_DURATION}ms ease-out both`,
-        }}
-      >
-        {/* Header */}
+      {/* Dialog */}
+      {show && (
         <div
           style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 720,
+            maxWidth: 'calc(100vw - 48px)',
+            height: '75vh',
+            background: 'rgba(var(--dialog-glass-rgb, 28,28,30), 0.78)',
+            backdropFilter: 'blur(20px) saturate(1.2)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 16,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.4)',
+            zIndex: 101,
             display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
-            borderBottom: '0.5px solid rgba(255,255,255,0.08)',
-            flexShrink: 0,
+            flexDirection: 'column',
+            overflow: 'hidden',
+            animation: `${closing ? 'modal-panel-out' : 'modal-panel-in'} ${ANIM_DURATION}ms ease-out both`,
           }}
         >
-          <span
+          {/* Header */}
+          <div
             style={{
-              flex: 1,
-              fontSize: 'var(--text-sm)',
-              color: 'var(--item-text)',
-              fontWeight: 'var(--font-medium)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+              flexShrink: 0,
             }}
           >
-            {headerTitle}
-          </span>
-          {isStreaming && (
             <span
               style={{
-                fontSize: '0.625rem',
-                padding: '1px 6px',
-                borderRadius: 100,
-                border: '0.5px solid var(--status-success)',
-                color: 'var(--status-success)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
+                flex: 1,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--item-text)',
+                fontWeight: 'var(--font-medium)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
+              {headerTitle}
+            </span>
+            {isStreaming && (
               <span
                 style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  background: 'var(--status-success)',
+                  fontSize: '0.625rem',
+                  padding: '1px 6px',
+                  borderRadius: 100,
+                  border: '0.5px solid var(--status-success)',
+                  color: 'var(--status-success)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
-              />
-              输出中
-            </span>
-          )}
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--item-meta)',
-              opacity: 0.5,
-            }}
-          >
-            ⌘K
-          </span>
-          {/* #8 快捷键标注 ESC */}
-          <kbd
-            onClick={handleClose}
-            style={{
-              fontSize: '0.5625rem',
-              padding: '2px 5px',
-              borderRadius: 4,
-              background: 'rgba(255,255,255,0.06)',
-              color: 'var(--item-meta)',
-              opacity: 0.6,
-              cursor: 'pointer',
-              border: 'none',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            ESC
-          </kbd>
-        </div>
-
-        {/* Body: split layout */}
-        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          {/* Left: session list */}
-          <SessionList
-            activeSessionId={sessionId}
-            onSelect={handleSelectSession}
-            onNewSession={handleNewSession}
-          />
-
-          {/* Right: conversation */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            {/* Messages */}
-            <div
-              ref={scrollRef}
-              onScroll={handleScroll}
+              >
+                <span
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--status-success)',
+                  }}
+                />
+                输出中
+              </span>
+            )}
+            <span
               style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '12px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
+                fontSize: 'var(--text-xs)',
+                color: 'var(--item-meta)',
+                opacity: 0.5,
               }}
             >
-              {messages.length === 0 && (
-                <div
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--item-meta)',
-                    opacity: 0.4,
-                    fontSize: 'var(--text-sm)',
-                  }}
-                >
-                  {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
-                </div>
-              )}
+              ⌘K
+            </span>
+            {/* #8 快捷键标注 ESC */}
+            <kbd
+              onClick={handleClose}
+              style={{
+                fontSize: '0.5625rem',
+                padding: '2px 5px',
+                borderRadius: 4,
+                background: 'rgba(255,255,255,0.06)',
+                color: 'var(--item-meta)',
+                opacity: 0.6,
+                cursor: 'pointer',
+                border: 'none',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              ESC
+            </kbd>
+          </div>
 
-              {messages.map((msg: ConversationMessage, i: number) => (
-                <MessageBubble key={i} message={msg} />
-              ))}
+          {/* Body: split layout */}
+          <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            {/* Left: session list */}
+            <SessionList
+              activeSessionId={sessionId}
+              onSelect={handleSelectSession}
+              onNewSession={handleNewSession}
+            />
 
-              {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
-                  <Spinner size={12} borderWidth={1.5} />
-                  <span
+            {/* Right: conversation */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              {/* Messages */}
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+              >
+                {messages.length === 0 && (
+                  <div
                     style={{
-                      fontSize: 'var(--text-xs)',
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       color: 'var(--item-meta)',
-                      opacity: 0.6,
+                      opacity: 0.4,
+                      fontSize: 'var(--text-sm)',
                     }}
                   >
-                    {t('conversationThinking')}
-                  </span>
-                </div>
-              )}
-            </div>
+                    {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
+                  </div>
+                )}
 
-            {/* Input */}
-            <ConversationInput
-              onSend={send}
-              onCancel={cancel}
-              isStreaming={isStreaming}
-              initialInput={initialInput}
-            />
+                {messages.map((msg: ConversationMessage, i: number) => (
+                  <MessageBubble key={i} message={msg} />
+                ))}
+
+                {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                    <Spinner size={12} borderWidth={1.5} />
+                    <span
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--item-meta)',
+                        opacity: 0.6,
+                      }}
+                    >
+                      {t('conversationThinking')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <ConversationInput
+                onSend={send}
+                onCancel={cancel}
+                isStreaming={isStreaming}
+                initialInput={initialInput}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   )
 }

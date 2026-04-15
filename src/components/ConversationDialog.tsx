@@ -144,14 +144,17 @@ export function ConversationDialog({
           transition: `opacity ${ANIM_DURATION}ms ease-out, transform ${ANIM_DURATION}ms ease-out`,
         }}
       >
-        {/* Thin header strip — visual cap only */}
+        {/* Thin header strip — split color matching left/right panels */}
         <div
           style={{
             height: 8,
-            borderBottom: '0.5px solid var(--dialog-glass-divider)',
             flexShrink: 0,
+            display: 'flex',
           }}
-        />
+        >
+          <div style={{ width: 200, flexShrink: 0, background: 'var(--dialog-sidebar-bg)' }} />
+          <div style={{ flex: 1 }} />
+        </div>
 
         {/* Body: split layout */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>

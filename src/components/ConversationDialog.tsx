@@ -43,17 +43,6 @@ export function ConversationDialog({
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const initialized = useRef(false)
-  const [closing, setClosing] = useState(false)
-  const prevVisible = useRef(visible)
-
-  // Detect visible going false → trigger close animation
-  useEffect(() => {
-    if (prevVisible.current && !visible && !closing) {
-      setClosing(true)
-      setTimeout(() => setClosing(false), ANIM_DURATION)
-    }
-    prevVisible.current = visible
-  }, [visible, closing])
 
   // Create or load session on first mount
   useEffect(() => {
@@ -123,196 +112,196 @@ export function ConversationDialog({
         : t('conversationChat')
       : t('conversationAgent'))
 
-  const show = visible || closing
+  const show = visible
 
   return (
     <>
-      {/* Backdrop — 始终在 DOM 中，用 transition 控制显隐，避免 blur 跳变 */}
+      {/* Backdrop — 始终在 DOM 中，用 transition 控制显隐 */}
       <div
         onClick={handleClose}
         style={{
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          backdropFilter: show ? 'blur(4px)' : 'blur(0px)',
+          WebkitBackdropFilter: show ? 'blur(4px)' : 'blur(0px)',
           zIndex: show ? 100 : -1,
           opacity: show ? 1 : 0,
           pointerEvents: show ? 'auto' : 'none',
-          transition: `opacity ${ANIM_DURATION}ms ease-out`,
+          transition: `opacity ${ANIM_DURATION}ms ease-out, backdrop-filter ${ANIM_DURATION}ms ease-out, -webkit-backdrop-filter ${ANIM_DURATION}ms ease-out`,
         }}
       />
-      {/* Dialog */}
-      {show && (
+      {/* Dialog — 始终在 DOM 中，用 transition 控制显隐，避免 blur 跳变 */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          width: 720,
+          maxWidth: 'calc(100vw - 48px)',
+          height: '75vh',
+          background: 'rgba(var(--dialog-glass-rgb, 28,28,30), 0.78)',
+          backdropFilter: 'blur(20px) saturate(1.2)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 16,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.4)',
+          zIndex: show ? 101 : -1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          opacity: show ? 1 : 0,
+          transform: show ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -48%) scale(0.95)',
+          pointerEvents: show ? 'auto' : 'none',
+          transition: `opacity ${ANIM_DURATION}ms ease-out, transform ${ANIM_DURATION}ms ease-out`,
+        }}
+      >
+        {/* Header */}
         <div
           style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 720,
-            maxWidth: 'calc(100vw - 48px)',
-            height: '75vh',
-            background: 'rgba(var(--dialog-glass-rgb, 28,28,30), 0.78)',
-            backdropFilter: 'blur(20px) saturate(1.2)',
-            WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 16,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.4)',
-            zIndex: 101,
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            animation: `${closing ? 'modal-panel-out' : 'modal-panel-in'} ${ANIM_DURATION}ms ease-out both`,
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+            flexShrink: 0,
           }}
         >
-          {/* Header */}
-          <div
+          <span
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 16px',
-              borderBottom: '0.5px solid rgba(255,255,255,0.08)',
-              flexShrink: 0,
+              flex: 1,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--item-text)',
+              fontWeight: 'var(--font-medium)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
+            {headerTitle}
+          </span>
+          {isStreaming && (
             <span
               style={{
-                flex: 1,
-                fontSize: 'var(--text-sm)',
-                color: 'var(--item-text)',
-                fontWeight: 'var(--font-medium)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                fontSize: '0.625rem',
+                padding: '1px 6px',
+                borderRadius: 100,
+                border: '0.5px solid var(--status-success)',
+                color: 'var(--status-success)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
               }}
             >
-              {headerTitle}
-            </span>
-            {isStreaming && (
               <span
                 style={{
-                  fontSize: '0.625rem',
-                  padding: '1px 6px',
-                  borderRadius: 100,
-                  border: '0.5px solid var(--status-success)',
-                  color: 'var(--status-success)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: 'var(--status-success)',
                 }}
-              >
-                <span
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: 'var(--status-success)',
-                  }}
-                />
-                输出中
-              </span>
-            )}
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--item-meta)',
-                opacity: 0.5,
-              }}
-            >
-              ⌘K
+              />
+              输出中
             </span>
-            {/* #8 快捷键标注 ESC */}
-            <kbd
-              onClick={handleClose}
+          )}
+          <span
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--item-meta)',
+              opacity: 0.5,
+            }}
+          >
+            ⌘K
+          </span>
+          {/* #8 快捷键标注 ESC */}
+          <kbd
+            onClick={handleClose}
+            style={{
+              fontSize: '0.5625rem',
+              padding: '2px 5px',
+              borderRadius: 4,
+              background: 'rgba(255,255,255,0.06)',
+              color: 'var(--item-meta)',
+              opacity: 0.6,
+              cursor: 'pointer',
+              border: 'none',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            ESC
+          </kbd>
+        </div>
+
+        {/* Body: split layout */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+          {/* Left: session list */}
+          <SessionList
+            activeSessionId={sessionId}
+            onSelect={handleSelectSession}
+            onNewSession={handleNewSession}
+          />
+
+          {/* Right: conversation */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {/* Messages */}
+            <div
+              ref={scrollRef}
+              onScroll={handleScroll}
               style={{
-                fontSize: '0.5625rem',
-                padding: '2px 5px',
-                borderRadius: 4,
-                background: 'rgba(255,255,255,0.06)',
-                color: 'var(--item-meta)',
-                opacity: 0.6,
-                cursor: 'pointer',
-                border: 'none',
-                fontFamily: 'var(--font-body)',
+                flex: 1,
+                overflowY: 'auto',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
               }}
             >
-              ESC
-            </kbd>
-          </div>
+              {messages.length === 0 && (
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--item-meta)',
+                    opacity: 0.4,
+                    fontSize: 'var(--text-sm)',
+                  }}
+                >
+                  {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
+                </div>
+              )}
 
-          {/* Body: split layout */}
-          <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-            {/* Left: session list */}
-            <SessionList
-              activeSessionId={sessionId}
-              onSelect={handleSelectSession}
-              onNewSession={handleNewSession}
-            />
+              {messages.map((msg: ConversationMessage, i: number) => (
+                <MessageBubble key={i} message={msg} />
+              ))}
 
-            {/* Right: conversation */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {/* Messages */}
-              <div
-                ref={scrollRef}
-                onScroll={handleScroll}
-                style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  padding: '12px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
-                {messages.length === 0 && (
-                  <div
+              {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                  <Spinner size={12} borderWidth={1.5} />
+                  <span
                     style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      fontSize: 'var(--text-xs)',
                       color: 'var(--item-meta)',
-                      opacity: 0.4,
-                      fontSize: 'var(--text-sm)',
+                      opacity: 0.6,
                     }}
                   >
-                    {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
-                  </div>
-                )}
-
-                {messages.map((msg: ConversationMessage, i: number) => (
-                  <MessageBubble key={i} message={msg} />
-                ))}
-
-                {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
-                    <Spinner size={12} borderWidth={1.5} />
-                    <span
-                      style={{
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--item-meta)',
-                        opacity: 0.6,
-                      }}
-                    >
-                      {t('conversationThinking')}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Input */}
-              <ConversationInput
-                onSend={send}
-                onCancel={cancel}
-                isStreaming={isStreaming}
-                initialInput={initialInput}
-              />
+                    {t('conversationThinking')}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Input */}
+            <ConversationInput
+              onSend={send}
+              onCancel={cancel}
+              isStreaming={isStreaming}
+              initialInput={initialInput}
+            />
           </div>
         </div>
-      )}
+      </div>
     </>
   )
 }

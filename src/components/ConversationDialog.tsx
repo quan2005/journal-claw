@@ -76,12 +76,26 @@ export function ConversationDialog({
 
   // Animate close: set closing state, wait for animation, then call onClose
   const handleClose = useCallback(() => {
+    if (closing) return
     setClosing(true)
     setTimeout(() => {
       setClosing(false)
       onClose()
     }, ANIM_DURATION)
-  }, [onClose])
+  }, [onClose, closing])
+
+  // ESC to close
+  useEffect(() => {
+    if (!visible) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        handleClose()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [visible, handleClose])
 
   const handleSelectSession = useCallback(
     (id: string) => {

@@ -916,7 +916,7 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
             position: 'absolute',
           }}
         >
-          谨迹
+          謹跡
         </span>
 
         <div
@@ -949,22 +949,25 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                   onClick={onRecord}
                   style={{
                     flex: 1,
-                    background: 'var(--detail-bg)',
+                    background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
                     border: '1px solid var(--divider)',
                     borderRadius: 10,
                     padding: '16px 12px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'opacity 0.15s, background 0.15s',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
                     ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'var(--item-hover-bg)'
+                      'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
                   }}
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
-                    ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)'
+                    ;(e.currentTarget as HTMLButtonElement).style.background =
+                      'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
                   }}
                 >
                   <div
@@ -1023,22 +1026,25 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
                   onClick={onOpenDock}
                   style={{
                     flex: 1,
-                    background: 'var(--detail-bg)',
+                    background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
                     border: '1px solid var(--divider)',
                     borderRadius: 10,
                     padding: '16px 12px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'opacity 0.15s, background 0.15s',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
                     ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'var(--item-hover-bg)'
+                      'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
                   }}
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
-                    ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-bg)'
+                    ;(e.currentTarget as HTMLButtonElement).style.background =
+                      'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
                   }}
                 >
                   <div

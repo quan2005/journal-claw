@@ -149,6 +149,7 @@ Filename: `DD-title.md` (e.g. `28-AI平台产品会议纪要.md`). The `DD` pref
 
 ### Key Constraints
 
+- **视觉一致性**：如无特殊说明，日志列表栏（`JournalList`）与画像列表栏（`IdentityList`）的表现保持一致；日志详情（`DetailPanel`）与画像详情（`IdentityDetail`）的表现也保持一致。修改其中一个时同步修改另一个。
 - **Context menu**: Use Tauri v2 `@tauri-apps/api/menu` (`Menu`, `MenuItem`). `tauri-plugin-context-menu` is v1-only — do not use it.
 - **Theme**: Stored per-workspace via `workspace_settings` Rust commands, not in localStorage (except panel width).
 - **AI processing**: Claude CLI is called as an external process. The path is detected via `which claude` at startup; falls back to the bare `claude` command if not found.

@@ -243,43 +243,6 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
         />
       </div>
 
-      {/* #8 新建会话 + 快捷键标注 */}
-      <div
-        onClick={onNewSession}
-        onMouseEnter={() => setNewBtnHover(true)}
-        onMouseLeave={() => setNewBtnHover(false)}
-        style={{
-          margin: '4px 4px',
-          padding: '5px 8px',
-          borderRadius: 8,
-          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'rgba(255,255,255,0.1)'}`,
-          fontSize: '0.6875rem',
-          color: newBtnHover ? 'var(--item-text)' : 'var(--item-meta)',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'border-color 0.15s ease-out, color 0.15s ease-out',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-        }}
-      >
-        + 新建会话
-        <kbd
-          style={{
-            fontSize: '0.5625rem',
-            padding: '1px 4px',
-            borderRadius: 4,
-            background: 'rgba(255,255,255,0.06)',
-            color: 'var(--item-meta)',
-            opacity: 0.6,
-            fontFamily: 'var(--font-body)',
-          }}
-        >
-          ⌘N
-        </kbd>
-      </div>
-
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {filteredStreaming.length > 0 && (
           <>
@@ -338,6 +301,44 @@ export function SessionList({ activeSessionId, onSelect, onNewSession }: Session
             暂无会话
           </div>
         )}
+      </div>
+
+      {/* 新建会话 — 底部固定 */}
+      <div
+        onClick={onNewSession}
+        onMouseEnter={() => setNewBtnHover(true)}
+        onMouseLeave={() => setNewBtnHover(false)}
+        style={{
+          margin: '4px 4px 6px',
+          padding: '5px 8px',
+          borderRadius: 8,
+          border: `0.5px dashed ${newBtnHover ? 'var(--item-text)' : 'rgba(255,255,255,0.1)'}`,
+          fontSize: '0.6875rem',
+          color: newBtnHover ? 'var(--item-text)' : 'var(--item-meta)',
+          textAlign: 'center',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s ease-out, color 0.15s ease-out',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          flexShrink: 0,
+        }}
+      >
+        + 新建会话
+        <kbd
+          style={{
+            fontSize: '0.5625rem',
+            padding: '1px 4px',
+            borderRadius: 4,
+            background: 'rgba(255,255,255,0.06)',
+            color: 'var(--item-meta)',
+            opacity: 0.6,
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          ⌘N
+        </kbd>
       </div>
     </div>
   )

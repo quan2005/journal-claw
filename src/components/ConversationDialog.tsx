@@ -186,42 +186,31 @@ export function ConversationDialog({
               onClick={handleNewSession}
               title="⌘N"
               style={{
-                background: 'none',
-                border: 'none',
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'var(--dialog-kbd-bg)',
+                border: '0.5px solid var(--dialog-glass-divider)',
                 cursor: 'pointer',
                 color: 'var(--item-meta)',
                 fontSize: 'var(--text-md)',
                 lineHeight: 1,
-                padding: '2px 4px',
-                borderRadius: 4,
-                opacity: 0.7,
-                transition: 'opacity 0.15s ease-out',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.15s ease-out, color 0.15s ease-out',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.background = 'var(--item-hover-bg)'
+                e.currentTarget.style.color = 'var(--item-text)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '0.7'
+                e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
+                e.currentTarget.style.color = 'var(--item-meta)'
               }}
             >
               +
             </button>
-            <kbd
-              onClick={handleClose}
-              style={{
-                fontSize: '0.5625rem',
-                padding: '2px 5px',
-                borderRadius: 4,
-                background: 'var(--dialog-kbd-bg)',
-                color: 'var(--item-meta)',
-                opacity: 0.6,
-                cursor: 'pointer',
-                border: 'none',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              ESC
-            </kbd>
           </div>
 
           {/* Left: session list */}

@@ -78,17 +78,18 @@ export function ConversationDialog({
     onClose()
   }, [onClose])
 
-  // ESC to close
+  // ESC to close — capture phase + stopPropagation 确保对话框优先级最高
   useEffect(() => {
     if (!visible) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
+        e.stopPropagation()
         handleClose()
       }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [visible, handleClose])
 
   const handleSelectSession = useCallback(

@@ -35,6 +35,7 @@ import {
   createSampleEntry,
   listAllJournalEntries,
   deleteIdentity,
+  conversationList,
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry, SessionMode } from './types'
@@ -124,10 +125,8 @@ export default function App() {
   useEffect(() => {
     getEngineConfig()
       .then((cfg) => {
-        const hasKey =
-          cfg.active_ai_engine === 'openai'
-            ? cfg.openai_code_api_key.trim().length > 0
-            : cfg.claude_code_api_key.trim().length > 0
+        const vc = cfg.vendors[cfg.active_vendor]
+        const hasKey = vc?.api_key?.trim().length > 0
         setAiReady(hasKey)
       })
       .catch(() => setAiReady(false))
@@ -789,8 +788,19 @@ export default function App() {
             onRetry={handleRetryQueueItem}
             activeLogPath={activeLogPath}
             onSetActiveLogPath={setActiveLogPath}
-            onOpenConversation={(path: string) => {
-              setConversationState({ mode: 'agent', contextFiles: [path], visible: true })
+            onOpenConversation={async (path: string) => {
+              const sessions = await conversationList()
+              const existing = sessions.find((s) => s.linked_entry === path)
+              if (existing) {
+                setConversationState({
+                  mode: 'agent',
+                  contextFiles: [path],
+                  initialSessionId: existing.id,
+                  visible: true,
+                })
+              } else {
+                setConversationState({ mode: 'agent', contextFiles: [path], visible: true })
+              }
             }}
           />
         </div>

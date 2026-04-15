@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { SessionMode, ConversationMessage, MessageBlock } from '../types'
+import type { SessionMode, ConversationMessage, MessageBlock, WebSearchResultItem } from '../types'
 import { useConversation } from '../hooks/useConversation'
 import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
@@ -152,7 +152,14 @@ export function ConversationDialog({
             display: 'flex',
           }}
         >
-          <div style={{ width: 200, flexShrink: 0, background: 'var(--dialog-sidebar-bg)' }} />
+          <div
+            style={{
+              width: 200,
+              flexShrink: 0,
+              background: 'var(--dialog-sidebar-bg)',
+              borderRight: '1px solid var(--dialog-glass-divider)',
+            }}
+          />
           <div style={{ flex: 1 }} />
         </div>
 
@@ -346,6 +353,8 @@ function BlockRenderer({ block }: { block: MessageBlock }) {
       return <ThinkingBlock thinking={block.content} />
     case 'tool':
       return <ToolBlock tool={block} />
+    case 'web_search':
+      return <WebSearchBlock query={block.query} results={block.results} />
     default:
       return null
   }
@@ -394,6 +403,74 @@ function ToolBlock({
           }}
         >
           {tool.output}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WebSearchBlock({ query, results }: { query: string; results: WebSearchResultItem[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const label = query ? `搜索: ${query}` : '网络搜索'
+
+  return (
+    <div
+      onClick={() => setExpanded(!expanded)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        maxWidth: '85%',
+        padding: '4px 10px',
+        borderRadius: 6,
+        background: hovered ? 'var(--item-hover-bg)' : 'var(--segment-bg)',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--item-meta)',
+        cursor: 'pointer',
+        userSelect: 'none',
+        border: '0.5px solid transparent',
+        transition: 'background 0.15s ease-out',
+      }}
+    >
+      <span style={{ fontSize: 'var(--text-xs)', marginRight: 4 }}>{expanded ? '▾' : '▸'}</span>
+      {label}
+      {results.length > 0 && (
+        <span style={{ opacity: 0.5, marginLeft: 6 }}>({results.length})</span>
+      )}
+      {expanded && results.length > 0 && (
+        <div
+          style={{
+            marginTop: 6,
+            borderTop: '0.5px solid var(--queue-border)',
+            paddingTop: 6,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+          }}
+        >
+          {results.map((r, i) => (
+            <div key={i} style={{ lineHeight: 1.5 }}>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.open(r.url, '_blank')
+                }}
+                style={{
+                  color: 'var(--link-color, #4a9eff)',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  fontStyle: 'normal',
+                }}
+              >
+                {r.title || r.url}
+              </span>
+              {r.page_age && (
+                <span style={{ opacity: 0.4, marginLeft: 6, fontSize: '0.65rem' }}>
+                  {r.page_age}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

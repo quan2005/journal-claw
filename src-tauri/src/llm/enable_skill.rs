@@ -3,19 +3,12 @@ use std::path::PathBuf;
 
 use super::types::{ToolDefinition, ToolResult};
 
-/// Truncate description to ~300 chars at a natural boundary.
 fn truncate_description(desc: &str, max_chars: usize) -> String {
     if desc.chars().count() <= max_chars {
         return desc.to_string();
     }
     let truncated: String = desc.chars().take(max_chars).collect();
-    // Try to cut at last sentence/comma boundary
-    if let Some(pos) = truncated.rfind(['。', '，', '.', ',']) {
-        if pos > max_chars / 2 {
-            return format!("{}……", &truncated[..=pos]);
-        }
-    }
-    format!("{}……", truncated.trim_end())
+    format!("{}…", truncated)
 }
 
 pub fn definition(skills: &[(String, String)]) -> ToolDefinition {
@@ -135,6 +128,15 @@ pub fn log_label(input: &serde_json::Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn truncate_chinese_punctuation_no_panic() {
+        // Regression: rfind('。') returns byte offset; slicing at pos+1 hit mid-char
+        let desc = "把日志条目转化为可视化网页设计说明书（金橙暖色叙事长页）。用户在日志详情右键转化为可视化设计。这是一段很长的描述文字，需要被截断处理，确保在中文句号处正确截断而不会导致panic。再加一些填充文字来确保超过截断阈值，测试各种中文标点符号的处理情况，包括句号逗号等。更多的填充内容来达到三百字符的限制，这样才能触发截断逻辑并验证修复是否正确。继续添加更多文字确保描述足够长。最后再加一点点内容来确保万无一失。还需要更多的文字才能超过三百个字符的阈值。补充一些额外的说明文字来凑够长度。现在应该差不多够了吧再多写几个字确认一下。这里还要继续写更多的内容才行啊。好的我再多加一些中文字符来确保测试字符串的长度超过三百个字符。";
+        let result = truncate_description(desc, 300);
+        assert!(result.ends_with('…'));
+        assert!(result.len() < desc.len());
+    }
 
     #[test]
     fn definition_has_required_fields() {

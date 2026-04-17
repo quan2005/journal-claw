@@ -775,6 +775,14 @@ pub async fn conversation_send(
                         data: e.to_string(),
                     },
                 );
+                let _ = app_clone.emit(
+                    "conversation-stream",
+                    ConversationStreamPayload {
+                        session_id: sid.clone(),
+                        event: "done".to_string(),
+                        data: String::new(),
+                    },
+                );
                 if let Ok(mut sessions) = store.0.lock() {
                     if let Some(session) = sessions.get_mut(&sid) {
                         session.cancel = None;

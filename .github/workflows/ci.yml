@@ -2,15 +2,13 @@ name: CI
 on:
   pull_request:
     branches: [master]
-  push:
-    branches: [master]
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   frontend:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,5 +30,5 @@ jobs:
         with:
           workspaces: src-tauri
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -W warnings
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
       - run: cargo test --manifest-path src-tauri/Cargo.toml

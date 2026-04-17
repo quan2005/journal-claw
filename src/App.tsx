@@ -23,10 +23,7 @@ import {
   importFile,
   importAudioFile,
   prepareAudioForAi,
-  triggerAiProcessing,
-  triggerAiPrompt,
-  cancelAiProcessing,
-  cancelQueuedItem,
+  conversationGetMessages,
   getEngineConfig,
   getAsrConfig,
   checkWhisperkitCliInstalled,
@@ -35,7 +32,9 @@ import {
   createSampleEntry,
   listAllJournalEntries,
   deleteIdentity,
-  conversationList,
+  enqueueWork as invokeEnqueueWork,
+  cancelWorkItem,
+  retryWorkItem,
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry, SessionMode } from './types'
@@ -57,7 +56,6 @@ export default function App() {
     isProcessing,
     dismissQueueItem,
     addConvertingItem,
-    addQueuedItem,
     markItemFailed,
     retryQueueItem,
     refresh,
@@ -72,6 +70,7 @@ export default function App() {
     updateTodoText,
     setTodoPath,
     removeTodoPath,
+    setTodoSessionId,
   } = useTodos()
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
@@ -86,7 +85,6 @@ export default function App() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [activeLogPath, setActiveLogPath] = useState<string | null>(null)
   const [dockOpen, setDockOpen] = useState(false)
   const [dockAppendText, setDockAppendText] = useState('')
   const [todoOpen, setTodoOpen] = useState(false)
@@ -96,6 +94,9 @@ export default function App() {
     contextFiles?: string[]
     initialInput?: string
     initialSessionId?: string
+    initialStreaming?: boolean
+    key?: number
+    _todoCallback?: { lineIndex: number; doneFile: boolean }
     visible: boolean
   } | null>(null)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
@@ -296,6 +297,30 @@ export default function App() {
     }
   }, [])
 
+  // Auto-open conversation when work queue creates a session
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    listen<{ item_id: string; session_id: string }>('work-item-session-created', (event) => {
+      const { session_id } = event.payload
+      setConversationState((prev) =>
+        prev?.visible
+          ? prev
+          : {
+              mode: 'agent',
+              initialSessionId: session_id,
+              initialStreaming: true,
+              key: Date.now(),
+              visible: true,
+            },
+      )
+    }).then((fn) => {
+      unlisten = fn
+    })
+    return () => {
+      unlisten?.()
+    }
+  }, [])
+
   // Esc closes settings; Cmd+, toggles settings
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -352,24 +377,40 @@ export default function App() {
 
   const handleFilesSubmit = async (paths: string[], note?: string) => {
     setPendingFiles([])
+    const importedPaths: string[] = []
     for (const path of paths) {
-      let materialPath = path
       try {
         const kind = fileKindFromName(path.split('/').pop() ?? path)
         if (kind === 'audio') {
           const result = await importAudioFile(path)
-          materialPath = result.path
+          importedPaths.push(result.path)
           addConvertingItem(result.path, result.filename)
-          await prepareAudioForAi(result.path, result.year_month, note)
+          try {
+            await prepareAudioForAi(result.path, result.year_month, note)
+          } catch (audioErr) {
+            console.error('[file-submit] audio prepare error:', String(audioErr))
+            markItemFailed(result.path, String(audioErr))
+          }
         } else {
           const result = await importFile(path)
-          materialPath = result.path
-          addQueuedItem(result.path, result.filename)
-          await triggerAiProcessing(result.path, result.year_month, note)
+          importedPaths.push(result.path)
         }
       } catch (err) {
-        console.error('[file-submit] error:', String(err), 'path:', materialPath)
-        markItemFailed(materialPath, String(err))
+        console.error('[file-submit] error:', String(err))
+      }
+    }
+    // Non-audio files: enqueue in Rust work queue
+    const nonAudioPaths = importedPaths.filter((p) => {
+      const ext = p.split('.').pop()?.toLowerCase() ?? ''
+      return !['m4a', 'wav', 'mp3', 'aac', 'ogg', 'flac'].includes(ext)
+    })
+    if (nonAudioPaths.length > 0) {
+      const prompt = note ? `分析并处理这些文件。备注：${note}` : '分析并处理这些文件'
+      const displayName = nonAudioPaths.map((p) => p.split('/').pop()).join(', ')
+      try {
+        await invokeEnqueueWork({ files: nonAudioPaths, prompt, displayName })
+      } catch (err) {
+        console.error('[file-submit] enqueue error:', String(err))
       }
     }
     refresh()
@@ -418,37 +459,42 @@ export default function App() {
   }, [])
 
   const handlePasteSubmit = async (text: string) => {
-    await triggerAiPrompt(text)
-    refresh()
+    const preview = text.slice(0, 30) + (text.length > 30 ? '…' : '')
+    try {
+      await invokeEnqueueWork({ text, displayName: preview })
+    } catch (err) {
+      console.error('[paste-submit] enqueue error:', String(err))
+    }
   }
 
   const handleCancelQueueItem = async (item: QueueItem) => {
-    if (item.status === 'processing') {
-      await cancelAiProcessing()
-    } else {
-      await cancelQueuedItem(item.path)
+    try {
+      await cancelWorkItem(item.id)
+    } catch {
+      // Fallback for local items (recording/converting)
+      dismissQueueItem(item.id)
     }
-    dismissQueueItem(item.path)
   }
 
   const handleRetryQueueItem = async (item: QueueItem) => {
+    // Rust work queue items: retry via Rust
+    if (item.id.startsWith('wq-')) {
+      try {
+        await retryWorkItem(item.id)
+      } catch (err) {
+        console.error('[retry] error:', String(err))
+      }
+      return
+    }
+    // Local items (audio pipeline)
     const parts = item.path.split('/')
     const rawIdx = parts.lastIndexOf('raw')
     const yearMonth = rawIdx > 0 ? parts[rawIdx - 1] : (parts.slice(-2, -1)[0] ?? '')
-    const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
-    const isAudioSourceFile = audioExts.some((ext) => item.path.toLowerCase().endsWith(ext))
-
-    retryQueueItem(item.path, isAudioSourceFile ? 'converting' : 'queued')
+    retryQueueItem(item.path, 'converting')
     try {
-      if (isAudioSourceFile) {
-        // Audio source file: need full pipeline (transcription + AI)
-        await prepareAudioForAi(item.path, yearMonth)
-      } else {
-        // Already-transcribed material or non-audio: go directly to AI
-        await triggerAiProcessing(item.path, yearMonth)
-      }
+      await prepareAudioForAi(item.path, yearMonth)
     } catch (err) {
-      markItemFailed(item.path, String(err))
+      console.error('[retry] audio error:', String(err))
     }
   }
 
@@ -511,6 +557,7 @@ export default function App() {
     status === 'recording'
       ? [
           {
+            id: RECORDING_PLACEHOLDER,
             path: RECORDING_PLACEHOLDER,
             filename: t('recordingStatus'),
             status: 'recording' as const,
@@ -721,11 +768,33 @@ export default function App() {
               onUpdateText={updateTodoText}
               onSetPath={setTodoPath}
               onRemovePath={removeTodoPath}
-              onOpenConversation={(opts: { mode: SessionMode; context: string }) => {
+              onOpenConversation={async (opts) => {
+                if (opts.sessionId) {
+                  // Check if session actually has messages (may fail for legacy brainstorm IDs)
+                  let msgs: unknown[] = []
+                  try {
+                    msgs = await conversationGetMessages(opts.sessionId)
+                  } catch {
+                    // Session not found — treat as new
+                  }
+                  if (msgs.length > 0) {
+                    // Has history — resume it
+                    setConversationState({
+                      mode: 'agent',
+                      initialSessionId: opts.sessionId,
+                      key: Date.now(),
+                      visible: true,
+                    })
+                    return
+                  }
+                }
+                // First time or empty session — open dialog immediately, let it create session
                 setConversationState({
                   mode: 'agent',
                   initialInput: `/ideate ${opts.context}`,
+                  key: Date.now(),
                   visible: true,
+                  _todoCallback: { lineIndex: opts.lineIndex, doneFile: opts.doneFile },
                 })
               }}
               onNavigateToSource={(filename: string) => {
@@ -742,15 +811,34 @@ export default function App() {
 
       {conversationState && (
         <ConversationDialog
+          key={conversationState.key ?? 0}
           mode={conversationState.mode}
           context={conversationState.context}
           contextFiles={conversationState.contextFiles}
           initialInput={conversationState.initialInput}
           initialSessionId={conversationState.initialSessionId}
+          initialStreaming={conversationState.initialStreaming}
           visible={conversationState.visible}
           onClose={() =>
-            setConversationState((prev) => (prev ? { ...prev, visible: false } : null))
+            setConversationState((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    visible: false,
+                    initialInput: undefined,
+                    initialSessionId: undefined,
+                    initialStreaming: undefined,
+                    _todoCallback: undefined,
+                  }
+                : null,
+            )
           }
+          onSessionCreated={(sid) => {
+            const cb = conversationState?._todoCallback
+            if (cb) {
+              setTodoSessionId(cb.lineIndex, sid, cb.doneFile)
+            }
+          }}
         />
       )}
 
@@ -786,20 +874,14 @@ export default function App() {
             onDismiss={dismissQueueItem}
             onCancel={handleCancelQueueItem}
             onRetry={handleRetryQueueItem}
-            activeLogPath={activeLogPath}
-            onSetActiveLogPath={setActiveLogPath}
-            onOpenConversation={async (path: string) => {
-              const sessions = await conversationList()
-              const existing = sessions.find((s) => s.linked_entry === path)
-              if (existing) {
+            onOpenConversation={(queueItem) => {
+              if (queueItem.sessionId) {
                 setConversationState({
                   mode: 'agent',
-                  contextFiles: [path],
-                  initialSessionId: existing.id,
+                  initialSessionId: queueItem.sessionId,
+                  key: Date.now(),
                   visible: true,
                 })
-              } else {
-                setConversationState({ mode: 'agent', contextFiles: [path], visible: true })
               }
             }}
           />
@@ -860,7 +942,7 @@ export default function App() {
                 letterSpacing: '0.03em',
               }}
             >
-              AI 引擎未配置
+              {t('aiNotConfigured')}
             </span>
             <span
               style={{
@@ -873,7 +955,7 @@ export default function App() {
                 letterSpacing: '0.04em',
               }}
             >
-              前往设置 →
+              {t('goToSettings')}
             </span>
           </div>
         )}

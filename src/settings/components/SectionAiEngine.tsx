@@ -1,18 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
-import { listen } from '@tauri-apps/api/event'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  checkEngineInstalled,
-  installEngine,
   getEngineConfig,
   setEngineConfig,
+  listModels,
+  VENDOR_PRESETS,
   type EngineConfig,
+  type VendorId,
 } from '../../lib/tauri'
-import { Terminal, Sparkles, Check, Download, type LucideIcon } from 'lucide-react'
+import { openFile } from '../../lib/tauri'
+import { Check, ExternalLink, Eye, EyeOff } from 'lucide-react'
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
 
-type InstallStatus = 'checking' | 'installed' | 'not_installed' | 'installing'
-type EngineId = 'claude' | 'qwen'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const sectionStyle: React.CSSProperties = {
@@ -44,96 +43,193 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-import { createTranslator, detectLang } from '../../lib/i18n'
-const getT = () => createTranslator(detectLang())
-
-const ENGINES: { id: EngineId; label: string; vendor: string; icon: LucideIcon }[] = [
-  { id: 'claude', label: 'Claude Code', vendor: 'Anthropic', icon: Terminal },
-  { id: 'qwen', label: 'Qwen Code', vendor: getT()('qwenVendor'), icon: Sparkles },
-]
-
 function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
+  if (a.active_vendor !== b.active_vendor) return false
+  const allKeys = new Set([...Object.keys(a.vendors), ...Object.keys(b.vendors)])
+  for (const k of allKeys) {
+    const va = a.vendors[k] ?? { api_key: '', base_url: '', model: '' }
+    const vb = b.vendors[k] ?? { api_key: '', base_url: '', model: '' }
+    if (va.api_key !== vb.api_key || va.base_url !== vb.base_url || va.model !== vb.model)
+      return false
+  }
+  return true
+}
+
+/** Combo-box model selector: editable input with dropdown suggestions from /v1/models */
+function ModelSelect({
+  vendor,
+  apiKey,
+  baseUrl,
+  value,
+  onChange,
+  onSaveStatusReset,
+}: {
+  vendor: VendorId
+  apiKey: string
+  baseUrl: string
+  value: string
+  onChange: (model: string) => void
+  onSaveStatusReset: () => void
+}) {
+  const { t } = useTranslation()
+  const [models, setModels] = useState<string[]>([])
+  const [fetching, setFetching] = useState(false)
+  const [open, setOpen] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  const fetchModels = useCallback(() => {
+    if (!apiKey?.trim()) {
+      setModels([])
+      return
+    }
+    setFetching(true)
+    listModels(vendor, apiKey, baseUrl)
+      .then((list) => {
+        setModels(list)
+        setFetching(false)
+      })
+      .catch(() => {
+        setModels([])
+        setFetching(false)
+      })
+  }, [vendor, apiKey, baseUrl])
+
+  useEffect(() => {
+    if (!apiKey?.trim()) {
+      setModels([])
+      return
+    }
+    const timer = setTimeout(fetchModels, 500)
+    return () => clearTimeout(timer)
+  }, [fetchModels, apiKey])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = value
+    ? models.filter((m) => m.toLowerCase().includes(value.toLowerCase()))
+    : models
+  const showDropdown = open && (fetching || filtered.length > 0)
+
   return (
-    a.active_ai_engine === b.active_ai_engine &&
-    a.claude_code_api_key === b.claude_code_api_key &&
-    a.claude_code_base_url === b.claude_code_base_url &&
-    a.claude_code_model === b.claude_code_model &&
-    a.qwen_code_api_key === b.qwen_code_api_key &&
-    a.qwen_code_base_url === b.qwen_code_base_url &&
-    a.qwen_code_model === b.qwen_code_model
+    <div>
+      <label style={labelStyle}>Model</label>
+      <div ref={wrapperRef} style={{ position: 'relative' }}>
+        <input
+          style={inputStyle}
+          placeholder={t('modelInputPlaceholder')}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value)
+            onSaveStatusReset()
+            setOpen(true)
+          }}
+          onFocus={() => {
+            if (models.length > 0 || apiKey?.trim()) setOpen(true)
+          }}
+        />
+        {showDropdown && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: 2,
+              maxHeight: 200,
+              overflowY: 'auto',
+              background: 'var(--detail-case-bg)',
+              border: '1px solid var(--divider)',
+              borderRadius: 6,
+              zIndex: 10,
+            }}
+          >
+            {fetching ? (
+              <div
+                style={{
+                  padding: '8px 10px',
+                  fontSize: 13,
+                  color: 'var(--duration-text)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    border: '1.5px solid var(--divider)',
+                    borderTopColor: 'var(--item-meta)',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                    flexShrink: 0,
+                  }}
+                />
+                {t('loadingModels')}
+              </div>
+            ) : (
+              filtered.map((m) => (
+                <div
+                  key={m}
+                  onClick={() => {
+                    onChange(m)
+                    onSaveStatusReset()
+                    setOpen(false)
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: 13,
+                    color: m === value ? 'var(--record-btn)' : 'var(--item-text)',
+                    cursor: 'pointer',
+                    fontFamily: 'ui-monospace, monospace',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--divider)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  {m}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      <div style={hintStyle}>{t('leaveBlankModel')}</div>
+    </div>
   )
 }
 
 export default function SectionAiEngine() {
   const { t } = useTranslation()
-  const [status, setStatus] = useState<Record<EngineId, InstallStatus>>({
-    claude: 'checking',
-    qwen: 'checking',
-  })
-  const [installLogs, setInstallLogs] = useState<Record<EngineId, string[]>>({
-    claude: [],
-    qwen: [],
-  })
   const defaultConfig: EngineConfig = {
-    active_ai_engine: 'claude',
-    claude_code_api_key: '',
-    claude_code_base_url: '',
-    claude_code_model: '',
-    qwen_code_api_key: '',
-    qwen_code_base_url: '',
-    qwen_code_model: '',
+    active_vendor: 'anthropic',
+    vendors: {},
   }
   const [cfg, setCfg] = useState<EngineConfig>(defaultConfig)
   const [persistedCfg, setPersistedCfg] = useState<EngineConfig>(defaultConfig)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [loading, setLoading] = useState(true)
-  const logsEndRef = useRef<HTMLDivElement>(null)
+  const [showKey, setShowKey] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      ...ENGINES.map(({ id }) =>
-        checkEngineInstalled(id).then((installed) => {
-          setStatus((prev) => ({ ...prev, [id]: installed ? 'installed' : 'not_installed' }))
-        }),
-      ),
-      getEngineConfig().then((loadedConfig) => {
-        setCfg(loadedConfig)
-        setPersistedCfg(loadedConfig)
-      }),
-    ]).then(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    let unlistenFn: (() => void) | null = null
-    listen<{ engine: EngineId; line: string; done: boolean; success: boolean }>(
-      'engine-install-log',
-      ({ payload }) => {
-        if (payload.engine !== 'claude' && payload.engine !== 'qwen') return
-        setInstallLogs((prev) => ({
-          ...prev,
-          [payload.engine]: [...prev[payload.engine], payload.line],
-        }))
-        if (payload.done) {
-          setStatus((prev) => ({
-            ...prev,
-            [payload.engine]: payload.success ? 'installed' : 'not_installed',
-          }))
-        }
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      },
-    ).then((fn) => {
-      unlistenFn = fn
+    getEngineConfig().then((loadedConfig) => {
+      setCfg(loadedConfig)
+      setPersistedCfg(loadedConfig)
+      setLoading(false)
     })
-    return () => {
-      unlistenFn?.()
-    }
   }, [])
-
-  const handleInstall = (engine: EngineId) => {
-    setStatus((prev) => ({ ...prev, [engine]: 'installing' }))
-    setInstallLogs((prev) => ({ ...prev, [engine]: [] }))
-    installEngine(engine)
-  }
 
   const handleSave = async () => {
     setSaveStatus('saving')
@@ -148,7 +244,24 @@ export default function SectionAiEngine() {
     }
   }
 
-  const active = cfg.active_ai_engine as EngineId
+  const activeVendor = cfg.active_vendor
+  const preset = VENDOR_PRESETS.find((v) => v.id === activeVendor) ?? VENDOR_PRESETS[0]
+  const vc = cfg.vendors[activeVendor] ?? { api_key: '', base_url: '', model: '' }
+
+  const setVendorField = (field: 'api_key' | 'base_url' | 'model', value: string) => {
+    setCfg((prev) => ({
+      ...prev,
+      vendors: {
+        ...prev.vendors,
+        [activeVendor]: {
+          ...(prev.vendors[activeVendor] ?? { api_key: '', base_url: '', model: '' }),
+          [field]: value,
+        },
+      },
+    }))
+    setSaveStatus('idle')
+  }
+
   const hasUnsavedChanges = !isEngineConfigEqual(cfg, persistedCfg)
   const saveHint =
     saveStatus === 'saving'
@@ -176,14 +289,19 @@ export default function SectionAiEngine() {
       >
         {t('aiEngineSection')}
       </div>
-
       {loading ? (
         <>
           <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 8,
+              marginBottom: 18,
+            }}
           >
-            <SkeletonRow height={90} mb={0} />
-            <SkeletonRow height={90} mb={0} />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SkeletonRow key={i} height={52} mb={0} />
+            ))}
           </div>
           <SkeletonRow height={1} width="100%" mb={14} />
           <SkeletonRow height={11} width={60} mb={5} />
@@ -198,81 +316,45 @@ export default function SectionAiEngine() {
         </>
       ) : (
         <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
-          {/* Engine cards */}
+          {/* Vendor cards */}
           <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 8,
+              marginBottom: 18,
+            }}
           >
-            {ENGINES.map(({ id, label, vendor, icon: Icon }) => {
-              const s = status[id]
-              const isActive = active === id
-              const isComingSoon = id === 'qwen'
+            {VENDOR_PRESETS.map(({ id, label }) => {
+              const isActive = activeVendor === id
               return (
                 <div
                   key={id}
                   onClick={() => {
-                    if (!isComingSoon && s === 'installed') {
-                      setCfg((prev) => ({ ...prev, active_ai_engine: id }))
+                    if (id !== activeVendor) {
+                      setCfg((prev) => ({ ...prev, active_vendor: id }))
                       setSaveStatus('idle')
                     }
                   }}
-                  title={isComingSoon ? t('comingSoon') : undefined}
                   style={{
                     background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
                     border: `1px solid ${isActive ? 'var(--record-btn)' : 'var(--divider)'}`,
-                    borderRadius: 10,
-                    padding: '14px 12px 12px',
+                    borderRadius: 8,
+                    padding: '10px 6px 8px',
                     textAlign: 'center',
                     position: 'relative',
-                    cursor: isComingSoon
-                      ? 'not-allowed'
-                      : s === 'installed'
-                        ? 'pointer'
-                        : 'default',
-                    opacity: isComingSoon ? 0.4 : s === 'checking' ? 0.6 : 1,
-                    pointerEvents: isComingSoon ? 'none' : undefined,
+                    cursor: 'pointer',
+                    transition: 'border-color 120ms ease-out',
                   }}
                 >
-                  {isComingSoon && (
+                  {isActive && (
                     <div
                       style={{
                         position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        fontSize: 9,
-                        color: 'var(--duration-text)',
-                        background: 'var(--detail-case-bg)',
-                        border: '1px solid var(--divider)',
-                        borderRadius: 4,
-                        padding: '1px 5px',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {t('inDevelopment')}
-                    </div>
-                  )}
-                  {!isComingSoon && s === 'checking' && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
+                        top: 5,
+                        right: 5,
                         width: 14,
                         height: 14,
-                        border: '2px solid var(--divider)',
-                        borderTopColor: 'var(--record-btn)',
-                        borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite',
-                      }}
-                    />
-                  )}
-                  {!isComingSoon && s === 'installed' && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        width: 16,
-                        height: 16,
                         background: 'var(--status-success)',
                         borderRadius: '50%',
                         display: 'flex',
@@ -280,289 +362,129 @@ export default function SectionAiEngine() {
                         justifyContent: 'center',
                       }}
                     >
-                      <Check size={9} strokeWidth={2.5} color="var(--status-on-fill)" />
+                      <Check size={8} strokeWidth={2.5} color="var(--status-on-fill)" />
                     </div>
                   )}
                   <div
                     style={{
-                      marginBottom: 6,
-                      opacity:
-                        !isComingSoon && (s === 'not_installed' || s === 'installing') ? 0.5 : 1,
-                      display: 'flex',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Icon size={22} strokeWidth={1.5} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: 500,
                       color: isActive ? 'var(--record-btn)' : 'var(--item-meta)',
                     }}
                   >
                     {label}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>
-                    {vendor}
-                  </div>
                 </div>
               )
             })}
           </div>
 
-          {/* Claude not installed — install banner */}
-          {status['claude'] === 'not_installed' && (
-            <div
-              style={{
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'rgba(255,159,10,0.08)',
-                border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
-                fontSize: 11,
-                color: 'var(--item-meta)',
-                lineHeight: 1.6,
-              }}
-            >
-              <div
+          {/* Config fields for active vendor */}
+          <div style={{ height: 1, background: 'var(--divider)', margin: '14px 0' }} />
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>API Key</label>
+              <span
+                onClick={() => openFile(preset.apiKeyUrl)}
                 style={{
-                  display: 'flex',
+                  fontSize: 11,
+                  color: 'var(--link-color, #4a9eff)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 6,
+                  gap: 3,
                 }}
               >
-                <div style={{ fontWeight: 600, color: 'var(--status-warning)' }}>
-                  {t('claudeNotFound')}
-                </div>
-                <button
-                  onClick={() => handleInstall('claude')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    padding: '4px 10px',
-                    borderRadius: 5,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    border: '1px solid rgba(255,159,10,0.4)',
-                    background: 'var(--status-warning-bg)',
-                    color: 'var(--status-warning)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Download size={11} strokeWidth={1.8} />
-                  {t('installOneLiner')}
-                </button>
-              </div>
-              <div style={{ color: 'var(--duration-text)', fontSize: 10 }}>
-                {t('requiresHomebrew')}
-                <code
-                  style={{
-                    display: 'block',
-                    marginTop: 5,
-                    padding: '4px 8px',
-                    background: 'rgba(0,0,0,0.2)',
-                    borderRadius: 4,
-                    fontFamily: 'ui-monospace, monospace',
-                    fontSize: 10,
-                    color: 'var(--item-text)',
-                    userSelect: 'text' as const,
-                  }}
-                >
-                  brew install --cask claude-code
-                </code>
-              </div>
+                {t('getApiKey')} <ExternalLink size={10} />
+              </span>
             </div>
-          )}
-
-          {/* Install progress */}
-          {ENGINES.filter(({ id }) => status[id] === 'installing').map(({ id, label }) => (
-            <div
-              key={id}
-              style={{
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'rgba(255,159,10,0.08)',
-                border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
-                fontSize: 11,
-                color: 'var(--item-meta)',
-                lineHeight: 1.6,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <div
-                  style={{
-                    width: 10,
-                    height: 10,
-                    flexShrink: 0,
-                    border:
-                      '1.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
-                    borderTopColor: 'var(--status-warning)',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                  }}
-                />
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--status-warning)' }}>
-                  {t('installing', { label })}
-                </span>
-              </div>
-              <div
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showKey ? 'text' : 'password'}
+                style={{ ...inputStyle, paddingRight: 36 }}
+                placeholder={preset.apiKeyPlaceholder || 'API Key'}
+                value={vc.api_key}
+                onChange={(e) => setVendorField('api_key', e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
                 style={{
-                  fontFamily: 'ui-monospace, monospace',
-                  fontSize: 10,
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  padding: 2,
+                  cursor: 'pointer',
                   color: 'var(--item-meta)',
-                  maxHeight: 120,
-                  overflowY: 'auto',
-                  lineHeight: 1.7,
-                }}
-              >
-                {installLogs[id].map((line, i) => (
-                  <div key={i}>{line}</div>
-                ))}
-                <div ref={logsEndRef} />
-              </div>
-            </div>
-          ))}
-
-          {/* Config fields for active installed engine */}
-          {status[active] === 'installed' && (
-            <>
-              <div style={{ height: 1, background: 'var(--divider)', margin: '14px 0' }} />
-
-              {active === 'claude' && (
-                <>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={labelStyle}>API Key</label>
-                    <input
-                      type="password"
-                      style={inputStyle}
-                      placeholder="sk-ant-…"
-                      value={cfg.claude_code_api_key}
-                      onChange={(e) => {
-                        setCfg((prev) => ({ ...prev, claude_code_api_key: e.target.value }))
-                        setSaveStatus('idle')
-                      }}
-                    />
-                    <div style={hintStyle}>{t('leaveBlankDefault')}</div>
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={labelStyle}>Base URL</label>
-                    <input
-                      style={inputStyle}
-                      placeholder="https://api.anthropic.com"
-                      value={cfg.claude_code_base_url}
-                      onChange={(e) => {
-                        setCfg((prev) => ({ ...prev, claude_code_base_url: e.target.value }))
-                        setSaveStatus('idle')
-                      }}
-                    />
-                    <div style={hintStyle}>{t('customEndpoint')}</div>
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>Model</label>
-                    <input
-                      style={inputStyle}
-                      placeholder="claude-sonnet-4-6"
-                      value={cfg.claude_code_model}
-                      onChange={(e) => {
-                        setCfg((prev) => ({ ...prev, claude_code_model: e.target.value }))
-                        setSaveStatus('idle')
-                      }}
-                    />
-                    <div style={hintStyle}>{t('leaveBlankModel')}</div>
-                  </div>
-                </>
-              )}
-
-              {active === 'qwen' && (
-                <>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={labelStyle}>API Key</label>
-                    <input
-                      type="password"
-                      style={inputStyle}
-                      placeholder="sk-…"
-                      value={cfg.qwen_code_api_key}
-                      onChange={(e) => {
-                        setCfg((prev) => ({ ...prev, qwen_code_api_key: e.target.value }))
-                        setSaveStatus('idle')
-                      }}
-                    />
-                    <div style={hintStyle}>{t('dashscopeKeyHint')}</div>
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={labelStyle}>Base URL</label>
-                    <input
-                      style={inputStyle}
-                      placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
-                      value={cfg.qwen_code_base_url}
-                      onChange={(e) => {
-                        setCfg((prev) => ({ ...prev, qwen_code_base_url: e.target.value }))
-                        setSaveStatus('idle')
-                      }}
-                    />
-                    <div style={hintStyle}>{t('customEndpointHint')}</div>
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>Model</label>
-                    <input
-                      style={inputStyle}
-                      placeholder="qwen-coder-plus"
-                      value={cfg.qwen_code_model}
-                      onChange={(e) => {
-                        setCfg((prev) => ({ ...prev, qwen_code_model: e.target.value }))
-                        setSaveStatus('idle')
-                      }}
-                    />
-                    <div style={hintStyle}>{t('leaveBlankModelHint')}</div>
-                  </div>
-                </>
-              )}
-
-              <div
-                style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  gap: 10,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 13,
-                    color:
-                      saveStatus === 'error'
-                        ? 'var(--status-warning)'
-                        : saveStatus === 'saved'
-                          ? 'var(--status-success)'
-                          : 'var(--duration-text)',
-                    minHeight: 16,
-                  }}
-                >
-                  {saveHint}
-                </span>
-                <button
-                  onClick={handleSave}
-                  disabled={!canSave}
-                  style={{
-                    background: canSave ? 'var(--record-btn)' : 'var(--divider)',
-                    border: 'none',
-                    borderRadius: 5,
-                    padding: '6px 18px',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: canSave ? 'var(--bg)' : 'var(--duration-text)',
-                    cursor: canSave ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  {saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}
-                </button>
-              </div>
-            </>
-          )}
+                {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Base URL</label>
+            <input
+              style={inputStyle}
+              placeholder={preset.defaultBaseUrl}
+              value={vc.base_url}
+              onChange={(e) => setVendorField('base_url', e.target.value)}
+            />
+            <div style={hintStyle}>{t('customEndpoint')}</div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <ModelSelect
+              vendor={activeVendor}
+              apiKey={vc.api_key}
+              baseUrl={vc.base_url}
+              value={vc.model}
+              onChange={(model) => setVendorField('model', model)}
+              onSaveStatusReset={() => setSaveStatus('idle')}
+            />
+          </div>
+
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}
+          >
+            <span
+              style={{
+                fontSize: 13,
+                color:
+                  saveStatus === 'error'
+                    ? 'var(--status-warning)'
+                    : saveStatus === 'saved'
+                      ? 'var(--status-success)'
+                      : 'var(--duration-text)',
+                minHeight: 16,
+              }}
+            >
+              {saveHint}
+            </span>
+            <button
+              onClick={handleSave}
+              disabled={!canSave}
+              style={{
+                background: canSave ? 'var(--record-btn)' : 'var(--divider)',
+                border: 'none',
+                borderRadius: 5,
+                padding: '6px 18px',
+                fontSize: 14,
+                fontWeight: 600,
+                color: canSave ? 'var(--bg)' : 'var(--duration-text)',
+                cursor: canSave ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {saveStatus === 'saving' ? t('savingDots') : t('saveBtn')}
+            </button>
+          </div>
         </div>
       )}
     </div>

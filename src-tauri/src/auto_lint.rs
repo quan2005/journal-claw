@@ -1,5 +1,5 @@
-use crate::ai_processor::{build_claude_args_with_creds, ensure_workspace_dot_claude};
 use crate::config;
+use crate::llm;
 use crate::workspace_settings;
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
@@ -296,67 +296,16 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
         },
     );
 
-    ensure_workspace_dot_claude(workspace);
-
     let cfg = config::load_config(app).unwrap_or_default();
-    let cli = if cfg.claude_cli_path.is_empty() {
-        config::default_claude_cli_detect()
-    } else {
-        cfg.claude_cli_path.clone()
-    };
 
-    let (args, extra_envs) = build_claude_args_with_creds(
-        "auto-lint",
-        "",
-        None,
-        Some("/lint"),
-        &cfg.claude_code_model,
-        &cfg.claude_code_api_key,
-        &cfg.claude_code_base_url,
-    );
-
-    eprintln!("[auto_lint] running: {} {}", cli, args.join(" "));
-
-    let mut cmd = tokio::process::Command::new(&cli);
-    cmd.args(&args)
-        .current_dir(workspace)
-        .env("PATH", config::augmented_path())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .kill_on_drop(true);
-    for (k, v) in &extra_envs {
-        cmd.env(k, v);
-    }
-
-    let result = match cmd.spawn() {
-        Ok(child) => child.wait_with_output().await,
-        Err(e) => {
-            let error = format!("启动 Claude CLI 失败: {}", e);
-            eprintln!("[auto_lint] {}", error);
-            let _ = app.emit(
-                "auto-lint-status",
-                AutoLintStatus {
-                    state: "error".to_string(),
-                    last_run: None,
-                    last_run_entries: None,
-                    next_check: None,
-                    current_new_entries: 0,
-                    error: Some(error),
-                },
-            );
-            let running = app.state::<LintRunning>();
-            *running.0.lock().unwrap() = false;
-            return;
-        }
-    };
+    let result = run_lint_builtin(app, &cfg, workspace).await;
 
     let running = app.state::<LintRunning>();
     *running.0.lock().unwrap() = false;
 
     match result {
-        Ok(output) if output.status.success() => {
+        Ok(()) => {
             eprintln!("[auto_lint] completed successfully");
-            // Re-read last-lint.json for updated status
             let last = read_last_lint(workspace);
             let new_entries = compute_new_entries(workspace);
             let _ = app.emit(
@@ -372,28 +321,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
             );
             let _ = app.emit("journal-updated", ());
         }
-        Ok(output) => {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let error = format!(
-                "lint 执行失败 (exit {}): {}",
-                output.status,
-                stderr.chars().take(200).collect::<String>()
-            );
-            eprintln!("[auto_lint] {}", error);
-            let _ = app.emit(
-                "auto-lint-status",
-                AutoLintStatus {
-                    state: "error".to_string(),
-                    last_run: None,
-                    last_run_entries: None,
-                    next_check: None,
-                    current_new_entries: 0,
-                    error: Some(error),
-                },
-            );
-        }
-        Err(e) => {
-            let error = format!("lint 执行异常: {}", e);
+        Err(error) => {
             eprintln!("[auto_lint] {}", error);
             let _ = app.emit(
                 "auto-lint-status",
@@ -408,6 +336,35 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
             );
         }
     }
+}
+
+async fn run_lint_builtin(
+    _app: &AppHandle,
+    cfg: &config::Config,
+    workspace: &str,
+) -> Result<(), String> {
+    let (api_key, base_url, model) = cfg.active_vendor_config();
+    let engine: Box<dyn llm::LlmEngine> =
+        Box::new(llm::create_anthropic_engine(api_key, base_url, model));
+
+    let system_prompt =
+        llm::prompt::build_system_prompt(workspace, crate::ai_processor::WORKSPACE_CLAUDE_MD).await;
+
+    let cancel = tokio_util::sync::CancellationToken::new();
+
+    llm::tool_loop::run_agent(
+        engine.as_ref(),
+        workspace,
+        &system_prompt,
+        "/lint",
+        |_event| {
+            // Auto-lint runs silently; no UI events needed
+        },
+        cancel,
+    )
+    .await
+    .map(|_| ())
+    .map_err(|e| format!("lint 执行失败: {}", e))
 }
 
 // ── Tauri Commands ───────────────────────────────────────

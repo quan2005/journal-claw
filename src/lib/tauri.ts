@@ -37,10 +37,6 @@ export const getWorkspacePath = () => invoke<string>('get_workspace_path')
 
 export const setWorkspacePath = (path: string) => invoke<void>('set_workspace_path', { path })
 
-export const getClaudeCliPath = () => invoke<string>('get_claude_cli_path')
-
-export const setClaudeCliPath = (path: string) => invoke<void>('set_claude_cli_path', { path })
-
 // Journal
 export const listAvailableMonths = () => invoke<string[]>('list_available_months')
 
@@ -70,7 +66,7 @@ export const importTextTemp = (text: string) =>
 export const importText = (text: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_text', { text })
 
-// Pure prompt → send text directly as Claude CLI -p argument (no file written)
+// Pure prompt → send text directly (no file written)
 export const triggerAiPrompt = (prompt: string): Promise<void> =>
   invoke<void>('trigger_ai_prompt', { prompt })
 
@@ -92,8 +88,6 @@ export const resetWorkspacePrompt = () => invoke<string>('reset_workspace_prompt
 
 export const openFile = (path: string): Promise<void> => invoke('open_with_system', { path })
 
-export const openClaudeTerminal = (): Promise<void> => invoke('open_claude_terminal')
-
 export const cancelAiProcessing = () => invoke<void>('cancel_ai_processing')
 
 export const cancelQueuedItem = (materialPath: string) =>
@@ -112,25 +106,60 @@ export const pickFolder = (): Promise<string | null> => {
   )
 }
 
-// Engine install/check
-export const checkEngineInstalled = (engine: 'claude' | 'qwen'): Promise<boolean> =>
-  invoke<boolean>('check_engine_installed', { engine })
-
-export const installEngine = (engine: 'claude' | 'qwen'): Promise<void> =>
-  invoke<void>('install_engine', { engine })
-
 // App version
 export const getAppVersion = (): Promise<string> => invoke<string>('get_app_version')
 
 // Engine config
+export type VendorId = 'volcengine' | 'zhipu' | 'dashscope' | 'anthropic'
+
+export interface VendorPreset {
+  id: VendorId
+  label: string
+  defaultBaseUrl: string
+  apiKeyUrl: string
+  apiKeyPlaceholder: string
+}
+
+export const VENDOR_PRESETS: VendorPreset[] = [
+  {
+    id: 'volcengine',
+    label: '火山方舟',
+    defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/coding',
+    apiKeyUrl: 'https://www.volcengine.com/activity/codingplan?ac=MMAP8JTTCAQ2&rc=MAZQUPQF',
+    apiKeyPlaceholder: '',
+  },
+  {
+    id: 'zhipu',
+    label: '智谱 AI',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/anthropic',
+    apiKeyUrl: 'https://www.bigmodel.cn/glm-coding?ic=BHXN1AIKJH',
+    apiKeyPlaceholder: '',
+  },
+  {
+    id: 'dashscope',
+    label: '阿里云百炼',
+    defaultBaseUrl: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    apiKeyUrl: 'https://bailian.console.aliyun.com/?apiKey=1#/api-key',
+    apiKeyPlaceholder: 'sk-…',
+  },
+  {
+    id: 'anthropic',
+    label: 'Anthropic',
+    defaultBaseUrl: 'https://api.anthropic.com',
+    apiKeyUrl: 'https://console.anthropic.com/settings/keys',
+    apiKeyPlaceholder: 'sk-ant-…',
+  },
+]
+
+export interface VendorConfig {
+  api_key: string
+  base_url: string
+  model: string
+}
+
 export interface EngineConfig {
-  active_ai_engine: 'claude' | 'qwen'
-  claude_code_api_key: string
-  claude_code_base_url: string
-  claude_code_model: string
-  qwen_code_api_key: string
-  qwen_code_base_url: string
-  qwen_code_model: string
+  active_vendor: VendorId
+  vendors: Record<string, VendorConfig>
 }
 
 export const getEngineConfig = (): Promise<EngineConfig> =>
@@ -207,7 +236,6 @@ export const requestPermission = (perm: 'microphone' | 'speech_recognition'): Pr
 export interface AppPermissions {
   microphone: PermStatus
   speech_recognition: PermStatus
-  claude_cli_path: string | null
 }
 
 export const checkAppPermissions = (): Promise<AppPermissions> =>
@@ -280,25 +308,14 @@ export const setTodoPath = (
 export const removeTodoPath = (lineIndex: number, doneFile: boolean): Promise<void> =>
   invoke<void>('remove_todo_path', { lineIndex, doneFile })
 
+export const setTodoSessionId = (
+  lineIndex: number,
+  sessionId: string | null,
+  doneFile: boolean,
+): Promise<void> => invoke<void>('set_todo_session_id', { lineIndex, sessionId, doneFile })
+
 export const updateTodoText = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
   invoke<void>('update_todo_text', { lineIndex, text, doneFile })
-
-// Brainstorm terminal
-export const openBrainstormTerminal = (
-  text: string,
-  lineIndex: number,
-  doneFile: boolean,
-  path?: string | null,
-): Promise<void> =>
-  invoke<void>('open_brainstorm_terminal', { text, lineIndex, doneFile, path: path ?? null })
-
-export const listBrainstormKeys = (): Promise<string[]> => invoke<string[]>('list_brainstorm_keys')
-
-export const listOpenBrainstormKeys = (): Promise<string[]> =>
-  invoke<string[]>('list_open_brainstorm_keys')
-
-export const clearBrainstormSession = (text: string): Promise<void> =>
-  invoke<void>('clear_brainstorm_session', { text })
 
 // Auto lint (自动整理)
 export interface AutoLintConfig {
@@ -362,3 +379,112 @@ export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_
 
 export const openSkillsDir = (scope: 'project' | 'global'): Promise<void> =>
   invoke<void>('open_skills_dir', { scope })
+
+// Conversation dialog
+export type SessionMode = 'chat' | 'agent'
+
+export const conversationCreate = (
+  mode: SessionMode,
+  context?: string,
+  contextFiles?: string[],
+): Promise<string> =>
+  invoke<string>('conversation_create', {
+    mode,
+    context: context ?? null,
+    contextFiles: contextFiles ?? null,
+  })
+
+export const conversationSend = (sessionId: string, message: string): Promise<void> =>
+  invoke<void>('conversation_send', { sessionId, message })
+
+export const conversationCancel = (sessionId: string): Promise<void> =>
+  invoke<void>('conversation_cancel', { sessionId })
+
+export const conversationClose = (sessionId: string): Promise<void> =>
+  invoke<void>('conversation_close', { sessionId })
+
+export const conversationInject = (sessionId: string, message: string): Promise<void> =>
+  invoke<void>('conversation_inject', { sessionId, message })
+
+export const conversationTruncate = (sessionId: string, keepCount: number): Promise<void> =>
+  invoke<void>('conversation_truncate', { sessionId, keepCount })
+
+export interface SessionSummary {
+  id: string
+  title: string | null
+  mode: SessionMode
+  created_at: number
+  updated_at: number
+  is_streaming: boolean
+  message_count: number
+}
+
+export const conversationList = (): Promise<SessionSummary[]> =>
+  invoke<SessionSummary[]>('conversation_list')
+
+export const conversationRename = (sessionId: string, title: string): Promise<void> =>
+  invoke<void>('conversation_rename', { sessionId, title })
+
+export const conversationDelete = (sessionId: string): Promise<void> =>
+  invoke<void>('conversation_delete', { sessionId })
+
+export interface LoadedMessage {
+  role: string
+  content: string
+  thinking?: string
+  tools?: { name: string; label: string; output?: string; is_error?: boolean }[]
+}
+
+export const conversationLoad = (sessionId: string): Promise<LoadedMessage[]> =>
+  invoke<LoadedMessage[]>('conversation_load', { sessionId })
+
+export const conversationGetMessages = (sessionId: string): Promise<LoadedMessage[]> =>
+  invoke<LoadedMessage[]>('conversation_get_messages', { sessionId })
+
+// Models
+export const listModels = (engine: string, apiKey: string, baseUrl: string): Promise<string[]> =>
+  invoke<string[]>('list_models', { engine, apiKey, baseUrl })
+
+// Work Queue
+export interface WorkItem {
+  id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  session_id: string | null
+  text: string | null
+  files: string[] | null
+  prompt: string | null
+  display_name: string
+  error: string | null
+  created_at: number
+}
+
+export const enqueueWork = (params: {
+  text?: string
+  files?: string[]
+  prompt?: string
+  displayName: string
+}): Promise<WorkItem> =>
+  invoke<WorkItem>('enqueue_work', {
+    text: params.text ?? null,
+    files: params.files ?? null,
+    prompt: params.prompt ?? null,
+    displayName: params.displayName,
+  })
+
+export const listWorkQueue = (): Promise<WorkItem[]> => invoke<WorkItem[]>('list_work_queue')
+
+export const cancelWorkItem = (id: string): Promise<void> =>
+  invoke<void>('cancel_work_item', { id })
+
+export const retryWorkItem = (id: string): Promise<void> => invoke<void>('retry_work_item', { id })
+
+export const dismissWorkItem = (id: string): Promise<void> =>
+  invoke<void>('dismiss_work_item', { id })
+
+export interface WorkspaceDirEntry {
+  name: string
+  is_dir: boolean
+  path: string
+}
+export const listWorkspaceDir = (relativePath: string): Promise<WorkspaceDirEntry[]> =>
+  invoke<WorkspaceDirEntry[]>('list_workspace_dir', { relativePath })

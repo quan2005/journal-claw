@@ -39,7 +39,6 @@ impl PermStatus {
 pub struct AppPermissions {
     pub microphone: PermStatus,
     pub speech_recognition: PermStatus,
-    pub claude_cli_path: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +52,7 @@ mod macos {
     #[link(name = "objc", kind = "dylib")]
     #[link(name = "AVFoundation", kind = "framework")]
     #[link(name = "Speech", kind = "framework")]
+    #[allow(clippy::duplicated_attributes)]
     extern "C" {
         fn objc_getClass(name: *const c_char) -> *mut c_void;
         fn sel_registerName(name: *const c_char) -> *mut c_void;
@@ -144,28 +144,6 @@ mod macos {
 
 // ---------------------------------------------------------------------------
 
-fn find_claude_cli() -> Option<String> {
-    let output = Command::new("/usr/bin/which")
-        .arg("claude")
-        .env("PATH", crate::config::augmented_path())
-        .output();
-    match output {
-        Ok(out) if out.status.success() => {
-            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if path.is_empty() {
-                None
-            } else {
-                Some(path)
-            }
-        }
-        Ok(_) => None,
-        Err(e) => {
-            eprintln!("[permissions] failed to run `which claude`: {}", e);
-            None
-        }
-    }
-}
-
 #[tauri::command]
 pub fn check_app_permissions() -> Result<AppPermissions, String> {
     #[cfg(target_os = "macos")]
@@ -180,7 +158,6 @@ pub fn check_app_permissions() -> Result<AppPermissions, String> {
     Ok(AppPermissions {
         microphone,
         speech_recognition,
-        claude_cli_path: find_claude_cli(),
     })
 }
 
@@ -300,28 +277,22 @@ mod tests {
         let perms = AppPermissions {
             microphone: PermStatus::Granted,
             speech_recognition: PermStatus::NotDetermined,
-            claude_cli_path: Some("/usr/local/bin/claude".to_string()),
         };
         let json = serde_json::to_string(&perms).unwrap();
         let parsed: AppPermissions = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.microphone, PermStatus::Granted);
         assert_eq!(parsed.speech_recognition, PermStatus::NotDetermined);
-        assert_eq!(
-            parsed.claude_cli_path,
-            Some("/usr/local/bin/claude".to_string())
-        );
     }
 
     #[test]
-    fn app_permissions_null_cli_path() {
+    fn app_permissions_null_fields() {
         let perms = AppPermissions {
             microphone: PermStatus::Unknown,
             speech_recognition: PermStatus::Unknown,
-            claude_cli_path: None,
         };
         let json = serde_json::to_string(&perms).unwrap();
-        assert!(json.contains("\"claude_cli_path\":null"));
         let parsed: AppPermissions = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed.claude_cli_path, None);
+        assert_eq!(parsed.microphone, PermStatus::Unknown);
+        assert_eq!(parsed.speech_recognition, PermStatus::Unknown);
     }
 }

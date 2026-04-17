@@ -11,7 +11,7 @@ export const zh: Strings = {
 
   // Settings nav
   general: '通用',
-  aiEngine: 'AI 引擎',
+  aiEngine: '模型配置',
   voice: '语音转写',
   permissions: '授权管理',
   plugins: '技能插件',
@@ -194,19 +194,25 @@ export const zh: Strings = {
   unsavedChanges: '有未保存修改',
 
   // Settings: AI Engine
-  aiEngineSection: 'AI 引擎',
+  aiEngineSection: '模型配置',
   comingSoon: '即将推出',
   inDevelopment: '开发中',
-  claudeNotFound: '未检测到 Claude Code',
   installOneLiner: '一键安装',
   requiresHomebrew: '需要已安装 Homebrew。点击一键安装，或手动运行：',
   installing: '正在安装 {label}…',
-  leaveBlankDefault: '留空则使用 CLI 默认配置',
-  customEndpoint: '自定义 API 端点，留空使用默认值（代理场景）',
-  leaveBlankModel: '留空使用 CLI 默认模型',
-  dashscopeKeyHint: '阿里云 DashScope API Key（独立于语音转写配置）',
+  leaveBlankDefault: '留空使用默认值',
+  customEndpoint: '自定义 API 端点，留空使用默认值',
+  leaveBlankModel: '留空则从模型列表中选择',
+  modelInputPlaceholder: '输入或从列表选择模型…',
+  dashscopeKeyHint: 'OpenAI 兼容协议 API Key',
   customEndpointHint: '自定义 API 端点，留空使用默认值',
   leaveBlankModelHint: '留空使用默认模型',
+  switchToSelect: '切换为列表选择',
+  switchToManual: '手动输入',
+  modelFetchFailed: '获取模型列表失败',
+  refreshModels: '重新获取',
+  loadingModels: '加载模型列表…',
+  defaultModel: '默认',
 
   // Settings: Voice
   voiceSection: '语音转写',
@@ -255,9 +261,6 @@ export const zh: Strings = {
   permMicDesc: '录音功能需要访问麦克风，用于语音转写和会议记录。',
   permSpeech: '语音识别',
   permSpeechDesc: '使用 Apple 语音识别引擎时需要此权限（DashScope / WhisperKit 不需要）。',
-  permClaude: 'Claude CLI',
-  permClaudeDesc: 'AI 日志处理需要系统中安装 Claude CLI 命令行工具。',
-  installClaude: '请先安装 Claude CLI：',
   statusGranted: '已授权',
   statusDenied: '已拒绝',
   statusRestricted: '受限制',
@@ -303,7 +306,7 @@ export const zh: Strings = {
   whisperCredit: '内置 WhisperKit（MIT License）by Argmax, Inc. — 本地语音识别引擎',
 
   // App (AI config warning)
-  aiNotConfigured: 'AI 引擎未配置',
+  aiNotConfigured: '模型未配置',
   goToSettings: '前往设置 →',
 
   // App (identity assistant name)
@@ -320,6 +323,8 @@ export const zh: Strings = {
   replacePlaceholder: '替换为…',
   reset: '还原',
   edit: '编辑',
+  resend: '重发',
+  pendingQueueHint: '回复结束后自动发送',
   resetAssistantTitle: '还原助理',
   confirmResetAssistant: '确认恢复为默认助理设定？当前的自定义内容将被覆盖。',
 
@@ -347,7 +352,8 @@ export const zh: Strings = {
   dashscopeVendor: '阿里云 · 云端',
 
   // SectionAiEngine
-  qwenVendor: '阿里云',
+  qwenVendor: 'OpenAI 兼容',
+  getApiKey: '获取 API Key',
 
   // Settings: Automation
   automation: '自动整理',
@@ -392,4 +398,32 @@ export const zh: Strings = {
   feishuPermSend: '以机器人身份发送回复',
   feishuPermRead: '读取消息历史',
   feishuPermDrive: '导出飞书文档',
+
+  // Conversation dialog
+  conversationChat: '探讨',
+  conversationAgent: '对话',
+  conversationChatHint: '围绕主题展开探讨…',
+  conversationAgentHint: '输入问题，我来帮你…',
+  conversationThinking: '思考中…',
+  conversationInputPlaceholder: '输入消息…',
+  conversationSend: '发送',
+  conversationStop: '停止',
+  sessionNewChat: '新对话',
+  sessionSearchPlaceholder: '搜索对话',
+  sessionEmpty: '暂无会话',
+  sessionWebSearch: '网络搜索',
+  sessionWebSearchQuery: '搜索: {query}',
+  timeToday: '今日',
+  timeYesterday: '昨天',
+  timeThisWeek: '本周',
+  timeThisMonth: '本月',
+  timeEarlier: '更早',
+  timeLastYear: '一年前',
+
+  // Slash commands
+  slashSummarize: '总结当前日志',
+  slashTodos: '提取待办事项',
+  slashTranslate: '翻译为英文',
+  slashRewrite: '改写润色',
+  slashTags: '重新生成标签',
 }

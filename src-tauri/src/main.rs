@@ -3,11 +3,12 @@ mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
 mod auto_lint;
-mod brainstorm;
 mod config;
+mod conversation;
 mod feishu_bridge;
 mod identity;
 mod journal;
+mod llm;
 mod materials;
 mod permissions;
 mod recorder;
@@ -17,6 +18,7 @@ mod speaker_profiles;
 mod todos;
 mod transcription;
 mod types;
+mod work_queue;
 mod workspace;
 mod workspace_settings;
 
@@ -35,75 +37,6 @@ const MENU_QUIT_ID: &str = "quit";
 fn open_with_system(path: String) -> Result<(), String> {
     std::process::Command::new("open")
         .arg(&path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn open_claude_terminal(app: tauri::AppHandle) -> Result<(), String> {
-    let cfg = config::load_config(&app).map_err(|e| e.to_string())?;
-    let workspace = &cfg.workspace_path;
-    let tmp = std::env::temp_dir();
-    let pid_file = tmp.join("journal-claude-terminal.pid");
-    let app_file = tmp.join("journal-claude-terminal.app");
-
-    // Activate existing terminal if still alive
-    if let Ok(pid_str) = std::fs::read_to_string(&pid_file) {
-        if let Ok(pid) = pid_str.trim().parse::<i32>() {
-            if unsafe { libc::kill(pid, 0) == 0 } {
-                if let Ok(app_name) = std::fs::read_to_string(&app_file) {
-                    let name = app_name.trim().to_string();
-                    if !name.is_empty() {
-                        let _ = std::process::Command::new("osascript")
-                            .args(["-e", &format!("tell application \"{}\" to activate", name)])
-                            .spawn();
-                    }
-                }
-                return Ok(());
-            }
-        }
-    }
-
-    // No running terminal — spawn new
-    spawn_terminal(workspace, &pid_file, &app_file)
-}
-
-fn spawn_terminal(
-    workspace: &str,
-    pid_file: &std::path::PathBuf,
-    app_file: &std::path::PathBuf,
-) -> Result<(), String> {
-    let detect_terminal = format!(
-        "_pid=$$; while true; do _ppid=$(ps -o ppid= -p $_pid 2>/dev/null | tr -d ' '); \
-        [ -z \"$_ppid\" ] || [ \"$_ppid\" = \"0\" ] || [ \"$_ppid\" = \"1\" ] && break; \
-        _comm=$(ps -o comm= -p $_ppid 2>/dev/null); \
-        case \"$_comm\" in \
-        *Terminal*|*iTerm*|*Warp*|*Alacritty*|*kitty*|*WezTerm*|*Hyper*|*Ghostty*) \
-        echo \"$_comm\" | awk '{{print $1}}' > '{}'; break;; esac; _pid=$_ppid; done",
-        app_file.display(),
-    );
-    let script = format!(
-        "#!/bin/bash\necho $$ > '{}'\n{}\ncd '{}'\nclaude --dangerously-skip-permissions\nrm -f '{}' '{}'",
-        pid_file.display(),
-        detect_terminal,
-        workspace,
-        pid_file.display(),
-        app_file.display(),
-    );
-
-    let tmp_path = std::env::temp_dir().join("journal-open-claude.command");
-    std::fs::write(&tmp_path, &script).map_err(|e| e.to_string())?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&tmp_path, std::fs::Permissions::from_mode(0o755))
-            .map_err(|e| e.to_string())?;
-    }
-
-    std::process::Command::new("open")
-        .arg(&tmp_path)
         .spawn()
         .map(|_| ())
         .map_err(|e| e.to_string())
@@ -146,6 +79,8 @@ fn main() {
         .manage(ai_processor::CancelledPaths(std::sync::Mutex::new(
             std::collections::HashSet::new(),
         )))
+        .manage(conversation::ConversationStore::default())
+        .manage(work_queue::WorkQueue::default())
         .manage(auto_lint::AutoLintNotify(std::sync::Arc::new(
             tokio::sync::Notify::new(),
         )))
@@ -319,8 +254,6 @@ fn main() {
             config::open_settings,
             config::get_workspace_path,
             config::set_workspace_path,
-            config::get_claude_cli_path,
-            config::set_claude_cli_path,
             transcription::get_transcript,
             transcription::retry_transcription,
             journal::list_all_journal_entries,
@@ -342,7 +275,6 @@ fn main() {
             ai_processor::cancel_queued_item,
             ai_processor::trigger_ai_prompt,
             open_with_system,
-            open_claude_terminal,
             workspace_settings::get_workspace_theme,
             workspace_settings::set_workspace_theme,
             config::get_engine_config,
@@ -356,8 +288,7 @@ fn main() {
             config::check_whisperkit_cli_installed,
             config::install_whisperkit_cli,
             config::download_whisperkit_model,
-            ai_processor::check_engine_installed,
-            ai_processor::install_engine,
+            config::list_models,
             journal::create_sample_entry_if_needed,
             journal::create_sample_entry,
             speaker_profiles::get_speaker_profiles,
@@ -380,12 +311,20 @@ fn main() {
             todos::delete_todo,
             todos::set_todo_due,
             todos::set_todo_path,
+            todos::set_todo_session_id,
             todos::remove_todo_path,
             todos::update_todo_text,
-            brainstorm::open_brainstorm_terminal,
-            brainstorm::list_brainstorm_keys,
-            brainstorm::list_open_brainstorm_keys,
-            brainstorm::clear_brainstorm_session,
+            conversation::conversation_create,
+            conversation::conversation_send,
+            conversation::conversation_cancel,
+            conversation::conversation_close,
+            conversation::conversation_inject,
+            conversation::conversation_truncate,
+            conversation::conversation_list,
+            conversation::conversation_rename,
+            conversation::conversation_delete,
+            conversation::conversation_load,
+            conversation::conversation_get_messages,
             workspace_settings::get_auto_lint_config,
             workspace_settings::set_auto_lint_config,
             auto_lint::get_auto_lint_status,
@@ -395,6 +334,12 @@ fn main() {
             config::get_feishu_status,
             skills::list_skills,
             skills::open_skills_dir,
+            work_queue::enqueue_work,
+            work_queue::list_work_queue,
+            work_queue::cancel_work_item,
+            work_queue::retry_work_item,
+            work_queue::dismiss_work_item,
+            skills::list_workspace_dir,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

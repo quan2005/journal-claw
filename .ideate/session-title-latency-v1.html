@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideate — 新建会话标题延迟诊断</title>
+  <style>
+/*
+ * IDEATE VISUAL COMPANION — PRO MAX CANVAS STYLES
+ */
+
+:root {
+  --bg: #FAFAFA; --bg-canvas: #F4F4F5; --surface: #FFFFFF;
+  --border: #E5E5E5; --border-hover: #D4D4D4;
+  --text-main: #111111; --text-muted: #666666; --text-tertiary: #999999;
+  --accent: #000000; --accent-surface: #F5F5F5; --accent-text: #FFFFFF;
+  --success: #00A650; --danger: #E03E3E;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 300ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A0A0A; --bg-canvas: #000000; --surface: #141414;
+    --border: #2A2A2A; --border-hover: #3A3A3A;
+    --text-main: #EEEEEE; --text-muted: #888888; --text-tertiary: #555555;
+    --accent: #FFFFFF; --accent-surface: #1E1E1E; --accent-text: #000000;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text-main);
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 4rem 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 3rem; }
+.header { text-align: center; margin-bottom: 1rem; }
+.header h2 { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.75rem; }
+.header p { font-size: 1.125rem; color: var(--text-muted); max-width: 600px; margin: 0 auto; }
+
+.flow-container { display: flex; flex-direction: column; gap: 0; align-items: center; }
+.flow-node {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 1.25rem; min-width: 340px; max-width: 500px; width: 100%;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+}
+.flow-node:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.flow-node.danger { border-color: var(--danger); border-width: 2px; }
+.flow-node.success { border-color: var(--success); border-width: 2px; }
+.flow-title { font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.flow-desc { color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; }
+.flow-arrow {
+  height: 32px; width: 2px; background-color: var(--border); position: relative;
+}
+.flow-arrow::after {
+  content: ''; position: absolute; bottom: 0; left: -4px; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid var(--border);
+}
+.flow-arrow.danger { background-color: var(--danger); }
+.flow-arrow.danger::after { border-top-color: var(--danger); }
+
+.time-badge {
+  display: inline-block; font-size: 0.7rem; font-weight: 700; font-family: "SF Mono", monospace;
+  padding: 0.2rem 0.5rem; border-radius: 100px; margin-left: auto;
+}
+.time-badge.fast { background: rgba(0,166,80,0.1); color: var(--success); }
+.time-badge.slow { background: rgba(224,62,62,0.1); color: var(--danger); }
+.time-badge.wait { background: rgba(224,62,62,0.15); color: var(--danger); }
+
+.bento-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;
+}
+.bento-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out);
+}
+.bento-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.bento-box h3 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 0.5rem; }
+.bento-box p, .bento-box li { font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; }
+.bento-box ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.bento-box li::before { content: "→"; color: var(--text-tertiary); font-weight: bold; margin-right: 0.5rem; }
+.col-span-2 { grid-column: span 2; }
+
+.pros h3 { color: var(--success); }
+.cons h3 { color: var(--danger); }
+
+.badge {
+  display: inline-block; background: var(--bg-canvas); color: var(--text-main); font-size: 0.7rem;
+  padding: 0.2rem 0.6rem; border-radius: 100px; border: 1px solid var(--border);
+  width: max-content; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+.section-label {
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-tertiary); text-align: center;
+}
+
+.code-ref {
+  font-family: "SF Mono", monospace; font-size: 0.75rem; color: var(--text-tertiary);
+  background: var(--bg-canvas); padding: 0.15rem 0.4rem; border-radius: 4px;
+}
+
+.option-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.5rem; cursor: pointer; display: flex; flex-direction: column; gap: 1rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+}
+.option-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.option-card.selected { border-color: var(--accent); background: var(--accent-surface); }
+.option-header { display: flex; align-items: center; justify-content: space-between; }
+.option-badge {
+  background: var(--bg-canvas); color: var(--text-muted); font-size: 0.75rem; font-weight: 600;
+  padding: 0.375rem 0.625rem; border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+  transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+}
+.option-card.selected .option-badge { background: var(--accent); color: var(--accent-text); }
+.option-title { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.25rem; }
+.option-desc { font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; }
+
+.options-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+
+.note { font-size: 0.875rem; color: var(--text-tertiary); font-style: italic; text-align: center; margin-top: 1rem; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
+@media (max-width: 768px) {
+  body { padding: 2rem 1rem; }
+  .header h2 { font-size: 2rem; }
+  .bento-grid { grid-template-columns: 1fr; }
+  .col-span-2 { grid-column: span 1; }
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <h2>新建会话 · 标题延迟诊断</h2>
+      <p>从点击 "+" 到左侧列表出现新条目，延迟链路的完整拆解与终极修复方案。</p>
+    </div>
+
+    <!-- Section 1: The Latency Chain -->
+    <div class="section-label">延迟链路 · The Latency Chain</div>
+
+    <div class="flow-container">
+      <div class="flow-node">
+        <div class="flow-title">
+          1. 用户点击 "+" 按钮
+          <span class="time-badge fast">0ms</span>
+        </div>
+        <div class="flow-desc">
+          <span class="code-ref">ConversationDialog.tsx:78</span> → <code>handleNewSession()</code> 调用 <code>create()</code>
+        </div>
+      </div>
+
+      <div class="flow-arrow"></div>
+
+      <div class="flow-node">
+        <div class="flow-title">
+          2. IPC: conversation_create
+          <span class="time-badge fast">~5ms</span>
+        </div>
+        <div class="flow-desc">
+          Rust 端只做内存插入，已做延迟加载优化（system_prompt 推迟到首次 send）。<br>
+          <span class="code-ref">conversation.rs:448</span> — 这一步本身很快。
+        </div>
+      </div>
+
+      <div class="flow-arrow"></div>
+
+      <div class="flow-node danger">
+        <div class="flow-title">
+          3. React 状态传播
+          <span class="time-badge slow">~16ms + 重渲染</span>
+        </div>
+        <div class="flow-desc">
+          <code>setSessionId(id)</code> 触发 useConversation 重渲染 → ConversationDialog 重渲染 → <code>activeSessionId</code> prop 传给 SessionList。<br>
+          <strong>但 SessionList 的 <code>sessions</code> 数组还是旧数据</strong>，新会话不在其中。
+        </div>
+      </div>
+
+      <div class="flow-arrow danger"></div>
+
+      <div class="flow-node danger">
+        <div class="flow-title">
+          4. 等待 3 秒轮询 ← 主要瓶颈
+          <span class="time-badge wait">0~3000ms</span>
+        </div>
+        <div class="flow-desc">
+          <span class="code-ref">SessionList.tsx:31-33</span> — <code>setInterval(refresh, 3000)</code><br>
+          新会话必须等到下一次轮询周期才会出现在列表中。<strong>最坏情况等待整整 3 秒。</strong>
+        </div>
+      </div>
+
+      <div class="flow-arrow danger"></div>
+
+      <div class="flow-node danger">
+        <div class="flow-title">
+          5. conversation_list 全量磁盘 I/O
+          <span class="time-badge slow">~50-200ms</span>
+        </div>
+        <div class="flow-desc">
+          <span class="code-ref">conversation.rs:756</span> — <code>load_session_summaries()</code> 每次轮询都读取并反序列化 <code>.conversations/</code> 下的<strong>所有 JSON 文件</strong>。<br>
+          会话越多越慢。20 个会话 ≈ 读 20 个文件 + 20 次 serde 反序列化。
+        </div>
+      </div>
+
+      <div class="flow-arrow"></div>
+
+      <div class="flow-node">
+        <div class="flow-title">
+          6. 过滤 + 渲染
+          <span class="time-badge fast">~5ms</span>
+        </div>
+        <div class="flow-desc">
+          <code>message_count > 0 || id === activeSessionId</code> 过滤 → 时间分组 → 渲染列表项。<br>
+          这一步本身不慢。
+        </div>
+      </div>
+    </div>
+
+    <p class="note">总延迟 = 步骤 4 的轮询等待（0~3s）+ 步骤 5 的磁盘 I/O（50~200ms）≈ 最坏 3.2 秒</p>
+
+    <!-- Section 2: Root Causes -->
+    <div class="section-label" style="margin-top: 2rem;">四个叠加的根因</div>
+
+    <div class="bento-grid">
+      <div class="bento-box cons">
+        <div class="badge">根因 #1 · 致命</div>
+        <h3>轮询盲区</h3>
+        <p>SessionList 靠 3 秒定时器刷新，新建会话后没有任何机制触发即时刷新。用户必须等到下一个轮询周期。</p>
+        <p><span class="code-ref">SessionList.tsx:31</span></p>
+      </div>
+
+      <div class="bento-box cons">
+        <div class="badge">根因 #2 · 严重</div>
+        <h3>全量磁盘扫描</h3>
+        <p><code>conversation_list</code> 每次调用都 read_dir + read_to_string + serde 反序列化所有会话文件。这是 O(n) 磁盘 I/O，n = 历史会话总数。</p>
+        <p><span class="code-ref">conversation.rs:161-207</span></p>
+      </div>
+
+      <div class="bento-box cons">
+        <div class="badge">根因 #3 · 中等</div>
+        <h3>无乐观更新</h3>
+        <p>前端 <code>create()</code> 拿到 session ID 后，只更新了 useConversation 内部状态，没有通知 SessionList 立即插入新条目。两个组件的状态是割裂的。</p>
+      </div>
+
+      <div class="bento-box cons">
+        <div class="badge">根因 #4 · 轻微</div>
+        <h3>conversation-stream 事件未利用</h3>
+        <p>SessionList 已经监听了 <code>conversation-stream</code> 的 <code>title</code> 和 <code>done</code> 事件，但没有监听 "session created" 事件（因为 Rust 端没有发射这个事件）。</p>
+      </div>
+    </div>
+
+    <!-- Section 3: The Fix -->
+    <div class="section-label" style="margin-top: 2rem;">终极修复方案</div>
+
+    <div class="options-grid">
+      <div class="option-card selected" onclick="selectOption(this)">
+        <div class="option-header">
+          <span class="option-badge">推荐方案</span>
+        </div>
+        <div>
+          <div class="option-title">乐观插入 + 事件驱动刷新</div>
+          <div class="option-desc">三管齐下，彻底消除延迟：</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bento-grid" style="margin-top: -1rem;">
+      <div class="bento-box pros col-span-2">
+        <div class="badge">修复 A · 即时可见</div>
+        <h3>SessionList 乐观插入</h3>
+        <ul>
+          <li><code>handleNewSession</code> 调用 <code>create()</code> 后，立即将一个占位 SessionSummary 插入 SessionList 的 <code>sessions</code> 状态</li>
+          <li>方式：让 <code>create()</code> 返回 session ID 后，通过回调或 Rust 事件通知 SessionList</li>
+          <li>最简实现：Rust <code>conversation_create</code> 完成后 emit 一个 <code>session-created</code> 事件，SessionList 监听后立即 <code>setSessions(prev => [newSummary, ...prev])</code></li>
+          <li>效果：从 3 秒延迟 → <strong>0ms 延迟</strong>，新会话瞬间出现</li>
+        </ul>
+      </div>
+
+      <div class="bento-box pros">
+        <div class="badge">修复 B · 降低 I/O</div>
+        <h3>内存优先的 conversation_list</h3>
+        <ul>
+          <li>Rust 端维护一个内存中的 <code>Vec&lt;SessionSummary&gt;</code>，启动时从磁盘加载一次</li>
+          <li>后续 create/delete/rename/done 时只更新内存</li>
+          <li><code>conversation_list</code> 直接返回内存数据，零磁盘 I/O</li>
+          <li>效果：每次轮询从 50-200ms → <strong>&lt;1ms</strong></li>
+        </ul>
+      </div>
+
+      <div class="bento-box pros">
+        <div class="badge">修复 C · 降低频率</div>
+        <h3>事件驱动替代轮询</h3>
+        <ul>
+          <li>移除 3 秒 <code>setInterval</code></li>
+          <li>改为监听 Rust 事件：<code>session-created</code>、<code>session-deleted</code>、<code>conversation-stream(title/done)</code></li>
+          <li>仅在事件触发时刷新，或保留一个 30 秒的兜底轮询</li>
+          <li>效果：CPU 和 IPC 开销大幅降低</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Section 4: Implementation Sequence -->
+    <div class="section-label" style="margin-top: 2rem;">实施顺序</div>
+
+    <div class="flow-container">
+      <div class="flow-node success">
+        <div class="flow-title">Step 1 · Rust: emit session-created 事件</div>
+        <div class="flow-desc">
+          在 <code>conversation_create</code> 末尾加一行 <code>app.emit("session-list-changed", ...)</code>，payload 包含新会话的 SessionSummary。同样在 delete/rename 时也 emit。
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node success">
+        <div class="flow-title">Step 2 · SessionList: 监听事件 + 乐观更新</div>
+        <div class="flow-desc">
+          监听 <code>session-list-changed</code> 事件，收到后立即调用 <code>refresh()</code>。这一步就能把延迟从 3 秒降到 ~50ms。
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div class="flow-title">Step 3 · Rust: 内存缓存 summaries（可选优化）</div>
+        <div class="flow-desc">
+          将 <code>load_session_summaries</code> 改为启动时加载一次 + 内存维护。这是锦上添花，Step 1+2 已经解决了体感问题。
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div class="flow-title">Step 4 · 移除轮询（可选优化）</div>
+        <div class="flow-desc">
+          当事件驱动稳定后，将 3 秒轮询改为 30 秒兜底，或完全移除。
+        </div>
+      </div>
+    </div>
+
+    <p class="note">Step 1 + Step 2 是最小可行修复，预计改动 ~15 行代码，即可将体感延迟从 3 秒降到接近 0。</p>
+
+  </div>
+
+  <script>
+    function selectOption(el) {
+      const container = el.closest('.options-grid');
+      if (container) {
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+      }
+    }
+  </script>
+</body>
+</html>

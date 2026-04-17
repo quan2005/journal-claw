@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill & @ 文件引擎 — 现状与设计探讨</title>
+<style>
+  :root {
+    --bg: #1a1a1e;
+    --surface: #232328;
+    --surface-2: #2a2a30;
+    --border: #3a3a42;
+    --text: #e8e6e3;
+    --text-2: #9a9898;
+    --accent: #C8933B;
+    --accent-dim: rgba(200,147,59,0.15);
+    --red: #ff375f;
+    --green: #34c759;
+    --blue: #5ac8fa;
+    --purple: #af52de;
+    --cyan: #64d2ff;
+    --orange: #ff9f0a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 48px 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 56px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .header h1 span { color: var(--accent); }
+  .header p {
+    font-size: 15px;
+    color: var(--text-2);
+    max-width: 720px;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 56px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .section h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .section p {
+    font-size: 14px;
+    color: var(--text-2);
+    max-width: 720px;
+    margin-bottom: 20px;
+  }
+
+  /* Architecture Diagram */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .flow-row:last-child { margin-bottom: 0; }
+  .flow-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-2);
+    width: 80px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .flow-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  .flow-box.active { border-color: var(--accent); background: var(--accent-dim); }
+  .flow-box.gap { border-color: var(--red); background: rgba(255,55,95,0.1); color: var(--red); }
+  .flow-box.ok { border-color: var(--green); background: rgba(52,199,89,0.1); }
+  .flow-arrow {
+    color: var(--text-2);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* Gap Cards */
+  .gaps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .gap-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+  }
+  .gap-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--red);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .gap-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+  .gap-card p {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .gap-card code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* Comparison Table */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .compare-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-2);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+  }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+  .tag.yes { background: rgba(52,199,89,0.15); color: var(--green); }
+  .tag.no { background: rgba(255,55,95,0.15); color: var(--red); }
+  .tag.partial { background: rgba(255,159,10,0.15); color: var(--orange); }
+
+  /* Design Options */
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+  }
+  .option-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .option-card:hover { border-color: var(--accent); }
+  .option-card.recommended {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .option-card.recommended::after {
+    content: '推荐';
+    position: absolute;
+    top: -10px;
+    right: 16px;
+    background: var(--accent);
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 10px;
+  }
+  .option-letter {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .option-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .option-card p {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+  .option-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .option-card li {
+    font-size: 13px;
+    padding: 4px 0;
+    color: var(--text-2);
+  }
+  .option-card li::before {
+    content: '→ ';
+    color: var(--accent);
+  }
+  .pro::before { content: '✓ ' !important; color: var(--green) !important; }
+  .con::before { content: '✗ ' !important; color: var(--red) !important; }
+
+  /* Sequence Diagram */
+  .seq-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text-2);
+  }
+  .seq-diagram .hl { color: var(--accent); font-weight: 600; }
+  .seq-diagram .cm { color: var(--text-2); opacity: 0.5; }
+  .seq-diagram .new { color: var(--green); }
+  .seq-diagram .file { color: var(--cyan); }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  .question-box {
+    background: var(--accent-dim);
+    border: 1px solid rgba(200,147,59,0.3);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 32px;
+  }
+  .question-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .question-box p {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Skill & <span>@</span> 文件引擎 — 架构探讨</h1>
+  <p>梳理当前 AI 处理引擎中 skill 加载和文件引用的完整数据流，识别架构断层，探讨统一设计方案。</p>
+</div>
+
+<!-- ==================== 现状 ==================== -->
+<div class="section">
+  <div class="section-label">Part 1 · 现状</div>
+  <h2>两条割裂的处理路径</h2>
+  <p>当前存在两条独立的 LLM 调用路径，skill 系统只在其中一条生效，@ 文件引用则完全是文本约定。</p>
+
+  <div class="arch-diagram">
+    <div class="flow-row">
+      <span class="flow-label">素材处理</span>
+      <span class="flow-box">拖入文件 / 录音</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box active">ai_processor</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box ok">resolve_skill ✓</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box ok">build_system_prompt (含 skill)</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box">tool_loop::run_agent</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box">Anthropic API</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-label">会话聊天</span>
+      <span class="flow-box">用户输入 /skill</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box active">conversation.rs</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box gap">❌ 无 skill 解析</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box">build_system_prompt (无 skill)</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box">run_conversation_turn</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box">Anthropic API</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-label">@ 文件</span>
+      <span class="flow-box">@yyMM/raw/file.m4a</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box gap">纯文本，无解析</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-box">LLM 自行 bash cat</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 断层 ==================== -->
+<div class="section">
+  <div class="section-label">Part 2 · 架构断层</div>
+  <h2>四个需要解决的问题</h2>
+
+  <div class="gaps-grid">
+    <div class="gap-card" data-num="1">
+      <h3>会话路径不支持 Skill</h3>
+      <p><code>conversation.rs</code> 的 <code>run_conversation_turn()</code> 从不调用 <code>resolve_skill_from_prompt()</code>。用户在聊天中输入 <code>/ideate</code> 会命中前端的 5 个硬编码斜杠命令，而非后端 skill 系统。</p>
+    </div>
+    <div class="gap-card" data-num="2">
+      <h3>前端斜杠命令 ≠ 后端 Skill</h3>
+      <p><code>slashCommands.ts</code> 维护了 5 个静态 prompt 模板（summarize/todos/translate/rewrite/tags），与 <code>skills.rs</code> 扫描的 SKILL.md 完全独立。两套系统，两个入口，零交集。</p>
+    </div>
+    <div class="gap-card" data-num="3">
+      <h3>@ 文件是「君子协定」</h3>
+      <p><code>ai_processor.rs</code> 生成 <code>@yyMM/raw/filename</code> 纯文本，期望 LLM 自己用 bash 读取。没有前端 UI 支持，没有路径校验，没有内容预注入。LLM 可能读错路径或忽略 @。</p>
+    </div>
+    <div class="gap-card" data-num="4">
+      <h3>内置 Skill 每次启动覆写</h3>
+      <p><code>ensure_workspace_dot_claude()</code> 用 <code>include_str!</code> 在每次启动时覆盖 ideate/lint/visual-design-book。用户对这些 skill 的自定义修改会丢失。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 对比 ==================== -->
+<div class="section">
+  <div class="section-label">Part 3 · 能力矩阵</div>
+  <h2>两条路径的功能对比</h2>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>能力</th>
+        <th>素材处理路径 (ai_processor)</th>
+        <th>会话路径 (conversation)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Skill 激活</td>
+        <td><span class="tag yes">支持</span> resolve_skill_from_prompt</td>
+        <td><span class="tag no">不支持</span></td>
+      </tr>
+      <tr>
+        <td>Bash 工具</td>
+        <td><span class="tag yes">支持</span> tool_loop 最多 30 轮</td>
+        <td><span class="tag partial">仅 Agent 模式</span></td>
+      </tr>
+      <tr>
+        <td>Web Search</td>
+        <td><span class="tag yes">支持</span> anthropic vendor</td>
+        <td><span class="tag yes">支持</span> anthropic vendor</td>
+      </tr>
+      <tr>
+        <td>@ 文件引用</td>
+        <td><span class="tag partial">文本约定</span> LLM 自行读取</td>
+        <td><span class="tag no">不支持</span></td>
+      </tr>
+      <tr>
+        <td>文件附件</td>
+        <td><span class="tag no">不适用</span></td>
+        <td><span class="tag partial">音频转写内联 / 其他仅文件名</span></td>
+      </tr>
+      <tr>
+        <td>System Prompt</td>
+        <td><span class="tag yes">完整</span> CLAUDE.md + 摘要 + skill + identity</td>
+        <td><span class="tag partial">部分</span> 无 active skill</td>
+      </tr>
+      <tr>
+        <td>Streaming</td>
+        <td><span class="tag no">仅事件日志</span></td>
+        <td><span class="tag yes">完整</span> text/thinking/tool blocks</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<hr class="divider">
+
+<!-- ==================== 设计方向 ==================== -->
+<div class="section">
+  <div class="section-label">Part 4 · 设计方向</div>
+  <h2>统一 Skill 与 @ 文件的三种路径</h2>
+  <p>核心问题：如何让会话路径也能激活 skill、解析 @ 文件引用，同时保持两条路径的架构清晰？</p>
+
+  <div class="options-grid">
+    <div class="option-card recommended">
+      <div class="option-letter">方案 A</div>
+      <h3>共享解析层 — 前置统一</h3>
+      <p>在 <code>conversation.rs</code> 和 <code>ai_processor.rs</code> 之前，抽取一个共享的 <code>prompt_resolver</code> 模块，负责：</p>
+      <ul>
+        <li>解析 <code>/skill-name</code> → 加载 SKILL.md 内容</li>
+        <li>解析 <code>@path/to/file</code> → 读取文件内容，注入为上下文</li>
+        <li>前端斜杠命令合并为 skill（迁移 5 个硬编码命令为 SKILL.md）</li>
+      </ul>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-2);">改动范围：新增 prompt_resolver.rs，修改 conversation.rs + ai_processor.rs + slashCommands.ts</p>
+      <ul>
+        <li class="pro">两条路径行为一致，用户心智模型统一</li>
+        <li class="pro">@ 文件内容预注入，不依赖 LLM 猜路径</li>
+        <li class="pro">前端只需维护一套 skill 列表（从后端动态获取）</li>
+        <li class="con">需要定义 @ 解析的边界（多大的文件？二进制？）</li>
+      </ul>
+    </div>
+
+    <div class="option-card">
+      <div class="option-letter">方案 B</div>
+      <h3>会话侧独立增强</h3>
+      <p>仅在 <code>conversation.rs</code> 中添加 skill 解析和 @ 文件处理，不抽取共享模块。两条路径各自维护解析逻辑。</p>
+      <ul>
+        <li>conversation.rs 新增 resolve_skill 调用</li>
+        <li>@ 文件在 conversation.rs 中独立解析</li>
+        <li>前端斜杠命令保持不变</li>
+      </ul>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-2);">改动范围：仅修改 conversation.rs</p>
+      <ul>
+        <li class="pro">改动最小，风险最低</li>
+        <li class="pro">不影响已稳定的素材处理路径</li>
+        <li class="con">两处重复逻辑，未来维护成本高</li>
+        <li class="con">前端仍有两套斜杠命令系统</li>
+      </ul>
+    </div>
+
+    <div class="option-card">
+      <div class="option-letter">方案 C</div>
+      <h3>前端统一入口</h3>
+      <p>将 skill 解析和 @ 文件处理全部移到前端。前端负责：识别 /skill → 调用后端获取 SKILL.md 内容 → 注入到消息中发送。</p>
+      <ul>
+        <li>新增 Tauri 命令 get_skill_content(name)</li>
+        <li>新增 Tauri 命令 read_file_content(path)</li>
+        <li>ConversationInput 解析 / 和 @ 后预处理消息</li>
+      </ul>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-2);">改动范围：新增 2 个 Tauri 命令，重写 ConversationInput + slashCommands</p>
+      <ul>
+        <li class="pro">前端完全掌控 UX（自动补全、预览）</li>
+        <li class="pro">后端保持纯粹的 LLM 调用</li>
+        <li class="con">skill 内容通过 IPC 传输，增加延迟</li>
+        <li class="con">素材处理路径仍需后端解析，又回到两套</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ==================== 推荐方案细节 ==================== -->
+<div class="section">
+  <div class="section-label">Part 5 · 方案 A 详细设计</div>
+  <h2>共享解析层 — 数据流</h2>
+
+  <div class="seq-diagram"><span class="cm">// 用户在会话中输入: /ideate @2604/raw/meeting.m4a 讨论这个会议的要点</span>
+
+<span class="hl">ConversationInput</span>                    <span class="hl">conversation.rs</span>                  <span class="new">prompt_resolver.rs</span>              <span class="hl">llm/</span>
+     │                                      │                                  │                              │
+     │─── onSend(raw_text) ────────────────→│                                  │                              │
+     │                                      │                                  │                              │
+     │                                      │── <span class="new">resolve_prompt(raw_text)</span> ──────→│                              │
+     │                                      │                                  │── parse "/" prefix            │
+     │                                      │                                  │   → skill_name = "ideate"     │
+     │                                      │                                  │   → load SKILL.md content     │
+     │                                      │                                  │                              │
+     │                                      │                                  │── parse "@" references        │
+     │                                      │                                  │   → <span class="file">2604/raw/meeting.m4a</span>      │
+     │                                      │                                  │   → read file / transcribe    │
+     │                                      │                                  │   → inject as context block   │
+     │                                      │                                  │                              │
+     │                                      │←─ ResolvedPrompt ────────────────│                              │
+     │                                      │   { clean_text,                  │                              │
+     │                                      │     skill_content,               │                              │
+     │                                      │     file_contexts[] }            │                              │
+     │                                      │                                  │                              │
+     │                                      │── build_system_prompt(skill) ────────────────────────────────────→│
+     │                                      │── inject file_contexts as user msg ──────────────────────────────→│
+     │                                      │                                                                  │
+     │                                      │←──────────── streaming response ─────────────────────────────────│
+     │←── conversation-stream events ───────│
+
+<span class="cm">// 素材处理路径同样调用 resolve_prompt()，保持一致</span></div>
+</div>
+
+<!-- ==================== 聚焦问题 ==================== -->
+<div class="question-box">
+  <h3>聚焦讨论</h3>
+  <p>
+    在深入设计之前，我想先确认一个关键决策：<br><br>
+    <strong>@ 文件引用的解析深度应该到哪一层？</strong><br><br>
+    <strong>A. 浅解析</strong> — 只做路径校验 + 将文件路径转为绝对路径，仍然让 LLM 通过 bash 工具自行读取内容。好处是简单，且 LLM 可以决定读取策略（全文 / 部分 / 跳过）。<br><br>
+    <strong>B. 深解析</strong> — 读取文件内容并注入到消息上下文中（文本直接内联，音频先转写再内联，二进制给出元信息）。好处是 LLM 不需要浪费工具调用轮次去读文件，响应更快。<br><br>
+    <strong>C. 混合策略</strong> — 小文件（&lt;50KB 文本）深解析内联，大文件 / 二进制浅解析只给路径提示。兼顾效率和 token 成本。
+  </p>
+</div>
+
+</body>
+</html>

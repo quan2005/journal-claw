@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会话列表时序分析 — 竞态条件与修复方案</title>
+<style>
+  :root {
+    --bg: #1a1a1e;
+    --surface: #222226;
+    --surface-2: #2a2a2e;
+    --border: #333338;
+    --text: #e8e8ec;
+    --text-2: #9898a0;
+    --accent: #C8933B;
+    --red: #ff375f;
+    --green: #34c759;
+    --blue: #5ac8fa;
+    --purple: #af52de;
+    --orange: #ff9f0a;
+    --mono: 'SF Mono', 'Fira Code', monospace;
+    --sans: -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 48px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    color: var(--text-2);
+    font-size: 15px;
+    margin-bottom: 48px;
+  }
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 48px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-bug { background: rgba(255,55,95,0.15); color: var(--red); }
+  .badge-fix { background: rgba(52,199,89,0.15); color: var(--green); }
+  .badge-arch { background: rgba(175,82,222,0.15); color: var(--purple); }
+
+  /* Timeline diagram */
+  .timeline {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    overflow-x: auto;
+    margin: 16px 0 32px;
+  }
+  .timeline-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+  .swim-lanes {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 0;
+    min-width: 700px;
+  }
+  .lane-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    padding: 8px 12px 8px 0;
+    text-align: right;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .lane-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    min-height: 36px;
+    position: relative;
+  }
+  .lane-label { border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .evt {
+    font-size: 10px;
+    font-family: var(--mono);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .evt-action { background: rgba(200,147,59,0.2); color: var(--accent); }
+  .evt-ipc { background: rgba(90,200,250,0.15); color: var(--blue); }
+  .evt-event { background: rgba(52,199,89,0.15); color: var(--green); }
+  .evt-wait { background: rgba(255,255,255,0.05); color: var(--text-2); font-style: italic; }
+  .evt-danger { background: rgba(255,55,95,0.15); color: var(--red); }
+  .evt-gap {
+    width: 40px;
+    border-top: 1px dashed var(--border);
+    flex-shrink: 0;
+  }
+  .evt-arrow {
+    color: var(--text-2);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  /* Problem cards */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .problem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .problem-card.highlight {
+    border-color: var(--red);
+    background: rgba(255,55,95,0.03);
+  }
+  .problem-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .problem-card h3 .num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .problem-card p {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+  .problem-card code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* Solution section */
+  .solution {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 16px 0;
+  }
+  .solution-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .solution-header .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .solution-header h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .solution p, .solution li {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.7;
+  }
+  .solution ul {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .solution li { margin: 4px 0; }
+  .solution li code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* Comparison table */
+  .compare {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .compare th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-2);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+  }
+  .compare td:first-child {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .compare .old { color: var(--red); opacity: 0.7; text-decoration: line-through; }
+  .compare .new { color: var(--green); }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 16px 0;
+  }
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .arch-box {
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    min-width: 120px;
+  }
+  .arch-box.frontend { background: rgba(90,200,250,0.12); border: 1px solid rgba(90,200,250,0.3); color: var(--blue); }
+  .arch-box.rust { background: rgba(200,147,59,0.12); border: 1px solid rgba(200,147,59,0.3); color: var(--accent); }
+  .arch-box.store { background: rgba(175,82,222,0.12); border: 1px solid rgba(175,82,222,0.3); color: var(--purple); }
+  .arch-box.new { background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.3); color: var(--green); }
+  .arch-arrow {
+    color: var(--text-2);
+    font-size: 16px;
+  }
+  .arch-label {
+    font-size: 10px;
+    color: var(--text-2);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-family: var(--mono);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+  }
+  .tag-rust { background: rgba(200,147,59,0.15); color: var(--accent); }
+  .tag-ts { background: rgba(90,200,250,0.15); color: var(--blue); }
+</style>
+</head>
+<body>
+
+<h1>会话列表 <span>时序分析</span></h1>
+<p class="subtitle">梳理 SessionList ↔ useConversation ↔ Rust 三层之间的竞态条件，找到根因并设计修复方案</p>
+
+<!-- ─── 当前时序 ─── -->
+<h2>当前时序：用户新建会话并发送消息 <span class="badge badge-bug">问题复现</span></h2>
+
+<div class="timeline">
+  <div class="timeline-title">时序图 — 新建会话 → 发送消息 → 切换会话 → 切回</div>
+  <div class="swim-lanes">
+    <div class="lane-label">用户操作</div>
+    <div class="lane-content">
+      <span class="evt evt-action">点击 +</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-wait">等待...</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-action">输入文字 ↵</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-action">切到旧会话</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-action">切回新会话</span>
+    </div>
+
+    <div class="lane-label">ConversationDialog</div>
+    <div class="lane-content">
+      <span class="evt evt-ipc">create(mode)</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-ipc">sessionId = "abc"</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-ipc">send(text)</span>
+    </div>
+
+    <div class="lane-label">useConversation</div>
+    <div class="lane-content">
+      <span class="evt evt-ipc">conversationCreate</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-wait">sessionIdRef = "abc"</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-ipc">conversationSend</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-danger">build_system_prompt ⏳</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-event">stream events</span>
+    </div>
+
+    <div class="lane-label">Rust Store</div>
+    <div class="lane-content">
+      <span class="evt evt-ipc">session 入内存</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-wait">msgs=[] cancel=None</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-danger">lazy prompt 构建中...</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-ipc">cancel=Some, msgs 更新</span>
+    </div>
+
+    <div class="lane-label">SessionList</div>
+    <div class="lane-content">
+      <span class="evt evt-wait">3s 轮询...</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-danger">conversation_list: 跳过空会话</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-wait">3s 轮询...</span>
+      <span class="evt-arrow">→</span>
+      <span class="evt evt-event">终于出现</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 四个竞态问题 ─── -->
+<h2>竞态条件清单 <span class="badge badge-bug">4 个问题</span></h2>
+
+<div class="problem-grid">
+  <div class="problem-card highlight">
+    <h3><span class="num">1</span>列表出现延迟 <span class="tag tag-rust">Rust</span></h3>
+    <p><code>conversation_list</code> 跳过 <code>msgs.is_empty() && cancel.is_none()</code> 的会话。新会话在 lazy prompt 构建完成前满足此条件，被过滤掉。前端 placeholder 方案是补丁，不是根治。</p>
+  </div>
+  <div class="problem-card highlight">
+    <h3><span class="num">2</span>列表闪烁消失 <span class="tag tag-ts">TS</span></h3>
+    <p>前端 <code>knownActiveRef</code> 只在 Rust 确认后清除。但 Rust 确认的时机不确定 — 可能在 placeholder 渲染后的下一次 poll 才到，中间有一帧 placeholder 被清除但 Rust 还没返回，导致闪烁。</p>
+  </div>
+  <div class="problem-card">
+    <h3><span class="num">3</span>分组错误 <span class="tag tag-ts">TS</span></h3>
+    <p>Rust 返回 <code>is_streaming: false</code>（因为 cancel 还没设置），会话被归到"已完成"。前端用 <code>!s.title</code> 判断是否 streaming 是 hack，不可靠。</p>
+  </div>
+  <div class="problem-card">
+    <h3><span class="num">4</span>数据源冲突 <span class="tag tag-ts">TS</span></h3>
+    <p>SessionList 的数据来自两个源：Rust 轮询 + 前端合成 placeholder。两者可能冲突（重复、状态不一致），且 placeholder 的 <code>created_at</code> 是前端时间，与 Rust 时间可能不同步。</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ─── 根因分析 ─── -->
+<h2>根因 <span class="badge badge-arch">架构</span></h2>
+
+<div class="solution">
+  <p>所有问题的根因是同一个：<strong>SessionList 的唯一数据源是 Rust 轮询，但 Rust 在 lazy prompt 构建完成前不知道会话已经"活跃"了。</strong></p>
+  <p style="margin-top: 12px;">当前的补丁方案（placeholder + knownActiveRef + debounced stream listener）试图在前端弥补这个信息差，但引入了更多复杂度和边界情况。</p>
+</div>
+
+<hr class="divider">
+
+<!-- ─── 方案对比 ─── -->
+<h2>修复方案对比</h2>
+
+<div class="arch-diagram">
+  <div class="timeline-title">方案 A — 前端主导（当前方向，继续打补丁）</div>
+  <div class="arch-flow">
+    <div class="arch-box frontend">SessionList<br><span style="font-size:10px;opacity:0.6">轮询 + placeholder + stream listener</span></div>
+    <span class="arch-arrow">⇄</span>
+    <div class="arch-box rust">conversation_list<br><span style="font-size:10px;opacity:0.6">过滤空会话</span></div>
+    <span class="arch-arrow">+</span>
+    <div class="arch-box store">knownActiveRef<br><span style="font-size:10px;opacity:0.6">前端合成</span></div>
+  </div>
+  <p style="font-size:12px;color:var(--text-2);text-align:center;margin-top:12px;">
+    ❌ 两个数据源竞争 → 闪烁、重复、分组错误<br>
+    ❌ 复杂度高，边界情况多
+  </p>
+</div>
+
+<div class="arch-diagram" style="border-color: var(--green);">
+  <div class="timeline-title" style="color:var(--green);">方案 B — Rust 主导（推荐）：去掉空会话过滤</div>
+  <div class="arch-flow">
+    <div class="arch-box frontend">SessionList<br><span style="font-size:10px;opacity:0.6">轮询 Rust（唯一数据源）</span></div>
+    <span class="arch-arrow">⇄</span>
+    <div class="arch-box new">conversation_list<br><span style="font-size:10px;opacity:0.6">不过滤，全部返回</span></div>
+  </div>
+  <p style="font-size:12px;color:var(--text-2);text-align:center;margin-top:12px;">
+    ✅ 单一数据源，无竞态<br>
+    ✅ 前端删除所有 placeholder / knownActiveRef / stream listener 逻辑<br>
+    ⚠️ 需要解决：按 + 但没发消息的空会话也会出现
+  </p>
+</div>
+
+<div class="arch-diagram" style="border-color: var(--accent);">
+  <div class="timeline-title" style="color:var(--accent);">方案 C — 混合（最优）：Rust 不过滤 + 前端隐藏空闲会话</div>
+  <div class="arch-flow">
+    <div class="arch-box new">conversation_list<br><span style="font-size:10px;opacity:0.6">返回所有内存会话</span></div>
+    <span class="arch-arrow">→</span>
+    <div class="arch-box frontend">SessionList<br><span style="font-size:10px;opacity:0.6">过滤：隐藏 msgs=0 且非 active 的</span></div>
+  </div>
+  <p style="font-size:12px;color:var(--text-2);text-align:center;margin-top:12px;">
+    ✅ 单一数据源（Rust）<br>
+    ✅ active 会话始终可见（因为 activeSessionId 匹配）<br>
+    ✅ 空闲会话不显示（前端过滤 msgs=0 且 id ≠ activeSessionId）<br>
+    ✅ 无 placeholder、无 knownActiveRef、无 stream listener
+  </p>
+</div>
+
+<hr class="divider">
+
+<!-- ─── 方案 C 详细设计 ─── -->
+<h2>方案 C 详细设计 <span class="badge badge-fix">推荐</span></h2>
+
+<table class="compare">
+  <thead>
+    <tr>
+      <th>层</th>
+      <th>当前</th>
+      <th>改为</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Rust<br>conversation_list</td>
+      <td class="old">跳过 msgs=0 && cancel=None</td>
+      <td class="new">返回所有内存中的会话，增加 <code>message_count</code> 字段</td>
+    </tr>
+    <tr>
+      <td>TS<br>SessionSummary</td>
+      <td class="old">无 message_count</td>
+      <td class="new">增加 <code>message_count: number</code></td>
+    </tr>
+    <tr>
+      <td>TS<br>SessionList</td>
+      <td class="old">knownActiveRef + placeholder 合成 + stream listener + debounce</td>
+      <td class="new">简单过滤：<code>sessions.filter(s => s.message_count > 0 || s.id === activeSessionId)</code></td>
+    </tr>
+    <tr>
+      <td>TS<br>SessionList 分组</td>
+      <td class="old">用 is_streaming + !title hack 判断</td>
+      <td class="new">纯用 <code>is_streaming</code>，active 且 message_count=0 的归入 streaming 组</td>
+    </tr>
+    <tr>
+      <td>TS<br>SessionList 轮询</td>
+      <td class="old">3s 轮询 + stream event debounce 刷新</td>
+      <td class="new">保持 3s 轮询，去掉 stream listener（轮询足够，因为 Rust 数据始终完整）</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="solution">
+  <div class="solution-header">
+    <div class="icon" style="background:rgba(52,199,89,0.15);">✓</div>
+    <h3>为什么 3s 轮询就够了？</h3>
+  </div>
+  <ul>
+    <li>新建会话后，<code>activeSessionId</code> 立即更新 → 前端过滤条件 <code>s.id === activeSessionId</code> 保证它可见</li>
+    <li>不需要等 Rust 返回 — 即使 Rust 还没返回新数据，activeSessionId 匹配就够了</li>
+    <li>3s 后 Rust 返回真实数据，前端无缝替换，无闪烁</li>
+    <li>stream listener 的 300ms debounce 刷新只是为了让列表"快一点"出现，但有了 activeSessionId 过滤后不再需要</li>
+  </ul>
+</div>
+
+<div class="solution">
+  <div class="solution-header">
+    <div class="icon" style="background:rgba(200,147,59,0.15);">⚡</div>
+    <h3>额外优化：轮询频率可以降低</h3>
+  </div>
+  <p>当前 3s 轮询主要是为了检测 streaming 状态变化。但 <code>useConversation</code> 已经通过 <code>streamingSessionsRef</code> 跟踪了这个状态。可以考虑：</p>
+  <ul>
+    <li>默认 5s 轮询（降低 IPC 开销）</li>
+    <li>对话框打开时 3s，关闭时停止轮询</li>
+  </ul>
+</div>
+
+<hr class="divider">
+
+<div style="text-align:center;padding:24px 0;">
+  <span style="font-size:12px;color:var(--text-2);">谨迹 · 会话列表时序分析 · 2026.04.16</span>
+</div>
+
+</body>
+</html>

@@ -21,7 +21,7 @@ chrono = { version = "0.4", features = ["clock"] }
 mp4ameta = "0.13"
 nnnoiseless = "0.5"
 base64 = "0.22"
-reqwest = { version = "0.12", features = ["multipart", "json"] }
+reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
 rubato = "0.15"
 tokio = { version = "1", features = ["full"] }
 gray_matter = "0.2"
@@ -31,3 +31,6 @@ libc = "0.2.183"
 futures = "0.3"
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 dirs = "5"
+async-trait = "0.1"
+tokio-util = { version = "0.7", features = ["rt"] }
+uuid = { version = "1", features = ["v4"] }

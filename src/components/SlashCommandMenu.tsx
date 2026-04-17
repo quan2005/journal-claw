@@ -1,39 +1,52 @@
-import { useState, useEffect, useCallback } from 'react'
-import { filterCommands, type SlashCommand } from '../lib/slashCommands'
-import { useTranslation } from '../contexts/I18nContext'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchSkills, filterSkills, type SkillItem } from '../lib/slashCommands'
 
 interface SlashCommandMenuProps {
   query: string
-  onSelect: (cmd: SlashCommand) => void
+  onSelect: (skillName: string) => void
   onClose: () => void
 }
 
 export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuProps) {
-  const { t } = useTranslation()
-  const commands = filterCommands(query)
+  const [skills, setSkills] = useState<SkillItem[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetchSkills().then(setSkills)
+  }, [])
+
+  const filtered = filterSkills(skills, query)
 
   useEffect(() => {
     setActiveIndex(0)
   }, [query])
 
+  // Scroll active item into view
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const item = list.children[activeIndex] as HTMLElement | undefined
+    item?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setActiveIndex((i) => (i + 1) % commands.length)
+        setActiveIndex((i) => (i + 1) % (filtered.length || 1))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setActiveIndex((i) => (i - 1 + commands.length) % commands.length)
-      } else if (e.key === 'Enter' && commands.length > 0) {
+        setActiveIndex((i) => (i - 1 + (filtered.length || 1)) % (filtered.length || 1))
+      } else if (e.key === 'Enter' && filtered.length > 0) {
         e.preventDefault()
-        onSelect(commands[activeIndex])
+        onSelect(filtered[activeIndex].name)
       } else if (e.key === 'Escape') {
         e.preventDefault()
         onClose()
       }
     },
-    [commands, activeIndex, onSelect, onClose],
+    [filtered, activeIndex, onSelect, onClose],
   )
 
   useEffect(() => {
@@ -41,7 +54,7 @@ export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuP
     return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [handleKeyDown])
 
-  if (commands.length === 0) return null
+  if (filtered.length === 0) return null
 
   return (
     <div
@@ -57,52 +70,79 @@ export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuP
         overflow: 'hidden',
         boxShadow: '0 -4px 16px var(--context-menu-shadow)',
         zIndex: 10,
+        maxHeight: 280,
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      {commands.map((cmd, i) => (
-        <div
-          key={cmd.name}
-          onClick={() => onSelect(cmd)}
-          onMouseEnter={() => setActiveIndex(i)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 12px',
-            cursor: 'pointer',
-            background: i === activeIndex ? 'var(--item-hover-bg)' : 'transparent',
-            transition: 'background 0.1s ease-out',
-          }}
-        >
-          <span style={{ fontSize: 'var(--text-sm)', width: 20, textAlign: 'center' }}>
-            {cmd.icon}
-          </span>
-          <span
+      <div ref={listRef} style={{ overflowY: 'auto', flex: 1 }}>
+        {filtered.map((skill, i) => (
+          <div
+            key={skill.name}
+            onClick={() => onSelect(skill.name)}
+            onMouseEnter={() => setActiveIndex(i)}
             style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--item-text)',
-              fontWeight: 'var(--font-medium)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 12px',
+              cursor: 'pointer',
+              background: i === activeIndex ? 'var(--item-hover-bg)' : 'transparent',
+              transition: 'background 0.1s ease-out',
+              minWidth: 0,
             }}
           >
-            /{cmd.name}
-          </span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', flex: 1 }}>
-            {(t as unknown as (key: string) => string)(cmd.descriptionKey)}
-          </span>
-          {i === activeIndex && (
             <span
               style={{
                 fontSize: 'var(--text-xs)',
                 color: 'var(--item-meta)',
-                opacity: 0.5,
-                fontFamily: 'var(--font-mono)',
+                opacity: 0.6,
+                width: 16,
+                textAlign: 'center',
+                flexShrink: 0,
               }}
             >
-              ↵
+              ⚡
             </span>
-          )}
-        </div>
-      ))}
+            <span
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--item-text)',
+                fontWeight: 'var(--font-medium)',
+                flexShrink: 0,
+              }}
+            >
+              /{skill.name}
+            </span>
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--item-meta)',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
+              {skill.description}
+            </span>
+            {i === activeIndex && (
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-meta)',
+                  opacity: 0.5,
+                  fontFamily: 'var(--font-mono)',
+                  flexShrink: 0,
+                }}
+              >
+                ↵
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

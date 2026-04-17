@@ -12,6 +12,7 @@ interface TitleBarProps {
   todoOpen: boolean
   todoCount: number
   onToggleTodo: () => void
+  onOpenConversation?: () => void
 }
 
 export function TitleBar({
@@ -23,6 +24,7 @@ export function TitleBar({
   todoOpen,
   todoCount,
   onToggleTodo,
+  onOpenConversation,
 }: TitleBarProps) {
   const { t } = useTranslation()
   return (
@@ -57,7 +59,11 @@ export function TitleBar({
             {t('settings')}
           </span>
         ) : (
-          <AiStatusPill isProcessing={isProcessing} processingFilename={processingFilename} />
+          <AiStatusPill
+            isProcessing={isProcessing}
+            processingFilename={processingFilename}
+            onClick={onOpenConversation}
+          />
         )}
       </div>
 

@@ -19,15 +19,56 @@ pub struct AsrConfig {
     pub dashscope_asr_model: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct VendorConfig {
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default)]
+    pub base_url: String,
+    #[serde(default)]
+    pub model: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EngineConfig {
-    pub active_ai_engine: String,
-    pub claude_code_api_key: String,
-    pub claude_code_base_url: String,
-    pub claude_code_model: String,
-    pub qwen_code_api_key: String,
-    pub qwen_code_base_url: String,
-    pub qwen_code_model: String,
+    pub active_vendor: String,
+    pub vendors: std::collections::HashMap<String, VendorConfig>,
+}
+
+/// Valid vendor IDs (all use Anthropic Messages API protocol).
+pub const VALID_VENDORS: &[&str] = &["volcengine", "zhipu", "dashscope", "anthropic"];
+
+impl Config {
+    /// Get the active vendor's config (api_key, base_url, model).
+    pub fn active_vendor_config(&self) -> (&str, &str, &str) {
+        let vc = self.vendor_configs.get(&self.active_vendor);
+        let api_key = vc.map(|v| v.api_key.as_str()).unwrap_or("");
+        let base_url = vc.map(|v| v.base_url.as_str()).unwrap_or("");
+        let model = vc.map(|v| v.model.as_str()).unwrap_or("");
+        (api_key, base_url, model)
+    }
+}
+
+/// Default base URL for each vendor.
+pub fn default_base_url_for_vendor(vendor: &str) -> String {
+    match vendor {
+        "anthropic" => "https://api.anthropic.com".to_string(),
+        "zhipu" => "https://open.bigmodel.cn/api/anthropic".to_string(),
+        "dashscope" => "https://coding.dashscope.aliyuncs.com/apps/anthropic".to_string(),
+        "volcengine" => "https://ark.cn-beijing.volces.com/api/coding".to_string(),
+        _ => "https://api.anthropic.com".to_string(),
+    }
+}
+
+/// Default model for each vendor.
+pub fn default_model_for_vendor(vendor: &str) -> String {
+    match vendor {
+        "anthropic" => "claude-sonnet-4-20250514".to_string(),
+        "zhipu" => "glm-4-plus".to_string(),
+        "dashscope" => "qwen-max".to_string(),
+        "volcengine" => "doubao-1.5-pro-256k".to_string(),
+        _ => "claude-sonnet-4-20250514".to_string(),
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -36,12 +77,22 @@ pub struct Config {
     pub dashscope_api_key: String,
     #[serde(default)]
     pub workspace_path: String,
-    #[serde(default = "default_claude_cli")]
-    pub claude_cli_path: String,
     #[serde(default)]
     pub window_state: Option<WindowState>,
-    // AI 引擎配置
-    #[serde(default = "default_active_engine")]
+    // AI 引擎配置 (vendor-based, v2)
+    #[serde(default = "default_active_vendor")]
+    pub active_vendor: String,
+    #[serde(default)]
+    pub vendor_configs: std::collections::HashMap<String, VendorConfig>,
+    // Legacy single-vendor fields — kept for migration
+    #[serde(default)]
+    pub vendor_api_key: String,
+    #[serde(default)]
+    pub vendor_base_url: String,
+    #[serde(default)]
+    pub vendor_model: String,
+    // Legacy fields — kept for migration from old config.json
+    #[serde(default)]
     pub active_ai_engine: String,
     #[serde(default)]
     pub claude_code_api_key: String,
@@ -50,11 +101,11 @@ pub struct Config {
     #[serde(default)]
     pub claude_code_model: String,
     #[serde(default)]
-    pub qwen_code_api_key: String,
+    pub openai_code_api_key: String,
     #[serde(default)]
-    pub qwen_code_base_url: String,
+    pub openai_code_base_url: String,
     #[serde(default)]
-    pub qwen_code_model: String,
+    pub openai_code_model: String,
     // ASR 引擎配置
     #[serde(default = "default_asr_engine")]
     pub asr_engine: String, // "apple" | "dashscope" | "whisperkit"
@@ -96,7 +147,7 @@ pub fn augmented_path() -> String {
         dirs.push(format!("{}/.local/bin", home));
     }
 
-    // Node version managers — each may install `claude` as a global npm package.
+    // Node version managers — tools installed as global npm packages may live here.
 
     // Volta: its bin dir contains shims directly (no version subdirs to scan).
     let volta_bin = format!("{}/.volta/bin", home);
@@ -159,29 +210,8 @@ pub fn augmented_path() -> String {
     dirs.join(":")
 }
 
-fn default_claude_cli() -> String {
-    if cfg!(test) {
-        return "claude".to_string();
-    }
-    default_claude_cli_detect()
-}
-
-/// Detect the claude CLI path using augmented PATH.
-/// Called at config init and as runtime fallback when `claude_cli_path` is empty.
-pub fn default_claude_cli_detect() -> String {
-    if let Ok(output) = std::process::Command::new("/usr/bin/which")
-        .arg("claude")
-        .env("PATH", augmented_path())
-        .output()
-    {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !path.is_empty() {
-                return path;
-            }
-        }
-    }
-    "claude".to_string()
+fn default_active_vendor() -> String {
+    "anthropic".to_string()
 }
 
 fn default_active_engine() -> String {
@@ -218,7 +248,61 @@ pub fn whisperkit_cli_model_name(model: &str) -> String {
 }
 
 fn sanitize_engine_config(config: &mut Config) {
-    let valid_engines = ["claude", "qwen"];
+    // Migration v1 → v2: legacy per-engine fields → vendor_configs map
+    if config.vendor_configs.is_empty() {
+        // First check old v1.5 single-vendor fields
+        if !config.vendor_api_key.is_empty() {
+            config.vendor_configs.insert(
+                config.active_vendor.clone(),
+                VendorConfig {
+                    api_key: config.vendor_api_key.clone(),
+                    base_url: config.vendor_base_url.clone(),
+                    model: config.vendor_model.clone(),
+                },
+            );
+        }
+        // Then check legacy v1 per-engine fields
+        if !config.claude_code_api_key.is_empty() {
+            let vendor = "anthropic".to_string();
+            config.vendor_configs.entry(vendor).or_default().api_key =
+                config.claude_code_api_key.clone();
+            if !config.claude_code_base_url.is_empty() {
+                config.vendor_configs.get_mut("anthropic").unwrap().base_url =
+                    config.claude_code_base_url.clone();
+            }
+            if !config.claude_code_model.is_empty() {
+                config.vendor_configs.get_mut("anthropic").unwrap().model =
+                    config.claude_code_model.clone();
+            }
+            if config.active_ai_engine == "claude" {
+                config.active_vendor = "anthropic".to_string();
+            }
+        }
+        if !config.openai_code_api_key.is_empty() {
+            let vendor = "dashscope".to_string();
+            config.vendor_configs.entry(vendor).or_default().api_key =
+                config.openai_code_api_key.clone();
+            if !config.openai_code_base_url.is_empty() {
+                config.vendor_configs.get_mut("dashscope").unwrap().base_url =
+                    config.openai_code_base_url.clone();
+            }
+            if !config.openai_code_model.is_empty() {
+                config.vendor_configs.get_mut("dashscope").unwrap().model =
+                    config.openai_code_model.clone();
+            }
+            if config.active_ai_engine == "openai" {
+                config.active_vendor = "dashscope".to_string();
+            }
+        }
+    }
+
+    // Validate active_vendor
+    if !VALID_VENDORS.contains(&config.active_vendor.as_str()) {
+        config.active_vendor = default_active_vendor();
+    }
+
+    // Legacy field validation (kept for serde compat)
+    let valid_engines = ["claude", "openai", ""];
     if !valid_engines.contains(&config.active_ai_engine.as_str()) {
         config.active_ai_engine = default_active_engine();
     }
@@ -232,10 +316,8 @@ fn sanitize_engine_config(config: &mut Config) {
     // - 升级用户 + whisperkit + cli 未安装 → 自动切换为 apple
     // - 升级用户 + dashscope + API Key 已配置 → 保持不变
     // - 新用户默认 apple（已通过 default_asr_engine 实现）
-    if config.asr_engine == "whisperkit" && !cfg!(test) {
-        if find_whisperkit_cli_path().is_none() {
-            config.asr_engine = "apple".to_string();
-        }
+    if config.asr_engine == "whisperkit" && !cfg!(test) && find_whisperkit_cli_path().is_none() {
+        config.asr_engine = "apple".to_string();
     }
 
     config.whisperkit_model = normalize_whisperkit_model(&config.whisperkit_model)
@@ -491,76 +573,23 @@ pub fn set_workspace_path(app: AppHandle, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_claude_cli_path(app: AppHandle) -> Result<String, String> {
-    let config = load_config(&app)?;
-    Ok(config.claude_cli_path)
-}
-
-#[tauri::command]
-pub fn set_claude_cli_path(app: AppHandle, path: String) -> Result<(), String> {
-    let mut config = load_config(&app)?;
-    config.claude_cli_path = path;
-    save_config(&app, &config)
-}
-
-#[tauri::command]
 pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
-    let mut c = load_config(&app)?;
-
-    // Auto-select: if the saved engine is not installed, pick the first available one.
-    // Priority: claude > qwen. If neither is installed, keep the saved value.
-    let engine_available = |name: &str| -> bool {
-        std::process::Command::new("/usr/bin/which")
-            .arg(name)
-            .env("PATH", augmented_path())
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
-    };
-
-    let claude_ok = engine_available("claude");
-    let qwen_ok = engine_available("qwen");
-
-    let resolved = match c.active_ai_engine.as_str() {
-        "claude" if claude_ok => "claude",
-        "qwen" if qwen_ok => "qwen",
-        // saved engine not available — pick best available
-        _ if claude_ok => "claude",
-        _ if qwen_ok => "qwen",
-        _ => c.active_ai_engine.as_str(),
-    };
-
-    if resolved != c.active_ai_engine.as_str() {
-        c.active_ai_engine = resolved.to_string();
-        // Persist the auto-selected engine so it stays consistent
-        let _ = save_config(&app, &c);
-    }
+    let c = load_config(&app)?;
 
     Ok(EngineConfig {
-        active_ai_engine: c.active_ai_engine,
-        claude_code_api_key: c.claude_code_api_key,
-        claude_code_base_url: c.claude_code_base_url,
-        claude_code_model: c.claude_code_model,
-        qwen_code_api_key: c.qwen_code_api_key,
-        qwen_code_base_url: c.qwen_code_base_url,
-        qwen_code_model: c.qwen_code_model,
+        active_vendor: c.active_vendor.clone(),
+        vendors: c.vendor_configs.clone(),
     })
 }
 
 #[tauri::command]
 pub fn set_engine_config(app: AppHandle, config: EngineConfig) -> Result<(), String> {
-    let valid_engines = ["claude", "qwen"];
-    if !valid_engines.contains(&config.active_ai_engine.as_str()) {
-        return Err(format!("invalid engine: {}", config.active_ai_engine));
+    if !VALID_VENDORS.contains(&config.active_vendor.as_str()) {
+        return Err(format!("invalid vendor: {}", config.active_vendor));
     }
     let mut c = load_config(&app)?;
-    c.active_ai_engine = config.active_ai_engine;
-    c.claude_code_api_key = config.claude_code_api_key;
-    c.claude_code_base_url = config.claude_code_base_url;
-    c.claude_code_model = config.claude_code_model;
-    c.qwen_code_api_key = config.qwen_code_api_key;
-    c.qwen_code_base_url = config.qwen_code_base_url;
-    c.qwen_code_model = config.qwen_code_model;
+    c.active_vendor = config.active_vendor;
+    c.vendor_configs = config.vendors;
     save_config(&app, &c)
 }
 
@@ -855,8 +884,6 @@ mod tests {
     fn config_defaults() {
         let c: Config = serde_json::from_str("{}").unwrap();
         assert_eq!(c.workspace_path, "");
-        // claude_cli_path should be "claude" in test environments where candidates don't exist
-        assert_eq!(c.claude_cli_path, "claude");
         assert_eq!(c.dashscope_api_key, "");
     }
 
@@ -865,14 +892,12 @@ mod tests {
         let c = Config {
             dashscope_api_key: "key".into(),
             workspace_path: "/Users/test/notebook".into(),
-            claude_cli_path: "claude".into(),
             window_state: None,
             ..Config::default()
         };
         let json = serde_json::to_string(&c).unwrap();
         let c2: Config = serde_json::from_str(&json).unwrap();
         assert_eq!(c2.workspace_path, "/Users/test/notebook");
-        assert_eq!(c2.claude_cli_path, "claude");
     }
 
     #[test]
@@ -897,22 +922,50 @@ mod tests {
     #[test]
     fn config_new_engine_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.active_ai_engine, "claude");
-        assert_eq!(c.claude_code_api_key, "");
-        assert_eq!(c.qwen_code_api_key, "");
+        assert_eq!(c.active_vendor, "anthropic");
+        assert!(c.vendor_configs.is_empty());
     }
 
     #[test]
     fn config_engine_fields_roundtrip() {
-        let c = Config {
-            active_ai_engine: "qwen".into(),
-            qwen_code_api_key: "sk-test".into(),
-            ..Config::default()
-        };
+        let mut c = Config::default();
+        c.active_vendor = "dashscope".into();
+        c.vendor_configs.insert(
+            "dashscope".into(),
+            VendorConfig {
+                api_key: "sk-test".into(),
+                base_url: "https://coding.dashscope.aliyuncs.com/apps/anthropic".into(),
+                model: "qwen-max".into(),
+            },
+        );
         let json = serde_json::to_string(&c).unwrap();
         let c2: Config = serde_json::from_str(&json).unwrap();
-        assert_eq!(c2.active_ai_engine, "qwen");
-        assert_eq!(c2.qwen_code_api_key, "sk-test");
+        assert_eq!(c2.active_vendor, "dashscope");
+        assert_eq!(
+            c2.vendor_configs.get("dashscope").unwrap().api_key,
+            "sk-test"
+        );
+    }
+
+    #[test]
+    fn config_legacy_migration_claude() {
+        let json = r#"{"active_ai_engine":"claude","claude_code_api_key":"sk-ant-old","claude_code_model":"claude-3-opus"}"#;
+        let mut c: Config = serde_json::from_str(json).unwrap();
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.active_vendor, "anthropic");
+        let vc = c.vendor_configs.get("anthropic").unwrap();
+        assert_eq!(vc.api_key, "sk-ant-old");
+        assert_eq!(vc.model, "claude-3-opus");
+    }
+
+    #[test]
+    fn config_legacy_migration_openai() {
+        let json = r#"{"active_ai_engine":"openai","openai_code_api_key":"sk-qwen","openai_code_base_url":"https://dashscope.aliyuncs.com"}"#;
+        let mut c: Config = serde_json::from_str(json).unwrap();
+        sanitize_engine_config(&mut c);
+        assert_eq!(c.active_vendor, "dashscope");
+        let vc = c.vendor_configs.get("dashscope").unwrap();
+        assert_eq!(vc.api_key, "sk-qwen");
     }
 
     #[test]
@@ -961,7 +1014,7 @@ mod tests {
             ..Config::default()
         };
         sanitize_engine_config(&mut c);
-        assert_eq!(c.active_ai_engine, "claude");
+        assert_eq!(c.active_vendor, "anthropic");
         assert_eq!(c.asr_engine, "apple");
         assert_eq!(c.whisperkit_model, "base");
     }
@@ -1034,4 +1087,54 @@ mod tests {
         sanitize_engine_config(&mut c);
         assert_eq!(c.asr_engine, "apple");
     }
+}
+
+/// List available models from the configured engine's API.
+#[tauri::command]
+pub async fn list_models(
+    _app: AppHandle,
+    engine: String,
+    api_key: String,
+    base_url: String,
+) -> Result<Vec<String>, String> {
+    let effective_base_url = if base_url.is_empty() {
+        default_base_url_for_vendor(&engine)
+    } else {
+        base_url
+    };
+
+    if api_key.is_empty() {
+        return Err("API Key 未配置".to_string());
+    }
+
+    let client = reqwest::Client::new();
+    let url = format!("{}/v1/models", effective_base_url.trim_end_matches('/'));
+
+    let mut req = client.get(&url);
+    req = req
+        .header("x-api-key", &api_key)
+        .header("anthropic-version", "2023-06-01");
+
+    let response = req.send().await.map_err(|e| format!("请求失败: {}", e))?;
+
+    let status = response.status().as_u16();
+    if status >= 400 {
+        let text = response.text().await.unwrap_or_default();
+        return Err(format!("API 错误 ({}): {}", status, text));
+    }
+
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("解析失败: {}", e))?;
+
+    let mut models: Vec<String> = body["data"]
+        .as_array()
+        .unwrap_or(&vec![])
+        .iter()
+        .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+        .collect();
+
+    models.sort();
+    Ok(models)
 }

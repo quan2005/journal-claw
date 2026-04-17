@@ -15,13 +15,14 @@ describe('tauri config commands', () => {
 
   it('sends engine config as a structured payload', async () => {
     const cfg: EngineConfig = {
-      active_ai_engine: 'claude',
-      claude_code_api_key: 'sk-ant-test',
-      claude_code_base_url: 'https://api.anthropic.com',
-      claude_code_model: 'claude-sonnet-4-5',
-      qwen_code_api_key: 'sk-qwen-test',
-      qwen_code_base_url: 'https://dashscope.aliyuncs.com',
-      qwen_code_model: 'qwen-max',
+      active_vendor: 'anthropic',
+      vendors: {
+        anthropic: {
+          api_key: 'sk-ant-test',
+          base_url: 'https://api.anthropic.com',
+          model: 'claude-sonnet-4-5',
+        },
+      },
     }
 
     await setEngineConfig(cfg)

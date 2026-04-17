@@ -1,17 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
+import { listen } from '@tauri-apps/api/event'
 import {
   conversationList,
   conversationDelete,
   conversationRename,
   type SessionSummary,
 } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
+
+export const SESSION_LIST_WIDTH = 200
 
 interface SessionListProps {
   activeSessionId: string | null
-  onSelect: (id: string) => void
+  onSelect: (id: string, isStreaming: boolean) => void
 }
 
 export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
+  const { t } = useTranslation()
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
@@ -32,17 +37,66 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
     return () => clearInterval(interval)
   }, [refresh])
 
-  const streaming = sessions.filter((s) => s.is_streaming)
-  const done = sessions.filter((s) => !s.is_streaming)
+  useEffect(() => {
+    const unlisten = listen<{ session_id: string; event: string; data: string }>(
+      'conversation-stream',
+      (event) => {
+        const { session_id, event: evt, data } = event.payload
+        if (evt === 'title') {
+          setSessions((prev) => prev.map((s) => (s.id === session_id ? { ...s, title: data } : s)))
+        }
+        if (evt === 'done') {
+          refresh()
+        }
+      },
+    )
+    return () => {
+      unlisten.then((fn) => fn())
+    }
+  }, [refresh])
+
+  // Single-source filtering: hide sessions with no messages unless it's the active one
+  const visible = sessions
+    .filter((s) => s.message_count > 0 || s.id === activeSessionId)
+    .sort((a, b) => b.updated_at - a.updated_at)
 
   // #7 搜索过滤
-  const filterByQuery = (list: SessionSummary[]) => {
-    if (!searchQuery.trim()) return list
+  const filtered = (() => {
+    if (!searchQuery.trim()) return visible
     const q = searchQuery.toLowerCase()
-    return list.filter((s) => s.title?.toLowerCase().includes(q))
-  }
-  const filteredStreaming = filterByQuery(streaming)
-  const filteredDone = filterByQuery(done)
+    return visible.filter((s) => s.title?.toLowerCase().includes(q))
+  })()
+
+  // Time-based grouping
+  const timeGroups = (() => {
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000
+    const yesterdayStart = todayStart - 86400
+    const weekStart = todayStart - (now.getDay() || 7) * 86400
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000
+    const yearStart = new Date(now.getFullYear(), 0, 1).getTime() / 1000
+
+    const groups: { label: string; items: SessionSummary[] }[] = [
+      { label: t('timeToday'), items: [] },
+      { label: t('timeYesterday'), items: [] },
+      { label: t('timeThisWeek'), items: [] },
+      { label: t('timeThisMonth'), items: [] },
+      { label: t('timeEarlier'), items: [] },
+      { label: t('timeLastYear'), items: [] },
+    ]
+
+    for (const s of filtered) {
+      const t = s.updated_at
+      if (t >= todayStart) groups[0].items.push(s)
+      else if (t >= yesterdayStart) groups[1].items.push(s)
+      else if (t >= weekStart) groups[2].items.push(s)
+      else if (t >= monthStart) groups[3].items.push(s)
+      else if (t >= yearStart) groups[4].items.push(s)
+      else groups[5].items.push(s)
+    }
+
+    return groups.filter((g) => g.items.length > 0)
+  })()
 
   const handleDelete = useCallback(
     async (e: React.MouseEvent, id: string) => {
@@ -73,10 +127,10 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
     const d = new Date(secs * 1000)
     const now = new Date()
     const isToday = d.toDateString() === now.toDateString()
-    if (isToday) return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    if (isToday) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
-    if (d.toDateString() === yesterday.toDateString()) return '昨天'
+    if (d.toDateString() === yesterday.toDateString()) return t('timeYesterday')
     return `${d.getMonth() + 1}/${d.getDate()}`
   }
 
@@ -87,7 +141,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
     return (
       <div
         key={s.id}
-        onClick={() => onSelect(s.id)}
+        onClick={() => onSelect(s.id, s.is_streaming)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -163,7 +217,9 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
               }}
             >
               {s.title || (
-                <span style={{ color: 'var(--item-meta)', fontStyle: 'italic' }}>新对话</span>
+                <span style={{ color: 'var(--item-meta)', fontStyle: 'italic' }}>
+                  {t('sessionNewChat')}
+                </span>
               )}
             </div>
           )}
@@ -178,9 +234,6 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
             }}
           >
             {formatTime(s.updated_at)}
-            {s.linked_entry && (
-              <span> · {s.linked_entry.split('/').pop()?.replace('.md', '')}</span>
-            )}
           </div>
         </div>
         <span
@@ -204,7 +257,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
   return (
     <div
       style={{
-        width: 200,
+        width: SESSION_LIST_WIDTH,
         borderRight: '1px solid var(--dialog-glass-divider)',
         display: 'flex',
         flexDirection: 'column',
@@ -225,7 +278,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="搜索对话"
+          placeholder={t('sessionSearchPlaceholder')}
           style={{
             width: '100%',
             height: 28,
@@ -242,8 +295,13 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {filteredStreaming.length > 0 && (
-          <>
+        {timeGroups.map((group, gi) => (
+          <div key={group.label}>
+            {gi > 0 && (
+              <div
+                style={{ borderTop: '0.5px solid var(--dialog-glass-divider)', margin: '4px 12px' }}
+              />
+            )}
             <div
               style={{
                 fontSize: 'var(--text-xs)',
@@ -256,37 +314,11 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
                 transformOrigin: 'left center',
               }}
             >
-              输出中
+              {group.label}
             </div>
-            {filteredStreaming.map(renderItem)}
-          </>
-        )}
-
-        {filteredStreaming.length > 0 && filteredDone.length > 0 && (
-          <div
-            style={{ borderTop: '0.5px solid var(--dialog-glass-divider)', margin: '4px 12px' }}
-          />
-        )}
-
-        {filteredDone.length > 0 && (
-          <>
-            <div
-              style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-semibold)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                color: 'var(--item-meta)',
-                padding: '8px 12px 4px',
-                transform: 'scale(0.85)',
-                transformOrigin: 'left center',
-              }}
-            >
-              已完成
-            </div>
-            {filteredDone.map(renderItem)}
-          </>
-        )}
+            {group.items.map(renderItem)}
+          </div>
+        ))}
 
         {sessions.length === 0 && (
           <div
@@ -298,7 +330,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
               opacity: 0.5,
             }}
           >
-            暂无会话
+            {t('sessionEmpty')}
           </div>
         )}
       </div>

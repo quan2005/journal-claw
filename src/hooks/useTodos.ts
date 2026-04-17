@@ -9,6 +9,7 @@ import {
   updateTodoText as updateTodoTextIpc,
   setTodoPath as setTodoPathIpc,
   removeTodoPath as removeTodoPathIpc,
+  setTodoSessionId as setTodoSessionIdIpc,
 } from '../lib/tauri'
 import type { TodoItem } from '../types'
 
@@ -31,7 +32,7 @@ export function useTodos() {
     refresh()
 
     const unlistenTodos = listen('todos-updated', () => refresh())
-    // Poll every 3s to catch external edits (e.g. brainstorm terminal)
+    // Poll every 3s to catch external edits
     const pollId = setInterval(refresh, 3000)
 
     return () => {
@@ -96,6 +97,14 @@ export function useTodos() {
     [refresh],
   )
 
+  const setTodoSessionId = useCallback(
+    async (lineIndex: number, sessionId: string | null, doneFile: boolean) => {
+      await setTodoSessionIdIpc(lineIndex, sessionId, doneFile)
+      await refresh()
+    },
+    [refresh],
+  )
+
   return {
     todos,
     loading,
@@ -107,5 +116,6 @@ export function useTodos() {
     updateTodoText,
     setTodoPath,
     removeTodoPath,
+    setTodoSessionId,
   }
 }

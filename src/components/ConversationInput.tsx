@@ -2,23 +2,18 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import clipboard from 'tauri-plugin-clipboard-api'
 import { fileKindFromName } from '../lib/fileKind'
-import { getTranscript, retryTranscription } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { SlashCommandMenu } from './SlashCommandMenu'
-import type { SlashCommand } from '../lib/slashCommands'
-import { Spinner } from './Spinner'
-
-type AttachmentStatus = 'ready' | 'transcribing' | 'transcribed'
+import { AtMentionMenu } from './AtMentionMenu'
 
 interface Attachment {
   path: string
   filename: string
   kind: string
-  status: AttachmentStatus
-  transcriptText?: string
 }
 
 interface ConversationInputProps {
+  sessionId?: string | null
   onSend: (text: string) => void
   onCancel: () => void
   isStreaming: boolean
@@ -26,14 +21,8 @@ interface ConversationInputProps {
   initialInput?: string
 }
 
-const AUDIO_EXTS = new Set(['m4a', 'wav', 'mp3', 'aac', 'ogg', 'flac'])
-
-function isAudioFile(filename: string): boolean {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? ''
-  return AUDIO_EXTS.has(ext)
-}
-
 export function ConversationInput({
+  sessionId,
   onSend,
   onCancel,
   isStreaming,
@@ -45,15 +34,16 @@ export function ConversationInput({
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState('')
+  const [atOpen, setAtOpen] = useState(false)
+  const [atQuery, setAtQuery] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const pendingMessages = useRef<string[]>([])
 
-  // Auto-focus
+  // Auto-focus on mount and session change
   useEffect(() => {
     inputRef.current?.focus()
-  }, [])
+  }, [sessionId])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -64,134 +54,37 @@ export function ConversationInput({
     }
   }, [input])
 
-  // Transcribe audio attachments
-  useEffect(() => {
-    for (const att of attachments) {
-      if (att.kind === 'audio' && att.status === 'ready') {
-        setAttachments((prev) =>
-          prev.map((a) => (a.path === att.path ? { ...a, status: 'transcribing' as const } : a)),
-        )
-        // Check for existing transcript, then trigger if needed
-        getTranscript(att.path)
-          .then((transcript) => {
-            if (transcript?.status === 'completed' && transcript.text) {
-              setAttachments((prev) =>
-                prev.map((a) =>
-                  a.path === att.path
-                    ? { ...a, status: 'transcribed' as const, transcriptText: transcript.text }
-                    : a,
-                ),
-              )
-              flushPending()
-            } else {
-              retryTranscription(att.path).catch(() => {})
-              // Poll for completion
-              const interval = setInterval(async () => {
-                try {
-                  const t = await getTranscript(att.path)
-                  if (t?.status === 'completed' && t.text) {
-                    clearInterval(interval)
-                    setAttachments((prev) =>
-                      prev.map((a) =>
-                        a.path === att.path
-                          ? { ...a, status: 'transcribed' as const, transcriptText: t.text }
-                          : a,
-                      ),
-                    )
-                    flushPending()
-                  }
-                } catch {
-                  /* ignore */
-                }
-              }, 2000)
-              // Cleanup after 5 min
-              setTimeout(() => clearInterval(interval), 300_000)
-            }
-          })
-          .catch(() => {})
-      }
-    }
-  }, [attachments.map((a) => `${a.path}:${a.status}`).join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const flushPending = useCallback(() => {
-    // Check if all audio attachments are transcribed
-    setAttachments((currentAtts) => {
-      const allTranscribed = currentAtts
-        .filter((a) => a.kind === 'audio')
-        .every((a) => a.status === 'transcribed')
-      if (allTranscribed && pendingMessages.current.length > 0) {
-        const msgs = pendingMessages.current.splice(0)
-        const transcripts = currentAtts
-          .filter((a) => a.transcriptText)
-          .map((a) => `[音频转写: ${a.filename}]\n${a.transcriptText}\n[/音频转写]`)
-          .join('\n\n')
-        const combined = transcripts ? `${transcripts}\n\n${msgs.join('\n\n')}` : msgs.join('\n\n')
-        onSend(combined)
-      }
-      return currentAtts
-    })
-  }, [onSend])
-
   const addFiles = useCallback((paths: string[]) => {
     const newAtts: Attachment[] = paths.map((p) => {
       const filename = p.split('/').pop() ?? p
-      const kind = isAudioFile(filename) ? 'audio' : fileKindFromName(filename)
-      return { path: p, filename, kind, status: 'ready' as const }
+      const kind = fileKindFromName(filename)
+      return { path: p, filename, kind }
     })
     setAttachments((prev) => [...prev, ...newAtts])
   }, [])
 
-  const removeAttachment = useCallback(
-    (path: string) => {
-      setAttachments((prev) => {
-        const updated = prev.filter((a) => a.path !== path)
-        // If no more audio pending, flush any queued messages
-        const hasTranscribing = updated.some(
-          (a) => a.kind === 'audio' && a.status !== 'transcribed',
-        )
-        if (!hasTranscribing && pendingMessages.current.length > 0) {
-          const msgs = pendingMessages.current.splice(0)
-          msgs.forEach((m) => onSend(m))
-        }
-        return updated
-      })
-    },
-    [onSend],
-  )
+  const removeAttachment = useCallback((path: string) => {
+    setAttachments((prev) => prev.filter((a) => a.path !== path))
+  }, [])
 
   const handleSend = useCallback(() => {
     const text = input.trim()
     if (!text) return
     setInput('')
 
-    const hasTranscribing = attachments.some(
-      (a) => a.kind === 'audio' && a.status !== 'transcribed',
-    )
-
-    if (hasTranscribing) {
-      // Queue message for later
-      pendingMessages.current.push(text)
-      return
-    }
-
-    // Build message with any transcribed attachments
-    const transcripts = attachments
-      .filter((a) => a.transcriptText)
-      .map((a) => `[音频转写: ${a.filename}]\n${a.transcriptText}\n[/音频转写]`)
-      .join('\n\n')
-
-    const nonAudioAtts = attachments.filter((a) => a.kind !== 'audio')
-    const fileRefs = nonAudioAtts.map((a) => `[附件: ${a.filename}]`).join('\n')
-
-    const parts = [transcripts, fileRefs, text].filter(Boolean)
+    // Build message with attachment references
+    const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
+    const parts = [fileRefs, text].filter(Boolean)
     onSend(parts.join('\n\n'))
     setAttachments([])
   }, [input, attachments, onSend])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (slashOpen) return // Let SlashCommandMenu handle keys
-      if (e.key === 'Enter' && !e.shiftKey) {
+      // Only let menus handle navigation keys, not Enter (menus handle Enter via window listener)
+      if ((slashOpen || atOpen) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return
+      if (atOpen && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return
+      if (e.key === 'Enter' && !e.shiftKey && !slashOpen && !atOpen) {
         e.preventDefault()
         handleSend()
       }
@@ -200,27 +93,64 @@ export function ConversationInput({
         if (isStreaming) onCancel()
       }
     },
-    [handleSend, isStreaming, onCancel, slashOpen],
+    [handleSend, isStreaming, onCancel, slashOpen, atOpen],
   )
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
     setInput(val)
+
+    // Slash command detection: starts with / and no space yet
     if (val.startsWith('/') && !val.includes(' ') && val.length > 0) {
       setSlashOpen(true)
       setSlashQuery(val.slice(1))
+      setAtOpen(false)
     } else {
       setSlashOpen(false)
     }
+
+    // @ mention detection: only trigger when @ appears at start or after whitespace
+    const cursorPos = e.target.selectionStart ?? val.length
+    const textBeforeCursor = val.slice(0, cursorPos)
+    const lastAt = textBeforeCursor.lastIndexOf('@')
+    if (
+      lastAt >= 0 &&
+      (lastAt === 0 || /\s/.test(textBeforeCursor[lastAt - 1])) &&
+      !textBeforeCursor.slice(lastAt).includes(' ')
+    ) {
+      setAtOpen(true)
+      setAtQuery(textBeforeCursor.slice(lastAt + 1))
+      setSlashOpen(false)
+    } else {
+      setAtOpen(false)
+      setAtQuery('')
+    }
   }, [])
 
-  const handleSlashSelect = useCallback(
-    (cmd: SlashCommand) => {
-      setSlashOpen(false)
-      setInput('')
-      onSend(cmd.promptTemplate)
+  const handleSlashSelect = useCallback((skillName: string) => {
+    setSlashOpen(false)
+    setInput(`/${skillName} `)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }, [])
+
+  const handleAtSelect = useCallback(
+    (path: string) => {
+      setAtOpen(false)
+      // Replace the @... portion with @path
+      const el = inputRef.current
+      const cursorPos = el?.selectionStart ?? input.length
+      const textBeforeCursor = input.slice(0, cursorPos)
+      const lastAt = textBeforeCursor.lastIndexOf('@')
+      if (lastAt >= 0) {
+        const before = input.slice(0, lastAt)
+        const after = input.slice(cursorPos)
+        setInput(`${before}@${path} ${after}`)
+      } else {
+        setInput(input + `@${path} `)
+      }
+      setTimeout(() => inputRef.current?.focus(), 0)
     },
-    [onSend],
+    [input],
   )
 
   const handleAddFile = useCallback(async () => {
@@ -245,7 +175,6 @@ export function ConversationInput({
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
-      // Try to read files from clipboard
       clipboard
         .readFiles()
         .then((files) => {
@@ -283,7 +212,18 @@ export function ConversationInput({
         />
       )}
 
-      {/* Unified input container — #9 内凹质感 */}
+      {atOpen && (
+        <AtMentionMenu
+          query={atQuery}
+          onSelect={handleAtSelect}
+          onClose={() => {
+            setAtOpen(false)
+            setAtQuery('')
+          }}
+        />
+      )}
+
+      {/* Unified input container */}
       <div
         style={{
           border: focused
@@ -314,24 +254,14 @@ export function ConversationInput({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
-                  background:
-                    att.status === 'transcribed' ? 'var(--status-success-bg)' : 'var(--queue-bg)',
-                  border:
-                    att.status === 'transcribed'
-                      ? '0.5px solid var(--status-success)'
-                      : '0.5px solid var(--queue-border)',
+                  background: 'var(--queue-bg)',
+                  border: '0.5px solid var(--queue-border)',
                   borderRadius: 6,
                   padding: '3px 8px',
                   fontSize: 'var(--text-xs)',
                   color: 'var(--item-text)',
                 }}
               >
-                {att.status === 'transcribing' && <Spinner size={10} borderWidth={1.5} />}
-                {att.status === 'transcribed' && (
-                  <span style={{ color: 'var(--status-success)', fontSize: 'var(--text-xs)' }}>
-                    ✓
-                  </span>
-                )}
                 <span
                   style={{
                     maxWidth: 120,

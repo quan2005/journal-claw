@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dock → Agent 架构改进方案</title>
+<style>
+  :root {
+    --bg: #1a1a1c; --surface: #232326; --surface-2: #2a2a2e; --border: #333338;
+    --text: #e8e6e3; --text-2: #9a9898; --text-3: #666;
+    --amber: #C8933B; --amber-dim: rgba(200,147,59,0.15);
+    --blue: #5b9bd5; --blue-dim: rgba(91,155,213,0.12);
+    --green: #6bbd7b; --green-dim: rgba(107,189,123,0.12);
+    --red: #e06c75; --red-dim: rgba(224,108,117,0.12);
+    --purple: #b07cc8; --purple-dim: rgba(176,124,200,0.12);
+    --cyan: #56b6c2; --cyan-dim: rgba(86,182,194,0.12);
+    --mono: 'SF Mono', 'Fira Code', monospace;
+    --sans: -apple-system, 'Inter', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); padding: 48px 56px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .subtitle { font-size: 0.8rem; color: var(--text-2); margin-bottom: 48px; }
+  .section-title { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-3); margin-bottom: 16px; margin-top: 56px; }
+  .section-title:first-of-type { margin-top: 0; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  .card h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card h3 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .card p, .card li { font-size: 0.72rem; color: var(--text-2); line-height: 1.7; }
+  .card ul { list-style: none; padding: 0; }
+  .card ul li { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+  .card ul li:last-child { border-bottom: none; }
+  .card ul li::before { content: '·'; color: var(--text-3); flex-shrink: 0; }
+  .card code { font-family: var(--mono); font-size: 0.62rem; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: var(--amber); }
+  .card .label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .label-rec { background: var(--green-dim); color: var(--green); border: 1px solid rgba(107,189,123,0.3); }
+  .label-cur { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,108,117,0.3); }
+  .label-new { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(86,182,194,0.3); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .note { background: var(--surface); border-left: 3px solid var(--amber); padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 0.72rem; color: var(--text-2); line-height: 1.7; margin-bottom: 24px; }
+  .note strong { color: var(--text); font-weight: 600; }
+
+  .code-block { background: #1e1e20; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; font-family: var(--mono); font-size: 0.65rem; line-height: 1.8; color: var(--text-2); overflow-x: auto; margin: 12px 0; white-space: pre; }
+  .code-block .kw { color: var(--purple); }
+  .code-block .fn { color: var(--blue); }
+  .code-block .str { color: var(--green); }
+  .code-block .cm { color: var(--text-3); font-style: italic; }
+  .code-block .ty { color: var(--cyan); }
+  .code-block .var { color: var(--amber); }
+
+  .compare-arrow { display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-3); padding: 8px 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.72rem; margin-bottom: 24px; }
+  th { text-align: left; font-weight: 600; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
+  td:first-child { color: var(--text); font-weight: 500; }
+  td code { font-family: var(--mono); font-size: 0.62rem; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: var(--amber); }
+
+  .highlight { background: var(--surface); border: 1px solid var(--cyan); border-radius: 10px; padding: 18px 22px; margin-bottom: 24px; }
+  .highlight h3 { font-size: 0.82rem; font-weight: 600; color: var(--cyan); margin-bottom: 10px; }
+  .highlight p { font-size: 0.72rem; color: var(--text-2); line-height: 1.7; }
+  .highlight code { font-family: var(--mono); font-size: 0.62rem; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: var(--amber); }
+</style>
+</head>
+<body>
+
+<h1>Dock → Agent 架构改进方案</h1>
+<p class="subtitle">问题一：串行队列持久化 · 问题二：Dock / Dialog 路径统一</p>
+
+<!-- ================================================================== -->
+<!--  问题一：串行队列持久化                                              -->
+<!-- ================================================================== -->
+
+<div class="section-title">问题一 · 串行队列持久化</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3><div class="dot" style="background:var(--red)"></div>当前问题 <span class="label label-cur">现状</span></h3>
+    <ul>
+      <li><code>workQueueRef</code> 是纯 <code>useRef</code>，页面刷新即丢失</li>
+      <li><code>queueItems</code> 是 <code>useState</code>，同样不持久</li>
+      <li>用户投入 5 个文件，第 1 个正在处理时刷新页面 → 后 4 个全部丢失</li>
+      <li>正在处理的会话（Rust 端仍在运行）前端失去追踪</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><div class="dot" style="background:var(--green)"></div>目标 <span class="label label-rec">修复</span></h3>
+    <ul>
+      <li>页面刷新后，待处理的 WorkItem 不丢失</li>
+      <li>正在处理的会话能重新关联</li>
+      <li>已完成/失败的项保留短暂可见</li>
+      <li>不引入额外的 Rust 端复杂度（尽量前端解决）</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">
+  <strong>关键洞察：</strong>Rust 端的 <code>ConversationSession</code> 已经持久化到 <code>.conversations/{id}.json</code>。问题不在于会话丢失，而在于前端的「队列 → 会话」映射关系丢失。修复的核心是持久化这个映射。
+</div>
+
+<!-- 方案对比 -->
+<div class="section-title" style="margin-top:24px;">方案对比</div>
+
+<div class="grid-3">
+  <div class="card">
+    <h3><div class="dot" style="background:var(--text-3)"></div>方案 A · localStorage</h3>
+    <p style="margin-bottom:8px;">将 <code>workQueueRef</code> 和 <code>queueItems</code> 序列化到 localStorage。</p>
+    <ul>
+      <li>改动最小，纯前端</li>
+      <li>刷新后从 localStorage 恢复队列</li>
+      <li>需要处理「恢复后会话已完成」的情况</li>
+      <li style="color:var(--red)">localStorage 有 5MB 限制，但队列数据很小</li>
+      <li style="color:var(--red)">多窗口场景可能冲突</li>
+    </ul>
+  </div>
+  <div class="card" style="border-color:var(--cyan);">
+    <h3><div class="dot" style="background:var(--cyan)"></div>方案 B · Rust 端队列 <span class="label label-rec">推荐</span></h3>
+    <p style="margin-bottom:8px;">将工作队列下沉到 Rust，前端只做 UI 展示。</p>
+    <ul>
+      <li>新增 Rust 命令 <code>enqueue_work</code> / <code>list_work_queue</code></li>
+      <li>Rust 端维护队列 + 串行执行 + 持久化到 workspace</li>
+      <li>前端刷新后通过 <code>list_work_queue</code> 恢复</li>
+      <li>天然支持多窗口（Rust state 是单例）</li>
+      <li style="color:var(--red)">改动较大，需要新增 Rust 模块</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><div class="dot" style="background:var(--text-3)"></div>方案 C · 混合方案</h3>
+    <p style="margin-bottom:8px;">队列逻辑留在前端，但通过 Rust 命令持久化映射关系。</p>
+    <ul>
+      <li>新增 <code>save_work_queue</code> / <code>load_work_queue</code> 命令</li>
+      <li>前端 enqueueWork 时同步写入 Rust</li>
+      <li>刷新后从 Rust 加载恢复</li>
+      <li>串行逻辑仍在前端（processNextWork）</li>
+      <li style="color:var(--red)">两端都有队列概念，容易不一致</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 推荐方案详解 -->
+<div class="highlight">
+  <h3>推荐：方案 B — Rust 端队列</h3>
+  <p>
+    理由：串行队列本质上是「后台任务调度」，这是 Rust 进程的职责而非 webview 的职责。
+    当前 <code>processNextWork</code> 在前端用 <code>await new Promise</code> 阻塞等待 <code>conversation-stream</code> 事件，
+    这意味着前端 JS 线程被占用来做调度 — 如果 webview 刷新，调度就断了。<br><br>
+    将队列下沉到 Rust 后，前端变成纯展示层：调用 <code>enqueue_work</code> 投递任务，监听事件更新 UI，刷新后调用 <code>list_work_queue</code> 恢复状态。
+  </p>
+</div>
+
+<div class="code-block"><span class="cm">// ── 新增 Rust 模块：src-tauri/src/work_queue.rs ──</span>
+
+<span class="kw">pub struct</span> <span class="ty">WorkQueue</span> {
+    <span class="var">items</span>: Vec&lt;<span class="ty">WorkItem</span>&gt;,
+    <span class="var">processing</span>: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,  <span class="cm">// 正在处理的 item id</span>
+}
+
+<span class="kw">pub struct</span> <span class="ty">WorkItem</span> {
+    <span class="var">id</span>: <span class="ty">String</span>,
+    <span class="var">status</span>: <span class="ty">WorkStatus</span>,       <span class="cm">// queued | processing | completed | failed</span>
+    <span class="var">session_id</span>: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;, <span class="cm">// 关联的 conversation session</span>
+    <span class="var">text</span>: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="var">files</span>: <span class="ty">Option</span>&lt;Vec&lt;<span class="ty">String</span>&gt;&gt;,
+    <span class="var">prompt</span>: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="var">display_name</span>: <span class="ty">String</span>,     <span class="cm">// UI 显示名</span>
+    <span class="var">created_at</span>: <span class="ty">u64</span>,
+}
+
+<span class="cm">// Tauri 命令</span>
+<span class="kw">fn</span> <span class="fn">enqueue_work</span>(text, files, prompt, display_name) → <span class="ty">WorkItem</span>
+<span class="kw">fn</span> <span class="fn">list_work_queue</span>() → Vec&lt;<span class="ty">WorkItem</span>&gt;
+<span class="kw">fn</span> <span class="fn">cancel_work_item</span>(id)
+<span class="kw">fn</span> <span class="fn">retry_work_item</span>(id)
+<span class="kw">fn</span> <span class="fn">dismiss_work_item</span>(id)
+
+<span class="cm">// 事件</span>
+<span class="str">"work-queue-updated"</span> → 前端监听，刷新队列 UI</div>
+
+<div class="code-block"><span class="cm">// ── 前端变化：useJournal.ts ──</span>
+
+<span class="cm">// 删除：workQueueRef, processingWorkRef, processNextWork, enqueueWork</span>
+<span class="cm">// 删除：queueItems useState（改为从 Rust 获取）</span>
+
+<span class="cm">// 新增：</span>
+<span class="kw">const</span> [<span class="var">queueItems</span>, <span class="fn">setQueueItems</span>] = <span class="fn">useState</span>&lt;<span class="ty">WorkItem</span>[]&gt;([])
+
+<span class="cm">// 初始化时加载</span>
+<span class="fn">useEffect</span>(() => {
+  <span class="fn">listWorkQueue</span>().<span class="fn">then</span>(<span class="fn">setQueueItems</span>)
+}, [])
+
+<span class="cm">// 监听更新事件</span>
+<span class="fn">listen</span>(<span class="str">'work-queue-updated'</span>, () => {
+  <span class="fn">listWorkQueue</span>().<span class="fn">then</span>(<span class="fn">setQueueItems</span>)
+})
+
+<span class="cm">// App.tsx 中：</span>
+<span class="cm">// handlePasteSubmit: enqueueWork(...) → invoke('enqueue_work', ...)</span>
+<span class="cm">// handleFilesSubmit: enqueueWork(...) → invoke('enqueue_work', ...)</span></div>
+
+<!-- ================================================================== -->
+<!--  问题二：路径统一                                                    -->
+<!-- ================================================================== -->
+
+<div class="section-title">问题二 · Dock / Dialog 路径统一讨论</div>
+
+<div class="card">
+  <h3>当前架构：两条独立路径</h3>
+  <table style="margin:0;">
+    <thead><tr><th></th><th>CommandDock（素材投递）</th><th>ConversationDialog（⌘K）</th></tr></thead>
+    <tbody>
+      <tr><td>状态管理</td><td><code>useJournal.enqueueWork</code> + <code>queueItems</code></td><td><code>useConversation</code> + <code>messages</code></td></tr>
+      <tr><td>会话创建</td><td>在 <code>processNextWork</code> 内部</td><td>在 <code>useConversation.create</code></td></tr>
+      <tr><td>事件监听</td><td>一次性 listener（done/error）</td><td>全局 listener（所有事件）</td></tr>
+      <tr><td>UI 展示</td><td>ProcessingQueue（状态条）</td><td>ConversationDialog（完整对话）</td></tr>
+      <tr><td>用户感知</td><td>后台静默处理</td><td>前台交互对话</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="compare-arrow">↓ 统一方向 ↓</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3><div class="dot" style="background:var(--purple)"></div>选项 X · 最小统一</h3>
+    <p style="margin-bottom:10px;">保持两条路径分离，但共享会话层。</p>
+    <ul>
+      <li>Dock 和 Dialog 都通过 <code>useConversation</code> 创建/管理会话</li>
+      <li>Dock 创建的会话标记为 <code>background: true</code></li>
+      <li>ProcessingQueue 从 <code>useConversation.sessions</code> 过滤 background 会话</li>
+      <li>删除 useJournal 中的队列逻辑，串行调度移到 Rust</li>
+      <li style="color:var(--green)">改动适中，风险低</li>
+      <li style="color:var(--green)">Dock 提交的会话可以无缝在 Dialog 中打开</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><div class="dot" style="background:var(--blue)"></div>选项 Y · 完全统一</h3>
+    <p style="margin-bottom:10px;">Dock 提交后直接打开 ConversationDialog。</p>
+    <ul>
+      <li>Dock 变成纯「素材导入 + 会话创建」入口</li>
+      <li>提交后自动弹出 Dialog 显示处理过程</li>
+      <li>不再有「后台处理」概念，所有会话都是前台</li>
+      <li>ProcessingQueue 退化为「最近会话」列表</li>
+      <li style="color:var(--red)">用户投入 5 个文件会弹出 5 个对话？UX 问题</li>
+      <li style="color:var(--red)">破坏「投入即忘」的轻量体验</li>
+    </ul>
+  </div>
+</div>
+
+<div class="highlight">
+  <h3>推荐：选项 X — 最小统一</h3>
+  <p>
+    完全统一（选项 Y）会破坏 Dock 的核心体验 —「投入素材，忘掉它，稍后看结果」。
+    这是日记工具的关键交互：用户不想每次投入文件都被拉进一个对话。<br><br>
+    最小统一的核心思路：<strong>让 useConversation 成为唯一的会话状态源</strong>，useJournal 不再管理会话生命周期。
+    具体来说：
+  </p>
+</div>
+
+<div class="code-block"><span class="cm">// ── 统一后的数据流 ──</span>
+
+<span class="cm">// 1. Dock 提交</span>
+CommandDock → App.<span class="fn">handlePasteSubmit</span>()
+  → <span class="fn">invoke</span>(<span class="str">'enqueue_work'</span>, { text, files, prompt })  <span class="cm">// Rust 队列</span>
+  → Rust 串行处理，自动 <span class="fn">conversation_create</span> + <span class="fn">conversation_send</span>
+  → emit <span class="str">'work-queue-updated'</span>                        <span class="cm">// 前端更新队列 UI</span>
+  → emit <span class="str">'conversation-stream'</span>                       <span class="cm">// useConversation 自动捕获</span>
+
+<span class="cm">// 2. Dialog 对话</span>
+ConversationInput → <span class="fn">useConversation.send</span>()
+  → <span class="fn">invoke</span>(<span class="str">'conversation_send'</span>, { sessionId, message })
+  → emit <span class="str">'conversation-stream'</span>                       <span class="cm">// useConversation 处理</span>
+
+<span class="cm">// 3. 从队列跳转到对话（已经可行，无需改动）</span>
+ProcessingQueue click → <span class="fn">setConversationState</span>({ initialSessionId: item.sessionId })
+  → ConversationDialog.<span class="fn">load</span>(sessionId)
+  → useConversation.<span class="var">cacheRef</span> 已有该会话的 streaming 数据 ✓</div>
+
+<!-- 改动清单 -->
+<div class="section-title" style="margin-top:24px;">合并改动清单（问题一 + 问题二）</div>
+
+<table>
+  <thead><tr><th>层</th><th>文件</th><th>改动</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Rust</td>
+      <td><code>work_queue.rs</code> (新)</td>
+      <td>WorkQueue struct + 串行调度 + 持久化到 <code>.work_queue.json</code></td>
+    </tr>
+    <tr>
+      <td>Rust</td>
+      <td><code>main.rs</code></td>
+      <td>注册 <code>enqueue_work</code> / <code>list_work_queue</code> / <code>cancel_work_item</code> / <code>retry_work_item</code> / <code>dismiss_work_item</code></td>
+    </tr>
+    <tr>
+      <td>IPC</td>
+      <td><code>src/lib/tauri.ts</code></td>
+      <td>新增 5 个 invoke 封装</td>
+    </tr>
+    <tr>
+      <td>前端</td>
+      <td><code>useJournal.ts</code></td>
+      <td>删除 <code>workQueueRef</code> / <code>processNextWork</code> / <code>enqueueWork</code>；<code>queueItems</code> 改为从 Rust 获取 + 事件驱动更新</td>
+    </tr>
+    <tr>
+      <td>前端</td>
+      <td><code>App.tsx</code></td>
+      <td><code>handlePasteSubmit</code> / <code>handleFilesSubmit</code> 改为调用 <code>invoke('enqueue_work')</code></td>
+    </tr>
+    <tr>
+      <td>前端</td>
+      <td><code>ProcessingQueue.tsx</code></td>
+      <td>数据源从 <code>queueItems</code> 改为 Rust WorkItem[]，操作改为 invoke</td>
+    </tr>
+    <tr>
+      <td>类型</td>
+      <td><code>types.ts</code></td>
+      <td><code>QueueItem</code> 对齐 Rust <code>WorkItem</code> 结构</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <strong>不需要改动部分：</strong><code>useConversation.ts</code>、<code>ConversationDialog.tsx</code>、<code>ConversationInput.tsx</code>、<code>conversation.rs</code>、<code>llm/</code> — 这些已经是正确的架构，不需要动。Rust 端的 <code>work_queue.rs</code> 内部调用现有的 <code>conversation_create</code> + <code>conversation_send</code>，复用全部 LLM 基础设施。
+</div>
+
+<div style="margin-top:56px;padding-top:20px;border-top:1px solid var(--border);font-size:0.6rem;color:var(--text-3);">
+  谨迹 JournalClaw · Dock → Agent 架构改进方案 · 2026-04-16
+</div>
+
+</body>
+</html>

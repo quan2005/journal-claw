@@ -278,7 +278,13 @@ function TodoRow({
   onDelete: (lineIndex: number, doneFile: boolean) => void
   onContextMenu: (e: React.MouseEvent) => void
   onNavigateToSource?: (filename: string) => void
-  onOpenConversation?: (opts: { mode: 'chat'; context: string }) => void
+  onOpenConversation?: (opts: {
+    mode: 'chat'
+    context: string
+    sessionId: string | null
+    lineIndex: number
+    doneFile: boolean
+  }) => void
 }) {
   const { t } = useTranslation()
   const [editingDue, setEditingDue] = useState(false)
@@ -548,7 +554,15 @@ function TodoRow({
       {!item.done && (
         <span
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onOpenConversation?.({ mode: 'chat', context: item.text })}
+          onClick={() =>
+            onOpenConversation?.({
+              mode: 'chat',
+              context: item.text,
+              sessionId: item.session_id,
+              lineIndex: item.line_index,
+              doneFile: item.done_file,
+            })
+          }
           onMouseEnter={(e) => {
             ;(e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute(
               'stroke',
@@ -644,7 +658,13 @@ interface TodoSidebarProps {
   onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
   onSetPath: (lineIndex: number, path: string | null, doneFile: boolean) => void
   onRemovePath: (lineIndex: number, doneFile: boolean) => void
-  onOpenConversation?: (opts: { mode: 'chat'; context: string }) => void
+  onOpenConversation?: (opts: {
+    mode: 'chat'
+    context: string
+    sessionId: string | null
+    lineIndex: number
+    doneFile: boolean
+  }) => void
   onNavigateToSource?: (filename: string) => void
 }
 
@@ -673,6 +693,7 @@ export function TodoSidebar({
     text: string
     due: string | null
     path: string | null
+    sessionId: string | null
     doneFile: boolean
   } | null>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
@@ -884,6 +905,7 @@ export function TodoSidebar({
                       text: item.text,
                       due: item.due,
                       path: item.path,
+                      sessionId: item.session_id,
                       doneFile: item.done_file,
                     })
                   }}
@@ -1057,6 +1079,7 @@ export function TodoSidebar({
                       text: item.text,
                       due: item.due,
                       path: item.path,
+                      sessionId: item.session_id,
                       doneFile: item.done_file,
                     })
                   }}
@@ -1089,7 +1112,13 @@ export function TodoSidebar({
               onMouseEnter={hi}
               onMouseLeave={ho}
               onClick={() => {
-                onOpenConversation?.({ mode: 'chat', context: contextMenu.text })
+                onOpenConversation?.({
+                  mode: 'chat',
+                  context: contextMenu.text,
+                  sessionId: contextMenu.sessionId,
+                  lineIndex: contextMenu.lineIndex,
+                  doneFile: contextMenu.doneFile,
+                })
                 setContextMenu(null)
               }}
             >

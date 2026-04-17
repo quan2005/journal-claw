@@ -501,11 +501,11 @@ fn is_cjk(c: char) -> bool {
 }
 
 fn ends_with_cjk(s: &str) -> bool {
-    s.chars().last().map_or(false, is_cjk)
+    s.chars().last().is_some_and(is_cjk)
 }
 
 fn starts_with_cjk(s: &str) -> bool {
-    s.chars().next().map_or(false, is_cjk)
+    s.chars().next().is_some_and(is_cjk)
 }
 
 fn format_ai_body(transcript: &Transcript) -> String {
@@ -624,9 +624,8 @@ async fn transcribe_with_dashscope(
         .to_string_lossy()
         .to_string();
 
-    let cfg = config::load_config(app).map_err(|e| {
-        save_transcript(app, file_path, "failed", &e);
-        e
+    let cfg = config::load_config(app).inspect_err(|e| {
+        save_transcript(app, file_path, "failed", e);
     })?;
 
     if cfg.dashscope_api_key.is_empty() {
@@ -941,9 +940,8 @@ pub async fn transcribe_with_apple_stt(
         .to_string_lossy()
         .to_string();
 
-    let cli_path = find_journal_speech_path(&app).map_err(|e| {
-        save_transcript(&app, &file_path, "failed", &e);
-        e
+    let cli_path = find_journal_speech_path(&app).inspect_err(|e| {
+        save_transcript(&app, &file_path, "failed", e);
     })?;
 
     // 推送 "transcribing" 状态

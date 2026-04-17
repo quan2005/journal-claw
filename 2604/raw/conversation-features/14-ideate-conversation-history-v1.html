@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideate — 会话持久化 · 分栏布局</title>
+  <style>
+:root {
+  --bg: #FAFAFA; --bg-canvas: #F4F4F5; --surface: #FFFFFF;
+  --border: #E5E5E5; --border-hover: #D4D4D4;
+  --text-main: #111111; --text-muted: #666666; --text-tertiary: #999999;
+  --accent: #000000; --accent-surface: #F5F5F5; --accent-text: #FFFFFF;
+  --success: #00A650; --danger: #E03E3E; --red: #ff3b30;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+  --ease-spring: cubic-bezier(0.175,0.885,0.32,1.1);
+  --ease-out: cubic-bezier(0.16,1,0.3,1);
+  --duration: 300ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A0A0A; --bg-canvas: #000000; --surface: #141414;
+    --border: #2A2A2A; --border-hover: #3A3A3A;
+    --text-main: #EEEEEE; --text-muted: #888888; --text-tertiary: #555555;
+    --accent: #FFFFFF; --accent-surface: #1E1E1E; --accent-text: #000000;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background: var(--bg); background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px; color: var(--text-main); line-height: 1.6;
+  min-height: 100vh; padding: 3rem 2rem; display: flex; justify-content: center;
+}
+.container { width: 100%; max-width: 980px; display: flex; flex-direction: column; gap: 2.5rem; }
+.header { text-align: center; margin-bottom: 0.5rem; }
+.header h2 { font-size: 2rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.5rem; }
+.header p { font-size: 1rem; color: var(--text-muted); max-width: 560px; margin: 0 auto; }
+
+/* ── Dialog mockup ── */
+.dialog-frame {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl);
+  overflow: hidden; box-shadow: var(--shadow-md); display: flex; flex-direction: column;
+  height: 520px;
+}
+.dialog-bar {
+  height: 44px; border-bottom: 1px solid var(--border); display: flex; align-items: center;
+  padding: 0 1rem; gap: 0.5rem; background: var(--bg-canvas); flex-shrink: 0;
+}
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot.r { background: #FF5F56; } .dot.y { background: #FFBD2E; } .dot.g { background: #27C93F; }
+.dialog-title { flex: 1; text-align: center; font-size: 0.8125rem; font-weight: 500; color: var(--text-muted); }
+
+.dialog-body { display: flex; flex: 1; min-height: 0; }
+
+/* ── Left panel: session list ── */
+.session-list {
+  width: 200px; border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  background: var(--bg-canvas); flex-shrink: 0; overflow-y: auto;
+}
+.session-section-label {
+  font-size: 0.625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-tertiary); padding: 0.75rem 0.75rem 0.375rem; flex-shrink: 0;
+}
+.session-item {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem;
+  cursor: pointer; transition: background 150ms ease; border-radius: 0; position: relative;
+  margin: 0 0.375rem; border-radius: 6px;
+}
+.session-item:hover { background: var(--border); }
+.session-item.active { background: var(--accent-surface); }
+.session-item.active::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 16px; background: var(--accent); border-radius: 1px;
+}
+.session-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.session-dot.streaming { background: var(--success); animation: pulse-dot 1.5s ease-in-out infinite; }
+.session-dot.done { background: var(--text-tertiary); opacity: 0.4; }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.session-info { flex: 1; min-width: 0; }
+.session-name { font-size: 0.75rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.session-meta { font-size: 0.625rem; color: var(--text-tertiary); margin-top: 1px; }
+.session-divider { border: none; border-top: 1px solid var(--border); margin: 0.25rem 0.75rem; }
+.session-new {
+  margin: 0.375rem; padding: 0.4rem 0.5rem; border-radius: 6px; border: 1px dashed var(--border);
+  font-size: 0.6875rem; color: var(--text-tertiary); text-align: center; cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.session-new:hover { border-color: var(--text-muted); color: var(--text-muted); }
+
+/* ── Right panel: conversation ── */
+.conv-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.conv-header {
+  padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); display: flex;
+  align-items: center; gap: 0.5rem; flex-shrink: 0;
+}
+.conv-header-title { font-size: 0.8125rem; font-weight: 500; flex: 1; }
+.conv-header-badge {
+  font-size: 0.625rem; padding: 0.125rem 0.4rem; border-radius: 100px;
+  border: 1px solid; display: inline-flex; align-items: center; gap: 0.25rem;
+}
+.conv-header-badge.streaming { border-color: var(--success); color: var(--success); }
+.conv-header-badge.done { border-color: var(--border); color: var(--text-tertiary); }
+
+.conv-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.msg { max-width: 85%; }
+.msg.user { align-self: flex-end; }
+.msg.ai { align-self: flex-start; }
+.msg-bubble-user {
+  background: var(--accent); color: var(--accent-text); padding: 0.4rem 0.7rem;
+  border-radius: 10px 10px 2px 10px; font-size: 0.8125rem; line-height: 1.5;
+}
+.msg-bubble-ai {
+  padding: 0.4rem 0; font-size: 0.8125rem; line-height: 1.6; color: var(--text-main);
+}
+.msg-bubble-ai .md-h { font-weight: 600; font-size: 0.875rem; }
+.msg-bubble-ai .md-li { color: var(--text-muted); padding-left: 0.5rem; }
+.msg-bubble-ai .md-b { font-weight: 600; }
+.msg-tool {
+  display: inline-flex; align-items: center; gap: 0.25rem; background: var(--bg-canvas);
+  border: 1px solid var(--border); border-radius: 5px; padding: 0.15rem 0.4rem;
+  font-size: 0.625rem; color: var(--text-tertiary); margin: 0.25rem 0;
+}
+.msg-streaming-cursor { display: inline-block; width: 2px; height: 0.875rem; background: var(--accent); animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+.conv-input {
+  padding: 0.5rem 1rem 0.75rem; border-top: 1px solid var(--border); display: flex;
+  gap: 0.5rem; align-items: flex-end; flex-shrink: 0;
+}
+.conv-input-box {
+  flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.625rem;
+  font-size: 0.8125rem; color: var(--text-main); background: var(--bg); min-height: 32px;
+  display: flex; align-items: center;
+}
+.conv-input-ph { color: var(--text-tertiary); }
+.conv-send {
+  background: var(--accent); color: var(--accent-text); border: none; border-radius: 6px;
+  padding: 0.35rem 0.625rem; font-size: 0.6875rem; font-weight: 500; cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Annotation callouts ── */
+.callout-group { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 0.5rem; }
+.callout {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out);
+}
+.callout:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.callout-num {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-text);
+  font-size: 0.6875rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.callout-body { flex: 1; }
+.callout-body h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+.callout-body p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; }
+.callout-body code { font-family: "SF Mono", monospace; font-size: 0.75rem; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: 3px; padding: 0.05rem 0.3rem; }
+
+.note { font-size: 0.8125rem; color: var(--text-tertiary); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h2>会话持久化 · 分栏布局</h2>
+    <p>左栏按状态分组（输出中 / 已完成），右栏显示对话内容。<br>对话框从「一次性弹窗」进化为「会话管理器」。</p>
+  </div>
+
+  <!-- ═══ High-fidelity mockup ═══ -->
+  <div class="dialog-frame">
+    <div class="dialog-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="dialog-title">对话</span>
+      <span style="font-size: 0.6875rem; color: var(--text-tertiary);">⌘K</span>
+    </div>
+
+    <div class="dialog-body">
+      <!-- Left: session list -->
+      <div class="session-list">
+        <div class="session-new">+ 新建会话 ⌘N</div>
+
+        <div class="session-section-label">输出中</div>
+        <div class="session-item active">
+          <span class="session-dot streaming"></span>
+          <div class="session-info">
+            <div class="session-name">Q3 规划会议分析</div>
+            <div class="session-meta">刚刚 · 14-AI平台会议</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <span class="session-dot streaming"></span>
+          <div class="session-info">
+            <div class="session-name">支出异常排查</div>
+            <div class="session-meta">2 分钟前 · agent</div>
+          </div>
+        </div>
+
+        <hr class="session-divider">
+        <div class="session-section-label">已完成</div>
+        <div class="session-item">
+          <span class="session-dot done"></span>
+          <div class="session-info">
+            <div class="session-name">产品需求梳理</div>
+            <div class="session-meta">今天 10:30</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <span class="session-dot done"></span>
+          <div class="session-info">
+            <div class="session-name">竞品调研总结</div>
+            <div class="session-meta">昨天 16:45</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <span class="session-dot done"></span>
+          <div class="session-info">
+            <div class="session-name">周报草稿生成</div>
+            <div class="session-meta">4/12 09:20</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <span class="session-dot done"></span>
+          <div class="session-info">
+            <div class="session-name">客户反馈分类</div>
+            <div class="session-meta">4/11 14:10</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: conversation -->
+      <div class="conv-panel">
+        <div class="conv-header">
+          <span class="conv-header-title">Q3 规划会议分析</span>
+          <span class="conv-header-badge streaming">● 输出中</span>
+        </div>
+
+        <div class="conv-messages">
+          <div class="msg user">
+            <div class="msg-bubble-user">帮我分析这次会议的关键决策和待办</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="msg-tool">▸ bash: cat 2604/14-AI平台产品会议.md</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="msg-bubble-ai">
+              <span class="md-h">关键决策</span><br>
+              <span class="md-li">• 技术选型确认采用 <span class="md-b">gRPC</span> 方案</span><br>
+              <span class="md-li">• Q3 核心指标：DAU 提升 <span class="md-b">15%</span></span><br>
+              <span class="md-li">• 设计稿止日期 <span class="md-b">4/18</span></span><br>
+              <br>
+              <span class="md-h">待办事项</span><br>
+              <span class="md-li">☐ 周五前完成技术方案文档</span><br>
+              <span class="md-li">☐ 联系设计团队确认排期</span><br>
+              <span class="md-li">☐ 预算审批流程启动<span class="msg-streaming-cursor"></span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="conv-input">
+          <div class="conv-input-box"><span class="conv-input-ph">继续提问…</span></div>
+          <button class="conv-send">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Design decisions ═══ -->
+  <div class="callout-group">
+    <div class="callout">
+      <span class="callout-num">A</span>
+      <div class="callout-body">
+        <h4>左栏两段式分组</h4>
+        <p>「输出中」在上，绿色脉冲圆点表示活跃；「已完成」在下，灰色圆点。分隔线而非 tab 切换 — 因为两组需要同时可见，用户可能想在等待一个输出的同时查看另一个已完成的会话。</p>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="callout-num">B</span>
+      <div class="callout-body">
+        <h4>会话与日志的关联</h4>
+        <p>每个会话的 meta 行显示关联的日志条目（如「14-AI平台会议」）。存储为 <code>.conversations/{session_id}.json</code>，包含 <code>linked_entry</code> 字段。打开日志时自动筛选出关联会话。</p>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="callout-num">C</span>
+      <div class="callout-body">
+        <h4>多会话并行</h4>
+        <p>当前架构 <code>ConversationStore</code> 已经是 HashMap，天然支持多会话。左栏的「输出中」区域可以同时有多个 streaming 会话 — 用户点击切换查看，不中断其他会话的输出。</p>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="callout-num">D</span>
+      <div class="callout-body">
+        <h4>对话框尺寸适配</h4>
+        <p>加入左栏后，对话框宽度从 560px 扩展到约 720px。左栏固定 200px，右栏自适应。窗口较窄时左栏可折叠为图标列，点击展开。</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">这是分栏布局的高保真探索 · 下一步可以讨论存储格式和生命周期管理</p>
+
+</div>
+</body>
+</html>

@@ -26,9 +26,20 @@ function lines(strokeWidth) {
 
 function dot(show) {
   if (!show) return '';
+  // macOS-style mic icon: capsule body + arc cradle + stand
+  const cx = 232, cy = 228;
+  const s = 2.0; // scale factor
   return `
-    <circle cx="220" cy="225" r="18" fill="${DOT_COLOR}" opacity="0.15"/>
-    <circle cx="220" cy="225" r="9" fill="${DOT_COLOR}"/>`;
+    <g transform="translate(${cx}, ${cy}) scale(${s})">
+      <!-- mic capsule body (rounded rect as path) -->
+      <rect x="-6" y="-16" width="12" height="22" rx="6" fill="${DOT_COLOR}"/>
+      <!-- arc cradle -->
+      <path d="M-10,2 A10,10 0 0,0 10,2" fill="none" stroke="${DOT_COLOR}" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- stand -->
+      <line x1="0" y1="12" x2="0" y2="18" stroke="${DOT_COLOR}" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- base -->
+      <line x1="-5" y1="18" x2="5" y2="18" stroke="${DOT_COLOR}" stroke-width="2.2" stroke-linecap="round"/>
+    </g>`;
 }
 
 function makeSvg(size, strokeWidth, showDot) {

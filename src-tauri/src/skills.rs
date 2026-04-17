@@ -17,8 +17,7 @@ fn parse_skill_frontmatter(content: &str) -> Option<(String, String)> {
 
     // Try standard YAML frontmatter first: ---\n...\n---
     let trimmed = content.trim();
-    if trimmed.starts_with("---") {
-        let rest = &trimmed[3..];
+    if let Some(rest) = trimmed.strip_prefix("---") {
         if let Some(end) = rest.find("---") {
             let yaml_block = &rest[..end];
             for line in yaml_block.lines() {
@@ -185,4 +184,74 @@ mod tests {
         let content = "---\ndescription: test\n---\n";
         assert!(parse_skill_frontmatter(content).is_none());
     }
+}
+
+// ── Workspace directory browsing ─────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkspaceDirEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub path: String,
+}
+
+#[tauri::command]
+pub fn list_workspace_dir(
+    app: tauri::AppHandle,
+    relative_path: String,
+) -> Result<Vec<WorkspaceDirEntry>, String> {
+    let config = crate::config::load_config(&app)?;
+    if config.workspace_path.is_empty() {
+        return Err("workspace_path not set".to_string());
+    }
+
+    let workspace = std::path::PathBuf::from(&config.workspace_path);
+    let target = if relative_path.is_empty() {
+        workspace.clone()
+    } else {
+        workspace.join(&relative_path)
+    };
+
+    // Security: ensure target is within workspace
+    let canonical_workspace = workspace.canonicalize().map_err(|e| e.to_string())?;
+    let canonical_target = target
+        .canonicalize()
+        .map_err(|e| format!("路径不存在: {}", e))?;
+    if !canonical_target.starts_with(&canonical_workspace) {
+        return Err("路径超出 workspace 范围".to_string());
+    }
+
+    let mut entries: Vec<WorkspaceDirEntry> = Vec::new();
+    let read_dir = fs::read_dir(&canonical_target).map_err(|e| e.to_string())?;
+
+    for entry in read_dir.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        // Skip hidden files and .claude/ .conversations/ directories
+        if name.starts_with('.') {
+            continue;
+        }
+
+        let is_dir = entry.path().is_dir();
+        let rel_path = if relative_path.is_empty() {
+            name.clone()
+        } else {
+            format!("{}/{}", relative_path, name)
+        };
+
+        entries.push(WorkspaceDirEntry {
+            name,
+            is_dir,
+            path: rel_path,
+        });
+    }
+
+    // Sort: directories first, then files, alphabetically within each group
+    entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.cmp(&b.name),
+    });
+
+    Ok(entries)
 }

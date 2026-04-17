@@ -415,12 +415,9 @@ async fn run_websocket(
                 break;
             }
             // Drain rapid follow-ups within 3s window
-            loop {
-                match tokio::time::timeout(Duration::from_secs(3), debounce_rx.recv()).await {
-                    Ok(Some(())) => continue,
-                    _ => break,
-                }
-            }
+            while let Ok(Some(())) =
+                tokio::time::timeout(Duration::from_secs(3), debounce_rx.recv()).await
+            {}
             if !is_running(&debounce_state) {
                 if let Some((batch, ctx)) = flush_pending(&debounce_state) {
                     submit_batch(&debounce_app, batch, ctx).await;
@@ -466,7 +463,7 @@ async fn run_websocket(
                                                 let text = if let Some(at_pos) = text.find('@') {
                                                     let before = text[..at_pos].trim();
                                                     let after = &text[at_pos + 1..];
-                                                    let rest = after.splitn(2, ' ').nth(1).unwrap_or("").trim();
+                                                    let rest = after.split_once(' ').map(|x| x.1).unwrap_or("").trim();
                                                     if rest.is_empty() { before.to_string() }
                                                     else if before.is_empty() { rest.to_string() }
                                                     else { format!("{} {}", before, rest) }

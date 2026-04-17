@@ -3,16 +3,14 @@ import { listen } from '@tauri-apps/api/event'
 import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
 import { Spinner } from './Spinner'
-import { AiLogModal } from './AiLogModal'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface ProcessingQueueProps {
   items: QueueItem[]
-  onDismiss: (path: string) => void
+  onDismiss: (id: string) => void
   onCancel: (item: QueueItem) => void
   onRetry: (item: QueueItem) => void
-  activeLogPath: string | null
-  onSetActiveLogPath: (path: string | null) => void
+  onOpenConversation?: (item: QueueItem) => void
 }
 
 function KindIcon({ kind }: { kind: string }) {
@@ -337,172 +335,158 @@ export function ProcessingQueue({
   onDismiss,
   onCancel,
   onRetry,
-  activeLogPath,
-  onSetActiveLogPath,
+  onOpenConversation,
 }: ProcessingQueueProps) {
   const { t } = useTranslation()
-  const [confirmingPath, setConfirmingPath] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (confirmingPath && !items.some((i) => i.path === confirmingPath)) {
-      setConfirmingPath(null)
+    if (confirmingId && !items.some((i) => i.id === confirmingId)) {
+      setConfirmingId(null)
     }
-  }, [items, confirmingPath])
+  }, [items, confirmingId])
 
   if (items.length === 0) return null
 
-  const activeItem = activeLogPath ? items.find((i) => i.path === activeLogPath) : null
-
   return (
-    <>
-      <div
-        style={{
-          background: 'var(--queue-bg)',
-          borderTop: '1px solid var(--queue-border)',
-          borderRadius: '8px 8px 0 0',
-          maxHeight: 160,
-          overflowY: 'auto',
-          boxShadow: '0 -2px 12px var(--queue-shadow)',
-        }}
-      >
-        {items.map((item, idx) => {
-          const isLast = idx === items.length - 1
+    <div
+      style={{
+        background: 'var(--queue-bg)',
+        borderTop: '0.5px solid var(--queue-border)',
+        borderRadius: '8px 8px 0 0',
+        maxHeight: 160,
+        overflowY: 'auto',
+        boxShadow: '0 -2px 12px var(--queue-shadow)',
+      }}
+    >
+      {items.map((item, idx) => {
+        const isLast = idx === items.length - 1
 
-          // ── Recording row ──────────────────────────────────
-          if (item.status === 'recording') {
-            return <RecordingRow key={item.path} item={item} isLast={isLast} />
-          }
+        // ── Recording row ──────────────────────────────────
+        if (item.status === 'recording') {
+          return <RecordingRow key={item.id} item={item} isLast={isLast} />
+        }
 
-          // ── Normal queue row ───────────────────────────────
-          const kind = fileKindFromName(item.filename)
-          const animStyle: React.CSSProperties =
-            item.status === 'completed'
-              ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
-              : { animation: 'queue-enter 0.2s ease-out' }
-          const isClickable = item.status === 'processing' || item.status === 'failed'
-          const isCancellable = item.status === 'queued' || item.status === 'processing'
-          const isConfirming = confirmingPath === item.path
+        // ── Normal queue row ───────────────────────────────
+        const kind = fileKindFromName(item.filename)
+        const animStyle: React.CSSProperties =
+          item.status === 'completed'
+            ? { animation: 'queue-fade-out 0.3s ease-out forwards' }
+            : { animation: 'queue-enter 0.2s ease-out' }
+        const isClickable = item.status === 'processing' || item.status === 'failed'
+        const isCancellable = item.status === 'queued' || item.status === 'processing'
+        const isConfirming = confirmingId === item.id
 
-          return (
-            <div
-              key={item.path}
-              onClick={
-                isClickable && !isConfirming ? () => onSetActiveLogPath(item.path) : undefined
-              }
+        return (
+          <div
+            key={item.id}
+            onClick={
+              isClickable && !isConfirming && onOpenConversation
+                ? () => onOpenConversation(item)
+                : undefined
+            }
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              height: 32,
+              padding: '0 20px',
+              borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
+              cursor: isClickable && !isConfirming ? 'pointer' : 'default',
+              ...animStyle,
+            }}
+          >
+            <KindIcon kind={kind} />
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                height: 32,
-                padding: '0 20px',
-                borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
-                cursor: isClickable && !isConfirming ? 'pointer' : 'default',
-                ...animStyle,
+                flex: 1,
+                fontSize: 'var(--text-xs)',
+                color: item.status === 'failed' ? 'var(--status-danger)' : 'var(--item-meta)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
               }}
             >
-              <KindIcon kind={kind} />
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: 'var(--text-xs)',
-                  color: item.status === 'failed' ? 'var(--status-danger)' : 'var(--item-meta)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  minWidth: 0,
-                }}
-              >
-                {item.filename}
+              {item.filename}
+            </span>
+
+            {isConfirming ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <span
+                  style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.7 }}
+                >
+                  {t('confirmCancel')}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setConfirmingId(null)
+                    onCancel(item)
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0 3px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--status-danger)',
+                  }}
+                >
+                  {t('confirm')}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setConfirmingId(null)
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0 3px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-meta)',
+                    opacity: 0.6,
+                  }}
+                >
+                  {t('back')}
+                </button>
               </span>
-
-              {isConfirming ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span
-                    style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.7 }}
-                  >
-                    {t('confirmCancel')}
-                  </span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <StatusIndicator
+                  item={item}
+                  onDismiss={() => onDismiss(item.id)}
+                  onRetry={() => onRetry(item)}
+                />
+                {isCancellable && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setConfirmingPath(null)
-                      onCancel(item)
+                      setConfirmingId(item.id)
                     }}
                     style={{
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      padding: '0 3px',
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--status-danger)',
-                    }}
-                  >
-                    {t('confirm')}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setConfirmingPath(null)
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0 3px',
-                      fontSize: 'var(--text-xs)',
+                      padding: '0 2px',
                       color: 'var(--item-meta)',
-                      opacity: 0.6,
+                      fontSize: 'var(--text-sm)',
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      opacity: 0.4,
                     }}
+                    title={t('cancelTooltip')}
                   >
-                    {t('back')}
+                    ×
                   </button>
-                </span>
-              ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  <StatusIndicator
-                    item={item}
-                    onDismiss={() => onDismiss(item.path)}
-                    onRetry={() => onRetry(item)}
-                  />
-                  {isCancellable && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setConfirmingPath(item.path)
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0 2px',
-                        color: 'var(--item-meta)',
-                        fontSize: 'var(--text-sm)',
-                        lineHeight: 1,
-                        flexShrink: 0,
-                        opacity: 0.4,
-                      }}
-                      title={t('cancelTooltip')}
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {activeItem && activeItem.status !== 'recording' && (
-        <AiLogModal
-          item={activeItem}
-          onClose={() => onSetActiveLogPath(null)}
-          onCancel={() => {
-            onCancel(activeItem)
-            onSetActiveLogPath(null)
-          }}
-        />
-      )}
-    </>
+                )}
+              </span>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }

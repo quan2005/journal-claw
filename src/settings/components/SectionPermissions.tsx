@@ -245,7 +245,7 @@ export default function SectionPermissions() {
     perms !== null &&
     (perms.microphone === 'granted' || perms.microphone === 'unknown') &&
     (perms.speech_recognition === 'granted' || perms.speech_recognition === 'unknown') &&
-    perms.claude_cli_path !== null
+    true
 
   // Determine action label per permission based on status
   const permAction = useCallback(
@@ -435,49 +435,6 @@ export default function SectionPermissions() {
             status={perms.speech_recognition}
             actionLabel={permAction(perms.speech_recognition, 'speech_recognition')?.label}
             onAction={permAction(perms.speech_recognition, 'speech_recognition')?.action}
-            t={t}
-          />
-
-          {/* Claude CLI */}
-          <PermRow
-            icon={
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="4 17 10 11 4 5" />
-                <line x1="12" y1="19" x2="20" y2="19" />
-              </svg>
-            }
-            title="Claude CLI"
-            description={t('permClaudeDesc')}
-            status={perms.claude_cli_path ? 'granted' : 'not_determined'}
-            extra={
-              perms.claude_cli_path ? (
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: 'var(--duration-text)',
-                    fontFamily: 'ui-monospace, monospace',
-                  }}
-                >
-                  {perms.claude_cli_path}
-                </span>
-              ) : (
-                <span style={{ fontSize: 10, color: 'var(--duration-text)' }}>
-                  {t('installClaude')}
-                  <code style={{ fontFamily: 'ui-monospace, monospace' }}>
-                    npm install -g @anthropic-ai/claude-code
-                  </code>
-                </span>
-              )
-            }
             t={t}
           />
         </div>

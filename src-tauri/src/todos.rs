@@ -1,6 +1,9 @@
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
+/// Writer closure used when updating a todo file: `(path, content) -> Result`.
+type FileWriter = Box<dyn Fn(&str, &str) -> Result<(), String>>;
+
 #[derive(Debug, Clone, Serialize)]
 pub struct TodoItem {
     pub text: String,
@@ -9,6 +12,7 @@ pub struct TodoItem {
     pub done_date: Option<String>,
     pub source: Option<String>,
     pub path: Option<String>,
+    pub session_id: Option<String>,
     pub line_index: usize,
     pub done_file: bool,
 }
@@ -18,10 +22,13 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     let trimmed = line.trim_start();
 
     // Match "- [ ] text" or "- [x] text" or "- [X] text"
-    let (done, rest) = if trimmed.starts_with("- [ ] ") {
-        (false, &trimmed[6..])
-    } else if trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ") {
-        (true, &trimmed[6..])
+    let (done, rest) = if let Some(rest) = trimmed.strip_prefix("- [ ] ") {
+        (false, rest)
+    } else if let Some(rest) = trimmed
+        .strip_prefix("- [x] ")
+        .or_else(|| trimmed.strip_prefix("- [X] "))
+    {
+        (true, rest)
     } else {
         return None;
     };
@@ -32,6 +39,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     let mut done_date: Option<String> = None;
     let mut source: Option<String> = None;
     let mut path: Option<String> = None;
+    let mut session_id: Option<String> = None;
 
     while let Some(start) = text.find("<!--") {
         if let Some(end) = text[start..].find("-->") {
@@ -44,6 +52,8 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
                 source = Some(val.trim().to_string());
             } else if let Some(val) = comment.strip_prefix("path:") {
                 path = Some(val.trim().to_string());
+            } else if let Some(val) = comment.strip_prefix("sid:") {
+                session_id = Some(val.trim().to_string());
             }
             text = format!("{}{}", &text[..start], &text[start + end + 3..]);
         } else {
@@ -58,6 +68,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
         done_date,
         source,
         path,
+        session_id,
         line_index,
         done_file: false,
     })
@@ -248,7 +259,7 @@ pub fn delete_todo_in_workspace(
     line_index: usize,
     done_file: bool,
 ) -> Result<(), String> {
-    let (content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
+    let (content, writer): (String, FileWriter) = if done_file {
         (read_done_file(workspace), Box::new(write_done_file))
     } else {
         (read_todos_file(workspace), Box::new(write_todos_file))
@@ -309,8 +320,7 @@ pub fn add_todo(
     let items = list_todos_from_workspace(&cfg.workspace_path);
     items
         .into_iter()
-        .filter(|t| !t.done && t.text == text)
-        .last()
+        .rfind(|t| !t.done && t.text == text)
         .ok_or_else(|| "添加后未找到该待办".to_string())
 }
 
@@ -341,7 +351,7 @@ pub fn set_todo_due_in_workspace(
     due: Option<&str>,
     done_file: bool,
 ) -> Result<(), String> {
-    let (content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
+    let (content, writer): (String, FileWriter) = if done_file {
         (read_done_file(workspace), Box::new(write_done_file))
     } else {
         (read_todos_file(workspace), Box::new(write_todos_file))
@@ -378,7 +388,7 @@ pub fn update_todo_text_in_workspace(
     new_text: &str,
     done_file: bool,
 ) -> Result<(), String> {
-    let (content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) = if done_file {
+    let (content, writer): (String, FileWriter) = if done_file {
         (read_done_file(workspace), Box::new(write_done_file))
     } else {
         (read_todos_file(workspace), Box::new(write_todos_file))
@@ -430,12 +440,11 @@ pub fn set_todo_path_in_workspace(
     path: Option<&str>,
     done_file: bool,
 ) -> Result<(), String> {
-    let (file_content, writer): (String, Box<dyn Fn(&str, &str) -> Result<(), String>>) =
-        if done_file {
-            (read_done_file(workspace), Box::new(write_done_file))
-        } else {
-            (read_todos_file(workspace), Box::new(write_todos_file))
-        };
+    let (file_content, writer): (String, FileWriter) = if done_file {
+        (read_done_file(workspace), Box::new(write_done_file))
+    } else {
+        (read_todos_file(workspace), Box::new(write_todos_file))
+    };
     let mut lines: Vec<String> = file_content.lines().map(String::from).collect();
 
     if line_index >= lines.len() {
@@ -462,6 +471,48 @@ pub fn set_todo_path(
     set_todo_path_in_workspace(&cfg.workspace_path, line_index, path.as_deref(), done_file)
 }
 
+pub fn set_todo_session_id_in_workspace(
+    workspace: &str,
+    line_index: usize,
+    session_id: Option<&str>,
+    done_file: bool,
+) -> Result<(), String> {
+    let (file_content, writer): (String, FileWriter) = if done_file {
+        (read_done_file(workspace), Box::new(write_done_file))
+    } else {
+        (read_todos_file(workspace), Box::new(write_todos_file))
+    };
+    let mut lines: Vec<String> = file_content.lines().map(String::from).collect();
+
+    if line_index >= lines.len() {
+        return Err(format!("行号 {} 超出范围", line_index));
+    }
+
+    let cleaned = remove_comment(&lines[line_index], "sid:");
+    lines[line_index] = match session_id {
+        Some(s) if !s.is_empty() => format!("{} <!-- sid:{} -->", cleaned, s),
+        _ => cleaned,
+    };
+
+    writer(workspace, &(lines.join("\n") + "\n"))
+}
+
+#[tauri::command]
+pub fn set_todo_session_id(
+    app: tauri::AppHandle,
+    line_index: usize,
+    session_id: Option<String>,
+    done_file: bool,
+) -> Result<(), String> {
+    let cfg = crate::config::load_config(&app)?;
+    set_todo_session_id_in_workspace(
+        &cfg.workspace_path,
+        line_index,
+        session_id.as_deref(),
+        done_file,
+    )
+}
+
 #[tauri::command]
 pub fn remove_todo_path(
     app: tauri::AppHandle,
@@ -480,27 +531,7 @@ pub fn update_todo_text(
     done_file: bool,
 ) -> Result<(), String> {
     let cfg = crate::config::load_config(&app)?;
-    // Read old text before updating
-    let old_text = {
-        let content = if done_file {
-            read_done_file(&cfg.workspace_path)
-        } else {
-            read_todos_file(&cfg.workspace_path)
-        };
-        let lines: Vec<&str> = content.lines().collect();
-        if line_index < lines.len() {
-            parse_todo_line(lines[line_index], line_index).map(|t| t.text)
-        } else {
-            None
-        }
-    };
     update_todo_text_in_workspace(&cfg.workspace_path, line_index, &text, done_file)?;
-    // Sync brainstorm session key if text changed
-    if let Some(old) = old_text {
-        if old != text {
-            crate::brainstorm::rename_session_key(&cfg.workspace_path, &old, &text);
-        }
-    }
     Ok(())
 }
 

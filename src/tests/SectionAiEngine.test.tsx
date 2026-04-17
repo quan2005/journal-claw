@@ -3,17 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SectionAiEngine from '../settings/components/SectionAiEngine'
 import { renderWithProviders as render } from './setup'
 
-const mockCheckEngineInstalled = vi.fn()
-const mockInstallEngine = vi.fn()
 const mockGetEngineConfig = vi.fn()
 const mockSetEngineConfig = vi.fn()
 
-vi.mock('../lib/tauri', () => ({
-  checkEngineInstalled: (...args: unknown[]) => mockCheckEngineInstalled(...args),
-  installEngine: (...args: unknown[]) => mockInstallEngine(...args),
-  getEngineConfig: (...args: unknown[]) => mockGetEngineConfig(...args),
-  setEngineConfig: (...args: unknown[]) => mockSetEngineConfig(...args),
-}))
+vi.mock('../lib/tauri', async () => {
+  const actual = await vi.importActual('../lib/tauri')
+  return {
+    ...actual,
+    getEngineConfig: (...args: unknown[]) => mockGetEngineConfig(...args),
+    setEngineConfig: (...args: unknown[]) => mockSetEngineConfig(...args),
+    listModels: vi.fn().mockResolvedValue([]),
+  }
+})
 
 vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn(() => Promise.resolve(() => {})),
@@ -22,18 +23,11 @@ vi.mock('@tauri-apps/api/event', () => ({
 describe('SectionAiEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCheckEngineInstalled.mockImplementation(
-      async (engine: 'claude' | 'qwen') => engine === 'claude',
-    )
-    mockInstallEngine.mockResolvedValue(undefined)
     mockGetEngineConfig.mockResolvedValue({
-      active_ai_engine: 'claude',
-      claude_code_api_key: '',
-      claude_code_base_url: '',
-      claude_code_model: '',
-      qwen_code_api_key: '',
-      qwen_code_base_url: '',
-      qwen_code_model: '',
+      active_vendor: 'anthropic',
+      vendors: {
+        anthropic: { api_key: 'sk-ant-test-key', base_url: '', model: '' },
+      },
     })
     mockSetEngineConfig.mockResolvedValue(undefined)
   })
@@ -56,13 +50,10 @@ describe('SectionAiEngine', () => {
 
     await waitFor(() => {
       expect(mockSetEngineConfig).toHaveBeenCalledWith({
-        active_ai_engine: 'claude',
-        claude_code_api_key: 'sk-ant-test',
-        claude_code_base_url: '',
-        claude_code_model: '',
-        qwen_code_api_key: '',
-        qwen_code_base_url: '',
-        qwen_code_model: '',
+        active_vendor: 'anthropic',
+        vendors: {
+          anthropic: { api_key: 'sk-ant-test', base_url: '', model: '' },
+        },
       })
     })
 

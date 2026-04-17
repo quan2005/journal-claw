@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill & @ 文件引擎 — 确认方案 v2</title>
+<style>
+  :root {
+    --bg: #1a1a1e;
+    --surface: #232328;
+    --surface-2: #2a2a30;
+    --border: #3a3a42;
+    --text: #e8e6e3;
+    --text-2: #9a9898;
+    --accent: #C8933B;
+    --accent-dim: rgba(200,147,59,0.15);
+    --red: #ff375f;
+    --green: #34c759;
+    --blue: #5ac8fa;
+    --cyan: #64d2ff;
+    --orange: #ff9f0a;
+    --purple: #af52de;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 48px 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .header { margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .header h1 span { color: var(--accent); }
+  .header p { font-size: 15px; color: var(--text-2); max-width: 720px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; background: rgba(52,199,89,0.15); color: var(--green); }
+
+  .section { margin-bottom: 56px; }
+  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 16px; }
+  .section h2 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+  .section > p { font-size: 14px; color: var(--text-2); max-width: 720px; margin-bottom: 20px; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+
+  /* Decision cards */
+  .decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .decision {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+  }
+  .decision::before {
+    content: attr(data-num);
+    position: absolute; top: -10px; left: 16px;
+    background: var(--accent); color: #000;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px;
+  }
+  .decision h3 { font-size: 15px; font-weight: 600; margin: 4px 0 8px; }
+  .decision p { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+  .decision code {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+    background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;
+  }
+
+  /* Sequence diagram */
+  .seq { 
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 32px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px; line-height: 1.9; overflow-x: auto; white-space: pre; color: var(--text-2);
+  }
+  .seq .hl { color: var(--accent); font-weight: 600; }
+  .seq .new { color: var(--green); }
+  .seq .del { color: var(--red); text-decoration: line-through; }
+  .seq .file { color: var(--cyan); }
+  .seq .cm { opacity: 0.5; }
+  .seq .tool { color: var(--purple); font-weight: 600; }
+
+  /* Tool spec */
+  .tool-spec {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; margin-bottom: 20px;
+  }
+  .tool-spec h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--accent); }
+  .tool-spec .field { margin-bottom: 12px; }
+  .tool-spec .field-name {
+    font-family: 'SF Mono', monospace; font-size: 13px; font-weight: 600;
+    color: var(--cyan); margin-bottom: 2px;
+  }
+  .tool-spec .field-desc { font-size: 13px; color: var(--text-2); padding-left: 16px; }
+  .tool-spec .example {
+    background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;
+    font-family: 'SF Mono', monospace; font-size: 12px; line-height: 1.7;
+    margin-top: 12px; color: var(--text-2);
+  }
+  .tool-spec .example .key { color: var(--cyan); }
+  .tool-spec .example .val { color: var(--green); }
+  .tool-spec .example .cm { opacity: 0.5; }
+
+  /* UI mockup */
+  .ui-mock {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 0; overflow: hidden; margin-bottom: 20px;
+  }
+  .ui-mock-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-2); padding: 12px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .ui-mock-body { padding: 24px; }
+  .mock-input {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; font-size: 14px; color: var(--text); width: 100%;
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .mock-input .slash { color: var(--accent); font-weight: 600; }
+  .mock-input .at { color: var(--cyan); font-weight: 600; }
+  .mock-input .cursor { display: inline-block; width: 2px; height: 18px; background: var(--accent); animation: blink 1s infinite; }
+  @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+
+  .mock-dropdown {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    margin-top: 8px; overflow: hidden; max-width: 360px;
+  }
+  .mock-dropdown-item {
+    padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04); cursor: default;
+  }
+  .mock-dropdown-item:last-child { border-bottom: none; }
+  .mock-dropdown-item:hover, .mock-dropdown-item.active { background: var(--accent-dim); }
+  .mock-dropdown-item .icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+  .mock-dropdown-item .name { font-weight: 500; }
+  .mock-dropdown-item .desc { font-size: 12px; color: var(--text-2); margin-left: auto; }
+  .mock-dropdown-item .path { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--cyan); }
+
+  /* Changes list */
+  .changes { list-style: none; padding: 0; }
+  .changes li {
+    font-size: 13px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .changes li:last-child { border-bottom: none; }
+  .changes .file-path { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--cyan); min-width: 240px; }
+  .changes .change-desc { color: var(--text-2); }
+  .changes .tag-add { color: var(--green); font-size: 11px; font-weight: 600; }
+  .changes .tag-mod { color: var(--orange); font-size: 11px; font-weight: 600; }
+  .changes .tag-del { color: var(--red); font-size: 11px; font-weight: 600; }
+
+  .question-box {
+    background: var(--accent-dim); border: 1px solid rgba(200,147,59,0.3);
+    border-radius: 12px; padding: 24px 28px; margin-top: 32px;
+  }
+  .question-box h3 { font-size: 15px; font-weight: 600; color: var(--accent); margin-bottom: 10px; }
+  .question-box p { font-size: 14px; color: var(--text); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Skill & <span>@</span> 引擎重构 <span class="badge">v2 · 确认方案</span></h1>
+  <p>设计哲学：把智能交给 LLM，系统只提供工具。不做路径解析、不做内容预注入、不做音频转写内联。LLM 通过 enable_skill 和 bash 自主获取一切。</p>
+</div>
+
+<!-- ==================== 五条决策 ==================== -->
+<div class="section">
+  <div class="section-label">Part 1 · 五条设计决策</div>
+  <h2>确认的方向</h2>
+
+  <div class="decisions">
+    <div class="decision" data-num="1">
+      <h3>统一处理逻辑</h3>
+      <p>删除 <code>resolve_skill_from_prompt()</code>，素材处理和会话共用同一套 LLM 调用路径。不再有「素材路径特殊处理 skill」的分支。</p>
+    </div>
+    <div class="decision" data-num="2">
+      <h3>新增 enable_skill 工具</h3>
+      <p>LLM 通过调用 <code>enable_skill</code> 工具来读取 skill。工具返回 SKILL.md 的完整路径 + 主体内容。LLM 自主决定何时、是否激活 skill。</p>
+    </div>
+    <div class="decision" data-num="3">
+      <h3>不做任何解析</h3>
+      <p>skill 和 @ 路径都不在系统侧解析。LLM 通过 bash 自主读取文件内容。系统只在 system prompt 中列出可用 skill 清单。</p>
+    </div>
+    <div class="decision" data-num="4">
+      <h3>前端 UI 适配</h3>
+      <p>输入框支持 <code>/</code> 触发 skill 选择菜单、<code>@</code> 触发路径选择菜单。选中后插入文本标记，但不做后端解析——纯粹是输入辅助。</p>
+    </div>
+    <div class="decision" data-num="5">
+      <h3>tool_loop 扩展到 60 轮</h3>
+      <p>从 30 轮提升到 60 轮，给 LLM 更多空间完成复杂的多步骤任务（读文件 + 分析 + 写入）。</p>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ==================== enable_skill 工具规格 ==================== -->
+<div class="section">
+  <div class="section-label">Part 2 · 工具规格</div>
+  <h2>enable_skill 工具定义</h2>
+
+  <div class="tool-spec">
+    <h3>enable_skill</h3>
+    <div class="field">
+      <div class="field-name">name: string (required)</div>
+      <div class="field-desc">Skill 名称，对应 skills 目录下的子目录名</div>
+    </div>
+    <div class="field">
+      <div class="field-name">返回值</div>
+      <div class="field-desc">JSON 对象：<code>{ path: string, content: string }</code></div>
+    </div>
+    <div class="example">
+<span class="cm">// LLM 调用</span>
+{ <span class="key">"name"</span>: <span class="val">"enable_skill"</span>,
+  <span class="key">"input"</span>: { <span class="key">"name"</span>: <span class="val">"ideate"</span> } }
+
+<span class="cm">// 系统返回</span>
+{ <span class="key">"path"</span>: <span class="val">"/Users/yan/Documents/journal/.claude/skills/ideate/SKILL.md"</span>,
+  <span class="key">"content"</span>: <span class="val">"# 灵感探讨 (Ideate Pro Max)\n\n通过结构化..."</span> }
+
+<span class="cm">// 如果 skill 不存在</span>
+{ <span class="key">"error"</span>: <span class="val">"skill 'foo' not found. Available: ideate, lint, visual-design-book"</span> }
+    </div>
+  </div>
+
+  <p style="font-size:13px; color:var(--text-2); margin-bottom:20px;">
+    LLM 在 system prompt 中看到可用 skill 列表（名称 + 描述），当用户输入包含 <code>/skill-name</code> 或 LLM 判断需要某个 skill 时，主动调用 <code>enable_skill</code>。这比硬注入更灵活——LLM 可以在对话中途切换 skill，或同时启用多个。
+  </p>
+</div>
+
+<hr class="divider">
+
+<!-- ==================== 数据流 ==================== -->
+<div class="section">
+  <div class="section-label">Part 3 · 统一数据流</div>
+  <h2>素材处理 & 会话 — 同一条路径</h2>
+
+  <div class="seq"><span class="cm">// 场景 1: 用户在会话中输入 "/ideate @2604/raw/meeting.m4a 讨论要点"</span>
+
+<span class="hl">ConversationInput</span>                <span class="hl">conversation.rs</span>              <span class="hl">llm engine</span>                    <span class="hl">LLM</span>
+     │                                │                              │                              │
+     │── send("/ideate @2604/...")───→│                              │                              │
+     │   <span class="cm">(原文直传，不解析)</span>          │                              │                              │
+     │                                │── build_system_prompt ──────→│                              │
+     │                                │   <span class="cm">(含 skill 清单，无 active)</span>  │                              │
+     │                                │── user msg: 原文 ───────────→│── stream to API ────────────→│
+     │                                │                              │                              │
+     │                                │                              │←── <span class="tool">tool_use: enable_skill</span> ──│
+     │                                │                              │    { name: "ideate" }        │
+     │                                │                              │── execute ──→ read SKILL.md  │
+     │                                │                              │── <span class="new">tool_result: { path, content }</span>
+     │                                │                              │────────────────────────────→│
+     │                                │                              │                              │
+     │                                │                              │←── <span class="tool">tool_use: bash</span> ───────────│
+     │                                │                              │    "cat 2604/raw/meeting.m4a.transcript.json"
+     │                                │                              │── execute ──→ read file      │
+     │                                │                              │── tool_result ──────────────→│
+     │                                │                              │                              │
+     │                                │                              │←── text: "这个会议的要点..." │
+     │←── conversation-stream ────────│←── stream events ────────────│                              │
+
+
+<span class="cm">// 场景 2: 素材处理（拖入文件）— 走同一条路径</span>
+
+<span class="hl">ai_processor</span>                                    <span class="hl">llm engine</span>                    <span class="hl">LLM</span>
+     │                                              │                              │
+     │── <span class="del">resolve_skill_from_prompt</span> <span class="cm">(已删除)</span>       │                              │
+     │── build_system_prompt ──────────────────────→│                              │
+     │── user msg: "处理 @2604/raw/file.txt" ──────→│── stream to API ────────────→│
+     │                                              │                              │
+     │                                              │←── <span class="tool">tool_use: bash</span> ───────────│
+     │                                              │    "cat /path/to/2604/raw/file.txt"
+     │                                              │    <span class="cm">... (最多 60 轮) ...</span>        │
+     │                                              │←── text: final result ───────│
+     │←── result ───────────────────────────────────│                              │</div>
+</div>
+
+<hr class="divider">
+
+<!-- ==================== 前端 UI ==================== -->
+<div class="section">
+  <div class="section-label">Part 4 · 前端 UI 适配</div>
+  <h2>/ 和 @ 的输入辅助</h2>
+  <p>纯前端行为，选中后只是在输入框插入文本。不做后端解析。</p>
+
+  <div class="ui-mock">
+    <div class="ui-mock-title">Skill 选择 — 输入 / 触发</div>
+    <div class="ui-mock-body">
+      <div class="mock-input">
+        <span class="slash">/idea</span><span class="cursor"></span>
+      </div>
+      <div class="mock-dropdown">
+        <div class="mock-dropdown-item active">
+          <span class="icon">⚡</span>
+          <span class="name">ideate</span>
+          <span class="desc">灵感探讨与设计咨询</span>
+        </div>
+        <div class="mock-dropdown-item">
+          <span class="icon">🔍</span>
+          <span class="name">lint</span>
+          <span class="desc">日志库自动 lint</span>
+        </div>
+        <div class="mock-dropdown-item">
+          <span class="icon">📖</span>
+          <span class="name">visual-design-book</span>
+          <span class="desc">可视化设计手册</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ui-mock">
+    <div class="ui-mock-title">@ 路径选择 — 输入 @ 触发</div>
+    <div class="ui-mock-body">
+      <div class="mock-input">
+        <span class="slash">/ideate</span>&nbsp;<span class="at">@2604/raw/</span><span class="cursor"></span>
+      </div>
+      <div class="mock-dropdown">
+        <div class="mock-dropdown-item active">
+          <span class="icon">📄</span>
+          <span class="path">2604/raw/meeting-notes.txt</span>
+        </div>
+        <div class="mock-dropdown-item">
+          <span class="icon">🎙</span>
+          <span class="path">2604/raw/recording-0416.m4a</span>
+        </div>
+        <div class="mock-dropdown-item">
+          <span class="icon">📁</span>
+          <span class="path">2604/raw/skill-engine/</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:13px; color:var(--text-2);">
+    选中 skill 后，<code>/ideate</code> 作为纯文本留在输入框。选中路径后，<code>@2604/raw/meeting-notes.txt</code> 作为纯文本插入。发送时整条消息原样传给后端，LLM 自行解读。
+  </p>
+</div>
+
+<hr class="divider">
+
+<!-- ==================== 改动清单 ==================== -->
+<div class="section">
+  <div class="section-label">Part 5 · 改动清单</div>
+  <h2>需要修改的文件</h2>
+
+  <ul class="changes">
+    <li>
+      <span class="tag-add">NEW</span>
+      <span class="file-path">src-tauri/src/llm/enable_skill.rs</span>
+      <span class="change-desc">enable_skill 工具实现：接收 name，扫描 project → global skill 目录，返回 { path, content }</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src-tauri/src/llm/tool_loop.rs</span>
+      <span class="change-desc">注册 enable_skill 工具定义；max turns 30 → 60；处理 enable_skill 调用</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src-tauri/src/llm/prompt.rs</span>
+      <span class="change-desc">删除 resolve_skill_from_prompt()；build_system_prompt 不再接收 skill_content 参数；保留 skill 清单列出</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src-tauri/src/ai_processor.rs</span>
+      <span class="change-desc">删除 resolve_skill 调用；直接将原始 prompt（含 /skill-name）传给 tool_loop</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src-tauri/src/conversation.rs</span>
+      <span class="change-desc">注册 enable_skill 工具；max turns 同步到 60（Agent 模式）</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src-tauri/src/llm/anthropic.rs</span>
+      <span class="change-desc">tool 定义列表新增 enable_skill</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src/lib/slashCommands.ts</span>
+      <span class="change-desc">从硬编码 5 个命令 → 动态从后端获取 skill 列表（调用 list_skills IPC）</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src/components/ConversationInput.tsx</span>
+      <span class="change-desc">新增 @ 触发路径选择菜单；/ 菜单改为动态 skill 列表</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src/components/SlashCommandMenu.tsx</span>
+      <span class="change-desc">适配动态数据源；复用为 @ 路径菜单（或新建 AtMentionMenu）</span>
+    </li>
+    <li>
+      <span class="tag-mod">MOD</span>
+      <span class="file-path">src/lib/tauri.ts</span>
+      <span class="change-desc">新增 list_skills、list_workspace_files IPC 封装</span>
+    </li>
+  </ul>
+</div>
+
+<!-- ==================== 聚焦问题 ==================== -->
+<div class="question-box">
+  <h3>下一步确认</h3>
+  <p>
+    架构方向已经清晰。在开始实现之前，有一个 UX 细节想确认：<br><br>
+    <strong>@ 路径选择的浏览深度？</strong><br><br>
+    <strong>A. 扁平列表</strong> — 输入 <code>@</code> 后列出当前月份 raw/ 下的所有文件（一级），不支持目录钻入。简单直接。<br><br>
+    <strong>B. 可钻入目录</strong> — 支持逐级浏览 workspace 目录结构（<code>@</code> → 月份列表 → raw/ → 文件）。更灵活，但交互复杂度高。<br><br>
+    <strong>C. 模糊搜索</strong> — 输入 <code>@mee</code> 后模糊匹配 workspace 内所有文件名，不按目录层级。最快捷，但需要后端支持搜索。
+  </p>
+</div>
+
+</body>
+</html>

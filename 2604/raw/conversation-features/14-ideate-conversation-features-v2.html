@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideate — 对话框六大特性 v2</title>
+  <style>
+:root {
+  --bg: #FAFAFA; --bg-canvas: #F4F4F5; --surface: #FFFFFF;
+  --border: #E5E5E5; --border-hover: #D4D4D4;
+  --text-main: #111111; --text-muted: #666666; --text-tertiary: #999999;
+  --accent: #000000; --accent-surface: #F5F5F5; --accent-text: #FFFFFF;
+  --success: #00A650; --danger: #E03E3E; --red: #ff3b30;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+  --ease-spring: cubic-bezier(0.175,0.885,0.32,1.1);
+  --ease-out: cubic-bezier(0.16,1,0.3,1);
+  --duration: 300ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A0A0A; --bg-canvas: #000000; --surface: #141414;
+    --border: #2A2A2A; --border-hover: #3A3A3A;
+    --text-main: #EEEEEE; --text-muted: #888888; --text-tertiary: #555555;
+    --accent: #FFFFFF; --accent-surface: #1E1E1E; --accent-text: #000000;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background: var(--bg); background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px; color: var(--text-main); line-height: 1.6;
+  min-height: 100vh; padding: 3.5rem 2rem; display: flex; justify-content: center;
+}
+.container { width: 100%; max-width: 980px; display: flex; flex-direction: column; gap: 2.5rem; }
+.header { text-align: center; margin-bottom: 0.5rem; }
+.header h2 { font-size: 2.25rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.5rem; }
+.header p { font-size: 1rem; color: var(--text-muted); max-width: 580px; margin: 0 auto; }
+.section-label {
+  font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-tertiary); margin-bottom: 0.75rem; padding-left: 0.125rem;
+}
+.num { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 0.6875rem; font-weight: 700; flex-shrink: 0; }
+
+/* Feature card */
+.f-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+}
+.f-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.f-card .hd { display: flex; align-items: center; gap: 0.625rem; }
+.f-card h3 { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; }
+.f-card .desc { font-size: 0.875rem; color: var(--text-muted); line-height: 1.55; }
+.f-card .sub { font-size: 0.8125rem; color: var(--text-tertiary); line-height: 1.5; margin-top: 0.25rem; }
+
+/* Grid */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.grid-1 { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+
+/* Mini mockup */
+.mock {
+  margin-top: 0.5rem; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 0.875rem; font-size: 0.8125rem;
+  font-family: "SF Pro Display", -apple-system, sans-serif; color: var(--text-muted);
+  line-height: 1.65; overflow: hidden;
+}
+.mock .row { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.3rem 0; }
+.mock .row.r { justify-content: flex-end; }
+.mock .u { background: var(--accent); color: var(--accent-text); padding: 0.3rem 0.6rem; border-radius: 8px 8px 2px 8px; display: inline-block; max-width: 80%; font-size: 0.8125rem; }
+.mock .a { padding: 0.3rem 0; display: block; color: var(--text-main); font-size: 0.8125rem; }
+.mock .md-h { font-weight: 600; color: var(--text-main); font-size: 0.875rem; }
+.mock .md-b { font-weight: 600; }
+.mock .md-li { color: var(--text-muted); padding-left: 0.75rem; }
+.mock .md-code { font-family: "SF Mono", "IBM Plex Mono", monospace; font-size: 0.75rem; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: 4px; padding: 0.125rem 0.375rem; }
+.mock .think { border-left: 2px solid var(--border); padding-left: 0.75rem; margin: 0.375rem 0; color: var(--text-tertiary); font-style: italic; font-size: 0.75rem; cursor: pointer; }
+.mock .think-full { border-left: 2px solid var(--border); padding-left: 0.75rem; margin: 0.375rem 0; color: var(--text-tertiary); font-size: 0.75rem; }
+.mock .tool { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.6875rem; color: var(--text-tertiary); margin: 0.2rem 0; cursor: pointer; }
+.mock .tool .chevron { font-size: 0.625rem; transition: transform 150ms ease; }
+.mock .tool-output { font-family: "SF Mono", monospace; font-size: 0.6875rem; color: var(--text-tertiary); padding: 0.25rem 0.5rem; background: var(--bg-canvas); border-radius: 4px; margin: 0.125rem 0 0.25rem 0; max-height: 48px; overflow: hidden; }
+.mock .div { border-top: 1px solid var(--border); margin: 0.4rem 0; }
+.mock .act { display: inline-block; background: var(--accent); color: var(--accent-text); padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.6875rem; font-weight: 500; margin: 0.125rem 0.25rem 0.125rem 0; cursor: pointer; }
+.mock .act.o { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
+.mock .slash { color: var(--red); font-weight: 600; }
+.mock .cmd-item { padding: 0.3rem 0.625rem; font-size: 0.8125rem; display: flex; align-items: center; gap: 0.5rem; }
+.mock .cmd-item.active { background: var(--accent-surface); border-radius: 6px; }
+.mock .cmd-key { font-size: 0.6875rem; color: var(--text-tertiary); margin-left: auto; font-family: "SF Mono", monospace; }
+.mock .chip { display: inline-flex; align-items: center; gap: 0.25rem; background: var(--accent-surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.6875rem; color: var(--text-main); margin-right: 0.25rem; }
+.mock .chip .x { color: var(--text-tertiary); cursor: pointer; font-size: 0.75rem; }
+.mock .input-row { display: flex; align-items: center; gap: 0.375rem; border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.625rem; }
+.mock .input-text { color: var(--text-main); flex: 1; }
+.mock .input-ph { color: var(--text-tertiary); flex: 1; }
+.mock .hist-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; border-radius: 6px; font-size: 0.8125rem; }
+.mock .hist-item.active { background: var(--accent-surface); }
+.mock .hist-time { margin-left: auto; font-size: 0.6875rem; color: var(--text-tertiary); }
+
+.sep { border: none; border-top: 1px solid var(--border); margin: 0; }
+.note { font-size: 0.8125rem; color: var(--text-tertiary); text-align: center; margin-top: 0.5rem; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
+@media (max-width: 768px) { body { padding: 2rem 1rem; } .header h2 { font-size: 1.75rem; } .grid-2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h2>对话框 · 六大特性蓝图</h2>
+    <p>内置 AI 引擎 + 流式协议 = 完整控制权。<br>以下是确认要探讨的六个方向，附带交互细节。</p>
+  </div>
+
+  <!-- ═══ 1. Markdown 渲染 ═══ -->
+  <div>
+    <div class="section-label">展示层</div>
+    <div class="grid-2">
+      <div class="f-card">
+        <div class="hd"><span class="num">1</span><h3>Markdown 富文本渲染</h3></div>
+        <div class="desc">assistant 消息从 pre-wrap 纯文本升级为完整 Markdown 渲染 — 标题、列表、加粗、行内代码、代码块（带语法高亮）。流式输出时实时渲染，不等完成。</div>
+        <div class="sub">技术路径：前端引入轻量 MD 渲染（如 marked + highlight.js），仅对 assistant 消息生效。用户消息保持纯文本气泡。</div>
+        <div class="mock">
+          <div class="row r"><span class="u">帮我总结今天的会议</span></div>
+          <div class="row">
+            <div class="a">
+              <span class="md-h">会议要点</span><br>
+              <span class="md-li">• 确认 Q3 目标：<span class="md-b">DAU 提升 15%</span></span><br>
+              <span class="md-li">• 技术选型推迟到周五</span><br>
+              <span class="md-li">• 设计稿需在 <span class="md-b">4/18</span> 前交付</span><br><br>
+              <span class="md-h" style="font-size: 0.8125rem;">关键决策</span><br>
+              <span class="md-li">• 采用 <span class="md-code">gRPC</span> 替代 REST</span><br>
+              <span class="md-li">• 预算上限 <span class="md-b">¥50万</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 思考 + 工具折叠 -->
+      <div class="f-card">
+        <div class="hd"><span class="num">2</span><h3>思考过程 & 工具调用折叠</h3></div>
+        <div class="desc">两种折叠：① thinking 区域流式展示后自动收起为一行摘要，点击展开；② tool_use 调用显示为可折叠的 pill，展开可看输出。</div>
+        <div class="sub">thinking 用斜体 + 左边框，tool 用 pill 徽章。两者都默认折叠，减少视觉噪音。</div>
+        <div class="mock">
+          <div class="row r"><span class="u">这个月的支出有异常吗？</span></div>
+          <div class="think">▸ 思考中… 分析了 12 条日志，交叉比对预算表</div>
+          <div>
+            <span class="tool"><span class="chevron">▸</span> bash: cat 2604/*.md | wc -l</span>
+          </div>
+          <div>
+            <span class="tool"><span class="chevron">▸</span> bash: grep "支出" 2604/*.md</span>
+          </div>
+          <div class="div"></div>
+          <div class="a">4 月有两笔异常支出：<span class="md-b">4/7 服务器扩容 ¥12,000</span>（超预算 40%）和 <span class="md-b">4/11 紧急外包 ¥8,500</span>（未经审批）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3-4. 交互层 ═══ -->
+  <div>
+    <div class="section-label">交互层</div>
+    <div class="grid-2">
+
+      <!-- 3. 斜杠命令 -->
+      <div class="f-card">
+        <div class="hd"><span class="num">3</span><h3>斜杠快捷命令</h3></div>
+        <div class="desc">输入 <code>/</code> 弹出命令面板。预置命令直接注入 prompt 模板，减少自然语言描述成本。命令可带参数。</div>
+        <div class="sub">命令列表可扩展，后续支持用户自定义。面板用键盘上下选择 + Enter 确认。</div>
+        <div class="mock">
+          <div class="input-row">
+            <span class="slash">/</span><span class="input-text">sum</span><span style="color:var(--text-tertiary)">marize</span>
+          </div>
+          <div style="margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+            <div class="cmd-item active">
+              <span>📝</span> <span><span class="md-b">/summarize</span> — 总结当前日志</span>
+              <span class="cmd-key">↵</span>
+            </div>
+            <div class="cmd-item">
+              <span>☐</span> <span>/todos — 提取待办事项</span>
+            </div>
+            <div class="cmd-item">
+              <span>🌐</span> <span>/translate — 翻译为英文</span>
+            </div>
+            <div class="cmd-item">
+              <span>✏️</span> <span>/rewrite — 改写润色</span>
+            </div>
+            <div class="cmd-item">
+              <span>🏷️</span> <span>/tags — 重新生成标签</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 上下文注入 -->
+      <div class="f-card">
+        <div class="hd"><span class="num">4</span><h3>上下文自动注入</h3></div>
+        <div class="desc">打开对话时自动将当前选中日志作为上下文。输入框上方显示上下文 chip，可移除。支持拖拽文件追加更多上下文。</div>
+        <div class="sub">Rust 层：conversation_create 已有 context 参数，扩展为结构化的 context_files。前端：从 selectedEntry 读取内容传入。</div>
+        <div class="mock">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;">
+              <span style="font-size: 0.6875rem; color: var(--text-tertiary);">上下文</span>
+              <span class="chip">📄 14-AI平台产品会议.md <span class="x">×</span></span>
+              <span class="chip">📎 需求文档.pdf <span class="x">×</span></span>
+              <span style="font-size: 0.6875rem; color: var(--text-tertiary); border: 1px dashed var(--border); border-radius: 4px; padding: 0.1rem 0.375rem; cursor: pointer;">+ 拖拽添加</span>
+            </div>
+            <div class="div"></div>
+            <div class="input-row">
+              <span class="input-ph">基于以上内容提问…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ 5-6. 体验层 ═══ -->
+  <div>
+    <div class="section-label">体验层</div>
+    <div class="grid-2">
+
+      <!-- 5. 会话持久化 -->
+      <div class="f-card">
+        <div class="hd"><span class="num">5</span><h3>会话持久化与历史</h3></div>
+        <div class="desc">对话历史保存为日志的 sidecar 文件（<code>.conversations/</code>），下次打开同一篇日志时可恢复。对话框顶部增加会话切换器。</div>
+        <div class="sub">存储格式：JSON，包含 messages + metadata（时间、关联日志）。列表按时间倒序，最近的在上。</div>
+        <div class="mock">
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <div style="font-size: 0.6875rem; color: var(--text-tertiary); padding: 0 0.5rem; margin-bottom: 0.25rem;">最近会话</div>
+            <div class="hist-item active">
+              <span>💬</span>
+              <span><span class="md-b">Q3 规划会议讨论</span></span>
+              <span class="hist-time">3 分钟前</span>
+            </div>
+            <div class="hist-item">
+              <span>💬</span>
+              <span style="color: var(--text-muted);">产品需求分析</span>
+              <span class="hist-time">昨天</span>
+            </div>
+            <div class="hist-item">
+              <span>💬</span>
+              <span style="color: var(--text-muted);">竞品调研总结</span>
+              <span class="hist-time">4/10</span>
+            </div>
+            <div class="div"></div>
+            <div style="font-size: 0.6875rem; color: var(--text-tertiary); text-align: center; padding: 0.25rem;">点击恢复 · 新建会话 ⌘N</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 富输入框 -->
+      <div class="f-card">
+        <div class="hd"><span class="num">6</span><h3>富输入框</h3></div>
+        <div class="desc">参考底部 CommandDock 的交互模式，让对话输入框支持：拖拽文件附件、粘贴图片/文件、多行自适应高度、附件预览 chip。从「纯文本框」进化为「素材收集器」。</div>
+        <div class="sub">复用 CommandDock 的 FileCard 组件和剪贴板路由逻辑。输入框左侧加 + 按钮，点击可选择文件。</div>
+        <div class="mock">
+          <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+            <!-- Attached files -->
+            <div style="display: flex; gap: 0.375rem; padding: 0.5rem 0.625rem; border-bottom: 1px solid var(--border); flex-wrap: wrap;">
+              <span class="chip">🎙️ 录音-14.m4a <span class="x">×</span></span>
+              <span class="chip">📊 报表.xlsx <span class="x">×</span></span>
+            </div>
+            <!-- Input area -->
+            <div style="display: flex; align-items: flex-end; gap: 0.375rem; padding: 0.5rem 0.625rem;">
+              <span style="color: var(--text-tertiary); font-size: 1rem; cursor: pointer; padding: 0.125rem;">+</span>
+              <span style="flex: 1; color: var(--text-main); font-size: 0.8125rem;">帮我对比这两份文件的差异</span>
+              <span style="background: var(--accent); color: var(--accent-text); padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.6875rem; font-weight: 500; cursor: pointer;">发送</span>
+            </div>
+          </div>
+          <div style="margin-top: 0.5rem; font-size: 0.6875rem; color: var(--text-tertiary); text-align: center;">
+            支持拖拽 · ⌘V 粘贴 · 点击 + 选择文件
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="sep">
+  <p class="note">六个方向已确认 · 下一步：讨论优先级排序与实现顺序</p>
+
+</div>
+</body>
+</html>

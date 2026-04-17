@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { RecorderStatus } from '../hooks/useRecorder'
 import { FileCard } from './FileCard'
+import { SlashCommandMenu } from './SlashCommandMenu'
+import { AtMentionMenu } from './AtMentionMenu'
 import { fileKindFromName } from '../lib/fileKind'
 import clipboard from 'tauri-plugin-clipboard-api'
 import { importTextTemp, openFile } from '../lib/tauri'
@@ -47,6 +49,10 @@ export function CommandDock({
   const [inputOpen, setInputOpen] = useState(false)
   const [inputText, setInputText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
+  const [slashOpen, setSlashOpen] = useState(false)
+  const [slashQuery, setSlashQuery] = useState('')
+  const [atOpen, setAtOpen] = useState(false)
+  const [atQuery, setAtQuery] = useState('')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const dockRef = useRef<HTMLDivElement>(null)
   const importedTexts = useRef<Set<string>>(new Set())
@@ -121,10 +127,66 @@ export function CommandDock({
     }
   }
 
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    setInputText(val)
+
+    if (val.startsWith('/') && !val.includes(' ') && val.length > 0) {
+      setSlashOpen(true)
+      setSlashQuery(val.slice(1))
+      setAtOpen(false)
+    } else {
+      setSlashOpen(false)
+    }
+
+    const cursorPos = e.target.selectionStart ?? val.length
+    const textBeforeCursor = val.slice(0, cursorPos)
+    const lastAt = textBeforeCursor.lastIndexOf('@')
+    if (
+      lastAt >= 0 &&
+      (lastAt === 0 || /\s/.test(textBeforeCursor[lastAt - 1])) &&
+      !textBeforeCursor.slice(lastAt).includes(' ')
+    ) {
+      setAtOpen(true)
+      setAtQuery(textBeforeCursor.slice(lastAt + 1))
+      setSlashOpen(false)
+    } else {
+      setAtOpen(false)
+      setAtQuery('')
+    }
+  }, [])
+
+  const handleSlashSelect = useCallback((skillName: string) => {
+    setSlashOpen(false)
+    setInputText(`/${skillName} `)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }, [])
+
+  const handleAtSelect = useCallback(
+    (path: string) => {
+      setAtOpen(false)
+      const el = inputRef.current
+      const cursorPos = el?.selectionStart ?? inputText.length
+      const textBeforeCursor = inputText.slice(0, cursorPos)
+      const lastAt = textBeforeCursor.lastIndexOf('@')
+      if (lastAt >= 0) {
+        const before = inputText.slice(0, lastAt)
+        const after = inputText.slice(cursorPos)
+        setInputText(`${before}@${path} ${after}`)
+      } else {
+        setInputText(inputText + `@${path} `)
+      }
+      setTimeout(() => inputRef.current?.focus(), 0)
+    },
+    [inputText],
+  )
+
   function handleCancel() {
     if (hasFiles) onFilesCancel()
     setInputOpen(false)
     setInputText('')
+    setSlashOpen(false)
+    setAtOpen(false)
     importedTexts.current.clear()
   }
 
@@ -162,6 +224,7 @@ export function CommandDock({
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (slashOpen || atOpen) return
       if (e.key === 'Escape') {
         if (inputOpen) {
           e.stopImmediatePropagation()
@@ -210,7 +273,7 @@ export function CommandDock({
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [inputOpen, hasFiles, pendingFiles])
+  }, [inputOpen, hasFiles, pendingFiles, slashOpen, atOpen])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -330,10 +393,32 @@ export function CommandDock({
           border: dropZoneBorder,
           background: dropZoneBg,
           cursor: activeMode === 'idle' ? 'pointer' : 'default',
-          transition: 'background 0.2s, opacity 0.2s',
+          transition: 'background 0.2s ease-out, opacity 0.2s ease-out',
           overflow: 'visible',
+          position: 'relative' as const,
         }}
       >
+        {/* Slash command menu */}
+        {slashOpen && inputOpen && (
+          <SlashCommandMenu
+            query={slashQuery}
+            onSelect={handleSlashSelect}
+            onClose={() => setSlashOpen(false)}
+          />
+        )}
+
+        {/* @ mention menu */}
+        {atOpen && inputOpen && (
+          <AtMentionMenu
+            query={atQuery}
+            onSelect={handleAtSelect}
+            onClose={() => {
+              setAtOpen(false)
+              setAtQuery('')
+            }}
+          />
+        )}
+
         {/* Idle state */}
         {activeMode === 'idle' && (
           <div
@@ -510,9 +595,12 @@ export function CommandDock({
               <textarea
                 ref={inputRef}
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if ((slashOpen || atOpen) && (e.key === 'ArrowUp' || e.key === 'ArrowDown'))
+                    return
+                  if (atOpen && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return
+                  if (e.key === 'Enter' && !e.shiftKey && !slashOpen && !atOpen) {
                     e.preventDefault()
                     handleSubmit()
                   }

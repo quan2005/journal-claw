@@ -95,6 +95,7 @@ export interface TodoItem {
   done_date: string | null
   source: string | null
   path: string | null
+  session_id: string | null
   line_index: number
   done_file: boolean
 }
@@ -109,6 +110,7 @@ export type QueueItemStatus =
   | 'failed'
 
 export interface QueueItem {
+  id: string // work queue id (wq-xxx) or synthetic path for recording/converting
   path: string
   filename: string
   status: QueueItemStatus
@@ -117,4 +119,45 @@ export interface QueueItem {
   logs: string[]
   elapsedSecs?: number // only for 'recording' status
   audioLevel?: number // only for 'recording' status, 0.0–1.0 RMS
+  sessionId?: string // conversation session ID
+}
+
+// ── 对话框 ──────────────────────────────────────────────
+export type SessionMode = 'chat' | 'agent'
+
+export interface WebSearchResultItem {
+  url: string
+  title: string
+  page_age?: string
+}
+
+export type MessageBlock =
+  | { type: 'text'; content: string }
+  | { type: 'thinking'; content: string }
+  | { type: 'tool'; name: string; label: string; output?: string; isError?: boolean }
+  | { type: 'web_search'; query: string; results: WebSearchResultItem[] }
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+  thinking?: string
+  tools?: { name: string; label: string; output?: string; isError?: boolean }[]
+  /** Ordered blocks preserving the sequence of text, thinking, and tool calls */
+  blocks?: MessageBlock[]
+}
+
+export interface ConversationStreamPayload {
+  session_id: string
+  event:
+    | 'text_delta'
+    | 'thinking_delta'
+    | 'tool_start'
+    | 'tool_end'
+    | 'web_search_result'
+    | 'done'
+    | 'error'
+    | 'user_inject'
+    | 'title'
+    | 'turn_start'
+  data: string
 }

@@ -1,0 +1,157 @@
+/* ── Markdown Renderer Styles ── */
+/* Follows design spec: 克制沉静, neutrals with ink-cyan tint, single accent */
+
+.md-content {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--item-text);
+  word-break: break-word;
+}
+
+/* Headings: hierarchy via size + weight, not color */
+.md-content h1,
+.md-content h2,
+.md-content h3,
+.md-content h4 {
+  margin: 0.75em 0 0.25em;
+  line-height: 1.35;
+  font-weight: var(--font-semibold, 600);
+}
+.md-content h1 {
+  font-size: 1.25rem;
+}
+.md-content h2 {
+  font-size: 1.125rem;
+}
+.md-content h3 {
+  font-size: 1rem;
+}
+.md-content h4 {
+  font-size: var(--text-sm);
+}
+.md-content > h1:first-child,
+.md-content > h2:first-child,
+.md-content > h3:first-child,
+.md-content > h4:first-child {
+  margin-top: 0;
+}
+
+/* Paragraphs */
+.md-content p {
+  margin: 0.4em 0;
+}
+
+/* Lists */
+.md-content ul,
+.md-content ol {
+  margin: 0.4em 0;
+  padding-left: 1.25rem;
+}
+.md-content li {
+  margin: 0.15em 0;
+}
+.md-content li > p {
+  margin: 0.15em 0;
+}
+
+/* Inline code */
+.md-content code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+}
+
+/* Code blocks */
+.md-content pre {
+  margin: 0.5em 0;
+  padding: 0.75rem 1rem;
+  background: var(--md-pre-bg);
+  border-radius: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.md-content pre code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--md-pre-text);
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Blockquote */
+.md-content blockquote {
+  margin: 0.5em 0;
+  padding: 0.25em 0 0.25em 0.75rem;
+  border-left: 2px solid var(--md-quote-bar);
+  color: var(--md-quote-text);
+}
+.md-content blockquote p {
+  margin: 0.15em 0;
+}
+
+/* Horizontal rule */
+.md-content hr {
+  border: none;
+  border-top: 0.5px solid var(--md-quote-bar);
+  margin: 0.75em 0;
+}
+
+/* Links */
+.md-content a {
+  color: var(--md-link);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.15s var(--ease-out),
+    opacity 0.15s var(--ease-out);
+}
+.md-content a:hover {
+  color: var(--md-link-hover);
+  opacity: 0.8;
+}
+
+/* Tables */
+.md-content table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.8125rem;
+  width: 100%;
+}
+.md-content th,
+.md-content td {
+  border: 0.5px solid var(--md-quote-bar);
+  padding: 0.35em 0.6em;
+  text-align: left;
+}
+.md-content th {
+  font-weight: var(--font-semibold, 600);
+  background: var(--md-code-bg);
+}
+.md-content tr:nth-child(even) td {
+  background: var(--md-pre-bg);
+}
+
+/* Strong / Em */
+.md-content strong {
+  font-weight: var(--font-semibold, 600);
+  color: var(--md-strong);
+}
+
+/* Images (rare in chat, but handle gracefully) */
+.md-content img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 0.4em 0;
+}
+
+/* Task lists (GFM) */
+.md-content input[type='checkbox'] {
+  margin-right: 0.35em;
+  vertical-align: middle;
+}

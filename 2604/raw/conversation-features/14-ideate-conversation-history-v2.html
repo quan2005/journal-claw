@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideate — 会话标题动态生成</title>
+  <style>
+:root {
+  --bg: #FAFAFA; --bg-canvas: #F4F4F5; --surface: #FFFFFF;
+  --border: #E5E5E5; --border-hover: #D4D4D4;
+  --text-main: #111111; --text-muted: #666666; --text-tertiary: #999999;
+  --accent: #000000; --accent-surface: #F5F5F5; --accent-text: #FFFFFF;
+  --success: #00A650; --danger: #E03E3E; --red: #ff3b30;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+  --ease-spring: cubic-bezier(0.175,0.885,0.32,1.1);
+  --ease-out: cubic-bezier(0.16,1,0.3,1);
+  --duration: 300ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A0A0A; --bg-canvas: #000000; --surface: #141414;
+    --border: #2A2A2A; --border-hover: #3A3A3A;
+    --text-main: #EEEEEE; --text-muted: #888888; --text-tertiary: #555555;
+    --accent: #FFFFFF; --accent-surface: #1E1E1E; --accent-text: #000000;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background: var(--bg); background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px; color: var(--text-main); line-height: 1.6;
+  min-height: 100vh; padding: 3rem 2rem; display: flex; justify-content: center;
+}
+.container { width: 100%; max-width: 980px; display: flex; flex-direction: column; gap: 2.5rem; }
+.header { text-align: center; margin-bottom: 0.5rem; }
+.header h2 { font-size: 2rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.5rem; }
+.header p { font-size: 1rem; color: var(--text-muted); max-width: 560px; margin: 0 auto; }
+.section-label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-tertiary); margin-bottom: 0.75rem; }
+
+/* ── Timeline flow ── */
+.flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.flow-step {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem; width: 100%; max-width: 640px; display: flex; gap: 1rem; align-items: flex-start;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out);
+}
+.flow-step:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.flow-arrow { width: 2px; height: 28px; background: var(--border); position: relative; flex-shrink: 0; }
+.flow-arrow::after { content: ''; position: absolute; bottom: 0; left: -4px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--border); }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 0.6875rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.step-body { flex: 1; }
+.step-body h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+.step-body p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; }
+.step-body code { font-family: "SF Mono", monospace; font-size: 0.75rem; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: 3px; padding: 0.05rem 0.3rem; }
+
+/* ── Side-by-side mockup ── */
+.side-by-side { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.mock-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  overflow: hidden; transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out);
+}
+.mock-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.mock-card-label {
+  padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.6875rem;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary);
+  background: var(--bg-canvas);
+}
+.mock-card-body { padding: 1rem; }
+
+/* Session item in mockup */
+.s-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: 6px; margin-bottom: 0.25rem; }
+.s-item.active { background: var(--accent-surface); }
+.s-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.s-dot.on { background: var(--success); }
+.s-dot.off { background: var(--text-tertiary); opacity: 0.3; }
+.s-name { font-size: 0.75rem; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-time { font-size: 0.625rem; color: var(--text-tertiary); flex-shrink: 0; }
+.s-placeholder { font-size: 0.75rem; color: var(--text-tertiary); font-style: italic; }
+
+/* Skeleton shimmer */
+@keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+.skel-title {
+  height: 11px; width: 80px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-canvas) 25%, var(--border) 50%, var(--bg-canvas) 75%);
+  background-size: 400px 100%; animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Callout */
+.callout {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;
+  transition: transform var(--duration) var(--ease-spring), box-shadow var(--duration) var(--ease-out);
+}
+.callout:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.callout-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: 1px; }
+.callout-body { flex: 1; }
+.callout-body h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+.callout-body p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; }
+.callout-body code { font-family: "SF Mono", monospace; font-size: 0.75rem; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: 3px; padding: 0.05rem 0.3rem; }
+
+.note { font-size: 0.8125rem; color: var(--text-tertiary); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+@media (max-width: 768px) { .side-by-side { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h2>会话标题 · LLM 动态总结</h2>
+    <p>第一轮对话完成后，自动用一次轻量 LLM 调用生成简短标题。<br>标题随对话深入可以更新，始终反映核心话题。</p>
+  </div>
+
+  <!-- ═══ Lifecycle flow ═══ -->
+  <div>
+    <div class="section-label">标题生命周期</div>
+    <div class="flow">
+      <div class="flow-step">
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <h4>新建 — 占位标题</h4>
+          <p>会话刚创建时，左栏显示 <code>新对话</code> 占位文字，或显示 shimmer 骨架屏。用户开始输入第一条消息。</p>
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-step">
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <h4>首轮完成 — 触发总结</h4>
+          <p>第一轮 assistant 回复结束（<code>done</code> 事件）后，后台发起一次独立的 LLM 调用：<br><code>"用 ≤8 个中文字总结这段对话的主题"</code><br>不阻塞对话，标题异步更新。</p>
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-step">
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <h4>标题就位 — 平滑替换</h4>
+          <p>LLM 返回标题后，左栏的占位文字 fade 过渡为真实标题。同时写入持久化文件。右栏 header 同步更新。</p>
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-step">
+        <span class="step-num">4</span>
+        <div class="step-body">
+          <h4>话题漂移 — 可选更新</h4>
+          <p>如果对话进行了 5+ 轮且话题明显偏移，可以再次触发总结更新标题。或者用户双击标题手动编辑。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Before / After mockup ═══ -->
+  <div>
+    <div class="section-label">左栏效果对比</div>
+    <div class="side-by-side">
+      <div class="mock-card">
+        <div class="mock-card-label">刚创建 · 等待总结</div>
+        <div class="mock-card-body">
+          <div class="s-item active">
+            <span class="s-dot on"></span>
+            <div class="skel-title"></div>
+            <span class="s-time">刚刚</span>
+          </div>
+          <div class="s-item">
+            <span class="s-dot on"></span>
+            <span class="s-name" style="color: var(--text-tertiary); font-style: italic;">新对话</span>
+            <span class="s-time">1 分钟前</span>
+          </div>
+          <div style="border-top: 1px solid var(--border); margin: 0.375rem 0;"></div>
+          <div class="s-item">
+            <span class="s-dot off"></span>
+            <span class="s-name">产品需求梳理</span>
+            <span class="s-time">10:30</span>
+          </div>
+          <div class="s-item">
+            <span class="s-dot off"></span>
+            <span class="s-name">竞品调研总结</span>
+            <span class="s-time">昨天</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-card">
+        <div class="mock-card-label">首轮完成 · 标题就位</div>
+        <div class="mock-card-body">
+          <div class="s-item active">
+            <span class="s-dot on"></span>
+            <span class="s-name">Q3 规划会议分析</span>
+            <span class="s-time">刚刚</span>
+          </div>
+          <div class="s-item">
+            <span class="s-dot on"></span>
+            <span class="s-name">支出异常排查</span>
+            <span class="s-time">1 分钟前</span>
+          </div>
+          <div style="border-top: 1px solid var(--border); margin: 0.375rem 0;"></div>
+          <div class="s-item">
+            <span class="s-dot off"></span>
+            <span class="s-name">产品需求梳理</span>
+            <span class="s-time">10:30</span>
+          </div>
+          <div class="s-item">
+            <span class="s-dot off"></span>
+            <span class="s-name">竞品调研总结</span>
+            <span class="s-time">昨天</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Implementation notes ═══ -->
+  <div>
+    <div class="section-label">实现要点</div>
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <div class="callout">
+        <span class="callout-icon">⚡</span>
+        <div class="callout-body">
+          <h4>轻量调用，不阻塞</h4>
+          <p>标题总结是独立的 LLM 请求，只传入第一轮的 user + assistant 消息，system prompt 极简：<code>"用≤8个中文字总结主题，只输出标题"</code>。用最小 token 完成，不影响对话主流程。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="callout-icon">🔄</span>
+        <div class="callout-body">
+          <h4>事件驱动更新</h4>
+          <p>Rust 层新增 <code>conversation-title</code> 事件，payload 为 <code>{ session_id, title }</code>。前端监听后更新左栏和右栏 header。标题生成失败时 fallback 为用户首条消息的前 15 字。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="callout-icon">✏️</span>
+        <div class="callout-body">
+          <h4>可手动覆盖</h4>
+          <p>左栏标题支持双击进入编辑态（inline edit），用户可以手动修改。手动修改后标记 <code>title_locked: true</code>，后续不再自动更新。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="callout-icon">💾</span>
+        <div class="callout-body">
+          <h4>持久化结构</h4>
+          <p>标题存入会话 JSON 文件：<code>{ "id": "conv-xxx", "title": "Q3规划会议分析", "title_locked": false, "linked_entry": "2604/14-AI平台会议.md", "messages": [...] }</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">标题动态总结让会话列表从「新对话 1, 2, 3」变成有意义的索引</p>
+
+</div>
+</body>
+</html>

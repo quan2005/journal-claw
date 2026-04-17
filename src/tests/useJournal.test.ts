@@ -30,6 +30,11 @@ vi.mock('../lib/tauri', () => ({
       materials: [],
     },
   ]),
+  listWorkQueue: vi.fn().mockResolvedValue([]),
+  enqueueWork: vi
+    .fn()
+    .mockResolvedValue({ id: 'wq-test', status: 'queued', display_name: 'test', created_at: 0 }),
+  dismissWorkItem: vi.fn().mockResolvedValue(undefined),
 }))
 
 type EventCallback = (event: { payload: unknown }) => void
@@ -87,68 +92,15 @@ describe('useJournal', () => {
     expect(result.current.queueItems).toHaveLength(1)
   })
 
-  it('addQueuedItem inserts a queued item with real path', async () => {
-    const { result } = renderHook(() => useJournal())
-    await act(async () => {})
-    act(() => {
-      result.current.addQueuedItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
-    })
-    expect(result.current.queueItems[0]).toMatchObject({
-      path: '/ws/2603/raw/meeting.m4a',
-      filename: 'meeting.m4a',
-      status: 'queued',
-    })
-    expect(result.current.isProcessing).toBe(true)
-  })
-
-  it('sets isProcessing only after AI queue starts, not during converting', async () => {
-    const { result } = renderHook(() => useJournal())
-    await act(async () => {})
-
-    act(() => {
-      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
-    })
-    expect(result.current.isProcessing).toBe(false)
-
-    act(() => {
-      fireEvent('audio-ai-material-ready', {
-        source_path: '/ws/2603/raw/meeting.m4a',
-        material_path: '/ws/2603/raw/meeting.audio-ai.md',
-        filename: 'meeting.m4a',
-      })
-    })
-    expect(result.current.isProcessing).toBe(true)
-
-    act(() => {
-      fireEvent('ai-processing', {
-        material_path: '/ws/2603/raw/meeting.audio-ai.md',
-        status: 'completed',
-      })
-    })
-    expect(result.current.queueItems[0]?.status).toBe('completed')
-  })
-
-  it('addQueuedItem is idempotent (deduplicates by path)', async () => {
-    const { result } = renderHook(() => useJournal())
-    await act(async () => {})
-    act(() => {
-      result.current.addQueuedItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
-      result.current.addQueuedItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
-    })
-    expect(result.current.queueItems).toHaveLength(1)
-  })
-
   it('recording-processed upgrades placeholder item to converting with real audio path', async () => {
     const { result } = renderHook(() => useJournal())
     await act(async () => {})
 
-    // Insert converting placeholder
     act(() => {
       result.current.addConvertingItem('__recording__', '录音处理中')
     })
     expect(result.current.queueItems[0].status).toBe('converting')
 
-    // Fire recording-processed with real data
     act(() => {
       fireEvent('recording-processed', {
         filename: '录音 2026-03-30 10:00.m4a',
@@ -161,11 +113,13 @@ describe('useJournal', () => {
       filename: '录音 2026-03-30 10:00.m4a',
       status: 'converting',
     })
-    // placeholder must be gone
     expect(result.current.queueItems.some((i) => i.path === '__recording__')).toBe(false)
   })
 
-  it('audio-ai-material-ready upgrades converting audio item to queued markdown item', async () => {
+  it('audio-ai-material-ready removes local item and enqueues in Rust', async () => {
+    const { enqueueWork } = (await import('../lib/tauri')) as unknown as {
+      enqueueWork: ReturnType<typeof vi.fn>
+    }
     const { result } = renderHook(() => useJournal())
     await act(async () => {})
 
@@ -173,7 +127,7 @@ describe('useJournal', () => {
       result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
     })
 
-    act(() => {
+    await act(async () => {
       fireEvent('audio-ai-material-ready', {
         source_path: '/ws/2603/raw/meeting.m4a',
         material_path: '/ws/2603/raw/meeting.audio-ai.md',
@@ -181,10 +135,13 @@ describe('useJournal', () => {
       })
     })
 
-    expect(result.current.queueItems[0]).toMatchObject({
-      path: '/ws/2603/raw/meeting.audio-ai.md',
-      filename: 'meeting.m4a',
-      status: 'queued',
+    // Local converting item should be removed
+    expect(result.current.queueItems.some((i) => i.path === '/ws/2603/raw/meeting.m4a')).toBe(false)
+    // Rust enqueueWork should have been called
+    expect(enqueueWork).toHaveBeenCalledWith({
+      files: ['/ws/2603/raw/meeting.audio-ai.md'],
+      prompt: '请根据这份音频转写材料，生成日志条目。',
+      displayName: 'meeting.m4a',
     })
   })
 
@@ -216,10 +173,8 @@ describe('useJournal', () => {
     const { result } = renderHook(() => useJournal())
     await act(async () => {})
 
-    // No addConvertingItem call — queue is empty
     expect(result.current.queueItems).toHaveLength(0)
 
-    // Fire recording-processed anyway
     act(() => {
       fireEvent('recording-processed', {
         filename: '录音 2026-03-30 10:00.m4a',
@@ -227,7 +182,6 @@ describe('useJournal', () => {
       })
     })
 
-    // Queue must still be empty — event is ignored
     expect(result.current.queueItems).toHaveLength(0)
   })
 })

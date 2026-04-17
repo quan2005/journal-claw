@@ -5,10 +5,11 @@ import { renderWithProviders as render } from './setup'
 import type { QueueItem } from '../types'
 
 const failedItem: QueueItem = {
+  id: 'test-failed-1',
   path: '/nb/2603/raw/meeting.txt',
   filename: 'meeting.txt',
   status: 'failed',
-  error: 'Claude CLI failed',
+  error: 'AI processing failed',
   addedAt: Date.now(),
   logs: [],
 }

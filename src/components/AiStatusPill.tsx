@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { openClaudeTerminal } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface AiStatusPillProps {
   isProcessing: boolean
   processingFilename?: string
+  onClick?: () => void
 }
 
-export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillProps) {
+export function AiStatusPill({ isProcessing, processingFilename, onClick }: AiStatusPillProps) {
   const { t } = useTranslation()
   // Track visual state separately to implement 2s linger after processing ends
   const [showActive, setShowActive] = useState(false)
@@ -36,7 +36,7 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
 
   return (
     <div
-      onClick={() => openClaudeTerminal()}
+      onClick={onClick}
       style={
         {
           display: 'flex',
@@ -80,6 +80,17 @@ export function AiStatusPill({ isProcessing, processingFilename }: AiStatusPillP
             : t('processing')
           : t('aiReady')}
       </span>
+      {!active && (
+        <span
+          style={{
+            fontSize: 10,
+            opacity: 0.45,
+            letterSpacing: '0.02em',
+          }}
+        >
+          ⌘K
+        </span>
+      )}
     </div>
   )
 }

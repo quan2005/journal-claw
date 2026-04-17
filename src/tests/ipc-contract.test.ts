@@ -20,8 +20,6 @@ import {
   setApiKey,
   getWorkspacePath,
   setWorkspacePath,
-  getClaudeCliPath,
-  setClaudeCliPath,
   listAvailableMonths,
   listJournalEntriesByMonths,
   listAllJournalEntries,
@@ -41,9 +39,6 @@ import {
   setWorkspacePrompt,
   resetWorkspacePrompt,
   openFile,
-  openClaudeTerminal,
-  checkEngineInstalled,
-  installEngine,
   getAppVersion,
   getEngineConfig,
   setEngineConfig,
@@ -79,10 +74,6 @@ import {
   setTodoPath,
   removeTodoPath,
   updateTodoText,
-  openBrainstormTerminal,
-  listBrainstormKeys,
-  listOpenBrainstormKeys,
-  clearBrainstormSession,
   getAutoLintConfig,
   setAutoLintConfig,
   getAutoLintStatus,
@@ -113,12 +104,10 @@ const noParamCases: [string, () => Promise<unknown>, string][] = [
   ['openSettings', openSettings, 'open_settings'],
   ['getApiKey', getApiKey, 'get_api_key'],
   ['getWorkspacePath', getWorkspacePath, 'get_workspace_path'],
-  ['getClaudeCliPath', getClaudeCliPath, 'get_claude_cli_path'],
   ['listAvailableMonths', listAvailableMonths, 'list_available_months'],
   ['listAllJournalEntries', listAllJournalEntries, 'list_all_journal_entries'],
   ['getWorkspacePrompt', getWorkspacePrompt, 'get_workspace_prompt'],
   ['resetWorkspacePrompt', resetWorkspacePrompt, 'reset_workspace_prompt'],
-  ['openClaudeTerminal', openClaudeTerminal, 'open_claude_terminal'],
   ['cancelAiProcessing', cancelAiProcessing, 'cancel_ai_processing'],
   ['getAppVersion', getAppVersion, 'get_app_version'],
   ['getEngineConfig', getEngineConfig, 'get_engine_config'],
@@ -134,8 +123,6 @@ const noParamCases: [string, () => Promise<unknown>, string][] = [
   ['checkAppPermissions', checkAppPermissions, 'check_app_permissions'],
   ['listIdentities', listIdentities, 'list_identities'],
   ['listTodos', listTodos, 'list_todos'],
-  ['listBrainstormKeys', listBrainstormKeys, 'list_brainstorm_keys'],
-  ['listOpenBrainstormKeys', listOpenBrainstormKeys, 'list_open_brainstorm_keys'],
   ['getAutoLintConfig', getAutoLintConfig, 'get_auto_lint_config'],
   ['getAutoLintStatus', getAutoLintStatus, 'get_auto_lint_status'],
   ['triggerLintNow', triggerLintNow, 'trigger_lint_now'],
@@ -194,13 +181,6 @@ describe('Settings / Config', () => {
   it('setWorkspacePath passes { path }', async () => {
     await setWorkspacePath('/tmp/ws')
     expect(mockInvoke).toHaveBeenCalledWith('set_workspace_path', { path: '/tmp/ws' })
-  })
-
-  it('setClaudeCliPath passes { path }', async () => {
-    await setClaudeCliPath('/usr/local/bin/claude')
-    expect(mockInvoke).toHaveBeenCalledWith('set_claude_cli_path', {
-      path: '/usr/local/bin/claude',
-    })
   })
 })
 
@@ -332,25 +312,16 @@ describe('Workspace', () => {
 // Engine
 // ---------------------------------------------------------------------------
 describe('Engine', () => {
-  it('checkEngineInstalled passes { engine }', async () => {
-    await checkEngineInstalled('claude')
-    expect(mockInvoke).toHaveBeenCalledWith('check_engine_installed', { engine: 'claude' })
-  })
-
-  it('installEngine passes { engine }', async () => {
-    await installEngine('qwen')
-    expect(mockInvoke).toHaveBeenCalledWith('install_engine', { engine: 'qwen' })
-  })
-
   it('setEngineConfig wraps cfg in { config }', async () => {
     const cfg: EngineConfig = {
-      active_ai_engine: 'claude',
-      claude_code_api_key: 'sk-ant',
-      claude_code_base_url: 'https://api.anthropic.com',
-      claude_code_model: 'claude-sonnet-4-5',
-      qwen_code_api_key: '',
-      qwen_code_base_url: '',
-      qwen_code_model: '',
+      active_vendor: 'anthropic',
+      vendors: {
+        anthropic: {
+          api_key: 'sk-ant',
+          base_url: 'https://api.anthropic.com',
+          model: 'claude-sonnet-4-5',
+        },
+      },
     }
     await setEngineConfig(cfg)
     expect(mockInvoke).toHaveBeenCalledWith('set_engine_config', { config: cfg })
@@ -545,35 +516,6 @@ describe('Todos', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Brainstorm
-// ---------------------------------------------------------------------------
-describe('Brainstorm', () => {
-  it('openBrainstormTerminal defaults path to null', async () => {
-    await openBrainstormTerminal('idea', 0, false)
-    expect(mockInvoke).toHaveBeenCalledWith('open_brainstorm_terminal', {
-      text: 'idea',
-      lineIndex: 0,
-      doneFile: false,
-      path: null,
-    })
-  })
-
-  it('openBrainstormTerminal passes path when provided', async () => {
-    await openBrainstormTerminal('idea', 0, false, '/ws/2604/01.md')
-    expect(mockInvoke).toHaveBeenCalledWith('open_brainstorm_terminal', {
-      text: 'idea',
-      lineIndex: 0,
-      doneFile: false,
-      path: '/ws/2604/01.md',
-    })
-  })
-
-  it('clearBrainstormSession passes { text }', async () => {
-    await clearBrainstormSession('idea')
-    expect(mockInvoke).toHaveBeenCalledWith('clear_brainstorm_session', { text: 'idea' })
-  })
-})
-
 // ---------------------------------------------------------------------------
 // Auto Lint
 // ---------------------------------------------------------------------------

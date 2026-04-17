@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandDock → Agent 消息链路梳理</title>
+<style>
+  :root {
+    --bg: #1a1a1c;
+    --surface: #232326;
+    --surface-2: #2a2a2e;
+    --border: #333338;
+    --text: #e8e6e3;
+    --text-2: #9a9898;
+    --text-3: #666;
+    --amber: #C8933B;
+    --amber-dim: rgba(200,147,59,0.15);
+    --blue: #5b9bd5;
+    --blue-dim: rgba(91,155,213,0.12);
+    --green: #6bbd7b;
+    --green-dim: rgba(107,189,123,0.12);
+    --red: #e06c75;
+    --red-dim: rgba(224,108,117,0.12);
+    --purple: #b07cc8;
+    --purple-dim: rgba(176,124,200,0.12);
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans: -apple-system, 'Inter', 'Helvetica Neue', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 48px 56px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--text-2);
+    margin-bottom: 48px;
+    letter-spacing: 0.03em;
+  }
+  .section-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    margin-bottom: 16px;
+    margin-top: 48px;
+  }
+  .section-title:first-of-type { margin-top: 0; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 40px;
+  }
+  .flow-row {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .flow-node {
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    flex: 1;
+    min-width: 0;
+  }
+  .flow-node.entry {
+    background: var(--amber-dim);
+    border: 1px solid rgba(200,147,59,0.25);
+  }
+  .flow-node.logic {
+    background: var(--blue-dim);
+    border: 1px solid rgba(91,155,213,0.2);
+  }
+  .flow-node.ipc {
+    background: var(--green-dim);
+    border: 1px solid rgba(107,189,123,0.2);
+  }
+  .flow-node.rust {
+    background: var(--purple-dim);
+    border: 1px solid rgba(176,124,200,0.2);
+  }
+  .flow-node.event {
+    background: var(--red-dim);
+    border: 1px solid rgba(224,108,117,0.2);
+  }
+  .node-label {
+    font-weight: 600;
+    font-size: 0.72rem;
+    margin-bottom: 4px;
+  }
+  .node-label .tag {
+    font-weight: 400;
+    font-size: 0.6rem;
+    color: var(--text-3);
+    margin-left: 6px;
+    font-family: var(--mono);
+  }
+  .node-desc {
+    font-size: 0.7rem;
+    color: var(--text-2);
+  }
+  .node-code {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--amber);
+    margin-top: 4px;
+    word-break: break-all;
+  }
+  .arrow-down {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+    color: var(--text-3);
+    font-size: 0.7rem;
+  }
+  .arrow-right {
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    color: var(--text-3);
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  /* Path cards */
+  .paths {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .path-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .path-card h3 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .path-card h3 .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .path-card ol {
+    list-style: none;
+    counter-reset: step;
+  }
+  .path-card ol li {
+    counter-increment: step;
+    font-size: 0.7rem;
+    color: var(--text-2);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+  .path-card ol li:last-child { border-bottom: none; }
+  .path-card ol li::before {
+    content: counter(step);
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--text-3);
+    flex-shrink: 0;
+    width: 14px;
+    text-align: right;
+  }
+  .path-card ol li code {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--amber);
+  }
+
+  /* Issue table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    margin-bottom: 40px;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-2);
+    vertical-align: top;
+  }
+  td:first-child { color: var(--text); font-weight: 500; }
+  td code {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--amber);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    color: var(--text-3);
+  }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  .note {
+    background: var(--surface);
+    border-left: 3px solid var(--amber);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.72rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+  .note strong { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>CommandDock → Agent 消息链路</h1>
+<p class="subtitle">谨迹 · 底部 Dock 栏发送消息到 AI Agent 的完整数据流梳理</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--amber-dim);border:1px solid rgba(200,147,59,0.3)"></div>用户入口</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--blue-dim);border:1px solid rgba(91,155,213,0.3)"></div>前端逻辑</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--green-dim);border:1px solid rgba(107,189,123,0.3)"></div>IPC 边界</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--purple-dim);border:1px solid rgba(176,124,200,0.3)"></div>Rust 后端</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--red-dim);border:1px solid rgba(224,108,117,0.3)"></div>事件回流</div>
+</div>
+
+<!-- ==================== 两条主路径 ==================== -->
+<div class="section-title">两条主路径</div>
+
+<div class="paths">
+  <div class="path-card">
+    <h3><div class="dot" style="background:var(--amber)"></div>路径 A — 纯文本提交</h3>
+    <ol>
+      <li>用户点击 Dock 区域或 ⌘V 粘贴短文本（≤300字符）</li>
+      <li><code>CommandDock</code> 打开输入态，文本填入 textarea</li>
+      <li>用户按 Enter → <code>handleSubmit()</code></li>
+      <li>调用 <code>App.handlePasteSubmit(text)</code></li>
+      <li>生成虚拟路径 <code>text://{timestamp}</code>，加入处理队列</li>
+      <li>调用 <code>conversationCreate('agent')</code> 创建会话</li>
+      <li>调用 <code>conversationSend(sid, text)</code> 发送原文</li>
+      <li>Rust 端 LLM 引擎处理，通过 <code>conversation-stream</code> 事件回流</li>
+    </ol>
+  </div>
+
+  <div class="path-card">
+    <h3><div class="dot" style="background:var(--blue)"></div>路径 B — 文件提交</h3>
+    <ol>
+      <li>用户拖入文件 / ⌘V 粘贴文件路径</li>
+      <li><code>CommandDock</code> 展示 FileCard 预览</li>
+      <li>用户可选填备注，按 Enter → <code>handleSubmit()</code></li>
+      <li>调用 <code>App.handleFilesSubmit(paths, note?)</code></li>
+      <li>音频文件 → <code>importAudioFile</code> + <code>prepareAudioForAi</code>（走音频管线）</li>
+      <li>非音频文件 → <code>importFile</code> 复制到 raw/</li>
+      <li>非音频路径 → <code>conversationCreate('agent', undefined, paths)</code></li>
+      <li>调用 <code>conversationSend(sid, prompt)</code>，prompt 含备注</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== 完整调用链 ==================== -->
+<div class="section-title">完整调用链（以纯文本为例）</div>
+
+<div class="flow">
+  <div class="flow-row">
+    <div class="flow-node entry">
+      <div class="node-label">1. 用户触发 <span class="tag">CommandDock.tsx</span></div>
+      <div class="node-desc">点击 Dock 区域 / ⌘V 粘贴 / 拖入文件</div>
+      <div class="node-code">setInputOpen(true) → textarea 获焦</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node entry">
+      <div class="node-label">2. handleSubmit() <span class="tag">CommandDock.tsx:119</span></div>
+      <div class="node-desc">Enter 键触发。有文件走 onFilesSubmit，无文件走 onPasteSubmit</div>
+      <div class="node-code">hasFiles ? onFilesSubmit(paths, note) : onPasteSubmit(text)</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node logic">
+      <div class="node-label">3. App.handlePasteSubmit(text) <span class="tag">App.tsx:~430</span></div>
+      <div class="node-desc">生成虚拟路径 text://，加入队列显示，创建 agent 会话</div>
+      <div class="node-code">addQueuedItem(textPath, preview)<br>sid = await conversationCreate('agent')<br>setQueueSessionId(textPath, sid)<br>await conversationSend(sid, text)</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node ipc">
+      <div class="node-label">4. IPC 调用 <span class="tag">src/lib/tauri.ts</span></div>
+      <div class="node-desc">两次 invoke：先创建会话，再发送消息</div>
+      <div class="node-code">invoke('conversation_create', { mode: 'agent' })<br>invoke('conversation_send', { sessionId, message })</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node rust">
+      <div class="node-label">5. Rust conversation_create <span class="tag">conversation.rs</span></div>
+      <div class="node-desc">创建 Session 结构体，分配 UUID，初始化消息历史</div>
+      <div class="node-code">Session { id, mode, context, messages: vec![] }</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node rust">
+      <div class="node-label">6. Rust conversation_send <span class="tag">conversation.rs</span></div>
+      <div class="node-desc">将用户消息追加到历史，启动异步 LLM 调用</div>
+      <div class="node-code">session.messages.push(user_msg)<br>spawn → llm::tool_loop::run()</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node rust">
+      <div class="node-label">7. LLM Tool Loop <span class="tag">src-tauri/src/llm/tool_loop.rs</span></div>
+      <div class="node-desc">Anthropic Messages API streaming → 解析 content_block_delta → 工具调用循环</div>
+      <div class="node-code">loop { call_api() → parse_stream() → execute_tools() → continue? }</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node event">
+      <div class="node-label">8. conversation-stream 事件 <span class="tag">Rust → 前端</span></div>
+      <div class="node-desc">Rust 通过 app.emit("conversation-stream", payload) 实时推送</div>
+      <div class="node-code">事件类型: text_delta | thinking_delta | tool_start | tool_end | web_search_result | done | error | title</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node logic">
+      <div class="node-label">9. useConversation 监听 <span class="tag">useConversation.ts</span></div>
+      <div class="node-desc">listen('conversation-stream') → 按 session_id 路由 → 更新 cacheRef + React state</div>
+      <div class="node-code">updateSessionMessages(sid, updater) → setMessages(next)</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="flow-row">
+    <div class="flow-node logic">
+      <div class="node-label">10. ConversationDialog 渲染 <span class="tag">ConversationDialog.tsx</span></div>
+      <div class="node-desc">messages 数组驱动：MessageBubble（用户）+ AssistantRun（助手，含 thinking/tool/text blocks）</div>
+      <div class="node-code">streaming 时实时追加 blocks → auto-scroll</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 关键分支 ==================== -->
+<div class="section-title">关键分支与边界情况</div>
+
+<table>
+  <thead>
+    <tr><th>场景</th><th>触发条件</th><th>处理方式</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>长文本粘贴</td>
+      <td>⌘V 粘贴 &gt; 300 字符</td>
+      <td>调用 <code>importTextTemp(text)</code> 写入临时 .txt 文件，转为文件路径走文件提交路径</td>
+    </tr>
+    <tr>
+      <td>音频文件</td>
+      <td>文件扩展名为 m4a/wav/mp3 等</td>
+      <td>走独立音频管线：<code>importAudioFile</code> → <code>prepareAudioForAi</code>，不走 conversation 路径</td>
+    </tr>
+    <tr>
+      <td>混合提交</td>
+      <td>同时有音频 + 非音频文件</td>
+      <td>音频走音频管线，非音频文件合并创建一个 agent 会话</td>
+    </tr>
+    <tr>
+      <td>Streaming 中追加消息</td>
+      <td>会话正在 streaming 时用户再次发送</td>
+      <td><code>useConversation.send()</code> 检测 <code>isStreamingRef</code>，走 <code>conversationInject</code> 而非 <code>conversationSend</code></td>
+    </tr>
+    <tr>
+      <td>斜杠命令</td>
+      <td>ConversationInput 中输入 <code>/summarize</code> 等</td>
+      <td>匹配 <code>SLASH_COMMANDS</code>，选中后直接 <code>onSend(cmd.promptTemplate)</code></td>
+    </tr>
+    <tr>
+      <td>会话切换</td>
+      <td>SessionList 点击其他会话</td>
+      <td><code>useConversation.load(id)</code>：优先读 cacheRef（保留 streaming 状态），否则从 Rust 加载持久化消息</td>
+    </tr>
+    <tr>
+      <td>队列关联</td>
+      <td>文件/文本提交后</td>
+      <td><code>setQueueSessionId(path, sid)</code> 将队列项与会话 ID 绑定，ProcessingQueue 可跳转到对应会话</td>
+    </tr>
+    <tr>
+      <td>⌘K 快捷键</td>
+      <td>全局键盘事件</td>
+      <td>切换 ConversationDialog 可见性，自动携带当前选中条目的 <code>contextFiles</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ==================== 两个入口的区别 ==================== -->
+<div class="section-title">两个消息入口的区别</div>
+
+<div class="note">
+  <strong>CommandDock（底部 Dock）</strong>是「素材投递」入口 — 用户投入原始素材（文本/文件），系统自动创建 agent 会话并处理，结果进入处理队列。用户不直接看到对话过程。<br><br>
+  <strong>ConversationDialog（⌘K 对话框）</strong>是「交互对话」入口 — 用户直接与 Agent 对话，可以看到 streaming 过程、thinking、tool calls。支持斜杠命令、文件附件、会话历史切换。<br><br>
+  两者共享同一套 Rust 后端（<code>conversation.rs</code> + <code>llm/</code>），但 Dock 提交后会话是「后台运行」的，而 Dialog 是「前台交互」的。Dock 创建的会话 ID 通过 <code>setQueueSessionId</code> 绑定到队列项，用户可以从 ProcessingQueue 点击跳转到 ConversationDialog 查看详情。
+</div>
+
+<!-- ==================== 数据流向图 ==================== -->
+<div class="section-title">数据流向总览</div>
+
+<div style="display:grid;grid-template-columns:1fr 60px 1fr 60px 1fr;gap:0;align-items:center;margin-bottom:40px;">
+  <div class="flow-node entry" style="text-align:center;">
+    <div class="node-label">前端入口层</div>
+    <div class="node-desc" style="font-size:0.65rem;">CommandDock<br>ConversationInput<br>⌘K / ProcessingQueue</div>
+  </div>
+  <div style="text-align:center;color:var(--text-3);font-size:0.7rem;">→<br><span style="font-size:0.55rem;">invoke()</span></div>
+  <div class="flow-node ipc" style="text-align:center;">
+    <div class="node-label">IPC 边界</div>
+    <div class="node-desc" style="font-size:0.65rem;">tauri.ts<br>conversation_create<br>conversation_send<br>conversation_inject</div>
+  </div>
+  <div style="text-align:center;color:var(--text-3);font-size:0.7rem;">→<br><span style="font-size:0.55rem;">Tauri cmd</span></div>
+  <div class="flow-node rust" style="text-align:center;">
+    <div class="node-label">Rust 处理层</div>
+    <div class="node-desc" style="font-size:0.65rem;">conversation.rs<br>llm/tool_loop.rs<br>llm/anthropic.rs</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 60px 1fr 60px 1fr;gap:0;align-items:center;">
+  <div class="flow-node logic" style="text-align:center;">
+    <div class="node-label">UI 渲染层</div>
+    <div class="node-desc" style="font-size:0.65rem;">ConversationDialog<br>ProcessingQueue<br>AiStatusPill</div>
+  </div>
+  <div style="text-align:center;color:var(--text-3);font-size:0.7rem;">←<br><span style="font-size:0.55rem;">setState</span></div>
+  <div class="flow-node logic" style="text-align:center;">
+    <div class="node-label">状态管理层</div>
+    <div class="node-desc" style="font-size:0.65rem;">useConversation<br>useJournal (queueItems)<br>cacheRef / streamingSessions</div>
+  </div>
+  <div style="text-align:center;color:var(--text-3);font-size:0.7rem;">←<br><span style="font-size:0.55rem;">listen()</span></div>
+  <div class="flow-node event" style="text-align:center;">
+    <div class="node-label">事件回流</div>
+    <div class="node-desc" style="font-size:0.65rem;">conversation-stream<br>ai-processing<br>journal-updated</div>
+  </div>
+</div>
+
+<div style="margin-top:56px;padding-top:20px;border-top:1px solid var(--border);font-size:0.6rem;color:var(--text-3);">
+  谨迹 JournalClaw · Dock → Agent 消息链路梳理 · 2026-04-16
+</div>
+
+</body>
+</html>

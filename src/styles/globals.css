@@ -152,6 +152,16 @@
   --queue-border: #d0d4d8;
   --queue-shadow: rgba(0, 0, 0, 0.06);
 
+  /* Dialog glass */
+  --dialog-glass-rgb: 247, 248, 249;
+  --dialog-glass-border: rgba(0, 0, 0, 0.1);
+  --dialog-glass-divider: rgba(0, 0, 0, 0.06);
+  --dialog-sidebar-bg: rgba(0, 0, 0, 0.04);
+  --dialog-inset-bg: rgba(0, 0, 0, 0.04);
+  --dialog-inset-border: rgba(0, 0, 0, 0.1);
+  --dialog-kbd-bg: rgba(0, 0, 0, 0.05);
+  --dialog-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 16px 48px rgba(0, 0, 0, 0.12);
+
   /* Context menu */
   --context-menu-bg: #f5f6f7;
   --context-menu-border: #d8dce0;
@@ -298,6 +308,16 @@
     --queue-bg: #1c1c1e;
     --queue-border: #2e3238;
     --queue-shadow: rgba(0, 0, 0, 0.3);
+
+    /* Dialog glass */
+    --dialog-glass-rgb: 28, 28, 30;
+    --dialog-glass-border: rgba(255, 255, 255, 0.12);
+    --dialog-glass-divider: rgba(255, 255, 255, 0.08);
+    --dialog-sidebar-bg: rgba(0, 0, 0, 0.15);
+    --dialog-inset-bg: rgba(0, 0, 0, 0.2);
+    --dialog-inset-border: rgba(255, 255, 255, 0.1);
+    --dialog-kbd-bg: rgba(255, 255, 255, 0.06);
+    --dialog-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 16px 48px rgba(0, 0, 0, 0.4);
 
     /* Context menu */
     --context-menu-bg: #1e1e1e;

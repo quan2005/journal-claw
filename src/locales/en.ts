@@ -9,7 +9,7 @@ export const en = {
 
   // Settings nav
   general: 'General',
-  aiEngine: 'AI Engine',
+  aiEngine: 'Model',
   voice: 'Voice',
   permissions: 'Permissions',
   plugins: 'Plugins',
@@ -166,19 +166,25 @@ export const en = {
   unsavedChanges: 'Unsaved changes',
 
   // Settings: AI Engine
-  aiEngineSection: 'AI Engine',
+  aiEngineSection: 'Model',
   comingSoon: 'Coming soon',
   inDevelopment: 'In development',
-  claudeNotFound: 'Claude Code not detected',
   installOneLiner: 'One-click install',
   requiresHomebrew: 'Requires Homebrew to be installed. Click to install, or run manually:',
   installing: 'Installing {label}…',
-  leaveBlankDefault: 'Leave blank to use CLI default',
-  customEndpoint: 'Custom API endpoint, leave blank for default (proxy use case)',
-  leaveBlankModel: 'Leave blank to use CLI default model',
-  dashscopeKeyHint: 'Alibaba Cloud DashScope API Key (independent of voice transcription config)',
+  leaveBlankDefault: 'Leave blank for default',
+  customEndpoint: 'Custom API endpoint, leave blank for default',
+  leaveBlankModel: 'Leave blank to pick from model list',
+  modelInputPlaceholder: 'Type or select a model…',
+  dashscopeKeyHint: 'OpenAI-compatible API Key',
   customEndpointHint: 'Custom API endpoint, leave blank for default',
   leaveBlankModelHint: 'Leave blank to use default model',
+  switchToSelect: 'Switch to list',
+  switchToManual: 'Manual input',
+  modelFetchFailed: 'Failed to fetch models',
+  refreshModels: 'Refresh',
+  loadingModels: 'Loading models…',
+  defaultModel: 'default',
 
   // Settings: Voice
   voiceSection: 'Voice',
@@ -231,9 +237,6 @@ export const en = {
   permSpeech: 'Speech recognition',
   permSpeechDesc:
     'Required when using Apple speech recognition engine (not needed for DashScope / WhisperKit).',
-  permClaude: 'Claude CLI',
-  permClaudeDesc: 'AI journal processing requires the Claude CLI to be installed.',
-  installClaude: 'Please install Claude CLI:',
   statusGranted: 'Granted',
   statusDenied: 'Denied',
   statusRestricted: 'Restricted',
@@ -281,7 +284,7 @@ export const en = {
     'Includes WhisperKit (MIT License) by Argmax, Inc. — on-device speech recognition engine',
 
   // App (AI config warning)
-  aiNotConfigured: 'AI engine not configured',
+  aiNotConfigured: 'Model not configured',
   goToSettings: 'Go to Settings →',
 
   // App (identity assistant name)
@@ -298,6 +301,8 @@ export const en = {
   replacePlaceholder: 'Replace with…',
   reset: 'Reset',
   edit: 'Edit',
+  resend: 'Resend',
+  pendingQueueHint: 'Will send after reply completes',
   resetAssistantTitle: 'Reset Assistant',
   confirmResetAssistant:
     'Reset to default assistant settings? Current custom content will be overwritten.',
@@ -326,7 +331,8 @@ export const en = {
   dashscopeVendor: 'Alibaba Cloud · Remote',
 
   // SectionAiEngine
-  qwenVendor: 'Alibaba Cloud',
+  qwenVendor: 'OpenAI Compatible',
+  getApiKey: 'Get API Key',
 
   // Settings: Automation
   automation: 'Auto Maintenance',
@@ -371,6 +377,34 @@ export const en = {
   feishuPermSend: 'Send replies as bot',
   feishuPermRead: 'Read message history',
   feishuPermDrive: 'Export Feishu documents',
+
+  // Conversation dialog
+  conversationChat: 'Discuss',
+  conversationAgent: 'Chat',
+  conversationChatHint: 'Discuss the topic…',
+  conversationAgentHint: 'Ask me anything…',
+  conversationThinking: 'Thinking…',
+  conversationInputPlaceholder: 'Type a message…',
+  conversationSend: 'Send',
+  conversationStop: 'Stop',
+  sessionNewChat: 'New chat',
+  sessionSearchPlaceholder: 'Search chats',
+  sessionEmpty: 'No chats yet',
+  sessionWebSearch: 'Web search',
+  sessionWebSearchQuery: 'Search: {query}',
+  timeToday: 'Today',
+  timeYesterday: 'Yesterday',
+  timeThisWeek: 'This week',
+  timeThisMonth: 'This month',
+  timeEarlier: 'Earlier',
+  timeLastYear: 'Over a year ago',
+
+  // Slash commands
+  slashSummarize: 'Summarize current entry',
+  slashTodos: 'Extract todos',
+  slashTranslate: 'Translate to English',
+  slashRewrite: 'Rewrite & polish',
+  slashTags: 'Generate tags',
 }
 
 export type Strings = typeof en

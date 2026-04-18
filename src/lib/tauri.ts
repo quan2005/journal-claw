@@ -189,12 +189,14 @@ export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
 
 // ASR config
 export interface AsrConfig {
-  asr_engine: 'apple' | 'dashscope' | 'whisperkit' | 'volcengine' | 'zhipu'
+  asr_engine: 'apple' | 'dashscope' | 'whisperkit' | 'siliconflow' | 'zhipu'
   dashscope_api_key: string
   whisperkit_model: 'base' | 'small' | 'large-v3-turbo'
   dashscope_asr_model: string
   volcengine_asr_api_key: string
   volcengine_asr_resource_id: string
+  siliconflow_asr_api_key: string
+  siliconflow_asr_model: string
   zhipu_asr_api_key: string
 }
 
@@ -208,8 +210,8 @@ export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
     dashscopeApiKey: cfg.dashscope_api_key,
     whisperkitModel: cfg.whisperkit_model,
     dashscopeAsrModel: cfg.dashscope_asr_model,
-    volcengineAsrApiKey: cfg.volcengine_asr_api_key,
-    volcengineAsrResourceId: cfg.volcengine_asr_resource_id,
+    siliconflowAsrApiKey: cfg.siliconflow_asr_api_key,
+    siliconflowAsrModel: cfg.siliconflow_asr_model,
     zhipuAsrApiKey: cfg.zhipu_asr_api_key,
   })
 

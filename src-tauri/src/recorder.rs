@@ -251,9 +251,33 @@ pub async fn stop_recording(app: AppHandle, state: State<'_, RecorderState>) -> 
             ])
             .status();
 
-        if let Ok(s) = status {
-            if s.success() {
+        match status {
+            Ok(s) if s.success() => {
                 let _ = std::fs::remove_file(&wav_path);
+            }
+            Ok(s) => {
+                eprintln!("[recorder] afconvert failed: exit {}", s);
+                let _ = app_clone.emit(
+                    "audio-pipeline-failed",
+                    serde_json::json!({
+                        "filename": filename,
+                        "stage": "afconvert",
+                        "error": format!("音频转换失败 (exit {})", s),
+                    }),
+                );
+                return;
+            }
+            Err(e) => {
+                eprintln!("[recorder] afconvert spawn error: {}", e);
+                let _ = app_clone.emit(
+                    "audio-pipeline-failed",
+                    serde_json::json!({
+                        "filename": filename,
+                        "stage": "afconvert",
+                        "error": format!("afconvert 启动失败: {}", e),
+                    }),
+                );
+                return;
             }
         }
 

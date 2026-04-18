@@ -385,6 +385,56 @@ export function useJournal() {
       },
     )
 
+    const unlistenPipelineFailed = listen<{ filename: string; stage: string; error: string }>(
+      'audio-pipeline-failed',
+      (event) => {
+        const { filename, error } = event.payload
+        setLocalItems((prev) => {
+          const match = prev.find((i) => i.filename === filename)
+          if (match) {
+            return prev.map((i) =>
+              i.filename === filename ? { ...i, status: 'failed' as const, error } : i,
+            )
+          }
+          return [
+            {
+              id: filename,
+              path: filename,
+              filename,
+              status: 'failed' as const,
+              error,
+              addedAt: Date.now(),
+              logs: [],
+            },
+            ...prev,
+          ]
+        })
+      },
+    )
+
+    const unlistenTranscriptionProgress = listen<{
+      filename: string
+      status: string
+      message?: string
+    }>('transcription-progress', (event) => {
+      const { filename, status, message } = event.payload
+      if (status === 'failed') {
+        setLocalItems((prev) =>
+          prev.map((i) =>
+            i.filename === filename
+              ? { ...i, status: 'failed' as const, error: message ?? '转写失败' }
+              : i,
+          ),
+        )
+      } else if (message) {
+        setLocalItems((prev) =>
+          prev.map((i) =>
+            i.filename === filename ? { ...i, logs: [...(i.logs ?? []), message] } : i,
+          ),
+        )
+      }
+    })
+
     return () => {
       clearInterval(pollInterval)
       refreshing.current = false
@@ -396,6 +446,8 @@ export function useJournal() {
       unlistenAudioReady.then((fn) => fn())
       unlistenDiscarded.then((fn) => fn())
       unlistenAudioFailed.then((fn) => fn())
+      unlistenPipelineFailed.then((fn) => fn())
+      unlistenTranscriptionProgress.then((fn) => fn())
       removalTimers.current.forEach((t) => clearTimeout(t))
       removalTimers.current.clear()
     }

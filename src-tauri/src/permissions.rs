@@ -45,7 +45,7 @@ pub struct AppPermissions {
 // macOS ObjC FFI helpers – read-only TCC status queries, never show a dialog.
 // ---------------------------------------------------------------------------
 #[cfg(target_os = "macos")]
-mod macos {
+pub mod macos {
     use std::ffi::CString;
     use std::os::raw::{c_char, c_void};
 

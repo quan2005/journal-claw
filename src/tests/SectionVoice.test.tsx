@@ -92,6 +92,8 @@ describe('SectionVoice', () => {
       dashscope_asr_model: 'qwen3-asr-flash',
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
+      siliconflow_asr_api_key: '',
+      siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
       zhipu_asr_api_key: '',
     })
     mockSetAsrConfig.mockResolvedValue(undefined)
@@ -189,6 +191,8 @@ describe('SectionVoice', () => {
         dashscope_asr_model: 'qwen3-asr-flash',
         volcengine_asr_api_key: '',
         volcengine_asr_resource_id: 'volc.seedasr.auc',
+        siliconflow_asr_api_key: '',
+        siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
         zhipu_asr_api_key: '',
       })
     })
@@ -204,6 +208,8 @@ describe('SectionVoice', () => {
       dashscope_asr_model: 'qwen3-asr-flash',
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
+      siliconflow_asr_api_key: '',
+      siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
       zhipu_asr_api_key: '',
     })
 

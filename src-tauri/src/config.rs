@@ -19,6 +19,10 @@ pub struct AsrConfig {
     pub dashscope_asr_model: String,
     pub volcengine_asr_api_key: String,
     pub volcengine_asr_resource_id: String,
+    #[serde(default)]
+    pub siliconflow_asr_api_key: String,
+    #[serde(default)]
+    pub siliconflow_asr_model: String,
     pub zhipu_asr_api_key: String,
 }
 
@@ -171,6 +175,10 @@ pub struct Config {
     #[serde(default = "default_volcengine_asr_resource_id")]
     pub volcengine_asr_resource_id: String, // "volc.bigasr.auc" | "volc.seedasr.auc"
     #[serde(default)]
+    pub siliconflow_asr_api_key: String,
+    #[serde(default = "default_siliconflow_asr_model")]
+    pub siliconflow_asr_model: String,
+    #[serde(default)]
     pub zhipu_asr_api_key: String,
     // 首次启动引导
     #[serde(default)]
@@ -293,6 +301,10 @@ fn default_volcengine_asr_resource_id() -> String {
     "volc.seedasr.auc".to_string()
 }
 
+fn default_siliconflow_asr_model() -> String {
+    "FunAudioLLM/SenseVoiceSmall".to_string()
+}
+
 pub fn normalize_whisperkit_model(model: &str) -> Option<&'static str> {
     match model {
         "base" => Some("base"),
@@ -411,7 +423,7 @@ fn sanitize_engine_config(config: &mut Config) {
         config.active_ai_engine = default_active_engine();
     }
 
-    let valid_asr_engines = ["apple", "dashscope", "whisperkit", "volcengine", "zhipu"];
+    let valid_asr_engines = ["apple", "dashscope", "whisperkit", "siliconflow", "zhipu"];
     if !valid_asr_engines.contains(&config.asr_engine.as_str()) {
         config.asr_engine = default_asr_engine();
     }
@@ -426,7 +438,13 @@ fn sanitize_engine_config(config: &mut Config) {
     if config.asr_engine == "volcengine" && config.volcengine_asr_api_key.is_empty() {
         config.asr_engine = "apple".to_string();
     }
+    if config.asr_engine == "siliconflow" && config.siliconflow_asr_api_key.trim().is_empty() {
+        config.asr_engine = "apple".to_string();
+    }
     if config.asr_engine == "zhipu" && config.zhipu_asr_api_key.is_empty() {
+        config.asr_engine = "apple".to_string();
+    }
+    if config.asr_engine == "dashscope" && config.dashscope_api_key.trim().is_empty() {
         config.asr_engine = "apple".to_string();
     }
 
@@ -731,6 +749,8 @@ pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
         dashscope_asr_model: c.dashscope_asr_model,
         volcengine_asr_api_key: c.volcengine_asr_api_key,
         volcengine_asr_resource_id: c.volcengine_asr_resource_id,
+        siliconflow_asr_api_key: c.siliconflow_asr_api_key,
+        siliconflow_asr_model: c.siliconflow_asr_model,
         zhipu_asr_api_key: c.zhipu_asr_api_key,
     })
 }
@@ -763,11 +783,11 @@ pub fn set_asr_config(
     dashscope_api_key: String,
     whisperkit_model: String,
     dashscope_asr_model: String,
-    volcengine_asr_api_key: String,
-    volcengine_asr_resource_id: String,
+    siliconflow_asr_api_key: String,
+    siliconflow_asr_model: String,
     zhipu_asr_api_key: String,
 ) -> Result<(), String> {
-    let valid_engines = ["apple", "dashscope", "whisperkit", "volcengine", "zhipu"];
+    let valid_engines = ["apple", "dashscope", "whisperkit", "siliconflow", "zhipu"];
     if !valid_engines.contains(&asr_engine.as_str()) {
         return Err(format!("invalid asr_engine: {}", asr_engine));
     }
@@ -785,14 +805,8 @@ pub fn set_asr_config(
     c.dashscope_api_key = dashscope_api_key;
     c.whisperkit_model = normalized_model.to_string();
     c.dashscope_asr_model = asr_model;
-    let valid_resources = ["volc.bigasr.auc", "volc.seedasr.auc"];
-    c.volcengine_asr_api_key = volcengine_asr_api_key;
-    c.volcengine_asr_resource_id = if valid_resources.contains(&volcengine_asr_resource_id.as_str())
-    {
-        volcengine_asr_resource_id
-    } else {
-        default_volcengine_asr_resource_id()
-    };
+    c.siliconflow_asr_api_key = siliconflow_asr_api_key;
+    c.siliconflow_asr_model = siliconflow_asr_model;
     c.zhipu_asr_api_key = zhipu_asr_api_key;
     save_config(&app, &c)
 }

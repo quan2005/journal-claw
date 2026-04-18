@@ -2032,15 +2032,20 @@ pub async fn diarize_with_speakerkit(
         .spawn()
         .map_err(|e| format!("启动 journal-speech diarize 失败: {}", e))?;
 
-    // 流式读取 stderr 日志
+    // 流式读取 stderr 日志，同时累积用于错误报告
+    let diarize_stderr_lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
     let stderr_handle = if let Some(stderr) = child.stderr.take() {
         let app_clone = app.clone();
         let fname = filename.clone();
+        let lines_clone = std::sync::Arc::clone(&diarize_stderr_lines);
         Some(tokio::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
                 if line.trim().is_empty() {
                     continue;
+                }
+                if let Ok(mut v) = lines_clone.lock() {
+                    v.push(line.trim().to_string());
                 }
                 let _ = app_clone.emit(
                     "transcription-progress",
@@ -2102,9 +2107,15 @@ pub async fn diarize_with_speakerkit(
     };
 
     if !status.success() {
+        let stderr_summary = diarize_stderr_lines
+            .lock()
+            .ok()
+            .map(|v| v.join("; "))
+            .filter(|s| !s.is_empty());
         let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
             .ok()
             .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+            .or(stderr_summary)
             .unwrap_or_else(|| "journal-speech diarize 失败".to_string());
         return Err(error_msg);
     }

@@ -6,10 +6,10 @@ import {
   ShieldCheck,
   Timer,
   Puzzle,
+  Blocks,
   Info,
   type LucideIcon,
 } from 'lucide-react'
-import { FeishuIcon } from '../components/icons/FeishuIcon'
 import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
@@ -55,9 +55,6 @@ const SettingsContent = memo(function SettingsContent({
       <section id="general" ref={(el) => registerSectionRef('general', el)}>
         <SectionGeneral />
       </section>
-      <section id="im" ref={(el) => registerSectionRef('im', el)}>
-        <SectionIM />
-      </section>
       <section id="ai" ref={(el) => registerSectionRef('ai', el)}>
         <SectionAiEngine />
       </section>
@@ -72,6 +69,9 @@ const SettingsContent = memo(function SettingsContent({
       </section>
       <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}>
         <SectionPlugins />
+      </section>
+      <section id="im" ref={(el) => registerSectionRef('im', el)}>
+        <SectionIM />
       </section>
       <section
         id="about"
@@ -93,12 +93,13 @@ export function SettingsLayout({
   const { t } = useTranslation()
   const NAV_ITEMS: NavItem[] = [
     { id: 'general', label: t('general'), icon: Settings2 },
-    { id: 'im', label: t('im'), icon: FeishuIcon },
+
     { id: 'ai', label: t('aiEngine'), icon: Cpu },
     { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
     { id: 'plugins', label: t('plugins'), icon: Puzzle },
+    { id: 'im', label: t('thirdPartyTools'), icon: Blocks },
     { id: 'about', label: t('about'), icon: Info },
   ]
   const [activeNav, setActiveNav] = useState<NavId>('general')

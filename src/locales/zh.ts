@@ -350,6 +350,18 @@ export const zh: Strings = {
   appleVendorDefault: '系统内置 · 零配置',
   whisperkitVendor: 'Argmax · 本地',
   dashscopeVendor: '阿里云 · 云端',
+  volcengineEngineLabel: '火山引擎',
+  volcengineVendor: '字节跳动 · 云端',
+  volcengineApiKeyLabel: '火山引擎 API Key',
+  volcengineApiKeyHint: '在火山引擎控制台获取 API Key',
+  volcengineResourceId: '识别模型',
+  volcengineSeedAsr: '豆包录音文件识别 2.0',
+  volcengineBigAsr: '豆包录音文件识别 1.0',
+  zhipuEngineLabel: '智谱 AI',
+  zhipuVendor: '智谱 · 云端',
+  zhipuApiKeyLabel: '智谱 API Key',
+  zhipuApiKeyHint: '在智谱开放平台获取 API Key',
+  zhipuLimitHint: '单次请求限制 30 秒，长音频将自动分片处理',
 
   // SectionAiEngine
   qwenVendor: 'OpenAI 兼容',
@@ -377,7 +389,8 @@ export const zh: Strings = {
   organized: '整理了',
 
   // Settings: IM bridge
-  im: 'IM 配置',
+  im: '第三方工具',
+  thirdPartyTools: '第三方工具',
   // Settings: Feishu bridge
   feishu: '飞书',
   feishuTitle: '飞书 IM 桥接',
@@ -426,4 +439,7 @@ export const zh: Strings = {
   slashTranslate: '翻译为英文',
   slashRewrite: '改写润色',
   slashTags: '重新生成标签',
+  providerLabel: '显示名称',
+  addProvider: '添加供应商',
+  customProvider: '自定义供应商',
 }

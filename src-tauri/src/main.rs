@@ -320,6 +320,7 @@ fn main() {
             conversation::conversation_close,
             conversation::conversation_inject,
             conversation::conversation_truncate,
+            conversation::conversation_retry,
             conversation::conversation_list,
             conversation::conversation_rename,
             conversation::conversation_delete,

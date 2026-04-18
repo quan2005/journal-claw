@@ -1,6 +1,6 @@
 [package]
 name = "journal"
-version = "0.14.0"
+version = "0.14.1"
 description = "谨迹 — 知识工作者的日志助手"
 authors = ["you"]
 edition = "2021"
@@ -30,6 +30,7 @@ tauri-plugin-dialog = "2"
 libc = "0.2.183"
 futures = "0.3"
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+flate2 = "1"
 dirs = "5"
 async-trait = "0.1"
 tokio-util = { version = "0.7", features = ["rt"] }

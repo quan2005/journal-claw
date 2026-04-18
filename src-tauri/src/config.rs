@@ -17,6 +17,9 @@ pub struct AsrConfig {
     pub dashscope_api_key: String,
     pub whisperkit_model: String,
     pub dashscope_asr_model: String,
+    pub volcengine_asr_api_key: String,
+    pub volcengine_asr_resource_id: String,
+    pub zhipu_asr_api_key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -30,45 +33,90 @@ pub struct VendorConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct EngineConfig {
-    pub active_vendor: String,
-    pub vendors: std::collections::HashMap<String, VendorConfig>,
+pub struct ProviderEntry {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default)]
+    pub base_url: String,
+    #[serde(default)]
+    pub model: String,
 }
 
-/// Valid vendor IDs (all use Anthropic Messages API protocol).
-pub const VALID_VENDORS: &[&str] = &["volcengine", "zhipu", "dashscope", "anthropic"];
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EngineConfig {
+    pub active_provider: String,
+    pub providers: Vec<ProviderEntry>,
+}
+
+pub struct BuiltinPreset {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub default_base_url: &'static str,
+    pub default_model: &'static str,
+}
+
+pub const BUILTIN_PRESETS: &[BuiltinPreset] = &[
+    BuiltinPreset {
+        id: "deepseek",
+        label: "DeepSeek",
+        default_base_url: "https://api.deepseek.com/anthropic",
+        default_model: "deepseek-chat",
+    },
+    BuiltinPreset {
+        id: "volcengine",
+        label: "火山方舟",
+        default_base_url: "https://ark.cn-beijing.volces.com/api/coding",
+        default_model: "doubao-1.5-pro-256k",
+    },
+    BuiltinPreset {
+        id: "zhipu",
+        label: "智谱 AI",
+        default_base_url: "https://open.bigmodel.cn/api/anthropic",
+        default_model: "glm-4-plus",
+    },
+    BuiltinPreset {
+        id: "dashscope",
+        label: "阿里云百炼",
+        default_base_url: "https://coding.dashscope.aliyuncs.com/apps/anthropic",
+        default_model: "qwen-max",
+    },
+    BuiltinPreset {
+        id: "anthropic",
+        label: "Anthropic",
+        default_base_url: "https://api.anthropic.com",
+        default_model: "claude-sonnet-4-20250514",
+    },
+];
 
 impl Config {
-    /// Get the active vendor's config (api_key, base_url, model).
+    pub fn active_provider_entry(&self) -> Option<&ProviderEntry> {
+        self.providers.iter().find(|p| p.id == self.active_provider)
+    }
+
     pub fn active_vendor_config(&self) -> (&str, &str, &str) {
-        let vc = self.vendor_configs.get(&self.active_vendor);
-        let api_key = vc.map(|v| v.api_key.as_str()).unwrap_or("");
-        let base_url = vc.map(|v| v.base_url.as_str()).unwrap_or("");
-        let model = vc.map(|v| v.model.as_str()).unwrap_or("");
-        (api_key, base_url, model)
+        match self.active_provider_entry() {
+            Some(p) => (p.api_key.as_str(), p.base_url.as_str(), p.model.as_str()),
+            None => ("", "", ""),
+        }
     }
 }
 
-/// Default base URL for each vendor.
+pub fn preset_for_id(id: &str) -> Option<&'static BuiltinPreset> {
+    BUILTIN_PRESETS.iter().find(|p| p.id == id)
+}
+
 pub fn default_base_url_for_vendor(vendor: &str) -> String {
-    match vendor {
-        "anthropic" => "https://api.anthropic.com".to_string(),
-        "zhipu" => "https://open.bigmodel.cn/api/anthropic".to_string(),
-        "dashscope" => "https://coding.dashscope.aliyuncs.com/apps/anthropic".to_string(),
-        "volcengine" => "https://ark.cn-beijing.volces.com/api/coding".to_string(),
-        _ => "https://api.anthropic.com".to_string(),
-    }
+    preset_for_id(vendor)
+        .map(|p| p.default_base_url.to_string())
+        .unwrap_or_else(|| "https://api.anthropic.com".to_string())
 }
 
-/// Default model for each vendor.
 pub fn default_model_for_vendor(vendor: &str) -> String {
-    match vendor {
-        "anthropic" => "claude-sonnet-4-20250514".to_string(),
-        "zhipu" => "glm-4-plus".to_string(),
-        "dashscope" => "qwen-max".to_string(),
-        "volcengine" => "doubao-1.5-pro-256k".to_string(),
-        _ => "claude-sonnet-4-20250514".to_string(),
-    }
+    preset_for_id(vendor)
+        .map(|p| p.default_model.to_string())
+        .unwrap_or_else(|| "claude-sonnet-4-20250514".to_string())
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -79,8 +127,13 @@ pub struct Config {
     pub workspace_path: String,
     #[serde(default)]
     pub window_state: Option<WindowState>,
-    // AI 引擎配置 (vendor-based, v2)
+    // AI 引擎配置 (provider list, v3)
     #[serde(default = "default_active_vendor")]
+    pub active_provider: String,
+    #[serde(default)]
+    pub providers: Vec<ProviderEntry>,
+    // v2 fields — kept for migration
+    #[serde(default)]
     pub active_vendor: String,
     #[serde(default)]
     pub vendor_configs: std::collections::HashMap<String, VendorConfig>,
@@ -113,6 +166,12 @@ pub struct Config {
     pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
     #[serde(default = "default_dashscope_asr_model")]
     pub dashscope_asr_model: String, // "qwen3-asr-flash" | "qwen3-asr-flash-filetrans"
+    #[serde(default)]
+    pub volcengine_asr_api_key: String,
+    #[serde(default = "default_volcengine_asr_resource_id")]
+    pub volcengine_asr_resource_id: String, // "volc.bigasr.auc" | "volc.seedasr.auc"
+    #[serde(default)]
+    pub zhipu_asr_api_key: String,
     // 首次启动引导
     #[serde(default)]
     pub sample_entry_created: bool,
@@ -230,6 +289,10 @@ fn default_dashscope_asr_model() -> String {
     "qwen3-asr-flash".to_string()
 }
 
+fn default_volcengine_asr_resource_id() -> String {
+    "volc.seedasr.auc".to_string()
+}
+
 pub fn normalize_whisperkit_model(model: &str) -> Option<&'static str> {
     match model {
         "base" => Some("base"),
@@ -250,7 +313,6 @@ pub fn whisperkit_cli_model_name(model: &str) -> String {
 fn sanitize_engine_config(config: &mut Config) {
     // Migration v1 → v2: legacy per-engine fields → vendor_configs map
     if config.vendor_configs.is_empty() {
-        // First check old v1.5 single-vendor fields
         if !config.vendor_api_key.is_empty() {
             config.vendor_configs.insert(
                 config.active_vendor.clone(),
@@ -261,7 +323,6 @@ fn sanitize_engine_config(config: &mut Config) {
                 },
             );
         }
-        // Then check legacy v1 per-engine fields
         if !config.claude_code_api_key.is_empty() {
             let vendor = "anthropic".to_string();
             config.vendor_configs.entry(vendor).or_default().api_key =
@@ -296,9 +357,52 @@ fn sanitize_engine_config(config: &mut Config) {
         }
     }
 
-    // Validate active_vendor
-    if !VALID_VENDORS.contains(&config.active_vendor.as_str()) {
-        config.active_vendor = default_active_vendor();
+    // Migration v2 → v3: vendor_configs map → providers list
+    // Iterate in BUILTIN_PRESETS order to get a stable, deterministic result.
+    if config.providers.is_empty() && !config.vendor_configs.is_empty() {
+        for preset in BUILTIN_PRESETS {
+            if let Some(vc) = config.vendor_configs.get(preset.id) {
+                config.providers.push(ProviderEntry {
+                    id: preset.id.to_string(),
+                    label: preset.label.to_string(),
+                    api_key: vc.api_key.clone(),
+                    base_url: vc.base_url.clone(),
+                    model: vc.model.clone(),
+                });
+            }
+        }
+        // Any custom (non-builtin) entries, sorted by key for stability
+        let mut extra: Vec<_> = config
+            .vendor_configs
+            .iter()
+            .filter(|(id, _)| BUILTIN_PRESETS.iter().all(|p| p.id != id.as_str()))
+            .collect();
+        extra.sort_by_key(|(id, _)| id.as_str());
+        for (vendor_id, vc) in extra {
+            config.providers.push(ProviderEntry {
+                id: vendor_id.clone(),
+                label: vendor_id.clone(),
+                api_key: vc.api_key.clone(),
+                base_url: vc.base_url.clone(),
+                model: vc.model.clone(),
+            });
+        }
+        if !config.active_vendor.is_empty() && config.active_provider == default_active_vendor() {
+            config.active_provider = config.active_vendor.clone();
+        }
+    }
+
+    // Ensure active_provider points to a valid entry; fall back to first provider or "anthropic"
+    if !config
+        .providers
+        .iter()
+        .any(|p| p.id == config.active_provider)
+    {
+        config.active_provider = config
+            .providers
+            .first()
+            .map(|p| p.id.clone())
+            .unwrap_or_else(default_active_vendor);
     }
 
     // Legacy field validation (kept for serde compat)
@@ -307,7 +411,7 @@ fn sanitize_engine_config(config: &mut Config) {
         config.active_ai_engine = default_active_engine();
     }
 
-    let valid_asr_engines = ["apple", "dashscope", "whisperkit"];
+    let valid_asr_engines = ["apple", "dashscope", "whisperkit", "volcengine", "zhipu"];
     if !valid_asr_engines.contains(&config.asr_engine.as_str()) {
         config.asr_engine = default_asr_engine();
     }
@@ -318,6 +422,17 @@ fn sanitize_engine_config(config: &mut Config) {
     // - 新用户默认 apple（已通过 default_asr_engine 实现）
     if config.asr_engine == "whisperkit" && !cfg!(test) && find_whisperkit_cli_path().is_none() {
         config.asr_engine = "apple".to_string();
+    }
+    if config.asr_engine == "volcengine" && config.volcengine_asr_api_key.is_empty() {
+        config.asr_engine = "apple".to_string();
+    }
+    if config.asr_engine == "zhipu" && config.zhipu_asr_api_key.is_empty() {
+        config.asr_engine = "apple".to_string();
+    }
+
+    let valid_volcengine_resources = ["volc.bigasr.auc", "volc.seedasr.auc"];
+    if !valid_volcengine_resources.contains(&config.volcengine_asr_resource_id.as_str()) {
+        config.volcengine_asr_resource_id = default_volcengine_asr_resource_id();
     }
 
     config.whisperkit_model = normalize_whisperkit_model(&config.whisperkit_model)
@@ -577,19 +692,27 @@ pub fn get_engine_config(app: AppHandle) -> Result<EngineConfig, String> {
     let c = load_config(&app)?;
 
     Ok(EngineConfig {
-        active_vendor: c.active_vendor.clone(),
-        vendors: c.vendor_configs.clone(),
+        active_provider: c.active_provider.clone(),
+        providers: c.providers.clone(),
     })
 }
 
 #[tauri::command]
 pub fn set_engine_config(app: AppHandle, config: EngineConfig) -> Result<(), String> {
-    if !VALID_VENDORS.contains(&config.active_vendor.as_str()) {
-        return Err(format!("invalid vendor: {}", config.active_vendor));
+    if !config
+        .providers
+        .iter()
+        .any(|p| p.id == config.active_provider)
+        && !config.providers.is_empty()
+    {
+        return Err(format!(
+            "active_provider '{}' not found in providers list",
+            config.active_provider
+        ));
     }
     let mut c = load_config(&app)?;
-    c.active_vendor = config.active_vendor;
-    c.vendor_configs = config.vendors;
+    c.active_provider = config.active_provider;
+    c.providers = config.providers;
     save_config(&app, &c)
 }
 
@@ -606,6 +729,9 @@ pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
         dashscope_api_key: c.dashscope_api_key,
         whisperkit_model: c.whisperkit_model,
         dashscope_asr_model: c.dashscope_asr_model,
+        volcengine_asr_api_key: c.volcengine_asr_api_key,
+        volcengine_asr_resource_id: c.volcengine_asr_resource_id,
+        zhipu_asr_api_key: c.zhipu_asr_api_key,
     })
 }
 
@@ -630,14 +756,18 @@ pub fn get_apple_stt_variant() -> String {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn set_asr_config(
     app: AppHandle,
     asr_engine: String,
     dashscope_api_key: String,
     whisperkit_model: String,
     dashscope_asr_model: String,
+    volcengine_asr_api_key: String,
+    volcengine_asr_resource_id: String,
+    zhipu_asr_api_key: String,
 ) -> Result<(), String> {
-    let valid_engines = ["apple", "dashscope", "whisperkit"];
+    let valid_engines = ["apple", "dashscope", "whisperkit", "volcengine", "zhipu"];
     if !valid_engines.contains(&asr_engine.as_str()) {
         return Err(format!("invalid asr_engine: {}", asr_engine));
     }
@@ -655,6 +785,15 @@ pub fn set_asr_config(
     c.dashscope_api_key = dashscope_api_key;
     c.whisperkit_model = normalized_model.to_string();
     c.dashscope_asr_model = asr_model;
+    let valid_resources = ["volc.bigasr.auc", "volc.seedasr.auc"];
+    c.volcengine_asr_api_key = volcengine_asr_api_key;
+    c.volcengine_asr_resource_id = if valid_resources.contains(&volcengine_asr_resource_id.as_str())
+    {
+        volcengine_asr_resource_id
+    } else {
+        default_volcengine_asr_resource_id()
+    };
+    c.zhipu_asr_api_key = zhipu_asr_api_key;
     save_config(&app, &c)
 }
 
@@ -922,29 +1061,25 @@ mod tests {
     #[test]
     fn config_new_engine_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.active_vendor, "anthropic");
-        assert!(c.vendor_configs.is_empty());
+        assert_eq!(c.active_provider, "anthropic");
+        assert!(c.providers.is_empty());
     }
 
     #[test]
     fn config_engine_fields_roundtrip() {
         let mut c = Config::default();
-        c.active_vendor = "dashscope".into();
-        c.vendor_configs.insert(
-            "dashscope".into(),
-            VendorConfig {
-                api_key: "sk-test".into(),
-                base_url: "https://coding.dashscope.aliyuncs.com/apps/anthropic".into(),
-                model: "qwen-max".into(),
-            },
-        );
+        c.active_provider = "ds1".into();
+        c.providers.push(ProviderEntry {
+            id: "ds1".into(),
+            label: "阿里云百炼".into(),
+            api_key: "sk-test".into(),
+            base_url: "https://coding.dashscope.aliyuncs.com/apps/anthropic".into(),
+            model: "qwen-max".into(),
+        });
         let json = serde_json::to_string(&c).unwrap();
         let c2: Config = serde_json::from_str(&json).unwrap();
-        assert_eq!(c2.active_vendor, "dashscope");
-        assert_eq!(
-            c2.vendor_configs.get("dashscope").unwrap().api_key,
-            "sk-test"
-        );
+        assert_eq!(c2.active_provider, "ds1");
+        assert_eq!(c2.providers[0].api_key, "sk-test");
     }
 
     #[test]
@@ -952,10 +1087,10 @@ mod tests {
         let json = r#"{"active_ai_engine":"claude","claude_code_api_key":"sk-ant-old","claude_code_model":"claude-3-opus"}"#;
         let mut c: Config = serde_json::from_str(json).unwrap();
         sanitize_engine_config(&mut c);
-        assert_eq!(c.active_vendor, "anthropic");
-        let vc = c.vendor_configs.get("anthropic").unwrap();
-        assert_eq!(vc.api_key, "sk-ant-old");
-        assert_eq!(vc.model, "claude-3-opus");
+        assert_eq!(c.active_provider, "anthropic");
+        let p = c.providers.iter().find(|p| p.id == "anthropic").unwrap();
+        assert_eq!(p.api_key, "sk-ant-old");
+        assert_eq!(p.model, "claude-3-opus");
     }
 
     #[test]
@@ -963,9 +1098,9 @@ mod tests {
         let json = r#"{"active_ai_engine":"openai","openai_code_api_key":"sk-qwen","openai_code_base_url":"https://dashscope.aliyuncs.com"}"#;
         let mut c: Config = serde_json::from_str(json).unwrap();
         sanitize_engine_config(&mut c);
-        assert_eq!(c.active_vendor, "dashscope");
-        let vc = c.vendor_configs.get("dashscope").unwrap();
-        assert_eq!(vc.api_key, "sk-qwen");
+        assert_eq!(c.active_provider, "dashscope");
+        let p = c.providers.iter().find(|p| p.id == "dashscope").unwrap();
+        assert_eq!(p.api_key, "sk-qwen");
     }
 
     #[test]
@@ -1014,7 +1149,7 @@ mod tests {
             ..Config::default()
         };
         sanitize_engine_config(&mut c);
-        assert_eq!(c.active_vendor, "anthropic");
+        assert_eq!(c.active_provider, "anthropic");
         assert_eq!(c.asr_engine, "apple");
         assert_eq!(c.whisperkit_model, "base");
     }

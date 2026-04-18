@@ -21,7 +21,7 @@ export default function SectionFeishu() {
           fontWeight: 500,
         }}
       >
-        {t('im')}
+        {t('thirdPartyTools')}
       </div>
 
       <div style={{ opacity: 0.35, pointerEvents: 'none' }}>

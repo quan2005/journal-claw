@@ -1,14 +1,23 @@
 use crate::config;
+use crate::config::Config;
 use crate::speaker_profiles;
+use async_trait::async_trait;
 use base64::Engine as _;
+use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use futures::stream::StreamExt;
+use futures::SinkExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::io::{Read as IoRead, Write as IoWrite};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
+use tokio_tungstenite::tungstenite;
 
 const DASHSCOPE_CHAT_URL: &str =
     "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
@@ -37,6 +46,142 @@ pub struct Transcript {
     /// Which speech engine produced this transcript (e.g. "speech_analyzer", "sf_speech_recognizer", "whisperkit", "dashscope")
     #[serde(default)]
     pub engine: Option<String>,
+}
+
+// ── ASR Engine trait ──────────────────────────────────────────────
+
+pub struct AsrInput {
+    pub app: AppHandle,
+    pub file_path: PathBuf,
+    pub duration_secs: f64,
+    pub speaker_segments: Vec<SpeakerSegment>,
+}
+
+#[async_trait]
+pub trait AsrEngine: Send + Sync {
+    fn name(&self) -> &'static str;
+    #[allow(dead_code)]
+    fn has_timestamps(&self) -> bool;
+    async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String>;
+}
+
+struct AppleSttEngine;
+struct WhisperKitEngine {
+    model: String,
+}
+struct DashScopeEngine;
+struct VolcengineEngine {
+    api_key: String,
+    resource_id: String,
+}
+struct ZhipuEngine {
+    api_key: String,
+}
+
+#[async_trait]
+impl AsrEngine for AppleSttEngine {
+    fn name(&self) -> &'static str {
+        "apple"
+    }
+    fn has_timestamps(&self) -> bool {
+        true
+    }
+    async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
+        transcribe_with_apple_stt(
+            input.app.clone(),
+            input.file_path.clone(),
+            input.duration_secs,
+        )
+        .await
+    }
+}
+
+#[async_trait]
+impl AsrEngine for WhisperKitEngine {
+    fn name(&self) -> &'static str {
+        "whisperkit"
+    }
+    fn has_timestamps(&self) -> bool {
+        true
+    }
+    async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
+        transcribe_with_whisperkit(
+            input.app.clone(),
+            input.file_path.clone(),
+            self.model.clone(),
+        )
+        .await
+    }
+}
+
+#[async_trait]
+impl AsrEngine for DashScopeEngine {
+    fn name(&self) -> &'static str {
+        "dashscope"
+    }
+    fn has_timestamps(&self) -> bool {
+        false
+    }
+    async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
+        transcribe_with_dashscope(&input.app, &input.file_path, input.duration_secs).await
+    }
+}
+
+#[async_trait]
+impl AsrEngine for VolcengineEngine {
+    fn name(&self) -> &'static str {
+        "volcengine"
+    }
+    fn has_timestamps(&self) -> bool {
+        true
+    }
+    async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
+        transcribe_with_volcengine(
+            &input.app,
+            &input.file_path,
+            input.duration_secs,
+            &self.api_key,
+            &self.resource_id,
+        )
+        .await
+    }
+}
+
+#[async_trait]
+impl AsrEngine for ZhipuEngine {
+    fn name(&self) -> &'static str {
+        "zhipu"
+    }
+    fn has_timestamps(&self) -> bool {
+        false
+    }
+    async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
+        transcribe_with_zhipu(
+            &input.app,
+            &input.file_path,
+            input.duration_secs,
+            &self.api_key,
+            &input.speaker_segments,
+        )
+        .await
+    }
+}
+
+fn create_asr_engine(cfg: &Config) -> Box<dyn AsrEngine> {
+    match cfg.asr_engine.as_str() {
+        "apple" => Box::new(AppleSttEngine),
+        "whisperkit" => Box::new(WhisperKitEngine {
+            model: cfg.whisperkit_model.clone(),
+        }),
+        "volcengine" => Box::new(VolcengineEngine {
+            api_key: cfg.volcengine_asr_api_key.clone(),
+            resource_id: cfg.volcengine_asr_resource_id.clone(),
+        }),
+        "zhipu" => Box::new(ZhipuEngine {
+            api_key: cfg.zhipu_asr_api_key.clone(),
+        }),
+        _ => Box::new(DashScopeEngine),
+    }
 }
 
 pub fn transcript_json_path_for_audio(file_path: &std::path::Path) -> PathBuf {
@@ -722,6 +867,617 @@ async fn transcribe_with_dashscope(
     Ok(transcript)
 }
 
+// ── Volcengine ASR (火山方舟) ─────────────────────────────────────
+
+async fn transcribe_with_volcengine(
+    app: &AppHandle,
+    file_path: &Path,
+    duration_secs: f64,
+    api_key: &str,
+    resource_id: &str,
+) -> Result<Transcript, String> {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    if api_key.is_empty() {
+        let msg = "请先配置火山引擎 ASR API Key".to_string();
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
+    }
+
+    emit_progress(app, &filename, "transcribing");
+
+    // Convert audio to WAV PCM s16le 16kHz mono for the streaming API
+    let wav_tmp = std::env::temp_dir().join(format!(
+        "volc_pcm_{}.wav",
+        file_path.file_stem().unwrap_or_default().to_string_lossy()
+    ));
+    let af_status = tokio::process::Command::new("afconvert")
+        .args([
+            "-d",
+            "LEI16",
+            "-f",
+            "WAVE",
+            "-c",
+            "1",
+            "-r",
+            "16000",
+            &file_path.to_string_lossy(),
+            &wav_tmp.to_string_lossy(),
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await
+        .map_err(|e| {
+            let msg = format!("音频转换失败: {}", e);
+            save_transcript(app, file_path, "failed", &msg);
+            msg
+        })?;
+    if !af_status.success() {
+        let msg = "afconvert 转换 WAV 失败".to_string();
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
+    }
+
+    let pcm_bytes = fs::read(&wav_tmp).map_err(|e| {
+        let msg = format!("读取 WAV 文件失败: {}", e);
+        save_transcript(app, file_path, "failed", &msg);
+        msg
+    })?;
+    let _ = fs::remove_file(&wav_tmp);
+
+    // Skip WAV header (44 bytes) to get raw PCM data
+    let pcm_data = if pcm_bytes.len() > 44 {
+        &pcm_bytes[44..]
+    } else {
+        &pcm_bytes
+    };
+
+    // Map file-API resource IDs to streaming equivalents
+    let stream_resource_id = match resource_id {
+        "volc.bigasr.auc" => "volc.bigasr.sauc.duration",
+        _ => "volc.seedasr.sauc.duration",
+    };
+
+    let connect_id = uuid::Uuid::new_v4().to_string();
+    let ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream";
+
+    let request = tungstenite::http::Request::builder()
+        .uri(ws_url)
+        .header("Host", "openspeech.bytedance.com")
+        .header("X-Api-Key", api_key)
+        .header("X-Api-Resource-Id", stream_resource_id)
+        .header("X-Api-Connect-Id", &connect_id)
+        .header(
+            "Sec-WebSocket-Key",
+            tungstenite::handshake::client::generate_key(),
+        )
+        .header("Sec-WebSocket-Version", "13")
+        .header("Connection", "Upgrade")
+        .header("Upgrade", "websocket")
+        .body(())
+        .map_err(|e| {
+            let msg = format!("构建 WebSocket 请求失败: {}", e);
+            save_transcript(app, file_path, "failed", &msg);
+            msg
+        })?;
+
+    let (mut ws, _) = tokio_tungstenite::connect_async(request)
+        .await
+        .map_err(|e| {
+            let msg = format!("火山 ASR WebSocket 连接失败: {}", e);
+            save_transcript(app, file_path, "failed", &msg);
+            msg
+        })?;
+
+    // Step 1: Send full client request
+    let payload_json = serde_json::json!({
+        "user": { "uid": "journal-app" },
+        "audio": {
+            "format": "wav",
+            "rate": 16000,
+            "bits": 16,
+            "channel": 1,
+            "language": "zh-CN"
+        },
+        "request": {
+            "model_name": "bigmodel",
+            "enable_itn": true,
+            "enable_punc": true,
+            "show_utterances": true,
+            "result_type": "full"
+        }
+    });
+    let json_bytes = serde_json::to_vec(&payload_json).unwrap();
+    let compressed = volc_gzip_compress(&json_bytes);
+
+    // Header: version=1, header_size=1, msg_type=0001(full_client_req), flags=0000, serial=0001(JSON), compress=0001(gzip), reserved=0x00
+    let header: [u8; 4] = [0x11, 0x10, 0x11, 0x00];
+    let mut frame = Vec::with_capacity(4 + 4 + compressed.len());
+    frame.extend_from_slice(&header);
+    frame.extend_from_slice(&(compressed.len() as u32).to_be_bytes());
+    frame.extend_from_slice(&compressed);
+
+    ws.send(tungstenite::Message::Binary(frame))
+        .await
+        .map_err(|e| {
+            let msg = format!("发送 full client request 失败: {}", e);
+            save_transcript(app, file_path, "failed", &msg);
+            msg
+        })?;
+
+    // Read initial server response
+    volc_read_response(&mut ws).await.inspect_err(|e| {
+        save_transcript(app, file_path, "failed", e);
+    })?;
+
+    // Step 2: Send audio chunks (200ms each = 6400 bytes at 16kHz 16bit mono)
+    let chunk_size = 6400;
+    let total_chunks = pcm_data.len().div_ceil(chunk_size);
+
+    for (i, chunk) in pcm_data.chunks(chunk_size).enumerate() {
+        let is_last = i == total_chunks - 1;
+        let compressed_audio = volc_gzip_compress(chunk);
+
+        // Header: version=1, header_size=1, msg_type=0010(audio_only), flags, serial=0000(none), compress=0001(gzip), reserved=0x00
+        let flags = if is_last { 0x02 } else { 0x00 }; // 0b0010 = last packet
+        let audio_header: [u8; 4] = [0x11, 0x20 | flags, 0x01, 0x00];
+        let mut audio_frame = Vec::with_capacity(4 + 4 + compressed_audio.len());
+        audio_frame.extend_from_slice(&audio_header);
+        audio_frame.extend_from_slice(&(compressed_audio.len() as u32).to_be_bytes());
+        audio_frame.extend_from_slice(&compressed_audio);
+
+        ws.send(tungstenite::Message::Binary(audio_frame))
+            .await
+            .map_err(|e| {
+                let msg = format!("发送音频数据失败: {}", e);
+                save_transcript(app, file_path, "failed", &msg);
+                msg
+            })?;
+
+        // Small delay between chunks to avoid overwhelming the server
+        if !is_last {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    }
+
+    // Step 3: Read responses until we get the final one
+    let timeout = compute_stt_timeout(duration_secs);
+    let deadline = tokio::time::Instant::now() + timeout;
+    let mut final_text = String::new();
+    let mut final_utterances: Vec<WhisperSegment> = vec![];
+
+    loop {
+        let resp = tokio::time::timeout_at(deadline, volc_read_response(&mut ws)).await;
+        match resp {
+            Ok(Ok(payload)) => {
+                let is_final = payload.0;
+                if let Some(data) = payload.1 {
+                    if let Some(text) = data.pointer("/result/text").and_then(|v| v.as_str()) {
+                        final_text = text.to_string();
+                    }
+                    if let Some(arr) = data
+                        .pointer("/result/utterances")
+                        .and_then(|v| v.as_array())
+                    {
+                        final_utterances = arr
+                            .iter()
+                            .filter(|u| {
+                                u.get("definite").and_then(|v| v.as_bool()).unwrap_or(false)
+                            })
+                            .map(|u| WhisperSegment {
+                                speaker: None,
+                                start: u.get("start_time").and_then(|v| v.as_f64()).unwrap_or(0.0)
+                                    / 1000.0,
+                                end: u.get("end_time").and_then(|v| v.as_f64()).unwrap_or(0.0)
+                                    / 1000.0,
+                                text: u
+                                    .get("text")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("")
+                                    .to_string(),
+                            })
+                            .collect();
+                    }
+                }
+                if is_final {
+                    break;
+                }
+            }
+            Ok(Err(e)) => {
+                let _ = ws.close(None).await;
+                save_transcript(app, file_path, "failed", &e);
+                return Err(e);
+            }
+            Err(_) => {
+                let msg = "火山 ASR 超时".to_string();
+                let _ = ws.close(None).await;
+                save_transcript(app, file_path, "failed", &msg);
+                return Err(msg);
+            }
+        }
+    }
+
+    let _ = ws.close(None).await;
+
+    let transcript = Transcript {
+        status: "completed".to_string(),
+        text: final_text,
+        segments: final_utterances,
+        engine: Some("volcengine".to_string()),
+    };
+    save_transcript_data(file_path, &transcript);
+    emit_progress(app, &filename, "completed");
+    Ok(transcript)
+}
+
+fn volc_gzip_compress(data: &[u8]) -> Vec<u8> {
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(data).unwrap();
+    encoder.finish().unwrap()
+}
+
+fn volc_gzip_decompress(data: &[u8]) -> Result<Vec<u8>, String> {
+    let mut decoder = GzDecoder::new(data);
+    let mut out = Vec::new();
+    decoder
+        .read_to_end(&mut out)
+        .map_err(|e| format!("gzip 解压失败: {}", e))?;
+    Ok(out)
+}
+
+type VolcWs =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+
+/// Returns (is_final, Option<json_payload>)
+async fn volc_read_response(ws: &mut VolcWs) -> Result<(bool, Option<serde_json::Value>), String> {
+    loop {
+        let msg = ws
+            .next()
+            .await
+            .ok_or_else(|| "WebSocket 连接意外关闭".to_string())?
+            .map_err(|e| format!("WebSocket 读取失败: {}", e))?;
+
+        match msg {
+            tungstenite::Message::Binary(data) => {
+                if data.len() < 4 {
+                    return Err("火山 ASR 响应帧过短".to_string());
+                }
+                let msg_type = (data[1] >> 4) & 0x0F;
+                let msg_flags = data[1] & 0x0F;
+                let compression = data[2] & 0x0F;
+
+                // Error message (msg_type = 0b1111)
+                if msg_type == 0x0F {
+                    let error_code = if data.len() >= 8 {
+                        u32::from_be_bytes([data[4], data[5], data[6], data[7]])
+                    } else {
+                        0
+                    };
+                    let error_msg = if data.len() > 12 {
+                        let msg_size =
+                            u32::from_be_bytes([data[8], data[9], data[10], data[11]]) as usize;
+                        let msg_bytes = &data[12..12 + msg_size.min(data.len() - 12)];
+                        String::from_utf8_lossy(msg_bytes).to_string()
+                    } else {
+                        "unknown".to_string()
+                    };
+                    return Err(format!("火山 ASR 错误 ({}): {}", error_code, error_msg));
+                }
+
+                // Full server response (msg_type = 0b1001)
+                if msg_type == 0x09 {
+                    let is_final = msg_flags == 0x03 || msg_flags == 0x02;
+                    // Header(4) + sequence(4) + payload_size(4) + payload
+                    if data.len() < 12 {
+                        return Ok((is_final, None));
+                    }
+                    let payload_size =
+                        u32::from_be_bytes([data[8], data[9], data[10], data[11]]) as usize;
+                    if payload_size == 0 {
+                        return Ok((is_final, None));
+                    }
+                    let payload_bytes = &data[12..12 + payload_size.min(data.len() - 12)];
+                    let json_bytes = if compression == 0x01 {
+                        volc_gzip_decompress(payload_bytes)?
+                    } else {
+                        payload_bytes.to_vec()
+                    };
+                    let json: serde_json::Value = serde_json::from_slice(&json_bytes)
+                        .map_err(|e| format!("解析火山 ASR JSON 失败: {}", e))?;
+                    return Ok((is_final, Some(json)));
+                }
+
+                // Other message types — skip
+            }
+            tungstenite::Message::Close(_) => {
+                return Err("火山 ASR WebSocket 被服务端关闭".to_string());
+            }
+            _ => continue, // ping/pong/text — ignore
+        }
+    }
+}
+
+// ── Zhipu ASR (智谱) ─────────────────────────────────────────────
+
+const ZHIPU_ASR_URL: &str = "https://open.bigmodel.cn/api/paas/v4/audio/transcriptions";
+const ZHIPU_MAX_CHUNK_SECS: f64 = 28.0;
+
+fn chunk_segments_by_duration(segments: &[SpeakerSegment], max_secs: f64) -> Vec<(f64, f64)> {
+    if segments.is_empty() {
+        return vec![];
+    }
+    let mut chunks = vec![];
+    let mut chunk_start = segments[0].start;
+    let mut chunk_end = segments[0].end;
+
+    for seg in &segments[1..] {
+        if seg.end - chunk_start > max_secs {
+            chunks.push((chunk_start, chunk_end));
+            chunk_start = seg.start;
+            chunk_end = seg.end;
+        } else {
+            chunk_end = seg.end;
+        }
+    }
+    chunks.push((chunk_start, chunk_end));
+    chunks
+}
+
+fn chunk_fixed_duration(total_secs: f64, max_secs: f64) -> Vec<(f64, f64)> {
+    let mut chunks = vec![];
+    let mut start = 0.0;
+    while start < total_secs {
+        let end = (start + max_secs).min(total_secs);
+        chunks.push((start, end));
+        start = end;
+    }
+    chunks
+}
+
+async fn extract_audio_slice(source: &Path, start: f64, end: f64) -> Result<PathBuf, String> {
+    let duration = end - start;
+    let tmp = std::env::temp_dir().join(format!(
+        "zhipu_chunk_{}_{:.0}_{:.0}.wav",
+        source.file_stem().unwrap_or_default().to_string_lossy(),
+        start * 1000.0,
+        end * 1000.0
+    ));
+
+    let status = tokio::process::Command::new("ffmpeg")
+        .args([
+            "-y",
+            "-ss",
+            &format!("{:.3}", start),
+            "-t",
+            &format!("{:.3}", duration),
+            "-i",
+            &source.to_string_lossy(),
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            "-f",
+            "wav",
+            &tmp.to_string_lossy(),
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await
+        .map_err(|e| format!("ffmpeg 切片失败: {}", e))?;
+
+    if !status.success() {
+        // fallback: afconvert (macOS built-in) — convert whole file then trim with hound
+        let wav_tmp = std::env::temp_dir().join(format!(
+            "zhipu_full_{}.wav",
+            source.file_stem().unwrap_or_default().to_string_lossy()
+        ));
+        let af_status = tokio::process::Command::new("afconvert")
+            .args([
+                "-d",
+                "LEI16",
+                "-f",
+                "WAVE",
+                "-c",
+                "1",
+                &source.to_string_lossy(),
+                &wav_tmp.to_string_lossy(),
+            ])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .await
+            .map_err(|e| format!("afconvert 失败: {}", e))?;
+
+        if !af_status.success() {
+            return Err("无法转换音频格式（ffmpeg 和 afconvert 均失败）".to_string());
+        }
+
+        let reader =
+            hound::WavReader::open(&wav_tmp).map_err(|e| format!("读取 WAV 失败: {}", e))?;
+        let spec = reader.spec();
+        let sample_rate = spec.sample_rate as f64;
+        let start_sample = (start * sample_rate) as usize;
+        let end_sample = (end * sample_rate) as usize;
+
+        let all_samples: Vec<i16> = reader
+            .into_samples::<i16>()
+            .filter_map(|s| s.ok())
+            .collect();
+
+        let slice =
+            &all_samples[start_sample.min(all_samples.len())..end_sample.min(all_samples.len())];
+
+        let mut writer = hound::WavWriter::create(&tmp, spec)
+            .map_err(|e| format!("创建 WAV 切片失败: {}", e))?;
+        for &s in slice {
+            writer
+                .write_sample(s)
+                .map_err(|e| format!("写入 WAV 样本失败: {}", e))?;
+        }
+        writer
+            .finalize()
+            .map_err(|e| format!("完成 WAV 切片失败: {}", e))?;
+
+        let _ = std::fs::remove_file(&wav_tmp);
+    }
+
+    Ok(tmp)
+}
+
+async fn transcribe_with_zhipu(
+    app: &AppHandle,
+    file_path: &Path,
+    duration_secs: f64,
+    api_key: &str,
+    speaker_segments: &[SpeakerSegment],
+) -> Result<Transcript, String> {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    if api_key.is_empty() {
+        let msg = "请先配置智谱 ASR API Key".to_string();
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
+    }
+
+    emit_progress(app, &filename, "transcribing");
+
+    // Determine chunks based on 30s limit
+    let chunks = if !speaker_segments.is_empty() {
+        chunk_segments_by_duration(speaker_segments, ZHIPU_MAX_CHUNK_SECS)
+    } else {
+        chunk_fixed_duration(duration_secs, ZHIPU_MAX_CHUNK_SECS)
+    };
+
+    // Short audio (≤30s): send directly without slicing
+    if chunks.len() <= 1 && duration_secs <= 30.0 {
+        let text = zhipu_transcribe_file(app, file_path, api_key).await?;
+        let transcript = Transcript {
+            status: "completed".to_string(),
+            text,
+            segments: vec![],
+            engine: Some("zhipu".to_string()),
+        };
+        save_transcript_data(file_path, &transcript);
+        emit_progress(app, &filename, "completed");
+        return Ok(transcript);
+    }
+
+    // Long audio: slice and transcribe each chunk
+    let mut all_text = String::new();
+    let total = chunks.len();
+    for (i, (start, end)) in chunks.iter().enumerate() {
+        eprintln!(
+            "[zhipu] transcribing chunk {}/{} ({:.1}s-{:.1}s)",
+            i + 1,
+            total,
+            start,
+            end
+        );
+        let chunk_path = extract_audio_slice(file_path, *start, *end).await?;
+        match zhipu_transcribe_file(app, &chunk_path, api_key).await {
+            Ok(text) => {
+                if !all_text.is_empty() && !text.is_empty() {
+                    all_text.push(' ');
+                }
+                all_text.push_str(&text);
+            }
+            Err(e) => {
+                eprintln!("[zhipu] chunk {}/{} failed: {}", i + 1, total, e);
+            }
+        }
+        let _ = std::fs::remove_file(&chunk_path);
+    }
+
+    if all_text.is_empty() {
+        let msg = "智谱 ASR 所有分片均返回空文本".to_string();
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
+    }
+
+    let transcript = Transcript {
+        status: "completed".to_string(),
+        text: all_text,
+        segments: vec![],
+        engine: Some("zhipu".to_string()),
+    };
+    save_transcript_data(file_path, &transcript);
+    emit_progress(app, &filename, "completed");
+    Ok(transcript)
+}
+
+async fn zhipu_transcribe_file(
+    app: &AppHandle,
+    file_path: &Path,
+    api_key: &str,
+) -> Result<String, String> {
+    let file_bytes = fs::read(file_path).map_err(|e| {
+        let msg = format!("读取音频文件失败: {}", e);
+        save_transcript(app, file_path, "failed", &msg);
+        msg
+    })?;
+
+    let file_name = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let ext = file_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("wav");
+    let mime_str = match ext {
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        _ => "audio/wav",
+    };
+
+    let file_part = reqwest::multipart::Part::bytes(file_bytes)
+        .file_name(file_name)
+        .mime_str(mime_str)
+        .map_err(|e| format!("构建 multipart 失败: {}", e))?;
+
+    let form = reqwest::multipart::Form::new()
+        .part("file", file_part)
+        .text("model", "glm-asr-2512");
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(ZHIPU_ASR_URL)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| format!("智谱 ASR 请求失败: {}", e))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("智谱 ASR 失败 ({}): {}", status, body));
+    }
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("解析智谱响应失败: {}", e))?;
+
+    Ok(data
+        .get("text")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string())
+}
+
 /// Public entry point: start transcription in a background thread.
 pub fn start_transcription(
     app: AppHandle,
@@ -750,97 +1506,98 @@ pub async fn transcribe_audio_to_ai_markdown(
     let cfg = config::load_config(&app).inspect_err(|error| {
         save_transcript(&app, &file_path, "failed", error);
     })?;
-    let asr_engine = cfg.asr_engine.clone();
+    let engine = create_asr_engine(&cfg);
+    let engine_name = engine.name().to_string();
 
-    // Step 1: 转写（根据引擎选择）
-    let transcript = match asr_engine.as_str() {
-        "apple" => transcribe_with_apple_stt(app.clone(), file_path.clone(), duration_secs).await?,
-        "whisperkit" => {
-            transcribe_with_whisperkit(app.clone(), file_path.clone(), cfg.whisperkit_model).await?
-        }
-        _ => transcribe_with_dashscope(&app, &file_path, duration_secs).await?,
-    };
-
-    // Step 2: 说话人分离（所有引擎都调用 SpeakerKit 获取声纹向量，用于档案匹配）
-    // WhisperKit 已有 SPEAKER_XX 标签，但没有跨会话可匹配的声纹向量；
-    // 用 SpeakerKit 补充向量后，merge_transcript_with_speakers 会用档案名覆盖原标签。
     let filename = file_path
         .file_name()
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
+
+    // Step 1: 人声分割对齐（SpeakerKit diarization）
     emit_progress(&app, &filename, "diarizing");
-    let final_transcript =
+    let (speakers, diarize_ok) =
         match diarize_with_speakerkit(app.clone(), file_path.clone(), duration_secs).await {
             Ok((mut speakers, embeddings)) => {
-                // 用声纹档案识别说话人：已知→用档案名，未知→自动注册并返回"说话人 N"
+                // Step 2: 声纹识别 — 匹配已知档案或注册新说话人
                 if !embeddings.is_empty() {
                     let name_map = speaker_profiles::identify_or_register_all(&app, &embeddings);
-                    // 将 SPEAKER_XX 标签替换为档案名称
                     for seg in &mut speakers {
                         if let Some(display) = name_map.get(&seg.label) {
                             seg.label = display.clone();
                         }
                     }
-                    // 通知前端声纹档案已更新
                     let _ = app.emit("speakers-updated", ());
                 }
-                // 清除引擎自带的说话人标签，让 SpeakerKit 的档案名通过时间重叠匹配覆盖
-                // （否则 merge_transcript_with_speakers 会保留 WhisperKit 的 SPEAKER_XX 原始标签）
-                let merged = if transcript.segments.is_empty() && !speakers.is_empty() {
-                    // DashScope 等引擎只返回纯文本无时间戳 segments，
-                    // 直接用 SpeakerKit 的 diarize 结果作为 segments 骨架
-                    let speaker_segments: Vec<WhisperSegment> = speakers
-                        .iter()
-                        .map(|sp| WhisperSegment {
-                            speaker: Some(sp.label.clone()),
-                            start: sp.start,
-                            end: sp.end,
-                            text: String::new(),
-                        })
-                        .collect();
-                    Transcript {
-                        status: transcript.status.clone(),
-                        text: transcript.text.clone(),
-                        segments: speaker_segments,
-                        engine: transcript.engine.clone(),
-                    }
-                } else {
-                    let transcript_unlabeled = Transcript {
-                        status: transcript.status.clone(),
-                        text: transcript.text.clone(),
-                        segments: transcript
-                            .segments
-                            .iter()
-                            .map(|s| WhisperSegment {
-                                speaker: None,
-                                ..s.clone()
-                            })
-                            .collect(),
-                        engine: transcript.engine.clone(),
-                    };
-                    merge_transcript_with_speakers(&transcript_unlabeled, &speakers)
-                };
-                save_transcript_data(&file_path, &merged);
-                merged
+                (speakers, true)
             }
             Err(e) => {
-                eprintln!("[audio_pipeline] SpeakerKit failed, fallback: {}", e);
-                // 回退：保留 WhisperKit 原有标签或无标签
-                transcript
+                eprintln!(
+                    "[transcription] SpeakerKit failed, continuing without diarization: {}",
+                    e
+                );
+                (vec![], false)
             }
         };
 
-    // Step 3: 生成 audio-ai.md
-    let audio_filename = file_path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
+    // Step 3: ASR 转写（通过 trait 分发到具体引擎）
+    emit_progress(&app, &filename, "transcribing");
+    let input = AsrInput {
+        app: app.clone(),
+        file_path: file_path.clone(),
+        duration_secs,
+        speaker_segments: speakers.clone(),
+    };
+    let transcript = engine.transcribe(&input).await?;
 
-    emit_progress(&app, &audio_filename, "completed");
+    // Step 4: 合并说话人标签与转写结果
+    let final_transcript = if diarize_ok && !speakers.is_empty() {
+        let merged = if transcript.segments.is_empty() {
+            // 无时间戳引擎（DashScope、Zhipu）：用 diarization segments 作为 timeline 骨架
+            let speaker_segments: Vec<WhisperSegment> = speakers
+                .iter()
+                .map(|sp| WhisperSegment {
+                    speaker: Some(sp.label.clone()),
+                    start: sp.start,
+                    end: sp.end,
+                    text: String::new(),
+                })
+                .collect();
+            Transcript {
+                status: transcript.status.clone(),
+                text: transcript.text.clone(),
+                segments: speaker_segments,
+                engine: transcript.engine.clone(),
+            }
+        } else {
+            // 有时间戳引擎（Apple、WhisperKit、Volcengine）：清除引擎自带 speaker，用 diarization 覆盖
+            let transcript_unlabeled = Transcript {
+                status: transcript.status.clone(),
+                text: transcript.text.clone(),
+                segments: transcript
+                    .segments
+                    .iter()
+                    .map(|s| WhisperSegment {
+                        speaker: None,
+                        ..s.clone()
+                    })
+                    .collect(),
+                engine: transcript.engine.clone(),
+            };
+            merge_transcript_with_speakers(&transcript_unlabeled, &speakers)
+        };
+        save_transcript_data(&file_path, &merged);
+        merged
+    } else {
+        save_transcript_data(&file_path, &transcript);
+        transcript
+    };
 
-    let markdown = render_audio_ai_markdown(&audio_filename, &asr_engine, &final_transcript);
+    // Step 5: 生成 audio-ai.md
+    emit_progress(&app, &filename, "completed");
+
+    let markdown = render_audio_ai_markdown(&filename, &engine_name, &final_transcript);
     let markdown_path = audio_ai_markdown_path_for_audio(file_path.as_path());
 
     std::fs::write(&markdown_path, markdown.as_bytes())

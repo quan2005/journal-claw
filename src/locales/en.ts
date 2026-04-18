@@ -329,6 +329,18 @@ export const en = {
   appleVendorDefault: 'Built-in · Zero config',
   whisperkitVendor: 'Argmax · On-device',
   dashscopeVendor: 'Alibaba Cloud · Remote',
+  volcengineEngineLabel: 'Volcengine',
+  volcengineVendor: 'ByteDance · Remote',
+  volcengineApiKeyLabel: 'Volcengine API Key',
+  volcengineApiKeyHint: 'Get your API Key from the Volcengine console',
+  volcengineResourceId: 'Recognition Model',
+  volcengineSeedAsr: 'Doubao ASR 2.0',
+  volcengineBigAsr: 'Doubao ASR 1.0',
+  zhipuEngineLabel: 'Zhipu AI',
+  zhipuVendor: 'Zhipu · Remote',
+  zhipuApiKeyLabel: 'Zhipu API Key',
+  zhipuApiKeyHint: 'Get your API Key from the Zhipu Open Platform',
+  zhipuLimitHint: 'Max 30s per request — long audio is automatically chunked',
 
   // SectionAiEngine
   qwenVendor: 'OpenAI Compatible',
@@ -356,7 +368,8 @@ export const en = {
   organized: 'organized',
 
   // Settings: IM bridge
-  im: 'IM',
+  im: 'Third-party Tools',
+  thirdPartyTools: 'Third-party Tools',
   // Settings: Feishu bridge
   feishu: 'Feishu',
   feishuTitle: 'Feishu IM Bridge',
@@ -405,6 +418,9 @@ export const en = {
   slashTranslate: 'Translate to English',
   slashRewrite: 'Rewrite & polish',
   slashTags: 'Generate tags',
+  providerLabel: 'Display Name',
+  addProvider: 'Add Provider',
+  customProvider: 'Custom Provider',
 }
 
 export type Strings = typeof en

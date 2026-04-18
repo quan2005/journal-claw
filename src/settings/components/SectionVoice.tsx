@@ -28,7 +28,7 @@ import { useTranslation } from '../../contexts/I18nContext'
 import { createTranslator, detectLang } from '../../lib/i18n'
 const getT = () => createTranslator(detectLang())
 
-type AsrEngineId = 'apple' | 'dashscope' | 'whisperkit'
+type AsrEngineId = 'apple' | 'dashscope' | 'whisperkit' | 'volcengine' | 'zhipu'
 type WhisperModel = 'base' | 'small' | 'large-v3-turbo'
 type WhisperDownloadPanelStatus = 'starting' | 'downloading' | 'success' | 'error'
 type WhisperDownloadEventStatus = 'downloading' | 'done' | 'error'
@@ -147,7 +147,10 @@ function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
     a.asr_engine === b.asr_engine &&
     a.dashscope_api_key === b.dashscope_api_key &&
     a.whisperkit_model === b.whisperkit_model &&
-    a.dashscope_asr_model === b.dashscope_asr_model
+    a.dashscope_asr_model === b.dashscope_asr_model &&
+    a.volcengine_asr_api_key === b.volcengine_asr_api_key &&
+    a.volcengine_asr_resource_id === b.volcengine_asr_resource_id &&
+    a.zhipu_asr_api_key === b.zhipu_asr_api_key
   )
 }
 
@@ -158,6 +161,9 @@ export default function SectionVoice() {
     dashscope_api_key: '',
     whisperkit_model: 'base',
     dashscope_asr_model: 'qwen3-asr-flash',
+    volcengine_asr_api_key: '',
+    volcengine_asr_resource_id: 'volc.seedasr.auc',
+    zhipu_asr_api_key: '',
   }
   const [cfg, setCfg] = useState<AsrConfig>(defaultConfig)
   const [persistedCfg, setPersistedCfg] = useState<AsrConfig>(defaultConfig)
@@ -352,6 +358,8 @@ export default function SectionVoice() {
   }
 
   const dashscopeReady = cfg.dashscope_api_key.trim().length > 0
+  const volcengineReady = cfg.volcengine_asr_api_key.trim().length > 0
+  const zhipuReady = cfg.zhipu_asr_api_key.trim().length > 0
   const whisperkitReady =
     cliInstalled === true && downloadedModels.has(cfg.whisperkit_model as WhisperModel)
   const selectedWhisperModel = WHISPER_MODELS.find((model) => model.id === cfg.whisperkit_model)
@@ -407,6 +415,20 @@ export default function SectionVoice() {
       icon: Cloud,
       ready: dashscopeReady,
     },
+    {
+      id: 'volcengine',
+      label: t('volcengineEngineLabel'),
+      vendor: t('volcengineVendor'),
+      icon: Cloud,
+      ready: volcengineReady,
+    },
+    {
+      id: 'zhipu',
+      label: t('zhipuEngineLabel'),
+      vendor: t('zhipuVendor'),
+      icon: Cloud,
+      ready: zhipuReady,
+    },
   ]
 
   return (
@@ -430,7 +452,7 @@ export default function SectionVoice() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateColumns: 'repeat(5, 1fr)',
                 gap: 10,
                 marginBottom: 18,
               }}
@@ -450,7 +472,7 @@ export default function SectionVoice() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateColumns: 'repeat(5, 1fr)',
                 gap: 10,
                 marginBottom: 18,
               }}
@@ -1107,6 +1129,65 @@ export default function SectionVoice() {
                   <option value="qwen3-asr-flash-filetrans">Qwen3 ASR Flash (File Trans)</option>
                 </select>
                 <div style={hintStyle}>{t('asrModelHint')}</div>
+              </div>
+            )}
+
+            {cfg.asr_engine === 'volcengine' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{t('volcengineApiKeyLabel')}</label>
+                <input
+                  type="password"
+                  style={inputStyle}
+                  placeholder="API Key"
+                  value={cfg.volcengine_asr_api_key}
+                  onChange={(e) => {
+                    setCfg((prev) => ({ ...prev, volcengine_asr_api_key: e.target.value }))
+                    setSaveStatus('idle')
+                  }}
+                />
+                <div style={hintStyle}>{t('volcengineApiKeyHint')}</div>
+
+                <label style={{ ...labelStyle, marginTop: 16 }}>{t('volcengineResourceId')}</label>
+                <select
+                  value={cfg.volcengine_asr_resource_id || 'volc.seedasr.auc'}
+                  onChange={(e) => {
+                    setCfg((prev) => ({ ...prev, volcengine_asr_resource_id: e.target.value }))
+                    setSaveStatus('idle')
+                  }}
+                  style={{
+                    ...inputStyle,
+                    fontFamily: 'inherit',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 10px center',
+                    paddingRight: 28,
+                  }}
+                >
+                  <option value="volc.seedasr.auc">{t('volcengineSeedAsr')}</option>
+                  <option value="volc.bigasr.auc">{t('volcengineBigAsr')}</option>
+                </select>
+              </div>
+            )}
+
+            {cfg.asr_engine === 'zhipu' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{t('zhipuApiKeyLabel')}</label>
+                <input
+                  type="password"
+                  style={inputStyle}
+                  placeholder="API Key"
+                  value={cfg.zhipu_asr_api_key}
+                  onChange={(e) => {
+                    setCfg((prev) => ({ ...prev, zhipu_asr_api_key: e.target.value }))
+                    setSaveStatus('idle')
+                  }}
+                />
+                <div style={hintStyle}>{t('zhipuApiKeyHint')}</div>
+                <div style={{ ...hintStyle, marginTop: 8, color: 'var(--record-btn)' }}>
+                  {t('zhipuLimitHint')}
+                </div>
               </div>
             )}
 

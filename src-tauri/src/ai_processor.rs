@@ -143,12 +143,10 @@ const SKILL_VISUAL_DESIGN_BOOK_NARRATIVE: &str = include_str!(
 // ── Lint skill template ────────────────────────
 const SKILL_LINT_MD: &str =
     include_str!("../resources/workspace-template/.claude/skills/lint/SKILL.md");
-const SKILL_LINT_PHASE2_AGENTS: &str = include_str!(
-    "../resources/workspace-template/.claude/skills/lint/references/phase2-agents.md"
-);
-const SKILL_LINT_SCRIPTS: &str = include_str!(
-    "../resources/workspace-template/.claude/skills/lint/references/scripts.md"
-);
+const SKILL_LINT_PHASE2_AGENTS: &str =
+    include_str!("../resources/workspace-template/.claude/skills/lint/references/phase2-agents.md");
+const SKILL_LINT_SCRIPTS: &str =
+    include_str!("../resources/workspace-template/.claude/skills/lint/references/scripts.md");
 
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -266,8 +264,14 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         );
     } else {
         let _ = std::fs::write(ip_dir.join("SKILL.md"), SKILL_IDENTITY_PROFILING_MD);
-        let _ = std::fs::write(ip_templates.join("person.md"), SKILL_IDENTITY_PROFILING_PERSON);
-        let _ = std::fs::write(ip_templates.join("product.md"), SKILL_IDENTITY_PROFILING_PRODUCT);
+        let _ = std::fs::write(
+            ip_templates.join("person.md"),
+            SKILL_IDENTITY_PROFILING_PERSON,
+        );
+        let _ = std::fs::write(
+            ip_templates.join("product.md"),
+            SKILL_IDENTITY_PROFILING_PRODUCT,
+        );
     }
 
     // ── Meeting Minutes skill template ─────────────
@@ -280,7 +284,10 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         );
     } else {
         let _ = std::fs::write(mm_dir.join("SKILL.md"), SKILL_MEETING_MINUTES_MD);
-        let _ = std::fs::write(mm_templates.join("alignment.md"), SKILL_MEETING_MINUTES_ALIGNMENT);
+        let _ = std::fs::write(
+            mm_templates.join("alignment.md"),
+            SKILL_MEETING_MINUTES_ALIGNMENT,
+        );
         let _ = std::fs::write(
             mm_templates.join("argumentation-chain.md"),
             SKILL_MEETING_MINUTES_ARGUMENTATION,

@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use reqwest::Client;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use super::types::*;
 use super::LlmEngine;
@@ -17,8 +18,13 @@ pub struct AnthropicEngine {
 
 impl AnthropicEngine {
     pub fn new(api_key: String, base_url: String, model: String) -> Self {
+        let client = Client::builder()
+            .connect_timeout(Duration::from_secs(15))
+            .timeout(Duration::from_secs(300))
+            .build()
+            .unwrap_or_else(|_| Client::new());
         Self {
-            client: Client::new(),
+            client,
             api_key,
             base_url,
             model,

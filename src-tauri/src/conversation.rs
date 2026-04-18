@@ -767,12 +767,13 @@ pub async fn conversation_send(
                 }
             }
             Err(e) => {
+                let error_data = e.error_info().to_string();
                 let _ = app_clone.emit(
                     "conversation-stream",
                     ConversationStreamPayload {
                         session_id: sid.clone(),
                         event: "error".to_string(),
-                        data: e.to_string(),
+                        data: error_data,
                     },
                 );
                 let _ = app_clone.emit(
@@ -870,6 +871,69 @@ pub async fn conversation_truncate(
         session_id, keep_count
     );
     Ok(())
+}
+
+#[tauri::command]
+pub async fn conversation_retry(
+    app: AppHandle,
+    store: tauri::State<'_, ConversationStore>,
+    session_id: String,
+) -> Result<(), String> {
+    // Find the last user message text, remove any trailing failed assistant message
+    {
+        let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
+        let session = sessions
+            .get_mut(&session_id)
+            .ok_or_else(|| format!("session not found: {}", session_id))?;
+        // Pop trailing assistant message (the failed partial response)
+        if session
+            .messages
+            .last()
+            .map(|m| m.role == Role::Assistant)
+            .unwrap_or(false)
+        {
+            session.messages.pop();
+        }
+    }
+    // Find the last user message to re-send
+    let last_user_text = {
+        let sessions = store.0.lock().map_err(|e| e.to_string())?;
+        let session = sessions
+            .get(&session_id)
+            .ok_or_else(|| format!("session not found: {}", session_id))?;
+        session
+            .messages
+            .iter()
+            .rev()
+            .find(|m| m.role == Role::User)
+            .and_then(|m| {
+                m.content.iter().find_map(|b| {
+                    if let ContentBlock::Text { text } = b {
+                        Some(text.clone())
+                    } else {
+                        None
+                    }
+                })
+            })
+            .ok_or_else(|| "no user message to retry".to_string())?
+    };
+    // Pop the last user message too — conversation_send will re-add it
+    {
+        let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
+        let session = sessions
+            .get_mut(&session_id)
+            .ok_or_else(|| format!("session not found: {}", session_id))?;
+        if session
+            .messages
+            .last()
+            .map(|m| m.role == Role::User)
+            .unwrap_or(false)
+        {
+            session.messages.pop();
+        }
+    }
+    eprintln!("[conversation] retrying session {}", session_id);
+    conversation_send(app, store, session_id, last_user_text).await
 }
 #[tauri::command]
 pub async fn conversation_list(
@@ -1221,6 +1285,17 @@ async fn run_conversation_turn(
 
         match response.stop_reason {
             llm::types::StopReason::EndTurn | llm::types::StopReason::MaxTokens => {
+                // Notify frontend if response was truncated
+                if response.stop_reason == llm::types::StopReason::MaxTokens {
+                    let _ = app.emit(
+                        "conversation-stream",
+                        ConversationStreamPayload {
+                            session_id: sid.clone(),
+                            event: "truncated".to_string(),
+                            data: String::new(),
+                        },
+                    );
+                }
                 // Check for pending user messages before finishing
                 let pending = {
                     let store = app.state::<ConversationStore>();

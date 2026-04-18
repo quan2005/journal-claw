@@ -2352,7 +2352,7 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
@@ -2444,7 +2444,7 @@ dependencies = [
 
 [[package]]
 name = "journal"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2452,6 +2452,7 @@ dependencies = [
  "chrono",
  "cpal",
  "dirs 5.0.1",
+ "flate2",
  "futures",
  "gray_matter",
  "hound",

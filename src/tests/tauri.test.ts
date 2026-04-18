@@ -15,14 +15,16 @@ describe('tauri config commands', () => {
 
   it('sends engine config as a structured payload', async () => {
     const cfg: EngineConfig = {
-      active_vendor: 'anthropic',
-      vendors: {
-        anthropic: {
+      active_provider: 'anthropic',
+      providers: [
+        {
+          id: 'anthropic',
+          label: 'Anthropic',
           api_key: 'sk-ant-test',
           base_url: 'https://api.anthropic.com',
           model: 'claude-sonnet-4-5',
         },
-      },
+      ],
     }
 
     await setEngineConfig(cfg)
@@ -38,6 +40,9 @@ describe('tauri config commands', () => {
       dashscope_api_key: 'sk-dashscope-test',
       whisperkit_model: 'large-v3-turbo',
       dashscope_asr_model: 'qwen3-asr-flash',
+      volcengine_asr_api_key: '',
+      volcengine_asr_resource_id: 'volc.seedasr.auc',
+      zhipu_asr_api_key: '',
     }
 
     await setAsrConfig(cfg)
@@ -47,6 +52,9 @@ describe('tauri config commands', () => {
       dashscopeApiKey: 'sk-dashscope-test',
       whisperkitModel: 'large-v3-turbo',
       dashscopeAsrModel: 'qwen3-asr-flash',
+      volcengineAsrApiKey: '',
+      volcengineAsrResourceId: 'volc.seedasr.auc',
+      zhipuAsrApiKey: '',
     })
   })
 })

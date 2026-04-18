@@ -90,6 +90,9 @@ describe('SectionVoice', () => {
       dashscope_api_key: '',
       whisperkit_model: 'small',
       dashscope_asr_model: 'qwen3-asr-flash',
+      volcengine_asr_api_key: '',
+      volcengine_asr_resource_id: 'volc.seedasr.auc',
+      zhipu_asr_api_key: '',
     })
     mockSetAsrConfig.mockResolvedValue(undefined)
     mockGetWhisperkitModelsDir.mockResolvedValue('/tmp/whisperkit-models')
@@ -184,6 +187,9 @@ describe('SectionVoice', () => {
         dashscope_api_key: '',
         whisperkit_model: 'large-v3-turbo',
         dashscope_asr_model: 'qwen3-asr-flash',
+        volcengine_asr_api_key: '',
+        volcengine_asr_resource_id: 'volc.seedasr.auc',
+        zhipu_asr_api_key: '',
       })
     })
 
@@ -196,6 +202,9 @@ describe('SectionVoice', () => {
       dashscope_api_key: '',
       whisperkit_model: 'large-v3-turbo',
       dashscope_asr_model: 'qwen3-asr-flash',
+      volcengine_asr_api_key: '',
+      volcengine_asr_resource_id: 'volc.seedasr.auc',
+      zhipu_asr_api_key: '',
     })
 
     render(<SectionVoice />)

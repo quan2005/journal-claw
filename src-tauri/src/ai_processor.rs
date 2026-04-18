@@ -396,7 +396,7 @@ pub async fn process_material(
 
     eprintln!(
         "[ai_processor] start — material={} ym={} engine={}",
-        material_path, year_month, cfg.active_vendor
+        material_path, year_month, cfg.active_provider
     );
 
     let _ = app.emit(
@@ -469,13 +469,13 @@ async fn process_material_builtin(
 
     // Emit startup log
     let (_, _, active_model) = cfg.active_vendor_config();
-    let default_model = config::default_model_for_vendor(&cfg.active_vendor);
+    let default_model = config::default_model_for_vendor(&cfg.active_provider);
     let model_display = if active_model.is_empty() {
         &default_model
     } else {
         active_model
     };
-    let engine_name = format!("内置引擎 ({}/{})", cfg.active_vendor, model_display);
+    let engine_name = format!("内置引擎 ({}/{})", cfg.active_provider, model_display);
     let _ = app.emit(
         "ai-log",
         AiLogLine {

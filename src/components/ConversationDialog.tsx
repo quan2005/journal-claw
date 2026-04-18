@@ -16,6 +16,7 @@ interface ConversationDialogProps {
   initialInput?: string
   initialSessionId?: string
   initialStreaming?: boolean
+  initialUserMessage?: string
   visible: boolean
   onClose: () => void
   onSessionCreated?: (sessionId: string) => void
@@ -28,6 +29,7 @@ export function ConversationDialog({
   initialInput,
   initialSessionId,
   initialStreaming,
+  initialUserMessage,
   visible,
   onClose,
   onSessionCreated,
@@ -39,6 +41,7 @@ export function ConversationDialog({
     isStreaming,
     create,
     send,
+    retry,
     cancel,
     load,
     editAndResend,
@@ -53,7 +56,7 @@ export function ConversationDialog({
     if (!initialized.current) {
       initialized.current = true
       if (initialSessionId) {
-        load(initialSessionId, initialStreaming)
+        load(initialSessionId, initialStreaming, initialUserMessage)
       } else {
         create(mode, context, contextFiles)
       }
@@ -306,6 +309,8 @@ export function ConversationDialog({
                         key={`run-${startIdx}`}
                         messages={run}
                         isStreaming={isLastRunStreaming}
+                        onRetry={retry}
+                        onContinue={() => send('请继续')}
                       />,
                     )
                   }
@@ -512,49 +517,74 @@ function MessageBubble({
 
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div
-        style={{
-          maxWidth: '100%',
-          padding: '8px 12px',
-          borderRadius: '10px 10px 2px 10px',
-          background: 'var(--item-text)',
-          color: 'var(--bg)',
-          fontSize: 'var(--text-sm)',
-          lineHeight: 1.6,
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-      >
-        {message.content}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          gap: 2,
-          opacity: hovered ? 1 : 0,
-          transition: 'opacity 120ms ease-out',
-          height: 20,
-        }}
-      >
-        <ActionBtn title={t('copy')} onClick={handleCopy}>
-          {copied ? (
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--status-success)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
+      <div style={{ position: 'relative', maxWidth: '100%' }}>
+        <div
+          style={{
+            padding: '8px 12px',
+            borderRadius: '10px 10px 2px 10px',
+            background: 'var(--item-text)',
+            color: 'var(--bg)',
+            fontSize: 'var(--text-sm)',
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {message.content}
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: -16,
+            right: 4,
+            display: 'flex',
+            gap: 2,
+            opacity: hovered ? 1 : 0,
+            transition: 'opacity 120ms ease-out',
+            zIndex: 1,
+          }}
+        >
+          <ActionBtn title={t('copy')} onClick={handleCopy}>
+            {copied ? (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--status-success)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+          </ActionBtn>
+          <ActionBtn
+            title={t('edit')}
+            onClick={() => {
+              setEditText(message.content)
+              setEditing(true)
+            }}
+          >
             <svg
               width="13"
               height="13"
@@ -565,46 +595,25 @@ function MessageBubble({
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <rect x="9" y="9" width="13" height="13" rx="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
             </svg>
-          )}
-        </ActionBtn>
-        <ActionBtn
-          title={t('edit')}
-          onClick={() => {
-            setEditText(message.content)
-            setEditing(true)
-          }}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-          </svg>
-        </ActionBtn>
-        <ActionBtn title={t('resend')} onClick={handleResend} disabled={isStreaming}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="1 4 1 10 7 10" />
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-          </svg>
-        </ActionBtn>
+          </ActionBtn>
+          <ActionBtn title={t('resend')} onClick={handleResend} disabled={isStreaming}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+          </ActionBtn>
+        </div>
       </div>
     </div>
   )
@@ -652,9 +661,13 @@ function ActionBtn({
 function AssistantRun({
   messages,
   isStreaming,
+  onRetry,
+  onContinue,
 }: {
   messages: ConversationMessage[]
   isStreaming?: boolean
+  onRetry?: () => void
+  onContinue?: () => void
 }) {
   // Start expanded while streaming; auto-collapse when streaming ends
   const [expanded, setExpanded] = useState(!!isStreaming)
@@ -671,8 +684,11 @@ function AssistantRun({
 
   // Collect all blocks across all messages in this run
   const allBlocks: MessageBlock[] = messages.flatMap((m) => m.blocks ?? [])
-  const nonTextBlocks = allBlocks.filter((b) => b.type !== 'text')
+  const nonTextBlocks = allBlocks.filter(
+    (b) => b.type !== 'text' && b.type !== 'error' && b.type !== 'truncated',
+  )
   const textBlocks = allBlocks.filter((b) => b.type === 'text')
+  const errorOrTruncBlocks = allBlocks.filter((b) => b.type === 'error' || b.type === 'truncated')
   const lastTextBlock = textBlocks[textBlocks.length - 1]
   const hasNonText = nonTextBlocks.length > 0
 
@@ -693,25 +709,28 @@ function AssistantRun({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
         {allBlocks.map((block: MessageBlock, i: number) => (
-          <BlockRenderer key={i} block={block} />
+          <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
         <StreamingDot />
       </div>
     )
   }
 
-  // No non-text blocks: just render text
+  // No non-text blocks: just render text (+ error/truncated)
   if (!hasNonText) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
         {textBlocks.map((block: MessageBlock, i: number) => (
-          <BlockRenderer key={i} block={block} />
+          <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
+        ))}
+        {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
+          <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
       </div>
     )
   }
 
-  // Collapsed: summary + last text only
+  // Collapsed: summary + last text only (+ error/truncated always visible)
   if (!expanded) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
@@ -733,6 +752,9 @@ function AssistantRun({
             <MarkdownRenderer content={lastTextBlock.content} />
           </div>
         )}
+        {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
+          <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
+        ))}
       </div>
     )
   }
@@ -748,7 +770,7 @@ function AssistantRun({
         onExpand={() => setExpanded(false)}
       />
       {allBlocks.map((block: MessageBlock, i: number) => (
-        <BlockRenderer key={i} block={block} />
+        <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
       ))}
     </div>
   )
@@ -862,6 +884,109 @@ function CollapsedToolSummary({
   )
 }
 
+function ErrorBlock({
+  error,
+  onRetry,
+}: {
+  error: { code: string; message: string; retryable: boolean }
+  onRetry?: () => void
+}) {
+  const { t } = useTranslation()
+  const isAuth = error.code === 'auth_error'
+  const borderColor = isAuth ? 'var(--status-danger)' : 'var(--record-btn)'
+
+  return (
+    <div
+      style={{
+        maxWidth: '100%',
+        borderRadius: 8,
+        border: `0.5px solid ${borderColor}`,
+        background: 'var(--dialog-inset-bg)',
+        padding: '8px 12px',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--item-text)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+      }}
+    >
+      <span style={{ opacity: 0.8, lineHeight: 1.5 }}>{error.message}</span>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {error.retryable && onRetry && (
+          <button
+            onClick={onRetry}
+            style={{
+              background: 'var(--record-btn)',
+              border: 'none',
+              borderRadius: 5,
+              padding: '3px 10px',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--record-btn-icon)',
+              cursor: 'pointer',
+            }}
+          >
+            {t('retry')}
+          </button>
+        )}
+        {isAuth && (
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-settings', { detail: 'ai-engine' }))
+            }}
+            style={{
+              background: 'none',
+              border: `0.5px solid ${borderColor}`,
+              borderRadius: 5,
+              padding: '3px 10px',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--status-danger)',
+              cursor: 'pointer',
+            }}
+          >
+            {t('goToSettings')}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TruncatedBlock({ onContinue }: { onContinue?: () => void }) {
+  return (
+    <div
+      style={{
+        maxWidth: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 0',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--item-meta)',
+      }}
+    >
+      <div style={{ flex: 1, height: '0.5px', background: 'var(--dialog-inset-border)' }} />
+      <span>回复已截断</span>
+      {onContinue && (
+        <button
+          onClick={onContinue}
+          style={{
+            background: 'none',
+            border: '0.5px solid var(--dialog-inset-border)',
+            borderRadius: 5,
+            padding: '2px 8px',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--record-btn)',
+            cursor: 'pointer',
+          }}
+        >
+          继续生成
+        </button>
+      )}
+      <div style={{ flex: 1, height: '0.5px', background: 'var(--dialog-inset-border)' }} />
+    </div>
+  )
+}
+
 function StreamingDot() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -888,7 +1013,15 @@ function StreamingDot() {
   )
 }
 
-function BlockRenderer({ block }: { block: MessageBlock }) {
+function BlockRenderer({
+  block,
+  onRetry,
+  onContinue,
+}: {
+  block: MessageBlock
+  onRetry?: () => void
+  onContinue?: () => void
+}) {
   switch (block.type) {
     case 'text':
       return block.content ? (
@@ -909,6 +1042,10 @@ function BlockRenderer({ block }: { block: MessageBlock }) {
       return <ToolBlock tool={block} />
     case 'web_search':
       return <WebSearchBlock query={block.query} results={block.results} />
+    case 'error':
+      return <ErrorBlock error={block} onRetry={onRetry} />
+    case 'truncated':
+      return <TruncatedBlock onContinue={onContinue} />
     default:
       return null
   }

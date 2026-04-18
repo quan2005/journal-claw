@@ -24,10 +24,16 @@ describe('SectionAiEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetEngineConfig.mockResolvedValue({
-      active_vendor: 'anthropic',
-      vendors: {
-        anthropic: { api_key: 'sk-ant-test-key', base_url: '', model: '' },
-      },
+      active_provider: 'anthropic',
+      providers: [
+        {
+          id: 'anthropic',
+          label: 'Anthropic',
+          api_key: 'sk-ant-test-key',
+          base_url: '',
+          model: '',
+        },
+      ],
     })
     mockSetEngineConfig.mockResolvedValue(undefined)
   })
@@ -50,10 +56,10 @@ describe('SectionAiEngine', () => {
 
     await waitFor(() => {
       expect(mockSetEngineConfig).toHaveBeenCalledWith({
-        active_vendor: 'anthropic',
-        vendors: {
-          anthropic: { api_key: 'sk-ant-test', base_url: '', model: '' },
-        },
+        active_provider: 'anthropic',
+        providers: [
+          { id: 'anthropic', label: 'Anthropic', api_key: 'sk-ant-test', base_url: '', model: '' },
+        ],
       })
     })
 

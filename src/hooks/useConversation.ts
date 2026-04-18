@@ -8,6 +8,7 @@ import {
   conversationClose,
   conversationGetMessages,
   conversationTruncate,
+  conversationRetry,
 } from '../lib/tauri'
 
 export function useConversation() {
@@ -29,7 +30,7 @@ export function useConversation() {
   const streamingSessionsRef = useRef<Set<string>>(new Set())
   const pendingQueueRef = useRef<string[]>([])
   const [pendingQueue, setPendingQueue] = useState<string[]>([])
-  const sendRef = useRef<((text: string) => Promise<void>) | null>(null)
+  const sendRef = useRef<((text: string) => Promise<boolean>) | null>(null)
 
   // Helper: update cached messages for a given session and sync to React state if active
   const updateSessionMessages = useCallback(
@@ -232,23 +233,49 @@ export function useConversation() {
             isStreamingRef.current = false
           }
           updateSessionMessages(sid, (prev) => {
+            // Parse structured error JSON, fallback to plain text
+            let errorBlock: { type: 'error'; code: string; message: string; retryable: boolean }
+            try {
+              const parsed = JSON.parse(data)
+              errorBlock = {
+                type: 'error' as const,
+                code: parsed.code ?? 'unknown',
+                message: parsed.message ?? data,
+                retryable: parsed.retryable ?? false,
+              }
+            } catch {
+              errorBlock = {
+                type: 'error' as const,
+                code: 'unknown',
+                message: data,
+                retryable: false,
+              }
+            }
+            // Don't show cancelled errors
+            if (errorBlock.code === 'cancelled') return prev
             const last = prev[prev.length - 1]
             if (last?.role === 'assistant') {
-              const newContent = last.content + `\n\n[错误] ${data}`
-              const blocks = [
-                ...(last.blocks ?? []),
-                { type: 'text' as const, content: `[错误] ${data}` },
-              ]
-              return [...prev.slice(0, -1), { ...last, content: newContent, blocks }]
+              const blocks = [...(last.blocks ?? []), errorBlock]
+              return [...prev.slice(0, -1), { ...last, blocks }]
             }
             return [
               ...prev,
               {
                 role: 'assistant' as const,
-                content: `[错误] ${data}`,
-                blocks: [{ type: 'text' as const, content: `[错误] ${data}` }],
+                content: '',
+                blocks: [errorBlock],
               },
             ]
+          })
+          break
+        case 'truncated':
+          updateSessionMessages(sid, (prev) => {
+            const last = prev[prev.length - 1]
+            if (last?.role === 'assistant') {
+              const blocks = [...(last.blocks ?? []), { type: 'truncated' as const }]
+              return [...prev.slice(0, -1), { ...last, blocks }]
+            }
+            return prev
           })
           break
         case 'title':
@@ -279,12 +306,12 @@ export function useConversation() {
   }, [])
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string): Promise<boolean> => {
       // If streaming, queue the message instead of sending
       if (isStreamingRef.current && streamingSessionsRef.current.has(sessionIdRef.current ?? '')) {
         pendingQueueRef.current = [...pendingQueueRef.current, text]
         setPendingQueue([...pendingQueueRef.current])
-        return
+        return true
       }
 
       // Optimistic UI — show user message and streaming state immediately
@@ -315,7 +342,7 @@ export function useConversation() {
       if (!sessionIdRef.current) {
         setIsStreaming(false)
         isStreamingRef.current = false
-        return
+        return false
       }
       const sid = sessionIdRef.current
       if (!pendingCreateRef.current) {
@@ -328,6 +355,7 @@ export function useConversation() {
       streamingSessionsRef.current.add(sid)
       try {
         await conversationSend(sid, text)
+        return true
       } catch (e) {
         console.error('[conversation] send failed:', e)
         setIsStreaming(false)
@@ -337,16 +365,63 @@ export function useConversation() {
           ...prev,
           {
             role: 'assistant' as const,
-            content: `[错误] ${e}`,
-            blocks: [{ type: 'text' as const, content: `[错误] ${e}` }],
+            content: '',
+            blocks: [
+              {
+                type: 'error' as const,
+                code: 'network_error',
+                message: `${e}`,
+                retryable: true,
+              },
+            ],
           },
         ])
+        return false
       }
     },
     [updateSessionMessages],
   )
 
   sendRef.current = send
+
+  const retry = useCallback(async () => {
+    const sid = sessionIdRef.current
+    if (!sid) return
+    // Remove error/truncated blocks from the last assistant message
+    updateSessionMessages(sid, (prev) => {
+      const last = prev[prev.length - 1]
+      if (last?.role === 'assistant') {
+        return prev.slice(0, -1)
+      }
+      return prev
+    })
+    setIsStreaming(true)
+    isStreamingRef.current = true
+    streamingSessionsRef.current.add(sid)
+    try {
+      await conversationRetry(sid)
+    } catch (e) {
+      console.error('[conversation] retry failed:', e)
+      setIsStreaming(false)
+      isStreamingRef.current = false
+      streamingSessionsRef.current.delete(sid)
+      updateSessionMessages(sid, (prev) => [
+        ...prev,
+        {
+          role: 'assistant' as const,
+          content: '',
+          blocks: [
+            {
+              type: 'error' as const,
+              code: 'network_error',
+              message: `${e}`,
+              retryable: true,
+            },
+          ],
+        },
+      ])
+    }
+  }, [updateSessionMessages])
 
   const cancel = useCallback(async () => {
     if (!sessionIdRef.current) return
@@ -366,7 +441,7 @@ export function useConversation() {
     setIsStreaming(false)
   }, [])
 
-  const load = useCallback(async (id: string, streaming?: boolean) => {
+  const load = useCallback(async (id: string, streaming?: boolean, initialUserMessage?: string) => {
     // If we have a cached version (e.g. from ongoing stream), use it directly
     const cached = cacheRef.current.get(id)
     if (cached) {
@@ -375,7 +450,14 @@ export function useConversation() {
       const isStillStreaming = streaming ?? streamingSessionsRef.current.has(id)
       setIsStreaming(isStillStreaming)
       isStreamingRef.current = isStillStreaming
-      setMessages(cached)
+      // Seed user message if cache is empty (race: event fires before send)
+      if (cached.length === 0 && initialUserMessage) {
+        const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
+        cacheRef.current.set(id, seeded)
+        setMessages(seeded)
+      } else {
+        setMessages(cached)
+      }
       setTitle(null)
       return
     }
@@ -386,6 +468,14 @@ export function useConversation() {
     setSessionId(id)
     setIsStreaming(!!streaming)
     isStreamingRef.current = !!streaming
+    // If backend has no messages yet (race: event fires before send), seed user message
+    if (loaded.length === 0 && initialUserMessage) {
+      const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
+      cacheRef.current.set(id, seeded)
+      setMessages(seeded)
+      setTitle(null)
+      return
+    }
     // Convert LoadedMessage[] to ConversationMessage[]
     const msgs: ConversationMessage[] = loaded.map((m) => {
       const msg: ConversationMessage = {
@@ -473,6 +563,7 @@ export function useConversation() {
     pendingQueue,
     create,
     send,
+    retry,
     cancel,
     close,
     load,

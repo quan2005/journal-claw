@@ -314,14 +314,16 @@ describe('Workspace', () => {
 describe('Engine', () => {
   it('setEngineConfig wraps cfg in { config }', async () => {
     const cfg: EngineConfig = {
-      active_vendor: 'anthropic',
-      vendors: {
-        anthropic: {
+      active_provider: 'anthropic',
+      providers: [
+        {
+          id: 'anthropic',
+          label: 'Anthropic',
           api_key: 'sk-ant',
           base_url: 'https://api.anthropic.com',
           model: 'claude-sonnet-4-5',
         },
-      },
+      ],
     }
     await setEngineConfig(cfg)
     expect(mockInvoke).toHaveBeenCalledWith('set_engine_config', { config: cfg })
@@ -338,6 +340,9 @@ describe('ASR', () => {
       dashscope_api_key: 'sk-ds',
       whisperkit_model: 'base',
       dashscope_asr_model: 'qwen3-asr-flash',
+      volcengine_asr_api_key: '',
+      volcengine_asr_resource_id: 'volc.seedasr.auc',
+      zhipu_asr_api_key: '',
     }
     await setAsrConfig(cfg)
     expect(mockInvoke).toHaveBeenCalledWith('set_asr_config', {
@@ -345,6 +350,9 @@ describe('ASR', () => {
       dashscopeApiKey: 'sk-ds',
       whisperkitModel: 'base',
       dashscopeAsrModel: 'qwen3-asr-flash',
+      volcengineAsrApiKey: '',
+      volcengineAsrResourceId: 'volc.seedasr.auc',
+      zhipuAsrApiKey: '',
     })
   })
 

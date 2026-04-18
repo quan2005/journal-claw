@@ -95,6 +95,7 @@ export default function App() {
     initialInput?: string
     initialSessionId?: string
     initialStreaming?: boolean
+    initialUserMessage?: string
     key?: number
     _todoCallback?: { lineIndex: number; doneFile: boolean }
     visible: boolean
@@ -126,8 +127,8 @@ export default function App() {
   useEffect(() => {
     getEngineConfig()
       .then((cfg) => {
-        const vc = cfg.vendors[cfg.active_vendor]
-        const hasKey = vc?.api_key?.trim().length > 0
+        const active = cfg.providers.find((p) => p.id === cfg.active_provider)
+        const hasKey = (active?.api_key?.trim().length ?? 0) > 0
         setAiReady(hasKey)
       })
       .catch(() => setAiReady(false))
@@ -297,11 +298,11 @@ export default function App() {
     }
   }, [])
 
-  // Auto-open conversation when work queue creates a session
+  // Track conversation session when work queue creates one (don't auto-open dialog)
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    listen<{ item_id: string; session_id: string }>('work-item-session-created', (event) => {
-      const { session_id } = event.payload
+    listen<{ item_id: string; session_id: string; prompt?: string }>('work-item-session-created', (event) => {
+      const { session_id, prompt } = event.payload
       setConversationState((prev) =>
         prev?.visible
           ? prev
@@ -309,8 +310,9 @@ export default function App() {
               mode: 'agent',
               initialSessionId: session_id,
               initialStreaming: true,
+              initialUserMessage: prompt,
               key: Date.now(),
-              visible: true,
+              visible: false,
             },
       )
     }).then((fn) => {
@@ -818,6 +820,7 @@ export default function App() {
           initialInput={conversationState.initialInput}
           initialSessionId={conversationState.initialSessionId}
           initialStreaming={conversationState.initialStreaming}
+          initialUserMessage={conversationState.initialUserMessage}
           visible={conversationState.visible}
           onClose={() =>
             setConversationState((prev) =>
@@ -827,6 +830,7 @@ export default function App() {
                     visible: false,
                     initialInput: undefined,
                     initialSessionId: undefined,
+                    initialUserMessage: undefined,
                     initialStreaming: undefined,
                     _todoCallback: undefined,
                   }

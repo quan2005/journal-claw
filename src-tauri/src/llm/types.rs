@@ -139,6 +139,53 @@ pub enum LlmError {
     MaxTurnsExceeded,
 }
 
+impl LlmError {
+    /// Structured error info for the frontend.
+    pub fn error_info(&self) -> serde_json::Value {
+        let (code, message, retryable) = match self {
+            LlmError::Network(e) => {
+                if e.contains("timed out") || e.contains("timeout") {
+                    ("timeout", format!("连接超时: {}", e), true)
+                } else {
+                    ("network_error", format!("网络错误: {}", e), true)
+                }
+            }
+            LlmError::Api { status, message } => match status {
+                401 | 403 => (
+                    "auth_error",
+                    format!("认证失败 ({}): {}", status, message),
+                    false,
+                ),
+                429 => (
+                    "rate_limited",
+                    "API 请求频率超限，请稍后重试".to_string(),
+                    true,
+                ),
+                400 => ("invalid_request", format!("请求无效: {}", message), false),
+                0 => ("server_error", format!("流式传输中断: {}", message), true),
+                _ if *status >= 500 => (
+                    "server_error",
+                    format!("服务端错误 ({}): {}", status, message),
+                    true,
+                ),
+                _ => (
+                    "api_error",
+                    format!("API 错误 ({}): {}", status, message),
+                    false,
+                ),
+            },
+            LlmError::Parse(e) => ("parse_error", format!("解析错误: {}", e), false),
+            LlmError::Cancelled => ("cancelled", "已取消".to_string(), false),
+            LlmError::MaxTurnsExceeded => ("max_turns", "超过最大轮次限制".to_string(), false),
+        };
+        serde_json::json!({
+            "code": code,
+            "message": message,
+            "retryable": retryable,
+        })
+    }
+}
+
 impl fmt::Display for LlmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

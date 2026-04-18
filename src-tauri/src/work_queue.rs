@@ -213,15 +213,6 @@ async fn run_work_item(app: &AppHandle, item: &WorkItem) -> Result<String, Strin
     }
     emit_queue_updated(app);
 
-    // Notify frontend to auto-open conversation dialog for this session
-    let _ = app.emit(
-        "work-item-session-created",
-        serde_json::json!({
-            "item_id": item.id,
-            "session_id": sid,
-        }),
-    );
-
     // Build prompt — reference files with @path so the agent reads them via tools
     let prompt = if let Some(ref files) = item.files {
         let refs: Vec<String> = files
@@ -247,6 +238,17 @@ async fn run_work_item(app: &AppHandle, item: &WorkItem) -> Result<String, Strin
             .clone()
             .unwrap_or_else(|| "请分析和处理".to_string())
     };
+
+    // Notify frontend to auto-open conversation dialog — include prompt so UI can
+    // show the user message immediately (before conversation_send appends it).
+    let _ = app.emit(
+        "work-item-session-created",
+        serde_json::json!({
+            "item_id": item.id,
+            "session_id": sid,
+            "prompt": prompt,
+        }),
+    );
 
     // Send message
     conversation::conversation_send(app.clone(), store.clone(), sid.clone(), prompt).await?;

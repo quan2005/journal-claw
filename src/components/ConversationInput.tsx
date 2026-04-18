@@ -14,7 +14,7 @@ interface Attachment {
 
 interface ConversationInputProps {
   sessionId?: string | null
-  onSend: (text: string) => void
+  onSend: (text: string) => Promise<boolean>
   onCancel: () => void
   isStreaming: boolean
   placeholder?: string
@@ -67,16 +67,16 @@ export function ConversationInput({
     setAttachments((prev) => prev.filter((a) => a.path !== path))
   }, [])
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const text = input.trim()
     if (!text) return
-    setInput('')
-
-    // Build message with attachment references
     const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
     const parts = [fileRefs, text].filter(Boolean)
-    onSend(parts.join('\n\n'))
-    setAttachments([])
+    const success = await onSend(parts.join('\n\n'))
+    if (success) {
+      setInput('')
+      setAttachments([])
+    }
   }, [input, attachments, onSend])
 
   const handleKeyDown = useCallback(

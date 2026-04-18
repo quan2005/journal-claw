@@ -109,22 +109,43 @@ export const pickFolder = (): Promise<string | null> => {
 // App version
 export const getAppVersion = (): Promise<string> => invoke<string>('get_app_version')
 
-// Engine config
-export type VendorId = 'volcengine' | 'zhipu' | 'dashscope' | 'anthropic'
+// Engine config — provider list (v3)
+export interface ProviderEntry {
+  id: string
+  label: string
+  api_key: string
+  base_url: string
+  model: string
+}
 
-export interface VendorPreset {
-  id: VendorId
+export interface EngineConfig {
+  active_provider: string
+  providers: ProviderEntry[]
+}
+
+export interface BuiltinPreset {
+  id: string
   label: string
   defaultBaseUrl: string
+  defaultModel: string
   apiKeyUrl: string
   apiKeyPlaceholder: string
 }
 
-export const VENDOR_PRESETS: VendorPreset[] = [
+export const BUILTIN_PRESETS: BuiltinPreset[] = [
+  {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    defaultBaseUrl: 'https://api.deepseek.com/anthropic',
+    defaultModel: 'deepseek-chat',
+    apiKeyUrl: 'https://platform.deepseek.com/api_keys',
+    apiKeyPlaceholder: 'sk-…',
+  },
   {
     id: 'volcengine',
     label: '火山方舟',
     defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/coding',
+    defaultModel: 'doubao-1.5-pro-256k',
     apiKeyUrl: 'https://www.volcengine.com/activity/codingplan?ac=MMAP8JTTCAQ2&rc=MAZQUPQF',
     apiKeyPlaceholder: '',
   },
@@ -132,6 +153,7 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     id: 'zhipu',
     label: '智谱 AI',
     defaultBaseUrl: 'https://open.bigmodel.cn/api/anthropic',
+    defaultModel: 'glm-4-plus',
     apiKeyUrl: 'https://www.bigmodel.cn/glm-coding?ic=BHXN1AIKJH',
     apiKeyPlaceholder: '',
   },
@@ -139,6 +161,7 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     id: 'dashscope',
     label: '阿里云百炼',
     defaultBaseUrl: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    defaultModel: 'qwen-max',
     apiKeyUrl: 'https://bailian.console.aliyun.com/?apiKey=1#/api-key',
     apiKeyPlaceholder: 'sk-…',
   },
@@ -146,20 +169,14 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     id: 'anthropic',
     label: 'Anthropic',
     defaultBaseUrl: 'https://api.anthropic.com',
+    defaultModel: 'claude-sonnet-4-20250514',
     apiKeyUrl: 'https://console.anthropic.com/settings/keys',
     apiKeyPlaceholder: 'sk-ant-…',
   },
 ]
 
-export interface VendorConfig {
-  api_key: string
-  base_url: string
-  model: string
-}
-
-export interface EngineConfig {
-  active_vendor: VendorId
-  vendors: Record<string, VendorConfig>
+export function newProviderId(): string {
+  return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
 }
 
 export const getEngineConfig = (): Promise<EngineConfig> =>
@@ -172,10 +189,13 @@ export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
 
 // ASR config
 export interface AsrConfig {
-  asr_engine: 'apple' | 'dashscope' | 'whisperkit'
+  asr_engine: 'apple' | 'dashscope' | 'whisperkit' | 'volcengine' | 'zhipu'
   dashscope_api_key: string
   whisperkit_model: 'base' | 'small' | 'large-v3-turbo'
   dashscope_asr_model: string
+  volcengine_asr_api_key: string
+  volcengine_asr_resource_id: string
+  zhipu_asr_api_key: string
 }
 
 export const getAsrConfig = (): Promise<AsrConfig> => invoke<AsrConfig>('get_asr_config')
@@ -188,6 +208,9 @@ export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
     dashscopeApiKey: cfg.dashscope_api_key,
     whisperkitModel: cfg.whisperkit_model,
     dashscopeAsrModel: cfg.dashscope_asr_model,
+    volcengineAsrApiKey: cfg.volcengine_asr_api_key,
+    volcengineAsrResourceId: cfg.volcengine_asr_resource_id,
+    zhipuAsrApiKey: cfg.zhipu_asr_api_key,
   })
 
 export const getWhisperkitModelsDir = (): Promise<string> =>
@@ -408,6 +431,9 @@ export const conversationInject = (sessionId: string, message: string): Promise<
 
 export const conversationTruncate = (sessionId: string, keepCount: number): Promise<void> =>
   invoke<void>('conversation_truncate', { sessionId, keepCount })
+
+export const conversationRetry = (sessionId: string): Promise<void> =>
+  invoke<void>('conversation_retry', { sessionId })
 
 export interface SessionSummary {
   id: string

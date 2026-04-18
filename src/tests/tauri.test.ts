@@ -42,6 +42,7 @@ describe('tauri config commands', () => {
       dashscope_asr_model: 'qwen3-asr-flash',
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
+      siliconflow_asr_api_key: '',
       zhipu_asr_api_key: '',
     }
 
@@ -52,8 +53,7 @@ describe('tauri config commands', () => {
       dashscopeApiKey: 'sk-dashscope-test',
       whisperkitModel: 'large-v3-turbo',
       dashscopeAsrModel: 'qwen3-asr-flash',
-      volcengineAsrApiKey: '',
-      volcengineAsrResourceId: 'volc.seedasr.auc',
+      siliconflowAsrApiKey: '',
       zhipuAsrApiKey: '',
     })
   })

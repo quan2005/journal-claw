@@ -3,21 +3,15 @@ use crate::config::Config;
 use crate::speaker_profiles;
 use async_trait::async_trait;
 use base64::Engine as _;
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
 use futures::stream::StreamExt;
-use futures::SinkExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{Read as IoRead, Write as IoWrite};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tokio_tungstenite::tungstenite;
 
 const DASHSCOPE_CHAT_URL: &str =
     "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
@@ -70,9 +64,8 @@ struct WhisperKitEngine {
     model: String,
 }
 struct DashScopeEngine;
-struct VolcengineEngine {
+struct SiliconflowEngine {
     api_key: String,
-    resource_id: String,
 }
 struct ZhipuEngine {
     api_key: String,
@@ -128,22 +121,15 @@ impl AsrEngine for DashScopeEngine {
 }
 
 #[async_trait]
-impl AsrEngine for VolcengineEngine {
+impl AsrEngine for SiliconflowEngine {
     fn name(&self) -> &'static str {
-        "volcengine"
+        "siliconflow"
     }
     fn has_timestamps(&self) -> bool {
-        true
+        false
     }
     async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
-        transcribe_with_volcengine(
-            &input.app,
-            &input.file_path,
-            input.duration_secs,
-            &self.api_key,
-            &self.resource_id,
-        )
-        .await
+        transcribe_with_siliconflow(&input.app, &input.file_path, input.duration_secs, &self.api_key).await
     }
 }
 
@@ -173,9 +159,8 @@ fn create_asr_engine(cfg: &Config) -> Box<dyn AsrEngine> {
         "whisperkit" => Box::new(WhisperKitEngine {
             model: cfg.whisperkit_model.clone(),
         }),
-        "volcengine" => Box::new(VolcengineEngine {
-            api_key: cfg.volcengine_asr_api_key.clone(),
-            resource_id: cfg.volcengine_asr_resource_id.clone(),
+        "siliconflow" => Box::new(SiliconflowEngine {
+            api_key: cfg.siliconflow_asr_api_key.clone(),
         }),
         "zhipu" => Box::new(ZhipuEngine {
             api_key: cfg.zhipu_asr_api_key.clone(),
@@ -881,14 +866,15 @@ async fn transcribe_with_dashscope(
     Ok(transcript)
 }
 
-// ── Volcengine ASR (火山方舟) ─────────────────────────────────────
+// ── Siliconflow ASR (硅基流动) ────────────────────────────────────
 
-async fn transcribe_with_volcengine(
+const SILICONFLOW_ASR_URL: &str = "https://api.siliconflow.cn/v1/audio/transcriptions";
+
+async fn transcribe_with_siliconflow(
     app: &AppHandle,
     file_path: &Path,
     duration_secs: f64,
     api_key: &str,
-    resource_id: &str,
 ) -> Result<Transcript, String> {
     let filename = file_path
         .file_name()
@@ -897,346 +883,88 @@ async fn transcribe_with_volcengine(
         .to_string();
 
     if api_key.is_empty() {
-        let msg = "请先配置火山引擎 ASR API Key".to_string();
+        let msg = "请先配置硅基流动 API Key".to_string();
         save_transcript(app, file_path, "failed", &msg);
         return Err(msg);
     }
 
     emit_progress(app, &filename, "transcribing");
 
-    // Convert audio to WAV PCM s16le 16kHz mono for the streaming API
-    let wav_tmp = std::env::temp_dir().join(format!(
-        "volc_pcm_{}.wav",
-        file_path.file_stem().unwrap_or_default().to_string_lossy()
-    ));
-    let af_status = tokio::process::Command::new("afconvert")
-        .args([
-            "-d",
-            "LEI16",
-            "-f",
-            "WAVE",
-            "-c",
-            "1",
-            "-r",
-            "16000",
-            &file_path.to_string_lossy(),
-            &wav_tmp.to_string_lossy(),
-        ])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
+    let file_bytes = fs::read(file_path).map_err(|e| {
+        let msg = format!("读取音频文件失败: {}", e);
+        save_transcript(app, file_path, "failed", &msg);
+        msg
+    })?;
+
+    let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("m4a");
+    let mime_str = match ext {
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        _ => "audio/mp4",
+    };
+
+    let file_part = reqwest::multipart::Part::bytes(file_bytes)
+        .file_name(filename.clone())
+        .mime_str(mime_str)
+        .map_err(|e| format!("构建 multipart 失败: {}", e))?;
+
+    let form = reqwest::multipart::Form::new()
+        .part("file", file_part)
+        .text("model", "FunAudioLLM/SenseVoiceSmall");
+
+    let timeout_secs = (duration_secs * 5.0).max(300.0) as u64;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(timeout_secs))
+        .build()
+        .unwrap_or_default();
+
+    let resp = client
+        .post(SILICONFLOW_ASR_URL)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .multipart(form)
+        .send()
         .await
         .map_err(|e| {
-            let msg = format!("音频转换失败: {}", e);
+            let msg = format!("硅基流动 ASR 请求失败: {}", e);
             save_transcript(app, file_path, "failed", &msg);
             msg
         })?;
-    if !af_status.success() {
-        let msg = "afconvert 转换 WAV 失败".to_string();
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        let msg = format!("硅基流动 ASR 失败 ({}): {}", status, body);
         save_transcript(app, file_path, "failed", &msg);
         return Err(msg);
     }
 
-    let pcm_bytes = fs::read(&wav_tmp).map_err(|e| {
-        let msg = format!("读取 WAV 文件失败: {}", e);
+    let data: serde_json::Value = resp.json().await.map_err(|e| {
+        let msg = format!("解析硅基流动响应失败: {}", e);
         save_transcript(app, file_path, "failed", &msg);
         msg
     })?;
-    let _ = fs::remove_file(&wav_tmp);
 
-    // Parse WAV header to find actual data chunk offset (handles non-standard headers with LIST/INFO chunks)
-    let pcm_data_owned;
-    let pcm_data = {
-        let mut cursor = std::io::Cursor::new(&pcm_bytes);
-        let data_offset = find_wav_data_offset(&mut cursor).unwrap_or(44);
-        pcm_data_owned = if pcm_bytes.len() > data_offset {
-            pcm_bytes[data_offset..].to_vec()
-        } else {
-            pcm_bytes.clone()
-        };
-        &pcm_data_owned[..]
-    };
+    let text = data
+        .get("text")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
 
-    // Map file-API resource IDs to streaming equivalents
-    let stream_resource_id = match resource_id {
-        "volc.bigasr.auc" => "volc.bigasr.sauc.duration",
-        _ => "volc.seedasr.sauc.duration",
-    };
-
-    let connect_id = uuid::Uuid::new_v4().to_string();
-    let ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream";
-
-    let request = tungstenite::http::Request::builder()
-        .uri(ws_url)
-        .header("Host", "openspeech.bytedance.com")
-        .header("X-Api-Key", api_key)
-        .header("X-Api-Resource-Id", stream_resource_id)
-        .header("X-Api-Connect-Id", &connect_id)
-        .header(
-            "Sec-WebSocket-Key",
-            tungstenite::handshake::client::generate_key(),
-        )
-        .header("Sec-WebSocket-Version", "13")
-        .header("Connection", "Upgrade")
-        .header("Upgrade", "websocket")
-        .body(())
-        .map_err(|e| {
-            let msg = format!("构建 WebSocket 请求失败: {}", e);
-            save_transcript(app, file_path, "failed", &msg);
-            msg
-        })?;
-
-    let (mut ws, _) = tokio_tungstenite::connect_async(request)
-        .await
-        .map_err(|e| {
-            let msg = format!("火山 ASR WebSocket 连接失败: {}", e);
-            save_transcript(app, file_path, "failed", &msg);
-            msg
-        })?;
-
-    // Step 1: Send full client request
-    let payload_json = serde_json::json!({
-        "user": { "uid": "journal-app" },
-        "audio": {
-            "format": "pcm",
-            "rate": 16000,
-            "bits": 16,
-            "channel": 1,
-            "language": "zh-CN"
-        },
-        "request": {
-            "model_name": "bigmodel",
-            "enable_itn": true,
-            "enable_punc": true,
-            "show_utterances": true,
-            "result_type": "full"
-        }
-    });
-    let json_bytes = serde_json::to_vec(&payload_json).unwrap();
-    let compressed = volc_gzip_compress(&json_bytes);
-
-    // Header: version=1, header_size=1, msg_type=0001(full_client_req), flags=0000, serial=0001(JSON), compress=0001(gzip), reserved=0x00
-    let header: [u8; 4] = [0x11, 0x10, 0x11, 0x00];
-    let mut frame = Vec::with_capacity(4 + 4 + compressed.len());
-    frame.extend_from_slice(&header);
-    frame.extend_from_slice(&(compressed.len() as u32).to_be_bytes());
-    frame.extend_from_slice(&compressed);
-
-    ws.send(tungstenite::Message::Binary(frame))
-        .await
-        .map_err(|e| {
-            let msg = format!("发送 full client request 失败: {}", e);
-            save_transcript(app, file_path, "failed", &msg);
-            msg
-        })?;
-
-    // Read initial server response
-    volc_read_response(&mut ws).await.inspect_err(|e| {
-        save_transcript(app, file_path, "failed", e);
-    })?;
-
-    // Step 2: Send audio chunks (200ms each = 6400 bytes at 16kHz 16bit mono)
-    let chunk_size = 6400;
-    let total_chunks = pcm_data.len().div_ceil(chunk_size);
-
-    for (i, chunk) in pcm_data.chunks(chunk_size).enumerate() {
-        let is_last = i == total_chunks - 1;
-        let compressed_audio = volc_gzip_compress(chunk);
-
-        // Header: version=1, header_size=1, msg_type=0010(audio_only), flags, serial=0000(none), compress=0001(gzip), reserved=0x00
-        let flags = if is_last { 0x02 } else { 0x00 }; // 0b0010 = last packet
-        let audio_header: [u8; 4] = [0x11, 0x20 | flags, 0x01, 0x00];
-        let mut audio_frame = Vec::with_capacity(4 + 4 + compressed_audio.len());
-        audio_frame.extend_from_slice(&audio_header);
-        audio_frame.extend_from_slice(&(compressed_audio.len() as u32).to_be_bytes());
-        audio_frame.extend_from_slice(&compressed_audio);
-
-        ws.send(tungstenite::Message::Binary(audio_frame))
-            .await
-            .map_err(|e| {
-                let msg = format!("发送音频数据失败: {}", e);
-                save_transcript(app, file_path, "failed", &msg);
-                msg
-            })?;
-
-        // Small delay between chunks to avoid overwhelming the server
-        if !is_last {
-            tokio::time::sleep(Duration::from_millis(20)).await;
-        }
+    if text.is_empty() {
+        let msg = "硅基流动 ASR 返回空文本".to_string();
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
     }
-
-    // Step 3: Read responses until we get the final one
-    let timeout = compute_stt_timeout(duration_secs);
-    let deadline = tokio::time::Instant::now() + timeout;
-    let mut final_text = String::new();
-    let mut final_utterances: Vec<WhisperSegment> = vec![];
-
-    loop {
-        let resp = tokio::time::timeout_at(deadline, volc_read_response(&mut ws)).await;
-        match resp {
-            Ok(Ok(payload)) => {
-                let is_final = payload.0;
-                if let Some(data) = payload.1 {
-                    if let Some(text) = data.pointer("/result/text").and_then(|v| v.as_str()) {
-                        final_text = text.to_string();
-                    }
-                    if let Some(arr) = data
-                        .pointer("/result/utterances")
-                        .and_then(|v| v.as_array())
-                    {
-                        final_utterances = arr
-                            .iter()
-                            .filter(|u| {
-                                u.get("definite").and_then(|v| v.as_bool()).unwrap_or(false)
-                            })
-                            .map(|u| WhisperSegment {
-                                speaker: None,
-                                start: u.get("start_time").and_then(|v| v.as_f64()).unwrap_or(0.0)
-                                    / 1000.0,
-                                end: u.get("end_time").and_then(|v| v.as_f64()).unwrap_or(0.0)
-                                    / 1000.0,
-                                text: u
-                                    .get("text")
-                                    .and_then(|v| v.as_str())
-                                    .unwrap_or("")
-                                    .to_string(),
-                            })
-                            .collect();
-                    }
-                }
-                if is_final {
-                    break;
-                }
-            }
-            Ok(Err(e)) => {
-                let _ = ws.close(None).await;
-                save_transcript(app, file_path, "failed", &e);
-                return Err(e);
-            }
-            Err(_) => {
-                let msg = "火山 ASR 超时".to_string();
-                let _ = ws.close(None).await;
-                save_transcript(app, file_path, "failed", &msg);
-                return Err(msg);
-            }
-        }
-    }
-
-    let _ = ws.close(None).await;
 
     let transcript = Transcript {
         status: "completed".to_string(),
-        text: final_text,
-        segments: final_utterances,
-        engine: Some("volcengine".to_string()),
+        text,
+        segments: vec![],
+        engine: Some("siliconflow".to_string()),
     };
     save_transcript_data(file_path, &transcript);
     emit_progress(app, &filename, "completed");
     Ok(transcript)
-}
-
-/// Parse a WAV file's RIFF chunks to find the byte offset of the `data` chunk payload.
-/// Falls back to 44 (standard header size) if parsing fails.
-fn find_wav_data_offset(cursor: &mut std::io::Cursor<&Vec<u8>>) -> Option<usize> {
-    use std::io::{Read, Seek, SeekFrom};
-    let mut tag = [0u8; 4];
-    cursor.seek(SeekFrom::Start(12)).ok()?; // skip RIFF(4) + size(4) + WAVE(4)
-    loop {
-        cursor.read_exact(&mut tag).ok()?;
-        let mut size_buf = [0u8; 4];
-        cursor.read_exact(&mut size_buf).ok()?;
-        let chunk_size = u32::from_le_bytes(size_buf) as u64;
-        if &tag == b"data" {
-            return Some(cursor.stream_position().ok()? as usize);
-        }
-        cursor.seek(SeekFrom::Current(chunk_size as i64)).ok()?;
-    }
-}
-
-fn volc_gzip_compress(data: &[u8]) -> Vec<u8> {    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(data).unwrap();
-    encoder.finish().unwrap()
-}
-
-fn volc_gzip_decompress(data: &[u8]) -> Result<Vec<u8>, String> {
-    let mut decoder = GzDecoder::new(data);
-    let mut out = Vec::new();
-    decoder
-        .read_to_end(&mut out)
-        .map_err(|e| format!("gzip 解压失败: {}", e))?;
-    Ok(out)
-}
-
-type VolcWs =
-    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
-
-/// Returns (is_final, Option<json_payload>)
-async fn volc_read_response(ws: &mut VolcWs) -> Result<(bool, Option<serde_json::Value>), String> {
-    loop {
-        let msg = ws
-            .next()
-            .await
-            .ok_or_else(|| "WebSocket 连接意外关闭".to_string())?
-            .map_err(|e| format!("WebSocket 读取失败: {}", e))?;
-
-        match msg {
-            tungstenite::Message::Binary(data) => {
-                if data.len() < 4 {
-                    return Err("火山 ASR 响应帧过短".to_string());
-                }
-                let msg_type = (data[1] >> 4) & 0x0F;
-                let msg_flags = data[1] & 0x0F;
-                let compression = data[2] & 0x0F;
-
-                // Error message (msg_type = 0b1111)
-                if msg_type == 0x0F {
-                    let error_code = if data.len() >= 8 {
-                        u32::from_be_bytes([data[4], data[5], data[6], data[7]])
-                    } else {
-                        0
-                    };
-                    let error_msg = if data.len() > 12 {
-                        let msg_size =
-                            u32::from_be_bytes([data[8], data[9], data[10], data[11]]) as usize;
-                        let msg_bytes = &data[12..12 + msg_size.min(data.len() - 12)];
-                        String::from_utf8_lossy(msg_bytes).to_string()
-                    } else {
-                        "unknown".to_string()
-                    };
-                    return Err(format!("火山 ASR 错误 ({}): {}", error_code, error_msg));
-                }
-
-                // Full server response (msg_type = 0b1001)
-                if msg_type == 0x09 {
-                    let is_final = msg_flags == 0x03 || msg_flags == 0x02;
-                    // Header(4) + sequence(4) + payload_size(4) + payload
-                    if data.len() < 12 {
-                        return Ok((is_final, None));
-                    }
-                    let payload_size =
-                        u32::from_be_bytes([data[8], data[9], data[10], data[11]]) as usize;
-                    if payload_size == 0 {
-                        return Ok((is_final, None));
-                    }
-                    let payload_bytes = &data[12..12 + payload_size.min(data.len() - 12)];
-                    let json_bytes = if compression == 0x01 {
-                        volc_gzip_decompress(payload_bytes)?
-                    } else {
-                        payload_bytes.to_vec()
-                    };
-                    let json: serde_json::Value = serde_json::from_slice(&json_bytes)
-                        .map_err(|e| format!("解析火山 ASR JSON 失败: {}", e))?;
-                    return Ok((is_final, Some(json)));
-                }
-
-                // Other message types — skip
-            }
-            tungstenite::Message::Close(_) => {
-                return Err("火山 ASR WebSocket 被服务端关闭".to_string());
-            }
-            _ => continue, // ping/pong/text — ignore
-        }
-    }
 }
 
 // ── Zhipu ASR (智谱) ─────────────────────────────────────────────

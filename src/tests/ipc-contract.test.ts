@@ -342,6 +342,7 @@ describe('ASR', () => {
       dashscope_asr_model: 'qwen3-asr-flash',
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
+      siliconflow_asr_api_key: '',
       zhipu_asr_api_key: '',
     }
     await setAsrConfig(cfg)
@@ -350,8 +351,7 @@ describe('ASR', () => {
       dashscopeApiKey: 'sk-ds',
       whisperkitModel: 'base',
       dashscopeAsrModel: 'qwen3-asr-flash',
-      volcengineAsrApiKey: '',
-      volcengineAsrResourceId: 'volc.seedasr.auc',
+      siliconflowAsrApiKey: '',
       zhipuAsrApiKey: '',
     })
   })

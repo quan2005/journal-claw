@@ -58,6 +58,7 @@ vi.mock('../lib/tauri', async () => {
       dashscope_asr_model: '',
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
+      siliconflow_asr_api_key: '',
       zhipu_asr_api_key: '',
     }),
     checkWhisperkitCliInstalled: vi.fn().mockResolvedValue(true),

@@ -3,7 +3,6 @@ use crate::config::Config;
 use crate::speaker_profiles;
 use async_trait::async_trait;
 use base64::Engine as _;
-use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;

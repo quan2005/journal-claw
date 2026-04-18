@@ -129,7 +129,14 @@ impl AsrEngine for SiliconflowEngine {
         false
     }
     async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
-        transcribe_with_siliconflow(&input.app, &input.file_path, input.duration_secs, &self.api_key, &self.model).await
+        transcribe_with_siliconflow(
+            &input.app,
+            &input.file_path,
+            input.duration_secs,
+            &self.api_key,
+            &self.model,
+        )
+        .await
     }
 }
 
@@ -898,7 +905,10 @@ async fn transcribe_with_siliconflow(
         msg
     })?;
 
-    let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("m4a");
+    let ext = file_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("m4a");
     let mime_str = match ext {
         "mp3" => "audio/mpeg",
         "wav" => "audio/wav",

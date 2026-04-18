@@ -761,7 +761,7 @@ fn render_audio_ai_markdown(
 async fn transcribe_with_dashscope(
     app: &AppHandle,
     file_path: &Path,
-    _duration_secs: f64,
+    duration_secs: f64,
 ) -> Result<Transcript, String> {
     let filename = file_path
         .file_name()
@@ -777,6 +777,16 @@ async fn transcribe_with_dashscope(
         let message = "请先配置 DashScope API Key".to_string();
         save_transcript(app, file_path, "failed", &message);
         return Err(message);
+    }
+
+    // DashScope 文件转写 API 要求音频 > 30s
+    if duration_secs > 0.0 && duration_secs < 30.0 {
+        let msg = format!(
+            "DashScope 不支持 {:.0}s 以下的音频（最短 30s），请切换其他引擎",
+            duration_secs
+        );
+        save_transcript(app, file_path, "failed", &msg);
+        return Err(msg);
     }
 
     let model = if cfg.dashscope_asr_model.is_empty() {
@@ -812,7 +822,11 @@ async fn transcribe_with_dashscope(
         "stream": false
     });
 
-    let client = reqwest::Client::new();
+    let timeout_secs = (duration_secs * 5.0).max(300.0) as u64;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(timeout_secs))
+        .build()
+        .unwrap_or_default();
     let resp = client
         .post(DASHSCOPE_CHAT_URL)
         .header("Authorization", format!("Bearer {}", cfg.dashscope_api_key))
@@ -930,11 +944,17 @@ async fn transcribe_with_volcengine(
     })?;
     let _ = fs::remove_file(&wav_tmp);
 
-    // Skip WAV header (44 bytes) to get raw PCM data
-    let pcm_data = if pcm_bytes.len() > 44 {
-        &pcm_bytes[44..]
-    } else {
-        &pcm_bytes
+    // Parse WAV header to find actual data chunk offset (handles non-standard headers with LIST/INFO chunks)
+    let pcm_data_owned;
+    let pcm_data = {
+        let mut cursor = std::io::Cursor::new(&pcm_bytes);
+        let data_offset = find_wav_data_offset(&mut cursor).unwrap_or(44);
+        pcm_data_owned = if pcm_bytes.len() > data_offset {
+            pcm_bytes[data_offset..].to_vec()
+        } else {
+            pcm_bytes.clone()
+        };
+        &pcm_data_owned[..]
     };
 
     // Map file-API resource IDs to streaming equivalents
@@ -978,7 +998,7 @@ async fn transcribe_with_volcengine(
     let payload_json = serde_json::json!({
         "user": { "uid": "journal-app" },
         "audio": {
-            "format": "wav",
+            "format": "pcm",
             "rate": 16000,
             "bits": 16,
             "channel": 1,
@@ -1115,8 +1135,25 @@ async fn transcribe_with_volcengine(
     Ok(transcript)
 }
 
-fn volc_gzip_compress(data: &[u8]) -> Vec<u8> {
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+/// Parse a WAV file's RIFF chunks to find the byte offset of the `data` chunk payload.
+/// Falls back to 44 (standard header size) if parsing fails.
+fn find_wav_data_offset(cursor: &mut std::io::Cursor<&Vec<u8>>) -> Option<usize> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut tag = [0u8; 4];
+    cursor.seek(SeekFrom::Start(12)).ok()?; // skip RIFF(4) + size(4) + WAVE(4)
+    loop {
+        cursor.read_exact(&mut tag).ok()?;
+        let mut size_buf = [0u8; 4];
+        cursor.read_exact(&mut size_buf).ok()?;
+        let chunk_size = u32::from_le_bytes(size_buf) as u64;
+        if &tag == b"data" {
+            return Some(cursor.stream_position().ok()? as usize);
+        }
+        cursor.seek(SeekFrom::Current(chunk_size as i64)).ok()?;
+    }
+}
+
+fn volc_gzip_compress(data: &[u8]) -> Vec<u8> {    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
     encoder.write_all(data).unwrap();
     encoder.finish().unwrap()
 }
@@ -1451,7 +1488,10 @@ async fn zhipu_transcribe_file(
         .part("file", file_part)
         .text("model", "glm-asr-2512");
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(120))
+        .build()
+        .unwrap_or_default();
     let resp = client
         .post(ZHIPU_ASR_URL)
         .header("Authorization", format!("Bearer {}", api_key))
@@ -1503,11 +1543,23 @@ pub async fn transcribe_audio_to_ai_markdown(
         return Err(msg);
     }
 
+    // 前置检查：macOS 麦克风 + 语音识别权限
+    #[cfg(target_os = "macos")]
+    {
+        use crate::permissions::PermStatus;
+        let mic = crate::permissions::macos::microphone_status();
+        let speech = crate::permissions::macos::speech_recognition_status();
+        if matches!(mic, PermStatus::Denied) || matches!(speech, PermStatus::Denied) {
+            let msg = "缺少麦克风或语音识别权限，请前往「系统设置 → 隐私与安全性」授权".to_string();
+            save_transcript(&app, &file_path, "failed", &msg);
+            return Err(msg);
+        }
+    }
+
     let cfg = config::load_config(&app).inspect_err(|error| {
         save_transcript(&app, &file_path, "failed", error);
     })?;
     let engine = create_asr_engine(&cfg);
-    let engine_name = engine.name().to_string();
 
     let filename = file_path
         .file_name()
@@ -1541,7 +1593,7 @@ pub async fn transcribe_audio_to_ai_markdown(
             }
         };
 
-    // Step 3: ASR 转写（通过 trait 分发到具体引擎）
+    // Step 3: ASR 转写（通过 trait 分发到具体引擎，失败时自动降级到 Apple STT）
     emit_progress(&app, &filename, "transcribing");
     let input = AsrInput {
         app: app.clone(),
@@ -1549,7 +1601,30 @@ pub async fn transcribe_audio_to_ai_markdown(
         duration_secs,
         speaker_segments: speakers.clone(),
     };
-    let transcript = engine.transcribe(&input).await?;
+    let (transcript, used_engine) = {
+        let primary_name = engine.name().to_string();
+        match engine.transcribe(&input).await {
+            Ok(t) => (t, primary_name),
+            Err(e) if primary_name != "apple" => {
+                eprintln!(
+                    "[transcription] engine '{}' failed: {}, falling back to Apple STT",
+                    primary_name, e
+                );
+                let _ = app.emit(
+                    "transcription-progress",
+                    serde_json::json!({
+                        "filename": filename,
+                        "status": "transcribing",
+                        "message": format!("引擎 {} 失败，切换到 Apple STT…", primary_name),
+                    }),
+                );
+                let fallback = AppleSttEngine;
+                let t = fallback.transcribe(&input).await?;
+                (t, "apple".to_string())
+            }
+            Err(e) => return Err(e),
+        }
+    };
 
     // Step 4: 合并说话人标签与转写结果
     let final_transcript = if diarize_ok && !speakers.is_empty() {
@@ -1597,7 +1672,7 @@ pub async fn transcribe_audio_to_ai_markdown(
     // Step 5: 生成 audio-ai.md
     emit_progress(&app, &filename, "completed");
 
-    let markdown = render_audio_ai_markdown(&filename, &engine_name, &final_transcript);
+    let markdown = render_audio_ai_markdown(&filename, &used_engine, &final_transcript);
     let markdown_path = audio_ai_markdown_path_for_audio(file_path.as_path());
 
     std::fs::write(&markdown_path, markdown.as_bytes())
@@ -1623,7 +1698,11 @@ pub fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
     // 打包后的二进制名（Tauri 去掉了 target triple 后缀）
     let bundle_name = "journal-speech";
     // 开发环境源目录里的文件名（保留 triple，与 externalBin 命名规范一致）
-    let dev_name = "journal-speech-aarch64-apple-darwin";
+    let dev_name = if cfg!(target_arch = "aarch64") {
+        "journal-speech-aarch64-apple-darwin"
+    } else {
+        "journal-speech-x86_64-apple-darwin"
+    };
 
     let mut tried: Vec<PathBuf> = Vec::new();
 
@@ -1722,15 +1801,20 @@ pub async fn transcribe_with_apple_stt(
         msg
     })?;
 
-    // 流式读取 stderr 日志
+    // 流式读取 stderr 日志，同时累积用于错误报告
+    let stderr_lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
     let stderr_handle = if let Some(stderr) = child.stderr.take() {
         let app_clone = app.clone();
         let fname = filename.clone();
+        let lines_clone = std::sync::Arc::clone(&stderr_lines);
         Some(tokio::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
                 if line.trim().is_empty() {
                     continue;
+                }
+                if let Ok(mut v) = lines_clone.lock() {
+                    v.push(line.trim().to_string());
                 }
                 let _ = app_clone.emit(
                     "transcription-progress",
@@ -1745,7 +1829,6 @@ pub async fn transcribe_with_apple_stt(
     } else {
         None
     };
-
     // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
     let timeout = compute_stt_timeout(duration_secs);
     let stdout_bytes = if let Some(stdout) = child.stdout.take() {
@@ -1797,10 +1880,16 @@ pub async fn transcribe_with_apple_stt(
     };
 
     if !status.success() {
-        // 尝试从 stdout 解析错误信息
+        // 优先从 stdout JSON 解析错误，其次用累积的 stderr 行
+        let stderr_summary = stderr_lines
+            .lock()
+            .ok()
+            .map(|v| v.join("; "))
+            .filter(|s| !s.is_empty());
         let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
             .ok()
             .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+            .or(stderr_summary)
             .unwrap_or_else(|| "journal-speech 转写失败".to_string());
         save_transcript(&app, &file_path, "failed", &error_msg);
         return Err(error_msg);

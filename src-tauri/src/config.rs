@@ -429,6 +429,9 @@ fn sanitize_engine_config(config: &mut Config) {
     if config.asr_engine == "zhipu" && config.zhipu_asr_api_key.is_empty() {
         config.asr_engine = "apple".to_string();
     }
+    if config.asr_engine == "dashscope" && config.dashscope_api_key.trim().is_empty() {
+        config.asr_engine = "apple".to_string();
+    }
 
     let valid_volcengine_resources = ["volc.bigasr.auc", "volc.seedasr.auc"];
     if !valid_volcengine_resources.contains(&config.volcengine_asr_resource_id.as_str()) {

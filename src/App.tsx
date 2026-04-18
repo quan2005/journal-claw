@@ -301,21 +301,24 @@ export default function App() {
   // Track conversation session when work queue creates one (don't auto-open dialog)
   useEffect(() => {
     let unlisten: (() => void) | null = null
-    listen<{ item_id: string; session_id: string; prompt?: string }>('work-item-session-created', (event) => {
-      const { session_id, prompt } = event.payload
-      setConversationState((prev) =>
-        prev?.visible
-          ? prev
-          : {
-              mode: 'agent',
-              initialSessionId: session_id,
-              initialStreaming: true,
-              initialUserMessage: prompt,
-              key: Date.now(),
-              visible: false,
-            },
-      )
-    }).then((fn) => {
+    listen<{ item_id: string; session_id: string; prompt?: string }>(
+      'work-item-session-created',
+      (event) => {
+        const { session_id, prompt } = event.payload
+        setConversationState((prev) =>
+          prev?.visible
+            ? prev
+            : {
+                mode: 'agent',
+                initialSessionId: session_id,
+                initialStreaming: true,
+                initialUserMessage: prompt,
+                key: Date.now(),
+                visible: false,
+              },
+        )
+      },
+    ).then((fn) => {
       unlisten = fn
     })
     return () => {

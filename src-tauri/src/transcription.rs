@@ -60,6 +60,7 @@ pub struct AsrInput {
 #[async_trait]
 pub trait AsrEngine: Send + Sync {
     fn name(&self) -> &'static str;
+    #[allow(dead_code)]
     fn has_timestamps(&self) -> bool;
     async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String>;
 }
@@ -1001,7 +1002,7 @@ async fn transcribe_with_volcengine(
     frame.extend_from_slice(&(compressed.len() as u32).to_be_bytes());
     frame.extend_from_slice(&compressed);
 
-    ws.send(tungstenite::Message::Binary(frame.into()))
+    ws.send(tungstenite::Message::Binary(frame))
         .await
         .map_err(|e| {
             let msg = format!("发送 full client request 失败: {}", e);
@@ -1010,14 +1011,13 @@ async fn transcribe_with_volcengine(
         })?;
 
     // Read initial server response
-    volc_read_response(&mut ws).await.map_err(|e| {
-        save_transcript(app, file_path, "failed", &e);
-        e
+    volc_read_response(&mut ws).await.inspect_err(|e| {
+        save_transcript(app, file_path, "failed", e);
     })?;
 
     // Step 2: Send audio chunks (200ms each = 6400 bytes at 16kHz 16bit mono)
     let chunk_size = 6400;
-    let total_chunks = (pcm_data.len() + chunk_size - 1) / chunk_size;
+    let total_chunks = pcm_data.len().div_ceil(chunk_size);
 
     for (i, chunk) in pcm_data.chunks(chunk_size).enumerate() {
         let is_last = i == total_chunks - 1;
@@ -1031,7 +1031,7 @@ async fn transcribe_with_volcengine(
         audio_frame.extend_from_slice(&(compressed_audio.len() as u32).to_be_bytes());
         audio_frame.extend_from_slice(&compressed_audio);
 
-        ws.send(tungstenite::Message::Binary(audio_frame.into()))
+        ws.send(tungstenite::Message::Binary(audio_frame))
             .await
             .map_err(|e| {
                 let msg = format!("发送音频数据失败: {}", e);

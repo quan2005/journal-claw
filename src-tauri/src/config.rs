@@ -756,6 +756,7 @@ pub fn get_apple_stt_variant() -> String {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn set_asr_config(
     app: AppHandle,
     asr_engine: String,

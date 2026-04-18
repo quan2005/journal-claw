@@ -203,7 +203,7 @@ fn load_session_summaries(workspace: &str) -> Vec<SessionSummary> {
             }
         }
     }
-    summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    summaries.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
     summaries
 }
 
@@ -969,7 +969,7 @@ pub async fn conversation_list(
         }
     }
 
-    summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    summaries.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
     Ok(summaries)
 }
 

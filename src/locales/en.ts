@@ -333,6 +333,8 @@ export const en = {
   siliconflowVendor: 'SiliconFlow · Remote',
   siliconflowApiKeyLabel: 'SiliconFlow API Key',
   siliconflowApiKeyHint: 'Get your API Key from siliconflow.cn',
+  siliconflowModelLabel: 'Recognition Model',
+  siliconflowModelHint: 'Choose a preset or enter a custom model name',
   zhipuEngineLabel: 'Zhipu AI',
   zhipuVendor: 'Zhipu · Remote',
   zhipuApiKeyLabel: 'Zhipu API Key',

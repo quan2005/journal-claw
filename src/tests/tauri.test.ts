@@ -43,6 +43,7 @@ describe('tauri config commands', () => {
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
       siliconflow_asr_api_key: '',
+      siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
       zhipu_asr_api_key: '',
     }
 
@@ -54,6 +55,7 @@ describe('tauri config commands', () => {
       whisperkitModel: 'large-v3-turbo',
       dashscopeAsrModel: 'qwen3-asr-flash',
       siliconflowAsrApiKey: '',
+      siliconflowAsrModel: 'FunAudioLLM/SenseVoiceSmall',
       zhipuAsrApiKey: '',
     })
   })

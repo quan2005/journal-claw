@@ -21,6 +21,8 @@ pub struct AsrConfig {
     pub volcengine_asr_resource_id: String,
     #[serde(default)]
     pub siliconflow_asr_api_key: String,
+    #[serde(default)]
+    pub siliconflow_asr_model: String,
     pub zhipu_asr_api_key: String,
 }
 
@@ -174,6 +176,8 @@ pub struct Config {
     pub volcengine_asr_resource_id: String, // "volc.bigasr.auc" | "volc.seedasr.auc"
     #[serde(default)]
     pub siliconflow_asr_api_key: String,
+    #[serde(default = "default_siliconflow_asr_model")]
+    pub siliconflow_asr_model: String,
     #[serde(default)]
     pub zhipu_asr_api_key: String,
     // 首次启动引导
@@ -295,6 +299,10 @@ fn default_dashscope_asr_model() -> String {
 
 fn default_volcengine_asr_resource_id() -> String {
     "volc.seedasr.auc".to_string()
+}
+
+fn default_siliconflow_asr_model() -> String {
+    "FunAudioLLM/SenseVoiceSmall".to_string()
 }
 
 pub fn normalize_whisperkit_model(model: &str) -> Option<&'static str> {
@@ -742,6 +750,7 @@ pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
         volcengine_asr_api_key: c.volcengine_asr_api_key,
         volcengine_asr_resource_id: c.volcengine_asr_resource_id,
         siliconflow_asr_api_key: c.siliconflow_asr_api_key,
+        siliconflow_asr_model: c.siliconflow_asr_model,
         zhipu_asr_api_key: c.zhipu_asr_api_key,
     })
 }
@@ -775,6 +784,7 @@ pub fn set_asr_config(
     whisperkit_model: String,
     dashscope_asr_model: String,
     siliconflow_asr_api_key: String,
+    siliconflow_asr_model: String,
     zhipu_asr_api_key: String,
 ) -> Result<(), String> {
     let valid_engines = ["apple", "dashscope", "whisperkit", "siliconflow", "zhipu"];
@@ -796,6 +806,7 @@ pub fn set_asr_config(
     c.whisperkit_model = normalized_model.to_string();
     c.dashscope_asr_model = asr_model;
     c.siliconflow_asr_api_key = siliconflow_asr_api_key;
+    c.siliconflow_asr_model = siliconflow_asr_model;
     c.zhipu_asr_api_key = zhipu_asr_api_key;
     save_config(&app, &c)
 }

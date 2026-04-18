@@ -59,6 +59,7 @@ vi.mock('../lib/tauri', async () => {
       volcengine_asr_api_key: '',
       volcengine_asr_resource_id: 'volc.seedasr.auc',
       siliconflow_asr_api_key: '',
+      siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
       zhipu_asr_api_key: '',
     }),
     checkWhisperkitCliInstalled: vi.fn().mockResolvedValue(true),

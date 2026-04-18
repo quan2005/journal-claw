@@ -196,6 +196,7 @@ export interface AsrConfig {
   volcengine_asr_api_key: string
   volcengine_asr_resource_id: string
   siliconflow_asr_api_key: string
+  siliconflow_asr_model: string
   zhipu_asr_api_key: string
 }
 
@@ -210,6 +211,7 @@ export const setAsrConfig = (cfg: AsrConfig): Promise<void> =>
     whisperkitModel: cfg.whisperkit_model,
     dashscopeAsrModel: cfg.dashscope_asr_model,
     siliconflowAsrApiKey: cfg.siliconflow_asr_api_key,
+    siliconflowAsrModel: cfg.siliconflow_asr_model,
     zhipuAsrApiKey: cfg.zhipu_asr_api_key,
   })
 

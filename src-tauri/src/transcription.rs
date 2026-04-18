@@ -65,6 +65,7 @@ struct WhisperKitEngine {
 struct DashScopeEngine;
 struct SiliconflowEngine {
     api_key: String,
+    model: String,
 }
 struct ZhipuEngine {
     api_key: String,
@@ -128,7 +129,7 @@ impl AsrEngine for SiliconflowEngine {
         false
     }
     async fn transcribe(&self, input: &AsrInput) -> Result<Transcript, String> {
-        transcribe_with_siliconflow(&input.app, &input.file_path, input.duration_secs, &self.api_key).await
+        transcribe_with_siliconflow(&input.app, &input.file_path, input.duration_secs, &self.api_key, &self.model).await
     }
 }
 
@@ -160,6 +161,7 @@ fn create_asr_engine(cfg: &Config) -> Box<dyn AsrEngine> {
         }),
         "siliconflow" => Box::new(SiliconflowEngine {
             api_key: cfg.siliconflow_asr_api_key.clone(),
+            model: cfg.siliconflow_asr_model.clone(),
         }),
         "zhipu" => Box::new(ZhipuEngine {
             api_key: cfg.zhipu_asr_api_key.clone(),
@@ -874,6 +876,7 @@ async fn transcribe_with_siliconflow(
     file_path: &Path,
     duration_secs: f64,
     api_key: &str,
+    model: &str,
 ) -> Result<Transcript, String> {
     let filename = file_path
         .file_name()
@@ -907,9 +910,15 @@ async fn transcribe_with_siliconflow(
         .mime_str(mime_str)
         .map_err(|e| format!("构建 multipart 失败: {}", e))?;
 
+    let model_name = if model.trim().is_empty() {
+        "FunAudioLLM/SenseVoiceSmall"
+    } else {
+        model
+    };
+
     let form = reqwest::multipart::Form::new()
         .part("file", file_part)
-        .text("model", "FunAudioLLM/SenseVoiceSmall");
+        .text("model", model_name.to_string());
 
     let timeout_secs = (duration_secs * 5.0).max(300.0) as u64;
     let client = reqwest::Client::builder()

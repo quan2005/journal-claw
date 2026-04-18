@@ -354,6 +354,8 @@ export const zh: Strings = {
   siliconflowVendor: '硅基流动 · 云端',
   siliconflowApiKeyLabel: '硅基流动 API Key',
   siliconflowApiKeyHint: '在 siliconflow.cn 获取 API Key',
+  siliconflowModelLabel: '识别模型',
+  siliconflowModelHint: '可选预设或输入自定义模型名',
   zhipuEngineLabel: '智谱 AI',
   zhipuVendor: '智谱 · 云端',
   zhipuApiKeyLabel: '智谱 API Key',

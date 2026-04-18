@@ -149,6 +149,7 @@ function isAsrConfigEqual(a: AsrConfig, b: AsrConfig) {
     a.whisperkit_model === b.whisperkit_model &&
     a.dashscope_asr_model === b.dashscope_asr_model &&
     a.siliconflow_asr_api_key === b.siliconflow_asr_api_key &&
+    a.siliconflow_asr_model === b.siliconflow_asr_model &&
     a.zhipu_asr_api_key === b.zhipu_asr_api_key
   )
 }
@@ -163,6 +164,7 @@ export default function SectionVoice() {
     volcengine_asr_api_key: '',
     volcengine_asr_resource_id: 'volc.seedasr.auc',
     siliconflow_asr_api_key: '',
+    siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
     zhipu_asr_api_key: '',
   }
   const [cfg, setCfg] = useState<AsrConfig>(defaultConfig)
@@ -1146,6 +1148,23 @@ export default function SectionVoice() {
                   }}
                 />
                 <div style={hintStyle}>{t('siliconflowApiKeyHint')}</div>
+
+                <label style={{ ...labelStyle, marginTop: 16 }}>{t('siliconflowModelLabel')}</label>
+                <input
+                  list="siliconflow-models"
+                  style={inputStyle}
+                  placeholder="FunAudioLLM/SenseVoiceSmall"
+                  value={cfg.siliconflow_asr_model}
+                  onChange={(e) => {
+                    setCfg((prev) => ({ ...prev, siliconflow_asr_model: e.target.value }))
+                    setSaveStatus('idle')
+                  }}
+                />
+                <datalist id="siliconflow-models">
+                  <option value="FunAudioLLM/SenseVoiceSmall" />
+                  <option value="TeleAI/TeleSpeechASR" />
+                </datalist>
+                <div style={hintStyle}>{t('siliconflowModelHint')}</div>
               </div>
             )}
 

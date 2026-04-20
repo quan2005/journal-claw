@@ -1,6 +1,7 @@
 pub mod anthropic;
 pub mod bash_tool;
 pub mod enable_skill;
+pub mod fs_tools;
 pub mod openai_compat;
 pub mod output_compress;
 pub mod prompt;

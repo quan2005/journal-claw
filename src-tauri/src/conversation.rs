@@ -544,7 +544,9 @@ pub async fn conversation_send(
     session_id: String,
     message: String,
 ) -> Result<(), String> {
+    eprintln!("[conversation] send called: session={} msg_len={}", session_id, message.len());
     let cfg = config::load_config(&app)?;
+    eprintln!("[conversation] active_provider={} protocol={}", cfg.active_provider, cfg.active_vendor_config().3);
 
     // ── Lazy system-prompt init ──────────────────────────
     // Check if this session still needs its system prompt built.

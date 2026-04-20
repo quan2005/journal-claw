@@ -1306,11 +1306,20 @@ pub async fn list_models(
         (url, req)
     };
 
-    let response = req.send().await.map_err(|e| format!("请求失败: {}", e))?;
+    eprintln!(
+        "[list_models] engine={} protocol={} base_url={}",
+        engine, protocol, effective_base_url
+    );
+
+    let response = req.send().await.map_err(|e| {
+        eprintln!("[list_models] request failed: {}", e);
+        format!("请求失败: {}", e)
+    })?;
 
     let status = response.status().as_u16();
     if status >= 400 {
         let text = response.text().await.unwrap_or_default();
+        eprintln!("[list_models] API error ({}): {}", status, text);
         return Err(format!("API 错误 ({}): {}", status, text));
     }
 

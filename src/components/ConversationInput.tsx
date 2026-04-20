@@ -72,12 +72,10 @@ export function ConversationInput({
     if (!text) return
     const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
     const parts = [fileRefs, text].filter(Boolean)
+    const payload = parts.join('\n\n')
     setInput('')
     setAttachments([])
-    const success = await onSend(parts.join('\n\n'))
-    if (!success) {
-      setInput(text)
-    }
+    onSend(payload)
   }, [input, attachments, onSend])
 
   const handleKeyDown = useCallback(

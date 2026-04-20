@@ -2,6 +2,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::bash_tool;
 use super::enable_skill;
+use super::fs_tools;
 use super::types::*;
 use super::LlmEngine;
 
@@ -41,7 +42,8 @@ pub async fn run_agent(
     cancel: CancellationToken,
 ) -> Result<String, LlmError> {
     let skills = super::prompt::scan_skills(workspace_path).await;
-    let tools = vec![bash_tool::definition(), enable_skill::definition(&skills)];
+    let mut tools = vec![bash_tool::definition(), enable_skill::definition(&skills)];
+    tools.extend(fs_tools::definitions());
 
     let mut messages: Vec<Message> = vec![Message {
         role: Role::User,
@@ -182,10 +184,17 @@ pub async fn run_agent(
                     let result = match name.as_str() {
                         "bash" => bash_tool::execute(input, workspace_path).await,
                         "load_skill" => enable_skill::execute(input, workspace_path).await,
-                        _ => ToolResult {
-                            output: format!("unknown tool: {}", name),
-                            is_error: true,
-                        },
+                        fs_name => {
+                            if let Some(r) = fs_tools::execute(fs_name, input, workspace_path).await
+                            {
+                                r
+                            } else {
+                                ToolResult {
+                                    output: format!("unknown tool: {}", name),
+                                    is_error: true,
+                                }
+                            }
+                        }
                     };
 
                     on_event(AgentEvent::ToolEnd {

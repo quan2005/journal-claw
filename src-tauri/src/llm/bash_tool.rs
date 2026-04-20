@@ -11,7 +11,7 @@ const MAX_OUTPUT_BYTES: usize = 100 * 1024; // 100 KB
 pub fn definition() -> ToolDefinition {
     ToolDefinition {
         name: "bash".to_string(),
-        description: "Execute a bash command in the workspace directory. Use this for all file operations (cat, tee, ls, mkdir, etc.), running scripts, and any shell tasks.".to_string(),
+        description: "Fallback shell execution. Prefer using read/write/edit/glob/grep/mkdir/move/remove tools for file operations. Only use bash for non-file tasks like running scripts, git commands, or package managers.".to_string(),
         input_schema: json!({
             "type": "object",
             "properties": {

@@ -5,7 +5,7 @@ use serde_json::json;
 pub fn definition() -> ToolDefinition {
     ToolDefinition {
         name: "read".to_string(),
-        description: "Read the contents of a file within the workspace. Returns file content as text. Supports optional line offset and limit.".to_string(),
+        description: "Read file contents within the workspace. Auto-paginates at ~10K tokens (~30000 chars). Use offset to read subsequent pages.".to_string(),
         input_schema: json!({
             "type": "object",
             "properties": {
@@ -15,11 +15,11 @@ pub fn definition() -> ToolDefinition {
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Line number to start reading from (1-indexed, optional)"
+                    "description": "Character offset to start reading from (for pagination). Default: 0"
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of lines to read (optional)"
+                    "description": "Maximum characters to return. Default: 30000 (~10K tokens)"
                 }
             },
             "required": ["path"]
@@ -67,32 +67,50 @@ pub async fn execute(input: &serde_json::Value, workspace: &str) -> ToolResult {
         }
     };
 
-    let offset = input
-        .get("offset")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(1)
-        .max(1) as usize;
+    let total_chars = content.len();
+    let offset = input.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
     let limit = input
         .get("limit")
         .and_then(|v| v.as_u64())
-        .map(|v| v as usize);
+        .map(|v| v as usize)
+        .unwrap_or(MAX_READ_CHARS);
 
-    let lines: Vec<&str> = content.lines().collect();
-    let start = (offset - 1).min(lines.len());
-    let end = match limit {
-        Some(n) => (start + n).min(lines.len()),
-        None => lines.len(),
-    };
+    if offset >= total_chars {
+        return ToolResult {
+            output: format!("(end of file — {} total characters)", total_chars),
+            is_error: false,
+        };
+    }
 
-    let slice = lines[start..end].join("\n");
+    let slice = &content[offset..];
+    let end = slice.len().min(limit);
 
-    let truncated = slice.chars().count() > MAX_READ_CHARS;
-    let output: String = if truncated {
-        slice.chars().take(MAX_READ_CHARS).collect::<String>()
-            + &format!("\n\n[truncated at {} chars]", MAX_READ_CHARS)
+    // Snap to line boundary to avoid cutting mid-line
+    let end = if end < slice.len() {
+        slice[..end].rfind('\n').map(|p| p + 1).unwrap_or(end)
     } else {
-        slice
+        end
     };
+
+    let page = &slice[..end];
+    let has_more = offset + end < total_chars;
+
+    // Add line numbers
+    let before_offset = &content[..offset];
+    let start_line = before_offset.chars().filter(|&c| c == '\n').count() + 1;
+
+    let mut output = String::new();
+    for (i, line) in page.lines().enumerate() {
+        output.push_str(&format!("{:>4}\t{}\n", start_line + i, line));
+    }
+
+    if has_more {
+        let next_offset = offset + end;
+        output.push_str(&format!(
+            "\n[truncated — showing {}/{} chars. Use offset={} to continue]",
+            end, total_chars, next_offset
+        ));
+    }
 
     ToolResult {
         output,
@@ -115,13 +133,26 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn read_with_offset_and_limit() {
+    async fn read_with_char_pagination() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("f.txt"), "a\nb\nc\nd\ne").unwrap();
-        let input = serde_json::json!({"path": "f.txt", "offset": 2, "limit": 2});
+        std::fs::write(dir.path().join("f.txt"), "aaaa\nbbbb\ncccc\ndddd\n").unwrap();
+        let input = serde_json::json!({"path": "f.txt", "offset": 5, "limit": 10});
         let result = execute(&input, dir.path().to_str().unwrap()).await;
         assert!(!result.is_error);
-        assert_eq!(result.output, "b\nc");
+        // offset=5 skips "aaaa\n", starts at "bbbb\n..."
+        assert!(result.output.contains("bbbb"));
+    }
+
+    #[tokio::test]
+    async fn read_truncation_shows_next_offset() {
+        let dir = tempfile::tempdir().unwrap();
+        let content = "line\n".repeat(10000); // large file
+        std::fs::write(dir.path().join("big.txt"), &content).unwrap();
+        let input = serde_json::json!({"path": "big.txt", "limit": 100});
+        let result = execute(&input, dir.path().to_str().unwrap()).await;
+        assert!(!result.is_error);
+        assert!(result.output.contains("truncated"));
+        assert!(result.output.contains("offset="));
     }
 
     #[tokio::test]

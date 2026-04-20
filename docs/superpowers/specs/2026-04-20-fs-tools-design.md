@@ -172,6 +172,18 @@ src-tauri/src/llm/
 - 工具分发新增 match 8 个 fs 工具名，bash 保留
 - bash_tool 的 description 修改为："Fallback shell execution. Prefer using read/write/edit/glob/grep/mkdir/move/remove for file operations."
 
+### 复用现有 output_compress 模块
+
+从 `src-tauri/src/llm/output_compress/` 提取共享逻辑：
+
+| 来源 | 提取到 | 用途 |
+|---|---|---|
+| `grep.rs` 的按文件分组 + 截断逻辑 | `fs_tools/grep.rs` | grep 结果按文件分组，每文件限制条数，总量封顶 |
+| `ls.rs` 的 `NOISE_DIRS` 常量 | `fs_tools/mod.rs`（或共享 `utils.rs`） | glob 默认排除 node_modules/.git/target 等噪音目录 |
+| `mod.rs` 的 `normalize_blanks` | 共享 utils | read 输出格式化时可能用到 |
+
+`output_compress` 模块本身保留不动（bash_tool 仍在使用）。
+
 ### macOS Trash 实现
 
 通过 `objc` crate 调用 `NSFileManager.trashItem:resultingItemURL:error:`，或使用 `trash` crate（纯 Rust 封装）。推荐 `trash` crate，更简洁。

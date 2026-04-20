@@ -418,6 +418,9 @@ export const en = {
   slashRewrite: 'Rewrite & polish',
   slashTags: 'Generate tags',
   providerLabel: 'Display Name',
+  protocolLabel: 'Protocol',
+  protocolHint:
+    'Anthropic for Claude models, OpenAI Compatible for other providers (DashScope, DeepSeek, etc.)',
   addProvider: 'Add Provider',
   customProvider: 'Custom Provider',
 }

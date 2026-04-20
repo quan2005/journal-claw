@@ -439,6 +439,9 @@ export const zh: Strings = {
   slashRewrite: '改写润色',
   slashTags: '重新生成标签',
   providerLabel: '显示名称',
+  protocolLabel: '通信协议',
+  protocolHint:
+    'Anthropic 协议用于 Claude 模型，OpenAI 兼容协议用于其他供应商（百炼、DeepSeek 等）',
   addProvider: '添加供应商',
   customProvider: '自定义供应商',
 }

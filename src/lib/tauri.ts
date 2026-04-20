@@ -111,6 +111,7 @@ export const getAppVersion = (): Promise<string> => invoke<string>('get_app_vers
 
 // Engine config — provider list (v3)
 export interface ProviderEntry {
+  protocol: string
   id: string
   label: string
   api_key: string
@@ -126,6 +127,7 @@ export interface EngineConfig {
 export interface BuiltinPreset {
   id: string
   label: string
+  defaultProtocol: string
   defaultBaseUrl: string
   defaultModel: string
   apiKeyUrl: string
@@ -136,7 +138,8 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   {
     id: 'deepseek',
     label: 'DeepSeek',
-    defaultBaseUrl: 'https://api.deepseek.com/anthropic',
+    defaultProtocol: 'openai',
+    defaultBaseUrl: 'https://api.deepseek.com/v1',
     defaultModel: 'deepseek-chat',
     apiKeyUrl: 'https://platform.deepseek.com/api_keys',
     apiKeyPlaceholder: 'sk-…',
@@ -144,7 +147,8 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   {
     id: 'volcengine',
     label: '火山方舟',
-    defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/coding',
+    defaultProtocol: 'openai',
+    defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
     defaultModel: 'doubao-1.5-pro-256k',
     apiKeyUrl: 'https://www.volcengine.com/activity/codingplan?ac=MMAP8JTTCAQ2&rc=MAZQUPQF',
     apiKeyPlaceholder: '',
@@ -152,7 +156,8 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   {
     id: 'zhipu',
     label: '智谱 AI',
-    defaultBaseUrl: 'https://open.bigmodel.cn/api/anthropic',
+    defaultProtocol: 'openai',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     defaultModel: 'glm-4-plus',
     apiKeyUrl: 'https://www.bigmodel.cn/glm-coding?ic=BHXN1AIKJH',
     apiKeyPlaceholder: '',
@@ -160,7 +165,8 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   {
     id: 'dashscope',
     label: '阿里云百炼',
-    defaultBaseUrl: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    defaultProtocol: 'openai',
+    defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     defaultModel: 'qwen-max',
     apiKeyUrl: 'https://bailian.console.aliyun.com/?apiKey=1#/api-key',
     apiKeyPlaceholder: 'sk-…',
@@ -168,6 +174,7 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   {
     id: 'anthropic',
     label: 'Anthropic',
+    defaultProtocol: 'anthropic',
     defaultBaseUrl: 'https://api.anthropic.com',
     defaultModel: 'claude-sonnet-4-20250514',
     apiKeyUrl: 'https://console.anthropic.com/settings/keys',

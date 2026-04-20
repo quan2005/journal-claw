@@ -52,6 +52,7 @@ function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
     const pb = b.providers[i]
     if (
       pa.id !== pb.id ||
+      pa.protocol !== pb.protocol ||
       pa.label !== pb.label ||
       pa.api_key !== pb.api_key ||
       pa.base_url !== pb.base_url ||
@@ -269,6 +270,7 @@ export default function SectionAiEngine() {
   const addProvider = (presetId?: string) => {
     const bp = presetId ? presetForId(presetId) : undefined
     const entry: ProviderEntry = {
+      protocol: bp?.defaultProtocol ?? 'anthropic',
       id: newProviderId(),
       label: bp?.label ?? t('customProvider'),
       api_key: '',
@@ -454,6 +456,19 @@ export default function SectionAiEngine() {
                   value={activeProvider.label}
                   onChange={(e) => setProviderField('label', e.target.value)}
                 />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>{t('protocolLabel')}</label>
+                <select
+                  style={{ ...inputStyle, appearance: 'auto' }}
+                  value={activeProvider.protocol || 'anthropic'}
+                  onChange={(e) => setProviderField('protocol', e.target.value)}
+                >
+                  <option value="anthropic">Anthropic</option>
+                  <option value="openai">OpenAI Compatible</option>
+                </select>
+                <div style={hintStyle}>{t('protocolHint')}</div>
               </div>
 
               <div style={{ marginBottom: 14 }}>

@@ -286,8 +286,8 @@ fn generate_session_id() -> String {
 }
 
 fn create_engine(cfg: &config::Config) -> Box<dyn llm::LlmEngine> {
-    let (api_key, base_url, model) = cfg.active_vendor_config();
-    Box::new(llm::create_anthropic_engine(api_key, base_url, model))
+    let (api_key, base_url, model, protocol) = cfg.active_vendor_config();
+    llm::create_engine_for_provider(api_key, base_url, model, protocol)
 }
 
 /// Convert API-format messages to display-oriented LoadedMessages for the frontend.

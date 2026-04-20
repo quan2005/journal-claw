@@ -536,9 +536,9 @@ async fn process_material_builtin(
     let workspace = cfg.workspace_path.clone();
 
     // Create engine based on active vendor
-    let (api_key, base_url, model) = cfg.active_vendor_config();
+    let (api_key, base_url, model, protocol) = cfg.active_vendor_config();
     let engine: Box<dyn llm::LlmEngine> =
-        Box::new(llm::create_anthropic_engine(api_key, base_url, model));
+        llm::create_engine_for_provider(api_key, base_url, model, protocol);
     // TODO: Feishu multi-turn continuity — when reply_ctx.is_some(), load prior
     // conversation turns for this chat_id so the agent has session memory.
     // The old CLI path used --resume <feishu_session_id>; the builtin engine
@@ -565,7 +565,7 @@ async fn process_material_builtin(
     let system_prompt = llm::prompt::build_system_prompt(&workspace, WORKSPACE_CLAUDE_MD).await;
 
     // Emit startup log
-    let (_, _, active_model) = cfg.active_vendor_config();
+    let (_, _, active_model, _) = cfg.active_vendor_config();
     let default_model = config::default_model_for_vendor(&cfg.active_provider);
     let model_display = if active_model.is_empty() {
         &default_model

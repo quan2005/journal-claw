@@ -1,6 +1,7 @@
 pub mod anthropic;
 pub mod bash_tool;
 pub mod enable_skill;
+pub mod openai_compat;
 pub mod output_compress;
 pub mod prompt;
 pub mod tool_loop;
@@ -40,4 +41,30 @@ pub fn create_anthropic_engine(
         model
     };
     anthropic::AnthropicEngine::new(api_key.to_string(), base.to_string(), model.to_string())
+}
+
+pub fn create_openai_compat_engine(
+    api_key: &str,
+    base_url: &str,
+    model: &str,
+) -> openai_compat::OpenAiCompatEngine {
+    let base = if base_url.is_empty() {
+        "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    } else {
+        base_url
+    };
+    let model = if model.is_empty() { "qwen-max" } else { model };
+    openai_compat::OpenAiCompatEngine::new(api_key.to_string(), base.to_string(), model.to_string())
+}
+
+pub fn create_engine_for_provider(
+    api_key: &str,
+    base_url: &str,
+    model: &str,
+    protocol: &str,
+) -> Box<dyn LlmEngine> {
+    match protocol {
+        "openai" => Box::new(create_openai_compat_engine(api_key, base_url, model)),
+        _ => Box::new(create_anthropic_engine(api_key, base_url, model)),
+    }
 }

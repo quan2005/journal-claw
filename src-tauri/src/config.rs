@@ -38,6 +38,8 @@ pub struct VendorConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProviderEntry {
+    #[serde(default = "default_protocol")]
+    pub protocol: String,
     pub id: String,
     pub label: String,
     #[serde(default)]
@@ -55,6 +57,7 @@ pub struct EngineConfig {
 }
 
 pub struct BuiltinPreset {
+    pub default_protocol: &'static str,
     pub id: &'static str,
     pub label: &'static str,
     pub default_base_url: &'static str,
@@ -63,30 +66,35 @@ pub struct BuiltinPreset {
 
 pub const BUILTIN_PRESETS: &[BuiltinPreset] = &[
     BuiltinPreset {
+        default_protocol: "openai",
         id: "deepseek",
         label: "DeepSeek",
-        default_base_url: "https://api.deepseek.com/anthropic",
+        default_base_url: "https://api.deepseek.com/v1",
         default_model: "deepseek-chat",
     },
     BuiltinPreset {
+        default_protocol: "openai",
         id: "volcengine",
         label: "火山方舟",
-        default_base_url: "https://ark.cn-beijing.volces.com/api/coding",
+        default_base_url: "https://ark.cn-beijing.volces.com/api/v3",
         default_model: "doubao-1.5-pro-256k",
     },
     BuiltinPreset {
+        default_protocol: "openai",
         id: "zhipu",
         label: "智谱 AI",
-        default_base_url: "https://open.bigmodel.cn/api/anthropic",
+        default_base_url: "https://open.bigmodel.cn/api/paas/v4",
         default_model: "glm-4-plus",
     },
     BuiltinPreset {
+        default_protocol: "openai",
         id: "dashscope",
         label: "阿里云百炼",
-        default_base_url: "https://coding.dashscope.aliyuncs.com/apps/anthropic",
+        default_base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
         default_model: "qwen-max",
     },
     BuiltinPreset {
+        default_protocol: "anthropic",
         id: "anthropic",
         label: "Anthropic",
         default_base_url: "https://api.anthropic.com",
@@ -99,10 +107,15 @@ impl Config {
         self.providers.iter().find(|p| p.id == self.active_provider)
     }
 
-    pub fn active_vendor_config(&self) -> (&str, &str, &str) {
+    pub fn active_vendor_config(&self) -> (&str, &str, &str, &str) {
         match self.active_provider_entry() {
-            Some(p) => (p.api_key.as_str(), p.base_url.as_str(), p.model.as_str()),
-            None => ("", "", ""),
+            Some(p) => (
+                p.api_key.as_str(),
+                p.base_url.as_str(),
+                p.model.as_str(),
+                p.protocol.as_str(),
+            ),
+            None => ("", "", "", "anthropic"),
         }
     }
 }
@@ -285,6 +298,10 @@ fn default_active_engine() -> String {
     "claude".to_string()
 }
 
+fn default_protocol() -> String {
+    "anthropic".to_string()
+}
+
 fn default_asr_engine() -> String {
     "apple".to_string()
 }
@@ -376,6 +393,7 @@ fn sanitize_engine_config(config: &mut Config) {
             if let Some(vc) = config.vendor_configs.get(preset.id) {
                 config.providers.push(ProviderEntry {
                     id: preset.id.to_string(),
+                    protocol: preset.default_protocol.to_string(),
                     label: preset.label.to_string(),
                     api_key: vc.api_key.clone(),
                     base_url: vc.base_url.clone(),
@@ -393,6 +411,7 @@ fn sanitize_engine_config(config: &mut Config) {
         for (vendor_id, vc) in extra {
             config.providers.push(ProviderEntry {
                 id: vendor_id.clone(),
+                protocol: default_protocol(),
                 label: vendor_id.clone(),
                 api_key: vc.api_key.clone(),
                 base_url: vc.base_url.clone(),
@@ -1085,6 +1104,7 @@ mod tests {
         c.active_provider = "ds1".into();
         c.providers.push(ProviderEntry {
             id: "ds1".into(),
+            protocol: "anthropic".into(),
             label: "阿里云百炼".into(),
             api_key: "sk-test".into(),
             base_url: "https://coding.dashscope.aliyuncs.com/apps/anthropic".into(),
@@ -1241,7 +1261,7 @@ mod tests {
 /// List available models from the configured engine's API.
 #[tauri::command]
 pub async fn list_models(
-    _app: AppHandle,
+    app: AppHandle,
     engine: String,
     api_key: String,
     base_url: String,
@@ -1256,19 +1276,50 @@ pub async fn list_models(
         return Err("API Key 未配置".to_string());
     }
 
+    // Determine protocol from active provider config
+    let protocol = load_config(&app)
+        .ok()
+        .and_then(|c| {
+            c.providers
+                .iter()
+                .find(|p| p.id == engine)
+                .map(|p| p.protocol.clone())
+        })
+        .unwrap_or_else(|| "anthropic".to_string());
+
     let client = reqwest::Client::new();
-    let url = format!("{}/v1/models", effective_base_url.trim_end_matches('/'));
 
-    let mut req = client.get(&url);
-    req = req
-        .header("x-api-key", &api_key)
-        .header("anthropic-version", "2023-06-01");
+    let (_url, req) = if protocol == "openai" {
+        // OpenAI compat: base_url already contains /v1, endpoint is /models
+        let url = format!("{}/models", effective_base_url.trim_end_matches('/'));
+        let req = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", api_key));
+        (url, req)
+    } else {
+        // Anthropic: base_url is root, endpoint is /v1/models
+        let url = format!("{}/v1/models", effective_base_url.trim_end_matches('/'));
+        let req = client
+            .get(&url)
+            .header("x-api-key", &api_key)
+            .header("anthropic-version", "2023-06-01");
+        (url, req)
+    };
 
-    let response = req.send().await.map_err(|e| format!("请求失败: {}", e))?;
+    eprintln!(
+        "[list_models] engine={} protocol={} base_url={}",
+        engine, protocol, effective_base_url
+    );
+
+    let response = req.send().await.map_err(|e| {
+        eprintln!("[list_models] request failed: {}", e);
+        format!("请求失败: {}", e)
+    })?;
 
     let status = response.status().as_u16();
     if status >= 400 {
         let text = response.text().await.unwrap_or_default();
+        eprintln!("[list_models] API error ({}): {}", status, text);
         return Err(format!("API 错误 ({}): {}", status, text));
     }
 

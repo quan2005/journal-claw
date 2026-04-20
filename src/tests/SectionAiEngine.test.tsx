@@ -27,6 +27,7 @@ describe('SectionAiEngine', () => {
       active_provider: 'anthropic',
       providers: [
         {
+          protocol: 'anthropic',
           id: 'anthropic',
           label: 'Anthropic',
           api_key: 'sk-ant-test-key',
@@ -58,7 +59,14 @@ describe('SectionAiEngine', () => {
       expect(mockSetEngineConfig).toHaveBeenCalledWith({
         active_provider: 'anthropic',
         providers: [
-          { id: 'anthropic', label: 'Anthropic', api_key: 'sk-ant-test', base_url: '', model: '' },
+          {
+            protocol: 'anthropic',
+            id: 'anthropic',
+            label: 'Anthropic',
+            api_key: 'sk-ant-test',
+            base_url: '',
+            model: '',
+          },
         ],
       })
     })

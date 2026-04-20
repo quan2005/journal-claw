@@ -101,14 +101,52 @@ const SKILL_IDEATE_VISUAL_COMPANION: &str = include_str!(
     "../resources/workspace-template/.claude/skills/ideate/references/visual-companion.md"
 );
 
+// ── Identity Profiling skill template ───────────
+const SKILL_IDENTITY_PROFILING_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/identity-profiling/SKILL.md");
+const SKILL_IDENTITY_PROFILING_PERSON: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/identity-profiling/assets/templates/person.md"
+);
+const SKILL_IDENTITY_PROFILING_PRODUCT: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/identity-profiling/assets/templates/product.md"
+);
+
+// ── Meeting Minutes skill template ─────────────
+const SKILL_MEETING_MINUTES_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/meeting-minutes/SKILL.md");
+const SKILL_MEETING_MINUTES_ALIGNMENT: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/alignment.md"
+);
+const SKILL_MEETING_MINUTES_ARGUMENTATION: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/argumentation-chain.md"
+);
+const SKILL_MEETING_MINUTES_KNOWLEDGE: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/knowledge-distillation.md"
+);
+const SKILL_MEETING_MINUTES_PROGRESS: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/progress-tracking.md"
+);
+
 // ── Visual Design Book skill template ──────────
 const SKILL_VISUAL_DESIGN_BOOK_MD: &str =
     include_str!("../resources/workspace-template/.claude/skills/visual-design-book/SKILL.md");
-const SKILL_VISUAL_DESIGN_BOOK_TEMPLATE: &str =
-    include_str!("../resources/workspace-template/.claude/skills/visual-design-book/references/structure-template.html");
+const SKILL_VISUAL_DESIGN_BOOK_TEMPLATE: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/visual-design-book/references/structure-template.html"
+);
+const SKILL_VISUAL_DESIGN_BOOK_LECTURE: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/visual-design-book/references/lecture-components.md"
+);
+const SKILL_VISUAL_DESIGN_BOOK_NARRATIVE: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/visual-design-book/references/narrative-structures.md"
+);
 
+// ── Lint skill template ────────────────────────
 const SKILL_LINT_MD: &str =
     include_str!("../resources/workspace-template/.claude/skills/lint/SKILL.md");
+const SKILL_LINT_PHASE2_AGENTS: &str =
+    include_str!("../resources/workspace-template/.claude/skills/lint/references/phase2-agents.md");
+const SKILL_LINT_SCRIPTS: &str =
+    include_str!("../resources/workspace-template/.claude/skills/lint/references/scripts.md");
 
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -216,15 +254,66 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         let _ = std::fs::remove_dir_all(ideate_scripts.join("templates"));
     }
 
-    // ── Dream skill template ────────────────────────
-    let lint_dir = dot_claude.join("skills").join("lint");
-    if let Err(e) = std::fs::create_dir_all(&lint_dir) {
+    // ── Identity Profiling skill template ───────────
+    let ip_dir = dot_claude.join("skills").join("identity-profiling");
+    let ip_templates = ip_dir.join("assets").join("templates");
+    if let Err(e) = std::fs::create_dir_all(&ip_templates) {
         eprintln!(
-            "[ai_processor] warn: failed to create skills/lint dir: {}",
+            "[ai_processor] warn: failed to create skills/identity-profiling/assets/templates dir: {}",
+            e
+        );
+    } else {
+        let _ = std::fs::write(ip_dir.join("SKILL.md"), SKILL_IDENTITY_PROFILING_MD);
+        let _ = std::fs::write(
+            ip_templates.join("person.md"),
+            SKILL_IDENTITY_PROFILING_PERSON,
+        );
+        let _ = std::fs::write(
+            ip_templates.join("product.md"),
+            SKILL_IDENTITY_PROFILING_PRODUCT,
+        );
+    }
+
+    // ── Meeting Minutes skill template ─────────────
+    let mm_dir = dot_claude.join("skills").join("meeting-minutes");
+    let mm_templates = mm_dir.join("references").join("templates");
+    if let Err(e) = std::fs::create_dir_all(&mm_templates) {
+        eprintln!(
+            "[ai_processor] warn: failed to create skills/meeting-minutes/references/templates dir: {}",
+            e
+        );
+    } else {
+        let _ = std::fs::write(mm_dir.join("SKILL.md"), SKILL_MEETING_MINUTES_MD);
+        let _ = std::fs::write(
+            mm_templates.join("alignment.md"),
+            SKILL_MEETING_MINUTES_ALIGNMENT,
+        );
+        let _ = std::fs::write(
+            mm_templates.join("argumentation-chain.md"),
+            SKILL_MEETING_MINUTES_ARGUMENTATION,
+        );
+        let _ = std::fs::write(
+            mm_templates.join("knowledge-distillation.md"),
+            SKILL_MEETING_MINUTES_KNOWLEDGE,
+        );
+        let _ = std::fs::write(
+            mm_templates.join("progress-tracking.md"),
+            SKILL_MEETING_MINUTES_PROGRESS,
+        );
+    }
+
+    // ── Lint skill template ────────────────────────
+    let lint_dir = dot_claude.join("skills").join("lint");
+    let lint_refs = lint_dir.join("references");
+    if let Err(e) = std::fs::create_dir_all(&lint_refs) {
+        eprintln!(
+            "[ai_processor] warn: failed to create skills/lint/references dir: {}",
             e
         );
     } else {
         let _ = std::fs::write(lint_dir.join("SKILL.md"), SKILL_LINT_MD);
+        let _ = std::fs::write(lint_refs.join("phase2-agents.md"), SKILL_LINT_PHASE2_AGENTS);
+        let _ = std::fs::write(lint_refs.join("scripts.md"), SKILL_LINT_SCRIPTS);
     }
 
     // ── Visual Design Book skill template ────────
@@ -240,6 +329,14 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         let _ = std::fs::write(
             vdb_refs.join("structure-template.html"),
             SKILL_VISUAL_DESIGN_BOOK_TEMPLATE,
+        );
+        let _ = std::fs::write(
+            vdb_refs.join("lecture-components.md"),
+            SKILL_VISUAL_DESIGN_BOOK_LECTURE,
+        );
+        let _ = std::fs::write(
+            vdb_refs.join("narrative-structures.md"),
+            SKILL_VISUAL_DESIGN_BOOK_NARRATIVE,
         );
     }
     // Remove old dream dir if it exists (cleanup for existing users)
@@ -439,9 +536,9 @@ async fn process_material_builtin(
     let workspace = cfg.workspace_path.clone();
 
     // Create engine based on active vendor
-    let (api_key, base_url, model) = cfg.active_vendor_config();
+    let (api_key, base_url, model, protocol) = cfg.active_vendor_config();
     let engine: Box<dyn llm::LlmEngine> =
-        Box::new(llm::create_anthropic_engine(api_key, base_url, model));
+        llm::create_engine_for_provider(api_key, base_url, model, protocol);
     // TODO: Feishu multi-turn continuity — when reply_ctx.is_some(), load prior
     // conversation turns for this chat_id so the agent has session memory.
     // The old CLI path used --resume <feishu_session_id>; the builtin engine
@@ -468,7 +565,7 @@ async fn process_material_builtin(
     let system_prompt = llm::prompt::build_system_prompt(&workspace, WORKSPACE_CLAUDE_MD).await;
 
     // Emit startup log
-    let (_, _, active_model) = cfg.active_vendor_config();
+    let (_, _, active_model, _) = cfg.active_vendor_config();
     let default_model = config::default_model_for_vendor(&cfg.active_provider);
     let model_display = if active_model.is_empty() {
         &default_model

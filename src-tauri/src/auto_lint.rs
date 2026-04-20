@@ -343,9 +343,9 @@ async fn run_lint_builtin(
     cfg: &config::Config,
     workspace: &str,
 ) -> Result<(), String> {
-    let (api_key, base_url, model) = cfg.active_vendor_config();
+    let (api_key, base_url, model, protocol) = cfg.active_vendor_config();
     let engine: Box<dyn llm::LlmEngine> =
-        Box::new(llm::create_anthropic_engine(api_key, base_url, model));
+        llm::create_engine_for_provider(api_key, base_url, model, protocol);
 
     let system_prompt =
         llm::prompt::build_system_prompt(workspace, crate::ai_processor::WORKSPACE_CLAUDE_MD).await;

@@ -286,8 +286,8 @@ fn generate_session_id() -> String {
 }
 
 fn create_engine(cfg: &config::Config) -> Box<dyn llm::LlmEngine> {
-    let (api_key, base_url, model) = cfg.active_vendor_config();
-    Box::new(llm::create_anthropic_engine(api_key, base_url, model))
+    let (api_key, base_url, model, protocol) = cfg.active_vendor_config();
+    llm::create_engine_for_provider(api_key, base_url, model, protocol)
 }
 
 /// Convert API-format messages to display-oriented LoadedMessages for the frontend.
@@ -544,7 +544,17 @@ pub async fn conversation_send(
     session_id: String,
     message: String,
 ) -> Result<(), String> {
+    eprintln!(
+        "[conversation] send called: session={} msg_len={}",
+        session_id,
+        message.len()
+    );
     let cfg = config::load_config(&app)?;
+    eprintln!(
+        "[conversation] active_provider={} protocol={}",
+        cfg.active_provider,
+        cfg.active_vendor_config().3
+    );
 
     // ── Lazy system-prompt init ──────────────────────────
     // Check if this session still needs its system prompt built.

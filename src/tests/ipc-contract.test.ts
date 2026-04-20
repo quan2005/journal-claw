@@ -317,6 +317,7 @@ describe('Engine', () => {
       active_provider: 'anthropic',
       providers: [
         {
+          protocol: 'anthropic',
           id: 'anthropic',
           label: 'Anthropic',
           api_key: 'sk-ant',

@@ -8,7 +8,7 @@
 2. **可预测性**：AI 生成的 shell 命令可能有语法错误或意外副作用
 3. **token 效率**：bash 输出格式不可控，容易浪费 token
 
-目标：用 8 个结构化工具完全替代 bash tool，所有操作严格限制在 workspace 目录内。
+目标：新增 8 个结构化工具作为首选文件操作方式，保留 bash tool 但在 prompt 中引导 AI 优先使用结构化工具。所有结构化工具严格限制在 workspace 目录内。
 
 ## 工具定义
 
@@ -19,14 +19,15 @@
 ```
 参数:
   path: string        — 相对于 workspace 的路径
-  offset?: integer    — 起始行号（1-based）
-  limit?: integer     — 读取行数
+  offset?: integer    — token 偏移量（用于翻页）
+  limit?: integer     — 最大 token 数
 
-返回: 文件内容（带行号前缀）
+返回: 文件内容（带行号前缀）+ 是否有后续页
 ```
 
 - 默认读取整个文件
-- 超过一定大小（如 100KB）自动截断并提示
+- 超过 10K token（约 30,000 字符）自动截断，返回提示"内容已截断，使用 offset 翻页"
+- 翻页单位是 token 而非行号，确保每页 token 消耗可预测
 
 ### `write`
 
@@ -42,6 +43,8 @@
 ```
 
 - 父目录不存在时自动创建（等同 mkdir -p）
+- 无硬性大小限制，但建议单次写入不超过 12K token（约 36,000 字符）
+- 超长内容应分批写入（先 write 再 append），避免单次调用耗时过长
 
 ### `edit`
 
@@ -50,16 +53,17 @@
 ```
 参数:
   path: string        — 相对于 workspace 的路径
-  old_string: string  — 要替换的内容
-  new_string: string  — 替换为的内容
-  regex?: boolean     — true 时 old_string 作为正则表达式，默认 false（字面量）
+  old_string: string  — 要替换的内容（默认作为正则表达式）
+  new_string: string  — 替换为的内容（支持 $1 $2 捕获组引用）
+  literal?: boolean   — true 时 old_string 作为字面量匹配，默认 false（正则）
   first_only?: boolean — true 时只替换第一个匹配，默认 false（全部替换）
 
 返回: 替换次数；0 次时报错（未找到匹配）
 ```
 
-- 默认字面量匹配，全部替换
-- 正则模式使用 Rust `regex` crate 语法
+- 默认正则匹配，全部替换
+- 正则语法使用 Rust `regex` crate（与 ripgrep 一致）
+- `literal: true` 时退化为精确字面量匹配
 - 未找到匹配时返回 is_error = true，避免静默失败
 
 ### `glob`
@@ -75,19 +79,20 @@
 
 ### `grep`
 
-搜索文件内容，返回匹配文件列表。
+搜索文件内容，返回匹配文件及内容预览。
 
 ```
 参数:
-  pattern: string     — 搜索模式
+  pattern: string     — 搜索模式（默认正则）
   glob?: string       — 限制搜索范围的 glob（如 "**/*.md"）
-  regex?: boolean     — true 时 pattern 作为正则，默认 false（字面量）
+  literal?: boolean   — true 时 pattern 作为字面量，默认 false（正则）
+  context?: integer   — 上下文行数，默认 1（即匹配行 + 前后各 1 行 = 3 行）
 
-返回: 包含匹配的文件路径列表
+返回: 匹配结果列表，每项包含：文件路径 + 匹配行及上下文预览
 ```
 
-- 类似 `rg -l`，只返回路径不返回内容
-- AI 需要看内容时再用 `read` 读取
+- 返回格式类似 `rg -C1`：路径 + 行号 + 匹配内容 + 上下文
+- 默认前后各 1 行上下文（共 3 行），可调整
 
 ### `mkdir`
 
@@ -139,7 +144,7 @@
    - 拒绝绝对路径
    - 拒绝符号链接指向 workspace 外的目标
 2. **路径规范化**：输入路径先 canonicalize，再验证前缀
-3. **大文件保护**：`read` 超过 100KB 截断；`write` 无限制（日志文件通常很小）
+3. **Token 保护**：`read` 超过 10K token（~30,000 字符）自动截断并支持翻页；`write` 建议单次 ≤12K token
 
 ## 实现要点
 
@@ -158,13 +163,14 @@ src-tauri/src/llm/
     mkdir.rs          — mkdir 实现
     move_file.rs      — move 实现
     remove.rs         — remove 实现（调用 macOS trash API）
-  bash_tool.rs        — 删除
+  bash_tool.rs        — 保留，但降低优先级
 ```
 
 ### tool_loop.rs 修改
 
-- `tools` 向量从 `[bash_tool::definition(), ...]` 改为 `fs_tools::definitions()`
-- 工具分发从 match `"bash"` 改为 match 8 个工具名
+- `tools` 向量改为 `[fs_tools::definitions(), bash_tool::definition(), ...]`
+- 工具分发新增 match 8 个 fs 工具名，bash 保留
+- bash_tool 的 description 修改为："Fallback shell execution. Prefer using read/write/edit/glob/grep/mkdir/move/remove for file operations."
 
 ### macOS Trash 实现
 

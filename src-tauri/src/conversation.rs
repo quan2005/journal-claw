@@ -375,7 +375,7 @@ fn messages_to_display(messages: &[Message]) -> Vec<LoadedMessage> {
                     let label = match *tool_name {
                         "bash" => llm::bash_tool::log_label(tool_input),
                         "load_skill" => llm::enable_skill::log_label(tool_input),
-                        _ => format!("{}: {}", tool_name, tool_id),
+                        name => llm::fs_tools::log_label(name, tool_input),
                     };
                     tools.push(DisplayTool {
                         name: tool_name.to_string(),
@@ -1372,8 +1372,9 @@ async fn run_conversation_turn(
                     }
 
                     let label = match name.as_str() {
+                        "bash" => llm::bash_tool::log_label(input),
                         "load_skill" => llm::enable_skill::log_label(input),
-                        _ => llm::bash_tool::log_label(input),
+                        n => llm::fs_tools::log_label(n, input),
                     };
                     let _ = app.emit(
                         "conversation-stream",

@@ -1,5 +1,5 @@
 use super::super::types::{ToolDefinition, ToolResult};
-use super::{sandbox_resolve, NOISE_DIRS};
+use super::NOISE_DIRS;
 use serde_json::json;
 use std::path::Path;
 

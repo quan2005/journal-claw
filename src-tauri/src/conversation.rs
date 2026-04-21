@@ -1142,10 +1142,12 @@ async fn run_conversation_turn(
     let tools = match mode {
         SessionMode::Agent => {
             let skills = llm::prompt::scan_skills(workspace).await;
-            vec![
+            let mut t = vec![
                 llm::bash_tool::definition(),
                 llm::enable_skill::definition(&skills),
-            ]
+            ];
+            t.extend(llm::fs_tools::definitions());
+            t
         }
         _ => vec![],
     };
@@ -1388,10 +1390,16 @@ async fn run_conversation_turn(
                     let result = match name.as_str() {
                         "bash" => llm::bash_tool::execute(input, workspace).await,
                         "load_skill" => llm::enable_skill::execute(input, workspace).await,
-                        _ => llm::types::ToolResult {
-                            output: format!("unknown tool: {}", name),
-                            is_error: true,
-                        },
+                        fs_name => {
+                            if let Some(r) = llm::fs_tools::execute(fs_name, input, workspace).await {
+                                r
+                            } else {
+                                llm::types::ToolResult {
+                                    output: format!("unknown tool: {}", fs_name),
+                                    is_error: true,
+                                }
+                            }
+                        }
                     };
 
                     let _ = app.emit(

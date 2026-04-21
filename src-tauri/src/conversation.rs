@@ -627,6 +627,39 @@ pub async fn conversation_send(
             old_cancel.cancel();
         }
 
+        // Patch incomplete tool_use: if the last message is an assistant with
+        // tool_use blocks but no following tool_result, insert error results
+        // so the API doesn't reject the conversation.
+        if let Some(last) = session.messages.last() {
+            if last.role == Role::Assistant {
+                let pending_tool_ids: Vec<String> = last
+                    .content
+                    .iter()
+                    .filter_map(|b| {
+                        if let ContentBlock::ToolUse { id, .. } = b {
+                            Some(id.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                if !pending_tool_ids.is_empty() {
+                    let error_results: Vec<ContentBlock> = pending_tool_ids
+                        .into_iter()
+                        .map(|id| ContentBlock::ToolResult {
+                            tool_use_id: id,
+                            content: "error: operation cancelled".to_string(),
+                            is_error: true,
+                        })
+                        .collect();
+                    session.messages.push(Message {
+                        role: Role::User,
+                        content: error_results,
+                    });
+                }
+            }
+        }
+
         // Append user message
         session.messages.push(Message {
             role: Role::User,

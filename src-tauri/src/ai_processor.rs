@@ -610,8 +610,9 @@ async fn process_material_builtin(
                     input,
                 } => {
                     let label = match tool_name.as_str() {
+                        "bash" => llm::bash_tool::log_label(&input),
                         "load_skill" => llm::enable_skill::log_label(&input),
-                        _ => llm::bash_tool::log_label(&input),
+                        name => llm::fs_tools::log_label(name, &input),
                     };
                     let _ = app_for_events.emit(
                         "ai-log",

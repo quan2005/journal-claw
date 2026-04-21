@@ -154,13 +154,13 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
     apiKeyPlaceholder: '',
   },
   {
-    id: 'zhipu',
-    label: '智谱 AI',
+    id: 'kimi',
+    label: 'Kimi',
     defaultProtocol: 'openai',
-    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    defaultModel: 'glm-4-plus',
-    apiKeyUrl: 'https://www.bigmodel.cn/glm-coding?ic=BHXN1AIKJH',
-    apiKeyPlaceholder: '',
+    defaultBaseUrl: 'https://api.moonshot.cn/v1',
+    defaultModel: 'kimi-k2-0711-preview',
+    apiKeyUrl: 'https://platform.moonshot.cn/console/api-keys',
+    apiKeyPlaceholder: 'sk-…',
   },
   {
     id: 'dashscope',
@@ -170,15 +170,6 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
     defaultModel: 'qwen-max',
     apiKeyUrl: 'https://bailian.console.aliyun.com/?apiKey=1#/api-key',
     apiKeyPlaceholder: 'sk-…',
-  },
-  {
-    id: 'anthropic',
-    label: 'Anthropic',
-    defaultProtocol: 'anthropic',
-    defaultBaseUrl: 'https://api.anthropic.com',
-    defaultModel: 'claude-sonnet-4-20250514',
-    apiKeyUrl: 'https://console.anthropic.com/settings/keys',
-    apiKeyPlaceholder: 'sk-ant-…',
   },
 ]
 

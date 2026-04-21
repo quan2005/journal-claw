@@ -81,10 +81,10 @@ pub const BUILTIN_PRESETS: &[BuiltinPreset] = &[
     },
     BuiltinPreset {
         default_protocol: "openai",
-        id: "zhipu",
-        label: "智谱 AI",
-        default_base_url: "https://open.bigmodel.cn/api/paas/v4",
-        default_model: "glm-4-plus",
+        id: "kimi",
+        label: "Kimi",
+        default_base_url: "https://api.moonshot.cn/v1",
+        default_model: "kimi-k2-0711-preview",
     },
     BuiltinPreset {
         default_protocol: "openai",
@@ -92,13 +92,6 @@ pub const BUILTIN_PRESETS: &[BuiltinPreset] = &[
         label: "阿里云百炼",
         default_base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
         default_model: "qwen-max",
-    },
-    BuiltinPreset {
-        default_protocol: "anthropic",
-        id: "anthropic",
-        label: "Anthropic",
-        default_base_url: "https://api.anthropic.com",
-        default_model: "claude-sonnet-4-20250514",
     },
 ];
 
@@ -115,7 +108,7 @@ impl Config {
                 p.model.as_str(),
                 p.protocol.as_str(),
             ),
-            None => ("", "", "", "anthropic"),
+            None => ("", "", "", "openai"),
         }
     }
 }
@@ -127,13 +120,13 @@ pub fn preset_for_id(id: &str) -> Option<&'static BuiltinPreset> {
 pub fn default_base_url_for_vendor(vendor: &str) -> String {
     preset_for_id(vendor)
         .map(|p| p.default_base_url.to_string())
-        .unwrap_or_else(|| "https://api.anthropic.com".to_string())
+        .unwrap_or_else(|| "https://api.deepseek.com/v1".to_string())
 }
 
 pub fn default_model_for_vendor(vendor: &str) -> String {
     preset_for_id(vendor)
         .map(|p| p.default_model.to_string())
-        .unwrap_or_else(|| "claude-sonnet-4-20250514".to_string())
+        .unwrap_or_else(|| "deepseek-chat".to_string())
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -291,7 +284,7 @@ pub fn augmented_path() -> String {
 }
 
 fn default_active_vendor() -> String {
-    "anthropic".to_string()
+    "deepseek".to_string()
 }
 
 fn default_active_engine() -> String {
@@ -299,7 +292,7 @@ fn default_active_engine() -> String {
 }
 
 fn default_protocol() -> String {
-    "anthropic".to_string()
+    "openai".to_string()
 }
 
 fn default_asr_engine() -> String {
@@ -1094,7 +1087,7 @@ mod tests {
     #[test]
     fn config_new_engine_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.active_provider, "anthropic");
+        assert_eq!(c.active_provider, "deepseek");
         assert!(c.providers.is_empty());
     }
 
@@ -1183,7 +1176,7 @@ mod tests {
             ..Config::default()
         };
         sanitize_engine_config(&mut c);
-        assert_eq!(c.active_provider, "anthropic");
+        assert_eq!(c.active_provider, "deepseek");
         assert_eq!(c.asr_engine, "apple");
         assert_eq!(c.whisperkit_model, "base");
     }

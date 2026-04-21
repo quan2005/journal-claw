@@ -224,7 +224,7 @@ function presetForId(id: string) {
 export default function SectionAiEngine() {
   const { t } = useTranslation()
   const defaultConfig: EngineConfig = {
-    active_provider: 'anthropic',
+    active_provider: 'deepseek',
     providers: [],
   }
   const [cfg, setCfg] = useState<EngineConfig>(defaultConfig)
@@ -270,7 +270,7 @@ export default function SectionAiEngine() {
   const addProvider = (presetId?: string) => {
     const bp = presetId ? presetForId(presetId) : undefined
     const entry: ProviderEntry = {
-      protocol: bp?.defaultProtocol ?? 'anthropic',
+      protocol: bp?.defaultProtocol ?? 'openai',
       id: newProviderId(),
       label: bp?.label ?? t('customProvider'),
       api_key: '',
@@ -462,7 +462,7 @@ export default function SectionAiEngine() {
                 <label style={labelStyle}>{t('protocolLabel')}</label>
                 <select
                   style={{ ...inputStyle, appearance: 'auto' }}
-                  value={activeProvider.protocol || 'anthropic'}
+                  value={activeProvider.protocol || 'openai'}
                   onChange={(e) => setProviderField('protocol', e.target.value)}
                 >
                   <option value="anthropic">Anthropic</option>

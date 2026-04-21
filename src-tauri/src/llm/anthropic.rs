@@ -158,6 +158,7 @@ fn build_request_body(
         "type": "web_search_20250305",
         "name": "web_search",
         "max_uses": 5,
+        "input_schema": { "type": "object", "properties": {} },
     }));
 
     let mut body = serde_json::json!({

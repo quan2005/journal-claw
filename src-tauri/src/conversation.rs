@@ -776,7 +776,7 @@ pub async fn conversation_send(
                     }
                 }
             }
-            Err(e) => {
+            Err((e, partial_messages)) => {
                 let error_data = e.error_info().to_string();
                 let _ = app_clone.emit(
                     "conversation-stream",
@@ -796,7 +796,9 @@ pub async fn conversation_send(
                 );
                 if let Ok(mut sessions) = store.0.lock() {
                     if let Some(session) = sessions.get_mut(&sid) {
+                        session.messages = partial_messages;
                         session.cancel = None;
+                        save_session_to_disk(&session.workspace, &sid, session);
                     }
                 }
             }
@@ -1138,7 +1140,7 @@ async fn run_conversation_turn(
     session_id: &str,
     app: &AppHandle,
     cancel: CancellationToken,
-) -> Result<Vec<Message>, llm::types::LlmError> {
+) -> Result<Vec<Message>, (llm::types::LlmError, Vec<Message>)> {
     let tools = match mode {
         SessionMode::Agent => {
             let skills = llm::prompt::scan_skills(workspace).await;
@@ -1161,7 +1163,7 @@ async fn run_conversation_turn(
 
     for _turn in 0..max_turns {
         if cancel.is_cancelled() {
-            return Err(llm::types::LlmError::Cancelled);
+            return Err((llm::types::LlmError::Cancelled, messages));
         }
 
         // Signal frontend to start a new assistant message for this turn
@@ -1236,9 +1238,13 @@ async fn run_conversation_turn(
             })
         };
 
-        let response = engine
+        let response = match engine
             .chat_stream(&messages, &tools, system_prompt, stream_callback)
-            .await?;
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => return Err((e, messages)),
+        };
 
         let turn_text_str = turn_text.lock().unwrap_or_else(|e| e.into_inner()).clone();
 
@@ -1370,7 +1376,7 @@ async fn run_conversation_turn(
                 let mut results: Vec<ContentBlock> = Vec::new();
                 for (id, name, input) in &tool_calls {
                     if cancel.is_cancelled() {
-                        return Err(llm::types::LlmError::Cancelled);
+                        return Err((llm::types::LlmError::Cancelled, messages));
                     }
 
                     let label = match name.as_str() {
@@ -1460,7 +1466,7 @@ async fn run_conversation_turn(
         }
     }
 
-    Err(llm::types::LlmError::MaxTurnsExceeded)
+    Err((llm::types::LlmError::MaxTurnsExceeded, messages))
 }
 
 /// Generate a short title from the first user+assistant exchange.

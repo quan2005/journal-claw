@@ -233,6 +233,9 @@ export function CommandDock({
         }
       }
       if (inputOpen && e.key === 'Enter' && !e.shiftKey) {
+        const active = document.activeElement
+        const inDock = dockRef.current?.contains(active as Node)
+        if (!inDock && active && active !== document.body) return
         if (inputRef.current && document.activeElement === inputRef.current) return
         e.preventDefault()
         handleSubmit()

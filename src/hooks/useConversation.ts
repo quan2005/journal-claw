@@ -466,8 +466,12 @@ export function useConversation() {
     const loaded = await conversationGetMessages(id)
     sessionIdRef.current = id
     setSessionId(id)
-    setIsStreaming(!!streaming)
-    isStreamingRef.current = !!streaming
+    const isStillStreaming = !!streaming
+    setIsStreaming(isStillStreaming)
+    isStreamingRef.current = isStillStreaming
+    if (isStillStreaming) {
+      streamingSessionsRef.current.add(id)
+    }
     // If backend has no messages yet (race: event fires before send), seed user message
     if (loaded.length === 0 && initialUserMessage) {
       const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]

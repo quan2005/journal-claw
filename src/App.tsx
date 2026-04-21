@@ -783,10 +783,14 @@ export default function App() {
                     // Session not found — treat as new
                   }
                   if (msgs.length > 0) {
-                    // Has history — resume it
+                    // Has history — resume it; carry over streaming state if tracked
+                    const wasStreaming =
+                      conversationState?.initialSessionId === opts.sessionId &&
+                      conversationState?.initialStreaming
                     setConversationState({
                       mode: 'agent',
                       initialSessionId: opts.sessionId,
+                      initialStreaming: wasStreaming || false,
                       key: Date.now(),
                       visible: true,
                     })
@@ -886,6 +890,7 @@ export default function App() {
                 setConversationState({
                   mode: 'agent',
                   initialSessionId: queueItem.sessionId,
+                  initialStreaming: queueItem.status === 'processing',
                   key: Date.now(),
                   visible: true,
                 })

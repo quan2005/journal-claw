@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::sse_parser::SseParser;
 use super::types::*;
 use super::LlmEngine;
 
@@ -54,7 +55,9 @@ impl LlmEngine for AnthropicEngine {
         system: &str,
         on_event: Box<dyn Fn(StreamEvent) + Send>,
     ) -> Result<AssistantResponse, LlmError> {
-        let body = build_request_body(&self.model, system, messages, tools);
+        let mut sanitized = messages.to_vec();
+        sanitize_thinking_for_anthropic(&mut sanitized);
+        let body = build_request_body(&self.model, system, &sanitized, tools);
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
@@ -234,6 +237,24 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
     })
 }
 
+// ── Stage 5: Sanitize thinking blocks for Anthropic ─────
+
+/// Remove thinking blocks with empty signatures (from OpenAI engine) before sending to Anthropic.
+/// Anthropic requires the original cryptographic signature — empty ones cause API rejection.
+fn sanitize_thinking_for_anthropic(messages: &mut [Message]) {
+    for msg in messages.iter_mut() {
+        if msg.role == Role::Assistant {
+            msg.content.retain(|block| {
+                if let ContentBlock::Thinking { signature, .. } = block {
+                    !signature.is_empty()
+                } else {
+                    true
+                }
+            });
+        }
+    }
+}
+
 // ── SSE stream parser ───────────────────────────
 
 async fn parse_sse_stream(
@@ -246,44 +267,39 @@ async fn parse_sse_stream(
     let mut stop_reason = StopReason::EndTurn;
     let mut usage = Usage::default();
 
-    // Track current tool_use being built
     let mut current_tool_id: Option<String> = None;
     let mut current_tool_name: Option<String> = None;
     let mut current_tool_input_json = String::new();
 
-    // Track current thinking block
     let mut current_thinking_text = String::new();
     let mut current_thinking_signature = String::new();
 
-    // Track current server_tool_use block
     let mut current_server_tool: Option<(String, String, serde_json::Value)> = None;
 
-    // Track current block index → type for content_block_stop
     let mut current_block_type: Option<String> = None;
 
+    // Stage 7: Use unified SSE parser
+    let mut parser = SseParser::new();
     let mut stream = response.bytes_stream();
-    let mut buffer = String::new();
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| LlmError::Network(e.to_string()))?;
-        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        let sse_events = parser.feed(&chunk);
 
-        // Process complete SSE events (separated by \n\n)
-        while let Some(pos) = buffer.find("\n\n") {
-            let event_text = buffer[..pos].to_string();
-            buffer = buffer[pos + 2..].to_string();
+        for sse_event in sse_events {
+            let event_type = sse_event.event_type.as_deref().unwrap_or("");
+            let data = &sse_event.data;
 
-            let (event_type, data) = parse_sse_event(&event_text);
             if data.is_empty() {
                 continue;
             }
 
-            let val: serde_json::Value = match serde_json::from_str(&data) {
+            let val: serde_json::Value = match serde_json::from_str(data) {
                 Ok(v) => v,
                 Err(_) => continue,
             };
 
-            match event_type.as_str() {
+            match event_type {
                 "message_start" => {
                     if let Some(u) = val.pointer("/message/usage") {
                         usage.input_tokens =
@@ -479,34 +495,9 @@ async fn parse_sse_stream(
     })
 }
 
-fn parse_sse_event(text: &str) -> (String, String) {
-    let mut event_type = String::new();
-    let mut data_lines = Vec::new();
-
-    for line in text.lines() {
-        if let Some(val) = line.strip_prefix("event: ") {
-            event_type = val.trim().to_string();
-        } else if let Some(val) = line.strip_prefix("data: ") {
-            data_lines.push(val);
-        } else if let Some(val) = line.strip_prefix("data:") {
-            data_lines.push(val);
-        }
-    }
-
-    (event_type, data_lines.join("\n"))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn parse_sse_event_basic() {
-        let text = "event: message_start\ndata: {\"type\":\"message_start\"}";
-        let (event_type, data) = parse_sse_event(text);
-        assert_eq!(event_type, "message_start");
-        assert!(data.contains("message_start"));
-    }
 
     #[test]
     fn message_to_json_text() {

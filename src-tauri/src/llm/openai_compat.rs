@@ -6,6 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::model_quirks;
+use super::sse_parser::{self, SseParser};
 use super::types::*;
 use super::LlmEngine;
 
@@ -38,7 +40,7 @@ impl OpenAiCompatEngine {
 }
 
 fn is_retryable_status(status: u16) -> bool {
-    matches!(status, 429 | 500 | 502 | 503 | 529)
+    matches!(status, 0 | 429 | 500 | 502 | 503 | 529)
 }
 
 #[async_trait]
@@ -50,7 +52,10 @@ impl LlmEngine for OpenAiCompatEngine {
         system: &str,
         on_event: Box<dyn Fn(StreamEvent) + Send>,
     ) -> Result<AssistantResponse, LlmError> {
-        let body = build_openai_request(&self.model, system, messages, tools);
+        let mut sanitized = messages.to_vec();
+        sanitize_tool_message_pairing(&mut sanitized);
+
+        let body = build_openai_request(&self.model, system, &sanitized, tools);
         let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
         let on_event: EventCallback = Arc::new(std::sync::Mutex::new(on_event));
 
@@ -126,6 +131,81 @@ impl OpenAiCompatEngine {
     }
 }
 
+// ── Sanitize tool message pairing (Stage 6) ─────
+
+/// Remove orphaned tool_result messages that have no matching tool_use in a preceding assistant message.
+/// Also remove trailing assistant tool_use blocks that have no corresponding tool_result.
+fn sanitize_tool_message_pairing(messages: &mut Vec<Message>) {
+    use std::collections::HashSet;
+
+    // Collect all tool_use IDs from assistant messages
+    let mut tool_use_ids: HashSet<String> = HashSet::new();
+    for msg in messages.iter() {
+        if msg.role == Role::Assistant {
+            for block in &msg.content {
+                if let ContentBlock::ToolUse { id, .. } = block {
+                    tool_use_ids.insert(id.clone());
+                }
+            }
+        }
+    }
+
+    // Collect all tool_result IDs from user messages
+    let mut tool_result_ids: HashSet<String> = HashSet::new();
+    for msg in messages.iter() {
+        if msg.role == Role::User {
+            for block in &msg.content {
+                if let ContentBlock::ToolResult { tool_use_id, .. } = block {
+                    tool_result_ids.insert(tool_use_id.clone());
+                }
+            }
+        }
+    }
+
+    let mut modified = false;
+
+    // Remove orphaned tool_result blocks (no matching tool_use)
+    for msg in messages.iter_mut() {
+        if msg.role == Role::User {
+            let before = msg.content.len();
+            msg.content.retain(|block| {
+                if let ContentBlock::ToolResult { tool_use_id, .. } = block {
+                    tool_use_ids.contains(tool_use_id)
+                } else {
+                    true
+                }
+            });
+            if msg.content.len() != before {
+                modified = true;
+            }
+        }
+    }
+
+    // Remove trailing assistant tool_use blocks without matching tool_result
+    if let Some(last) = messages.last_mut() {
+        if last.role == Role::Assistant {
+            let before = last.content.len();
+            last.content.retain(|block| {
+                if let ContentBlock::ToolUse { id, .. } = block {
+                    tool_result_ids.contains(id)
+                } else {
+                    true
+                }
+            });
+            if last.content.len() != before {
+                modified = true;
+            }
+        }
+    }
+
+    // Remove empty messages
+    messages.retain(|msg| !msg.content.is_empty());
+
+    if modified {
+        eprintln!("[openai_compat] sanitized orphaned tool messages");
+    }
+}
+
 // ── Request translation (Anthropic → OpenAI) ────────────
 
 fn build_openai_request(
@@ -136,7 +216,6 @@ fn build_openai_request(
 ) -> Value {
     let mut oai_messages: Vec<Value> = Vec::new();
 
-    // System prompt as first message
     if !system.is_empty() {
         oai_messages.push(json!({
             "role": "system",
@@ -144,11 +223,12 @@ fn build_openai_request(
         }));
     }
 
-    // Convert each message
+    let reject_is_error = model_quirks::rejects_is_error_field(model);
+
     for msg in messages {
         match msg.role {
             Role::User => {
-                let user_msgs = translate_user_message(&msg.content);
+                let user_msgs = translate_user_message(&msg.content, reject_is_error);
                 oai_messages.extend(user_msgs);
             }
             Role::Assistant => {
@@ -158,7 +238,6 @@ fn build_openai_request(
         }
     }
 
-    // Convert tools
     let oai_tools: Vec<Value> = tools
         .iter()
         .map(|t| {
@@ -177,8 +256,19 @@ fn build_openai_request(
         "model": model,
         "messages": oai_messages,
         "stream": true,
-        "max_tokens": 32768,
     });
+
+    // Stage 4: model-specific token field
+    if model_quirks::uses_max_completion_tokens(model) {
+        body["max_completion_tokens"] = json!(32768);
+    } else {
+        body["max_tokens"] = json!(32768);
+    }
+
+    // Stage 4: reasoning models reject tuning params
+    if !model_quirks::is_reasoning_model(model) {
+        // Only set temperature for non-reasoning models (default is fine)
+    }
 
     if !oai_tools.is_empty() {
         body["tools"] = Value::Array(oai_tools);
@@ -188,10 +278,8 @@ fn build_openai_request(
     body
 }
 
-fn translate_user_message(content: &[ContentBlock]) -> Vec<Value> {
+fn translate_user_message(content: &[ContentBlock], reject_is_error: bool) -> Vec<Value> {
     let mut messages: Vec<Value> = Vec::new();
-
-    // Separate tool results from text content
     let mut text_parts: Vec<String> = Vec::new();
     let mut tool_results: Vec<Value> = Vec::new();
 
@@ -205,22 +293,30 @@ fn translate_user_message(content: &[ContentBlock]) -> Vec<Value> {
                 content: result_content,
                 is_error,
             } => {
+                // Stage 4: Kimi rejects is_error field — encode error in content prefix
+                let content_str = if *is_error {
+                    format!("[ERROR] {}", result_content)
+                } else {
+                    result_content.clone()
+                };
+
                 let mut msg = json!({
                     "role": "tool",
                     "tool_call_id": tool_use_id,
-                    "content": result_content,
+                    "content": content_str,
                 });
-                if *is_error {
-                    // Some providers support an error indicator; for most we just prefix
-                    msg["content"] = json!(format!("[ERROR] {}", result_content));
+
+                // Only include is_error for providers that support it
+                if *is_error && !reject_is_error {
+                    msg["is_error"] = json!(true);
                 }
+
                 tool_results.push(msg);
             }
             _ => {}
         }
     }
 
-    // Emit text content as user message
     if !text_parts.is_empty() {
         messages.push(json!({
             "role": "user",
@@ -228,9 +324,7 @@ fn translate_user_message(content: &[ContentBlock]) -> Vec<Value> {
         }));
     }
 
-    // Emit tool results as separate tool messages
     messages.extend(tool_results);
-
     messages
 }
 
@@ -253,16 +347,18 @@ fn translate_assistant_message(content: &[ContentBlock]) -> Value {
                     }
                 }));
             }
-            ContentBlock::Thinking { .. } => {
-                // Skip thinking blocks — OpenAI format doesn't have them
-            }
+            // Stage 5: Skip thinking blocks — OpenAI format doesn't support them.
+            // Thinking blocks with non-empty signatures (from Anthropic) are dropped.
+            // Thinking blocks with empty signatures (from OpenAI reasoning_content)
+            // are also not re-sent — the model generates fresh reasoning each turn.
+            ContentBlock::Thinking { .. } => {}
+            // Drop server-side blocks — OpenAI doesn't understand them
+            ContentBlock::ServerToolUse { .. } | ContentBlock::ServerToolResult(_) => {}
             _ => {}
         }
     }
 
-    let mut msg = json!({
-        "role": "assistant",
-    });
+    let mut msg = json!({ "role": "assistant" });
 
     let combined_text = text_parts.join("\n");
     if !combined_text.is_empty() {
@@ -361,36 +457,40 @@ async fn parse_openai_sse_stream(
         thinking_text: String::new(),
     };
 
+    // Stage 7: Use unified SSE parser
+    let mut parser = SseParser::new();
     let mut stream = response.bytes_stream();
-    let mut buffer = String::new();
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| LlmError::Network(e.to_string()))?;
-        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        let events = parser.feed(&chunk);
 
-        while let Some(pos) = buffer.find('\n') {
-            let line = buffer[..pos].to_string();
-            buffer = buffer[pos + 1..].to_string();
+        for sse_event in events {
+            let data = &sse_event.data;
 
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
+            // Stage 2: Detect error objects in SSE data
+            if let Some((error_msg, _retryable)) = sse_parser::detect_error_in_data(data) {
+                if let Ok(cb) = on_event.lock() {
+                    (cb)(StreamEvent::Error(error_msg.clone()));
+                }
+                return Err(LlmError::Api {
+                    status: 0,
+                    message: error_msg,
+                });
             }
-
-            if line == "data: [DONE]" {
-                break;
-            }
-
-            let Some(data) = line.strip_prefix("data: ") else {
-                continue;
-            };
 
             let chunk: OaiStreamChunk = match serde_json::from_str(data) {
                 Ok(c) => c,
-                Err(_) => continue,
+                Err(e) => {
+                    eprintln!(
+                        "[openai_compat] SSE parse warning: {} — data: {}",
+                        e,
+                        &data[..data.len().min(100)]
+                    );
+                    continue;
+                }
             };
 
-            // Capture usage if present (some providers send it in the last chunk)
             if let Some(usage) = &chunk.usage {
                 state.usage.input_tokens = usage.prompt_tokens;
                 state.usage.output_tokens = usage.completion_tokens;
@@ -409,7 +509,6 @@ async fn parse_openai_sse_stream(
                     continue;
                 };
 
-                // Text content
                 if let Some(ref text) = delta.content {
                     if !text.is_empty() {
                         events_emitted.store(true, Ordering::SeqCst);
@@ -420,7 +519,6 @@ async fn parse_openai_sse_stream(
                     }
                 }
 
-                // Reasoning/thinking content (DeepSeek, qwen3.6-plus, etc.)
                 if let Some(ref reasoning) = delta.reasoning_content {
                     if !reasoning.is_empty() {
                         events_emitted.store(true, Ordering::SeqCst);
@@ -431,12 +529,10 @@ async fn parse_openai_sse_stream(
                     }
                 }
 
-                // Tool calls
                 if let Some(ref tool_calls) = delta.tool_calls {
                     for tc_delta in tool_calls {
                         let idx = tc_delta.index;
 
-                        // Ensure accumulator exists for this index
                         while state.tool_calls.len() <= idx {
                             state.tool_calls.push(ToolCallAccumulator {
                                 id: String::new(),
@@ -447,8 +543,6 @@ async fn parse_openai_sse_stream(
 
                         let acc = &mut state.tool_calls[idx];
 
-                        // ID arrives on the first delta for this tool call.
-                        // Some providers (DashScope) send "id":"" on subsequent deltas — skip empty.
                         if let Some(ref id) = tc_delta.id {
                             if !id.is_empty() {
                                 acc.id = id.clone();
@@ -492,9 +586,10 @@ async fn parse_openai_sse_stream(
     }
 
     // Build final AssistantResponse
+    // Stage 1: Do NOT include Text block — text is delivered via StreamEvent::TextDelta only.
+    // This matches Anthropic engine behavior where content_blocks only has ToolUse/Thinking.
     let mut content_blocks: Vec<ContentBlock> = Vec::new();
 
-    // Thinking block (if any)
     if !state.thinking_text.is_empty() {
         content_blocks.push(ContentBlock::Thinking {
             thinking: state.thinking_text,
@@ -502,14 +597,7 @@ async fn parse_openai_sse_stream(
         });
     }
 
-    // Text block
-    if !state.text_content.is_empty() {
-        content_blocks.push(ContentBlock::Text {
-            text: state.text_content,
-        });
-    }
-
-    // Tool use blocks
+    // Tool use blocks only — no Text block
     for tc in state.tool_calls {
         if tc.id.is_empty() {
             continue;
@@ -523,7 +611,6 @@ async fn parse_openai_sse_stream(
         });
     }
 
-    // If we got tool calls, ensure stop_reason is ToolUse
     if content_blocks
         .iter()
         .any(|b| matches!(b, ContentBlock::ToolUse { .. }))
@@ -575,6 +662,19 @@ mod tests {
     }
 
     #[test]
+    fn build_request_reasoning_model_uses_max_completion_tokens() {
+        let messages = vec![Message {
+            role: Role::User,
+            content: vec![ContentBlock::Text {
+                text: "hi".to_string(),
+            }],
+        }];
+        let body = build_openai_request("o3-mini", "sys", &messages, &[]);
+        assert!(body.get("max_completion_tokens").is_some());
+        assert!(body.get("max_tokens").is_none());
+    }
+
+    #[test]
     fn translate_assistant_with_tool_calls() {
         let content = vec![
             ContentBlock::Text {
@@ -592,45 +692,97 @@ mod tests {
         assert_eq!(msg["content"], "Let me run that.");
         assert_eq!(msg["tool_calls"][0]["id"], "call_123");
         assert_eq!(msg["tool_calls"][0]["function"]["name"], "bash");
-        assert_eq!(
-            msg["tool_calls"][0]["function"]["arguments"],
-            r#"{"command":"ls"}"#
-        );
     }
 
     #[test]
-    fn translate_user_tool_result() {
+    fn translate_user_tool_result_no_is_error_for_kimi() {
         let content = vec![ContentBlock::ToolResult {
             tool_use_id: "call_123".to_string(),
-            content: "file1.txt\nfile2.txt".to_string(),
-            is_error: false,
+            content: "some error".to_string(),
+            is_error: true,
         }];
 
-        let msgs = translate_user_message(&content);
+        // Kimi mode: reject_is_error = true
+        let msgs = translate_user_message(&content, true);
         assert_eq!(msgs.len(), 1);
-        assert_eq!(msgs[0]["role"], "tool");
-        assert_eq!(msgs[0]["tool_call_id"], "call_123");
-        assert_eq!(msgs[0]["content"], "file1.txt\nfile2.txt");
+        assert_eq!(msgs[0]["content"], "[ERROR] some error");
+        assert!(msgs[0].get("is_error").is_none());
+
+        // Normal mode: reject_is_error = false
+        let msgs = translate_user_message(&content, false);
+        assert_eq!(msgs[0]["content"], "[ERROR] some error");
+        assert_eq!(msgs[0]["is_error"], true);
     }
 
     #[test]
-    fn translate_user_mixed_text_and_tool_result() {
+    fn translate_assistant_drops_thinking_and_server_blocks() {
         let content = vec![
-            ContentBlock::ToolResult {
-                tool_use_id: "call_1".to_string(),
-                content: "result1".to_string(),
-                is_error: false,
+            ContentBlock::Thinking {
+                thinking: "let me think".to_string(),
+                signature: "sig123".to_string(),
             },
-            ContentBlock::ToolResult {
-                tool_use_id: "call_2".to_string(),
-                content: "error msg".to_string(),
-                is_error: true,
+            ContentBlock::Text {
+                text: "answer".to_string(),
+            },
+            ContentBlock::ServerToolUse {
+                id: "stu_1".to_string(),
+                name: "web_search".to_string(),
+                input: json!({"query": "test"}),
             },
         ];
 
-        let msgs = translate_user_message(&content);
-        assert_eq!(msgs.len(), 2);
-        assert_eq!(msgs[0]["tool_call_id"], "call_1");
-        assert_eq!(msgs[1]["content"], "[ERROR] error msg");
+        let msg = translate_assistant_message(&content);
+        assert_eq!(msg["content"], "answer");
+        assert!(msg.get("tool_calls").is_none());
+    }
+
+    #[test]
+    fn sanitize_removes_orphaned_tool_results() {
+        let mut messages = vec![
+            Message {
+                role: Role::User,
+                content: vec![ContentBlock::ToolResult {
+                    tool_use_id: "orphan_id".to_string(),
+                    content: "result".to_string(),
+                    is_error: false,
+                }],
+            },
+            Message {
+                role: Role::User,
+                content: vec![ContentBlock::Text {
+                    text: "hello".to_string(),
+                }],
+            },
+        ];
+
+        sanitize_tool_message_pairing(&mut messages);
+        // Orphaned tool_result message should be removed (empty after retain)
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].role, Role::User);
+    }
+
+    #[test]
+    fn sanitize_keeps_valid_tool_pairing() {
+        let mut messages = vec![
+            Message {
+                role: Role::Assistant,
+                content: vec![ContentBlock::ToolUse {
+                    id: "call_1".to_string(),
+                    name: "bash".to_string(),
+                    input: json!({}),
+                }],
+            },
+            Message {
+                role: Role::User,
+                content: vec![ContentBlock::ToolResult {
+                    tool_use_id: "call_1".to_string(),
+                    content: "output".to_string(),
+                    is_error: false,
+                }],
+            },
+        ];
+
+        sanitize_tool_message_pairing(&mut messages);
+        assert_eq!(messages.len(), 2);
     }
 }

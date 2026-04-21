@@ -1,151 +1,164 @@
-# 任务计划：新增 OpenAI 兼容 Provider 支持
+# 任务计划：LLM 多厂商兼容性深度优化
 
 ## 目标
 
-为 JournalClaw 新增 OpenAI Chat Completions 兼容协议支持，使百炼（DashScope）、DeepSeek、Moonshot、OpenRouter 等 provider 可以通过原生 OpenAI 格式通信，而非强制走 Anthropic 兼容端点。
+彻底解决 journal LLM 引擎在多厂商（Anthropic / DashScope / DeepSeek / Kimi / 智谱）间的兼容性问题，参考 claw-code 的成熟实现进行系统性修复。
 
 ## 设计原则
 
-- **tool_loop.rs 和 conversation.rs 零改动** — 翻译层完全封装在 engine 内部
+- **tool_loop.rs 和 conversation.rs 零改动** — 所有兼容性处理封装在引擎层内部
 - **内部类型不变** — 继续使用 `types.rs` 中的 Anthropic 格式类型
-- **最大复用** — 参考 Claw Code 的 `openai_compat.rs` 翻译逻辑
-- **向后兼容** — 现有 Anthropic 协议 provider 行为不变
+- **防御性编程** — 每层都有兜底，不依赖上游行为正确
+- **参考 claw-code** — 已验证的模式直接复用
 
 ## 阶段划分
 
-### 阶段 1：Config 层扩展 [待开始]
+### 阶段 1：AssistantResponse.content 语义统一 [待开始]
 
-**目标**：让 ProviderEntry 支持 protocol 字段，区分 Anthropic 和 OpenAI 协议。
+**问题**：Anthropic 引擎的 `content_blocks` 不含 Text（文本通过 StreamEvent 累积），OpenAI 引擎却包含 Text block，导致 tool_loop/conversation 拼接时文本重复。
 
 **改动文件**：
-- `src-tauri/src/config.rs`
-
-**具体任务**：
-- [ ] 1.1 `ProviderEntry` 新增 `protocol: String` 字段（`"anthropic"` | `"openai"`），默认 `"anthropic"`
-- [ ] 1.2 `BuiltinPreset` 新增 `default_protocol` 字段
-- [ ] 1.3 更新 `BUILTIN_PRESETS`：
-  - `anthropic` → protocol: `"anthropic"`
-  - `zhipu` → protocol: `"openai"`（智谱走 OpenAI 兼容）
-  - `dashscope` → protocol: `"openai"`，base_url 改为 `https://dashscope.aliyuncs.com/compatible-mode/v1`
-- [ ] 1.4 `sanitize_engine_config` 中处理 protocol 字段缺失的迁移逻辑
-- [ ] 1.5 `active_vendor_config()` 返回值增加 protocol 信息（改为返回结构体或 4-tuple）
-
----
-
-### 阶段 2：OpenAI 兼容引擎实现 [待开始]
-
-**目标**：实现 `OpenAiCompatEngine`，内部做 Anthropic ↔ OpenAI 格式双向翻译。
-
-**新增文件**：
 - `src-tauri/src/llm/openai_compat.rs`
 
 **具体任务**：
-- [ ] 2.1 定义 `OpenAiCompatEngine` 结构体（client, api_key, base_url, model）
-- [ ] 2.2 实现请求翻译：`build_openai_request()`
-  - system prompt → system message
-  - `Message` + `ContentBlock` → OpenAI messages 格式
-  - `ToolDefinition` → OpenAI function tools 格式
-  - Thinking 配置处理（部分模型不支持，需跳过）
-- [ ] 2.3 实现响应翻译：`normalize_response()`
-  - OpenAI `ChatCompletionResponse` → `AssistantResponse`
-  - tool_calls → `ContentBlock::ToolUse`
-  - finish_reason 映射
-  - usage 映射
-- [ ] 2.4 实现流式翻译：`parse_openai_sse_stream()`
-  - 维护 `StreamState`（当前 block index、tool call 累积）
-  - delta.content → `StreamEvent::TextDelta`
-  - delta.tool_calls → `StreamEvent::ToolUseStart/Delta/End`
-  - delta.reasoning_content → `StreamEvent::ThinkingDelta`（如有）
-  - 流结束时组装完整 `AssistantResponse`
-- [ ] 2.5 实现 `LlmEngine` trait 的 `chat_stream` 方法
-  - 构建请求 → 发送 → 解析流式响应 → 回调 on_event → 返回 AssistantResponse
-- [ ] 2.6 实现重试逻辑（参考现有 AnthropicEngine 的 MAX_RETRIES + 指数退避）
+- [ ] 1.1 `parse_openai_sse_stream` 返回的 `content_blocks` 中移除 Text block
+- [ ] 1.2 确保文本只通过 `StreamEvent::TextDelta` 回调流出
+- [ ] 1.3 验证 tool_loop.rs 和 conversation.rs 的拼接逻辑在两个引擎下行为一致
 
 ---
 
-### 阶段 3：Engine 路由集成 [待开始]
+### 阶段 2：OpenAI 流式错误检测 [待开始]
 
-**目标**：根据 provider 的 protocol 字段选择正确的 engine 实现。
+**问题**：OpenAI 引擎遇到 mid-stream 错误 JSON 直接 `continue` 跳过，用户看到流突然中断无提示。
 
 **改动文件**：
-- `src-tauri/src/llm/mod.rs`
+- `src-tauri/src/llm/openai_compat.rs`
 
 **具体任务**：
-- [ ] 3.1 新增 `pub mod openai_compat;`
-- [ ] 3.2 新增 `create_openai_compat_engine(api_key, base_url, model)` 构造函数
-- [ ] 3.3 新增 `create_engine_for_provider(api_key, base_url, model, protocol)` 统一入口
-  - protocol == "openai" → `OpenAiCompatEngine`
-  - protocol == "anthropic" 或其他 → `AnthropicEngine`
+- [ ] 2.1 SSE 解析中检测 `{"error": {...}}` 格式的错误响应
+- [ ] 2.2 解析错误对象的 `message`、`type`、`code` 字段
+- [ ] 2.3 映射为 `LlmError::Api { status, message }`，标记 retryable
+- [ ] 2.4 JSON 解析失败时不再静默 continue，而是记录 warning 并发出 `StreamEvent::Error`
 
 ---
 
-### 阶段 4：调用点适配 [待开始]
+### 阶段 3：Model Quirks 检测层 [待开始]
 
-**目标**：让 ai_processor 和 conversation 使用新的 engine 路由。
+**问题**：不同模型有硬性约束，当前代码没有统一的 quirk 检测。
+
+**新增文件**：
+- `src-tauri/src/llm/model_quirks.rs`
+
+**具体任务**：
+- [ ] 3.1 新增 `model_quirks.rs` 模块
+- [ ] 3.2 实现 `rejects_is_error_field(model: &str) -> bool`（Kimi 系列）
+- [ ] 3.3 实现 `is_reasoning_model(model: &str) -> bool`（o1/o3/o4/qwq/grok-mini/deepseek-reasoner/qwen3-thinking）
+- [ ] 3.4 实现 `uses_max_completion_tokens(model: &str) -> bool`（GPT-5 系列）
+- [ ] 3.5 实现 `strip_routing_prefix(model: &str) -> &str`（去除 openai/、dashscope/ 等前缀）
+- [ ] 3.6 实现 `supports_thinking(model: &str) -> bool`（仅 Anthropic 和特定 reasoning 模型）
+- [ ] 3.7 在 `mod.rs` 中注册模块
+
+---
+
+### 阶段 4：Kimi is_error 兼容 + Reasoning 模型参数剥离 [待开始]
+
+**问题**：Kimi 拒绝 tool result 中的 `is_error` 字段；reasoning 模型拒绝 temperature/top_p。
 
 **改动文件**：
-- `src-tauri/src/ai_processor.rs`
-- `src-tauri/src/conversation.rs`
+- `src-tauri/src/llm/openai_compat.rs`
 
 **具体任务**：
-- [ ] 4.1 修改 `ai_processor.rs` 中 `process_material_builtin`：
-  - 从 config 获取 protocol
-  - 调用 `create_engine_for_provider` 替代 `create_anthropic_engine`
-- [ ] 4.2 修改 `conversation.rs` 中 `create_engine`：
-  - 同样使用 `create_engine_for_provider`
-- [ ] 4.3 确保 `active_vendor_config()` 返回 protocol 信息
+- [ ] 4.1 `translate_user_message` 中根据 `rejects_is_error_field()` 省略 is_error 字段
+- [ ] 4.2 错误信息改为 content 前缀 `[ERROR] `（claw-code 做法）
+- [ ] 4.3 `build_openai_request` 中根据 `is_reasoning_model()` 剥离 temperature/top_p/frequency_penalty/presence_penalty
+- [ ] 4.4 根据 `uses_max_completion_tokens()` 使用 `max_completion_tokens` 替代 `max_tokens`
+- [ ] 4.5 根据 `supports_thinking()` 决定是否发送 thinking 相关参数
 
 ---
 
-### 阶段 5：前端设置面板适配 [待开始]
+### 阶段 5：Thinking Signature 跨引擎安全 [待开始]
 
-**目标**：让用户在设置面板中看到并可选择 protocol。
+**问题**：OpenAI 引擎产生的 Thinking block signature 为空，发送到 Anthropic 会被拒绝。
 
 **改动文件**：
-- `src/settings/components/SectionAiEngine.tsx`
-- `src/lib/tauri.ts`（如有新 IPC 命令）
-- `src/locales/zh.ts`、`src/locales/en.ts`
+- `src-tauri/src/llm/anthropic.rs`
+- `src-tauri/src/llm/openai_compat.rs`
 
 **具体任务**：
-- [ ] 5.1 Provider 编辑区域新增 protocol 下拉选择（Anthropic / OpenAI 兼容）
-- [ ] 5.2 根据 BuiltinPreset 自动填充默认 protocol
-- [ ] 5.3 新增 provider 时根据 preset 自动设置 protocol 和 base_url
-- [ ] 5.4 i18n 字符串补充
+- [ ] 5.1 Anthropic 引擎发送消息前，过滤掉 signature 为空的 Thinking block
+- [ ] 5.2 将空 signature 的 Thinking 内容转为 `<thinking>...</thinking>` 包裹的 Text block
+- [ ] 5.3 OpenAI 引擎发送消息前，同样过滤 Anthropic 来源的 Thinking block（有 signature 的）
+- [ ] 5.4 确保跨引擎切换后对话可以正常继续
 
 ---
 
-### 阶段 6：测试与验证 [待开始]
+### 阶段 6：孤立 Tool Message 清理 [待开始]
+
+**问题**：对话压缩、取消、错误恢复后可能出现孤立的 tool_result，API 会 400 拒绝。
+
+**改动文件**：
+- `src-tauri/src/llm/openai_compat.rs`
+- `src-tauri/src/llm/anthropic.rs`（可选，Anthropic 也可能遇到）
 
 **具体任务**：
-- [ ] 6.1 单元测试：请求翻译（Anthropic → OpenAI 格式）
-- [ ] 6.2 单元测试：响应翻译（OpenAI → Anthropic 格式）
-- [ ] 6.3 单元测试：流式翻译（OpenAI SSE → StreamEvent）
-- [ ] 6.4 单元测试：tool_calls 多轮对话翻译
-- [ ] 6.5 集成测试：DashScope qwen3.6-plus 端到端
-- [ ] 6.6 集成测试：DeepSeek 端到端
-- [ ] 6.7 回归测试：Anthropic provider 行为不变
-- [ ] 6.8 `cargo test` + `cargo clippy` 全通过
+- [ ] 6.1 新增 `sanitize_tool_message_pairing(messages: &mut Vec<...>)` 函数
+- [ ] 6.2 扫描消息序列，收集所有 assistant tool_call ID
+- [ ] 6.3 移除没有匹配 tool_call 的 tool_result 消息
+- [ ] 6.4 移除有 tool_call 但没有对应 tool_result 的 assistant 消息尾部 tool_use block
+- [ ] 6.5 在 `chat_stream` 发送前调用此函数作为最后防线
+- [ ] 6.6 记录 warning 日志便于排查
+
+---
+
+### 阶段 7：统一 SSE 解析器 [待开始]
+
+**问题**：两个引擎各自实现 SSE 解析，边界情况处理不一致。
+
+**新增文件**：
+- `src-tauri/src/llm/sse_parser.rs`
+
+**改动文件**：
+- `src-tauri/src/llm/anthropic.rs`
+- `src-tauri/src/llm/openai_compat.rs`
+
+**具体任务**：
+- [ ] 7.1 新增 `sse_parser.rs`，实现 `SseParser` 结构体
+- [ ] 7.2 支持 `\n\n` 和 `\r\n\r\n` 双分隔符
+- [ ] 7.3 跳过 `:` 开头的注释行
+- [ ] 7.4 处理 `[DONE]` 哨兵
+- [ ] 7.5 不完整帧的缓冲续接
+- [ ] 7.6 提供 `fn next_event(&mut self, chunk: &[u8]) -> Vec<SseEvent>` 接口
+- [ ] 7.7 `SseEvent` 包含 `event_type: Option<String>` 和 `data: String`
+- [ ] 7.8 重构 Anthropic 引擎使用 `SseParser`
+- [ ] 7.9 重构 OpenAI 引擎使用 `SseParser`
+- [ ] 7.10 单元测试：各种边界情况（混合换行、不完整帧、注释行、空 data）
+
+---
+
+### 阶段 8：验证 [待开始]
+
+- [ ] 8.1 cargo fmt + clippy 零 warning
+- [ ] 8.2 cargo test 全通过
+- [ ] 8.3 npm run build + npm test 全通过
+- [ ] 8.4 手动测试：Anthropic 引擎正常
+- [ ] 8.5 手动测试：DashScope (qwen) 引擎正常
+- [ ] 8.6 手动测试：Kimi 引擎 tool_use 正常
 
 ---
 
 ## 风险与注意事项
 
-1. **Thinking blocks**：OpenAI 格式没有标准的 thinking 支持。部分模型（如 DeepSeek-R1、qwen3.6-plus）通过 `reasoning_content` 字段返回思考过程，需要特殊处理。对于不支持的模型，thinking 配置应被静默忽略。
-
-2. **Server-side tools (web_search)**：OpenAI 兼容 provider 不支持 Anthropic 的 server-side web_search tool。在 OpenAI 模式下，`build_request_body` 中的 `web_search_20250305` 工具定义应被跳过。
-
-3. **PauseTurn**：OpenAI 格式没有 `pause_turn` stop_reason。不影响，因为这是 Anthropic 特有行为。
-
-4. **Token 计数差异**：OpenAI 的 `prompt_tokens` 包含 system，Anthropic 的 `input_tokens` 也包含。映射应该是直接的。
-
-5. **Tool call ID 格式**：OpenAI 用 `call_xxx` 格式，Anthropic 用 `toolu_xxx`。翻译层需要保持 ID 透传，不做转换。
+1. **阶段 1 影响面最大** — 改变 content_blocks 语义可能影响 conversation.rs 中直接读取 response.content 的代码，需仔细验证
+2. **阶段 7 重构风险** — SSE 解析器替换需确保流式行为完全一致，建议先写测试再重构
+3. **阶段 5 跨引擎切换** — 实际场景中用户可能中途换引擎，需要处理历史消息中的异构 block
 
 ## 当前状态
 
-- [x] 调研完成
-- [x] 阶段 1：Config 层扩展
-- [x] 阶段 2：OpenAI 兼容引擎实现
-- [x] 阶段 3：Engine 路由集成
-- [x] 阶段 4：调用点适配
-- [x] 阶段 5：前端设置面板适配
-- [x] 阶段 6：测试与验证
+- [ ] 阶段 1：AssistantResponse.content 语义统一
+- [ ] 阶段 2：OpenAI 流式错误检测
+- [ ] 阶段 3：Model Quirks 检测层
+- [ ] 阶段 4：Kimi is_error 兼容 + Reasoning 模型参数剥离
+- [ ] 阶段 5：Thinking Signature 跨引擎安全
+- [ ] 阶段 6：孤立 Tool Message 清理
+- [ ] 阶段 7：统一 SSE 解析器
+- [ ] 阶段 8：验证

@@ -1430,7 +1430,8 @@ async fn run_conversation_turn(
                         "bash" => llm::bash_tool::execute(input, workspace).await,
                         "load_skill" => llm::enable_skill::execute(input, workspace).await,
                         fs_name => {
-                            if let Some(r) = llm::fs_tools::execute(fs_name, input, workspace).await {
+                            if let Some(r) = llm::fs_tools::execute(fs_name, input, workspace).await
+                            {
                                 r
                             } else {
                                 llm::types::ToolResult {

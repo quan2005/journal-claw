@@ -21,6 +21,7 @@ chrono = { version = "0.4", features = ["clock"] }
 mp4ameta = "0.13"
 nnnoiseless = "0.5"
 base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
 rubato = "0.15"
 tokio = { version = "1", features = ["full"] }

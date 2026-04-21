@@ -9,7 +9,7 @@ pub mod remove;
 pub mod stat;
 pub mod write;
 
-use super::types::{ToolDefinition, ToolResult};
+use super::types::{ImageData, ToolDefinition, ToolResult};
 use std::path::{Path, PathBuf};
 
 pub const NOISE_DIRS: &[&str] = &[
@@ -118,18 +118,22 @@ pub fn definitions() -> Vec<ToolDefinition> {
 }
 
 /// Execute a named fs tool. Returns None if name doesn't match.
-pub async fn execute(name: &str, input: &serde_json::Value, workspace: &str) -> Option<ToolResult> {
+pub async fn execute(
+    name: &str,
+    input: &serde_json::Value,
+    workspace: &str,
+) -> Option<(ToolResult, Option<ImageData>)> {
     match name {
         "read" => Some(read::execute(input, workspace).await),
-        "write" => Some(write::execute(input, workspace).await),
-        "edit" => Some(edit::execute(input, workspace).await),
-        "glob" => Some(glob::execute(input, workspace).await),
-        "grep" => Some(grep::execute(input, workspace).await),
-        "mkdir" => Some(mkdir::execute(input, workspace).await),
-        "move" => Some(move_file::execute(input, workspace).await),
-        "copy" => Some(copy::execute(input, workspace).await),
-        "remove" => Some(remove::execute(input, workspace).await),
-        "stat" => Some(stat::execute(input, workspace).await),
+        "write" => Some((write::execute(input, workspace).await, None)),
+        "edit" => Some((edit::execute(input, workspace).await, None)),
+        "glob" => Some((glob::execute(input, workspace).await, None)),
+        "grep" => Some((grep::execute(input, workspace).await, None)),
+        "mkdir" => Some((mkdir::execute(input, workspace).await, None)),
+        "move" => Some((move_file::execute(input, workspace).await, None)),
+        "copy" => Some((copy::execute(input, workspace).await, None)),
+        "remove" => Some((remove::execute(input, workspace).await, None)),
+        "stat" => Some((stat::execute(input, workspace).await, None)),
         _ => None,
     }
 }

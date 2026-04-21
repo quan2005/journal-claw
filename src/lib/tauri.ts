@@ -417,8 +417,17 @@ export const conversationCreate = (
     contextFiles: contextFiles ?? null,
   })
 
-export const conversationSend = (sessionId: string, message: string): Promise<void> =>
-  invoke<void>('conversation_send', { sessionId, message })
+export interface ImageAttachment {
+  media_type: string
+  data: string
+}
+
+export const conversationSend = (
+  sessionId: string,
+  message: string,
+  images?: ImageAttachment[],
+): Promise<void> =>
+  invoke<void>('conversation_send', { sessionId, message, images: images ?? null })
 
 export const conversationCancel = (sessionId: string): Promise<void> =>
   invoke<void>('conversation_cancel', { sessionId })

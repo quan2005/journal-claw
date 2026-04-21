@@ -9,6 +9,12 @@ use tokio_util::sync::CancellationToken;
 
 use llm::types::{ContentBlock, Message, Role};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImageAttachment {
+    pub media_type: String,
+    pub data: String,
+}
+
 // ── Types ────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -359,6 +365,7 @@ fn messages_to_display(messages: &[Message]) -> Vec<LoadedMessage> {
                                     tool_use_id,
                                     content,
                                     is_error,
+                                    ..
                                 } = b
                                 {
                                     if tool_use_id == tool_id {
@@ -543,6 +550,7 @@ pub async fn conversation_send(
     store: tauri::State<'_, ConversationStore>,
     session_id: String,
     message: String,
+    images: Option<Vec<ImageAttachment>>,
 ) -> Result<(), String> {
     eprintln!(
         "[conversation] send called: session={} msg_len={}",
@@ -650,6 +658,7 @@ pub async fn conversation_send(
                             tool_use_id: id,
                             content: "error: operation cancelled".to_string(),
                             is_error: true,
+                            image: None,
                         })
                         .collect();
                     session.messages.push(Message {
@@ -660,12 +669,22 @@ pub async fn conversation_send(
             }
         }
 
-        // Append user message
+        // Append user message (text + optional images)
+        let mut user_content: Vec<ContentBlock> = Vec::new();
+        if let Some(imgs) = &images {
+            for img in imgs {
+                user_content.push(ContentBlock::Image {
+                    media_type: img.media_type.clone(),
+                    data: img.data.clone(),
+                });
+            }
+        }
+        user_content.push(ContentBlock::Text {
+            text: message.clone(),
+        });
         session.messages.push(Message {
             role: Role::User,
-            content: vec![ContentBlock::Text {
-                text: message.clone(),
-            }],
+            content: user_content,
         });
 
         // Instant provisional title from user text (replaced by LLM title after first turn)
@@ -978,7 +997,7 @@ pub async fn conversation_retry(
         }
     }
     eprintln!("[conversation] retrying session {}", session_id);
-    conversation_send(app, store, session_id, last_user_text).await
+    conversation_send(app, store, session_id, last_user_text, None).await
 }
 #[tauri::command]
 pub async fn conversation_list(
@@ -1430,7 +1449,8 @@ async fn run_conversation_turn(
                         "bash" => llm::bash_tool::execute(input, workspace).await,
                         "load_skill" => llm::enable_skill::execute(input, workspace).await,
                         fs_name => {
-                            if let Some(r) = llm::fs_tools::execute(fs_name, input, workspace).await
+                            if let Some((r, _img)) =
+                                llm::fs_tools::execute(fs_name, input, workspace).await
                             {
                                 r
                             } else {
@@ -1460,6 +1480,7 @@ async fn run_conversation_turn(
                         tool_use_id: id.clone(),
                         content: result.output,
                         is_error: result.is_error,
+                        image: None,
                     });
                 }
 

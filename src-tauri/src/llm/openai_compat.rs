@@ -280,18 +280,28 @@ fn build_openai_request(
 
 fn translate_user_message(content: &[ContentBlock], reject_is_error: bool) -> Vec<Value> {
     let mut messages: Vec<Value> = Vec::new();
-    let mut text_parts: Vec<String> = Vec::new();
+    let mut content_parts: Vec<Value> = Vec::new();
     let mut tool_results: Vec<Value> = Vec::new();
+    let mut has_images = false;
 
     for block in content {
         match block {
             ContentBlock::Text { text } => {
-                text_parts.push(text.clone());
+                content_parts.push(json!({ "type": "text", "text": text }));
+            }
+            ContentBlock::Image { media_type, data } => {
+                has_images = true;
+                let data_url = format!("data:{};base64,{}", media_type, data);
+                content_parts.push(json!({
+                    "type": "image_url",
+                    "image_url": { "url": data_url },
+                }));
             }
             ContentBlock::ToolResult {
                 tool_use_id,
                 content: result_content,
                 is_error,
+                ..
             } => {
                 // Stage 4: Kimi rejects is_error field — encode error in content prefix
                 let content_str = if *is_error {
@@ -317,11 +327,17 @@ fn translate_user_message(content: &[ContentBlock], reject_is_error: bool) -> Ve
         }
     }
 
-    if !text_parts.is_empty() {
-        messages.push(json!({
-            "role": "user",
-            "content": text_parts.join("\n"),
-        }));
+    if !content_parts.is_empty() {
+        if has_images {
+            messages.push(json!({ "role": "user", "content": content_parts }));
+        } else {
+            let text: String = content_parts
+                .iter()
+                .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+                .collect::<Vec<_>>()
+                .join("\n");
+            messages.push(json!({ "role": "user", "content": text }));
+        }
     }
 
     messages.extend(tool_results);
@@ -700,6 +716,7 @@ mod tests {
             tool_use_id: "call_123".to_string(),
             content: "some error".to_string(),
             is_error: true,
+            image: None,
         }];
 
         // Kimi mode: reject_is_error = true
@@ -745,6 +762,7 @@ mod tests {
                     tool_use_id: "orphan_id".to_string(),
                     content: "result".to_string(),
                     is_error: false,
+                    image: None,
                 }],
             },
             Message {
@@ -778,6 +796,7 @@ mod tests {
                     tool_use_id: "call_1".to_string(),
                     content: "output".to_string(),
                     is_error: false,
+                    image: None,
                 }],
             },
         ];

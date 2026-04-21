@@ -2506,6 +2506,7 @@ dependencies = [
  "globwalk",
  "gray_matter",
  "hound",
+ "image",
  "libc",
  "mp4ameta",
  "nnnoiseless",

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import type { ConversationMessage, ConversationStreamPayload, SessionMode } from '../types'
+import type { ImageAttachment } from '../lib/tauri'
 import {
   conversationCreate,
   conversationSend,
@@ -306,7 +307,7 @@ export function useConversation() {
   }, [])
 
   const send = useCallback(
-    async (text: string): Promise<boolean> => {
+    async (text: string, images?: ImageAttachment[]): Promise<boolean> => {
       // If streaming, queue the message instead of sending
       if (isStreamingRef.current && streamingSessionsRef.current.has(sessionIdRef.current ?? '')) {
         pendingQueueRef.current = [...pendingQueueRef.current, text]
@@ -354,7 +355,7 @@ export function useConversation() {
       }
       streamingSessionsRef.current.add(sid)
       try {
-        await conversationSend(sid, text)
+        await conversationSend(sid, text, images)
         return true
       } catch (e) {
         console.error('[conversation] send failed:', e)

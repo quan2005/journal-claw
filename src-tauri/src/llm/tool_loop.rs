@@ -181,18 +181,22 @@ pub async fn run_agent(
                         input: input.clone(),
                     });
 
-                    let result = match name.as_str() {
-                        "bash" => bash_tool::execute(input, workspace_path).await,
-                        "load_skill" => enable_skill::execute(input, workspace_path).await,
+                    let (result, image_data) = match name.as_str() {
+                        "bash" => (bash_tool::execute(input, workspace_path).await, None),
+                        "load_skill" => (enable_skill::execute(input, workspace_path).await, None),
                         fs_name => {
-                            if let Some(r) = fs_tools::execute(fs_name, input, workspace_path).await
+                            if let Some((r, img)) =
+                                fs_tools::execute(fs_name, input, workspace_path).await
                             {
-                                r
+                                (r, img)
                             } else {
-                                ToolResult {
-                                    output: format!("unknown tool: {}", name),
-                                    is_error: true,
-                                }
+                                (
+                                    ToolResult {
+                                        output: format!("unknown tool: {}", name),
+                                        is_error: true,
+                                    },
+                                    None,
+                                )
                             }
                         }
                     };
@@ -206,6 +210,7 @@ pub async fn run_agent(
                         tool_use_id: id.clone(),
                         content: result.output,
                         is_error: result.is_error,
+                        image: image_data,
                     });
                 }
 

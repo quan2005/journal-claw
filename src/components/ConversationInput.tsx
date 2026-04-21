@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import clipboard from 'tauri-plugin-clipboard-api'
+import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
 import { useTranslation } from '../contexts/I18nContext'
 import { SlashCommandMenu } from './SlashCommandMenu'
@@ -12,9 +13,15 @@ interface Attachment {
   kind: string
 }
 
+interface ImageAtt {
+  media_type: string
+  data: string
+  preview: string
+}
+
 interface ConversationInputProps {
   sessionId?: string | null
-  onSend: (text: string) => Promise<boolean>
+  onSend: (text: string, images?: ImageAttachment[]) => Promise<boolean>
   onCancel: () => void
   isStreaming: boolean
   placeholder?: string
@@ -36,6 +43,7 @@ export function ConversationInput({
   const [slashQuery, setSlashQuery] = useState('')
   const [atOpen, setAtOpen] = useState(false)
   const [atQuery, setAtQuery] = useState('')
+  const [imageAttachments, setImageAttachments] = useState<ImageAtt[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -67,16 +75,25 @@ export function ConversationInput({
     setAttachments((prev) => prev.filter((a) => a.path !== path))
   }, [])
 
+  const removeImage = useCallback((idx: number) => {
+    setImageAttachments((prev) => prev.filter((_, i) => i !== idx))
+  }, [])
+
   const handleSend = useCallback(async () => {
     const text = input.trim()
-    if (!text) return
+    if (!text && imageAttachments.length === 0) return
     const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
     const parts = [fileRefs, text].filter(Boolean)
     const payload = parts.join('\n\n')
+    const imgs =
+      imageAttachments.length > 0
+        ? imageAttachments.map(({ media_type, data }) => ({ media_type, data }))
+        : undefined
     setInput('')
     setAttachments([])
-    onSend(payload)
-  }, [input, attachments, onSend])
+    setImageAttachments([])
+    onSend(payload || '请看图片', imgs)
+  }, [input, attachments, imageAttachments, onSend])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -174,6 +191,29 @@ export function ConversationInput({
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          if (item.type.startsWith('image/')) {
+            e.preventDefault()
+            const blob = item.getAsFile()
+            if (!blob) return
+            const reader = new FileReader()
+            reader.onload = () => {
+              const dataUrl = reader.result as string
+              const [header, b64] = dataUrl.split(',')
+              const mediaType = header.match(/data:(.*?);/)?.[1] ?? 'image/png'
+              setImageAttachments((prev) => [
+                ...prev,
+                { media_type: mediaType, data: b64, preview: dataUrl },
+              ])
+            }
+            reader.readAsDataURL(blob)
+            return
+          }
+        }
+      }
       clipboard
         .readFiles()
         .then((files) => {
@@ -188,6 +228,7 @@ export function ConversationInput({
   )
 
   const hasAttachments = attachments.length > 0
+  const hasImages = imageAttachments.length > 0
 
   return (
     <div
@@ -287,6 +328,57 @@ export function ConversationInput({
           </div>
         )}
 
+        {/* Image attachments */}
+        {hasImages && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 6,
+              flexWrap: 'wrap',
+              padding: hasAttachments ? '6px 12px 0' : '8px 12px 0',
+            }}
+          >
+            {imageAttachments.map((img, idx) => (
+              <div
+                key={idx}
+                style={{
+                  position: 'relative',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 6,
+                  overflow: 'hidden',
+                  border: '0.5px solid var(--queue-border)',
+                }}
+              >
+                <img
+                  src={img.preview}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <span
+                  onClick={() => removeImage(idx)}
+                  style={{
+                    position: 'absolute',
+                    top: 1,
+                    right: 1,
+                    background: 'rgba(0,0,0,0.5)',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    width: 14,
+                    height: 14,
+                    fontSize: 10,
+                    lineHeight: '14px',
+                    textAlign: 'center' as const,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Textarea */}
         <textarea
           ref={inputRef}
@@ -361,15 +453,21 @@ export function ConversationInput({
             )}
             <button
               onClick={handleSend}
-              disabled={!input.trim()}
+              disabled={!input.trim() && imageAttachments.length === 0}
               style={{
-                background: input.trim() ? 'var(--record-btn)' : 'var(--dialog-kbd-bg)',
+                background:
+                  input.trim() || imageAttachments.length > 0
+                    ? 'var(--record-btn)'
+                    : 'var(--dialog-kbd-bg)',
                 border: 'none',
                 borderRadius: 6,
                 padding: '4px 10px',
                 fontSize: 'var(--text-xs)',
-                color: input.trim() ? 'var(--record-btn-icon)' : 'var(--item-meta)',
-                cursor: input.trim() ? 'pointer' : 'default',
+                color:
+                  input.trim() || imageAttachments.length > 0
+                    ? 'var(--record-btn-icon)'
+                    : 'var(--item-meta)',
+                cursor: input.trim() || imageAttachments.length > 0 ? 'pointer' : 'default',
                 transition: 'background 0.15s ease-out, color 0.15s ease-out',
                 display: 'flex',
                 alignItems: 'center',

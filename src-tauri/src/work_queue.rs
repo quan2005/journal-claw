@@ -251,7 +251,7 @@ async fn run_work_item(app: &AppHandle, item: &WorkItem) -> Result<String, Strin
     );
 
     // Send message
-    conversation::conversation_send(app.clone(), store.clone(), sid.clone(), prompt).await?;
+    conversation::conversation_send(app.clone(), store.clone(), sid.clone(), prompt, None).await?;
 
     // Wait for done/error via oneshot channel.
     // Wrap sender in Mutex<Option<>> so the Fn closure can take ownership once.

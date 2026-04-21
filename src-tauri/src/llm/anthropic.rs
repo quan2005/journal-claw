@@ -188,6 +188,14 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
         .content
         .iter()
         .map(|block| match block {
+            ContentBlock::Image { media_type, data } => serde_json::json!({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": data,
+                },
+            }),
             ContentBlock::Text { text } => serde_json::json!({
                 "type": "text",
                 "text": text,
@@ -210,11 +218,31 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
                 tool_use_id,
                 content,
                 is_error,
+                image,
             } => {
+                let content_val = if let Some(img) = image {
+                    let mut blocks = vec![serde_json::json!({
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": img.media_type,
+                            "data": img.data,
+                        }
+                    })];
+                    if !content.is_empty() {
+                        blocks.push(serde_json::json!({
+                            "type": "text",
+                            "text": content,
+                        }));
+                    }
+                    serde_json::Value::Array(blocks)
+                } else {
+                    serde_json::Value::String(content.clone())
+                };
                 let mut val = serde_json::json!({
                     "type": "tool_result",
                     "tool_use_id": tool_use_id,
-                    "content": content,
+                    "content": content_val,
                 });
                 if *is_error {
                     val["is_error"] = serde_json::Value::Bool(true);
@@ -522,6 +550,7 @@ mod tests {
                 tool_use_id: "t1".to_string(),
                 content: "output".to_string(),
                 is_error: true,
+                image: None,
             }],
         };
         let json = message_to_json(&msg);

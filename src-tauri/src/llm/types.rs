@@ -20,6 +20,12 @@ pub struct Message {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
+    #[serde(rename = "image")]
+    Image {
+        #[serde(rename = "media_type")]
+        media_type: String,
+        data: String,
+    },
     #[serde(rename = "text")]
     Text { text: String },
     /// Extended thinking block — must be preserved in multi-turn conversations.
@@ -37,6 +43,8 @@ pub enum ContentBlock {
         content: String,
         #[serde(default, skip_serializing_if = "is_false")]
         is_error: bool,
+        #[serde(skip)]
+        image: Option<ImageData>,
     },
     /// Server-side tool invocation (e.g. web_search). Opaque — pass through as-is.
     #[serde(rename = "server_tool_use")]
@@ -112,6 +120,14 @@ pub enum StopReason {
 pub struct Usage {
     pub input_tokens: u32,
     pub output_tokens: u32,
+}
+
+// ── Image data for vision ────────────────────────
+
+#[derive(Debug, Clone)]
+pub struct ImageData {
+    pub media_type: String,
+    pub data: String,
 }
 
 // ── Tool execution result ───────────────────────

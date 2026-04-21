@@ -71,16 +71,13 @@ pub fn sandbox_resolve(workspace: &str, relative: &str) -> Result<PathBuf, ToolR
         let canonical_workspace = workspace_path
             .canonicalize()
             .unwrap_or(workspace_path.clone());
-        match normalized.canonicalize() {
-            Ok(canonical) => {
-                if !canonical.starts_with(&canonical_workspace) {
-                    return Err(ToolResult {
-                        output: "error: symlink target is outside workspace".to_string(),
-                        is_error: true,
-                    });
-                }
+        if let Ok(canonical) = normalized.canonicalize() {
+            if !canonical.starts_with(&canonical_workspace) {
+                return Err(ToolResult {
+                    output: "error: symlink target is outside workspace".to_string(),
+                    is_error: true,
+                });
             }
-            Err(_) => {}
         }
     }
 

@@ -67,6 +67,7 @@ export function ConversationDialog({
   } = useConversation()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const initialized = useRef(false)
   const [prefillText, setPrefillText] = useState<string | null>(null)
 
@@ -95,6 +96,7 @@ export function ConversationDialog({
     if (!el) return
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
     userScrolledUp.current = distanceFromBottom > 60
+    setShowScrollBtn(distanceFromBottom > 60)
   }, [])
 
   // Auto-scroll only if user hasn't scrolled up
@@ -110,6 +112,15 @@ export function ConversationDialog({
   const handleClose = useCallback(() => {
     onClose()
   }, [onClose])
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+      userScrolledUp.current = false
+      setShowScrollBtn(false)
+    }
+  }, [])
 
   const handleNewSession = useCallback(() => {
     create(mode, context, contextFiles)
@@ -285,14 +296,30 @@ export function ConversationDialog({
                   style={{
                     flex: 1,
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--item-meta)',
-                    opacity: 0.4,
-                    fontSize: 'var(--text-sm)',
+                    gap: 8,
                   }}
                 >
-                  {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
+                  <span
+                    style={{
+                      fontSize: 'var(--text-md)',
+                      color: 'var(--item-meta)',
+                      opacity: 0.35,
+                    }}
+                  >
+                    {mode === 'chat' ? t('conversationChat') : t('conversationAgent')}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      opacity: 0.3,
+                    }}
+                  >
+                    {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
+                  </span>
                 </div>
               )}
 
@@ -352,6 +379,50 @@ export function ConversationDialog({
                 </div>
               )}
             </div>
+
+            {/* Scroll to bottom button */}
+            {showScrollBtn && messages.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '0 0 4px' }}>
+                <button
+                  onClick={scrollToBottom}
+                  style={{
+                    background: 'var(--dialog-kbd-bg)',
+                    border: '0.5px solid var(--dialog-glass-divider)',
+                    borderRadius: 12,
+                    padding: '3px 12px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-meta)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'background 0.15s ease-out, color 0.15s ease-out',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--item-hover-bg)'
+                    e.currentTarget.style.color = 'var(--item-text)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
+                    e.currentTarget.style.color = 'var(--item-meta)'
+                  }}
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  {t('scrollToBottom')}
+                </button>
+              </div>
+            )}
 
             {/* Pending queue — messages waiting to be sent */}
             {pendingQueue.length > 0 && (

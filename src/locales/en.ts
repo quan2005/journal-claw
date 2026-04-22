@@ -399,6 +399,7 @@ export const en = {
   conversationInputPlaceholder: 'Type a message…',
   conversationSend: 'Send',
   conversationStop: 'Stop',
+  scrollToBottom: 'Scroll to bottom',
   sessionNewChat: 'New chat',
   sessionSearchPlaceholder: 'Search chats',
   sessionEmpty: 'No chats yet',

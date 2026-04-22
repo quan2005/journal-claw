@@ -420,6 +420,7 @@ export const zh: Strings = {
   conversationInputPlaceholder: '输入消息…',
   conversationSend: '发送',
   conversationStop: '停止',
+  scrollToBottom: '回到底部',
   sessionNewChat: '新对话',
   sessionSearchPlaceholder: '搜索对话',
   sessionEmpty: '暂无会话',

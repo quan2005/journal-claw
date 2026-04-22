@@ -69,6 +69,11 @@ export function ConversationDialog({
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('conv-sidebar-width')
+    return saved ? Math.max(180, Math.min(360, parseInt(saved, 10))) : SESSION_LIST_WIDTH
+  })
+  const draggingRef = useRef(false)
   const initialized = useRef(false)
   const [prefillText, setPrefillText] = useState<string | null>(null)
 
@@ -122,6 +127,29 @@ export function ConversationDialog({
       setShowScrollBtn(false)
     }
   }, [])
+
+  const handleSidebarDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      draggingRef.current = true
+      const startX = e.clientX
+      const startW = sidebarWidth
+      let lastW = startW
+      const onMove = (ev: MouseEvent) => {
+        lastW = Math.max(180, Math.min(360, startW + ev.clientX - startX))
+        setSidebarWidth(lastW)
+      }
+      const onUp = () => {
+        draggingRef.current = false
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+        localStorage.setItem('conv-sidebar-width', String(lastW))
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
+    },
+    [sidebarWidth],
+  )
 
   const handleNewSession = useCallback(() => {
     create(mode, context, contextFiles)
@@ -234,7 +262,7 @@ export function ConversationDialog({
         >
           <div
             style={{
-              width: SESSION_LIST_WIDTH,
+              width: sidebarWidth,
               flexShrink: 0,
               background: 'var(--dialog-sidebar-bg)',
               borderRight: '1px solid var(--dialog-glass-divider)',
@@ -336,7 +364,30 @@ export function ConversationDialog({
 
         {/* Body: split layout */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <SessionList activeSessionId={sessionId} onSelect={handleSelectSession} />
+          <SessionList
+            activeSessionId={sessionId}
+            onSelect={handleSelectSession}
+            width={sidebarWidth}
+          />
+
+          {/* Drag handle */}
+          <div
+            onMouseDown={handleSidebarDragStart}
+            style={{
+              width: 4,
+              cursor: 'col-resize',
+              flexShrink: 0,
+              background: draggingRef.current ? 'var(--record-btn)' : 'transparent',
+              transition: 'background 0.15s ease-out',
+            }}
+            onMouseEnter={(e) => {
+              if (!draggingRef.current)
+                e.currentTarget.style.background = 'var(--dialog-glass-divider)'
+            }}
+            onMouseLeave={(e) => {
+              if (!draggingRef.current) e.currentTarget.style.background = 'transparent'
+            }}
+          />
 
           {/* Right: conversation */}
           <div

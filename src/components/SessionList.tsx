@@ -13,9 +13,10 @@ export const SESSION_LIST_WIDTH = 240
 interface SessionListProps {
   activeSessionId: string | null
   onSelect: (id: string, isStreaming: boolean) => void
+  width?: number
 }
 
-export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
+export function SessionList({ activeSessionId, onSelect, width }: SessionListProps) {
   const { t } = useTranslation()
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -257,7 +258,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
   return (
     <div
       style={{
-        width: SESSION_LIST_WIDTH,
+        width: width ?? SESSION_LIST_WIDTH,
         borderRight: '1px solid var(--dialog-glass-divider)',
         display: 'flex',
         flexDirection: 'column',

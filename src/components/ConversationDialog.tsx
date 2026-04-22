@@ -149,6 +149,12 @@ export function ConversationDialog({
     (id: string, streaming: boolean) => {
       if (id === sessionId) return
       load(id, streaming)
+      requestAnimationFrame(() => {
+        const el = scrollRef.current
+        if (el) el.scrollTop = 0
+        userScrolledUp.current = false
+        setShowScrollBtn(false)
+      })
     },
     [sessionId, load],
   )

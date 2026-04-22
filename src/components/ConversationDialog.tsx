@@ -350,6 +350,18 @@ export function ConversationDialog({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              {isStreaming && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: 'var(--status-success)',
+                    flexShrink: 0,
+                    animation: 'rec-pulse 1.5s ease-in-out infinite',
+                  }}
+                />
+              )}
               {sessionTitle ? (
                 <span
                   style={{

@@ -29,9 +29,27 @@ export function useConversation() {
   const cacheRef = useRef<Map<string, ConversationMessage[]>>(new Map())
   // Per-session streaming state
   const streamingSessionsRef = useRef<Set<string>>(new Set())
-  const pendingQueueRef = useRef<string[]>([])
+  // Per-session pending message queue
+  const pendingQueueRef = useRef<Map<string, string[]>>(new Map())
   const [pendingQueue, setPendingQueue] = useState<string[]>([])
   const sendRef = useRef<((text: string) => Promise<boolean>) | null>(null)
+
+  // Helper: get queue for a session
+  const getQueue = useCallback((sid: string): string[] => {
+    return pendingQueueRef.current.get(sid) ?? []
+  }, [])
+
+  // Helper: set queue for a session and sync React state if active
+  const setQueue = useCallback((sid: string, queue: string[]) => {
+    if (queue.length === 0) {
+      pendingQueueRef.current.delete(sid)
+    } else {
+      pendingQueueRef.current.set(sid, queue)
+    }
+    if (sid === sessionIdRef.current) {
+      setPendingQueue(queue)
+    }
+  }, [])
 
   // Helper: update cached messages for a given session and sync to React state if active
   const updateSessionMessages = useCallback(
@@ -218,11 +236,13 @@ export function useConversation() {
           if (sid === sessionIdRef.current) {
             setIsStreaming(false)
             isStreamingRef.current = false
-            // Flush pending queue — merge all queued messages into one
-            if (pendingQueueRef.current.length > 0) {
-              const merged = pendingQueueRef.current.join('\n\n')
-              pendingQueueRef.current = []
-              setPendingQueue([])
+          }
+          // Flush pending queue for this session
+          {
+            const queue = getQueue(sid)
+            if (queue.length > 0) {
+              const merged = queue.join('\n\n')
+              setQueue(sid, [])
               sendRef.current?.(merged)
             }
           }
@@ -290,7 +310,7 @@ export function useConversation() {
     return () => {
       unlisten.then((fn) => fn())
     }
-  }, [updateSessionMessages])
+  }, [updateSessionMessages, getQueue, setQueue])
 
   const create = useCallback((mode: SessionMode, context?: string, contextFiles?: string[]) => {
     // Pure UI reset — no IPC. Real session is created lazily on first send().
@@ -300,6 +320,7 @@ export function useConversation() {
     setIsStreaming(false)
     isStreamingRef.current = false
     setTitle(null)
+    setPendingQueue([])
     pendingCreateRef.current = null
     deferredModeRef.current = mode
     deferredContextRef.current = context
@@ -308,10 +329,13 @@ export function useConversation() {
 
   const send = useCallback(
     async (text: string, images?: ImageAttachment[]): Promise<boolean> => {
-      // If streaming, queue the message instead of sending
-      if (isStreamingRef.current && streamingSessionsRef.current.has(sessionIdRef.current ?? '')) {
-        pendingQueueRef.current = [...pendingQueueRef.current, text]
-        setPendingQueue([...pendingQueueRef.current])
+      const currentSid = sessionIdRef.current
+      // If streaming, queue the message for this session
+      if (isStreamingRef.current && streamingSessionsRef.current.has(currentSid ?? '')) {
+        if (currentSid) {
+          const queue = [...getQueue(currentSid), text]
+          setQueue(currentSid, queue)
+        }
         return true
       }
 
@@ -380,7 +404,7 @@ export function useConversation() {
         return false
       }
     },
-    [updateSessionMessages],
+    [updateSessionMessages, getQueue, setQueue],
   )
 
   sendRef.current = send
@@ -425,21 +449,42 @@ export function useConversation() {
   }, [updateSessionMessages])
 
   const cancel = useCallback(async () => {
-    if (!sessionIdRef.current) return
-    await conversationCancel(sessionIdRef.current)
+    const sid = sessionIdRef.current
+    if (!sid) return
+    await conversationCancel(sid)
+    streamingSessionsRef.current.delete(sid)
     setIsStreaming(false)
-  }, [])
+    isStreamingRef.current = false
+    // Clear pending queue for this session on cancel
+    setQueue(sid, [])
+  }, [setQueue])
+
+  const removePendingItem = useCallback(
+    (index: number): string | undefined => {
+      const sid = sessionIdRef.current
+      if (!sid) return undefined
+      const queue = getQueue(sid)
+      if (index < 0 || index >= queue.length) return undefined
+      const removed = queue[index]
+      setQueue(sid, [...queue.slice(0, index), ...queue.slice(index + 1)])
+      return removed
+    },
+    [getQueue, setQueue],
+  )
 
   const close = useCallback(async () => {
     if (sessionIdRef.current) {
       cacheRef.current.delete(sessionIdRef.current)
       streamingSessionsRef.current.delete(sessionIdRef.current)
+      pendingQueueRef.current.delete(sessionIdRef.current)
       await conversationClose(sessionIdRef.current)
     }
     sessionIdRef.current = null
     setSessionId(null)
     setMessages([])
     setIsStreaming(false)
+    isStreamingRef.current = false
+    setPendingQueue([])
   }, [])
 
   const load = useCallback(async (id: string, streaming?: boolean, initialUserMessage?: string) => {
@@ -451,6 +496,8 @@ export function useConversation() {
       const isStillStreaming = streaming ?? streamingSessionsRef.current.has(id)
       setIsStreaming(isStillStreaming)
       isStreamingRef.current = isStillStreaming
+      // Sync pending queue for this session
+      setPendingQueue(pendingQueueRef.current.get(id) ?? [])
       // Seed user message if cache is empty (race: event fires before send)
       if (cached.length === 0 && initialUserMessage) {
         const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
@@ -473,6 +520,8 @@ export function useConversation() {
     if (isStillStreaming) {
       streamingSessionsRef.current.add(id)
     }
+    // No pending queue for persisted sessions
+    setPendingQueue([])
     // If backend has no messages yet (race: event fires before send), seed user message
     if (loaded.length === 0 && initialUserMessage) {
       const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
@@ -570,6 +619,7 @@ export function useConversation() {
     send,
     retry,
     cancel,
+    removePendingItem,
     close,
     load,
     editAndResend,

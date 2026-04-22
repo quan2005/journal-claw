@@ -7,7 +7,7 @@ export const zh: Strings = {
 
   // Sidebar tabs
   profiles: '画像',
-  journal: '记忆',
+  journal: '流水',
 
   // Settings nav
   general: '通用',

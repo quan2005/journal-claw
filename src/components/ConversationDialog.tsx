@@ -63,10 +63,12 @@ export function ConversationDialog({
     load,
     editAndResend,
     pendingQueue,
+    removePendingItem,
   } = useConversation()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const initialized = useRef(false)
+  const [prefillText, setPrefillText] = useState<string | null>(null)
 
   // Create or load session on first mount
   useEffect(() => {
@@ -362,8 +364,28 @@ export function ConversationDialog({
                     style={{
                       display: 'flex',
                       justifyContent: 'flex-end',
+                      alignItems: 'flex-start',
+                      gap: 4,
                     }}
                   >
+                    <span
+                      onClick={() => {
+                        const removed = removePendingItem(i)
+                        if (removed) setPrefillText(removed)
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        marginTop: 7,
+                        cursor: 'pointer',
+                        color: 'var(--item-meta)',
+                        fontSize: 12,
+                        lineHeight: 1,
+                        opacity: 0.5,
+                      }}
+                      title={t('cancel')}
+                    >
+                      ×
+                    </span>
                     <div
                       style={{
                         maxWidth: '100%',
@@ -402,6 +424,8 @@ export function ConversationDialog({
               onCancel={cancel}
               isStreaming={isStreaming}
               initialInput={initialInput}
+              prefillText={prefillText}
+              onPrefillConsumed={() => setPrefillText(null)}
             />
           </div>
         </div>

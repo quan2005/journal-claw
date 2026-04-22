@@ -27,6 +27,8 @@ interface ConversationInputProps {
   isStreaming: boolean
   placeholder?: string
   initialInput?: string
+  prefillText?: string | null
+  onPrefillConsumed?: () => void
 }
 
 export function ConversationInput({
@@ -36,6 +38,8 @@ export function ConversationInput({
   isStreaming,
   placeholder,
   initialInput,
+  prefillText,
+  onPrefillConsumed,
 }: ConversationInputProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState(initialInput ?? '')
@@ -63,6 +67,15 @@ export function ConversationInput({
       el.style.height = Math.min(el.scrollHeight, 120) + 'px'
     }
   }, [input])
+
+  // Prefill from external source (e.g. removed pending queue item)
+  useEffect(() => {
+    if (prefillText) {
+      setInput((prev) => (prev ? prev + '\n' + prefillText : prefillText))
+      onPrefillConsumed?.()
+      setTimeout(() => inputRef.current?.focus(), 0)
+    }
+  }, [prefillText, onPrefillConsumed])
 
   const addFiles = useCallback((paths: string[]) => {
     const newAtts: Attachment[] = paths.map((p) => {

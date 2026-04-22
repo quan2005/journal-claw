@@ -22,6 +22,7 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -102,10 +103,16 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
   const handleDelete = useCallback(
     async (e: React.MouseEvent, id: string) => {
       e.stopPropagation()
-      await conversationDelete(id)
-      refresh()
+      if (confirmDeleteId === id) {
+        setConfirmDeleteId(null)
+        await conversationDelete(id)
+        refresh()
+      } else {
+        setConfirmDeleteId(id)
+        setTimeout(() => setConfirmDeleteId((prev) => (prev === id ? null : prev)), 3000)
+      }
     },
-    [refresh],
+    [refresh, confirmDeleteId],
   )
 
   const handleDoubleClick = useCallback((id: string, currentTitle: string | null) => {
@@ -271,12 +278,14 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
             onClick={(e) => handleDelete(e, s.id)}
             style={{
               fontSize: '0.6875rem',
-              color: 'var(--item-meta)',
+              color: confirmDeleteId === s.id ? 'var(--status-danger)' : 'var(--item-meta)',
               cursor: 'pointer',
               padding: '0 2px',
+              fontWeight: confirmDeleteId === s.id ? 600 : 400,
             }}
+            title={confirmDeleteId === s.id ? t('confirmDelete') : undefined}
           >
-            ×
+            {confirmDeleteId === s.id ? '!' : '×'}
           </span>
         </div>
       </div>

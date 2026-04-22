@@ -73,6 +73,7 @@ export function ConversationDialog({
     const saved = localStorage.getItem('conv-sidebar-width')
     return saved ? Math.max(180, Math.min(360, parseInt(saved, 10))) : SESSION_LIST_WIDTH
   })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const draggingRef = useRef(false)
   const initialized = useRef(false)
   const [prefillText, setPrefillText] = useState<string | null>(null)
@@ -193,6 +194,11 @@ export function ConversationDialog({
         const searchInput = document.querySelector<HTMLInputElement>('.conv-session-search')
         searchInput?.focus()
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault()
+        e.stopPropagation()
+        setSidebarCollapsed((prev) => !prev)
+      }
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
@@ -281,14 +287,16 @@ export function ConversationDialog({
         >
           <div
             style={{
-              width: sidebarWidth,
+              width: sidebarCollapsed ? 0 : sidebarWidth,
               flexShrink: 0,
               background: 'var(--dialog-sidebar-bg)',
-              borderRight: '1px solid var(--dialog-glass-divider)',
+              borderRight: sidebarCollapsed ? 'none' : '1px solid var(--dialog-glass-divider)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '0 8px 0 12px',
+              padding: sidebarCollapsed ? 0 : '0 8px 0 12px',
+              overflow: 'hidden',
+              transition: 'width 200ms ease-out',
             }}
           >
             <span
@@ -424,37 +432,39 @@ export function ConversationDialog({
           />
 
           {/* Drag handle */}
-          <div
-            onMouseDown={handleSidebarDragStart}
-            onDoubleClick={() => {
-              setSidebarWidth(SESSION_LIST_WIDTH)
-              localStorage.setItem('conv-sidebar-width', String(SESSION_LIST_WIDTH))
-            }}
-            style={{
-              width: 6,
-              cursor: 'col-resize',
-              flexShrink: 0,
-              position: 'relative',
-            }}
-          >
+          {!sidebarCollapsed && (
             <div
-              className="drag-handle-line"
-              style={{
-                position: 'absolute',
-                left: 2,
-                top: '20%',
-                bottom: '20%',
-                width: 2,
-                borderRadius: 1,
-                background: 'transparent',
-                transition: 'background 0.15s ease-out',
+              onMouseDown={handleSidebarDragStart}
+              onDoubleClick={() => {
+                setSidebarWidth(SESSION_LIST_WIDTH)
+                localStorage.setItem('conv-sidebar-width', String(SESSION_LIST_WIDTH))
               }}
-            />
-            <style>{`
+              style={{
+                width: 6,
+                cursor: 'col-resize',
+                flexShrink: 0,
+                position: 'relative',
+              }}
+            >
+              <div
+                className="drag-handle-line"
+                style={{
+                  position: 'absolute',
+                  left: 2,
+                  top: '20%',
+                  bottom: '20%',
+                  width: 2,
+                  borderRadius: 1,
+                  background: 'transparent',
+                  transition: 'background 0.15s ease-out',
+                }}
+              />
+              <style>{`
               div:hover > .drag-handle-line { background: var(--dialog-glass-divider) !important; }
               div:active > .drag-handle-line { background: var(--record-btn) !important; }
             `}</style>
-          </div>
+            </div>
+          )}
 
           {/* Right: conversation */}
           <div

@@ -149,7 +149,7 @@ export function ConversationDialog({
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [visible, handleClose, handleNewSession])
+  }, [visible, handleClose, handleNewSession, scrollToBottom])
 
   const handleSelectSession = useCallback(
     (id: string, streaming: boolean) => {

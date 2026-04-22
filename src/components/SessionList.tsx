@@ -237,20 +237,48 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
             {formatTime(s.updated_at)}
           </div>
         </div>
-        <span
-          onClick={(e) => handleDelete(e, s.id)}
-          style={{
-            fontSize: '0.6875rem',
-            color: 'var(--item-meta)',
-            cursor: 'pointer',
-            opacity: 0,
-            padding: '0 2px',
-            transition: 'opacity 0.1s ease-out',
-          }}
-          className="session-delete-btn"
+        <div
+          className="session-actions"
+          style={{ display: 'flex', gap: 2, opacity: 0, transition: 'opacity 0.1s ease-out' }}
         >
-          ×
-        </span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDoubleClick(s.id, s.title)
+            }}
+            style={{
+              fontSize: '0.6875rem',
+              color: 'var(--item-meta)',
+              cursor: 'pointer',
+              padding: '0 2px',
+            }}
+            title={t('rename')}
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+            </svg>
+          </span>
+          <span
+            onClick={(e) => handleDelete(e, s.id)}
+            style={{
+              fontSize: '0.6875rem',
+              color: 'var(--item-meta)',
+              cursor: 'pointer',
+              padding: '0 2px',
+            }}
+          >
+            ×
+          </span>
+        </div>
       </div>
     )
   }
@@ -268,9 +296,9 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
       }}
     >
       <style>{`
-        .session-delete-btn { opacity: 0 !important; }
-        div:hover > .session-delete-btn { opacity: 0.6 !important; }
-        .session-delete-btn:hover { opacity: 1 !important; }
+        .session-actions { opacity: 0 !important; }
+        div:hover > .session-actions { opacity: 0.6 !important; }
+        .session-actions:hover { opacity: 1 !important; }
       `}</style>
 
       {/* #7 搜索框 */}

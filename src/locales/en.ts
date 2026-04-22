@@ -408,6 +408,7 @@ export const en = {
   continue: 'Continue',
   slashCommand: 'commands',
   atMention: 'mention file',
+  rename: 'Rename',
   sessionWebSearch: 'Web search',
   sessionWebSearchQuery: 'Search: {query}',
   timeToday: 'Today',

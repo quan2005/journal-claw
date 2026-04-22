@@ -429,6 +429,7 @@ export const zh: Strings = {
   continue: '继续',
   slashCommand: '斜杠命令',
   atMention: '引用文件',
+  rename: '重命名',
   sessionWebSearch: '网络搜索',
   sessionWebSearchQuery: '搜索: {query}',
   timeToday: '今日',

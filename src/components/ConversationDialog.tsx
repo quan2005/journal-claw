@@ -54,6 +54,7 @@ export function ConversationDialog({
   const { t } = useTranslation()
   const {
     sessionId,
+    title: sessionTitle,
     messages,
     isStreaming,
     create,
@@ -139,6 +140,11 @@ export function ConversationDialog({
         e.preventDefault()
         e.stopPropagation()
         handleNewSession()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowDown') {
+        e.preventDefault()
+        e.stopPropagation()
+        scrollToBottom()
       }
     }
     window.addEventListener('keydown', onKeyDown, true)
@@ -257,16 +263,32 @@ export function ConversationDialog({
               padding: '0 12px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--item-meta)',
-                  opacity: 0.5,
-                }}
-              >
-                {mode === 'chat' ? t('conversationChat') : t('conversationAgent')}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              {sessionTitle ? (
+                <span
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 'var(--font-medium)',
+                    color: 'var(--item-text)',
+                    opacity: 0.6,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {sessionTitle}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-meta)',
+                    opacity: 0.5,
+                  }}
+                >
+                  {mode === 'chat' ? t('conversationChat') : t('conversationAgent')}
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <kbd
@@ -507,7 +529,7 @@ export function ConversationDialog({
                     </span>
                     <div
                       style={{
-                        maxWidth: '100%',
+                        maxWidth: '85%',
                         padding: '8px 12px',
                         borderRadius: '10px 10px 2px 10px',
                         background: 'var(--item-text)',

@@ -358,6 +358,44 @@ export function ConversationDialog({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              <button
+                onClick={() => setSidebarCollapsed((prev) => !prev)}
+                title="⌘B"
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 4,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--item-meta)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'color 0.15s ease-out',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--item-text)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--item-meta)'
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M9 3v18" />
+                </svg>
+              </button>
               {isStreaming && (
                 <div
                   style={{

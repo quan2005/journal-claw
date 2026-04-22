@@ -1239,7 +1239,12 @@ async fn run_conversation_turn(
         let stream_callback: Box<dyn Fn(llm::types::StreamEvent) + Send> = {
             let turn_text = turn_text_clone;
             let turn_thinking = turn_thinking_clone;
+            let cancel_for_stream = cancel.clone();
             Box::new(move |evt| {
+                if cancel_for_stream.is_cancelled() {
+                    return;
+                }
+
                 match &evt {
                     llm::types::StreamEvent::TextDelta(ref text) => {
                         if let Ok(mut t) = turn_text.lock() {

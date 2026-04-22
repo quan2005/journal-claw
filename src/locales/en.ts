@@ -405,6 +405,7 @@ export const en = {
   sessionEmpty: 'No chats yet',
   sessionTitle: 'Sessions',
   close: 'close',
+  continue: 'Continue',
   sessionWebSearch: 'Web search',
   sessionWebSearchQuery: 'Search: {query}',
   timeToday: 'Today',

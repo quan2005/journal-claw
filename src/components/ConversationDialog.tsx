@@ -880,6 +880,107 @@ function ActionBtn({
   )
 }
 
+function AssistantActions({
+  content,
+  onRetry,
+  onContinue,
+}: {
+  content: string
+  onRetry?: () => void
+  onContinue?: () => void
+}) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+  const [hovered, setHovered] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ minHeight: 20, position: 'relative' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          gap: 2,
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 120ms ease-out',
+        }}
+      >
+        <ActionBtn title={t('copy')} onClick={handleCopy}>
+          {copied ? (
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--status-success)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
+        </ActionBtn>
+        {onRetry && (
+          <ActionBtn title={t('retry')} onClick={onRetry}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+          </ActionBtn>
+        )}
+        {onContinue && (
+          <ActionBtn title={t('continue')} onClick={onContinue}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </ActionBtn>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function AssistantRun({
   messages,
   isStreaming,
@@ -940,6 +1041,10 @@ function AssistantRun({
 
   // No non-text blocks: just render text (+ error/truncated)
   if (!hasNonText) {
+    const lastContent = textBlocks
+      .filter((b) => b.type === 'text' && b.content)
+      .map((b) => b.content)
+      .join('\n')
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
         {textBlocks.map((block: MessageBlock, i: number) => (
@@ -948,6 +1053,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
+        <AssistantActions content={lastContent} onRetry={onRetry} onContinue={onContinue} />
       </div>
     )
   }
@@ -977,6 +1083,11 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
+        <AssistantActions
+          content={lastTextBlock?.content ?? ''}
+          onRetry={onRetry}
+          onContinue={onContinue}
+        />
       </div>
     )
   }
@@ -994,6 +1105,11 @@ function AssistantRun({
       {allBlocks.map((block: MessageBlock, i: number) => (
         <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
       ))}
+      <AssistantActions
+        content={lastTextBlock?.content ?? ''}
+        onRetry={onRetry}
+        onContinue={onContinue}
+      />
     </div>
   )
 }

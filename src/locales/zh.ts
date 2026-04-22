@@ -426,6 +426,7 @@ export const zh: Strings = {
   sessionEmpty: '暂无会话',
   sessionTitle: '会话',
   close: '关闭',
+  continue: '继续',
   sessionWebSearch: '网络搜索',
   sessionWebSearchQuery: '搜索: {query}',
   timeToday: '今日',

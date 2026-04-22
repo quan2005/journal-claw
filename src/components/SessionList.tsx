@@ -277,6 +277,7 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
       <div style={{ padding: '8px 8px 4px' }}>
         <input
           type="text"
+          className="conv-session-search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t('sessionSearchPlaceholder')}

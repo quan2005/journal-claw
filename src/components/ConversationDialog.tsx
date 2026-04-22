@@ -174,6 +174,12 @@ export function ConversationDialog({
         e.stopPropagation()
         scrollToBottom()
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        e.stopPropagation()
+        const searchInput = document.querySelector<HTMLInputElement>('.conv-session-search')
+        searchInput?.focus()
+      }
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
@@ -502,8 +508,18 @@ export function ConversationDialog({
             </div>
 
             {/* Scroll to bottom button */}
-            {showScrollBtn && messages.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '0 0 4px' }}>
+            {messages.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  padding: '0 0 4px',
+                  opacity: showScrollBtn ? 1 : 0,
+                  transform: showScrollBtn ? 'translateY(0)' : 'translateY(4px)',
+                  transition: 'opacity 150ms ease-out, transform 150ms ease-out',
+                  pointerEvents: showScrollBtn ? 'auto' : 'none',
+                }}
+              >
                 <button
                   onClick={scrollToBottom}
                   style={{

@@ -379,21 +379,35 @@ export function ConversationDialog({
           {/* Drag handle */}
           <div
             onMouseDown={handleSidebarDragStart}
+            onDoubleClick={() => {
+              setSidebarWidth(SESSION_LIST_WIDTH)
+              localStorage.setItem('conv-sidebar-width', String(SESSION_LIST_WIDTH))
+            }}
             style={{
-              width: 4,
+              width: 6,
               cursor: 'col-resize',
               flexShrink: 0,
-              background: draggingRef.current ? 'var(--record-btn)' : 'transparent',
-              transition: 'background 0.15s ease-out',
+              position: 'relative',
             }}
-            onMouseEnter={(e) => {
-              if (!draggingRef.current)
-                e.currentTarget.style.background = 'var(--dialog-glass-divider)'
-            }}
-            onMouseLeave={(e) => {
-              if (!draggingRef.current) e.currentTarget.style.background = 'transparent'
-            }}
-          />
+          >
+            <div
+              className="drag-handle-line"
+              style={{
+                position: 'absolute',
+                left: 2,
+                top: '20%',
+                bottom: '20%',
+                width: 2,
+                borderRadius: 1,
+                background: 'transparent',
+                transition: 'background 0.15s ease-out',
+              }}
+            />
+            <style>{`
+              div:hover > .drag-handle-line { background: var(--dialog-glass-divider) !important; }
+              div:active > .drag-handle-line { background: var(--record-btn) !important; }
+            `}</style>
+          </div>
 
           {/* Right: conversation */}
           <div

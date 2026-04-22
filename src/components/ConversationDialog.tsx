@@ -274,7 +274,8 @@ export function ConversationDialog({
               borderRight: '1px solid var(--dialog-glass-divider)',
               display: 'flex',
               alignItems: 'center',
-              padding: '0 12px',
+              justifyContent: 'space-between',
+              padding: '0 8px 0 12px',
             }}
           >
             <span
@@ -287,6 +288,44 @@ export function ConversationDialog({
             >
               {t('sessionTitle')}
             </span>
+            <button
+              onClick={handleNewSession}
+              title="⌘N"
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--item-meta)',
+                fontSize: 'var(--text-sm)',
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.15s ease-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--item-text)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--item-meta)'
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
           </div>
           <div
             style={{
@@ -347,35 +386,6 @@ export function ConversationDialog({
                   esc {t('close')}
                 </kbd>
               </div>
-              <button
-                onClick={handleNewSession}
-                title="⌘N"
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: 'var(--dialog-kbd-bg)',
-                  border: '0.5px solid var(--dialog-glass-divider)',
-                  cursor: 'pointer',
-                  color: 'var(--item-meta)',
-                  fontSize: 'var(--text-sm)',
-                  lineHeight: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s ease-out, color 0.15s ease-out',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--item-hover-bg)'
-                  e.currentTarget.style.color = 'var(--item-text)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
-                  e.currentTarget.style.color = 'var(--item-meta)'
-                }}
-              >
-                +
-              </button>
             </div>
           </div>
         </div>

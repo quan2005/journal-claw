@@ -475,7 +475,7 @@ export function ConversationDialog({
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 8,
+                    gap: 12,
                   }}
                 >
                   <span
@@ -496,6 +496,20 @@ export function ConversationDialog({
                   >
                     {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
                   </span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 16,
+                      marginTop: 8,
+                      fontSize: '0.5625rem',
+                      color: 'var(--item-meta)',
+                      opacity: 0.25,
+                    }}
+                  >
+                    <span>/ {t('slashCommand')}</span>
+                    <span>@ {t('atMention')}</span>
+                    <span>⌘N {t('sessionNewChat')}</span>
+                  </div>
                 </div>
               )}
 

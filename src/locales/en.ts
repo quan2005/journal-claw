@@ -406,6 +406,8 @@ export const en = {
   sessionTitle: 'Sessions',
   close: 'close',
   continue: 'Continue',
+  slashCommand: 'commands',
+  atMention: 'mention file',
   sessionWebSearch: 'Web search',
   sessionWebSearchQuery: 'Search: {query}',
   timeToday: 'Today',

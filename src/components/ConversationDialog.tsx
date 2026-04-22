@@ -76,6 +76,7 @@ export function ConversationDialog({
   const draggingRef = useRef(false)
   const initialized = useRef(false)
   const [prefillText, setPrefillText] = useState<string | null>(null)
+  const [elapsed, setElapsed] = useState(0)
 
   // Create or load session on first mount
   useEffect(() => {
@@ -113,6 +114,18 @@ export function ConversationDialog({
       el.scrollTop = el.scrollHeight
     }
   }, [messages, visible])
+
+  // Elapsed timer for streaming
+  useEffect(() => {
+    if (!isStreaming) {
+      setElapsed(0)
+      return
+    }
+    setElapsed(0)
+    const start = Date.now()
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
+    return () => clearInterval(timer)
+  }, [isStreaming])
 
   // Close just notifies parent; animation is driven by visible prop change
   const handleClose = useCallback(() => {
@@ -538,6 +551,7 @@ export function ConversationDialog({
                     }}
                   >
                     {t('conversationThinking')}
+                    {elapsed > 0 && <span style={{ marginLeft: 4, opacity: 0.5 }}>{elapsed}s</span>}
                   </span>
                 </div>
               )}

@@ -281,15 +281,18 @@ export function ConversationInput({
       {/* Unified input container */}
       <div
         style={{
-          border: focused
-            ? '0.5px solid var(--record-btn)'
-            : '0.5px solid var(--dialog-inset-border)',
+          border: dragOver
+            ? '1.5px dashed var(--record-btn)'
+            : focused
+              ? '0.5px solid var(--record-btn)'
+              : '0.5px solid var(--dialog-inset-border)',
           borderRadius: 12,
           background: dragOver ? 'var(--item-hover-bg)' : 'var(--dialog-inset-bg)',
           overflow: 'hidden',
           transition:
             'border-color 0.15s ease-out, background 0.15s ease-out, box-shadow 0.15s ease-out',
           boxShadow: focused ? 'inset 0 1px 3px rgba(0,0,0,0.2)' : 'none',
+          position: 'relative' as const,
         }}
       >
         {/* Attachments */}

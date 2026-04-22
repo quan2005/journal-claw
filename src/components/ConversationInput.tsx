@@ -64,7 +64,7 @@ export function ConversationInput({
     const el = inputRef.current
     if (el) {
       el.style.height = 'auto'
-      el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px'
     }
   }, [input])
 
@@ -254,7 +254,7 @@ export function ConversationInput({
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
       style={{
-        padding: '8px 16px 12px',
+        padding: '8px 24px 12px',
         flexShrink: 0,
         position: 'relative',
       }}
@@ -422,7 +422,7 @@ export function ConversationInput({
             color: 'var(--item-text)',
             outline: 'none',
             lineHeight: 1.5,
-            maxHeight: 120,
+            maxHeight: 160,
             overflow: 'auto',
           }}
         />

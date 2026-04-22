@@ -181,9 +181,9 @@ export function ConversationDialog({
           position: 'fixed',
           top: '50%',
           left: '50%',
-          width: 720,
-          maxWidth: 'calc(100vw - 48px)',
-          height: '75vh',
+          width: 'min(960px, calc(100vw - 80px))',
+          maxWidth: 'calc(100vw - 80px)',
+          height: 'min(82vh, calc(100vh - 80px))',
           background: 'rgba(var(--dialog-glass-rgb, 28,28,30), 0.78)',
           backdropFilter: 'blur(20px) saturate(1.2)',
           WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
@@ -274,10 +274,10 @@ export function ConversationDialog({
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                padding: '12px 16px',
+                padding: '16px 24px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 12,
+                gap: 16,
               }}
             >
               {messages.length === 0 && (
@@ -356,7 +356,7 @@ export function ConversationDialog({
             {/* Pending queue — messages waiting to be sent */}
             {pendingQueue.length > 0 && (
               <div
-                style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}
+                style={{ padding: '0 24px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}
               >
                 {pendingQueue.map((text, i) => (
                   <div
@@ -562,7 +562,7 @@ function MessageBubble({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div style={{ position: 'relative', maxWidth: '100%' }}>
+      <div style={{ position: 'relative', maxWidth: '85%' }}>
         <div
           style={{
             padding: '8px 12px',
@@ -1206,7 +1206,7 @@ function ToolBlock({
           style={{
             padding: '0 0 4px',
             opacity: 0.7,
-            maxHeight: 120,
+            maxHeight: 200,
             overflow: 'auto',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
@@ -1378,7 +1378,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
           style={{
             padding: '0 0 4px',
             opacity: 0.7,
-            maxHeight: 200,
+            maxHeight: 300,
             overflow: 'auto',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',

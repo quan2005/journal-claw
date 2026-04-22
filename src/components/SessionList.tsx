@@ -8,7 +8,7 @@ import {
 } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
-export const SESSION_LIST_WIDTH = 200
+export const SESSION_LIST_WIDTH = 240
 
 interface SessionListProps {
   activeSessionId: string | null

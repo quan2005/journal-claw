@@ -66,6 +66,13 @@ export const importTextTemp = (text: string) =>
 export const importText = (text: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_text', { text })
 
+// Paste image → write to temp dir → return path
+export const importImageTemp = (data: string, mediaType: string) =>
+  invoke<{ path: string; filename: string; year_month: string }>('import_image_temp', {
+    data,
+    mediaType,
+  })
+
 // Pure prompt → send text directly (no file written)
 export const triggerAiPrompt = (prompt: string): Promise<void> =>
   invoke<void>('trigger_ai_prompt', { prompt })

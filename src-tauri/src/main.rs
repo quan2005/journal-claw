@@ -266,6 +266,7 @@ fn main() {
             materials::import_file,
             materials::import_text,
             materials::import_text_temp,
+            materials::import_image_temp,
             audio_pipeline::prepare_audio_for_ai,
             ai_processor::trigger_ai_processing,
             ai_processor::get_workspace_prompt,

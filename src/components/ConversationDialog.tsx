@@ -5,6 +5,7 @@ import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { ConversationInput } from './ConversationInput'
+import { openFile } from '../lib/tauri'
 import { SessionList, SESSION_LIST_WIDTH } from './SessionList'
 
 // Per-tool SVG path data (24x24 viewBox, stroke-based)
@@ -550,7 +551,7 @@ function MessageBubble({
             wordBreak: 'break-word',
           }}
         >
-          {message.content}
+          <UserContent text={message.content} />
         </div>
         <div
           style={{
@@ -632,6 +633,46 @@ function MessageBubble({
         </div>
       </div>
     </div>
+  )
+}
+
+function UserContent({ text }: { text: string }) {
+  const lines = text.split('\n')
+  return (
+    <>
+      {lines.map((line, i) => {
+        if (line.startsWith('@/') || line.startsWith('@~')) {
+          const path = line.slice(1)
+          const filename = path.split('/').pop() ?? path
+          return (
+            <div
+              key={i}
+              onClick={() => openFile(path).catch(() => {})}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 8px',
+                borderRadius: 4,
+                background: 'rgba(255,255,255,0.15)',
+                cursor: 'pointer',
+                fontSize: 'var(--text-xs)',
+                marginBottom: 2,
+              }}
+              title={path}
+            >
+              {filename}
+            </div>
+          )
+        }
+        return (
+          <span key={i}>
+            {line}
+            {i < lines.length - 1 && '\n'}
+          </span>
+        )
+      })}
+    </>
   )
 }
 

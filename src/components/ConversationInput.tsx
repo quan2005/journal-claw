@@ -3,6 +3,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import clipboard from 'tauri-plugin-clipboard-api'
 import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
+import { openFile } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
@@ -44,6 +45,7 @@ export function ConversationInput({
   const [atOpen, setAtOpen] = useState(false)
   const [atQuery, setAtQuery] = useState('')
   const [imageAttachments, setImageAttachments] = useState<ImageAtt[]>([])
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -303,12 +305,15 @@ export function ConversationInput({
                 }}
               >
                 <span
+                  onClick={() => openFile(att.path).catch(() => {})}
                   style={{
                     maxWidth: 120,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    cursor: 'pointer',
                   }}
+                  title={att.path}
                 >
                   {att.filename}
                 </span>
@@ -353,7 +358,8 @@ export function ConversationInput({
                 <img
                   src={img.preview}
                   alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onClick={() => setPreviewSrc(img.preview)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
                 />
                 <span
                   onClick={() => removeImage(idx)}
@@ -488,6 +494,28 @@ export function ConversationInput({
           </div>
         </div>
       </div>
+      {/* Image lightbox */}
+      {previewSrc && (
+        <div
+          onClick={() => setPreviewSrc(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={previewSrc}
+            alt=""
+            style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: 8 }}
+          />
+        </div>
+      )}
     </div>
   )
 }

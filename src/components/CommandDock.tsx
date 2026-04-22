@@ -5,7 +5,7 @@ import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
 import { fileKindFromName } from '../lib/fileKind'
 import clipboard from 'tauri-plugin-clipboard-api'
-import { importTextTemp, openFile } from '../lib/tauri'
+import { importTextTemp, importImageTemp, openFile } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface CommandDockProps {
@@ -221,6 +221,31 @@ export function CommandDock({
     }
   }
 
+  function handleClipboardFallback() {
+    clipboard
+      .readFiles()
+      .then((files) => {
+        if (files && files.length > 0) {
+          onPasteFiles(files)
+          return
+        }
+        clipboard
+          .readText()
+          .then((text) => {
+            if (text) handleTextClipboard(text)
+          })
+          .catch(() => {})
+      })
+      .catch(() => {
+        clipboard
+          .readText()
+          .then((text) => {
+            if (text) handleTextClipboard(text)
+          })
+          .catch(() => {})
+      })
+  }
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -249,28 +274,36 @@ export function CommandDock({
         if (!inDock && active && active !== document.body) return
         if (inputOpen && !hasFiles) return // 纯文本模式：焦点在 dock textarea，放行原生粘贴
         e.preventDefault()
-        clipboard
-          .readFiles()
-          .then((files) => {
-            if (files && files.length > 0) {
-              onPasteFiles(files)
-              return
-            }
-            clipboard
-              .readText()
-              .then((text) => {
-                if (text) handleTextClipboard(text)
-              })
-              .catch(() => {})
-          })
-          .catch(() => {
-            clipboard
-              .readText()
-              .then((text) => {
-                if (text) handleTextClipboard(text)
-              })
-              .catch(() => {})
-          })
+        // Try reading image from clipboard via async API
+        if (navigator.clipboard?.read) {
+          navigator.clipboard
+            .read()
+            .then((items) => {
+              for (const item of items) {
+                const imgType = item.types.find((t: string) => t.startsWith('image/'))
+                if (imgType) {
+                  item.getType(imgType).then((blob: Blob) => {
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string
+                      const [header, b64] = dataUrl.split(',')
+                      const mediaType = header.match(/data:(.*?);/)?.[1] ?? 'image/png'
+                      importImageTemp(b64, mediaType)
+                        .then((result) => onPasteFiles([result.path]))
+                        .catch(() => {})
+                    }
+                    reader.readAsDataURL(blob)
+                  })
+                  return
+                }
+              }
+              // No image — fall through to file/text
+              handleClipboardFallback()
+            })
+            .catch(() => handleClipboardFallback())
+        } else {
+          handleClipboardFallback()
+        }
         return
       }
     }
@@ -609,6 +642,32 @@ export function CommandDock({
                   }
                 }}
                 onPaste={(e) => {
+                  // Image paste: detect image in clipboard, save to temp, add as file
+                  const items = e.clipboardData?.items
+                  if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                      const item = items[i]
+                      if (item.type.startsWith('image/')) {
+                        e.preventDefault()
+                        const blob = item.getAsFile()
+                        if (!blob) return
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          const dataUrl = reader.result as string
+                          const [header, b64] = dataUrl.split(',')
+                          const mediaType = header.match(/data:(.*?);/)?.[1] ?? 'image/png'
+                          importImageTemp(b64, mediaType)
+                            .then((result) => onPasteFiles([result.path]))
+                            .catch((err) => {
+                              console.error('[paste-image]', err)
+                              showToast(t('submitFailed'))
+                            })
+                        }
+                        reader.readAsDataURL(blob)
+                        return
+                      }
+                    }
+                  }
                   e.preventDefault()
                   const rawText = e.clipboardData.getData('text')
                   // 短文本：在光标位置插入（正确处理选区）

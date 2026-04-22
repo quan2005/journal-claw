@@ -99,6 +99,30 @@ pub fn import_text_temp(text: String) -> Result<ImportResult, String> {
 }
 
 #[tauri::command]
+pub fn import_image_temp(data: String, media_type: String) -> Result<ImportResult, String> {
+    use base64::Engine;
+    let ext = match media_type.as_str() {
+        "image/png" => "png",
+        "image/jpeg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        _ => "png",
+    };
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
+    let filename = format!("paste-{}.{}", ts, ext);
+    let dest = std::env::temp_dir().join(&filename);
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(&data)
+        .map_err(|e| format!("base64 decode failed: {}", e))?;
+    std::fs::write(&dest, &bytes).map_err(|e| format!("write failed: {}", e))?;
+    Ok(ImportResult {
+        filename,
+        path: dest.to_string_lossy().to_string(),
+        year_month: String::new(),
+    })
+}
+
+#[tauri::command]
 pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String> {
     let cfg = config::load_config(&app)?;
     if cfg.workspace_path.is_empty() {

@@ -160,9 +160,13 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         return;
     }
 
-    // Always overwrite template files to keep workspace in sync with app version
+    // CLAUDE.md: always overwrite to keep system prompt in sync with app version
     let _ = std::fs::write(dot_claude.join("CLAUDE.md"), WORKSPACE_CLAUDE_MD);
-    let _ = std::fs::write(dot_claude.join("settings.json"), WORKSPACE_SETTINGS_JSON);
+    // settings.json: only create if missing — user may have customized permissions
+    let settings_path = dot_claude.join("settings.json");
+    if !settings_path.exists() {
+        let _ = std::fs::write(&settings_path, WORKSPACE_SETTINGS_JSON);
+    }
 
     let scripts: &[(&str, &str)] = &[
         ("journal-create", SCRIPT_JOURNAL_CREATE),

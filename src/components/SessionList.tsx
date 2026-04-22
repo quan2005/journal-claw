@@ -146,7 +146,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          padding: '6px 8px',
+          padding: '7px 10px',
           margin: '0 4px',
           borderRadius: 6,
           cursor: 'pointer',
@@ -273,7 +273,7 @@ export function SessionList({ activeSessionId, onSelect }: SessionListProps) {
       `}</style>
 
       {/* #7 搜索框 */}
-      <div style={{ padding: '6px 4px 2px' }}>
+      <div style={{ padding: '8px 8px 4px' }}>
         <input
           type="text"
           value={searchQuery}

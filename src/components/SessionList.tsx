@@ -280,6 +280,14 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
           className="conv-session-search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              e.stopPropagation()
+              setSearchQuery('')
+              ;(e.target as HTMLInputElement).blur()
+            }
+          }}
           placeholder={t('sessionSearchPlaceholder')}
           style={{
             width: '100%',

@@ -424,6 +424,8 @@ export const zh: Strings = {
   sessionNewChat: '新对话',
   sessionSearchPlaceholder: '搜索对话',
   sessionEmpty: '暂无会话',
+  sessionTitle: '会话',
+  close: '关闭',
   sessionWebSearch: '网络搜索',
   sessionWebSearchQuery: '搜索: {query}',
   timeToday: '今日',

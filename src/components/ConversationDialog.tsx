@@ -211,12 +211,13 @@ export function ConversationDialog({
           transition: `opacity ${ANIM_DURATION}ms ease-out, transform ${ANIM_DURATION}ms ease-out`,
         }}
       >
-        {/* Thin header strip — split color matching left/right panels */}
+        {/* Header bar */}
         <div
           style={{
-            height: 8,
+            height: 36,
             flexShrink: 0,
             display: 'flex',
+            borderBottom: '0.5px solid var(--dialog-glass-divider)',
           }}
         >
           <div
@@ -225,9 +226,84 @@ export function ConversationDialog({
               flexShrink: 0,
               background: 'var(--dialog-sidebar-bg)',
               borderRight: '1px solid var(--dialog-glass-divider)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 12px',
             }}
-          />
-          <div style={{ flex: 1 }} />
+          >
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--font-semibold)',
+                color: 'var(--item-text)',
+                opacity: 0.7,
+              }}
+            >
+              {t('sessionTitle')}
+            </span>
+          </div>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-meta)',
+                  opacity: 0.5,
+                }}
+              >
+                {mode === 'chat' ? t('conversationChat') : t('conversationAgent')}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <kbd
+                style={{
+                  fontSize: '0.5625rem',
+                  color: 'var(--item-meta)',
+                  opacity: 0.35,
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                esc {t('close')}
+              </kbd>
+              <button
+                onClick={handleNewSession}
+                title="⌘N"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: 'var(--dialog-kbd-bg)',
+                  border: '0.5px solid var(--dialog-glass-divider)',
+                  cursor: 'pointer',
+                  color: 'var(--item-meta)',
+                  fontSize: 'var(--text-sm)',
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.15s ease-out, color 0.15s ease-out',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--item-hover-bg)'
+                  e.currentTarget.style.color = 'var(--item-text)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
+                  e.currentTarget.style.color = 'var(--item-meta)'
+                }}
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Body: split layout */}
@@ -244,40 +320,6 @@ export function ConversationDialog({
               position: 'relative',
             }}
           >
-            {/* Floating new session button */}
-            <button
-              onClick={handleNewSession}
-              title="⌘N"
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 12,
-                zIndex: 10,
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: 'var(--dialog-kbd-bg)',
-                border: '0.5px solid var(--dialog-glass-divider)',
-                cursor: 'pointer',
-                color: 'var(--item-meta)',
-                fontSize: 'var(--text-sm)',
-                lineHeight: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 0.15s ease-out, color 0.15s ease-out',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--item-hover-bg)'
-                e.currentTarget.style.color = 'var(--item-text)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--dialog-kbd-bg)'
-                e.currentTarget.style.color = 'var(--item-meta)'
-              }}
-            >
-              +
-            </button>
             {/* Messages */}
             <div
               ref={scrollRef}

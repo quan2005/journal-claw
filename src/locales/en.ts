@@ -403,6 +403,8 @@ export const en = {
   sessionNewChat: 'New chat',
   sessionSearchPlaceholder: 'Search chats',
   sessionEmpty: 'No chats yet',
+  sessionTitle: 'Sessions',
+  close: 'close',
   sessionWebSearch: 'Web search',
   sessionWebSearchQuery: 'Search: {query}',
   timeToday: 'Today',

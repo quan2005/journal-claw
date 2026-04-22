@@ -325,16 +325,28 @@ export function ConversationDialog({
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <kbd
-                style={{
-                  fontSize: '0.5625rem',
-                  color: 'var(--item-meta)',
-                  opacity: 0.35,
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                esc {t('close')}
-              </kbd>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <kbd
+                  style={{
+                    fontSize: '0.5625rem',
+                    color: 'var(--item-meta)',
+                    opacity: 0.35,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  ⌘K {t('search')}
+                </kbd>
+                <kbd
+                  style={{
+                    fontSize: '0.5625rem',
+                    color: 'var(--item-meta)',
+                    opacity: 0.35,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  esc {t('close')}
+                </kbd>
+              </div>
               <button
                 onClick={handleNewSession}
                 title="⌘N"

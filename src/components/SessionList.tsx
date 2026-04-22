@@ -324,6 +324,21 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
               setSearchQuery('')
               ;(e.target as HTMLInputElement).blur()
             }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault()
+              const items = filtered
+              if (items.length === 0) return
+              const currentIdx = items.findIndex((s) => s.id === activeSessionId)
+              const nextIdx =
+                e.key === 'ArrowDown'
+                  ? Math.min(currentIdx + 1, items.length - 1)
+                  : Math.max(currentIdx - 1, 0)
+              onSelect(items[nextIdx].id, items[nextIdx].is_streaming)
+            }
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              ;(e.target as HTMLInputElement).blur()
+            }
           }}
           placeholder={t('sessionSearchPlaceholder')}
           style={{

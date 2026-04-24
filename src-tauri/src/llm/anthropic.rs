@@ -46,9 +46,7 @@ impl LlmEngine for AnthropicEngine {
         system: &str,
         on_event: Box<dyn Fn(StreamEvent) + Send>,
     ) -> Result<AssistantResponse, LlmError> {
-        let mut sanitized = messages.to_vec();
-        sanitize_thinking_for_anthropic(&mut sanitized);
-        let body = build_request_body(&self.model, system, &sanitized, tools);
+        let body = build_request_body(&self.model, system, messages, tools);
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
@@ -267,24 +265,6 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
         "role": role,
         "content": content,
     })
-}
-
-// ── Stage 5: Sanitize thinking blocks for Anthropic ─────
-
-/// Remove thinking blocks with empty signatures (from OpenAI engine) before sending to Anthropic.
-/// Anthropic requires the original cryptographic signature — empty ones cause API rejection.
-fn sanitize_thinking_for_anthropic(messages: &mut [Message]) {
-    for msg in messages.iter_mut() {
-        if msg.role == Role::Assistant {
-            msg.content.retain(|block| {
-                if let ContentBlock::Thinking { signature, .. } = block {
-                    !signature.is_empty()
-                } else {
-                    true
-                }
-            });
-        }
-    }
 }
 
 // ── SSE stream parser ───────────────────────────

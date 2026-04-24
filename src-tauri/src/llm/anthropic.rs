@@ -46,7 +46,9 @@ impl LlmEngine for AnthropicEngine {
         system: &str,
         on_event: Box<dyn Fn(StreamEvent) + Send>,
     ) -> Result<AssistantResponse, LlmError> {
-        let body = build_request_body(&self.model, system, messages, tools);
+        let mut sanitized = messages.to_vec();
+        strip_invalid_thinking_blocks(&mut sanitized);
+        let body = build_request_body(&self.model, system, &sanitized, tools);
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
@@ -265,6 +267,24 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
         "role": role,
         "content": content,
     })
+}
+
+/// Strip thinking blocks with invalid signatures before sending to Anthropic.
+/// Real Anthropic signatures are base64-encoded (200+ chars). Short signatures
+/// (e.g. UUIDs from old versions, empty strings from OpenAI engine) cause
+/// "The content[].thinking in the thinking mode must be passed back to the API" errors.
+fn strip_invalid_thinking_blocks(messages: &mut [Message]) {
+    for msg in messages.iter_mut() {
+        if msg.role == Role::Assistant {
+            msg.content.retain(|block| {
+                if let ContentBlock::Thinking { signature, .. } = block {
+                    signature.len() > 100
+                } else {
+                    true
+                }
+            });
+        }
+    }
 }
 
 // ── SSE stream parser ───────────────────────────

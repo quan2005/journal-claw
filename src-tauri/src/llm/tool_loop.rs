@@ -3,6 +3,7 @@ use tokio_util::sync::CancellationToken;
 use super::bash_tool;
 use super::enable_skill;
 use super::fs_tools;
+use super::loop_detector::{LoopDetector, Severity};
 use super::types::*;
 use super::LlmEngine;
 
@@ -55,6 +56,7 @@ pub async fn run_agent(
     let accumulated_text;
 
     let on_event = std::sync::Arc::new(on_event);
+    let mut loop_detector = LoopDetector::new();
 
     for turn in 0..MAX_TURNS {
         if cancel.is_cancelled() {
@@ -205,6 +207,40 @@ pub async fn run_agent(
                         name: name.clone(),
                         is_error: result.is_error,
                     });
+
+                    // Loop detection: record and check
+                    if let Some(det) = loop_detector.record(name, input, &result.output) {
+                        match det.severity {
+                            Severity::Warning => {
+                                eprintln!("[loop_detector] warning: {}", det.message);
+                                // Append warning to result so the LLM can self-correct
+                                results.push(ContentBlock::ToolResult {
+                                    tool_use_id: id.clone(),
+                                    content: format!(
+                                        "{}\n\n[循环检测警告] {}",
+                                        result.output, det.message
+                                    ),
+                                    is_error: result.is_error,
+                                    image: image_data,
+                                });
+                                continue;
+                            }
+                            Severity::Block => {
+                                eprintln!("[loop_detector] blocked: {}", det.message);
+                                results.push(ContentBlock::ToolResult {
+                                    tool_use_id: id.clone(),
+                                    content: format!("[循环检测] {}", det.message),
+                                    is_error: true,
+                                    image: None,
+                                });
+                                continue;
+                            }
+                            Severity::Break => {
+                                eprintln!("[loop_detector] break: {}", det.message);
+                                return Err(LlmError::LoopDetected(det.message));
+                            }
+                        }
+                    }
 
                     results.push(ContentBlock::ToolResult {
                         tool_use_id: id.clone(),

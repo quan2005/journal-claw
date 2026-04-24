@@ -1545,6 +1545,43 @@ function StreamingDot() {
   )
 }
 
+function LoopWarningBlock({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        maxWidth: '100%',
+        borderRadius: 8,
+        border: '0.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
+        background: 'var(--status-warning-bg)',
+        padding: '8px 12px',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--status-warning)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        lineHeight: 1.5,
+      }}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ flexShrink: 0 }}
+      >
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+      <span>{message}</span>
+    </div>
+  )
+}
+
 function BlockRenderer({
   block,
   onRetry,
@@ -1576,6 +1613,8 @@ function BlockRenderer({
       return <WebSearchBlock query={block.query} results={block.results} />
     case 'error':
       return <ErrorBlock error={block} onRetry={onRetry} />
+    case 'loop_warning':
+      return <LoopWarningBlock message={block.message} />
     case 'truncated':
       return <TruncatedBlock onContinue={onContinue} />
     default:

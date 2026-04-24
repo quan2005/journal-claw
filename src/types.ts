@@ -137,6 +137,7 @@ export type MessageBlock =
   | { type: 'tool'; name: string; label: string; output?: string; isError?: boolean }
   | { type: 'web_search'; query: string; results: WebSearchResultItem[] }
   | { type: 'error'; code: string; message: string; retryable: boolean }
+  | { type: 'loop_warning'; message: string }
   | { type: 'truncated' }
 
 export interface ConversationMessage {
@@ -158,6 +159,7 @@ export interface ConversationStreamPayload {
     | 'web_search_result'
     | 'done'
     | 'error'
+    | 'loop_warning'
     | 'truncated'
     | 'user_inject'
     | 'title'

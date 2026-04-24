@@ -153,6 +153,8 @@ pub enum LlmError {
     Cancelled,
     /// Exceeded max tool-loop turns
     MaxTurnsExceeded,
+    /// Loop detector triggered a hard stop
+    LoopDetected(String),
 }
 
 impl LlmError {
@@ -193,6 +195,7 @@ impl LlmError {
             LlmError::Parse(e) => ("parse_error", format!("解析错误: {}", e), false),
             LlmError::Cancelled => ("cancelled", "已取消".to_string(), false),
             LlmError::MaxTurnsExceeded => ("max_turns", "超过最大轮次限制".to_string(), false),
+            LlmError::LoopDetected(ref msg) => ("loop_detected", msg.clone(), false),
         };
         serde_json::json!({
             "code": code,
@@ -210,6 +213,7 @@ impl fmt::Display for LlmError {
             LlmError::Parse(e) => write!(f, "解析错误: {}", e),
             LlmError::Cancelled => write!(f, "已取消"),
             LlmError::MaxTurnsExceeded => write!(f, "超过最大轮次限制"),
+            LlmError::LoopDetected(ref msg) => write!(f, "循环检测终止: {}", msg),
         }
     }
 }

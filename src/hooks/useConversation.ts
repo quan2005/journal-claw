@@ -299,6 +299,17 @@ export function useConversation() {
             return prev
           })
           break
+        case 'loop_warning':
+          updateSessionMessages(sid, (prev) => {
+            const last = prev[prev.length - 1]
+            const warningBlock = { type: 'loop_warning' as const, message: data }
+            if (last?.role === 'assistant') {
+              const blocks = [...(last.blocks ?? []), warningBlock]
+              return [...prev.slice(0, -1), { ...last, blocks }]
+            }
+            return [...prev, { role: 'assistant' as const, content: '', blocks: [warningBlock] }]
+          })
+          break
         case 'title':
           if (sid === sessionIdRef.current) {
             setTitle(data)

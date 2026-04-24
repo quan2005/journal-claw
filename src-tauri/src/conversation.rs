@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio_util::sync::CancellationToken;
 
+use llm::loop_detector::{LoopDetector, Severity};
 use llm::types::{ContentBlock, Message, Role};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -446,15 +447,10 @@ fn migrate_v1_to_v2(v1: PersistedSessionV1) -> PersistedSessionV2 {
         };
         let mut content: Vec<ContentBlock> = Vec::new();
 
-        // Thinking (no signature — lost in V1)
-        if let Some(ref thinking) = pm.thinking {
-            if !thinking.is_empty() {
-                content.push(ContentBlock::Thinking {
-                    thinking: thinking.clone(),
-                    signature: String::new(),
-                });
-            }
-        }
+        // V1 sessions have no cryptographic signature for thinking blocks.
+        // Without a valid signature, Anthropic API rejects the message,
+        // so we intentionally skip them here — the thinking text is not
+        // replayable to the API.
 
         // Text
         if !pm.content.is_empty() {
@@ -1212,6 +1208,7 @@ async fn run_conversation_turn(
     };
 
     let sid = session_id.to_string();
+    let mut loop_detector = LoopDetector::new();
 
     for _turn in 0..max_turns {
         if cancel.is_cancelled() {
@@ -1480,6 +1477,67 @@ async fn run_conversation_turn(
                             .to_string(),
                         },
                     );
+
+                    // Loop detection
+                    if let Some(det) = loop_detector.record(name, input, &result.output) {
+                        match det.severity {
+                            Severity::Warning => {
+                                eprintln!("[loop_detector] warning: {}", det.message);
+                                let _ = app.emit(
+                                    "conversation-stream",
+                                    ConversationStreamPayload {
+                                        session_id: sid.clone(),
+                                        event: "loop_warning".to_string(),
+                                        data: det.message.clone(),
+                                    },
+                                );
+                                // Append warning to result so the LLM can self-correct
+                                results.push(ContentBlock::ToolResult {
+                                    tool_use_id: id.clone(),
+                                    content: format!(
+                                        "{}\n\n[循环检测警告] {}",
+                                        result.output, det.message
+                                    ),
+                                    is_error: result.is_error,
+                                    image: None,
+                                });
+                                continue;
+                            }
+                            Severity::Block => {
+                                eprintln!("[loop_detector] blocked: {}", det.message);
+                                let _ = app.emit(
+                                    "conversation-stream",
+                                    ConversationStreamPayload {
+                                        session_id: sid.clone(),
+                                        event: "loop_warning".to_string(),
+                                        data: det.message.clone(),
+                                    },
+                                );
+                                results.push(ContentBlock::ToolResult {
+                                    tool_use_id: id.clone(),
+                                    content: format!("[循环检测] {}", det.message),
+                                    is_error: true,
+                                    image: None,
+                                });
+                                continue;
+                            }
+                            Severity::Break => {
+                                eprintln!("[loop_detector] break: {}", det.message);
+                                let _ = app.emit(
+                                    "conversation-stream",
+                                    ConversationStreamPayload {
+                                        session_id: sid.clone(),
+                                        event: "error".to_string(),
+                                        data: det.message.clone(),
+                                    },
+                                );
+                                return Err((
+                                    llm::types::LlmError::LoopDetected(det.message),
+                                    messages,
+                                ));
+                            }
+                        }
+                    }
 
                     results.push(ContentBlock::ToolResult {
                         tool_use_id: id.clone(),

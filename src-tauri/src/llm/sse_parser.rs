@@ -1,6 +1,7 @@
 /// Unified SSE (Server-Sent Events) parser.
-/// Handles both `\n\n` and `\r\n\r\n` frame separators, comment lines,
-/// `[DONE]` sentinel, and incomplete frame buffering.
+/// Byte-buffer approach (ported from claw-code): accumulates raw bytes,
+/// scans for frame boundaries at the byte level, converts to UTF-8 only
+/// when extracting complete frames.
 
 #[derive(Debug, Clone)]
 pub struct SseEvent {
@@ -9,64 +10,65 @@ pub struct SseEvent {
 }
 
 pub struct SseParser {
-    buffer: String,
+    buffer: Vec<u8>,
 }
 
 impl SseParser {
     pub fn new() -> Self {
-        Self {
-            buffer: String::new(),
-        }
+        Self { buffer: Vec::new() }
     }
 
     /// Feed a chunk of bytes into the parser and extract complete SSE events.
     pub fn feed(&mut self, chunk: &[u8]) -> Vec<SseEvent> {
-        self.buffer.push_str(&String::from_utf8_lossy(chunk));
-        self.extract_events()
+        self.buffer.extend_from_slice(chunk);
+        let mut events = Vec::new();
+        while let Some(frame) = self.next_frame() {
+            if let Some(event) = Self::parse_event(&frame) {
+                events.push(event);
+            }
+        }
+        events
     }
 
     /// Feed a string chunk into the parser.
     #[allow(dead_code)]
     pub fn feed_str(&mut self, chunk: &str) -> Vec<SseEvent> {
-        self.buffer.push_str(chunk);
-        self.extract_events()
+        self.feed(chunk.as_bytes())
     }
 
-    fn extract_events(&mut self) -> Vec<SseEvent> {
-        let mut events = Vec::new();
-
-        loop {
-            // Find the next event boundary: \n\n or \r\n\r\n
-            let boundary = self.find_event_boundary();
-            let Some((end_of_event, skip_len)) = boundary else {
-                break;
-            };
-
-            let event_text = self.buffer[..end_of_event].to_string();
-            self.buffer = self.buffer[end_of_event + skip_len..].to_string();
-
-            if event_text.is_empty() {
-                continue;
-            }
-
-            if let Some(event) = Self::parse_event(&event_text) {
-                events.push(event);
-            }
+    /// Flush any trailing data when the stream ends.
+    #[allow(dead_code)]
+    pub fn finish(&mut self) -> Vec<SseEvent> {
+        if self.buffer.is_empty() {
+            return Vec::new();
         }
-
-        events
+        let trailing = std::mem::take(&mut self.buffer);
+        let text = String::from_utf8_lossy(&trailing);
+        match Self::parse_event(&text) {
+            Some(event) => vec![event],
+            None => Vec::new(),
+        }
     }
 
-    fn find_event_boundary(&self) -> Option<(usize, usize)> {
-        // Check for \r\n\r\n first (more specific)
-        if let Some(pos) = self.buffer.find("\r\n\r\n") {
-            return Some((pos, 4));
-        }
-        // Then \n\n
-        if let Some(pos) = self.buffer.find("\n\n") {
-            return Some((pos, 2));
-        }
-        None
+    /// Extract the next complete frame from the byte buffer.
+    /// Scans for `\n\n` or `\r\n\r\n` boundaries at the byte level.
+    fn next_frame(&mut self) -> Option<String> {
+        let separator = self
+            .buffer
+            .windows(2)
+            .position(|w| w == b"\n\n")
+            .map(|pos| (pos, 2))
+            .or_else(|| {
+                self.buffer
+                    .windows(4)
+                    .position(|w| w == b"\r\n\r\n")
+                    .map(|pos| (pos, 4))
+            })?;
+
+        let (position, separator_len) = separator;
+        let frame_bytes: Vec<u8> = self.buffer.drain(..position + separator_len).collect();
+        let frame_len = frame_bytes.len().saturating_sub(separator_len);
+        Some(String::from_utf8_lossy(&frame_bytes[..frame_len]).into_owned())
     }
 
     fn parse_event(text: &str) -> Option<SseEvent> {
@@ -76,7 +78,6 @@ impl SseParser {
         for line in text.lines() {
             let line = line.trim_end_matches('\r');
 
-            // Skip comment lines
             if line.starts_with(':') {
                 continue;
             }
@@ -88,13 +89,16 @@ impl SseParser {
             }
         }
 
+        if matches!(event_type.as_deref(), Some("ping")) {
+            return None;
+        }
+
         if data_lines.is_empty() {
             return None;
         }
 
         let data = data_lines.join("\n");
 
-        // Handle [DONE] sentinel
         if data == "[DONE]" {
             return None;
         }

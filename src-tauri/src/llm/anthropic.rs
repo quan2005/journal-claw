@@ -1,20 +1,23 @@
 use async_trait::async_trait;
 use reqwest::Client;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::retry::{self, RetryPolicy};
 use super::sse_parser::SseParser;
 use super::types::*;
 use super::LlmEngine;
 
-const MAX_RETRIES: u32 = 5;
-const BASE_DELAY_MS: u64 = 2000;
+const REQUEST_ID_HEADER: &str = "request-id";
+const ALT_REQUEST_ID_HEADER: &str = "x-request-id";
+
 pub struct AnthropicEngine {
     client: Client,
     api_key: String,
     base_url: String,
     model: String,
+    retry_policy: RetryPolicy,
 }
 
 impl AnthropicEngine {
@@ -29,20 +32,8 @@ impl AnthropicEngine {
             api_key,
             base_url,
             model,
+            retry_policy: RetryPolicy::default(),
         }
-    }
-}
-
-/// Check if an error is retryable (network errors, server errors, rate limits).
-fn is_retryable(err: &LlmError) -> bool {
-    match err {
-        LlmError::Network(_) => true,
-        LlmError::Api { status, .. } => {
-            // status 0 = error from SSE stream (proxy/network issue)
-            // 429 = rate limit, 500/502/503/529 = server errors
-            matches!(status, 0 | 429 | 500 | 502 | 503 | 529)
-        }
-        _ => false,
     }
 }
 
@@ -61,75 +52,87 @@ impl LlmEngine for AnthropicEngine {
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
-        let mut last_err: Option<LlmError> = None;
-
-        for attempt in 0..=MAX_RETRIES {
-            if attempt > 0 {
-                let delay = BASE_DELAY_MS * 2u64.pow(attempt - 1);
-                eprintln!(
-                    "[anthropic] retry {}/{} after {}ms",
-                    attempt, MAX_RETRIES, delay
-                );
-                tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+        retry::run_with_retry(&self.retry_policy, |events_emitted| {
+            let url = url.clone();
+            let body = body.clone();
+            let on_event = on_event.clone();
+            let client = self.client.clone();
+            let api_key = self.api_key.clone();
+            async move {
+                let tracking_callback: Box<dyn Fn(StreamEvent) + Send> = {
+                    let events_emitted = events_emitted.clone();
+                    let on_event = on_event.clone();
+                    Box::new(move |evt| {
+                        events_emitted.store(true, Ordering::SeqCst);
+                        if let Ok(cb) = on_event.lock() {
+                            (cb)(evt);
+                        }
+                    })
+                };
+                single_request(&client, &api_key, &url, &body, tracking_callback).await
             }
-
-            let events_emitted = Arc::new(AtomicBool::new(false));
-            let events_emitted_clone = events_emitted.clone();
-            let on_event_clone = on_event.clone();
-            let tracking_callback: Box<dyn Fn(StreamEvent) + Send> = Box::new(move |evt| {
-                events_emitted_clone.store(true, Ordering::SeqCst);
-                if let Ok(cb) = on_event_clone.lock() {
-                    (cb)(evt);
-                }
-            });
-
-            let result = self.single_request(&url, &body, tracking_callback).await;
-
-            match result {
-                Ok(response) => return Ok(response),
-                Err(err) => {
-                    let streamed = events_emitted.load(Ordering::SeqCst);
-                    if streamed || !is_retryable(&err) || attempt == MAX_RETRIES {
-                        return Err(err);
-                    }
-                    eprintln!("[anthropic] retryable error: {}", err);
-                    last_err = Some(err);
-                }
-            }
-        }
-
-        Err(last_err.unwrap_or(LlmError::Network("max retries exceeded".to_string())))
+        })
+        .await
     }
 }
 
-impl AnthropicEngine {
-    async fn single_request(
-        &self,
-        url: &str,
-        body: &serde_json::Value,
-        on_event: Box<dyn Fn(StreamEvent) + Send>,
-    ) -> Result<AssistantResponse, LlmError> {
-        let response = self
-            .client
-            .post(url)
-            .header("x-api-key", &self.api_key)
-            .header("anthropic-version", "2023-06-01")
-            .header("content-type", "application/json")
-            .json(body)
-            .send()
-            .await?;
+async fn single_request(
+    client: &Client,
+    api_key: &str,
+    url: &str,
+    body: &serde_json::Value,
+    on_event: Box<dyn Fn(StreamEvent) + Send>,
+) -> Result<AssistantResponse, LlmError> {
+    let response = client
+        .post(url)
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(body)
+        .send()
+        .await?;
 
-        let status = response.status().as_u16();
-        if status >= 400 {
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Api {
-                status,
-                message: text,
-            });
-        }
-
-        parse_sse_stream(response, on_event).await
+    let status = response.status().as_u16();
+    if status >= 400 {
+        let request_id = extract_request_id(&response);
+        let text = response.text().await.unwrap_or_default();
+        let (error_type, message) = parse_anthropic_error(&text);
+        let retryable = matches!(status, 408 | 409 | 429 | 500 | 502 | 503 | 504 | 529);
+        return Err(LlmError::Api {
+            status,
+            message: message.unwrap_or(text),
+            error_type,
+            request_id,
+            retryable,
+        });
     }
+
+    parse_sse_stream(response, on_event).await
+}
+
+fn extract_request_id(response: &reqwest::Response) -> Option<String> {
+    response
+        .headers()
+        .get(REQUEST_ID_HEADER)
+        .or_else(|| response.headers().get(ALT_REQUEST_ID_HEADER))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+}
+
+fn parse_anthropic_error(body: &str) -> (Option<String>, Option<String>) {
+    let val: serde_json::Value = match serde_json::from_str(body) {
+        Ok(v) => v,
+        Err(_) => return (None, None),
+    };
+    let error_type = val
+        .pointer("/error/type")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let message = val
+        .pointer("/error/message")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    (error_type, message)
 }
 
 // ── Request body builder ────────────────────────
@@ -503,10 +506,21 @@ async fn parse_sse_stream(
                         .pointer("/error/message")
                         .and_then(|v| v.as_str())
                         .unwrap_or("unknown error");
+                    let error_type = val
+                        .pointer("/error/type")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let retryable = matches!(
+                        error_type.as_deref(),
+                        Some("server_error" | "rate_limit_error" | "overloaded_error")
+                    );
                     on_event(StreamEvent::Error(msg.to_string()));
                     return Err(LlmError::Api {
                         status: 0,
                         message: msg.to_string(),
+                        error_type,
+                        request_id: None,
+                        retryable,
                     });
                 }
                 _ => {}

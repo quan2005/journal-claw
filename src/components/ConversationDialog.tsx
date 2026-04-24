@@ -1207,14 +1207,12 @@ function AssistantRun({
   const lastTextBlock = textBlocks[textBlocks.length - 1]
   const hasNonText = nonTextBlocks.length > 0
 
-  const iconSequence = nonTextBlocks
-    .map((b) => {
-      if (b.type === 'thinking') return 'thinking'
-      if (b.type === 'tool') return b.name || 'tool'
-      if (b.type === 'web_search') return 'web_search'
-      return 'gear'
-    })
-    .filter((ic, i, arr) => i === 0 || ic !== arr[i - 1])
+  const iconSequence = nonTextBlocks.map((b) => {
+    if (b.type === 'thinking') return 'thinking'
+    if (b.type === 'tool') return b.name || 'tool'
+    if (b.type === 'web_search') return 'web_search'
+    return 'gear'
+  })
 
   const toolCount = nonTextBlocks.filter((b) => b.type === 'tool' || b.type === 'web_search').length
   const intermediateTextCount = textBlocks.length > 1 ? textBlocks.length - 1 : 0
@@ -1319,7 +1317,13 @@ function CollapsedToolSummary({
   expanded?: boolean
   onExpand: () => void
 }) {
-  const summary = `${toolCount} tool call${toolCount !== 1 ? 's' : ''}, ${msgCount} message${msgCount !== 1 ? 's' : ''}`
+  // Global aggregation: thinking×2 edit×4 read×7 (preserves first-seen order)
+  const seen = new Map<string, number>()
+  for (const ic of icons) {
+    seen.set(ic, (seen.get(ic) ?? 0) + 1)
+  }
+
+  const summary = `${msgCount} message${msgCount !== 1 ? 's' : ''}, ${toolCount} tool${toolCount !== 1 ? 's' : ''}`
 
   return (
     <div
@@ -1327,93 +1331,93 @@ function CollapsedToolSummary({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-
+        gap: 6,
         background: 'none',
         fontSize: 'var(--text-xs)',
         color: 'var(--item-meta)',
         cursor: 'pointer',
         userSelect: 'none',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
       }}
     >
-      <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>{expanded ? 'v' : '>'}</span>
-      <span style={{ opacity: 0.4 }}>{summary}</span>
-      {icons.map((ic, i) =>
-        ic === 'thinking' ? (
-          <svg
-            key={i}
-            style={{ opacity: 0.5, width: 12, height: 12, flexShrink: 0 }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
-            <path d="M9 21h6" />
-            <path d="M10 17v4" />
-            <path d="M14 17v4" />
-          </svg>
-        ) : ic === 'web_search' ? (
-          <svg
-            key={i}
-            style={{ opacity: 0.5, width: 12, height: 12, flexShrink: 0 }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M2 12h20" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-        ) : ic === 'bash' ? (
-          <span
-            key={i}
-            style={{
-              opacity: 0.5,
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.6rem',
-              flexShrink: 0,
-            }}
-          >
-            {'>_'}
-          </span>
-        ) : TOOL_ICON_PATHS[ic] ? (
-          <svg
-            key={i}
-            style={{ opacity: 0.5, width: 12, height: 12, flexShrink: 0 }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {TOOL_ICON_PATHS[ic].split(' M').map((seg, j) => (
-              <path key={j} d={j === 0 ? seg : 'M' + seg} />
-            ))}
-          </svg>
-        ) : (
-          <svg
-            key={i}
-            style={{ opacity: 0.5, width: 12, height: 12, flexShrink: 0 }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        ),
-      )}
+      <span style={{ opacity: 0.4, fontSize: '0.6rem', flexShrink: 0 }}>
+        {expanded ? 'v' : '>'}
+      </span>
+      <span style={{ opacity: 0.4, flexShrink: 0 }}>{summary}</span>
+      {[...seen.entries()].map(([ic, count], i) => (
+        <span
+          key={i}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 1, opacity: 0.5 }}
+        >
+          <ToolIcon name={ic} />
+          {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
+        </span>
+      ))}
     </div>
+  )
+}
+
+function ToolIcon({ name }: { name: string }) {
+  if (name === 'thinking') {
+    return (
+      <svg
+        style={{ width: 12, height: 12, flexShrink: 0 }}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+        <path d="M9 21h6" />
+        <path d="M10 17v4" />
+        <path d="M14 17v4" />
+      </svg>
+    )
+  }
+  if (name === 'web_search') {
+    return (
+      <svg
+        style={{ width: 12, height: 12, flexShrink: 0 }}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M2 12h20" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    )
+  }
+  if (name === 'bash') {
+    return (
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', flexShrink: 0 }}>
+        {'>_'}
+      </span>
+    )
+  }
+  const iconPath = TOOL_ICON_PATHS[name]
+  return (
+    <svg
+      style={{ width: 12, height: 12, flexShrink: 0 }}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {iconPath ? (
+        iconPath.split(' M').map((seg, j) => <path key={j} d={j === 0 ? seg : 'M' + seg} />)
+      ) : (
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+      )}
+    </svg>
   )
 }
 
@@ -1808,7 +1812,8 @@ function WebSearchBlock({ query, results }: { query: string; results: WebSearchR
 
 function ThinkingBlock({ thinking }: { thinking: string }) {
   const [expanded, setExpanded] = useState(false)
-  const summary = thinking.slice(0, 60).replace(/\n/g, ' ') + (thinking.length > 60 ? '…' : '')
+  const trimmed = thinking.trim()
+  const summary = trimmed.slice(0, 120).replace(/\n/g, ' ') + (trimmed.length > 120 ? '…' : '')
 
   return (
     <div
@@ -1876,7 +1881,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
             lineHeight: 1.55,
           }}
         >
-          {thinking}
+          {trimmed}
         </div>
       )}
     </div>

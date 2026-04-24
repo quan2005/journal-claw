@@ -7,6 +7,7 @@ pub mod model_quirks;
 pub mod openai_compat;
 pub mod output_compress;
 pub mod prompt;
+pub mod retry;
 pub mod sse_parser;
 pub mod tool_loop;
 pub mod types;

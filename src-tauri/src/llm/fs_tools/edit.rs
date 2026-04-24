@@ -56,6 +56,13 @@ pub async fn execute(input: &serde_json::Value, workspace: &str) -> ToolResult {
         }
     };
 
+    if old_string.is_empty() {
+        return ToolResult {
+            output: "error: old_string cannot be empty — empty pattern matches every position and would corrupt the file".to_string(),
+            is_error: true,
+        };
+    }
+
     let new_string = match input.get("new_string").and_then(|v| v.as_str()) {
         Some(s) => s,
         None => {
@@ -219,5 +226,20 @@ mod tests {
         let result = execute(&input, dir.path().to_str().unwrap()).await;
         assert!(result.is_error);
         assert!(result.output.contains("invalid regex"));
+    }
+
+    #[tokio::test]
+    async fn edit_empty_pattern_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("f.txt"), "ABC").unwrap();
+        let input = serde_json::json!({"path": "f.txt", "old_string": "", "new_string": "X"});
+        let result = execute(&input, dir.path().to_str().unwrap()).await;
+        assert!(result.is_error);
+        assert!(result.output.contains("old_string cannot be empty"));
+        // File must be untouched
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("f.txt")).unwrap(),
+            "ABC"
+        );
     }
 }

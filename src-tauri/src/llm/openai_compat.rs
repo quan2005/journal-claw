@@ -7,20 +7,26 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::model_quirks;
+use super::retry::{self, RetryPolicy};
 use super::sse_parser::{self, SseParser};
 use super::types::*;
 use super::LlmEngine;
 
 type EventCallback = Arc<std::sync::Mutex<Box<dyn Fn(StreamEvent) + Send>>>;
 
-const MAX_RETRIES: u32 = 5;
-const BASE_DELAY_MS: u64 = 2000;
+const REQUEST_ID_HEADER: &str = "request-id";
+const ALT_REQUEST_ID_HEADER: &str = "x-request-id";
+
+const DASHSCOPE_MAX_BODY_BYTES: usize = 6_291_456; // 6MB
+const XAI_MAX_BODY_BYTES: usize = 52_428_800; // 50MB
+const DEFAULT_MAX_BODY_BYTES: usize = 104_857_600; // 100MB
 
 pub struct OpenAiCompatEngine {
     client: Client,
     api_key: String,
     base_url: String,
     model: String,
+    retry_policy: RetryPolicy,
 }
 
 impl OpenAiCompatEngine {
@@ -35,12 +41,46 @@ impl OpenAiCompatEngine {
             api_key,
             base_url,
             model,
+            retry_policy: RetryPolicy::default(),
         }
     }
 }
 
-fn is_retryable_status(status: u16) -> bool {
-    matches!(status, 0 | 429 | 500 | 502 | 503 | 529)
+fn detect_provider_name(base_url: &str) -> &'static str {
+    let lower = base_url.to_ascii_lowercase();
+    if lower.contains("dashscope") {
+        "DashScope"
+    } else if lower.contains("x.ai") || lower.contains("xai") {
+        "xAI"
+    } else if lower.contains("openai") {
+        "OpenAI"
+    } else {
+        "OpenAI-compat"
+    }
+}
+
+fn max_body_bytes_for_provider(base_url: &str) -> usize {
+    let lower = base_url.to_ascii_lowercase();
+    if lower.contains("dashscope") {
+        DASHSCOPE_MAX_BODY_BYTES
+    } else if lower.contains("x.ai") || lower.contains("xai") {
+        XAI_MAX_BODY_BYTES
+    } else {
+        DEFAULT_MAX_BODY_BYTES
+    }
+}
+
+fn check_request_body_size(body: &Value, base_url: &str) -> Result<(), LlmError> {
+    let estimated = serde_json::to_vec(body).map(|v| v.len()).unwrap_or(0);
+    let max = max_body_bytes_for_provider(base_url);
+    if estimated > max {
+        return Err(LlmError::RequestBodySizeExceeded {
+            estimated_bytes: estimated,
+            max_bytes: max,
+            provider: detect_provider_name(base_url).to_string(),
+        });
+    }
+    Ok(())
 }
 
 #[async_trait]
@@ -56,79 +96,83 @@ impl LlmEngine for OpenAiCompatEngine {
         sanitize_tool_message_pairing(&mut sanitized);
 
         let body = build_openai_request(&self.model, system, &sanitized, tools);
+        check_request_body_size(&body, &self.base_url)?;
+
         let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
         let on_event: EventCallback = Arc::new(std::sync::Mutex::new(on_event));
 
-        let mut last_err: Option<LlmError> = None;
-
-        for attempt in 0..=MAX_RETRIES {
-            if attempt > 0 {
-                let delay = BASE_DELAY_MS * 2u64.pow(attempt - 1);
-                eprintln!(
-                    "[openai_compat] retry {}/{} after {}ms",
-                    attempt, MAX_RETRIES, delay
-                );
-                tokio::time::sleep(Duration::from_millis(delay)).await;
+        retry::run_with_retry(&self.retry_policy, |events_emitted| {
+            let url = url.clone();
+            let body = body.clone();
+            let on_event = on_event.clone();
+            let client = self.client.clone();
+            let api_key = self.api_key.clone();
+            async move {
+                single_request(&client, &api_key, &url, &body, &on_event, &events_emitted).await
             }
-
-            let events_emitted = Arc::new(AtomicBool::new(false));
-            let events_emitted_clone = events_emitted.clone();
-            let on_event_clone = on_event.clone();
-
-            let result = self
-                .single_request(&url, &body, &on_event_clone, &events_emitted_clone)
-                .await;
-
-            match result {
-                Ok(response) => return Ok(response),
-                Err(err) => {
-                    let streamed = events_emitted.load(Ordering::SeqCst);
-                    let retryable = match &err {
-                        LlmError::Network(_) => true,
-                        LlmError::Api { status, .. } => is_retryable_status(*status),
-                        _ => false,
-                    };
-                    if streamed || !retryable || attempt == MAX_RETRIES {
-                        return Err(err);
-                    }
-                    eprintln!("[openai_compat] retryable error: {}", err);
-                    last_err = Some(err);
-                }
-            }
-        }
-
-        Err(last_err.unwrap_or(LlmError::Network("max retries exceeded".to_string())))
+        })
+        .await
     }
 }
 
-impl OpenAiCompatEngine {
-    async fn single_request(
-        &self,
-        url: &str,
-        body: &Value,
-        on_event: &EventCallback,
-        events_emitted: &Arc<AtomicBool>,
-    ) -> Result<AssistantResponse, LlmError> {
-        let response = self
-            .client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(body)
-            .send()
-            .await?;
+async fn single_request(
+    client: &Client,
+    api_key: &str,
+    url: &str,
+    body: &Value,
+    on_event: &EventCallback,
+    events_emitted: &Arc<AtomicBool>,
+) -> Result<AssistantResponse, LlmError> {
+    let response = client
+        .post(url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(body)
+        .send()
+        .await?;
 
-        let status = response.status().as_u16();
-        if status >= 400 {
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Api {
-                status,
-                message: text,
-            });
-        }
-
-        parse_openai_sse_stream(response, on_event, events_emitted).await
+    let status = response.status().as_u16();
+    if status >= 400 {
+        let request_id = extract_request_id(&response);
+        let text = response.text().await.unwrap_or_default();
+        let (error_type, message) = parse_openai_error(&text);
+        let retryable = matches!(status, 408 | 409 | 429 | 500 | 502 | 503 | 504 | 529);
+        return Err(LlmError::Api {
+            status,
+            message: message.unwrap_or(text),
+            error_type,
+            request_id,
+            retryable,
+        });
     }
+
+    parse_openai_sse_stream(response, on_event, events_emitted).await
+}
+
+fn extract_request_id(response: &reqwest::Response) -> Option<String> {
+    response
+        .headers()
+        .get(REQUEST_ID_HEADER)
+        .or_else(|| response.headers().get(ALT_REQUEST_ID_HEADER))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+}
+
+fn parse_openai_error(body: &str) -> (Option<String>, Option<String>) {
+    let val: serde_json::Value = match serde_json::from_str(body) {
+        Ok(v) => v,
+        Err(_) => return (None, None),
+    };
+    let error_type = val
+        .pointer("/error/type")
+        .or_else(|| val.pointer("/error/code"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let message = val
+        .pointer("/error/message")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    (error_type, message)
 }
 
 // ── Sanitize tool message pairing (Stage 6) ─────
@@ -485,13 +529,16 @@ async fn parse_openai_sse_stream(
             let data = &sse_event.data;
 
             // Stage 2: Detect error objects in SSE data
-            if let Some((error_msg, _retryable)) = sse_parser::detect_error_in_data(data) {
+            if let Some((error_msg, retryable)) = sse_parser::detect_error_in_data(data) {
                 if let Ok(cb) = on_event.lock() {
                     (cb)(StreamEvent::Error(error_msg.clone()));
                 }
                 return Err(LlmError::Api {
                     status: 0,
                     message: error_msg,
+                    error_type: Some("stream_error".to_string()),
+                    request_id: None,
+                    retryable,
                 });
             }
 

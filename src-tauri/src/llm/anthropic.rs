@@ -166,10 +166,10 @@ fn build_request_body(
         "system": system,
         "messages": msgs,
         "stream": true,
-        "max_tokens": 32768,
+        "max_tokens": 65536,
         "thinking": {
             "type": "enabled",
-            "budget_tokens": 10000,
+            "budget_tokens": 32768,
         },
     });
 

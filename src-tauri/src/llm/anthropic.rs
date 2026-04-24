@@ -47,8 +47,17 @@ impl LlmEngine for AnthropicEngine {
         on_event: Box<dyn Fn(StreamEvent) + Send>,
     ) -> Result<AssistantResponse, LlmError> {
         let mut sanitized = messages.to_vec();
-        strip_invalid_thinking_blocks(&mut sanitized);
-        let body = build_request_body(&self.model, system, &sanitized, tools);
+        let has_invalid_thinking = has_invalid_thinking_signatures(&sanitized);
+        if has_invalid_thinking {
+            strip_invalid_thinking_blocks(&mut sanitized);
+        }
+        let body = build_request_body(
+            &self.model,
+            system,
+            &sanitized,
+            tools,
+            !has_invalid_thinking,
+        );
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
@@ -142,6 +151,7 @@ fn build_request_body(
     system: &str,
     messages: &[Message],
     tools: &[ToolDefinition],
+    enable_thinking: bool,
 ) -> serde_json::Value {
     let msgs: Vec<serde_json::Value> = messages.iter().map(message_to_json).collect();
 
@@ -170,11 +180,14 @@ fn build_request_body(
         "messages": msgs,
         "stream": true,
         "max_tokens": 65536,
-        "thinking": {
+    });
+
+    if enable_thinking {
+        body["thinking"] = serde_json::json!({
             "type": "enabled",
             "budget_tokens": 32768,
-        },
-    });
+        });
+    }
 
     body["tools"] = serde_json::Value::Array(tool_defs);
 
@@ -269,10 +282,22 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
     })
 }
 
+/// Check if any assistant message has thinking blocks with invalid signatures.
+fn has_invalid_thinking_signatures(messages: &[Message]) -> bool {
+    messages.iter().any(|msg| {
+        msg.role == Role::Assistant
+            && msg.content.iter().any(|block| {
+                if let ContentBlock::Thinking { signature, .. } = block {
+                    signature.len() <= 100
+                } else {
+                    false
+                }
+            })
+    })
+}
+
 /// Strip thinking blocks with invalid signatures before sending to Anthropic.
-/// Real Anthropic signatures are base64-encoded (200+ chars). Short signatures
-/// (e.g. UUIDs from old versions, empty strings from OpenAI engine) cause
-/// "The content[].thinking in the thinking mode must be passed back to the API" errors.
+/// Called only when thinking mode is disabled due to invalid signatures.
 fn strip_invalid_thinking_blocks(messages: &mut [Message]) {
     for msg in messages.iter_mut() {
         if msg.role == Role::Assistant {
@@ -578,7 +603,7 @@ mod tests {
             description: "run bash".to_string(),
             input_schema: serde_json::json!({"type": "object"}),
         }];
-        let body = build_request_body("claude-sonnet-4-20250514", "sys", &[], &tools);
+        let body = build_request_body("claude-sonnet-4-20250514", "sys", &[], &tools, true);
         let tools_arr = body["tools"].as_array().unwrap();
         // bash + web_search
         assert_eq!(tools_arr.len(), 2);
@@ -589,7 +614,7 @@ mod tests {
 
     #[test]
     fn build_request_body_web_search_for_any_vendor() {
-        let body = build_request_body("qwen-max", "sys", &[], &[]);
+        let body = build_request_body("qwen-max", "sys", &[], &[], true);
         let tools_arr = body["tools"].as_array().unwrap();
         assert_eq!(tools_arr.len(), 1);
         assert_eq!(tools_arr[0]["type"], "web_search_20250305");

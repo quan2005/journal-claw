@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import {
-  conversationList,
-  conversationDelete,
-  conversationRename,
-  type SessionSummary,
-} from '../lib/tauri'
+import { conversationList, conversationDelete, type SessionSummary } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
 export const SESSION_LIST_WIDTH = 240
@@ -14,13 +9,12 @@ interface SessionListProps {
   activeSessionId: string | null
   onSelect: (id: string, isStreaming: boolean) => void
   width?: number
+  collapsed?: boolean
 }
 
-export function SessionList({ activeSessionId, onSelect, width }: SessionListProps) {
+export function SessionList({ activeSessionId, onSelect, width, collapsed }: SessionListProps) {
   const { t } = useTranslation()
   const [sessions, setSessions] = useState<SessionSummary[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editTitle, setEditTitle] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -115,22 +109,6 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
     [refresh, confirmDeleteId],
   )
 
-  const handleDoubleClick = useCallback((id: string, currentTitle: string | null) => {
-    setEditingId(id)
-    setEditTitle(currentTitle ?? '')
-  }, [])
-
-  const handleRenameSubmit = useCallback(
-    async (id: string) => {
-      if (editTitle.trim()) {
-        await conversationRename(id, editTitle.trim())
-        refresh()
-      }
-      setEditingId(null)
-    },
-    [editTitle, refresh],
-  )
-
   const formatTime = (secs: number) => {
     const d = new Date(secs * 1000)
     const now = new Date()
@@ -144,7 +122,6 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
 
   const renderItem = (s: SessionSummary) => {
     const isActive = s.id === activeSessionId
-    const isEditing = s.id === editingId
 
     return (
       <div
@@ -189,48 +166,22 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
           }}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
-          {isEditing ? (
-            <input
-              autoFocus
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={() => handleRenameSubmit(s.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameSubmit(s.id)
-                if (e.key === 'Escape') setEditingId(null)
-              }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: '100%',
-                border: 'none',
-                outline: 'none',
-                background: 'var(--queue-bg)',
-                color: 'var(--item-text)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-medium)',
-                padding: '1px 4px',
-                borderRadius: 3,
-              }}
-            />
-          ) : (
-            <div
-              onDoubleClick={() => handleDoubleClick(s.id, s.title)}
-              style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-medium)',
-                color: 'var(--item-text)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {s.title || (
-                <span style={{ color: 'var(--item-meta)', fontStyle: 'italic' }}>
-                  {t('sessionNewChat')}
-                </span>
-              )}
-            </div>
-          )}
+          <div
+            style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--item-text)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {s.title || (
+              <span style={{ color: 'var(--item-meta)', fontStyle: 'italic' }}>
+                {t('sessionNewChat')}
+              </span>
+            )}
+          </div>
           <div
             style={{
               fontSize: 'var(--text-xs)',
@@ -248,32 +199,6 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
           className="session-actions"
           style={{ display: 'flex', gap: 2, opacity: 0, transition: 'opacity 0.1s ease-out' }}
         >
-          <span
-            onClick={(e) => {
-              e.stopPropagation()
-              handleDoubleClick(s.id, s.title)
-            }}
-            style={{
-              fontSize: '0.6875rem',
-              color: 'var(--item-meta)',
-              cursor: 'pointer',
-              padding: '0 2px',
-            }}
-            title={t('rename')}
-          >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-            </svg>
-          </span>
           <span
             onClick={(e) => handleDelete(e, s.id)}
             style={{
@@ -295,13 +220,14 @@ export function SessionList({ activeSessionId, onSelect, width }: SessionListPro
   return (
     <div
       style={{
-        width: width ?? SESSION_LIST_WIDTH,
-        borderRight: '1px solid var(--dialog-glass-divider)',
+        width: collapsed ? 0 : (width ?? SESSION_LIST_WIDTH),
+        borderRight: collapsed ? 'none' : '1px solid var(--dialog-glass-divider)',
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--dialog-sidebar-bg)',
         flexShrink: 0,
         overflow: 'hidden',
+        transition: 'width 200ms ease-out',
       }}
     >
       <style>{`

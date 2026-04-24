@@ -467,6 +467,7 @@ export function ConversationDialog({
             activeSessionId={sessionId}
             onSelect={handleSelectSession}
             width={sidebarWidth}
+            collapsed={sidebarCollapsed}
           />
 
           {/* Drag handle */}

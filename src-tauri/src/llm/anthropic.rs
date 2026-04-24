@@ -46,7 +46,11 @@ impl LlmEngine for AnthropicEngine {
         system: &str,
         on_event: Box<dyn Fn(StreamEvent) + Send>,
     ) -> Result<AssistantResponse, LlmError> {
-        let body = build_request_body(&self.model, system, messages, tools);
+        let enable_thinking = !has_assistant_missing_thinking(messages);
+        let body = build_request_body(&self.model, system, messages, tools, enable_thinking);
+        if !enable_thinking {
+            eprintln!("[anthropic] thinking disabled: historical assistant messages missing thinking blocks");
+        }
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
@@ -140,6 +144,7 @@ fn build_request_body(
     system: &str,
     messages: &[Message],
     tools: &[ToolDefinition],
+    enable_thinking: bool,
 ) -> serde_json::Value {
     let msgs: Vec<serde_json::Value> = messages.iter().map(message_to_json).collect();
 
@@ -168,11 +173,14 @@ fn build_request_body(
         "messages": msgs,
         "stream": true,
         "max_tokens": 65536,
-        "thinking": {
+    });
+
+    if enable_thinking {
+        body["thinking"] = serde_json::json!({
             "type": "enabled",
             "budget_tokens": 32768,
-        },
-    });
+        });
+    }
 
     body["tools"] = serde_json::Value::Array(tool_defs);
 
@@ -264,6 +272,21 @@ fn message_to_json(msg: &Message) -> serde_json::Value {
     serde_json::json!({
         "role": role,
         "content": content,
+    })
+}
+
+/// Detect if any assistant message is missing thinking blocks.
+/// When thinking mode is enabled, every assistant response should have a thinking block.
+/// If historical messages lost their thinking blocks (e.g. from a buggy strip), we must
+/// disable thinking mode to avoid API rejection.
+fn has_assistant_missing_thinking(messages: &[Message]) -> bool {
+    messages.iter().any(|msg| {
+        msg.role == Role::Assistant
+            && !msg.content.is_empty()
+            && !msg
+                .content
+                .iter()
+                .any(|b| matches!(b, ContentBlock::Thinking { .. }))
     })
 }
 
@@ -558,7 +581,7 @@ mod tests {
             description: "run bash".to_string(),
             input_schema: serde_json::json!({"type": "object"}),
         }];
-        let body = build_request_body("claude-sonnet-4-20250514", "sys", &[], &tools);
+        let body = build_request_body("claude-sonnet-4-20250514", "sys", &[], &tools, true);
         let tools_arr = body["tools"].as_array().unwrap();
         // bash + web_search
         assert_eq!(tools_arr.len(), 2);
@@ -569,7 +592,7 @@ mod tests {
 
     #[test]
     fn build_request_body_web_search_for_any_vendor() {
-        let body = build_request_body("qwen-max", "sys", &[], &[]);
+        let body = build_request_body("qwen-max", "sys", &[], &[], true);
         let tools_arr = body["tools"].as_array().unwrap();
         assert_eq!(tools_arr.len(), 1);
         assert_eq!(tools_arr[0]["type"], "web_search_20250305");

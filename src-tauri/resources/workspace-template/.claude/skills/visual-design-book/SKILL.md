@@ -5,6 +5,14 @@ description: "把日志条目转化为可视化网页设计说明书（金橙暖
 
 # Visual Design Book — 日志可视化说明书
 
+## 契约
+
+| 维度 | 声明 |
+|---|---|
+| **reads** | `yyMM/*.md`（源日志） |
+| **writes** | `yyMM/*-design-book.html`（生成的 HTML）、`yyMM/*.md`（回写 sources） |
+| **depends** | 无 |
+
 读取一篇已完成的日志条目（`.md`），将其内容转化为**单文件自包含 HTML 页面** —— 一份用「逻辑推演」叙事方式呈现的可视化说明书。
 
 > **与 ideate 的区别**：visual-design-book 是**后处理工具** —— 输入是已完成日志，输出是金橙暖色叙事长页；ideate 是**过程工具** —— 输入是碎片想法，输出是黑白点阵探索画板。想法形成中的可视化用 ideate。

@@ -148,6 +148,18 @@ const SKILL_LINT_PHASE2_AGENTS: &str =
 const SKILL_LINT_SCRIPTS: &str =
     include_str!("../resources/workspace-template/.claude/skills/lint/references/scripts.md");
 
+// ── Self-Improvement skill template ────────────
+const SKILL_SELF_IMPROVEMENT_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/self-improvement/SKILL.md");
+const SKILL_SELF_IMPROVEMENT_ENTRY_FORMAT: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/self-improvement/references/entry-format.md"
+);
+const SKILL_SELF_IMPROVEMENT_SELF_CHECK: &str = include_str!(
+    "../resources/workspace-template/.claude/skills/self-improvement/references/self-check-protocol.md"
+);
+const LEARNINGS_TEMPLATE: &str =
+    include_str!("../resources/workspace-template/.claude/learnings/LEARNINGS.md");
+
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
@@ -318,6 +330,35 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         let _ = std::fs::write(lint_dir.join("SKILL.md"), SKILL_LINT_MD);
         let _ = std::fs::write(lint_refs.join("phase2-agents.md"), SKILL_LINT_PHASE2_AGENTS);
         let _ = std::fs::write(lint_refs.join("scripts.md"), SKILL_LINT_SCRIPTS);
+    }
+
+    // ── Self-Improvement skill template ────────────
+    let si_dir = dot_claude.join("skills").join("self-improvement");
+    let si_refs = si_dir.join("references");
+    if let Err(e) = std::fs::create_dir_all(&si_refs) {
+        eprintln!(
+            "[ai_processor] warn: failed to create skills/self-improvement/references dir: {}",
+            e
+        );
+    } else {
+        let _ = std::fs::write(si_dir.join("SKILL.md"), SKILL_SELF_IMPROVEMENT_MD);
+        let _ = std::fs::write(
+            si_refs.join("entry-format.md"),
+            SKILL_SELF_IMPROVEMENT_ENTRY_FORMAT,
+        );
+        let _ = std::fs::write(
+            si_refs.join("self-check-protocol.md"),
+            SKILL_SELF_IMPROVEMENT_SELF_CHECK,
+        );
+    }
+
+    // ── Learnings directory ────────────────────────
+    let learnings_dir = dot_claude.join("learnings");
+    if std::fs::create_dir_all(&learnings_dir).is_ok() {
+        let learnings_path = learnings_dir.join("LEARNINGS.md");
+        if !learnings_path.exists() {
+            let _ = std::fs::write(&learnings_path, LEARNINGS_TEMPLATE);
+        }
     }
 
     // ── Visual Design Book skill template ────────

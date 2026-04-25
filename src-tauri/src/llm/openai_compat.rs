@@ -33,7 +33,7 @@ impl OpenAiCompatEngine {
     pub fn new(api_key: String, base_url: String, model: String) -> Self {
         let client = Client::builder()
             .connect_timeout(Duration::from_secs(15))
-            .timeout(Duration::from_secs(120))
+            .read_timeout(Duration::from_secs(120))
             .build()
             .unwrap_or_else(|_| Client::new());
         Self {

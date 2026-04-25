@@ -79,6 +79,10 @@ export function ConversationDialog({
   const initialized = useRef(false)
   const [prefillText, setPrefillText] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
+  const [finalStats, setFinalStats] = useState<{
+    elapsed: number
+    usage: { input: number; output: number }
+  } | null>(null)
 
   // Create or load session on first mount
   useEffect(() => {
@@ -120,14 +124,25 @@ export function ConversationDialog({
   // Elapsed timer for streaming
   useEffect(() => {
     if (!isStreaming) {
-      setElapsed(0)
       return
     }
     setElapsed(0)
+    setFinalStats(null)
     const start = Date.now()
     const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
     return () => clearInterval(timer)
   }, [isStreaming])
+
+  // Snapshot stats when streaming ends
+  const prevStreamingRef = useRef(false)
+  useEffect(() => {
+    if (prevStreamingRef.current && !isStreaming) {
+      if (elapsed > 0 || usage.input + usage.output > 0) {
+        setFinalStats({ elapsed, usage: { ...usage } })
+      }
+    }
+    prevStreamingRef.current = !!isStreaming
+  }, [isStreaming, elapsed, usage])
 
   // Close just notifies parent; animation is driven by visible prop change
   const handleClose = useCallback(() => {
@@ -628,6 +643,19 @@ export function ConversationDialog({
                   >
                     {t('conversationThinking')}
                     <StreamingStats elapsed={elapsed} usage={usage} />
+                  </span>
+                </div>
+              )}
+              {!isStreaming && finalStats && (
+                <div style={{ padding: '2px 0' }}>
+                  <span
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      opacity: 0.35,
+                    }}
+                  >
+                    <StreamingStats elapsed={finalStats.elapsed} usage={finalStats.usage} bare />
                   </span>
                 </div>
               )}
@@ -1554,9 +1582,11 @@ function StreamingDot() {
 function StreamingStats({
   elapsed,
   usage,
+  bare,
 }: {
   elapsed: number
   usage: { input: number; output: number }
+  bare?: boolean
 }) {
   const parts: string[] = []
   if (elapsed > 0) {
@@ -1570,7 +1600,9 @@ function StreamingStats({
     parts.push(`↑ ${formatted} tokens`)
   }
   if (parts.length === 0) return null
-  return <span style={{ marginLeft: 6, opacity: 0.5 }}>({parts.join(' · ')})</span>
+  const text = parts.join(' · ')
+  if (bare) return <>{text}</>
+  return <span style={{ marginLeft: 6, opacity: 0.5 }}>({text})</span>
 }
 
 function LoopWarningBlock({ message }: { message: string }) {

@@ -311,6 +311,9 @@ async fn parse_sse_stream(
     on_event: Box<dyn Fn(StreamEvent) + Send>,
 ) -> Result<AssistantResponse, LlmError> {
     use futures::StreamExt;
+    use tokio::time::{timeout, Duration};
+
+    const CHUNK_TIMEOUT: Duration = Duration::from_secs(90);
 
     let mut content_blocks: Vec<ContentBlock> = Vec::new();
     let mut stop_reason = StopReason::EndTurn;
@@ -327,12 +330,24 @@ async fn parse_sse_stream(
 
     let mut current_block_type: Option<String> = None;
 
-    // Stage 7: Use unified SSE parser
     let mut parser = SseParser::new();
     let mut stream = response.bytes_stream();
 
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| LlmError::Network(e.to_string()))?;
+    loop {
+        let chunk = match timeout(CHUNK_TIMEOUT, stream.next()).await {
+            Ok(Some(Ok(bytes))) => bytes,
+            Ok(Some(Err(e))) => return Err(LlmError::Network(e.to_string())),
+            Ok(None) => break,
+            Err(_) => {
+                return Err(LlmError::Api {
+                    status: 0,
+                    message: "SSE 流超时：90 秒未收到数据".to_string(),
+                    error_type: Some("stream_timeout".to_string()),
+                    request_id: None,
+                    retryable: true,
+                });
+            }
+        };
         let sse_events = parser.feed(&chunk);
 
         for sse_event in sse_events {

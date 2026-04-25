@@ -1606,10 +1606,9 @@ function StreamingStats({
     const s = elapsed % 60
     parts.push(m > 0 ? `${m}m ${s.toString().padStart(2, '0')}s` : `${s}s`)
   }
-  const total = usage.input + usage.output
-  if (total > 0) {
-    const formatted = total >= 1000 ? `${(total / 1000).toFixed(1)}k` : `${total}`
-    parts.push(`↑ ${formatted} tokens`)
+  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`)
+  if (usage.input > 0 || usage.output > 0) {
+    parts.push(`↑${fmt(usage.input)} ↓${fmt(usage.output)}`)
   }
   if (parts.length === 0) return null
   const text = parts.join(' · ')

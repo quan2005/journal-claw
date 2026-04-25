@@ -642,7 +642,19 @@ export function ConversationDialog({
                     }}
                   >
                     {t('conversationThinking')}
-                    <StreamingStats elapsed={elapsed} usage={usage} />
+                  </span>
+                </div>
+              )}
+              {isStreaming && (elapsed > 0 || usage.input + usage.output > 0) && (
+                <div style={{ padding: '2px 0' }}>
+                  <span
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      opacity: 0.4,
+                    }}
+                  >
+                    <StreamingStats elapsed={elapsed} usage={usage} bare />
                   </span>
                 </div>
               )}

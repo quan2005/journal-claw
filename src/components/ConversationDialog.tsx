@@ -57,6 +57,7 @@ export function ConversationDialog({
     title: sessionTitle,
     messages,
     isStreaming,
+    usage,
     create,
     send,
     retry,
@@ -626,7 +627,7 @@ export function ConversationDialog({
                     }}
                   >
                     {t('conversationThinking')}
-                    {elapsed > 0 && <span style={{ marginLeft: 4, opacity: 0.5 }}>{elapsed}s</span>}
+                    <StreamingStats elapsed={elapsed} usage={usage} />
                   </span>
                 </div>
               )}
@@ -1548,6 +1549,28 @@ function StreamingDot() {
       `}</style>
     </div>
   )
+}
+
+function StreamingStats({
+  elapsed,
+  usage,
+}: {
+  elapsed: number
+  usage: { input: number; output: number }
+}) {
+  const parts: string[] = []
+  if (elapsed > 0) {
+    const m = Math.floor(elapsed / 60)
+    const s = elapsed % 60
+    parts.push(m > 0 ? `${m}m ${s.toString().padStart(2, '0')}s` : `${s}s`)
+  }
+  const total = usage.input + usage.output
+  if (total > 0) {
+    const formatted = total >= 1000 ? `${(total / 1000).toFixed(1)}k` : `${total}`
+    parts.push(`↑ ${formatted} tokens`)
+  }
+  if (parts.length === 0) return null
+  return <span style={{ marginLeft: 6, opacity: 0.5 }}>({parts.join(' · ')})</span>
 }
 
 function LoopWarningBlock({ message }: { message: string }) {

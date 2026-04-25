@@ -1302,6 +1302,22 @@ async fn run_conversation_turn(
 
         let turn_text_str = turn_text.lock().unwrap_or_else(|e| e.into_inner()).clone();
 
+        // Emit usage for this turn
+        if let Some(ref usage) = response.usage {
+            let _ = app.emit(
+                "conversation-stream",
+                ConversationStreamPayload {
+                    session_id: sid.clone(),
+                    event: "usage".to_string(),
+                    data: serde_json::json!({
+                        "input_tokens": usage.input_tokens,
+                        "output_tokens": usage.output_tokens,
+                    })
+                    .to_string(),
+                },
+            );
+        }
+
         // Build assistant message
         let mut assistant_content: Vec<ContentBlock> = Vec::new();
 

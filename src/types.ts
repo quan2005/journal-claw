@@ -164,5 +164,6 @@ export interface ConversationStreamPayload {
     | 'user_inject'
     | 'title'
     | 'turn_start'
+    | 'usage'
   data: string
 }

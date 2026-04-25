@@ -17,6 +17,8 @@ export function useConversation() {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [title, setTitle] = useState<string | null>(null)
+  const [usage, setUsage] = useState<{ input: number; output: number }>({ input: 0, output: 0 })
+  const usageRef = useRef<{ input: number; output: number }>({ input: 0, output: 0 })
   const sessionIdRef = useRef<string | null>(null)
   const isStreamingRef = useRef(false)
   const pendingCreateRef = useRef<Promise<string> | null>(null)
@@ -315,6 +317,23 @@ export function useConversation() {
             setTitle(data)
           }
           break
+        case 'usage': {
+          try {
+            const u = JSON.parse(data)
+            const input = u.input_tokens ?? 0
+            const output = u.output_tokens ?? 0
+            usageRef.current = {
+              input: usageRef.current.input + input,
+              output: usageRef.current.output + output,
+            }
+            if (sid === sessionIdRef.current) {
+              setUsage({ ...usageRef.current })
+            }
+          } catch {
+            /* ignore */
+          }
+          break
+        }
       }
     })
 
@@ -332,6 +351,8 @@ export function useConversation() {
     isStreamingRef.current = false
     setTitle(null)
     setPendingQueue([])
+    usageRef.current = { input: 0, output: 0 }
+    setUsage({ input: 0, output: 0 })
     pendingCreateRef.current = null
     deferredModeRef.current = mode
     deferredContextRef.current = context
@@ -625,6 +646,7 @@ export function useConversation() {
     messages,
     isStreaming,
     title,
+    usage,
     pendingQueue,
     create,
     send,

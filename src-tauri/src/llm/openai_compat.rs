@@ -101,16 +101,30 @@ impl LlmEngine for OpenAiCompatEngine {
         let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
         let on_event: EventCallback = Arc::new(std::sync::Mutex::new(on_event));
 
-        retry::run_with_retry(&self.retry_policy, |events_emitted| {
-            let url = url.clone();
-            let body = body.clone();
-            let on_event = on_event.clone();
-            let client = self.client.clone();
-            let api_key = self.api_key.clone();
-            async move {
-                single_request(&client, &api_key, &url, &body, &on_event, &events_emitted).await
-            }
-        })
+        retry::run_with_retry(
+            &self.retry_policy,
+            |events_emitted| {
+                let url = url.clone();
+                let body = body.clone();
+                let on_event = on_event.clone();
+                let client = self.client.clone();
+                let api_key = self.api_key.clone();
+                async move {
+                    single_request(&client, &api_key, &url, &body, &on_event, &events_emitted).await
+                }
+            },
+            |attempt, max, delay, err| {
+                if let Ok(cb) = on_event.lock() {
+                    (cb)(StreamEvent::Error(format!(
+                        "重试 {}/{}（{}s 后）: {}",
+                        attempt,
+                        max,
+                        delay.as_secs(),
+                        err
+                    )));
+                }
+            },
+        )
         .await
     }
 }

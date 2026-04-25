@@ -54,26 +54,40 @@ impl LlmEngine for AnthropicEngine {
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
         let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
-        retry::run_with_retry(&self.retry_policy, |events_emitted| {
-            let url = url.clone();
-            let body = body.clone();
-            let on_event = on_event.clone();
-            let client = self.client.clone();
-            let api_key = self.api_key.clone();
-            async move {
-                let tracking_callback: Box<dyn Fn(StreamEvent) + Send> = {
-                    let events_emitted = events_emitted.clone();
-                    let on_event = on_event.clone();
-                    Box::new(move |evt| {
-                        events_emitted.store(true, Ordering::SeqCst);
-                        if let Ok(cb) = on_event.lock() {
-                            (cb)(evt);
-                        }
-                    })
-                };
-                single_request(&client, &api_key, &url, &body, tracking_callback).await
-            }
-        })
+        retry::run_with_retry(
+            &self.retry_policy,
+            |events_emitted| {
+                let url = url.clone();
+                let body = body.clone();
+                let on_event = on_event.clone();
+                let client = self.client.clone();
+                let api_key = self.api_key.clone();
+                async move {
+                    let tracking_callback: Box<dyn Fn(StreamEvent) + Send> = {
+                        let events_emitted = events_emitted.clone();
+                        let on_event = on_event.clone();
+                        Box::new(move |evt| {
+                            events_emitted.store(true, Ordering::SeqCst);
+                            if let Ok(cb) = on_event.lock() {
+                                (cb)(evt);
+                            }
+                        })
+                    };
+                    single_request(&client, &api_key, &url, &body, tracking_callback).await
+                }
+            },
+            |attempt, max, delay, err| {
+                if let Ok(cb) = on_event.lock() {
+                    (cb)(StreamEvent::Error(format!(
+                        "重试 {}/{}（{}s 后）: {}",
+                        attempt,
+                        max,
+                        delay.as_secs(),
+                        err
+                    )));
+                }
+            },
+        )
         .await
     }
 }

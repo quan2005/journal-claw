@@ -67,25 +67,32 @@ fn jitter_for_base(base: Duration) -> Duration {
 /// `request_fn` is called on each attempt. It receives `events_emitted` to track
 /// whether any streaming events have been sent to the client. If events were
 /// already emitted, we don't retry (would cause duplicate partial responses).
-pub async fn run_with_retry<F, Fut, T>(
+///
+/// `on_retry` is called before each retry sleep with (attempt, max_retries, delay, error_message).
+pub async fn run_with_retry<F, Fut, T, R>(
     policy: &RetryPolicy,
     mut request_fn: F,
+    on_retry: R,
 ) -> Result<T, LlmError>
 where
     F: FnMut(Arc<AtomicBool>) -> Fut,
     Fut: std::future::Future<Output = Result<T, LlmError>>,
+    R: Fn(u32, u32, Duration, &str),
 {
     let mut last_err: Option<LlmError> = None;
 
     for attempt in 0..=policy.max_retries {
         if attempt > 0 {
             let delay = policy.jittered_backoff_for_attempt(attempt);
+            let err_msg = last_err.as_ref().map(|e| e.to_string()).unwrap_or_default();
             eprintln!(
-                "[retry] attempt {}/{} after {}ms",
+                "[retry] attempt {}/{} after {}ms: {}",
                 attempt,
                 policy.max_retries,
-                delay.as_millis()
+                delay.as_millis(),
+                err_msg
             );
+            on_retry(attempt, policy.max_retries, delay, &err_msg);
             tokio::time::sleep(delay).await;
         }
 
@@ -183,7 +190,7 @@ mod tests {
             max_backoff: Duration::from_millis(10),
         };
         let result: Result<&str, LlmError> =
-            run_with_retry(&policy, |_events| async { Ok("ok") }).await;
+            run_with_retry(&policy, |_events| async { Ok("ok") }, |_, _, _, _| {}).await;
         assert_eq!(result.unwrap(), "ok");
     }
 
@@ -195,19 +202,23 @@ mod tests {
             max_backoff: Duration::from_millis(1),
         };
         let attempt = Arc::new(std::sync::atomic::AtomicU32::new(0));
-        let result: Result<String, LlmError> = run_with_retry(&policy, |_events| {
-            let attempt = attempt.clone();
-            async move {
-                attempt.fetch_add(1, Ordering::SeqCst);
-                Err(LlmError::Api {
-                    status: 502,
-                    message: "bad gateway".into(),
-                    error_type: None,
-                    request_id: None,
-                    retryable: false,
-                })
-            }
-        })
+        let result: Result<String, LlmError> = run_with_retry(
+            &policy,
+            |_events| {
+                let attempt = attempt.clone();
+                async move {
+                    attempt.fetch_add(1, Ordering::SeqCst);
+                    Err(LlmError::Api {
+                        status: 502,
+                        message: "bad gateway".into(),
+                        error_type: None,
+                        request_id: None,
+                        retryable: false,
+                    })
+                }
+            },
+            |_, _, _, _| {},
+        )
         .await;
 
         let err = result.unwrap_err();
@@ -223,20 +234,24 @@ mod tests {
             max_backoff: Duration::from_millis(1),
         };
         let attempt = Arc::new(std::sync::atomic::AtomicU32::new(0));
-        let result: Result<String, LlmError> = run_with_retry(&policy, |events_emitted| {
-            let attempt = attempt.clone();
-            async move {
-                attempt.fetch_add(1, Ordering::SeqCst);
-                events_emitted.store(true, Ordering::SeqCst);
-                Err(LlmError::Api {
-                    status: 502,
-                    message: "bad gateway".into(),
-                    error_type: None,
-                    request_id: None,
-                    retryable: false,
-                })
-            }
-        })
+        let result: Result<String, LlmError> = run_with_retry(
+            &policy,
+            |events_emitted| {
+                let attempt = attempt.clone();
+                async move {
+                    attempt.fetch_add(1, Ordering::SeqCst);
+                    events_emitted.store(true, Ordering::SeqCst);
+                    Err(LlmError::Api {
+                        status: 502,
+                        message: "bad gateway".into(),
+                        error_type: None,
+                        request_id: None,
+                        retryable: false,
+                    })
+                }
+            },
+            |_, _, _, _| {},
+        )
         .await;
 
         assert!(result.is_err());
@@ -251,19 +266,23 @@ mod tests {
             max_backoff: Duration::from_millis(1),
         };
         let attempt = Arc::new(std::sync::atomic::AtomicU32::new(0));
-        let result: Result<String, LlmError> = run_with_retry(&policy, |_events| {
-            let attempt = attempt.clone();
-            async move {
-                attempt.fetch_add(1, Ordering::SeqCst);
-                Err(LlmError::Api {
-                    status: 401,
-                    message: "unauthorized".into(),
-                    error_type: None,
-                    request_id: None,
-                    retryable: false,
-                })
-            }
-        })
+        let result: Result<String, LlmError> = run_with_retry(
+            &policy,
+            |_events| {
+                let attempt = attempt.clone();
+                async move {
+                    attempt.fetch_add(1, Ordering::SeqCst);
+                    Err(LlmError::Api {
+                        status: 401,
+                        message: "unauthorized".into(),
+                        error_type: None,
+                        request_id: None,
+                        retryable: false,
+                    })
+                }
+            },
+            |_, _, _, _| {},
+        )
         .await;
 
         assert!(result.is_err());

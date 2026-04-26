@@ -624,6 +624,13 @@ export function ConversationDialog({
                         isStreaming={isLastRunStreaming}
                         onRetry={retry}
                         onContinue={() => send('请继续')}
+                        stats={
+                          isLastRunStreaming
+                            ? { elapsed, usage }
+                            : i === messages.length && finalStats
+                              ? finalStats
+                              : undefined
+                        }
                       />,
                     )
                   }
@@ -642,32 +649,6 @@ export function ConversationDialog({
                     }}
                   >
                     {t('conversationThinking')}
-                  </span>
-                </div>
-              )}
-              {isStreaming && (elapsed > 0 || usage.input + usage.output > 0) && (
-                <div style={{ padding: '2px 0' }}>
-                  <span
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--item-meta)',
-                      opacity: 0.4,
-                    }}
-                  >
-                    <StreamingStats elapsed={elapsed} usage={usage} bare />
-                  </span>
-                </div>
-              )}
-              {!isStreaming && finalStats && (
-                <div style={{ padding: '2px 0' }}>
-                  <span
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--item-meta)',
-                      opacity: 0.35,
-                    }}
-                  >
-                    <StreamingStats elapsed={finalStats.elapsed} usage={finalStats.usage} bare />
                   </span>
                 </div>
               )}
@@ -1219,11 +1200,13 @@ function AssistantRun({
   isStreaming,
   onRetry,
   onContinue,
+  stats,
 }: {
   messages: ConversationMessage[]
   isStreaming?: boolean
   onRetry?: () => void
   onContinue?: () => void
+  stats?: { elapsed: number; usage: { input: number; output: number } }
 }) {
   // Start expanded while streaming; auto-collapse when streaming ends
   const [expanded, setExpanded] = useState(!!isStreaming)
@@ -1266,6 +1249,7 @@ function AssistantRun({
           <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
         <StreamingDot />
+        {stats && <StatsLine stats={stats} />}
       </div>
     )
   }
@@ -1285,6 +1269,7 @@ function AssistantRun({
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
         <AssistantActions content={lastContent} onRetry={onRetry} onContinue={onContinue} />
+        {stats && <StatsLine stats={stats} />}
       </div>
     )
   }
@@ -1319,6 +1304,7 @@ function AssistantRun({
           onRetry={onRetry}
           onContinue={onContinue}
         />
+        {stats && <StatsLine stats={stats} />}
       </div>
     )
   }
@@ -1341,6 +1327,7 @@ function AssistantRun({
         onRetry={onRetry}
         onContinue={onContinue}
       />
+      {stats && <StatsLine stats={stats} />}
     </div>
   )
 }
@@ -1587,6 +1574,26 @@ function StreamingDot() {
           30% { opacity: 0.5; transform: scale(1); }
         }
       `}</style>
+    </div>
+  )
+}
+
+function StatsLine({
+  stats,
+}: {
+  stats: { elapsed: number; usage: { input: number; output: number } }
+}) {
+  return (
+    <div style={{ padding: '0 0 2px' }}>
+      <span
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--item-meta)',
+          opacity: 0.35,
+        }}
+      >
+        <StreamingStats elapsed={stats.elapsed} usage={stats.usage} bare />
+      </span>
     </div>
   )
 }

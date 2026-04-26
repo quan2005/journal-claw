@@ -539,6 +539,8 @@ export function useConversation() {
         setMessages(cached)
       }
       setTitle(null)
+      usageRef.current = { input: 0, output: 0 }
+      setUsage({ input: 0, output: 0 })
       return
     }
 
@@ -554,6 +556,8 @@ export function useConversation() {
     }
     // No pending queue for persisted sessions
     setPendingQueue([])
+    usageRef.current = { input: 0, output: 0 }
+    setUsage({ input: 0, output: 0 })
     // If backend has no messages yet (race: event fires before send), seed user message
     if (loaded.length === 0 && initialUserMessage) {
       const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]

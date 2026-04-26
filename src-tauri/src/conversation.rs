@@ -939,12 +939,17 @@ pub async fn conversation_retry(
     store: tauri::State<'_, ConversationStore>,
     session_id: String,
 ) -> Result<(), String> {
-    // Find the last user message text, remove any trailing failed assistant message
-    {
+    enum RetryAction {
+        Resend(String),
+        Continue,
+    }
+
+    let action = {
         let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
         let session = sessions
             .get_mut(&session_id)
             .ok_or_else(|| format!("session not found: {}", session_id))?;
+
         // Pop trailing assistant message (the failed partial response)
         if session
             .messages
@@ -954,47 +959,157 @@ pub async fn conversation_retry(
         {
             session.messages.pop();
         }
-    }
-    // Find the last user message to re-send
-    let last_user_text = {
-        let sessions = store.0.lock().map_err(|e| e.to_string())?;
-        let session = sessions
-            .get(&session_id)
-            .ok_or_else(|| format!("session not found: {}", session_id))?;
-        session
+
+        // Check what the last message is
+        let last_is_tool_result = session
             .messages
-            .iter()
-            .rev()
-            .find(|m| m.role == Role::User)
-            .and_then(|m| {
-                m.content.iter().find_map(|b| {
-                    if let ContentBlock::Text { text } = b {
-                        Some(text.clone())
-                    } else {
-                        None
-                    }
-                })
+            .last()
+            .map(|m| {
+                m.role == Role::User
+                    && m.content
+                        .iter()
+                        .all(|b| matches!(b, ContentBlock::ToolResult { .. }))
             })
-            .ok_or_else(|| "no user message to retry".to_string())?
-    };
-    // Pop the last user message too — conversation_send will re-add it
-    {
+            .unwrap_or(false);
+
+        if last_is_tool_result {
+            eprintln!("[conversation] retrying mid-tool session {}", session_id);
+            RetryAction::Continue
+        } else {
+            let last_user_text = session
+                .messages
+                .iter()
+                .rev()
+                .find(|m| m.role == Role::User)
+                .and_then(|m| {
+                    m.content.iter().find_map(|b| {
+                        if let ContentBlock::Text { text } = b {
+                            Some(text.clone())
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .ok_or_else(|| "no user message to retry".to_string())?;
+
+            if session
+                .messages
+                .last()
+                .map(|m| m.role == Role::User)
+                .unwrap_or(false)
+            {
+                session.messages.pop();
+            }
+            eprintln!("[conversation] retrying session {}", session_id);
+            RetryAction::Resend(last_user_text)
+        }
+    }; // MutexGuard dropped here
+
+    match action {
+        RetryAction::Resend(text) => conversation_send(app, store, session_id, text, None).await,
+        RetryAction::Continue => conversation_continue(app, store, session_id).await,
+    }
+}
+
+/// Re-run the conversation turn with existing message history (no new user message).
+/// Used for mid-tool-loop retries where the last user message is a ToolResult.
+async fn conversation_continue(
+    app: AppHandle,
+    store: tauri::State<'_, ConversationStore>,
+    session_id: String,
+) -> Result<(), String> {
+    let cfg = config::load_config(&app)?;
+
+    let (messages, system_prompt, mode, workspace, cancel_token) = {
         let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
         let session = sessions
             .get_mut(&session_id)
             .ok_or_else(|| format!("session not found: {}", session_id))?;
-        if session
-            .messages
-            .last()
-            .map(|m| m.role == Role::User)
-            .unwrap_or(false)
-        {
-            session.messages.pop();
+
+        if let Some(old_cancel) = session.cancel.take() {
+            old_cancel.cancel();
         }
-    }
-    eprintln!("[conversation] retrying session {}", session_id);
-    conversation_send(app, store, session_id, last_user_text, None).await
+
+        let cancel = CancellationToken::new();
+        session.cancel = Some(cancel.clone());
+
+        (
+            session.messages.clone(),
+            session.system_prompt.clone().unwrap_or_default(),
+            session.mode,
+            session.workspace.clone(),
+            cancel,
+        )
+    };
+
+    let engine = create_engine(&cfg);
+    let sid = session_id.clone();
+    let app_clone = app.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let result = run_conversation_turn(
+            engine.as_ref(),
+            &workspace,
+            &system_prompt,
+            messages,
+            mode,
+            &sid,
+            &app_clone,
+            cancel_token,
+        )
+        .await;
+
+        let store = app_clone.state::<ConversationStore>();
+        match result {
+            Ok(updated_messages) => {
+                if let Ok(mut guard) = store.0.lock() {
+                    if let Some(session) = guard.get_mut(&sid) {
+                        session.messages = updated_messages;
+                        session.cancel = None;
+                        save_session_to_disk(&session.workspace, &sid, session);
+                    }
+                }
+                let _ = app_clone.emit(
+                    "conversation-stream",
+                    ConversationStreamPayload {
+                        session_id: sid,
+                        event: "done".to_string(),
+                        data: String::new(),
+                    },
+                );
+            }
+            Err((e, partial_messages)) => {
+                let error_data = e.error_info().to_string();
+                let _ = app_clone.emit(
+                    "conversation-stream",
+                    ConversationStreamPayload {
+                        session_id: sid.clone(),
+                        event: "error".to_string(),
+                        data: error_data,
+                    },
+                );
+                let _ = app_clone.emit(
+                    "conversation-stream",
+                    ConversationStreamPayload {
+                        session_id: sid.clone(),
+                        event: "done".to_string(),
+                        data: String::new(),
+                    },
+                );
+                if let Ok(mut guard) = store.0.lock() {
+                    if let Some(session) = guard.get_mut(&sid) {
+                        session.messages = partial_messages;
+                        session.cancel = None;
+                        save_session_to_disk(&session.workspace, &sid, session);
+                    }
+                }
+            }
+        }
+    });
+
+    Ok(())
 }
+
 #[tauri::command]
 pub async fn conversation_list(
     app: AppHandle,

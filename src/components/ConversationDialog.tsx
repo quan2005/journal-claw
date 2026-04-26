@@ -1100,7 +1100,13 @@ function ActionBtn({
   )
 }
 
-function AssistantActions({ content }: { content: string }) {
+function AssistantActions({
+  content,
+  stats,
+}: {
+  content: string
+  stats?: { elapsed: number; usage: { input: number; output: number } }
+}) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -1115,7 +1121,7 @@ function AssistantActions({ content }: { content: string }) {
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ minHeight: 20, position: 'relative' }}
+      style={{ minHeight: 20, display: 'flex', alignItems: 'center', gap: 6 }}
     >
       <div
         style={{
@@ -1156,6 +1162,7 @@ function AssistantActions({ content }: { content: string }) {
           )}
         </ActionBtn>
       </div>
+      {stats && <StatsLine stats={stats} />}
     </div>
   )
 }
@@ -1235,8 +1242,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <AssistantActions content={lastContent} />
-        {stats && <StatsLine stats={stats} />}
+        <AssistantActions content={lastContent} stats={stats} />
       </div>
     )
   }
@@ -1266,8 +1272,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <AssistantActions content={lastTextBlock?.content ?? ''} />
-        {stats && <StatsLine stats={stats} />}
+        <AssistantActions content={lastTextBlock?.content ?? ''} stats={stats} />
       </div>
     )
   }
@@ -1285,8 +1290,7 @@ function AssistantRun({
       {allBlocks.map((block: MessageBlock, i: number) => (
         <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
       ))}
-      <AssistantActions content={lastTextBlock?.content ?? ''} />
-      {stats && <StatsLine stats={stats} />}
+      <AssistantActions content={lastTextBlock?.content ?? ''} stats={stats} />
     </div>
   )
 }

@@ -133,6 +133,12 @@ export function ConversationDialog({
     return () => clearInterval(timer)
   }, [isStreaming])
 
+  // Reset stats on session switch
+  useEffect(() => {
+    setElapsed(0)
+    setFinalStats(null)
+  }, [sessionId])
+
   // Snapshot stats when streaming ends
   const prevStreamingRef = useRef(false)
   useEffect(() => {
@@ -1207,8 +1213,10 @@ function AssistantRun({
         {allBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <StreamingDot />
-        {stats && <StatsLine stats={stats} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <StreamingDot />
+          {stats && <StatsLine stats={stats} />}
+        </div>
       </div>
     )
   }
@@ -1535,17 +1543,15 @@ function StatsLine({
   stats: { elapsed: number; usage: { input: number; output: number } }
 }) {
   return (
-    <div style={{ padding: '0 0 2px' }}>
-      <span
-        style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--item-meta)',
-          opacity: 0.35,
-        }}
-      >
-        <StreamingStats elapsed={stats.elapsed} usage={stats.usage} bare />
-      </span>
-    </div>
+    <span
+      style={{
+        fontSize: 'var(--text-xs)',
+        color: 'var(--item-meta)',
+        opacity: 0.35,
+      }}
+    >
+      <StreamingStats elapsed={stats.elapsed} usage={stats.usage} bare />
+    </span>
   )
 }
 

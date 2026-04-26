@@ -1335,7 +1335,6 @@ function CollapsedToolSummary({
       <span style={{ opacity: 0.4, fontSize: '0.6rem', flexShrink: 0 }}>
         {expanded ? 'v' : '>'}
       </span>
-      <span style={{ opacity: 0.4, flexShrink: 0 }}>{summary}</span>
       {[...seen.entries()].map(([ic, count], i) => (
         <span
           key={i}
@@ -1345,6 +1344,7 @@ function CollapsedToolSummary({
           {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
         </span>
       ))}
+      <span style={{ opacity: 0.4, flexShrink: 0 }}>{summary}</span>
     </div>
   )
 }

@@ -1094,15 +1094,7 @@ function ActionBtn({
   )
 }
 
-function AssistantActions({
-  content,
-  onRetry,
-  onContinue,
-}: {
-  content: string
-  onRetry?: () => void
-  onContinue?: () => void
-}) {
+function AssistantActions({ content }: { content: string }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -1157,39 +1149,6 @@ function AssistantActions({
             </svg>
           )}
         </ActionBtn>
-        {onRetry && (
-          <ActionBtn title={t('retry')} onClick={onRetry}>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="1 4 1 10 7 10" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
-          </ActionBtn>
-        )}
-        {onContinue && (
-          <ActionBtn title={t('continue')} onClick={onContinue}>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-          </ActionBtn>
-        )}
       </div>
     </div>
   )
@@ -1268,7 +1227,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <AssistantActions content={lastContent} onRetry={onRetry} onContinue={onContinue} />
+        <AssistantActions content={lastContent} />
         {stats && <StatsLine stats={stats} />}
       </div>
     )
@@ -1299,11 +1258,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <AssistantActions
-          content={lastTextBlock?.content ?? ''}
-          onRetry={onRetry}
-          onContinue={onContinue}
-        />
+        <AssistantActions content={lastTextBlock?.content ?? ''} />
         {stats && <StatsLine stats={stats} />}
       </div>
     )
@@ -1322,11 +1277,7 @@ function AssistantRun({
       {allBlocks.map((block: MessageBlock, i: number) => (
         <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
       ))}
-      <AssistantActions
-        content={lastTextBlock?.content ?? ''}
-        onRetry={onRetry}
-        onContinue={onContinue}
-      />
+      <AssistantActions content={lastTextBlock?.content ?? ''} />
       {stats && <StatsLine stats={stats} />}
     </div>
   )

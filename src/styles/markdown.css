@@ -107,6 +107,7 @@
   color: var(--md-link);
   text-decoration: none;
   border-bottom: 1px solid transparent;
+  cursor: pointer;
   transition:
     color 0.15s var(--ease-out),
     opacity 0.15s var(--ease-out);

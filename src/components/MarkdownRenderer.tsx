@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { getWorkspacePath, openFile } from '../lib/tauri'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
@@ -75,8 +76,22 @@ const marked = new Marked({
   breaks: true,
 })
 
+const FILE_PATH_RE =
+  /(?<![/\w])(\d{4}\/(?:raw\/)?[^\s<>]+\.(?:txt|md|m4a|pdf|docx|wav|mp3|json|xlsx|csv|png|jpg|jpeg|webp))(?=[\s,;:)}\]。，；：）】]|$)/g
+
 marked.use({
   renderer: {
+    text({ text }: { text: string }) {
+      return text.replace(FILE_PATH_RE, '<a class="md-link" data-filepath="$1">$1</a>')
+    },
+    codespan({ text }: { text: string }) {
+      if (FILE_PATH_RE.test(text)) {
+        FILE_PATH_RE.lastIndex = 0
+        return `<code><a class="md-link" data-filepath="${text}">${text}</a></code>`
+      }
+      FILE_PATH_RE.lastIndex = 0
+      return `<code>${text}</code>`
+    },
     code({ text, lang }: { text: string; lang?: string }) {
       const language = lang && hljs.getLanguage(lang) ? lang : null
       const cacheKey = language ?? '__auto'
@@ -103,10 +118,32 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     const cached = getCachedHtml(content)
     if (cached) return cached
     const normalized = normalizeNestedFences(content)
-    const result = DOMPurify.sanitize(marked.parse(normalized) as string)
+    const result = DOMPurify.sanitize(marked.parse(normalized) as string, {
+      ADD_ATTR: ['data-filepath'],
+    })
     setCachedHtml(content, result)
     return result
   }, [content])
 
-  return <div className="md-content" dangerouslySetInnerHTML={{ __html: html }} />
+  const handleClick = useCallback(async (e: React.MouseEvent<HTMLDivElement>) => {
+    const anchor = (e.target as HTMLElement).closest('a')
+    if (!anchor) return
+    const filepath = anchor.getAttribute('data-filepath')
+    if (filepath) {
+      e.preventDefault()
+      const ws = await getWorkspacePath()
+      openFile(`${ws}/${filepath}`)
+      return
+    }
+    const href = anchor.getAttribute('href')
+    if (!href) return
+    if (/^https?:\/\//i.test(href)) {
+      e.preventDefault()
+      openFile(href)
+    }
+  }, [])
+
+  return (
+    <div className="md-content" dangerouslySetInnerHTML={{ __html: html }} onClick={handleClick} />
+  )
 }

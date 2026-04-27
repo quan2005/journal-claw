@@ -659,6 +659,23 @@ async fn process_material_builtin(
                         "load_skill" => llm::enable_skill::log_label(&input),
                         name => llm::fs_tools::log_label(name, &input),
                     };
+                    let phase = match tool_name.as_str() {
+                        "bash" => "执行命令",
+                        "read_file" => "读取文件",
+                        "write_file" => "写入文件",
+                        "edit_file" => "编辑文件",
+                        "load_skill" => "加载技能",
+                        "glob_search" | "grep_search" => "搜索文件",
+                        _ => "调用工具",
+                    };
+                    let _ = app_for_events.emit(
+                        "ai-log",
+                        AiLogLine {
+                            material_path: mp_for_events.clone(),
+                            level: "phase".to_string(),
+                            message: phase.to_string(),
+                        },
+                    );
                     let _ = app_for_events.emit(
                         "ai-log",
                         AiLogLine {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import type { ConversationMessage, ConversationStreamPayload, SessionMode } from '../types'
 import type { ImageAttachment } from '../lib/tauri'
@@ -10,7 +10,10 @@ import {
   conversationGetMessages,
   conversationTruncate,
   conversationRetry,
+  conversationGetStats,
 } from '../lib/tauri'
+import type { SessionStats } from '../lib/tauri'
+import { useEventCallback } from './useEventCallback'
 
 export function useConversation() {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -19,6 +22,7 @@ export function useConversation() {
   const [title, setTitle] = useState<string | null>(null)
   const [usage, setUsage] = useState<{ input: number; output: number }>({ input: 0, output: 0 })
   const usageRef = useRef<{ input: number; output: number }>({ input: 0, output: 0 })
+  const [stats, setStats] = useState<SessionStats | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const isStreamingRef = useRef(false)
   const pendingCreateRef = useRef<Promise<string> | null>(null)
@@ -34,15 +38,12 @@ export function useConversation() {
   // Per-session pending message queue
   const pendingQueueRef = useRef<Map<string, string[]>>(new Map())
   const [pendingQueue, setPendingQueue] = useState<string[]>([])
-  const sendRef = useRef<((text: string) => Promise<boolean>) | null>(null)
 
-  // Helper: get queue for a session
-  const getQueue = useCallback((sid: string): string[] => {
+  const getQueue = useEventCallback((sid: string): string[] => {
     return pendingQueueRef.current.get(sid) ?? []
-  }, [])
+  })
 
-  // Helper: set queue for a session and sync React state if active
-  const setQueue = useCallback((sid: string, queue: string[]) => {
+  const setQueue = useEventCallback((sid: string, queue: string[]) => {
     if (queue.length === 0) {
       pendingQueueRef.current.delete(sid)
     } else {
@@ -51,27 +52,26 @@ export function useConversation() {
     if (sid === sessionIdRef.current) {
       setPendingQueue(queue)
     }
-  }, [])
+  })
 
-  // Helper: update cached messages for a given session and sync to React state if active
-  const updateSessionMessages = useCallback(
+  const updateSessionMessages = useEventCallback(
     (sid: string, updater: (prev: ConversationMessage[]) => ConversationMessage[]) => {
       const cache = cacheRef.current
       const prev = cache.get(sid) ?? []
       const next = updater(prev)
       cache.set(sid, next)
-      // Only push to React state if this is the active session
       if (sid === sessionIdRef.current) {
         setMessages(next)
       }
     },
-    [],
   )
 
   // Listen to conversation-stream events — process ALL sessions, not just active
   useEffect(() => {
     const unlisten = listen<ConversationStreamPayload>('conversation-stream', (event) => {
-      const { session_id: sid, event: evt, data } = event.payload
+      const { session_id: sid, event: evt, data, span_id, parent_span_id } = event.payload
+      void span_id
+      void parent_span_id
 
       switch (evt) {
         case 'turn_start':
@@ -134,13 +134,14 @@ export function useConversation() {
           break
         case 'tool_start': {
           const info = JSON.parse(data)
+          const toolInput = info.input as Record<string, unknown> | undefined
           updateSessionMessages(sid, (prev) => {
             const last = prev[prev.length - 1]
             if (last?.role === 'assistant') {
               const tools = [...(last.tools ?? []), { name: info.name, label: info.label }]
               const blocks = [
                 ...(last.blocks ?? []),
-                { type: 'tool' as const, name: info.name, label: info.label },
+                { type: 'tool' as const, name: info.name, label: info.label, input: toolInput },
               ]
               return [...prev.slice(0, -1), { ...last, tools, blocks }]
             }
@@ -151,7 +152,9 @@ export function useConversation() {
                 role: 'assistant' as const,
                 content: '',
                 tools: [{ name: info.name, label: info.label }],
-                blocks: [{ type: 'tool' as const, name: info.name, label: info.label }],
+                blocks: [
+                  { type: 'tool' as const, name: info.name, label: info.label, input: toolInput },
+                ],
               },
             ]
           })
@@ -238,6 +241,18 @@ export function useConversation() {
           if (sid === sessionIdRef.current) {
             setIsStreaming(false)
             isStreamingRef.current = false
+            if (data) {
+              try {
+                const s = JSON.parse(data)
+                setStats({
+                  elapsed_secs: s.elapsed_secs ?? 0,
+                  total_input_tokens: s.total_input_tokens ?? 0,
+                  total_output_tokens: s.total_output_tokens ?? 0,
+                })
+              } catch {
+                /* backward compat */
+              }
+            }
           }
           // Flush pending queue for this session
           {
@@ -245,7 +260,7 @@ export function useConversation() {
             if (queue.length > 0) {
               const merged = queue.join('\n\n')
               setQueue(sid, [])
-              sendRef.current?.(merged)
+              send(merged)
             }
           }
           break
@@ -342,24 +357,26 @@ export function useConversation() {
     }
   }, [updateSessionMessages, getQueue, setQueue])
 
-  const create = useCallback((mode: SessionMode, context?: string, contextFiles?: string[]) => {
-    // Pure UI reset — no IPC. Real session is created lazily on first send().
-    sessionIdRef.current = null
-    setSessionId(null)
-    setMessages([])
-    setIsStreaming(false)
-    isStreamingRef.current = false
-    setTitle(null)
-    setPendingQueue([])
-    usageRef.current = { input: 0, output: 0 }
-    setUsage({ input: 0, output: 0 })
-    pendingCreateRef.current = null
-    deferredModeRef.current = mode
-    deferredContextRef.current = context
-    deferredContextFilesRef.current = contextFiles
-  }, [])
+  const create = useEventCallback(
+    (mode: SessionMode, context?: string, contextFiles?: string[]) => {
+      sessionIdRef.current = null
+      setSessionId(null)
+      setMessages([])
+      setIsStreaming(false)
+      isStreamingRef.current = false
+      setTitle(null)
+      setPendingQueue([])
+      usageRef.current = { input: 0, output: 0 }
+      setUsage({ input: 0, output: 0 })
+      setStats(null)
+      pendingCreateRef.current = null
+      deferredModeRef.current = mode
+      deferredContextRef.current = context
+      deferredContextFilesRef.current = contextFiles
+    },
+  )
 
-  const send = useCallback(
+  const send = useEventCallback(
     async (text: string, images?: ImageAttachment[]): Promise<boolean> => {
       const currentSid = sessionIdRef.current
       // If streaming, queue the message for this session
@@ -436,12 +453,9 @@ export function useConversation() {
         return false
       }
     },
-    [updateSessionMessages, getQueue, setQueue],
   )
 
-  sendRef.current = send
-
-  const retry = useCallback(async () => {
+  const retry = useEventCallback(async () => {
     const sid = sessionIdRef.current
     if (!sid) return
     // Remove error/truncated blocks from the last assistant message
@@ -478,33 +492,29 @@ export function useConversation() {
         },
       ])
     }
-  }, [updateSessionMessages])
+  })
 
-  const cancel = useCallback(async () => {
+  const cancel = useEventCallback(async () => {
     const sid = sessionIdRef.current
     if (!sid) return
     await conversationCancel(sid)
     streamingSessionsRef.current.delete(sid)
     setIsStreaming(false)
     isStreamingRef.current = false
-    // Clear pending queue for this session on cancel
     setQueue(sid, [])
-  }, [setQueue])
+  })
 
-  const removePendingItem = useCallback(
-    (index: number): string | undefined => {
-      const sid = sessionIdRef.current
-      if (!sid) return undefined
-      const queue = getQueue(sid)
-      if (index < 0 || index >= queue.length) return undefined
-      const removed = queue[index]
-      setQueue(sid, [...queue.slice(0, index), ...queue.slice(index + 1)])
-      return removed
-    },
-    [getQueue, setQueue],
-  )
+  const removePendingItem = useEventCallback((index: number): string | undefined => {
+    const sid = sessionIdRef.current
+    if (!sid) return undefined
+    const queue = getQueue(sid)
+    if (index < 0 || index >= queue.length) return undefined
+    const removed = queue[index]
+    setQueue(sid, [...queue.slice(0, index), ...queue.slice(index + 1)])
+    return removed
+  })
 
-  const close = useCallback(async () => {
+  const close = useEventCallback(async () => {
     if (sessionIdRef.current) {
       cacheRef.current.delete(sessionIdRef.current)
       streamingSessionsRef.current.delete(sessionIdRef.current)
@@ -517,133 +527,135 @@ export function useConversation() {
     setIsStreaming(false)
     isStreamingRef.current = false
     setPendingQueue([])
-  }, [])
+  })
 
-  const load = useCallback(async (id: string, streaming?: boolean, initialUserMessage?: string) => {
-    // If we have a cached version (e.g. from ongoing stream), use it directly
-    const cached = cacheRef.current.get(id)
-    if (cached) {
+  const load = useEventCallback(
+    async (id: string, streaming?: boolean, initialUserMessage?: string) => {
+      // If we have a cached version (e.g. from ongoing stream), use it directly
+      const cached = cacheRef.current.get(id)
+      if (cached) {
+        sessionIdRef.current = id
+        setSessionId(id)
+        const isStillStreaming = streaming ?? streamingSessionsRef.current.has(id)
+        setIsStreaming(isStillStreaming)
+        isStreamingRef.current = isStillStreaming
+        // Sync pending queue for this session
+        setPendingQueue(pendingQueueRef.current.get(id) ?? [])
+        // Seed user message if cache is empty (race: event fires before send)
+        if (cached.length === 0 && initialUserMessage) {
+          const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
+          cacheRef.current.set(id, seeded)
+          setMessages(seeded)
+        } else {
+          setMessages(cached)
+        }
+        setTitle(null)
+        usageRef.current = { input: 0, output: 0 }
+        setUsage({ input: 0, output: 0 })
+        conversationGetStats(id)
+          .then((s) => setStats(s))
+          .catch(() => setStats(null))
+        return
+      }
+
+      // No cache — load from Rust (persisted session)
+      const loaded = await conversationGetMessages(id)
       sessionIdRef.current = id
       setSessionId(id)
-      const isStillStreaming = streaming ?? streamingSessionsRef.current.has(id)
+      const isStillStreaming = !!streaming
       setIsStreaming(isStillStreaming)
       isStreamingRef.current = isStillStreaming
-      // Sync pending queue for this session
-      setPendingQueue(pendingQueueRef.current.get(id) ?? [])
-      // Seed user message if cache is empty (race: event fires before send)
-      if (cached.length === 0 && initialUserMessage) {
+      if (isStillStreaming) {
+        streamingSessionsRef.current.add(id)
+      }
+      // No pending queue for persisted sessions
+      setPendingQueue([])
+      usageRef.current = { input: 0, output: 0 }
+      setUsage({ input: 0, output: 0 })
+      conversationGetStats(id)
+        .then((s) => setStats(s))
+        .catch(() => setStats(null))
+      // If backend has no messages yet (race: event fires before send), seed user message
+      if (loaded.length === 0 && initialUserMessage) {
         const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
         cacheRef.current.set(id, seeded)
         setMessages(seeded)
-      } else {
-        setMessages(cached)
+        setTitle(null)
+        return
       }
-      setTitle(null)
-      usageRef.current = { input: 0, output: 0 }
-      setUsage({ input: 0, output: 0 })
-      return
-    }
-
-    // No cache — load from Rust (persisted session)
-    const loaded = await conversationGetMessages(id)
-    sessionIdRef.current = id
-    setSessionId(id)
-    const isStillStreaming = !!streaming
-    setIsStreaming(isStillStreaming)
-    isStreamingRef.current = isStillStreaming
-    if (isStillStreaming) {
-      streamingSessionsRef.current.add(id)
-    }
-    // No pending queue for persisted sessions
-    setPendingQueue([])
-    usageRef.current = { input: 0, output: 0 }
-    setUsage({ input: 0, output: 0 })
-    // If backend has no messages yet (race: event fires before send), seed user message
-    if (loaded.length === 0 && initialUserMessage) {
-      const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
-      cacheRef.current.set(id, seeded)
-      setMessages(seeded)
-      setTitle(null)
-      return
-    }
-    // Convert LoadedMessage[] to ConversationMessage[]
-    const msgs: ConversationMessage[] = loaded.map((m) => {
-      const msg: ConversationMessage = {
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        thinking: m.thinking ?? undefined,
-      }
-      if (m.tools?.length) {
-        msg.tools = m.tools.map((t) => ({
-          name: t.name,
-          label: t.label,
-          output: t.output ?? undefined,
-          isError: t.is_error ?? false,
-        }))
-      }
-      // Build blocks for assistant messages
-      if (msg.role === 'assistant') {
-        const blocks: ConversationMessage['blocks'] = []
-        if (msg.thinking) blocks.push({ type: 'thinking', content: msg.thinking })
-        if (msg.content) blocks.push({ type: 'text', content: msg.content })
-        if (msg.tools) {
-          for (const t of msg.tools) {
-            if (t.name === 'web_search') {
-              // Parse persisted web_search results from output JSON
-              let query = ''
-              let results: { url: string; title: string; page_age?: string }[] = []
-              if (t.output) {
-                try {
-                  const raw = JSON.parse(t.output)
-                  query = raw.search_queries?.[0]?.query ?? ''
-                  results = (raw.content ?? [])
-                    .filter((c: { type: string }) => c.type === 'web_search_result')
-                    .map((c: { url?: string; title?: string; page_age?: string }) => ({
-                      url: c.url ?? '',
-                      title: c.title ?? '',
-                      page_age: c.page_age,
-                    }))
-                } catch {
-                  /* ignore parse errors */
+      // Convert LoadedMessage[] to ConversationMessage[]
+      const msgs: ConversationMessage[] = loaded.map((m) => {
+        const msg: ConversationMessage = {
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          thinking: m.thinking ?? undefined,
+        }
+        if (m.tools?.length) {
+          msg.tools = m.tools.map((t) => ({
+            name: t.name,
+            label: t.label,
+            output: t.output ?? undefined,
+            isError: t.is_error ?? false,
+          }))
+        }
+        // Build blocks for assistant messages
+        if (msg.role === 'assistant') {
+          const blocks: ConversationMessage['blocks'] = []
+          if (msg.thinking) blocks.push({ type: 'thinking', content: msg.thinking })
+          if (msg.content) blocks.push({ type: 'text', content: msg.content })
+          if (msg.tools) {
+            for (const t of msg.tools) {
+              if (t.name === 'web_search') {
+                // Parse persisted web_search results from output JSON
+                let query = ''
+                let results: { url: string; title: string; page_age?: string }[] = []
+                if (t.output) {
+                  try {
+                    const raw = JSON.parse(t.output)
+                    query = raw.search_queries?.[0]?.query ?? ''
+                    results = (raw.content ?? [])
+                      .filter((c: { type: string }) => c.type === 'web_search_result')
+                      .map((c: { url?: string; title?: string; page_age?: string }) => ({
+                        url: c.url ?? '',
+                        title: c.title ?? '',
+                        page_age: c.page_age,
+                      }))
+                  } catch {
+                    /* ignore parse errors */
+                  }
                 }
+                if (!query && t.label !== 'web_search') query = t.label.replace(/^搜索: /, '')
+                blocks.push({ type: 'web_search', query, results })
+              } else {
+                blocks.push({
+                  type: 'tool',
+                  name: t.name,
+                  label: t.label,
+                  output: t.output,
+                  isError: t.isError,
+                })
               }
-              if (!query && t.label !== 'web_search') query = t.label.replace(/^搜索: /, '')
-              blocks.push({ type: 'web_search', query, results })
-            } else {
-              blocks.push({
-                type: 'tool',
-                name: t.name,
-                label: t.label,
-                output: t.output,
-                isError: t.isError,
-              })
             }
           }
+          msg.blocks = blocks
         }
-        msg.blocks = blocks
-      }
-      return msg
-    })
-    setMessages(msgs)
-    cacheRef.current.set(id, msgs)
-    setTitle(null)
-  }, [])
-
-  const editAndResend = useCallback(
-    async (messageIndex: number, newText: string) => {
-      const sid = sessionIdRef.current
-      if (!sid) return
-      // Truncate backend messages to keep only messages before this user message
-      await conversationTruncate(sid, messageIndex)
-      // Truncate frontend messages
-      const kept = (cacheRef.current.get(sid) ?? []).slice(0, messageIndex)
-      cacheRef.current.set(sid, kept)
-      setMessages(kept)
-      // Re-send with new text
-      await send(newText)
+        return msg
+      })
+      setMessages(msgs)
+      cacheRef.current.set(id, msgs)
+      setTitle(null)
     },
-    [send],
   )
+
+  const editAndResend = useEventCallback(async (messageIndex: number, newText: string) => {
+    const sid = sessionIdRef.current
+    if (!sid) return
+    await conversationTruncate(sid, messageIndex)
+    const kept = (cacheRef.current.get(sid) ?? []).slice(0, messageIndex)
+    cacheRef.current.set(sid, kept)
+    setMessages(kept)
+    await send(newText)
+  })
 
   return {
     sessionId,
@@ -651,6 +663,7 @@ export function useConversation() {
     isStreaming,
     title,
     usage,
+    stats,
     pendingQueue,
     create,
     send,

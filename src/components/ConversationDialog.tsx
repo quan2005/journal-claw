@@ -4,6 +4,7 @@ import { useConversation } from '../hooks/useConversation'
 import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { useSmoothStream } from '../hooks/useSmoothStream'
 import { ConversationInput } from './ConversationInput'
 import { openFile } from '../lib/tauri'
 import { SessionList, SESSION_LIST_WIDTH } from './SessionList'
@@ -58,6 +59,7 @@ export function ConversationDialog({
     messages,
     isStreaming,
     usage,
+    stats,
     create,
     send,
     retry,
@@ -79,10 +81,6 @@ export function ConversationDialog({
   const initialized = useRef(false)
   const [prefillText, setPrefillText] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
-  const [finalStats, setFinalStats] = useState<{
-    elapsed: number
-    usage: { input: number; output: number }
-  } | null>(null)
 
   // Create or load session on first mount
   useEffect(() => {
@@ -121,34 +119,14 @@ export function ConversationDialog({
     }
   }, [messages, visible])
 
-  // Elapsed timer for streaming
+  // Client-side elapsed timer for streaming display
   useEffect(() => {
-    if (!isStreaming) {
-      return
-    }
+    if (!isStreaming) return
     setElapsed(0)
-    setFinalStats(null)
     const start = Date.now()
     const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
     return () => clearInterval(timer)
   }, [isStreaming])
-
-  // Reset stats on session switch
-  useEffect(() => {
-    setElapsed(0)
-    setFinalStats(null)
-  }, [sessionId])
-
-  // Snapshot stats when streaming ends
-  const prevStreamingRef = useRef(false)
-  useEffect(() => {
-    if (prevStreamingRef.current && !isStreaming) {
-      if (elapsed > 0 || usage.input + usage.output > 0) {
-        setFinalStats({ elapsed, usage: { ...usage } })
-      }
-    }
-    prevStreamingRef.current = !!isStreaming
-  }, [isStreaming, elapsed, usage])
 
   // Close just notifies parent; animation is driven by visible prop change
   const handleClose = useCallback(() => {
@@ -622,7 +600,9 @@ export function ConversationDialog({
                       run.push(messages[i])
                       i++
                     }
-                    const isLastRunStreaming = isStreaming && i === messages.length
+                    const isLastRun = i === messages.length
+                    const isLastRunStreaming = isStreaming && isLastRun
+                    const hideLastActions = isLastRun && !isStreaming && stats != null
                     result.push(
                       <AssistantRun
                         key={`run-${startIdx}`}
@@ -630,13 +610,7 @@ export function ConversationDialog({
                         isStreaming={isLastRunStreaming}
                         onRetry={retry}
                         onContinue={() => send('请继续')}
-                        stats={
-                          isLastRunStreaming
-                            ? { elapsed, usage }
-                            : i === messages.length && finalStats
-                              ? finalStats
-                              : undefined
-                        }
+                        hideActions={hideLastActions}
                       />,
                     )
                   }
@@ -658,6 +632,42 @@ export function ConversationDialog({
                   </span>
                 </div>
               )}
+
+              {/* Session-level stats — left-aligned */}
+              {isStreaming && (elapsed > 0 || usage.input > 0 || usage.output > 0) ? (
+                <div
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-meta)',
+                    opacity: 0.35,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <StreamingStats elapsed={elapsed} usage={usage} bare />
+                  <AnimatedEllipsis />
+                </div>
+              ) : !isStreaming &&
+                stats &&
+                (stats.elapsed_secs > 0 ||
+                  stats.total_input_tokens + stats.total_output_tokens > 0) ? (
+                <SessionStatsLine
+                  stats={stats}
+                  lastContent={(() => {
+                    for (let j = messages.length - 1; j >= 0; j--) {
+                      const m = messages[j]
+                      if (m.role === 'assistant') {
+                        const textBlock = m.blocks?.filter((b) => b.type === 'text').pop()
+                        if (textBlock?.type === 'text' && textBlock.content)
+                          return textBlock.content
+                        if (m.content) return m.content
+                      }
+                    }
+                    return ''
+                  })()}
+                />
+              ) : null}
             </div>
 
             {/* Scroll to bottom button */}
@@ -1100,13 +1110,7 @@ function ActionBtn({
   )
 }
 
-function AssistantActions({
-  content,
-  stats,
-}: {
-  content: string
-  stats?: { elapsed: number; usage: { input: number; output: number } }
-}) {
+function AssistantActions({ content }: { content: string }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -1162,7 +1166,6 @@ function AssistantActions({
           )}
         </ActionBtn>
       </div>
-      {stats && <StatsLine stats={stats} />}
     </div>
   )
 }
@@ -1172,13 +1175,13 @@ function AssistantRun({
   isStreaming,
   onRetry,
   onContinue,
-  stats,
+  hideActions,
 }: {
   messages: ConversationMessage[]
   isStreaming?: boolean
   onRetry?: () => void
   onContinue?: () => void
-  stats?: { elapsed: number; usage: { input: number; output: number } }
+  hideActions?: boolean
 }) {
   // Start expanded while streaming; auto-collapse when streaming ends
   const [expanded, setExpanded] = useState(!!isStreaming)
@@ -1218,12 +1221,14 @@ function AssistantRun({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
         {allBlocks.map((block: MessageBlock, i: number) => (
-          <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
+          <BlockRenderer
+            key={i}
+            block={block}
+            streaming
+            onRetry={onRetry}
+            onContinue={onContinue}
+          />
         ))}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <StreamingDot />
-          {stats && <StatsLine stats={stats} />}
-        </div>
       </div>
     )
   }
@@ -1242,7 +1247,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <AssistantActions content={lastContent} stats={stats} />
+        {!hideActions && <AssistantActions content={lastContent} />}
       </div>
     )
   }
@@ -1272,7 +1277,7 @@ function AssistantRun({
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
-        <AssistantActions content={lastTextBlock?.content ?? ''} stats={stats} />
+        {!hideActions && <AssistantActions content={lastTextBlock?.content ?? ''} />}
       </div>
     )
   }
@@ -1290,7 +1295,7 @@ function AssistantRun({
       {allBlocks.map((block: MessageBlock, i: number) => (
         <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
       ))}
-      <AssistantActions content={lastTextBlock?.content ?? ''} stats={stats} />
+      {!hideActions && <AssistantActions content={lastTextBlock?.content ?? ''} />}
     </div>
   )
 }
@@ -1332,9 +1337,25 @@ function CollapsedToolSummary({
         overflow: 'hidden',
       }}
     >
-      <span style={{ opacity: 0.4, fontSize: '0.6rem', flexShrink: 0 }}>
-        {expanded ? 'v' : '>'}
-      </span>
+      <svg
+        style={{
+          width: 10,
+          height: 10,
+          flexShrink: 0,
+          opacity: 0.4,
+          transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 150ms ease-out',
+        }}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+      <span style={{ opacity: 0.4, flexShrink: 0 }}>{summary}</span>
       {[...seen.entries()].map(([ic, count], i) => (
         <span
           key={i}
@@ -1344,7 +1365,6 @@ function CollapsedToolSummary({
           {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
         </span>
       ))}
-      <span style={{ opacity: 0.4, flexShrink: 0 }}>{summary}</span>
     </div>
   )
 }
@@ -1515,50 +1535,6 @@ function TruncatedBlock({ onContinue }: { onContinue?: () => void }) {
   )
 }
 
-function StreamingDot() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            background: 'var(--item-meta)',
-            opacity: 0.4,
-            animation: `streamPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes streamPulse {
-          0%, 60%, 100% { opacity: 0.15; transform: scale(0.8); }
-          30% { opacity: 0.5; transform: scale(1); }
-        }
-      `}</style>
-    </div>
-  )
-}
-
-function StatsLine({
-  stats,
-}: {
-  stats: { elapsed: number; usage: { input: number; output: number } }
-}) {
-  return (
-    <span
-      style={{
-        fontSize: 'var(--text-xs)',
-        color: 'var(--item-meta)',
-        opacity: 0.35,
-      }}
-    >
-      <StreamingStats elapsed={stats.elapsed} usage={stats.usage} bare />
-    </span>
-  )
-}
-
 function StreamingStats({
   elapsed,
   usage,
@@ -1582,6 +1558,109 @@ function StreamingStats({
   const text = parts.join(' · ')
   if (bare) return <>{text}</>
   return <span style={{ marginLeft: 6, opacity: 0.5 }}>({text})</span>
+}
+
+function AnimatedEllipsis() {
+  return (
+    <span style={{ letterSpacing: 1 }}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{
+            animation: `ellipsis-fade 1.2s ${i * 0.2}s ease-in-out infinite`,
+            opacity: 0.3,
+          }}
+        >
+          ·
+        </span>
+      ))}
+      <style>{`@keyframes ellipsis-fade { 0%,100% { opacity: 0.2; } 50% { opacity: 0.8; } }`}</style>
+    </span>
+  )
+}
+
+function SessionStatsLine({
+  stats,
+  lastContent,
+}: {
+  stats: { elapsed_secs: number; total_input_tokens: number; total_output_tokens: number }
+  lastContent: string
+}) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+  const elapsed = Math.round(stats.elapsed_secs)
+  const usage = { input: stats.total_input_tokens, output: stats.total_output_tokens }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(lastContent)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div
+      style={{
+        fontSize: 'var(--text-xs)',
+        color: 'var(--item-meta)',
+        opacity: 0.35,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+      }}
+    >
+      <StreamingStats elapsed={elapsed} usage={usage} bare />
+      <button
+        onClick={handleCopy}
+        title={t('copy')}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '1px 2px',
+          cursor: 'pointer',
+          color: 'inherit',
+          opacity: copied ? 1 : 0.7,
+          display: 'flex',
+          alignItems: 'center',
+          transition: 'opacity 120ms ease-out',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = copied ? '1' : '0.7'
+        }}
+      >
+        {copied ? (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+        )}
+      </button>
+    </div>
+  )
 }
 
 function LoopWarningBlock({ message }: { message: string }) {
@@ -1621,18 +1700,38 @@ function LoopWarningBlock({ message }: { message: string }) {
   )
 }
 
+function SmoothTextBlock({ content }: { content: string }) {
+  const smoothed = useSmoothStream(content)
+  return (
+    <div
+      style={{
+        maxWidth: '100%',
+        fontSize: 'var(--text-sm)',
+        lineHeight: 1.6,
+        wordBreak: 'break-word',
+      }}
+    >
+      <MarkdownRenderer content={smoothed} />
+    </div>
+  )
+}
+
 function BlockRenderer({
   block,
+  streaming,
   onRetry,
   onContinue,
 }: {
   block: MessageBlock
+  streaming?: boolean
   onRetry?: () => void
   onContinue?: () => void
 }) {
   switch (block.type) {
     case 'text':
-      return block.content ? (
+      if (!block.content) return null
+      if (streaming) return <SmoothTextBlock content={block.content} />
+      return (
         <div
           style={{
             maxWidth: '100%',
@@ -1643,7 +1742,7 @@ function BlockRenderer({
         >
           <MarkdownRenderer content={block.content} />
         </div>
-      ) : null
+      )
     case 'thinking':
       return <ThinkingBlock thinking={block.content} />
     case 'tool':
@@ -1723,9 +1822,24 @@ function ToolBlock({
         >
           {tool.label}
         </span>
-        <span style={{ flexShrink: 0, opacity: 0.4, fontSize: '0.6rem' }}>
-          {expanded ? 'v' : '>'}
-        </span>
+        <svg
+          style={{
+            flexShrink: 0,
+            opacity: 0.4,
+            width: 10,
+            height: 10,
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 150ms ease-out',
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
       {expanded && tool.output && (
         <div
@@ -1800,9 +1914,24 @@ function WebSearchBlock({ query, results }: { query: string; results: WebSearchR
             <span style={{ opacity: 0.5, marginLeft: 6 }}>({results.length})</span>
           )}
         </span>
-        <span style={{ flexShrink: 0, opacity: 0.4, fontSize: '0.6rem' }}>
-          {expanded ? 'v' : '>'}
-        </span>
+        <svg
+          style={{
+            flexShrink: 0,
+            opacity: 0.4,
+            width: 10,
+            height: 10,
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 150ms ease-out',
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
       {expanded && results.length > 0 && (
         <div
@@ -1896,9 +2025,24 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
         >
           {summary}
         </span>
-        <span style={{ flexShrink: 0, opacity: 0.4, fontSize: '0.6rem' }}>
-          {expanded ? 'v' : '>'}
-        </span>
+        <svg
+          style={{
+            flexShrink: 0,
+            opacity: 0.4,
+            width: 10,
+            height: 10,
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 150ms ease-out',
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
       {expanded && (
         <div

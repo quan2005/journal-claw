@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use reqwest::Client;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::mpsc;
 
 use super::retry::{self, RetryPolicy};
 use super::sse_parser::SseParser;
@@ -44,7 +45,7 @@ impl LlmEngine for AnthropicEngine {
         messages: &[Message],
         tools: &[ToolDefinition],
         system: &str,
-        on_event: Box<dyn Fn(StreamEvent) + Send>,
+        event_tx: mpsc::UnboundedSender<StreamEvent>,
     ) -> Result<AssistantResponse, LlmError> {
         let enable_thinking = !has_assistant_missing_thinking(messages);
         let body = build_request_body(&self.model, system, messages, tools, enable_thinking);
@@ -52,40 +53,27 @@ impl LlmEngine for AnthropicEngine {
             eprintln!("[anthropic] thinking disabled: historical assistant messages missing thinking blocks");
         }
         let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
-        let on_event = Arc::new(std::sync::Mutex::new(on_event));
 
         retry::run_with_retry(
             &self.retry_policy,
             |events_emitted| {
                 let url = url.clone();
                 let body = body.clone();
-                let on_event = on_event.clone();
+                let tx = event_tx.clone();
                 let client = self.client.clone();
                 let api_key = self.api_key.clone();
                 async move {
-                    let tracking_callback: Box<dyn Fn(StreamEvent) + Send> = {
-                        let events_emitted = events_emitted.clone();
-                        let on_event = on_event.clone();
-                        Box::new(move |evt| {
-                            events_emitted.store(true, Ordering::SeqCst);
-                            if let Ok(cb) = on_event.lock() {
-                                (cb)(evt);
-                            }
-                        })
-                    };
-                    single_request(&client, &api_key, &url, &body, tracking_callback).await
+                    single_request(&client, &api_key, &url, &body, &tx, &events_emitted).await
                 }
             },
             |attempt, max, delay, err| {
-                if let Ok(cb) = on_event.lock() {
-                    (cb)(StreamEvent::Error(format!(
-                        "重试 {}/{}（{}s 后）: {}",
-                        attempt,
-                        max,
-                        delay.as_secs(),
-                        err
-                    )));
-                }
+                let _ = event_tx.send(StreamEvent::Error(format!(
+                    "重试 {}/{}（{}s 后）: {}",
+                    attempt,
+                    max,
+                    delay.as_secs(),
+                    err
+                )));
             },
         )
         .await
@@ -97,7 +85,8 @@ async fn single_request(
     api_key: &str,
     url: &str,
     body: &serde_json::Value,
-    on_event: Box<dyn Fn(StreamEvent) + Send>,
+    event_tx: &mpsc::UnboundedSender<StreamEvent>,
+    events_emitted: &Arc<AtomicBool>,
 ) -> Result<AssistantResponse, LlmError> {
     let response = client
         .post(url)
@@ -123,7 +112,7 @@ async fn single_request(
         });
     }
 
-    parse_sse_stream(response, on_event).await
+    parse_sse_stream(response, event_tx, events_emitted, None).await
 }
 
 fn extract_request_id(response: &reqwest::Response) -> Option<String> {
@@ -308,7 +297,9 @@ fn has_assistant_missing_thinking(messages: &[Message]) -> bool {
 
 async fn parse_sse_stream(
     response: reqwest::Response,
-    on_event: Box<dyn Fn(StreamEvent) + Send>,
+    event_tx: &mpsc::UnboundedSender<StreamEvent>,
+    events_emitted: &Arc<AtomicBool>,
+    first_chunk_timeout: Option<Duration>,
 ) -> Result<AssistantResponse, LlmError> {
     use futures::StreamExt;
     use tokio::time::{timeout, Duration};
@@ -332,13 +323,30 @@ async fn parse_sse_stream(
 
     let mut parser = SseParser::new();
     let mut stream = response.bytes_stream();
+    let mut received_first_chunk = false;
+
+    let emit = |evt: StreamEvent| {
+        events_emitted.store(true, Ordering::SeqCst);
+        let _ = event_tx.send(evt);
+    };
 
     loop {
-        let chunk = match timeout(CHUNK_TIMEOUT, stream.next()).await {
-            Ok(Some(Ok(bytes))) => bytes,
+        let effective_timeout = if !received_first_chunk {
+            first_chunk_timeout.unwrap_or(CHUNK_TIMEOUT)
+        } else {
+            CHUNK_TIMEOUT
+        };
+        let chunk = match timeout(effective_timeout, stream.next()).await {
+            Ok(Some(Ok(bytes))) => {
+                received_first_chunk = true;
+                bytes
+            }
             Ok(Some(Err(e))) => return Err(LlmError::Network(e.to_string())),
             Ok(None) => break,
             Err(_) => {
+                if !received_first_chunk && first_chunk_timeout.is_some() {
+                    return Err(LlmError::Stall);
+                }
                 return Err(LlmError::Api {
                     status: 0,
                     message: "SSE 流超时：90 秒未收到数据".to_string(),
@@ -390,7 +398,7 @@ async fn parse_sse_stream(
                                 .and_then(|v| v.as_str())
                                 .unwrap_or("")
                                 .to_string();
-                            on_event(StreamEvent::ToolUseStart {
+                            emit(StreamEvent::ToolUseStart {
                                 id: id.clone(),
                                 name: name.clone(),
                             });
@@ -413,7 +421,7 @@ async fn parse_sse_stream(
                                 .pointer("/content_block/input")
                                 .cloned()
                                 .unwrap_or(serde_json::Value::Object(Default::default()));
-                            on_event(StreamEvent::ToolUseStart {
+                            emit(StreamEvent::ToolUseStart {
                                 id: id.clone(),
                                 name: name.clone(),
                             });
@@ -422,7 +430,7 @@ async fn parse_sse_stream(
                         "web_search_tool_result" => {
                             // Capture the entire block as-is for pass-through
                             if let Some(block) = val.get("content_block") {
-                                on_event(StreamEvent::WebSearchResult(block.clone()));
+                                emit(StreamEvent::WebSearchResult(block.clone()));
                                 content_blocks.push(ContentBlock::ServerToolResult(block.clone()));
                             }
                         }
@@ -442,7 +450,7 @@ async fn parse_sse_stream(
                         "text_delta" => {
                             if let Some(text) = val.pointer("/delta/text").and_then(|v| v.as_str())
                             {
-                                on_event(StreamEvent::TextDelta(text.to_string()));
+                                emit(StreamEvent::TextDelta(text.to_string()));
                             }
                         }
                         "thinking_delta" => {
@@ -450,7 +458,7 @@ async fn parse_sse_stream(
                                 val.pointer("/delta/thinking").and_then(|v| v.as_str())
                             {
                                 current_thinking_text.push_str(text);
-                                on_event(StreamEvent::ThinkingDelta(text.to_string()));
+                                emit(StreamEvent::ThinkingDelta(text.to_string()));
                             }
                         }
                         "signature_delta" => {
@@ -466,7 +474,7 @@ async fn parse_sse_stream(
                             {
                                 current_tool_input_json.push_str(json_delta);
                                 if let Some(ref id) = current_tool_id {
-                                    on_event(StreamEvent::ToolUseDelta {
+                                    emit(StreamEvent::ToolUseDelta {
                                         id: id.clone(),
                                         input_json_delta: json_delta.to_string(),
                                     });
@@ -487,13 +495,13 @@ async fn parse_sse_stream(
                                     serde_json::from_str(&current_tool_input_json)
                                         .unwrap_or(serde_json::Value::Object(Default::default()));
                                 current_tool_input_json.clear();
-                                on_event(StreamEvent::ToolUseEnd { id: id.clone() });
+                                emit(StreamEvent::ToolUseEnd { id: id.clone() });
                                 content_blocks.push(ContentBlock::ToolUse { id, name, input });
                             }
                         }
                         "server_tool_use" => {
                             if let Some((id, name, input)) = current_server_tool.take() {
-                                on_event(StreamEvent::ToolUseEnd { id: id.clone() });
+                                emit(StreamEvent::ToolUseEnd { id: id.clone() });
                                 content_blocks.push(ContentBlock::ServerToolUse {
                                     id,
                                     name,
@@ -529,7 +537,7 @@ async fn parse_sse_stream(
                     }
                 }
                 "message_stop" => {
-                    on_event(StreamEvent::MessageEnd {
+                    emit(StreamEvent::MessageEnd {
                         usage: Some(usage.clone()),
                     });
                 }
@@ -546,7 +554,7 @@ async fn parse_sse_stream(
                         error_type.as_deref(),
                         Some("server_error" | "rate_limit_error" | "overloaded_error")
                     );
-                    on_event(StreamEvent::Error(msg.to_string()));
+                    emit(StreamEvent::Error(msg.to_string()));
                     return Err(LlmError::Api {
                         status: 0,
                         message: msg.to_string(),

@@ -1,38 +1,80 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '../contexts/I18nContext'
 
+type PillState = 'idle' | 'active' | 'failed'
+
 interface AiStatusPillProps {
   isProcessing: boolean
   processingFilename?: string
+  lastError?: string
   onClick?: () => void
 }
 
-export function AiStatusPill({ isProcessing, processingFilename, onClick }: AiStatusPillProps) {
+export function AiStatusPill({
+  isProcessing,
+  processingFilename,
+  lastError,
+  onClick,
+}: AiStatusPillProps) {
   const { t } = useTranslation()
-  // Track visual state separately to implement 2s linger after processing ends
-  const [showActive, setShowActive] = useState(false)
+  const [pillState, setPillState] = useState<PillState>('idle')
   const [lingerName, setLingerName] = useState<string | undefined>(undefined)
+  const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined)
   const wasProcessing = useRef(false)
+  const prevError = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     if (isProcessing) {
       wasProcessing.current = true
-      setShowActive(true)
+      setPillState('active')
       setLingerName(processingFilename)
       return
     }
-    // Processing just ended — linger for 2s before reverting
+    if (lastError && lastError !== prevError.current) {
+      prevError.current = lastError
+      wasProcessing.current = false
+      setPillState('failed')
+      setErrorMsg(lastError.length > 40 ? lastError.slice(0, 40) + '…' : lastError)
+      const timer = setTimeout(() => {
+        setPillState('idle')
+        setErrorMsg(undefined)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
     if (wasProcessing.current) {
       wasProcessing.current = false
-      const t = setTimeout(() => {
-        setShowActive(false)
+      const timer = setTimeout(() => {
+        setPillState('idle')
         setLingerName(undefined)
       }, 2000)
-      return () => clearTimeout(t)
+      return () => clearTimeout(timer)
     }
-  }, [isProcessing, processingFilename])
+  }, [isProcessing, processingFilename, lastError])
 
-  const active = showActive
+  const isFailed = pillState === 'failed'
+  const isActive = pillState === 'active'
+
+  const bg = isFailed
+    ? 'color-mix(in srgb, var(--status-danger) 12%, var(--ai-pill-bg))'
+    : isActive
+      ? 'var(--ai-pill-active-bg)'
+      : 'var(--ai-pill-bg)'
+  const borderColor = isFailed
+    ? 'var(--status-danger)'
+    : isActive
+      ? 'var(--ai-pill-active-border)'
+      : 'var(--ai-pill-border)'
+  const textColor = isFailed
+    ? 'var(--status-danger)'
+    : isActive
+      ? 'var(--ai-pill-active-text)'
+      : 'var(--ai-pill-text)'
+  const dotColor = isFailed
+    ? 'var(--status-danger)'
+    : isActive
+      ? 'var(--ai-pill-active-text)'
+      : 'var(--ai-pill-dot)'
+  const dotAnimation = isFailed ? 'none' : 'ai-breathe 2s ease-in-out infinite'
 
   return (
     <div
@@ -42,17 +84,18 @@ export function AiStatusPill({ isProcessing, processingFilename, onClick }: AiSt
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          background: active ? 'var(--ai-pill-active-bg)' : 'var(--ai-pill-bg)',
-          border: `0.5px solid ${active ? 'var(--ai-pill-active-border)' : 'var(--ai-pill-border)'}`,
+          background: bg,
+          border: `0.5px solid ${borderColor}`,
           borderRadius: 20,
           padding: '3px 11px',
           fontSize: 'var(--text-sm)',
-          color: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-text)',
+          color: textColor,
           letterSpacing: '0.05em',
           userSelect: 'none',
-          transition: 'background 0.3s, color 0.3s, opacity 0.3s',
+          transition: 'background 0.3s, color 0.3s, opacity 0.3s, border-color 0.3s',
           WebkitAppRegion: 'no-drag',
           cursor: 'pointer',
+          animation: isFailed ? 'ai-shake 400ms ease-out' : 'none',
         } as React.CSSProperties
       }
     >
@@ -61,8 +104,8 @@ export function AiStatusPill({ isProcessing, processingFilename, onClick }: AiSt
           width: 5,
           height: 5,
           borderRadius: '50%',
-          background: active ? 'var(--ai-pill-active-text)' : 'var(--ai-pill-dot)',
-          animation: 'ai-breathe 2s ease-in-out infinite',
+          background: dotColor,
+          animation: dotAnimation,
           flexShrink: 0,
         }}
       />
@@ -74,13 +117,15 @@ export function AiStatusPill({ isProcessing, processingFilename, onClick }: AiSt
           whiteSpace: 'nowrap',
         }}
       >
-        {active
-          ? lingerName
-            ? t('processingNamed', { name: lingerName })
-            : t('processing')
-          : t('aiReady')}
+        {isFailed
+          ? (errorMsg ?? '处理失败')
+          : isActive
+            ? lingerName
+              ? t('processingNamed', { name: lingerName })
+              : t('processing')
+            : t('aiReady')}
       </span>
-      {!active && (
+      {pillState === 'idle' && (
         <span
           style={{
             fontSize: 10,

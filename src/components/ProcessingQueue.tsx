@@ -201,10 +201,12 @@ function RecordingRow({ item, isLast }: { item: QueueItem; isLast: boolean }) {
 
 function StatusIndicator({
   item,
+  phase,
   onDismiss,
   onRetry,
 }: {
   item: QueueItem
+  phase?: string
   onDismiss: () => void
   onRetry: () => void
 }) {
@@ -264,7 +266,7 @@ function StatusIndicator({
         }}
       >
         <Spinner size={10} borderWidth={1.5} />
-        {t('processingItem')}
+        {phase || t('processingItem')}
       </span>
     )
   }
@@ -339,12 +341,46 @@ export function ProcessingQueue({
 }: ProcessingQueueProps) {
   const { t } = useTranslation()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [phases, setPhases] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     if (confirmingId && !items.some((i) => i.id === confirmingId)) {
       setConfirmingId(null)
     }
   }, [items, confirmingId])
+
+  useEffect(() => {
+    const unlisten = listen<{ material_path: string; level: string; message: string }>(
+      'ai-log',
+      (event) => {
+        if (event.payload.level === 'phase') {
+          setPhases((prev) => {
+            const next = new Map(prev)
+            next.set(event.payload.material_path, event.payload.message)
+            return next
+          })
+        }
+      },
+    )
+    return () => {
+      unlisten.then((fn) => fn())
+    }
+  }, [])
+
+  useEffect(() => {
+    const activePaths = new Set(items.filter((i) => i.status === 'processing').map((i) => i.path))
+    setPhases((prev) => {
+      let changed = false
+      const next = new Map(prev)
+      for (const key of next.keys()) {
+        if (!activePaths.has(key)) {
+          next.delete(key)
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [items])
 
   if (items.length === 0) return null
 
@@ -457,6 +493,7 @@ export function ProcessingQueue({
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                 <StatusIndicator
                   item={item}
+                  phase={phases.get(item.path)}
                   onDismiss={() => onDismiss(item.id)}
                   onRetry={() => onRetry(item)}
                 />

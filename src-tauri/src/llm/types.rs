@@ -1,6 +1,20 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+// ── Span ID for structured tracing ─────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpanId(pub String);
+
+impl SpanId {
+    pub fn new() -> Self {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        Self(format!("{:08x}", n))
+    }
+}
 
 // ── Message types ───────────────────────────────
 
@@ -186,6 +200,8 @@ pub enum LlmError {
         max_bytes: usize,
         provider: String,
     },
+    /// Post-tool stall: model did not respond within timeout
+    Stall,
 }
 
 impl LlmError {
@@ -252,6 +268,7 @@ impl LlmError {
             LlmError::MaxTurnsExceeded => "max_turns",
             LlmError::LoopDetected(_) => "loop_detected",
             LlmError::RequestBodySizeExceeded { .. } => "request_size",
+            LlmError::Stall => "post_tool_stall",
         }
     }
 
@@ -320,6 +337,11 @@ impl LlmError {
                 ),
                 false,
             ),
+            LlmError::Stall => (
+                "stall",
+                "工具执行后 API 响应超时，正在重试…".to_string(),
+                true,
+            ),
         };
         let mut info = serde_json::json!({
             "code": code,
@@ -377,6 +399,7 @@ impl fmt::Display for LlmError {
                 "请求体过大: {} 字节，{} 限制 {} 字节",
                 estimated_bytes, provider, max_bytes
             ),
+            LlmError::Stall => write!(f, "工具执行后 API 响应超时"),
         }
     }
 }

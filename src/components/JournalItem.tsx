@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import type { JournalEntry } from '../types'
 import { pickDisplayTags } from '../lib/tags'
+import { useTextOverflow } from '../hooks/useTextOverflow'
 
 interface JournalItemProps {
   entry: JournalEntry
@@ -12,6 +13,7 @@ interface JournalItemProps {
 export function JournalItem({ entry, isSelected, onClick, onContextMenu }: JournalItemProps) {
   const tags = pickDisplayTags(entry.tags, Infinity)
   const ref = useRef<HTMLDivElement>(null)
+  const [titleRef, titleOverflow] = useTextOverflow<HTMLDivElement>()
 
   useEffect(() => {
     if (isSelected) {
@@ -44,6 +46,8 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
     >
       {/* Title */}
       <div
+        ref={titleRef}
+        title={titleOverflow ? entry.title : undefined}
         style={{
           fontSize: 'var(--text-base)',
           fontWeight: 'var(--font-semibold)',

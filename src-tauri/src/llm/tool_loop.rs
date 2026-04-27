@@ -1,3 +1,4 @@
+use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use super::bash_tool;
@@ -63,33 +64,39 @@ pub async fn run_agent(
             return Err(LlmError::Cancelled);
         }
 
-        // Collect text from this turn's streaming
+        let (tx, mut rx) = mpsc::unbounded_channel::<StreamEvent>();
         let turn_text = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
-        let turn_text_clone = turn_text.clone();
 
-        let on_event_clone = on_event.clone();
-        let stream_callback: Box<dyn Fn(StreamEvent) + Send> = {
-            let turn_text = turn_text_clone;
-            Box::new(move |evt: StreamEvent| {
-                if let StreamEvent::TextDelta(text) = &evt {
-                    if let Ok(mut t) = turn_text.lock() {
-                        t.push_str(text);
+        // Spawn consumer task to drain stream events
+        let consumer = {
+            let turn_text = turn_text.clone();
+            let on_event = on_event.clone();
+            tokio::spawn(async move {
+                while let Some(evt) = rx.recv().await {
+                    match evt {
+                        StreamEvent::TextDelta(ref text) => {
+                            if let Ok(mut t) = turn_text.lock() {
+                                t.push_str(text);
+                            }
+                            on_event(AgentEvent::TextDelta(text.clone()));
+                        }
+                        StreamEvent::Error(e) => {
+                            eprintln!("[tool_loop] stream error: {}", e);
+                        }
+                        _ => {}
                     }
-                }
-                // Forward to external consumer
-                match evt {
-                    StreamEvent::TextDelta(t) => on_event_clone(AgentEvent::TextDelta(t)),
-                    StreamEvent::Error(e) => {
-                        eprintln!("[tool_loop] stream error: {}", e);
-                    }
-                    _ => {} // ToolUse events handled below after response
                 }
             })
         };
 
         let response = engine
-            .chat_stream(&messages, &tools, system_prompt, stream_callback)
-            .await?;
+            .chat_stream(&messages, &tools, system_prompt, tx)
+            .await;
+
+        // Wait for consumer to finish draining
+        let _ = consumer.await;
+
+        let response = response?;
 
         // Get accumulated text for this turn
         let turn_text_str = turn_text.lock().unwrap_or_else(|e| e.into_inner()).clone();
@@ -160,14 +167,10 @@ pub async fn run_agent(
                 return Ok(accumulated_text);
             }
             StopReason::PauseTurn => {
-                // API paused a long-running turn (e.g. multiple web searches).
-                // Re-send the conversation as-is so Claude can continue.
                 continue;
             }
             StopReason::ToolUse => {
                 if tool_calls.is_empty() {
-                    // No client-side tools to execute (server-side tools already handled).
-                    // Continue the loop so the LLM can proceed.
                     continue;
                 }
 
@@ -213,7 +216,6 @@ pub async fn run_agent(
                         match det.severity {
                             Severity::Warning => {
                                 eprintln!("[loop_detector] warning: {}", det.message);
-                                // Append warning to result so the LLM can self-correct
                                 results.push(ContentBlock::ToolResult {
                                     tool_use_id: id.clone(),
                                     content: format!(

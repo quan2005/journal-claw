@@ -134,7 +134,7 @@ export interface WebSearchResultItem {
 export type MessageBlock =
   | { type: 'text'; content: string }
   | { type: 'thinking'; content: string }
-  | { type: 'tool'; name: string; label: string; output?: string; isError?: boolean }
+  | { type: 'tool'; name: string; label: string; input?: Record<string, unknown>; output?: string; isError?: boolean }
   | { type: 'web_search'; query: string; results: WebSearchResultItem[] }
   | { type: 'error'; code: string; message: string; retryable: boolean }
   | { type: 'loop_warning'; message: string }
@@ -161,9 +161,12 @@ export interface ConversationStreamPayload {
     | 'error'
     | 'loop_warning'
     | 'truncated'
+    | 'compacted'
     | 'user_inject'
     | 'title'
     | 'turn_start'
     | 'usage'
   data: string
+  span_id?: string
+  parent_span_id?: string
 }

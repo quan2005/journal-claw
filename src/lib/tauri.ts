@@ -483,6 +483,15 @@ export const conversationLoad = (sessionId: string): Promise<LoadedMessage[]> =>
 export const conversationGetMessages = (sessionId: string): Promise<LoadedMessage[]> =>
   invoke<LoadedMessage[]>('conversation_get_messages', { sessionId })
 
+export interface SessionStats {
+  elapsed_secs: number
+  total_input_tokens: number
+  total_output_tokens: number
+}
+
+export const conversationGetStats = (sessionId: string): Promise<SessionStats> =>
+  invoke<SessionStats>('conversation_get_stats', { sessionId })
+
 // Models
 export const listModels = (engine: string, apiKey: string, baseUrl: string): Promise<string[]> =>
   invoke<string[]>('list_models', { engine, apiKey, baseUrl })

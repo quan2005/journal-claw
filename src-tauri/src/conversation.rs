@@ -42,6 +42,10 @@ pub(crate) struct ConversationSession {
     context: Option<String>,
     /// Stored from create() for deferred prompt building
     context_files: Option<Vec<String>>,
+    elapsed_secs: f64,
+    total_input_tokens: u64,
+    total_output_tokens: u64,
+    turn_started_at: Option<std::time::Instant>,
 }
 
 pub struct ConversationStore(pub Mutex<HashMap<String, ConversationSession>>);
@@ -86,6 +90,12 @@ struct PersistedSessionV2 {
     messages: Vec<Message>,
     #[serde(default)]
     system_prompt: Option<String>,
+    #[serde(default)]
+    elapsed_secs: f64,
+    #[serde(default)]
+    total_input_tokens: u64,
+    #[serde(default)]
+    total_output_tokens: u64,
 }
 
 /// V1 persistence (legacy) — kept only for deserializing old session files.
@@ -158,6 +168,9 @@ fn save_session_to_disk(workspace: &str, session_id: &str, session: &Conversatio
         version: 2,
         messages: session.messages.clone(),
         system_prompt: session.system_prompt.clone(),
+        elapsed_secs: session.elapsed_secs,
+        total_input_tokens: session.total_input_tokens,
+        total_output_tokens: session.total_output_tokens,
     };
 
     if let Ok(json) = serde_json::to_string_pretty(&persisted) {
@@ -475,6 +488,9 @@ fn migrate_v1_to_v2(v1: PersistedSessionV1) -> PersistedSessionV2 {
         version: 2,
         messages,
         system_prompt: v1.system_prompt,
+        elapsed_secs: 0.0,
+        total_input_tokens: 0,
+        total_output_tokens: 0,
     }
 }
 
@@ -528,10 +544,11 @@ pub async fn conversation_create(
         first_turn_done: false,
         context,
         context_files,
+        elapsed_secs: 0.0,
+        total_input_tokens: 0,
+        total_output_tokens: 0,
+        turn_started_at: None,
     };
-
-    let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
-    sessions.insert(session_id.clone(), session);
 
     eprintln!(
         "[conversation] created session {} mode={:?}",
@@ -699,6 +716,7 @@ pub async fn conversation_send(
 
         let cancel = CancellationToken::new();
         session.cancel = Some(cancel.clone());
+        session.turn_started_at = Some(std::time::Instant::now());
 
         (
             session.messages.clone(),
@@ -743,10 +761,23 @@ pub async fn conversation_send(
         // Update session messages under lock via app state
         let store = app_clone.state::<ConversationStore>();
         match result {
-            Ok(updated_messages) => {
-                let (workspace, should_gen_title, first_user, first_assistant) = {
+            Ok((updated_messages, ti, to)) => {
+                let (
+                    workspace,
+                    should_gen_title,
+                    first_user,
+                    first_assistant,
+                    ws_elapsed,
+                    ws_input,
+                    ws_output,
+                ) = {
                     let mut guard = store.0.lock().unwrap_or_else(|e| e.into_inner());
                     if let Some(session) = guard.get_mut(&sid) {
+                        if let Some(started) = session.turn_started_at.take() {
+                            session.elapsed_secs += started.elapsed().as_secs_f64();
+                        }
+                        session.total_input_tokens += ti;
+                        session.total_output_tokens += to;
                         session.messages = updated_messages;
                         session.cancel = None;
                         let should_gen = !session.first_turn_done && !session.title_locked;
@@ -781,11 +812,41 @@ pub async fn conversation_send(
                             })
                             .unwrap_or_default();
                         save_session_to_disk(&session.workspace, &sid, session);
-                        (session.workspace.clone(), should_gen, first_u, first_a)
+                        (
+                            session.workspace.clone(),
+                            should_gen,
+                            first_u,
+                            first_a,
+                            session.elapsed_secs,
+                            session.total_input_tokens,
+                            session.total_output_tokens,
+                        )
                     } else {
-                        (String::new(), false, String::new(), String::new())
+                        (
+                            String::new(),
+                            false,
+                            String::new(),
+                            String::new(),
+                            0.0,
+                            0,
+                            0,
+                        )
                     }
                 };
+
+                let _ = app_clone.emit(
+                    "conversation-stream",
+                    ConversationStreamPayload {
+                        session_id: sid.clone(),
+                        event: "done".to_string(),
+                        data: serde_json::json!({
+                            "elapsed_secs": ws_elapsed,
+                            "total_input_tokens": ws_input,
+                            "total_output_tokens": ws_output,
+                        })
+                        .to_string(),
+                    },
+                );
 
                 // Generate title asynchronously after first turn
                 if should_gen_title && !first_user.is_empty() {
@@ -824,7 +885,7 @@ pub async fn conversation_send(
                     }
                 }
             }
-            Err((e, partial_messages)) => {
+            Err((e, partial_messages, ti, to)) => {
                 let error_data = e.error_info().to_string();
                 let _ = app_clone.emit(
                     "conversation-stream",
@@ -834,21 +895,38 @@ pub async fn conversation_send(
                         data: error_data,
                     },
                 );
+                let done_data = {
+                    if let Ok(mut sessions) = store.0.lock() {
+                        if let Some(session) = sessions.get_mut(&sid) {
+                            if let Some(started) = session.turn_started_at.take() {
+                                session.elapsed_secs += started.elapsed().as_secs_f64();
+                            }
+                            session.total_input_tokens += ti;
+                            session.total_output_tokens += to;
+                            session.messages = partial_messages;
+                            session.cancel = None;
+                            save_session_to_disk(&session.workspace, &sid, session);
+                            serde_json::json!({
+                                "elapsed_secs": session.elapsed_secs,
+                                "total_input_tokens": session.total_input_tokens,
+                                "total_output_tokens": session.total_output_tokens,
+                            })
+                            .to_string()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    }
+                };
                 let _ = app_clone.emit(
                     "conversation-stream",
                     ConversationStreamPayload {
                         session_id: sid.clone(),
                         event: "done".to_string(),
-                        data: String::new(),
+                        data: done_data,
                     },
                 );
-                if let Ok(mut sessions) = store.0.lock() {
-                    if let Some(session) = sessions.get_mut(&sid) {
-                        session.messages = partial_messages;
-                        session.cancel = None;
-                        save_session_to_disk(&session.workspace, &sid, session);
-                    }
-                }
             }
         }
     });
@@ -1032,6 +1110,7 @@ async fn conversation_continue(
 
         let cancel = CancellationToken::new();
         session.cancel = Some(cancel.clone());
+        session.turn_started_at = Some(std::time::Instant::now());
 
         (
             session.messages.clone(),
@@ -1061,24 +1140,41 @@ async fn conversation_continue(
 
         let store = app_clone.state::<ConversationStore>();
         match result {
-            Ok(updated_messages) => {
-                if let Ok(mut guard) = store.0.lock() {
-                    if let Some(session) = guard.get_mut(&sid) {
-                        session.messages = updated_messages;
-                        session.cancel = None;
-                        save_session_to_disk(&session.workspace, &sid, session);
+            Ok((updated_messages, ti, to)) => {
+                let done_data = {
+                    if let Ok(mut guard) = store.0.lock() {
+                        if let Some(session) = guard.get_mut(&sid) {
+                            if let Some(started) = session.turn_started_at.take() {
+                                session.elapsed_secs += started.elapsed().as_secs_f64();
+                            }
+                            session.total_input_tokens += ti;
+                            session.total_output_tokens += to;
+                            session.messages = updated_messages;
+                            session.cancel = None;
+                            save_session_to_disk(&session.workspace, &sid, session);
+                            serde_json::json!({
+                                "elapsed_secs": session.elapsed_secs,
+                                "total_input_tokens": session.total_input_tokens,
+                                "total_output_tokens": session.total_output_tokens,
+                            })
+                            .to_string()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
                     }
-                }
+                };
                 let _ = app_clone.emit(
                     "conversation-stream",
                     ConversationStreamPayload {
                         session_id: sid,
                         event: "done".to_string(),
-                        data: String::new(),
+                        data: done_data,
                     },
                 );
             }
-            Err((e, partial_messages)) => {
+            Err((e, partial_messages, ti, to)) => {
                 let error_data = e.error_info().to_string();
                 let _ = app_clone.emit(
                     "conversation-stream",
@@ -1088,26 +1184,68 @@ async fn conversation_continue(
                         data: error_data,
                     },
                 );
+                let done_data = {
+                    if let Ok(mut guard) = store.0.lock() {
+                        if let Some(session) = guard.get_mut(&sid) {
+                            if let Some(started) = session.turn_started_at.take() {
+                                session.elapsed_secs += started.elapsed().as_secs_f64();
+                            }
+                            session.total_input_tokens += ti;
+                            session.total_output_tokens += to;
+                            session.messages = partial_messages;
+                            session.cancel = None;
+                            save_session_to_disk(&session.workspace, &sid, session);
+                            serde_json::json!({
+                                "elapsed_secs": session.elapsed_secs,
+                                "total_input_tokens": session.total_input_tokens,
+                                "total_output_tokens": session.total_output_tokens,
+                            })
+                            .to_string()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    }
+                };
                 let _ = app_clone.emit(
                     "conversation-stream",
                     ConversationStreamPayload {
                         session_id: sid.clone(),
                         event: "done".to_string(),
-                        data: String::new(),
+                        data: done_data,
                     },
                 );
-                if let Ok(mut guard) = store.0.lock() {
-                    if let Some(session) = guard.get_mut(&sid) {
-                        session.messages = partial_messages;
-                        session.cancel = None;
-                        save_session_to_disk(&session.workspace, &sid, session);
-                    }
-                }
             }
         }
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn conversation_get_stats(
+    app: AppHandle,
+    store: tauri::State<'_, ConversationStore>,
+    session_id: String,
+) -> Result<serde_json::Value, String> {
+    {
+        let sessions = store.0.lock().map_err(|e| e.to_string())?;
+        if let Some(session) = sessions.get(&session_id) {
+            return Ok(serde_json::json!({
+                "elapsed_secs": session.elapsed_secs,
+                "total_input_tokens": session.total_input_tokens,
+                "total_output_tokens": session.total_output_tokens,
+            }));
+        }
+    }
+    let cfg = config::load_config(&app)?;
+    let persisted = load_persisted_session(&cfg.workspace_path, &session_id)?;
+    Ok(serde_json::json!({
+        "elapsed_secs": persisted.elapsed_secs,
+        "total_input_tokens": persisted.total_input_tokens,
+        "total_output_tokens": persisted.total_output_tokens,
+    }))
 }
 
 #[tauri::command]
@@ -1274,12 +1412,11 @@ pub async fn conversation_load(
         first_turn_done: true,
         context: None,
         context_files: None,
+        elapsed_secs: persisted.elapsed_secs,
+        total_input_tokens: persisted.total_input_tokens,
+        total_output_tokens: persisted.total_output_tokens,
+        turn_started_at: None,
     };
-
-    {
-        let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
-        sessions.insert(session_id.clone(), session);
-    }
 
     eprintln!(
         "[conversation] loaded session {} ({} messages)",
@@ -1303,7 +1440,7 @@ async fn run_conversation_turn(
     session_id: &str,
     app: &AppHandle,
     cancel: CancellationToken,
-) -> Result<Vec<Message>, (llm::types::LlmError, Vec<Message>)> {
+) -> Result<(Vec<Message>, u64, u64), (llm::types::LlmError, Vec<Message>, u64, u64)> {
     let tools = match mode {
         SessionMode::Agent => {
             let skills = llm::prompt::scan_skills(workspace).await;
@@ -1324,10 +1461,17 @@ async fn run_conversation_turn(
 
     let sid = session_id.to_string();
     let mut loop_detector = LoopDetector::new();
+    let mut turn_input_tokens: u64 = 0;
+    let mut turn_output_tokens: u64 = 0;
 
     for _turn in 0..max_turns {
         if cancel.is_cancelled() {
-            return Err((llm::types::LlmError::Cancelled, messages));
+            return Err((
+                llm::types::LlmError::Cancelled,
+                messages,
+                turn_input_tokens,
+                turn_output_tokens,
+            ));
         }
 
         // Signal frontend to start a new assistant message for this turn
@@ -1348,63 +1492,60 @@ async fn run_conversation_turn(
         let app_for_stream = app.clone();
         let sid_for_stream = sid.clone();
 
-        let stream_callback: Box<dyn Fn(llm::types::StreamEvent) + Send> = {
+        let stream_callback = {
             let turn_text = turn_text_clone;
             let turn_thinking = turn_thinking_clone;
             let cancel_for_stream = cancel.clone();
-            Box::new(move |evt| {
-                if cancel_for_stream.is_cancelled() {
-                    return;
-                }
-
-                match &evt {
-                    llm::types::StreamEvent::TextDelta(ref text) => {
-                        if let Ok(mut t) = turn_text.lock() {
-                            t.push_str(text);
+            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+            let app_s = app_for_stream;
+            let sid_s = sid_for_stream;
+            tokio::spawn(async move {
+                while let Some(evt) = rx.recv().await {
+                    if cancel_for_stream.is_cancelled() {
+                        continue;
+                    }
+                    match &evt {
+                        llm::types::StreamEvent::TextDelta(ref text) => {
+                            if let Ok(mut t) = turn_text.lock() {
+                                t.push_str(text);
+                            }
+                            let _ = app_s.emit(
+                                "conversation-stream",
+                                ConversationStreamPayload {
+                                    session_id: sid_s.clone(),
+                                    event: "text_delta".to_string(),
+                                    data: text.clone(),
+                                },
+                            );
                         }
-                        let _ = app_for_stream.emit(
-                            "conversation-stream",
-                            ConversationStreamPayload {
-                                session_id: sid_for_stream.clone(),
-                                event: "text_delta".to_string(),
-                                data: text.clone(),
-                            },
-                        );
-                    }
-                    llm::types::StreamEvent::ThinkingDelta(ref text) => {
-                        if let Ok(mut t) = turn_thinking.lock() {
-                            t.push_str(text);
+                        llm::types::StreamEvent::ThinkingDelta(ref text) => {
+                            if let Ok(mut t) = turn_thinking.lock() {
+                                t.push_str(text);
+                            }
+                            let _ = app_s.emit(
+                                "conversation-stream",
+                                ConversationStreamPayload {
+                                    session_id: sid_s.clone(),
+                                    event: "thinking_delta".to_string(),
+                                    data: text.clone(),
+                                },
+                            );
                         }
-                        let _ = app_for_stream.emit(
-                            "conversation-stream",
-                            ConversationStreamPayload {
-                                session_id: sid_for_stream.clone(),
-                                event: "thinking_delta".to_string(),
-                                data: text.clone(),
-                            },
-                        );
+                        llm::types::StreamEvent::WebSearchResult(ref val) => {
+                            let _ = app_s.emit(
+                                "conversation-stream",
+                                ConversationStreamPayload {
+                                    session_id: sid_s.clone(),
+                                    event: "web_search_result".to_string(),
+                                    data: val.to_string(),
+                                },
+                            );
+                        }
+                        _ => {}
                     }
-                    llm::types::StreamEvent::ToolUseStart { .. } => {
-                        // Client-side tools (bash) have their own emit path in the execution loop.
-                        // Server-side tools (web_search) emit WebSearchResult handled below.
-                        // No action needed here.
-                    }
-                    llm::types::StreamEvent::ToolUseEnd { .. } => {
-                        // Same as above — no action needed.
-                    }
-                    llm::types::StreamEvent::WebSearchResult(ref val) => {
-                        let _ = app_for_stream.emit(
-                            "conversation-stream",
-                            ConversationStreamPayload {
-                                session_id: sid_for_stream.clone(),
-                                event: "web_search_result".to_string(),
-                                data: val.to_string(),
-                            },
-                        );
-                    }
-                    _ => {}
                 }
-            })
+            });
+            tx
         };
 
         let response = match engine
@@ -1412,13 +1553,15 @@ async fn run_conversation_turn(
             .await
         {
             Ok(r) => r,
-            Err(e) => return Err((e, messages)),
+            Err(e) => return Err((e, messages, turn_input_tokens, turn_output_tokens)),
         };
 
         let turn_text_str = turn_text.lock().unwrap_or_else(|e| e.into_inner()).clone();
 
         // Emit usage for this turn
         if let Some(ref usage) = response.usage {
+            turn_input_tokens += usage.input_tokens as u64;
+            turn_output_tokens += usage.output_tokens as u64;
             let _ = app.emit(
                 "conversation-stream",
                 ConversationStreamPayload {
@@ -1530,15 +1673,7 @@ async fn run_conversation_turn(
                     );
                     continue;
                 }
-                let _ = app.emit(
-                    "conversation-stream",
-                    ConversationStreamPayload {
-                        session_id: sid.clone(),
-                        event: "done".to_string(),
-                        data: String::new(),
-                    },
-                );
-                return Ok(messages);
+                return Ok((messages, turn_input_tokens, turn_output_tokens));
             }
             llm::types::StopReason::PauseTurn => {
                 // API paused a long-running turn; re-send to continue.
@@ -1546,22 +1681,19 @@ async fn run_conversation_turn(
             }
             llm::types::StopReason::ToolUse => {
                 if tool_calls.is_empty() {
-                    let _ = app.emit(
-                        "conversation-stream",
-                        ConversationStreamPayload {
-                            session_id: sid.clone(),
-                            event: "done".to_string(),
-                            data: String::new(),
-                        },
-                    );
-                    return Ok(messages);
+                    return Ok((messages, turn_input_tokens, turn_output_tokens));
                 }
 
                 // Execute tools
                 let mut results: Vec<ContentBlock> = Vec::new();
                 for (id, name, input) in &tool_calls {
                     if cancel.is_cancelled() {
-                        return Err((llm::types::LlmError::Cancelled, messages));
+                        return Err((
+                            llm::types::LlmError::Cancelled,
+                            messages,
+                            turn_input_tokens,
+                            turn_output_tokens,
+                        ));
                     }
 
                     let label = match name.as_str() {
@@ -1665,6 +1797,8 @@ async fn run_conversation_turn(
                                 return Err((
                                     llm::types::LlmError::LoopDetected(det.message),
                                     messages,
+                                    turn_input_tokens,
+                                    turn_output_tokens,
                                 ));
                             }
                         }
@@ -1715,7 +1849,12 @@ async fn run_conversation_turn(
         }
     }
 
-    Err((llm::types::LlmError::MaxTurnsExceeded, messages))
+    Err((
+        llm::types::LlmError::MaxTurnsExceeded,
+        messages,
+        turn_input_tokens,
+        turn_output_tokens,
+    ))
 }
 
 /// Generate a short title from the first user+assistant exchange.
@@ -1736,14 +1875,17 @@ async fn generate_title(
     let system = "你是一个标题生成器。只输出简短的中文标题，不超过8个字。";
     let accumulated = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
     let acc_clone = accumulated.clone();
-    let on_event: Box<dyn Fn(llm::types::StreamEvent) + Send> = Box::new(move |event| {
-        if let llm::types::StreamEvent::TextDelta(text) = event {
-            if let Ok(mut buf) = acc_clone.lock() {
-                buf.push_str(&text);
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        while let Some(event) = rx.recv().await {
+            if let llm::types::StreamEvent::TextDelta(text) = event {
+                if let Ok(mut buf) = acc_clone.lock() {
+                    buf.push_str(&text);
+                }
             }
         }
     });
-    match engine.chat_stream(&messages, &[], system, on_event).await {
+    match engine.chat_stream(&messages, &[], system, tx).await {
         Ok(_resp) => {
             let text = accumulated.lock().map(|b| b.clone()).unwrap_or_default();
             let title = text.trim().trim_matches('"').trim().to_string();

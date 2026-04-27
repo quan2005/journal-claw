@@ -126,8 +126,9 @@
 .md-content th,
 .md-content td {
   border: 0.5px solid var(--md-quote-bar);
-  padding: 0.35em 0.6em;
+  padding: 0.3em 0.75em;
   text-align: left;
+  vertical-align: top;
 }
 .md-content th {
   font-weight: var(--font-semibold, 600);
@@ -135,6 +136,24 @@
 }
 .md-content tr:nth-child(even) td {
   background: var(--md-pre-bg);
+}
+
+/* Tool diff preview */
+.tool-diff-removed {
+  color: var(--status-danger, #ff453a);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool-diff-added {
+  color: var(--status-success, #30d158);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Strong / Em */

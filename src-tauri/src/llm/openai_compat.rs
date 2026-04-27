@@ -5,14 +5,13 @@ use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::mpsc;
 
 use super::model_quirks;
 use super::retry::{self, RetryPolicy};
 use super::sse_parser::{self, SseParser};
 use super::types::*;
 use super::LlmEngine;
-
-type EventCallback = Arc<std::sync::Mutex<Box<dyn Fn(StreamEvent) + Send>>>;
 
 const REQUEST_ID_HEADER: &str = "request-id";
 const ALT_REQUEST_ID_HEADER: &str = "x-request-id";
@@ -90,7 +89,7 @@ impl LlmEngine for OpenAiCompatEngine {
         messages: &[Message],
         tools: &[ToolDefinition],
         system: &str,
-        on_event: Box<dyn Fn(StreamEvent) + Send>,
+        event_tx: mpsc::UnboundedSender<StreamEvent>,
     ) -> Result<AssistantResponse, LlmError> {
         let mut sanitized = messages.to_vec();
         sanitize_tool_message_pairing(&mut sanitized);
@@ -99,30 +98,27 @@ impl LlmEngine for OpenAiCompatEngine {
         check_request_body_size(&body, &self.base_url)?;
 
         let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
-        let on_event: EventCallback = Arc::new(std::sync::Mutex::new(on_event));
 
         retry::run_with_retry(
             &self.retry_policy,
             |events_emitted| {
                 let url = url.clone();
                 let body = body.clone();
-                let on_event = on_event.clone();
+                let tx = event_tx.clone();
                 let client = self.client.clone();
                 let api_key = self.api_key.clone();
                 async move {
-                    single_request(&client, &api_key, &url, &body, &on_event, &events_emitted).await
+                    single_request(&client, &api_key, &url, &body, &tx, &events_emitted).await
                 }
             },
             |attempt, max, delay, err| {
-                if let Ok(cb) = on_event.lock() {
-                    (cb)(StreamEvent::Error(format!(
-                        "重试 {}/{}（{}s 后）: {}",
-                        attempt,
-                        max,
-                        delay.as_secs(),
-                        err
-                    )));
-                }
+                let _ = event_tx.send(StreamEvent::Error(format!(
+                    "重试 {}/{}（{}s 后）: {}",
+                    attempt,
+                    max,
+                    delay.as_secs(),
+                    err
+                )));
             },
         )
         .await
@@ -134,7 +130,7 @@ async fn single_request(
     api_key: &str,
     url: &str,
     body: &Value,
-    on_event: &EventCallback,
+    event_tx: &mpsc::UnboundedSender<StreamEvent>,
     events_emitted: &Arc<AtomicBool>,
 ) -> Result<AssistantResponse, LlmError> {
     let response = client
@@ -160,7 +156,7 @@ async fn single_request(
         });
     }
 
-    parse_openai_sse_stream(response, on_event, events_emitted).await
+    parse_openai_sse_stream(response, event_tx, events_emitted).await
 }
 
 fn extract_request_id(response: &reqwest::Response) -> Option<String> {
@@ -518,7 +514,7 @@ struct ToolCallAccumulator {
 
 async fn parse_openai_sse_stream(
     response: reqwest::Response,
-    on_event: &EventCallback,
+    event_tx: &mpsc::UnboundedSender<StreamEvent>,
     events_emitted: &Arc<AtomicBool>,
 ) -> Result<AssistantResponse, LlmError> {
     use futures::StreamExt;
@@ -536,6 +532,11 @@ async fn parse_openai_sse_stream(
 
     let mut parser = SseParser::new();
     let mut stream = response.bytes_stream();
+
+    let emit = |evt: StreamEvent| {
+        events_emitted.store(true, Ordering::SeqCst);
+        let _ = event_tx.send(evt);
+    };
 
     loop {
         let chunk = match timeout(CHUNK_TIMEOUT, stream.next()).await {
@@ -559,9 +560,7 @@ async fn parse_openai_sse_stream(
 
             // Stage 2: Detect error objects in SSE data
             if let Some((error_msg, retryable)) = sse_parser::detect_error_in_data(data) {
-                if let Ok(cb) = on_event.lock() {
-                    (cb)(StreamEvent::Error(error_msg.clone()));
-                }
+                emit(StreamEvent::Error(error_msg.clone()));
                 return Err(LlmError::Api {
                     status: 0,
                     message: error_msg,
@@ -603,21 +602,15 @@ async fn parse_openai_sse_stream(
 
                 if let Some(ref text) = delta.content {
                     if !text.is_empty() {
-                        events_emitted.store(true, Ordering::SeqCst);
                         state.text_content.push_str(text);
-                        if let Ok(cb) = on_event.lock() {
-                            (cb)(StreamEvent::TextDelta(text.clone()));
-                        }
+                        emit(StreamEvent::TextDelta(text.clone()));
                     }
                 }
 
                 if let Some(ref reasoning) = delta.reasoning_content {
                     if !reasoning.is_empty() {
-                        events_emitted.store(true, Ordering::SeqCst);
                         state.thinking_text.push_str(reasoning);
-                        if let Ok(cb) = on_event.lock() {
-                            (cb)(StreamEvent::ThinkingDelta(reasoning.clone()));
-                        }
+                        emit(StreamEvent::ThinkingDelta(reasoning.clone()));
                     }
                 }
 
@@ -645,21 +638,17 @@ async fn parse_openai_sse_stream(
                         if let Some(ref func) = tc_delta.function {
                             if let Some(ref name) = func.name {
                                 acc.name = name.clone();
-                                if let Ok(cb) = on_event.lock() {
-                                    (cb)(StreamEvent::ToolUseStart {
-                                        id: acc.id.clone(),
-                                        name: name.clone(),
-                                    });
-                                }
+                                emit(StreamEvent::ToolUseStart {
+                                    id: acc.id.clone(),
+                                    name: name.clone(),
+                                });
                             }
                             if let Some(ref args) = func.arguments {
                                 acc.arguments_json.push_str(args);
-                                if let Ok(cb) = on_event.lock() {
-                                    (cb)(StreamEvent::ToolUseDelta {
-                                        id: acc.id.clone(),
-                                        input_json_delta: args.clone(),
-                                    });
-                                }
+                                emit(StreamEvent::ToolUseDelta {
+                                    id: acc.id.clone(),
+                                    input_json_delta: args.clone(),
+                                });
                             }
                         }
                     }
@@ -671,9 +660,7 @@ async fn parse_openai_sse_stream(
     // Emit ToolUseEnd for all accumulated tool calls
     for tc in &state.tool_calls {
         if !tc.id.is_empty() {
-            if let Ok(cb) = on_event.lock() {
-                (cb)(StreamEvent::ToolUseEnd { id: tc.id.clone() });
-            }
+            emit(StreamEvent::ToolUseEnd { id: tc.id.clone() });
         }
     }
 
@@ -710,11 +697,9 @@ async fn parse_openai_sse_stream(
         state.stop_reason = StopReason::ToolUse;
     }
 
-    if let Ok(cb) = on_event.lock() {
-        (cb)(StreamEvent::MessageEnd {
-            usage: Some(state.usage.clone()),
-        });
-    }
+    emit(StreamEvent::MessageEnd {
+        usage: Some(state.usage.clone()),
+    });
 
     Ok(AssistantResponse {
         content: content_blocks,

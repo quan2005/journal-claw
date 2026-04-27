@@ -67,6 +67,26 @@
   }
 }
 
+/* AI Status Pill — failed state shake: single 400ms */
+@keyframes ai-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-3px);
+  }
+  40% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
 /* Mic button ripple — outward fading ring: 2.5s */
 @keyframes mic-ripple {
   0% {

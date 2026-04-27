@@ -327,6 +327,7 @@ fn main() {
             conversation::conversation_delete,
             conversation::conversation_load,
             conversation::conversation_get_messages,
+            conversation::conversation_get_stats,
             workspace_settings::get_auto_lint_config,
             workspace_settings::set_auto_lint_config,
             auto_lint::get_auto_lint_status,

@@ -327,6 +327,7 @@ export const DetailPanel = React.memo(function DetailPanel({
   onVisualDesign,
 }: DetailPanelProps) {
   const [content, setContent] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const [showFind, setShowFind] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
@@ -334,13 +335,17 @@ export const DetailPanel = React.memo(function DetailPanel({
   useEffect(() => {
     if (!entry) {
       setContent(null)
+      setLoading(false)
       return
     }
-    setContent(null)
     CSS.highlights?.delete('search-result')
     CSS.highlights?.delete('search-current')
     setShowFind(false)
-    getJournalEntryContent(entry.path).then(setContent)
+    setLoading(true)
+    getJournalEntryContent(entry.path).then((c) => {
+      setContent(c)
+      setLoading(false)
+    })
   }, [entry?.path, entry?.mtime_secs])
 
   // Show/hide context menu imperatively — no state, no re-render, no selection loss
@@ -1132,12 +1137,30 @@ export const DetailPanel = React.memo(function DetailPanel({
         </div>
 
         {/* Markdown content */}
-        {content === null ? (
+        {content === null && !loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
             <Spinner size={20} />
           </div>
         ) : (
-          markdownNode
+          <div style={{ position: 'relative' }}>
+            {loading && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  paddingTop: 24,
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 1,
+                }}
+              >
+                <Spinner size={20} />
+              </div>
+            )}
+            <div style={{ opacity: loading ? 0.3 : 1, transition: 'opacity 0.15s ease-out' }}>
+              {markdownNode}
+            </div>
+          </div>
         )}
       </div>
 

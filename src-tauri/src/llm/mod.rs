@@ -13,6 +13,7 @@ pub mod tool_loop;
 pub mod types;
 
 use async_trait::async_trait;
+use tokio::sync::mpsc;
 use types::{AssistantResponse, LlmError, Message, StreamEvent, ToolDefinition};
 
 // ── Engine trait ────────────────────────────────
@@ -24,7 +25,7 @@ pub trait LlmEngine: Send + Sync {
         messages: &[Message],
         tools: &[ToolDefinition],
         system: &str,
-        on_event: Box<dyn Fn(StreamEvent) + Send>,
+        event_tx: mpsc::UnboundedSender<StreamEvent>,
     ) -> Result<AssistantResponse, LlmError>;
 }
 

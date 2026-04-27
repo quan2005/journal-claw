@@ -27,6 +27,11 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* ── Conversation layout tokens ────────────────── */
+  --conv-avatar-size: 28px;
+  --conv-bubble-max-width: 85%;
+  --conv-gap: 12px;
+
   /* ── Spacing tokens ────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;

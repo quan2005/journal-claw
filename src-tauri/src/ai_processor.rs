@@ -607,7 +607,12 @@ async fn process_material_builtin(
     };
 
     // Build system prompt
-    let system_prompt = llm::prompt::build_system_prompt(&workspace, WORKSPACE_CLAUDE_MD).await;
+    let system_prompt = llm::prompt::build_system_prompt(
+        &workspace,
+        WORKSPACE_CLAUDE_MD,
+        crate::workspace_settings::is_global_skills_enabled(&app),
+    )
+    .await;
 
     // Emit startup log
     let (_, _, active_model, _) = cfg.active_vendor_config();
@@ -723,10 +728,9 @@ async fn process_material_builtin(
             }
         },
         cancel_token,
+        crate::workspace_settings::is_global_skills_enabled(&app),
     )
     .await;
-
-    // Clear current task
     {
         let mut guard = lock_current_task(&current_task.0);
         *guard = None;

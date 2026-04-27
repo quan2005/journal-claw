@@ -337,6 +337,8 @@ fn main() {
             config::get_feishu_status,
             skills::list_skills,
             skills::open_skills_dir,
+            workspace_settings::get_global_skills_enabled,
+            workspace_settings::set_global_skills_enabled,
             work_queue::enqueue_work,
             work_queue::list_work_queue,
             work_queue::cancel_work_item,

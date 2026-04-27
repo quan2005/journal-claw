@@ -339,7 +339,7 @@ pub async fn run_lint(app: &AppHandle, workspace: &str, force: bool) {
 }
 
 async fn run_lint_builtin(
-    _app: &AppHandle,
+    app: &AppHandle,
     cfg: &config::Config,
     workspace: &str,
 ) -> Result<(), String> {
@@ -347,8 +347,13 @@ async fn run_lint_builtin(
     let engine: Box<dyn llm::LlmEngine> =
         llm::create_engine_for_provider(api_key, base_url, model, protocol);
 
-    let system_prompt =
-        llm::prompt::build_system_prompt(workspace, crate::ai_processor::WORKSPACE_CLAUDE_MD).await;
+    let global_skills = crate::workspace_settings::is_global_skills_enabled(app);
+    let system_prompt = llm::prompt::build_system_prompt(
+        workspace,
+        crate::ai_processor::WORKSPACE_CLAUDE_MD,
+        global_skills,
+    )
+    .await;
 
     let cancel = tokio_util::sync::CancellationToken::new();
 
@@ -361,6 +366,7 @@ async fn run_lint_builtin(
             // Auto-lint runs silently; no UI events needed
         },
         cancel,
+        global_skills,
     )
     .await
     .map(|_| ())

@@ -18,7 +18,11 @@ fn get_macos_version() -> String {
 /// 3. Recent entry summaries (via recent-summaries script)
 /// 4. Available skills list
 /// 5. identity/README.md (user's own profile)
-pub async fn build_system_prompt(workspace_path: &str, workspace_claude_md: &str) -> String {
+pub async fn build_system_prompt(
+    workspace_path: &str,
+    workspace_claude_md: &str,
+    global_skills_enabled: bool,
+) -> String {
     let mut parts: Vec<String> = Vec::new();
 
     // 0. Environment context
@@ -52,7 +56,7 @@ pub async fn build_system_prompt(workspace_path: &str, workspace_claude_md: &str
     }
 
     // 4. Available skills — details are in the load_skill tool definition
-    let skills = scan_skills(workspace_path).await;
+    let skills = scan_skills(workspace_path, global_skills_enabled).await;
     if !skills.is_empty() {
         parts.push("\n## 可用 Skills\n\n当用户提到 /skill-name 或你判断需要某个 skill 时，调用 load_skill 工具加载其规则。".to_string());
     }
@@ -103,16 +107,21 @@ async fn run_workspace_script(workspace_path: &str, script: &str, args: &[&str])
 }
 
 /// Scan workspace and global skill directories, return (dir_name, description) pairs.
-pub async fn scan_skills(workspace_path: &str) -> Vec<(String, String)> {
+pub async fn scan_skills(
+    workspace_path: &str,
+    global_skills_enabled: bool,
+) -> Vec<(String, String)> {
     let mut skills = Vec::new();
 
-    let dirs = vec![
-        PathBuf::from(workspace_path).join(".claude").join("skills"),
-        dirs::home_dir()
-            .unwrap_or_default()
-            .join(".claude")
-            .join("skills"),
-    ];
+    let mut dirs = vec![PathBuf::from(workspace_path).join(".claude").join("skills")];
+    if global_skills_enabled {
+        dirs.push(
+            dirs::home_dir()
+                .unwrap_or_default()
+                .join(".claude")
+                .join("skills"),
+        );
+    }
 
     for dir in dirs {
         let mut entries = match tokio::fs::read_dir(&dir).await {

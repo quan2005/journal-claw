@@ -125,10 +125,12 @@ pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
         all_skills.extend(scan_skills_dir(&project_skills_dir, "project"));
     }
 
-    // 2. Global skills: ~/.claude/skills/
-    if let Some(home) = dirs::home_dir() {
-        let global_skills_dir = home.join(".claude").join("skills");
-        all_skills.extend(scan_skills_dir(&global_skills_dir, "global"));
+    // 2. Global skills: ~/.claude/skills/ (only when enabled)
+    if crate::workspace_settings::is_global_skills_enabled(&app) {
+        if let Some(home) = dirs::home_dir() {
+            let global_skills_dir = home.join(".claude").join("skills");
+            all_skills.extend(scan_skills_dir(&global_skills_dir, "global"));
+        }
     }
 
     Ok(all_skills)

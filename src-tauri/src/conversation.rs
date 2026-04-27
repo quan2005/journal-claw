@@ -606,9 +606,13 @@ pub async fn conversation_send(
             )
         };
 
-        let base_system =
-            llm::prompt::build_system_prompt(&workspace, crate::ai_processor::WORKSPACE_CLAUDE_MD)
-                .await;
+        let global_skills = crate::workspace_settings::is_global_skills_enabled(&app);
+        let base_system = llm::prompt::build_system_prompt(
+            &workspace,
+            crate::ai_processor::WORKSPACE_CLAUDE_MD,
+            global_skills,
+        )
+        .await;
 
         let context_section = ctx_files
             .as_ref()
@@ -761,6 +765,7 @@ pub async fn conversation_send(
             &sid,
             &app_clone,
             cancel_token.clone(),
+            crate::workspace_settings::is_global_skills_enabled(&app_clone),
         )
         .await;
 
@@ -1141,6 +1146,7 @@ async fn conversation_continue(
             &sid,
             &app_clone,
             cancel_token,
+            crate::workspace_settings::is_global_skills_enabled(&app_clone),
         )
         .await;
 
@@ -1383,9 +1389,13 @@ pub async fn conversation_load(
     let system_prompt = if let Some(ref sp) = persisted.system_prompt {
         sp.clone()
     } else {
-        let base_system =
-            llm::prompt::build_system_prompt(&workspace, crate::ai_processor::WORKSPACE_CLAUDE_MD)
-                .await;
+        let global_skills = crate::workspace_settings::is_global_skills_enabled(&app);
+        let base_system = llm::prompt::build_system_prompt(
+            &workspace,
+            crate::ai_processor::WORKSPACE_CLAUDE_MD,
+            global_skills,
+        )
+        .await;
         match persisted.mode {
             SessionMode::Chat => {
                 format!(
@@ -1452,10 +1462,11 @@ async fn run_conversation_turn(
     session_id: &str,
     app: &AppHandle,
     cancel: CancellationToken,
+    global_skills: bool,
 ) -> Result<(Vec<Message>, u64, u64), (llm::types::LlmError, Vec<Message>, u64, u64)> {
     let tools = match mode {
         SessionMode::Agent => {
-            let skills = llm::prompt::scan_skills(workspace).await;
+            let skills = llm::prompt::scan_skills(workspace, global_skills).await;
             let mut t = vec![
                 llm::bash_tool::definition(),
                 llm::enable_skill::definition(&skills),

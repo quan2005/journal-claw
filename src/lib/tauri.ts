@@ -375,6 +375,13 @@ export const getAutoLintStatus = (): Promise<AutoLintStatus> =>
 
 export const triggerLintNow = (): Promise<void> => invoke<void>('trigger_lint_now')
 
+// Global skills setting
+export const getGlobalSkillsEnabled = (): Promise<boolean> =>
+  invoke<boolean>('get_global_skills_enabled')
+
+export const setGlobalSkillsEnabled = (enabled: boolean): Promise<void> =>
+  invoke<void>('set_global_skills_enabled', { enabled })
+
 // Feishu bridge
 export interface FeishuConfig {
   enabled: boolean

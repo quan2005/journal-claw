@@ -56,6 +56,8 @@ struct WorkspaceSettings {
     theme: String,
     #[serde(default, alias = "auto_dream")]
     auto_lint: AutoLintConfig,
+    #[serde(default)]
+    global_skills_enabled: bool,
 }
 
 impl Default for WorkspaceSettings {
@@ -63,6 +65,7 @@ impl Default for WorkspaceSettings {
         WorkspaceSettings {
             theme: default_theme(),
             auto_lint: AutoLintConfig::default(),
+            global_skills_enabled: false,
         }
     }
 }
@@ -153,6 +156,24 @@ pub fn get_workspace_path_for_auto_lint(app: &AppHandle) -> Result<String, Strin
 /// Load auto_lint config without going through Tauri command interface.
 pub fn load_auto_lint_config(app: &AppHandle) -> Result<AutoLintConfig, String> {
     Ok(load_settings(app)?.auto_lint)
+}
+
+#[tauri::command]
+pub fn get_global_skills_enabled(app: AppHandle) -> Result<bool, String> {
+    Ok(load_settings(&app)?.global_skills_enabled)
+}
+
+#[tauri::command]
+pub fn set_global_skills_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = load_settings(&app)?;
+    settings.global_skills_enabled = enabled;
+    save_settings(&app, &settings)
+}
+
+pub fn is_global_skills_enabled(app: &AppHandle) -> bool {
+    load_settings(app)
+        .map(|s| s.global_skills_enabled)
+        .unwrap_or(false)
 }
 
 #[cfg(test)]

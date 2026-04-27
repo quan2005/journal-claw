@@ -26,7 +26,10 @@ while IFS= read -r -d '' file; do
     }
   ' "$file")
   mtime=$(stat -f "%m" "$file" 2>/dev/null || stat -c "%Y" "$file")
-  entries+=("${mtime}	${file}	${summary:-[缺少 summary]}")
+  summary="${summary:-[缺少 summary]}"
+  if [[ "$summary" =~ [一-龥] ]]; then max_len=80; else max_len=300; fi
+  [[ ${#summary} -gt $max_len ]] && summary="${summary:0:$((max_len-1))}…"
+  entries+=("${mtime}	${file}	${summary}")
 done < <(find "$REPO_ROOT" -maxdepth 2 -mindepth 2 -name "*.md" \
   -not -path "$REPO_ROOT/.claude/*" \
   -regex ".*/[0-9][0-9][0-9][0-9]/.*" \
@@ -69,7 +72,10 @@ if [[ -d "${IDENTITY_DIR}" ]]; then
           exit
         }
       ' "$file")
-      printf -- "- %s: %s\n" "$fname" "${summary:-[无摘要]}"
+      summary="${summary:-[无摘要]}"
+      if [[ "$summary" =~ [一-龥] ]]; then max_len=80; else max_len=300; fi
+      [[ ${#summary} -gt $max_len ]] && summary="${summary:0:$((max_len-1))}…"
+      printf -- "- %s: %s\n" "$fname" "$summary"
     done
   fi
 fi

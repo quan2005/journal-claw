@@ -42,8 +42,9 @@ pub async fn run_agent(
     user_prompt: &str,
     on_event: impl Fn(AgentEvent) + Send + Sync + 'static,
     cancel: CancellationToken,
+    global_skills_enabled: bool,
 ) -> Result<String, LlmError> {
-    let skills = super::prompt::scan_skills(workspace_path).await;
+    let skills = super::prompt::scan_skills(workspace_path, global_skills_enabled).await;
     let mut tools = vec![bash_tool::definition(), enable_skill::definition(&skills)];
     tools.extend(fs_tools::definitions());
 

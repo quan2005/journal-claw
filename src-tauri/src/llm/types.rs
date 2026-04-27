@@ -5,9 +5,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 // ── Span ID for structured tracing ─────────────
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpanId(pub String);
 
+#[allow(dead_code)]
 impl SpanId {
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -174,6 +176,7 @@ pub enum LlmError {
     Api {
         status: u16,
         message: String,
+        #[allow(dead_code)]
         error_type: Option<String>,
         request_id: Option<String>,
         retryable: bool,
@@ -193,6 +196,7 @@ pub enum LlmError {
         last_error: Box<LlmError>,
     },
     /// Context window exceeded (pre-flight or API response)
+    #[allow(dead_code)]
     ContextWindowExceeded { model: String, message: String },
     /// Request body too large for provider
     RequestBodySizeExceeded {

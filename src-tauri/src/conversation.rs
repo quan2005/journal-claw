@@ -550,6 +550,12 @@ pub async fn conversation_create(
         turn_started_at: None,
     };
 
+    store
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(session_id.clone(), session);
+
     eprintln!(
         "[conversation] created session {} mode={:?}",
         session_id, mode
@@ -1417,6 +1423,12 @@ pub async fn conversation_load(
         total_output_tokens: persisted.total_output_tokens,
         turn_started_at: None,
     };
+
+    store
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(session_id.clone(), session);
 
     eprintln!(
         "[conversation] loaded session {} ({} messages)",

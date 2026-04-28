@@ -137,14 +137,14 @@ pub async fn execute(
             )
         }
     };
-    let total_chars = content.len();
-    let offset = input.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+    let total_chars = content.chars().count();
+    let offset_chars = input.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
     let limit = input
         .get("limit")
         .and_then(|v| v.as_u64())
         .map(|v| v as usize)
         .unwrap_or(MAX_READ_CHARS);
-    if offset >= total_chars {
+    if offset_chars >= total_chars {
         return (
             ToolResult {
                 output: format!("(end of file — {} total characters)", total_chars),
@@ -153,15 +153,35 @@ pub async fn execute(
             None,
         );
     }
+    // Convert char offset to byte offset safely
+    let offset = content
+        .char_indices()
+        .nth(offset_chars)
+        .map(|(i, _)| i)
+        .unwrap_or(content.len());
     let slice = &content[offset..];
-    let end = slice.len().min(limit);
-    let end = if end < slice.len() {
-        slice[..end].rfind('\n').map(|p| p + 1).unwrap_or(end)
+    let slice_chars = slice.chars().count();
+    // Convert char limit to byte position
+    let end_byte = if limit >= slice_chars {
+        slice.len()
     } else {
-        end
+        slice
+            .char_indices()
+            .nth(limit)
+            .map(|(i, _)| i)
+            .unwrap_or(slice.len())
+    };
+    let end = if end_byte < slice.len() {
+        slice[..end_byte]
+            .rfind('\n')
+            .map(|p| p + 1)
+            .unwrap_or(end_byte)
+    } else {
+        end_byte
     };
     let page = &slice[..end];
-    let has_more = offset + end < total_chars;
+    let page_chars = page.chars().count();
+    let has_more = offset_chars + page_chars < total_chars;
     let before_offset = &content[..offset];
     let start_line = before_offset.chars().filter(|&c| c == '\n').count() + 1;
     let mut output = String::new();
@@ -169,10 +189,10 @@ pub async fn execute(
         output.push_str(&format!("{:>4}\t{}\n", start_line + i, line));
     }
     if has_more {
-        let next_offset = offset + end;
+        let next_offset = offset_chars + page_chars;
         output.push_str(&format!(
             "\n[truncated — showing {}/{} chars. Use offset={} to continue]",
-            end, total_chars, next_offset
+            page_chars, total_chars, next_offset
         ));
     }
     (
@@ -242,6 +262,20 @@ mod tests {
         let img = img.unwrap();
         assert!(!img.data.is_empty());
         assert!(img.media_type == "image/jpeg" || img.media_type == "application/octet-stream");
+    }
+    #[tokio::test]
+    async fn read_large_cjk_no_panic() {
+        let dir = tempfile::tempdir().unwrap();
+        // 35,000 CJK chars exceeds MAX_READ_CHARS (30,000 chars)
+        let cjk: String = "你好世界测试".chars().cycle().take(35_000).collect();
+        std::fs::write(dir.path().join("big.md"), &cjk).unwrap();
+        let (r, _) = execute(
+            &serde_json::json!({"path":"big.md"}),
+            dir.path().to_str().unwrap(),
+        )
+        .await;
+        assert!(!r.is_error);
+        assert!(r.output.contains("truncated"));
     }
     #[tokio::test]
     async fn read_svg_returns_text() {

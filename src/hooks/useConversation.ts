@@ -15,13 +15,18 @@ import {
 import type { SessionStats } from '../lib/tauri'
 import { useEventCallback } from './useEventCallback'
 
+// Module-level singletons — survive ConversationDialog remounts (key changes)
+const globalCache = new Map<string, ConversationMessage[]>()
+const globalStreamingSessions = new Set<string>()
+const globalPendingQueue = new Map<string, string[]>()
+const globalUsage = new Map<string, { input: number; output: number }>()
+
 export function useConversation() {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [title, setTitle] = useState<string | null>(null)
   const [usage, setUsage] = useState<{ input: number; output: number }>({ input: 0, output: 0 })
-  const usageRef = useRef<{ input: number; output: number }>({ input: 0, output: 0 })
   const [stats, setStats] = useState<SessionStats | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const isStreamingRef = useRef(false)
@@ -31,23 +36,17 @@ export function useConversation() {
   const deferredContextRef = useRef<string | undefined>(undefined)
   const deferredContextFilesRef = useRef<string[] | undefined>(undefined)
 
-  // Per-session message cache — survives session switches so streaming isn't lost
-  const cacheRef = useRef<Map<string, ConversationMessage[]>>(new Map())
-  // Per-session streaming state
-  const streamingSessionsRef = useRef<Set<string>>(new Set())
-  // Per-session pending message queue
-  const pendingQueueRef = useRef<Map<string, string[]>>(new Map())
   const [pendingQueue, setPendingQueue] = useState<string[]>([])
 
   const getQueue = useEventCallback((sid: string): string[] => {
-    return pendingQueueRef.current.get(sid) ?? []
+    return globalPendingQueue.get(sid) ?? []
   })
 
   const setQueue = useEventCallback((sid: string, queue: string[]) => {
     if (queue.length === 0) {
-      pendingQueueRef.current.delete(sid)
+      globalPendingQueue.delete(sid)
     } else {
-      pendingQueueRef.current.set(sid, queue)
+      globalPendingQueue.set(sid, queue)
     }
     if (sid === sessionIdRef.current) {
       setPendingQueue(queue)
@@ -56,7 +55,7 @@ export function useConversation() {
 
   const updateSessionMessages = useEventCallback(
     (sid: string, updater: (prev: ConversationMessage[]) => ConversationMessage[]) => {
-      const cache = cacheRef.current
+      const cache = globalCache
       const prev = cache.get(sid) ?? []
       const next = updater(prev)
       cache.set(sid, next)
@@ -237,7 +236,7 @@ export function useConversation() {
           break
         }
         case 'done':
-          streamingSessionsRef.current.delete(sid)
+          globalStreamingSessions.delete(sid)
           if (sid === sessionIdRef.current) {
             setIsStreaming(false)
             isStreamingRef.current = false
@@ -254,18 +253,35 @@ export function useConversation() {
               }
             }
           }
-          // Flush pending queue for this session
+          // Flush pending queue for this session — send directly to sid,
+          // not via send() which would use sessionIdRef.current (possibly wrong session)
           {
             const queue = getQueue(sid)
             if (queue.length > 0) {
               const merged = queue.join('\n\n')
               setQueue(sid, [])
-              send(merged)
+              globalStreamingSessions.add(sid)
+              if (sid === sessionIdRef.current) {
+                setIsStreaming(true)
+                isStreamingRef.current = true
+              }
+              updateSessionMessages(sid, (prev) => [
+                ...prev,
+                { role: 'user' as const, content: merged },
+              ])
+              conversationSend(sid, merged).catch((e) => {
+                console.error('[conversation] queue flush failed:', e)
+                globalStreamingSessions.delete(sid)
+                if (sid === sessionIdRef.current) {
+                  setIsStreaming(false)
+                  isStreamingRef.current = false
+                }
+              })
             }
           }
           break
         case 'error':
-          streamingSessionsRef.current.delete(sid)
+          globalStreamingSessions.delete(sid)
           if (sid === sessionIdRef.current) {
             setIsStreaming(false)
             isStreamingRef.current = false
@@ -337,12 +353,11 @@ export function useConversation() {
             const u = JSON.parse(data)
             const input = u.input_tokens ?? 0
             const output = u.output_tokens ?? 0
-            usageRef.current = {
-              input: usageRef.current.input + input,
-              output: usageRef.current.output + output,
-            }
+            const prev = globalUsage.get(sid) ?? { input: 0, output: 0 }
+            const next = { input: prev.input + input, output: prev.output + output }
+            globalUsage.set(sid, next)
             if (sid === sessionIdRef.current) {
-              setUsage({ ...usageRef.current })
+              setUsage({ ...next })
             }
           } catch {
             /* ignore */
@@ -366,7 +381,6 @@ export function useConversation() {
       isStreamingRef.current = false
       setTitle(null)
       setPendingQueue([])
-      usageRef.current = { input: 0, output: 0 }
       setUsage({ input: 0, output: 0 })
       setStats(null)
       pendingCreateRef.current = null
@@ -380,7 +394,7 @@ export function useConversation() {
     async (text: string, images?: ImageAttachment[]): Promise<boolean> => {
       const currentSid = sessionIdRef.current
       // If streaming, queue the message for this session
-      if (isStreamingRef.current && streamingSessionsRef.current.has(currentSid ?? '')) {
+      if (isStreamingRef.current && globalStreamingSessions.has(currentSid ?? '')) {
         if (currentSid) {
           const queue = [...getQueue(currentSid), text]
           setQueue(currentSid, queue)
@@ -404,7 +418,7 @@ export function useConversation() {
           sessionIdRef.current = id
           setSessionId(id)
           const current = [userMsg]
-          cacheRef.current.set(id, current)
+          globalCache.set(id, current)
           pendingCreateRef.current = null
           return id
         })
@@ -426,7 +440,7 @@ export function useConversation() {
           return [...prev, userMsg]
         })
       }
-      streamingSessionsRef.current.add(sid)
+      globalStreamingSessions.add(sid)
       try {
         await conversationSend(sid, text, images)
         return true
@@ -434,7 +448,7 @@ export function useConversation() {
         console.error('[conversation] send failed:', e)
         setIsStreaming(false)
         isStreamingRef.current = false
-        streamingSessionsRef.current.delete(sid)
+        globalStreamingSessions.delete(sid)
         updateSessionMessages(sid, (prev) => [
           ...prev,
           {
@@ -468,14 +482,14 @@ export function useConversation() {
     })
     setIsStreaming(true)
     isStreamingRef.current = true
-    streamingSessionsRef.current.add(sid)
+    globalStreamingSessions.add(sid)
     try {
       await conversationRetry(sid)
     } catch (e) {
       console.error('[conversation] retry failed:', e)
       setIsStreaming(false)
       isStreamingRef.current = false
-      streamingSessionsRef.current.delete(sid)
+      globalStreamingSessions.delete(sid)
       updateSessionMessages(sid, (prev) => [
         ...prev,
         {
@@ -498,7 +512,7 @@ export function useConversation() {
     const sid = sessionIdRef.current
     if (!sid) return
     await conversationCancel(sid)
-    streamingSessionsRef.current.delete(sid)
+    globalStreamingSessions.delete(sid)
     setIsStreaming(false)
     isStreamingRef.current = false
     setQueue(sid, [])
@@ -516,9 +530,10 @@ export function useConversation() {
 
   const close = useEventCallback(async () => {
     if (sessionIdRef.current) {
-      cacheRef.current.delete(sessionIdRef.current)
-      streamingSessionsRef.current.delete(sessionIdRef.current)
-      pendingQueueRef.current.delete(sessionIdRef.current)
+      globalCache.delete(sessionIdRef.current)
+      globalStreamingSessions.delete(sessionIdRef.current)
+      globalPendingQueue.delete(sessionIdRef.current)
+      globalUsage.delete(sessionIdRef.current)
       await conversationClose(sessionIdRef.current)
     }
     sessionIdRef.current = null
@@ -532,26 +547,25 @@ export function useConversation() {
   const load = useEventCallback(
     async (id: string, streaming?: boolean, initialUserMessage?: string) => {
       // If we have a cached version (e.g. from ongoing stream), use it directly
-      const cached = cacheRef.current.get(id)
+      const cached = globalCache.get(id)
       if (cached) {
         sessionIdRef.current = id
         setSessionId(id)
-        const isStillStreaming = streaming ?? streamingSessionsRef.current.has(id)
+        const isStillStreaming = streaming ?? globalStreamingSessions.has(id)
         setIsStreaming(isStillStreaming)
         isStreamingRef.current = isStillStreaming
         // Sync pending queue for this session
-        setPendingQueue(pendingQueueRef.current.get(id) ?? [])
+        setPendingQueue(globalPendingQueue.get(id) ?? [])
         // Seed user message if cache is empty (race: event fires before send)
         if (cached.length === 0 && initialUserMessage) {
           const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
-          cacheRef.current.set(id, seeded)
+          globalCache.set(id, seeded)
           setMessages(seeded)
         } else {
           setMessages(cached)
         }
         setTitle(null)
-        usageRef.current = { input: 0, output: 0 }
-        setUsage({ input: 0, output: 0 })
+        setUsage(globalUsage.get(id) ?? { input: 0, output: 0 })
         conversationGetStats(id)
           .then((s) => setStats(s))
           .catch(() => setStats(null))
@@ -566,19 +580,18 @@ export function useConversation() {
       setIsStreaming(isStillStreaming)
       isStreamingRef.current = isStillStreaming
       if (isStillStreaming) {
-        streamingSessionsRef.current.add(id)
+        globalStreamingSessions.add(id)
       }
       // No pending queue for persisted sessions
       setPendingQueue([])
-      usageRef.current = { input: 0, output: 0 }
-      setUsage({ input: 0, output: 0 })
+      setUsage(globalUsage.get(id) ?? { input: 0, output: 0 })
       conversationGetStats(id)
         .then((s) => setStats(s))
         .catch(() => setStats(null))
       // If backend has no messages yet (race: event fires before send), seed user message
       if (loaded.length === 0 && initialUserMessage) {
         const seeded: ConversationMessage[] = [{ role: 'user', content: initialUserMessage }]
-        cacheRef.current.set(id, seeded)
+        globalCache.set(id, seeded)
         setMessages(seeded)
         setTitle(null)
         return
@@ -642,7 +655,7 @@ export function useConversation() {
         return msg
       })
       setMessages(msgs)
-      cacheRef.current.set(id, msgs)
+      globalCache.set(id, msgs)
       setTitle(null)
     },
   )
@@ -651,8 +664,8 @@ export function useConversation() {
     const sid = sessionIdRef.current
     if (!sid) return
     await conversationTruncate(sid, messageIndex)
-    const kept = (cacheRef.current.get(sid) ?? []).slice(0, messageIndex)
-    cacheRef.current.set(sid, kept)
+    const kept = (globalCache.get(sid) ?? []).slice(0, messageIndex)
+    globalCache.set(sid, kept)
     setMessages(kept)
     await send(newText)
   })

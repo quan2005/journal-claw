@@ -110,9 +110,11 @@ export function ConversationDialog({
     setShowScrollBtn(distanceFromBottom > 60)
   }, [])
 
-  // Auto-scroll only if user hasn't scrolled up
+  // Auto-scroll only if user hasn't scrolled up and no text is selected
   useEffect(() => {
     if (!visible) return
+    const sel = document.getSelection()
+    if (sel && sel.type === 'Range') return
     const el = scrollRef.current
     if (el && !userScrolledUp.current) {
       el.scrollTop = el.scrollHeight

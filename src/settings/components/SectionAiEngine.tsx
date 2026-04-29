@@ -132,6 +132,9 @@ function ModelSelect({
         <input
           style={inputStyle}
           placeholder={t('modelInputPlaceholder')}
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
           value={value}
           onChange={(e) => {
             onChange(e.target.value)
@@ -453,6 +456,9 @@ export default function SectionAiEngine() {
                 <label style={labelStyle}>{t('providerLabel')}</label>
                 <input
                   style={inputStyle}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   value={activeProvider.label}
                   onChange={(e) => setProviderField('label', e.target.value)}
                 />
@@ -494,6 +500,9 @@ export default function SectionAiEngine() {
                   <input
                     type={showKey ? 'text' : 'password'}
                     style={{ ...inputStyle, paddingRight: 36 }}
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     placeholder={preset?.apiKeyPlaceholder || 'API Key'}
                     value={activeProvider.api_key}
                     onChange={(e) => setProviderField('api_key', e.target.value)}
@@ -524,6 +533,9 @@ export default function SectionAiEngine() {
                 <label style={labelStyle}>Base URL</label>
                 <input
                   style={inputStyle}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   placeholder={preset?.defaultBaseUrl || 'https://api.example.com'}
                   value={activeProvider.base_url}
                   onChange={(e) => setProviderField('base_url', e.target.value)}

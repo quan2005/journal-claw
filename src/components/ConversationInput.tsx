@@ -54,8 +54,10 @@ export function ConversationInput({
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-focus on mount and session change
+  // Auto-focus on mount and session change — skip if user has text selected
   useEffect(() => {
+    const sel = document.getSelection()
+    if (sel && sel.type === 'Range') return
     inputRef.current?.focus()
   }, [sessionId])
 
@@ -73,7 +75,11 @@ export function ConversationInput({
     if (prefillText) {
       setInput((prev) => (prev ? prev + '\n' + prefillText : prefillText))
       onPrefillConsumed?.()
-      setTimeout(() => inputRef.current?.focus(), 0)
+      setTimeout(() => {
+        const sel = document.getSelection()
+        if (sel && sel.type === 'Range') return
+        inputRef.current?.focus()
+      }, 0)
     }
   }, [prefillText, onPrefillConsumed])
 
@@ -179,7 +185,11 @@ export function ConversationInput({
       } else {
         setInput(input + `@${path} `)
       }
-      setTimeout(() => inputRef.current?.focus(), 0)
+      setTimeout(() => {
+        const sel = document.getSelection()
+        if (sel && sel.type === 'Range') return
+        inputRef.current?.focus()
+      }, 0)
     },
     [input],
   )

@@ -1100,6 +1100,9 @@ export default function SectionVoice() {
                 <input
                   type="password"
                   style={inputStyle}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   placeholder="sk-…"
                   value={cfg.dashscope_api_key}
                   onChange={(e) => {
@@ -1140,6 +1143,9 @@ export default function SectionVoice() {
                 <input
                   type="password"
                   style={inputStyle}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   placeholder="sk-…"
                   value={cfg.siliconflow_asr_api_key}
                   onChange={(e) => {
@@ -1153,6 +1159,9 @@ export default function SectionVoice() {
                 <input
                   list="siliconflow-models"
                   style={inputStyle}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   placeholder="FunAudioLLM/SenseVoiceSmall"
                   value={cfg.siliconflow_asr_model}
                   onChange={(e) => {
@@ -1174,6 +1183,9 @@ export default function SectionVoice() {
                 <input
                   type="password"
                   style={inputStyle}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   placeholder="API Key"
                   value={cfg.zhipu_asr_api_key}
                   onChange={(e) => {

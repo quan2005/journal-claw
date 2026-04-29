@@ -114,6 +114,9 @@ export default function SectionGeneral() {
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 style={inputStyle}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 value={workspacePath}
                 onChange={(e) => {
                   setWorkspacePathState(e.target.value)

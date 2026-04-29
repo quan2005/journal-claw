@@ -284,6 +284,9 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
               <input
                 ref={inputRef}
                 value={nameInput}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 onChange={(e) => setNameInput(e.target.value)}
                 onBlur={commitName}
                 onKeyDown={handleKeyDown}

@@ -1834,7 +1834,12 @@ async fn run_conversation_turn(
                                                 },
                                             );
                                         }
-                                        llm::tool_loop::AgentEvent::ToolStart { name, .. } => {
+                                        llm::tool_loop::AgentEvent::ToolStart { name, input } => {
+                                            let label = match name.as_str() {
+                                                "bash" => llm::bash_tool::log_label(&input),
+                                                "load_skill" => llm::enable_skill::log_label(&input),
+                                                n => llm::fs_tools::log_label(n, &input),
+                                            };
                                             let _ = app_for_sub.emit(
                                                 "conversation-stream",
                                                 ConversationStreamPayload {
@@ -1842,7 +1847,20 @@ async fn run_conversation_turn(
                                                     event: "subtask_delta".to_string(),
                                                     data: serde_json::json!({
                                                         "tool_use_id": tool_id_for_sub,
-                                                        "tool": name,
+                                                        "tool_start": { "name": name, "label": label },
+                                                    }).to_string(),
+                                                },
+                                            );
+                                        }
+                                        llm::tool_loop::AgentEvent::ToolEnd { name, is_error, output } => {
+                                            let _ = app_for_sub.emit(
+                                                "conversation-stream",
+                                                ConversationStreamPayload {
+                                                    session_id: sid_for_sub.clone(),
+                                                    event: "subtask_delta".to_string(),
+                                                    data: serde_json::json!({
+                                                        "tool_use_id": tool_id_for_sub,
+                                                        "tool_end": { "name": name, "output": output, "is_error": is_error },
                                                     }).to_string(),
                                                 },
                                             );

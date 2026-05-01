@@ -690,7 +690,7 @@ async fn process_material_builtin(
                         },
                     );
                 }
-                AgentEvent::ToolEnd { name: _, is_error } => {
+                AgentEvent::ToolEnd { name: _, is_error, output: _ } => {
                     if is_error {
                         let _ = app_for_events.emit(
                             "ai-log",

@@ -375,9 +375,18 @@ export function useConversation() {
                   if (info.text) {
                     blocks[i] = { ...b, summary: (b.summary ?? '') + info.text }
                   }
-                  if (info.tool) {
+                  if (info.tool_start) {
+                    const tools = [...(b.tools ?? []), { name: info.tool_start.name, label: info.tool_start.label }]
+                    blocks[i] = { ...b, tools }
+                  }
+                  if (info.tool_end) {
                     const tools = [...(b.tools ?? [])]
-                    tools.push(info.tool as string)
+                    for (let j = tools.length - 1; j >= 0; j--) {
+                      if (tools[j].name === info.tool_end.name && tools[j].output === undefined) {
+                        tools[j] = { ...tools[j], output: info.tool_end.output, isError: info.tool_end.is_error }
+                        break
+                      }
+                    }
                     blocks[i] = { ...b, tools }
                   }
                   break
@@ -708,12 +717,19 @@ export function useConversation() {
                 // Reconstruct subtask block from persisted JSON output
                 const prompt = t.label.replace(/^task: /, '')
                 let summary: string | undefined
-                let tools: string[] | undefined
+                let tools: { name: string; label: string; output?: string; isError?: boolean }[] | undefined
                 if (t.output) {
                   try {
                     const parsed = JSON.parse(t.output)
                     summary = parsed.summary
-                    tools = parsed.tools
+                    if (Array.isArray(parsed.tools)) {
+                      tools = parsed.tools.map((pt: { name?: string; label?: string; output?: string; is_error?: boolean }) => ({
+                        name: pt.name ?? '',
+                        label: pt.label ?? pt.name ?? '',
+                        output: pt.output ?? undefined,
+                        isError: pt.is_error ?? false,
+                      }))
+                    }
                   } catch {
                     summary = t.output
                   }

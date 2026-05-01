@@ -22,7 +22,11 @@ pub enum AgentEvent {
         input: serde_json::Value,
     },
     /// Tool execution finished
-    ToolEnd { name: String, is_error: bool },
+    ToolEnd {
+        name: String,
+        is_error: bool,
+        output: String,
+    },
     /// A full LLM turn completed (for cost/timing tracking)
     TurnComplete { turn: usize, usage: Option<Usage> },
     /// Agent finished
@@ -210,6 +214,7 @@ pub async fn run_agent(
                     on_event(AgentEvent::ToolEnd {
                         name: name.clone(),
                         is_error: result.is_error,
+                        output: result.output.clone(),
                     });
 
                     // Loop detection: record and check

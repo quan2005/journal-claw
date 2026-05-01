@@ -1898,18 +1898,18 @@ function SubtaskBlock({
     summary?: string
     isError?: boolean
     isRunning?: boolean
-    tools?: string[]
+    tools?: { name: string; label: string; output?: string; isError?: boolean }[]
   }
 }) {
   const [expanded, setExpanded] = useState(false)
   const promptPreview =
     subtask.prompt.slice(0, 60).replace(/\n/g, ' ') + (subtask.prompt.length > 60 ? '…' : '')
 
-  // Aggregate tool usage: bash×3 read×5
+  // Aggregate tool counts for header
   const toolCounts = new Map<string, number>()
   if (subtask.tools) {
     for (const t of subtask.tools) {
-      toolCounts.set(t, (toolCounts.get(t) ?? 0) + 1)
+      toolCounts.set(t.name, (toolCounts.get(t.name) ?? 0) + 1)
     }
   }
   const totalTools = subtask.tools?.length ?? 0
@@ -1926,7 +1926,7 @@ function SubtaskBlock({
         userSelect: 'none',
       }}
     >
-      {/* Collapsed summary header */}
+      {/* Header */}
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -2002,7 +2002,7 @@ function SubtaskBlock({
           </span>
         ))}
       </div>
-      {/* Prompt preview */}
+      {/* Prompt preview (collapsed) */}
       {!expanded && (
         <div
           style={{
@@ -2017,7 +2017,7 @@ function SubtaskBlock({
           {promptPreview}
         </div>
       )}
-      {/* Expanded content */}
+      {/* Expanded: prompt + nested tools + summary */}
       {expanded && (
         <div
           onClick={(e) => e.stopPropagation()}
@@ -2033,7 +2033,7 @@ function SubtaskBlock({
             style={{
               opacity: 0.45,
               fontSize: 'var(--text-xs)',
-              marginBottom: subtask.summary ? 6 : 0,
+              marginBottom: 4,
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
@@ -2041,6 +2041,13 @@ function SubtaskBlock({
           >
             {subtask.prompt}
           </div>
+          {subtask.tools && subtask.tools.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 4 }}>
+              {subtask.tools.map((tool, i) => (
+                <ToolBlock key={i} tool={tool} />
+              ))}
+            </div>
+          )}
           {subtask.summary && (
             <div
               style={{

@@ -16,6 +16,14 @@ const SUBAGENT_SYSTEM: &str = r#"你是一个子任务执行器。你被分配�
 - 如果任务无法完成，说明原因
 - 你拥有 bash、文件读写等工具，但不能再派生子任务"#;
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SubtaskToolRecord {
+    pub name: String,
+    pub input: Value,
+    pub output: Option<String>,
+    pub is_error: bool,
+}
+
 pub fn definition() -> ToolDefinition {
     ToolDefinition {
         name: "task".to_string(),
@@ -30,6 +38,14 @@ pub fn definition() -> ToolDefinition {
             },
             "required": ["prompt"]
         }),
+    }
+}
+
+fn make_tool_label(name: &str, input: &Value) -> String {
+    match name {
+        "bash" => super::bash_tool::log_label(input),
+        "load_skill" => super::enable_skill::log_label(input),
+        n => super::fs_tools::log_label(n, input),
     }
 }
 
@@ -51,14 +67,37 @@ pub async fn execute(
         }
     };
 
-    let tools_used: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
-    let tools_clone = tools_used.clone();
+    let tool_records: Arc<Mutex<Vec<SubtaskToolRecord>>> = Arc::new(Mutex::new(Vec::new()));
+    let records_clone = tool_records.clone();
 
     let wrapped_on_event = move |evt: tool_loop::AgentEvent| {
-        if let tool_loop::AgentEvent::ToolStart { ref name, .. } = evt {
-            if let Ok(mut tools) = tools_clone.lock() {
-                tools.push(name.clone());
+        match &evt {
+            tool_loop::AgentEvent::ToolStart { name, input } => {
+                if let Ok(mut records) = records_clone.lock() {
+                    records.push(SubtaskToolRecord {
+                        name: name.clone(),
+                        input: input.clone(),
+                        output: None,
+                        is_error: false,
+                    });
+                }
             }
+            tool_loop::AgentEvent::ToolEnd {
+                name,
+                is_error,
+                output,
+            } => {
+                if let Ok(mut records) = records_clone.lock() {
+                    for r in records.iter_mut().rev() {
+                        if r.name == *name && r.output.is_none() {
+                            r.output = Some(output.clone());
+                            r.is_error = *is_error;
+                            break;
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
         on_event(evt);
     };
@@ -80,10 +119,21 @@ pub async fn execute(
                 text = text.chars().take(MAX_SUMMARY_CHARS).collect();
                 text.push_str("\n\n[摘要已截断]");
             }
-            let tools = tools_used.lock().map(|t| t.clone()).unwrap_or_default();
+            let records = tool_records.lock().map(|r| r.clone()).unwrap_or_default();
+            let tools_json: Vec<Value> = records
+                .iter()
+                .map(|r| {
+                    json!({
+                        "name": r.name,
+                        "label": make_tool_label(&r.name, &r.input),
+                        "output": r.output,
+                        "is_error": r.is_error,
+                    })
+                })
+                .collect();
             let output = json!({
                 "summary": text,
-                "tools": tools,
+                "tools": tools_json,
             });
             ToolResult {
                 output: output.to_string(),
@@ -91,10 +141,21 @@ pub async fn execute(
             }
         }
         Err(e) => {
-            let tools = tools_used.lock().map(|t| t.clone()).unwrap_or_default();
+            let records = tool_records.lock().map(|r| r.clone()).unwrap_or_default();
+            let tools_json: Vec<Value> = records
+                .iter()
+                .map(|r| {
+                    json!({
+                        "name": r.name,
+                        "label": make_tool_label(&r.name, &r.input),
+                        "output": r.output,
+                        "is_error": r.is_error,
+                    })
+                })
+                .collect();
             let output = json!({
                 "summary": format!("subtask failed: {}", e),
-                "tools": tools,
+                "tools": tools_json,
             });
             ToolResult {
                 output: output.to_string(),

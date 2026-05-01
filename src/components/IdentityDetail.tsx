@@ -13,6 +13,7 @@ import {
   resetWorkspacePrompt,
 } from '../lib/tauri'
 import { ask } from '@tauri-apps/plugin-dialog'
+import { convertFileSrc } from '@tauri-apps/api/core'
 import { pickDisplayTags } from '../lib/tags'
 import { FindBar } from './FindBar'
 import { Spinner } from './Spinner'
@@ -1476,7 +1477,32 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[[rehypeHighlight, { detect: false }]]}
-                components={mdComponents}
+                components={{
+                  ...mdComponents,
+                  img: ({ src, alt }) => {
+                    if (!src) return null
+                    let resolvedSrc = src
+                    if (!src.startsWith('http') && identity) {
+                      const dir = identity.path.substring(0, identity.path.lastIndexOf('/'))
+                      const absPath = src.startsWith('/')
+                        ? src
+                        : resolveRelativePath(dir, decodeURIComponent(src))
+                      resolvedSrc = convertFileSrc(absPath)
+                    }
+                    return (
+                      <img
+                        src={resolvedSrc}
+                        alt={alt || ''}
+                        style={{
+                          maxWidth: '100%',
+                          height: 'auto',
+                          borderRadius: 6,
+                          margin: '8px 0',
+                        }}
+                      />
+                    )
+                  },
+                }}
               >
                 {bodyContent}
               </ReactMarkdown>
@@ -1500,4 +1526,13 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
       />
     </div>
   )
+}
+
+function resolveRelativePath(baseDir: string, relative: string): string {
+  const parts = baseDir.split('/')
+  for (const segment of relative.split('/')) {
+    if (segment === '..') parts.pop()
+    else if (segment !== '.') parts.push(segment)
+  }
+  return parts.join('/')
 }

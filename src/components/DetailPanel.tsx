@@ -4,7 +4,9 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { Check } from 'lucide-react'
 import { MarkdownLi } from '../lib/markdownLi'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import type { JournalEntry } from '../types'
+import { convertFileSrc } from '@tauri-apps/api/core'
 import { getJournalEntryContent, getWorkspacePath, openFile } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName } from '../lib/fileKind'
@@ -438,8 +440,19 @@ export const DetailPanel = React.memo(function DetailPanel({
   const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
 
   // Memoize markdown DOM so text selection survives parent re-renders
+  // Large files (>100KB) use the fast innerHTML-based renderer to avoid
+  // creating tens of thousands of React elements.
+  const FAST_RENDERER_THRESHOLD = 100_000
   const markdownNode = useMemo(() => {
     if (content === null) return null
+    const stripped = stripFrontmatter(content)
+    if (stripped.length > FAST_RENDERER_THRESHOLD) {
+      return (
+        <div className="md-body">
+          <MarkdownRenderer content={stripped} entryPath={entry?.path} />
+        </div>
+      )
+    }
     return (
       <div className="md-body">
         <ReactMarkdown
@@ -621,6 +634,29 @@ export const DetailPanel = React.memo(function DetailPanel({
                 </a>
               )
             },
+            img: ({ src, alt }) => {
+              if (!src) return null
+              let resolvedSrc = src
+              if (!src.startsWith('http')) {
+                const entryDir = entry!.path.substring(0, entry!.path.lastIndexOf('/'))
+                const absPath = src.startsWith('/')
+                  ? src
+                  : resolveRelativePath(entryDir, decodeURIComponent(src))
+                resolvedSrc = convertFileSrc(absPath)
+              }
+              return (
+                <img
+                  src={resolvedSrc}
+                  alt={alt || ''}
+                  style={{
+                    maxWidth: '100%',
+                    height: 'auto',
+                    borderRadius: 6,
+                    margin: '8px 0',
+                  }}
+                />
+              )
+            },
             blockquote: ({ children }) => (
               <blockquote
                 style={{
@@ -685,7 +721,7 @@ export const DetailPanel = React.memo(function DetailPanel({
             ),
           }}
         >
-          {stripFrontmatter(content)}
+          {stripped}
         </ReactMarkdown>
       </div>
     )

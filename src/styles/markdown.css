@@ -175,3 +175,9 @@
   margin-right: 0.35em;
   vertical-align: middle;
 }
+
+/* Large-file chunked sections: skip layout/paint for off-screen content */
+.md-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}

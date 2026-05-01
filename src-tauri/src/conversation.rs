@@ -1733,19 +1733,24 @@ async fn run_conversation_turn(
                         },
                     );
 
-                    let result = match name.as_str() {
-                        "bash" => llm::bash_tool::execute(input, workspace).await,
-                        "load_skill" => llm::enable_skill::execute(input, workspace).await,
+                    let (result, image_data) = match name.as_str() {
+                        "bash" => (llm::bash_tool::execute(input, workspace).await, None),
+                        "load_skill" => {
+                            (llm::enable_skill::execute(input, workspace).await, None)
+                        }
                         fs_name => {
-                            if let Some((r, _img)) =
+                            if let Some((r, img)) =
                                 llm::fs_tools::execute(fs_name, input, workspace).await
                             {
-                                r
+                                (r, img)
                             } else {
-                                llm::types::ToolResult {
-                                    output: format!("unknown tool: {}", fs_name),
-                                    is_error: true,
-                                }
+                                (
+                                    llm::types::ToolResult {
+                                        output: format!("unknown tool: {}", fs_name),
+                                        is_error: true,
+                                    },
+                                    None,
+                                )
                             }
                         }
                     };
@@ -1785,7 +1790,7 @@ async fn run_conversation_turn(
                                         result.output, det.message
                                     ),
                                     is_error: result.is_error,
-                                    image: None,
+                                    image: image_data,
                                 });
                                 continue;
                             }
@@ -1831,7 +1836,7 @@ async fn run_conversation_turn(
                         tool_use_id: id.clone(),
                         content: result.output,
                         is_error: result.is_error,
-                        image: None,
+                        image: image_data,
                     });
                 }
 

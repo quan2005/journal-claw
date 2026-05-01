@@ -2019,7 +2019,7 @@ function SubtaskBlock({
         >
           <div
             style={{
-              opacity: 0.45,
+              opacity: 0.55,
               fontSize: 'var(--text-xs)',
               marginBottom: 4,
               lineHeight: 1.5,
@@ -2039,13 +2039,13 @@ function SubtaskBlock({
           {subtask.summary && (
             <div
               style={{
-                opacity: 0.8,
                 maxHeight: 400,
                 overflow: 'auto',
                 wordBreak: 'break-word',
                 lineHeight: 1.55,
                 fontSize: 'var(--text-xs)',
                 fontFamily: 'var(--font-body)',
+                color: 'var(--text-primary)',
               }}
             >
               <MarkdownRenderer content={subtask.summary} />

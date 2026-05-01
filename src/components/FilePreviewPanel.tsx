@@ -44,7 +44,7 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
       setContent(null)
       return
     }
-    if (kind === 'markdown' || kind === 'text' || kind === 'html') {
+    if (kind === 'markdown' || kind === 'text') {
       setLoading(true)
       getJournalEntryContent(absolutePath)
         .then((c) => {
@@ -90,33 +90,15 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
     return () => observer.disconnect()
   }, [applyThemeToIframe])
 
-  const htmlSrcdoc = useMemo(() => {
-    if (kind !== 'html' || content === null || !absolutePath) return ''
-    const dirPath = absolutePath.substring(0, absolutePath.lastIndexOf('/'))
-    const baseUrl = convertFileSrc(dirPath + '/')
-    const hasCharset = /<meta[^>]+charset/i.test(content)
-    const charsetTag = hasCharset ? '' : '<meta charset="utf-8">'
-    const hasBase = /<base\s/i.test(content)
-    const baseTag = hasBase ? '' : `<base href="${baseUrl}">`
-    const injection = charsetTag + baseTag
-    if (/<head[\s>]/i.test(content)) {
-      return content.replace(/<head([\s>])/i, `<head$1${injection}`)
-    }
-    if (/<html[\s>]/i.test(content)) {
-      return content.replace(/<html([\s>][^>]*)>/i, `<html$1><head>${injection}</head>`)
-    }
-    return `<head>${injection}</head>${content}`
-  }, [kind, content, absolutePath])
-
   const bodyNode = useMemo(() => {
     if (!file || !kind) return null
 
-    if (kind === 'html' && content !== null) {
+    if (kind === 'html') {
+      const src = convertFileSrc(absolutePath)
       return (
         <iframe
           ref={iframeRef}
-          srcDoc={htmlSrcdoc}
-          sandbox="allow-same-origin allow-scripts"
+          src={src}
           onLoad={applyThemeToIframe}
           style={{
             width: '100%',
@@ -224,7 +206,7 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
         </button>
       </div>
     )
-  }, [file, kind, content, absolutePath, htmlSrcdoc, t, applyThemeToIframe])
+  }, [file, kind, content, absolutePath, t, applyThemeToIframe])
 
   if (!file) {
     return (

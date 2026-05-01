@@ -25,11 +25,34 @@ function stripFrontmatter(md: string): string {
 
 const FAST_RENDERER_THRESHOLD = 100_000
 
+function buildHtmlBlobUrl(html: string, absolutePath: string): string {
+  const dirPath = absolutePath.substring(0, absolutePath.lastIndexOf('/'))
+  const baseUrl = convertFileSrc(dirPath + '/')
+  const hasCharset = /<meta[^>]+charset/i.test(html)
+  const charsetTag = hasCharset ? '' : '<meta charset="utf-8">'
+  const hasBase = /<base\s/i.test(html)
+  const baseTag = hasBase ? '' : `<base href="${baseUrl}">`
+  const injection = charsetTag + baseTag
+
+  let patched: string
+  if (/<head[\s>]/i.test(html)) {
+    patched = html.replace(/<head([\s>])/i, `<head$1${injection}`)
+  } else if (/<html[\s>]/i.test(html)) {
+    patched = html.replace(/<html([\s>][^>]*)>/i, `<html$1><head>${injection}</head>`)
+  } else {
+    patched = `<head>${injection}</head>${html}`
+  }
+
+  const blob = new Blob([patched], { type: 'text/html;charset=utf-8' })
+  return URL.createObjectURL(blob)
+}
+
 export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
   const { t } = useTranslation()
   const [workspacePath, setWorkspacePath] = useState('')
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
@@ -44,7 +67,7 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
       setContent(null)
       return
     }
-    if (kind === 'markdown' || kind === 'text') {
+    if (kind === 'markdown' || kind === 'text' || kind === 'html') {
       setLoading(true)
       getJournalEntryContent(absolutePath)
         .then((c) => {
@@ -59,6 +82,15 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
       setContent(null)
     }
   }, [absolutePath, kind])
+
+  useEffect(() => {
+    if (kind === 'html' && content !== null && absolutePath) {
+      const url = buildHtmlBlobUrl(content, absolutePath)
+      setBlobUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+    setBlobUrl(null)
+  }, [kind, content, absolutePath])
 
   const applyThemeToIframe = useCallback(() => {
     const iframe = iframeRef.current
@@ -93,12 +125,11 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
   const bodyNode = useMemo(() => {
     if (!file || !kind) return null
 
-    if (kind === 'html') {
-      const src = convertFileSrc(absolutePath)
+    if (kind === 'html' && blobUrl) {
       return (
         <iframe
           ref={iframeRef}
-          src={src}
+          src={blobUrl}
           onLoad={applyThemeToIframe}
           style={{
             width: '100%',
@@ -206,7 +237,7 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
         </button>
       </div>
     )
-  }, [file, kind, content, absolutePath, t, applyThemeToIframe])
+  }, [file, kind, content, blobUrl, absolutePath, t, applyThemeToIframe])
 
   if (!file) {
     return (

@@ -8,6 +8,7 @@ import { useSmoothStream } from '../hooks/useSmoothStream'
 import { ConversationInput } from './ConversationInput'
 import { openFile } from '../lib/tauri'
 import { SessionList, SESSION_LIST_WIDTH } from './SessionList'
+import { FileAttachments } from './FileAttachments'
 
 // Per-tool SVG path data (24x24 viewBox, stroke-based)
 const TOOL_ICON_PATHS: Record<string, string> = {
@@ -1231,6 +1232,7 @@ function AssistantRun({
             onContinue={onContinue}
           />
         ))}
+        <FileAttachments blocks={allBlocks} />
       </div>
     )
   }
@@ -1276,6 +1278,7 @@ function AssistantRun({
             <MarkdownRenderer content={lastTextBlock.content} />
           </div>
         )}
+        <FileAttachments blocks={allBlocks} />
         {errorOrTruncBlocks.map((block: MessageBlock, i: number) => (
           <BlockRenderer key={`et-${i}`} block={block} onRetry={onRetry} onContinue={onContinue} />
         ))}
@@ -1297,6 +1300,7 @@ function AssistantRun({
       {allBlocks.map((block: MessageBlock, i: number) => (
         <BlockRenderer key={i} block={block} onRetry={onRetry} onContinue={onContinue} />
       ))}
+      <FileAttachments blocks={allBlocks} />
       {!hideActions && <AssistantActions content={lastTextBlock?.content ?? ''} />}
     </div>
   )

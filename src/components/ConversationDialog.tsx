@@ -1920,13 +1920,10 @@ function SubtaskBlock({
         maxWidth: '100%',
         fontSize: 'var(--text-xs)',
         fontFamily: 'var(--font-mono)',
-        borderLeft: '1.5px solid var(--queue-border)',
-        paddingLeft: 10,
-        marginLeft: 2,
         userSelect: 'none',
       }}
     >
-      {/* Header */}
+      {/* Header — same level as other tool blocks */}
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -1973,17 +1970,7 @@ function SubtaskBlock({
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
-          <svg
-            style={{ width: 11, height: 11, flexShrink: 0, opacity: 0.5 }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+          <ToolIcon name="subtask" />
         )}
         <span style={{ opacity: 0.4, flexShrink: 0 }}>
           {subtask.isRunning
@@ -2017,14 +2004,15 @@ function SubtaskBlock({
           {promptPreview}
         </div>
       )}
-      {/* Expanded: prompt + nested tools + summary */}
+      {/* Expanded: nested tools + summary, indented */}
       {expanded && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
             marginTop: 4,
-            borderTop: '0.5px solid var(--queue-border)',
-            paddingTop: 4,
+            marginLeft: 4,
+            borderLeft: '1.5px solid var(--queue-border)',
+            paddingLeft: 10,
             userSelect: 'text',
             cursor: 'auto',
           }}

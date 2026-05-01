@@ -1789,18 +1789,9 @@ async fn run_conversation_turn(
 
                 // Execute task tools concurrently
                 if !task_calls_idx.is_empty() {
-                    // Emit tool_start + subtask_start for all tasks before launching
+                    // Emit subtask_start for all tasks before launching (no tool_start)
                     for idx in &task_calls_idx {
-                        let (id, name, input) = &tool_calls[*idx];
-                        let label = llm::task_tool::log_label(input);
-                        let _ = app.emit(
-                            "conversation-stream",
-                            ConversationStreamPayload {
-                                session_id: sid.clone(),
-                                event: "tool_start".to_string(),
-                                data: serde_json::json!({ "name": name, "label": label }).to_string(),
-                            },
-                        );
+                        let (id, _name, input) = &tool_calls[*idx];
                         let _ = app.emit(
                             "conversation-stream",
                             ConversationStreamPayload {
@@ -1869,7 +1860,7 @@ async fn run_conversation_turn(
 
                     for (i, result) in task_results.into_iter().enumerate() {
                         let idx = task_calls_idx[i];
-                        let (id, name, _input) = &tool_calls[idx];
+                        let (id, _name, _input) = &tool_calls[idx];
                         let _ = app.emit(
                             "conversation-stream",
                             ConversationStreamPayload {
@@ -1879,19 +1870,6 @@ async fn run_conversation_turn(
                                     "tool_use_id": id,
                                     "is_error": result.is_error,
                                 }).to_string(),
-                            },
-                        );
-                        let _ = app.emit(
-                            "conversation-stream",
-                            ConversationStreamPayload {
-                                session_id: sid.clone(),
-                                event: "tool_end".to_string(),
-                                data: serde_json::json!({
-                                    "name": name,
-                                    "is_error": result.is_error,
-                                    "output": result.output,
-                                })
-                                .to_string(),
                             },
                         );
                         indexed_results[idx] = Some((result, None));

@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use std::sync::{Arc, Mutex};
 use tokio_util::sync::CancellationToken;
 
 use super::tool_loop;
@@ -50,12 +51,24 @@ pub async fn execute(
         }
     };
 
+    let tools_used: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let tools_clone = tools_used.clone();
+
+    let wrapped_on_event = move |evt: tool_loop::AgentEvent| {
+        if let tool_loop::AgentEvent::ToolStart { ref name, .. } = evt {
+            if let Ok(mut tools) = tools_clone.lock() {
+                tools.push(name.clone());
+            }
+        }
+        on_event(evt);
+    };
+
     match tool_loop::run_agent(
         engine,
         workspace_path,
         SUBAGENT_SYSTEM,
         prompt,
-        on_event,
+        wrapped_on_event,
         cancel,
         global_skills_enabled,
     )
@@ -67,15 +80,27 @@ pub async fn execute(
                 text = text.chars().take(MAX_SUMMARY_CHARS).collect();
                 text.push_str("\n\n[摘要已截断]");
             }
+            let tools = tools_used.lock().map(|t| t.clone()).unwrap_or_default();
+            let output = json!({
+                "summary": text,
+                "tools": tools,
+            });
             ToolResult {
-                output: text,
+                output: output.to_string(),
                 is_error: false,
             }
         }
-        Err(e) => ToolResult {
-            output: format!("subtask failed: {}", e),
-            is_error: true,
-        },
+        Err(e) => {
+            let tools = tools_used.lock().map(|t| t.clone()).unwrap_or_default();
+            let output = json!({
+                "summary": format!("subtask failed: {}", e),
+                "tools": tools,
+            });
+            ToolResult {
+                output: output.to_string(),
+                is_error: true,
+            }
+        }
     }
 }
 

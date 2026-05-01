@@ -704,6 +704,29 @@ export function useConversation() {
                 }
                 if (!query && t.label !== 'web_search') query = t.label.replace(/^搜索: /, '')
                 blocks.push({ type: 'web_search', query, results })
+              } else if (t.name === 'task') {
+                // Reconstruct subtask block from persisted JSON output
+                const prompt = t.label.replace(/^task: /, '')
+                let summary: string | undefined
+                let tools: string[] | undefined
+                if (t.output) {
+                  try {
+                    const parsed = JSON.parse(t.output)
+                    summary = parsed.summary
+                    tools = parsed.tools
+                  } catch {
+                    summary = t.output
+                  }
+                }
+                blocks.push({
+                  type: 'subtask',
+                  toolUseId: `persisted-${blocks.length}`,
+                  prompt,
+                  summary,
+                  tools,
+                  isError: t.isError,
+                  isRunning: false,
+                })
               } else {
                 blocks.push({
                   type: 'tool',

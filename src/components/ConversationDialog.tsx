@@ -1905,12 +1905,6 @@ function SubtaskBlock({
   const promptPreview =
     subtask.prompt.slice(0, 60).replace(/\n/g, ' ') + (subtask.prompt.length > 60 ? '…' : '')
 
-  const borderColor = subtask.isError
-    ? 'var(--status-danger)'
-    : subtask.isRunning
-      ? 'var(--accent)'
-      : 'var(--queue-border)'
-
   // Aggregate tool usage: bash×3 read×5
   const toolCounts = new Map<string, number>()
   if (subtask.tools) {
@@ -1926,7 +1920,7 @@ function SubtaskBlock({
         maxWidth: '100%',
         fontSize: 'var(--text-xs)',
         fontFamily: 'var(--font-mono)',
-        borderLeft: `2px solid ${borderColor}`,
+        borderLeft: '1.5px solid var(--queue-border)',
         paddingLeft: 10,
         marginLeft: 2,
         userSelect: 'none',
@@ -1980,10 +1974,10 @@ function SubtaskBlock({
           </svg>
         ) : (
           <svg
-            style={{ width: 11, height: 11, flexShrink: 0 }}
+            style={{ width: 11, height: 11, flexShrink: 0, opacity: 0.5 }}
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--status-success)"
+            stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

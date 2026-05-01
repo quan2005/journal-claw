@@ -1903,13 +1903,22 @@ function SubtaskBlock({
 }) {
   const [expanded, setExpanded] = useState(false)
   const promptPreview =
-    subtask.prompt.slice(0, 80).replace(/\n/g, ' ') + (subtask.prompt.length > 80 ? '…' : '')
+    subtask.prompt.slice(0, 60).replace(/\n/g, ' ') + (subtask.prompt.length > 60 ? '…' : '')
 
   const borderColor = subtask.isError
     ? 'var(--status-danger)'
     : subtask.isRunning
       ? 'var(--accent)'
       : 'var(--queue-border)'
+
+  // Aggregate tool usage: bash×3 read×5
+  const toolCounts = new Map<string, number>()
+  if (subtask.tools) {
+    for (const t of subtask.tools) {
+      toolCounts.set(t, (toolCounts.get(t) ?? 0) + 1)
+    }
+  }
+  const totalTools = subtask.tools?.length ?? 0
 
   return (
     <div
@@ -1923,6 +1932,7 @@ function SubtaskBlock({
         userSelect: 'none',
       }}
     >
+      {/* Collapsed summary header */}
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -1935,6 +1945,24 @@ function SubtaskBlock({
           color: subtask.isError ? 'var(--status-danger)' : 'var(--item-meta)',
         }}
       >
+        <svg
+          style={{
+            width: 10,
+            height: 10,
+            flexShrink: 0,
+            opacity: 0.4,
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 150ms ease-out',
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
         {subtask.isRunning ? (
           <Spinner size={11} borderWidth={1.5} />
         ) : subtask.isError ? (
@@ -1963,86 +1991,77 @@ function SubtaskBlock({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}
-        <span style={{ opacity: 0.5, flexShrink: 0 }}>子任务</span>
-        <span
+        <span style={{ opacity: 0.4, flexShrink: 0 }}>
+          {subtask.isRunning
+            ? '子任务运行中'
+            : totalTools > 0
+              ? `子任务, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
+              : '子任务'}
+        </span>
+        {[...toolCounts.entries()].map(([tool, count], i) => (
+          <span
+            key={i}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 1, opacity: 0.5 }}
+          >
+            <ToolIcon name={tool} />
+            {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
+          </span>
+        ))}
+      </div>
+      {/* Prompt preview */}
+      {!expanded && (
+        <div
           style={{
-            flex: 1,
-            minWidth: 0,
+            marginTop: 2,
+            opacity: 0.35,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            opacity: 0.7,
+            fontSize: 'var(--text-xs)',
           }}
         >
           {promptPreview}
-        </span>
-        {subtask.summary && (
-          <svg
-            style={{
-              flexShrink: 0,
-              opacity: 0.4,
-              width: 10,
-              height: 10,
-              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 150ms ease-out',
-            }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        )}
-      </div>
-      {/* Sub-agent tool activity */}
-      {subtask.tools && subtask.tools.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 4,
-            marginTop: 4,
-            opacity: 0.45,
-          }}
-        >
-          {subtask.tools.map((tool, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: '0.65rem',
-              }}
-            >
-              <ToolIcon name={tool} />
-              <span>{tool}</span>
-            </span>
-          ))}
         </div>
       )}
-      {expanded && subtask.summary && (
+      {/* Expanded content */}
+      {expanded && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
-            padding: '6px 0 4px 0',
-            opacity: 0.8,
-            maxHeight: 400,
-            overflow: 'auto',
-            wordBreak: 'break-word',
-            borderTop: '0.5px solid var(--queue-border)',
             marginTop: 4,
-            lineHeight: 1.55,
-            fontSize: 'var(--text-xs)',
-            fontFamily: 'var(--font-body)',
+            borderTop: '0.5px solid var(--queue-border)',
+            paddingTop: 4,
             userSelect: 'text',
             cursor: 'auto',
           }}
         >
-          <MarkdownRenderer content={subtask.summary} />
+          <div
+            style={{
+              opacity: 0.45,
+              fontSize: 'var(--text-xs)',
+              marginBottom: subtask.summary ? 6 : 0,
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {subtask.prompt}
+          </div>
+          {subtask.summary && (
+            <div
+              style={{
+                opacity: 0.8,
+                maxHeight: 400,
+                overflow: 'auto',
+                wordBreak: 'break-word',
+                lineHeight: 1.55,
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              <MarkdownRenderer content={subtask.summary} />
+            </div>
+          )}
         </div>
       )}
     </div>

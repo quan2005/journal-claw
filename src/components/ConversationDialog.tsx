@@ -1923,7 +1923,7 @@ function SubtaskBlock({
         userSelect: 'none',
       }}
     >
-      {/* Header — same level as other tool blocks */}
+      {/* Header — icon first, text middle, chevron last (matches ToolBlock) */}
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -1936,25 +1936,16 @@ function SubtaskBlock({
           color: subtask.isError ? 'var(--status-danger)' : 'var(--item-meta)',
         }}
       >
-        <svg
+        <ToolIcon name="subtask" />
+        <span
           style={{
-            width: 10,
-            height: 10,
-            flexShrink: 0,
-            opacity: 0.4,
-            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 150ms ease-out',
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
         >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-        <span style={{ opacity: 0.4, flexShrink: 0 }}>
           {subtask.isRunning
             ? 'subtask running'
             : totalTools > 0
@@ -1986,7 +1977,24 @@ function SubtaskBlock({
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
-          <ToolIcon name="subtask" />
+          <svg
+            style={{
+              flexShrink: 0,
+              opacity: 0.4,
+              width: 10,
+              height: 10,
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 150ms ease-out',
+            }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         )}
       </div>
       {/* Prompt preview (collapsed) */}

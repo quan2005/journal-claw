@@ -1213,10 +1213,13 @@ function AssistantRun({
     if (b.type === 'thinking') return 'thinking'
     if (b.type === 'tool') return b.name || 'tool'
     if (b.type === 'web_search') return 'web_search'
+    if (b.type === 'subtask') return 'subtask'
     return 'gear'
   })
 
-  const toolCount = nonTextBlocks.filter((b) => b.type === 'tool' || b.type === 'web_search').length
+  const toolCount = nonTextBlocks.filter(
+    (b) => b.type === 'tool' || b.type === 'web_search' || b.type === 'subtask',
+  ).length
   const intermediateTextCount = textBlocks.length > 1 ? textBlocks.length - 1 : 0
 
   // During streaming, show all blocks from all messages
@@ -1408,6 +1411,24 @@ function ToolIcon({ name }: { name: string }) {
         <circle cx="12" cy="12" r="10" />
         <path d="M2 12h20" />
         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    )
+  }
+  if (name === 'subtask') {
+    return (
+      <svg
+        style={{ width: 12, height: 12, flexShrink: 0 }}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M16 3h5v5" />
+        <path d="M8 3H3v5" />
+        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
+        <path d="m15 9 6-6" />
       </svg>
     )
   }
@@ -1755,6 +1776,8 @@ function BlockRenderer({
       return <ToolBlock tool={block} />
     case 'web_search':
       return <WebSearchBlock query={block.query} results={block.results} />
+    case 'subtask':
+      return <SubtaskBlock subtask={block} />
     case 'error':
       return <ErrorBlock error={block} onRetry={onRetry} />
     case 'loop_warning':
@@ -1861,6 +1884,126 @@ function ToolBlock({
           }}
         >
           {tool.output}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SubtaskBlock({
+  subtask,
+}: {
+  subtask: {
+    toolUseId: string
+    prompt: string
+    summary?: string
+    isError?: boolean
+    isRunning?: boolean
+  }
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const promptPreview =
+    subtask.prompt.slice(0, 80).replace(/\n/g, ' ') + (subtask.prompt.length > 80 ? '...' : '')
+
+  return (
+    <div
+      onClick={() => setExpanded(!expanded)}
+      style={{
+        maxWidth: '100%',
+        borderRadius: 6,
+        background: 'none',
+        fontSize: 'var(--text-xs)',
+        fontFamily: 'var(--font-mono)',
+        color: subtask.isError ? 'var(--status-danger)' : 'var(--item-meta)',
+        cursor: 'pointer',
+        userSelect: 'none',
+        border: 'none',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          minWidth: 0,
+        }}
+      >
+        {subtask.isRunning ? (
+          <Spinner size={12} borderWidth={1.5} />
+        ) : subtask.isError ? (
+          <svg
+            style={{ flexShrink: 0, width: 12, height: 12 }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--status-danger)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        ) : (
+          <svg
+            style={{ flexShrink: 0, width: 12, height: 12 }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--status-success)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
+        <span
+          style={{
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {promptPreview}
+        </span>
+        {subtask.summary && (
+          <svg
+            style={{
+              flexShrink: 0,
+              opacity: 0.4,
+              width: 10,
+              height: 10,
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 150ms ease-out',
+            }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        )}
+      </div>
+      {expanded && subtask.summary && (
+        <div
+          style={{
+            padding: '4px 0 4px 18px',
+            opacity: 0.8,
+            maxHeight: 300,
+            overflow: 'auto',
+            wordBreak: 'break-word',
+            borderTop: '0.5px solid var(--queue-border)',
+            marginTop: 4,
+            lineHeight: 1.55,
+            fontSize: 'var(--text-xs)',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          <MarkdownRenderer content={subtask.summary} />
         </div>
       )}
     </div>

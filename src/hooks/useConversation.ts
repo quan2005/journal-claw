@@ -343,6 +343,66 @@ export function useConversation() {
             return [...prev, { role: 'assistant' as const, content: '', blocks: [warningBlock] }]
           })
           break
+        case 'subtask_start': {
+          const info = JSON.parse(data)
+          updateSessionMessages(sid, (prev) => {
+            const last = prev[prev.length - 1]
+            if (last?.role === 'assistant') {
+              const blocks = [
+                ...(last.blocks ?? []),
+                {
+                  type: 'subtask' as const,
+                  toolUseId: info.tool_use_id,
+                  prompt: info.prompt,
+                  isRunning: true,
+                },
+              ]
+              return [...prev.slice(0, -1), { ...last, blocks }]
+            }
+            return prev
+          })
+          break
+        }
+        case 'subtask_delta': {
+          const info = JSON.parse(data)
+          updateSessionMessages(sid, (prev) => {
+            const last = prev[prev.length - 1]
+            if (last?.role === 'assistant') {
+              const blocks = [...(last.blocks ?? [])]
+              for (let i = blocks.length - 1; i >= 0; i--) {
+                const b = blocks[i]
+                if (b.type === 'subtask' && b.toolUseId === info.tool_use_id) {
+                  if (info.text) {
+                    blocks[i] = { ...b, summary: (b.summary ?? '') + info.text }
+                  }
+                  break
+                }
+              }
+              return [...prev.slice(0, -1), { ...last, blocks }]
+            }
+            return prev
+          })
+          break
+        }
+        case 'subtask_end': {
+          const info = JSON.parse(data)
+          updateSessionMessages(sid, (prev) => {
+            const last = prev[prev.length - 1]
+            if (last?.role === 'assistant') {
+              const blocks = [...(last.blocks ?? [])]
+              for (let i = blocks.length - 1; i >= 0; i--) {
+                const b = blocks[i]
+                if (b.type === 'subtask' && b.toolUseId === info.tool_use_id) {
+                  blocks[i] = { ...b, isRunning: false, isError: info.is_error }
+                  break
+                }
+              }
+              return [...prev.slice(0, -1), { ...last, blocks }]
+            }
+            return prev
+          })
+          break
+        }
         case 'title':
           if (sid === sessionIdRef.current) {
             setTitle(data)

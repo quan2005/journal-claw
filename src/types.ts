@@ -167,6 +167,9 @@ export interface ConversationStreamPayload {
     | 'title'
     | 'turn_start'
     | 'usage'
+    | 'subtask_start'
+    | 'subtask_delta'
+    | 'subtask_end'
   data: string
   span_id?: string
   parent_span_id?: string

@@ -1709,9 +1709,24 @@ async fn run_conversation_turn(
                     return Ok((messages, turn_input_tokens, turn_output_tokens));
                 }
 
-                // Execute tools
-                let mut results: Vec<ContentBlock> = Vec::new();
-                for (id, name, input) in &tool_calls {
+                // Partition: task calls run concurrently, others sequentially
+                let mut task_calls_idx: Vec<usize> = Vec::new();
+                let mut other_calls_idx: Vec<usize> = Vec::new();
+                for (i, (_, name, _)) in tool_calls.iter().enumerate() {
+                    if name == "task" {
+                        task_calls_idx.push(i);
+                    } else {
+                        other_calls_idx.push(i);
+                    }
+                }
+
+                // Pre-allocate results slots (indexed by position in tool_calls)
+                let mut indexed_results: Vec<Option<(llm::types::ToolResult, Option<llm::types::ImageData>)>> =
+                    vec![None; tool_calls.len()];
+
+                // Execute non-task tools sequentially
+                for idx in &other_calls_idx {
+                    let (id, name, input) = &tool_calls[*idx];
                     if cancel.is_cancelled() {
                         return Err((
                             llm::types::LlmError::Cancelled,
@@ -1724,7 +1739,6 @@ async fn run_conversation_turn(
                     let label = match name.as_str() {
                         "bash" => llm::bash_tool::log_label(input),
                         "load_skill" => llm::enable_skill::log_label(input),
-                        "task" => llm::task_tool::log_label(input),
                         n => llm::fs_tools::log_label(n, input),
                     };
                     let _ = app.emit(
@@ -1739,25 +1753,79 @@ async fn run_conversation_turn(
                     let (result, image_data) = match name.as_str() {
                         "bash" => (llm::bash_tool::execute(input, workspace).await, None),
                         "load_skill" => (llm::enable_skill::execute(input, workspace).await, None),
-                        "task" => {
-                            let sub_cancel = cancel.child_token();
-                            let app_for_sub = app.clone();
-                            let sid_for_sub = sid.clone();
-                            let tool_id_for_sub = id.clone();
-                            let _ = app.emit(
-                                "conversation-stream",
-                                ConversationStreamPayload {
-                                    session_id: sid.clone(),
-                                    event: "subtask_start".to_string(),
-                                    data: serde_json::json!({
-                                        "tool_use_id": id,
-                                        "prompt": input.get("prompt").and_then(|v| v.as_str()).unwrap_or(""),
-                                    }).to_string(),
-                                },
-                            );
+                        fs_name => {
+                            if let Some((r, img)) =
+                                llm::fs_tools::execute(fs_name, input, workspace).await
+                            {
+                                (r, img)
+                            } else {
+                                (
+                                    llm::types::ToolResult {
+                                        output: format!("unknown tool: {}", fs_name),
+                                        is_error: true,
+                                    },
+                                    None,
+                                )
+                            }
+                        }
+                    };
+
+                    let _ = app.emit(
+                        "conversation-stream",
+                        ConversationStreamPayload {
+                            session_id: sid.clone(),
+                            event: "tool_end".to_string(),
+                            data: serde_json::json!({
+                                "name": name,
+                                "is_error": result.is_error,
+                                "output": result.output,
+                            })
+                            .to_string(),
+                        },
+                    );
+
+                    indexed_results[*idx] = Some((result, image_data));
+                }
+
+                // Execute task tools concurrently
+                if !task_calls_idx.is_empty() {
+                    // Emit tool_start + subtask_start for all tasks before launching
+                    for idx in &task_calls_idx {
+                        let (id, name, input) = &tool_calls[*idx];
+                        let label = llm::task_tool::log_label(input);
+                        let _ = app.emit(
+                            "conversation-stream",
+                            ConversationStreamPayload {
+                                session_id: sid.clone(),
+                                event: "tool_start".to_string(),
+                                data: serde_json::json!({ "name": name, "label": label }).to_string(),
+                            },
+                        );
+                        let _ = app.emit(
+                            "conversation-stream",
+                            ConversationStreamPayload {
+                                session_id: sid.clone(),
+                                event: "subtask_start".to_string(),
+                                data: serde_json::json!({
+                                    "tool_use_id": id,
+                                    "prompt": input.get("prompt").and_then(|v| v.as_str()).unwrap_or(""),
+                                }).to_string(),
+                            },
+                        );
+                    }
+
+                    let task_futures: Vec<_> = task_calls_idx.iter().map(|idx| {
+                        let (id, _name, input) = &tool_calls[*idx];
+                        let sub_cancel = cancel.child_token();
+                        let app_for_sub = app.clone();
+                        let sid_for_sub = sid.clone();
+                        let tool_id_for_sub = id.clone();
+                        let input_clone = input.clone();
+                        let workspace_str = workspace.to_string();
+                        async move {
                             let result = llm::task_tool::execute(
-                                input,
-                                workspace,
+                                &input_clone,
+                                &workspace_str,
                                 engine,
                                 sub_cancel,
                                 move |evt| {
@@ -1793,49 +1861,50 @@ async fn run_conversation_turn(
                                 },
                                 global_skills,
                             ).await;
-                            let _ = app.emit(
-                                "conversation-stream",
-                                ConversationStreamPayload {
-                                    session_id: sid.clone(),
-                                    event: "subtask_end".to_string(),
-                                    data: serde_json::json!({
-                                        "tool_use_id": id,
-                                        "is_error": result.is_error,
-                                    }).to_string(),
-                                },
-                            );
-                            (result, None)
+                            result
                         }
-                        fs_name => {
-                            if let Some((r, img)) =
-                                llm::fs_tools::execute(fs_name, input, workspace).await
-                            {
-                                (r, img)
-                            } else {
-                                (
-                                    llm::types::ToolResult {
-                                        output: format!("unknown tool: {}", fs_name),
-                                        is_error: true,
-                                    },
-                                    None,
-                                )
-                            }
-                        }
-                    };
+                    }).collect();
 
-                    let _ = app.emit(
-                        "conversation-stream",
-                        ConversationStreamPayload {
-                            session_id: sid.clone(),
-                            event: "tool_end".to_string(),
-                            data: serde_json::json!({
-                                "name": name,
-                                "is_error": result.is_error,
-                                "output": result.output,
-                            })
-                            .to_string(),
-                        },
-                    );
+                    let task_results = futures::future::join_all(task_futures).await;
+
+                    for (i, result) in task_results.into_iter().enumerate() {
+                        let idx = task_calls_idx[i];
+                        let (id, name, _input) = &tool_calls[idx];
+                        let _ = app.emit(
+                            "conversation-stream",
+                            ConversationStreamPayload {
+                                session_id: sid.clone(),
+                                event: "subtask_end".to_string(),
+                                data: serde_json::json!({
+                                    "tool_use_id": id,
+                                    "is_error": result.is_error,
+                                }).to_string(),
+                            },
+                        );
+                        let _ = app.emit(
+                            "conversation-stream",
+                            ConversationStreamPayload {
+                                session_id: sid.clone(),
+                                event: "tool_end".to_string(),
+                                data: serde_json::json!({
+                                    "name": name,
+                                    "is_error": result.is_error,
+                                    "output": result.output,
+                                })
+                                .to_string(),
+                            },
+                        );
+                        indexed_results[idx] = Some((result, None));
+                    }
+                }
+
+                // Build results in original order, applying loop detection
+                let mut results: Vec<ContentBlock> = Vec::new();
+                for (idx, slot) in indexed_results.into_iter().enumerate() {
+                    let (id, name, input) = &tool_calls[idx];
+                    let (result, image_data) = slot.unwrap_or_else(|| {
+                        (llm::types::ToolResult { output: "error: tool not executed".to_string(), is_error: true }, None)
+                    });
 
                     // Loop detection
                     if let Some(det) = loop_detector.record(name, input, &result.output) {

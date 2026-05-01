@@ -1923,7 +1923,7 @@ function SubtaskBlock({
         userSelect: 'none',
       }}
     >
-      {/* Header — icon first, text middle, chevron last (matches ToolBlock) */}
+      {/* Header — same level as other tool blocks */}
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -1936,31 +1936,6 @@ function SubtaskBlock({
           color: subtask.isError ? 'var(--status-danger)' : 'var(--item-meta)',
         }}
       >
-        <ToolIcon name="subtask" />
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {subtask.isRunning
-            ? 'subtask running'
-            : totalTools > 0
-              ? `subtask, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
-              : 'subtask'}
-        </span>
-        {[...toolCounts.entries()].map(([tool, count], i) => (
-          <span
-            key={i}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 1, opacity: 0.5 }}
-          >
-            <ToolIcon name={tool} />
-            {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
-          </span>
-        ))}
         {subtask.isRunning ? (
           <Spinner size={11} borderWidth={1.5} />
         ) : subtask.isError ? (
@@ -1977,31 +1952,49 @@ function SubtaskBlock({
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
-          <svg
-            style={{
-              flexShrink: 0,
-              opacity: 0.4,
-              width: 10,
-              height: 10,
-              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 150ms ease-out',
-            }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ToolIcon name="subtask" />
         )}
+        <span style={{ opacity: 0.4, flexShrink: 0 }}>
+          {subtask.isRunning
+            ? '子任务运行中'
+            : totalTools > 0
+              ? `子任务, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
+              : '子任务'}
+        </span>
+        {[...toolCounts.entries()].map(([tool, count], i) => (
+          <span
+            key={i}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 1, opacity: 0.5 }}
+          >
+            <ToolIcon name={tool} />
+            {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
+          </span>
+        ))}
+        <svg
+          style={{
+            flexShrink: 0,
+            opacity: 0.4,
+            width: 10,
+            height: 10,
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 150ms ease-out',
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
       {/* Prompt preview (collapsed) */}
       {!expanded && (
         <div
           style={{
             marginTop: 2,
+            paddingLeft: 17,
             opacity: 0.35,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -2012,22 +2005,22 @@ function SubtaskBlock({
           {promptPreview}
         </div>
       )}
-      {/* Expanded: nested tools + summary, indented */}
+      {/* Expanded: nested content with left border */}
       {expanded && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
             marginTop: 4,
-            marginLeft: 4,
+            marginLeft: 5,
             borderLeft: '1.5px solid var(--queue-border)',
-            paddingLeft: 10,
+            paddingLeft: 12,
             userSelect: 'text',
             cursor: 'auto',
           }}
         >
           <div
             style={{
-              opacity: 0.55,
+              opacity: 0.45,
               fontSize: 'var(--text-xs)',
               marginBottom: 4,
               lineHeight: 1.5,
@@ -2047,13 +2040,13 @@ function SubtaskBlock({
           {subtask.summary && (
             <div
               style={{
+                opacity: 0.8,
                 maxHeight: 400,
                 overflow: 'auto',
                 wordBreak: 'break-word',
                 lineHeight: 1.55,
                 fontSize: 'var(--text-xs)',
                 fontFamily: 'var(--font-body)',
-                color: 'var(--text-primary)',
               }}
             >
               <MarkdownRenderer content={subtask.summary} />

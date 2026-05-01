@@ -9,6 +9,7 @@ pub mod output_compress;
 pub mod prompt;
 pub mod retry;
 pub mod sse_parser;
+pub mod task_tool;
 pub mod tool_loop;
 pub mod types;
 

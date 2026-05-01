@@ -2025,7 +2025,7 @@ function SubtaskBlock({
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              color: 'var(--text-primary)',
+              color: 'var(--item-meta)',
             }}
           >
             {subtask.prompt}

@@ -2020,12 +2020,12 @@ function SubtaskBlock({
         >
           <div
             style={{
-              opacity: 0.45,
               fontSize: 'var(--text-xs)',
               marginBottom: 4,
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
+              color: 'var(--text-primary)',
             }}
           >
             {subtask.prompt}

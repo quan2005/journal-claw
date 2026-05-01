@@ -1956,10 +1956,10 @@ function SubtaskBlock({
         )}
         <span style={{ opacity: 0.4, flexShrink: 0 }}>
           {subtask.isRunning
-            ? '子任务运行中'
+            ? 'task 运行中'
             : totalTools > 0
-              ? `子任务, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
-              : '子任务'}
+              ? `task, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
+              : 'task'}
         </span>
         {[...toolCounts.entries()].map(([tool, count], i) => (
           <span

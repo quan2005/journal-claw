@@ -1995,7 +1995,7 @@ function SubtaskBlock({
           style={{
             marginTop: 2,
             paddingLeft: 17,
-            opacity: 0.35,
+            color: 'var(--item-meta)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',

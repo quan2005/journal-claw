@@ -1898,40 +1898,48 @@ function SubtaskBlock({
     summary?: string
     isError?: boolean
     isRunning?: boolean
+    tools?: string[]
   }
 }) {
   const [expanded, setExpanded] = useState(false)
   const promptPreview =
-    subtask.prompt.slice(0, 80).replace(/\n/g, ' ') + (subtask.prompt.length > 80 ? '...' : '')
+    subtask.prompt.slice(0, 80).replace(/\n/g, ' ') + (subtask.prompt.length > 80 ? '…' : '')
+
+  const borderColor = subtask.isError
+    ? 'var(--status-danger)'
+    : subtask.isRunning
+      ? 'var(--accent)'
+      : 'var(--queue-border)'
 
   return (
     <div
-      onClick={() => setExpanded(!expanded)}
       style={{
         maxWidth: '100%',
-        borderRadius: 6,
-        background: 'none',
         fontSize: 'var(--text-xs)',
         fontFamily: 'var(--font-mono)',
-        color: subtask.isError ? 'var(--status-danger)' : 'var(--item-meta)',
-        cursor: 'pointer',
+        borderLeft: `2px solid ${borderColor}`,
+        paddingLeft: 10,
+        marginLeft: 2,
         userSelect: 'none',
-        border: 'none',
       }}
     >
       <div
+        onClick={() => setExpanded(!expanded)}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          minWidth: 0,
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          color: subtask.isError ? 'var(--status-danger)' : 'var(--item-meta)',
         }}
       >
         {subtask.isRunning ? (
-          <Spinner size={12} borderWidth={1.5} />
+          <Spinner size={11} borderWidth={1.5} />
         ) : subtask.isError ? (
           <svg
-            style={{ flexShrink: 0, width: 12, height: 12 }}
+            style={{ width: 11, height: 11, flexShrink: 0 }}
             viewBox="0 0 24 24"
             fill="none"
             stroke="var(--status-danger)"
@@ -1944,7 +1952,7 @@ function SubtaskBlock({
           </svg>
         ) : (
           <svg
-            style={{ flexShrink: 0, width: 12, height: 12 }}
+            style={{ width: 11, height: 11, flexShrink: 0 }}
             viewBox="0 0 24 24"
             fill="none"
             stroke="var(--status-success)"
@@ -1955,6 +1963,7 @@ function SubtaskBlock({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}
+        <span style={{ opacity: 0.5, flexShrink: 0 }}>子任务</span>
         <span
           style={{
             flex: 1,
@@ -1962,6 +1971,7 @@ function SubtaskBlock({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            opacity: 0.7,
           }}
         >
           {promptPreview}
@@ -1987,12 +1997,40 @@ function SubtaskBlock({
           </svg>
         )}
       </div>
-      {expanded && subtask.summary && (
+      {/* Sub-agent tool activity */}
+      {subtask.tools && subtask.tools.length > 0 && (
         <div
           style={{
-            padding: '4px 0 4px 18px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 4,
+            marginTop: 4,
+            opacity: 0.45,
+          }}
+        >
+          {subtask.tools.map((tool, i) => (
+            <span
+              key={i}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: '0.65rem',
+              }}
+            >
+              <ToolIcon name={tool} />
+              <span>{tool}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {expanded && subtask.summary && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            padding: '6px 0 4px 0',
             opacity: 0.8,
-            maxHeight: 300,
+            maxHeight: 400,
             overflow: 'auto',
             wordBreak: 'break-word',
             borderTop: '0.5px solid var(--queue-border)',
@@ -2000,6 +2038,8 @@ function SubtaskBlock({
             lineHeight: 1.55,
             fontSize: 'var(--text-xs)',
             fontFamily: 'var(--font-body)',
+            userSelect: 'text',
+            cursor: 'auto',
           }}
         >
           <MarkdownRenderer content={subtask.summary} />

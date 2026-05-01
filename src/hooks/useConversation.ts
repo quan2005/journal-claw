@@ -375,6 +375,11 @@ export function useConversation() {
                   if (info.text) {
                     blocks[i] = { ...b, summary: (b.summary ?? '') + info.text }
                   }
+                  if (info.tool) {
+                    const tools = [...(b.tools ?? [])]
+                    tools.push(info.tool as string)
+                    blocks[i] = { ...b, tools }
+                  }
                   break
                 }
               }

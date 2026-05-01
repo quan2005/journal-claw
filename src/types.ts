@@ -139,7 +139,7 @@ export type MessageBlock =
   | { type: 'error'; code: string; message: string; retryable: boolean }
   | { type: 'loop_warning'; message: string }
   | { type: 'truncated' }
-  | { type: 'subtask'; toolUseId: string; prompt: string; summary?: string; isError?: boolean; isRunning?: boolean }
+  | { type: 'subtask'; toolUseId: string; prompt: string; summary?: string; isError?: boolean; isRunning?: boolean; tools?: string[] }
 
 export interface ConversationMessage {
   role: 'user' | 'assistant'

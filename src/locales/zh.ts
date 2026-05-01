@@ -8,6 +8,12 @@ export const zh: Strings = {
   // Sidebar tabs
   profiles: '画像',
   journal: '流水',
+  files: '文件',
+
+  // File tree
+  emptyFolder: '空文件夹',
+  openExternal: '用系统应用打开',
+  selectFileToPreview: '选择文件以预览',
 
   // Settings nav
   general: '通用',
@@ -54,6 +60,9 @@ export const zh: Strings = {
   visualDesignBook: '转化为可视化设计',
   copyContent: '复制内容',
   copyFilePath: '复制文件路径',
+  copyFileName: '复制文件名',
+  duplicate: '创建副本',
+  moveTo: '移动到…',
   openInEditor: '用默认编辑器打开',
   showInFinder: '在 Finder 中显示',
   delete: '删除',

@@ -345,6 +345,10 @@ fn main() {
             work_queue::retry_work_item,
             work_queue::dismiss_work_item,
             skills::list_workspace_dir,
+            skills::workspace_duplicate_file,
+            skills::workspace_rename_file,
+            skills::workspace_move_file,
+            skills::workspace_delete_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

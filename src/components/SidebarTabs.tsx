@@ -1,6 +1,6 @@
 import { useTranslation } from '../contexts/I18nContext'
 
-export type SidebarTab = 'journal' | 'identity'
+export type SidebarTab = 'journal' | 'identity' | 'files'
 
 interface SidebarTabsProps {
   active: SidebarTab
@@ -79,6 +79,24 @@ export function SidebarTabs({ active, onChange }: SidebarTabsProps) {
           <line x1="16" y1="17" x2="8" y2="17" />
         </svg>
         {t('journal')}
+      </button>
+      <div
+        style={{ width: 1, alignSelf: 'stretch', margin: '10px 0', background: 'var(--divider)' }}
+      />
+      <button style={btnStyle('files')} onClick={() => onChange('files')}>
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+        {t('files')}
       </button>
     </div>
   )

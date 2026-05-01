@@ -6,6 +6,12 @@ export const en = {
   // Sidebar tabs
   profiles: 'Profiles',
   journal: 'Journal',
+  files: 'Files',
+
+  // File tree
+  emptyFolder: 'Empty folder',
+  openExternal: 'Open with system app',
+  selectFileToPreview: 'Select a file to preview',
 
   // Settings nav
   general: 'General',
@@ -52,6 +58,9 @@ export const en = {
   visualDesignBook: 'Visual Design Book',
   copyContent: 'Copy content',
   copyFilePath: 'Copy file path',
+  copyFileName: 'Copy file name',
+  duplicate: 'Duplicate',
+  moveTo: 'Move To...',
   openInEditor: 'Open in default editor',
   showInFinder: 'Show in Finder',
   delete: 'Delete',

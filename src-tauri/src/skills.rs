@@ -195,6 +195,7 @@ pub struct WorkspaceDirEntry {
     pub name: String,
     pub is_dir: bool,
     pub path: String,
+    pub mtime_secs: u64,
 }
 
 #[tauri::command]
@@ -241,19 +242,121 @@ pub fn list_workspace_dir(
             format!("{}/{}", relative_path, name)
         };
 
+        let mtime_secs = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs())
+            .unwrap_or(0);
+
         entries.push(WorkspaceDirEntry {
             name,
             is_dir,
             path: rel_path,
+            mtime_secs,
         });
     }
 
-    // Sort: directories first, then files, alphabetically within each group
+    // Sort: directories first, then files; within each group by name descending
     entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
         (true, false) => std::cmp::Ordering::Less,
         (false, true) => std::cmp::Ordering::Greater,
-        _ => a.name.cmp(&b.name),
+        _ => b.name.cmp(&a.name),
     });
 
     Ok(entries)
+}
+
+#[tauri::command]
+pub fn workspace_duplicate_file(
+    app: tauri::AppHandle,
+    relative_path: String,
+) -> Result<String, String> {
+    let config = crate::config::load_config(&app)?;
+    let workspace = std::path::PathBuf::from(&config.workspace_path);
+    let source = workspace.join(&relative_path);
+    if !source.exists() {
+        return Err("文件不存在".to_string());
+    }
+    let stem = source.file_stem().unwrap_or_default().to_string_lossy().to_string();
+    let ext = source.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let parent = source.parent().unwrap();
+    let mut i = 1;
+    let dest = loop {
+        let name = format!("{} copy{}{}", stem, if i > 1 { format!(" {}", i) } else { String::new() }, ext);
+        let candidate = parent.join(&name);
+        if !candidate.exists() {
+            break candidate;
+        }
+        i += 1;
+    };
+    fs::copy(&source, &dest).map_err(|e| e.to_string())?;
+    let dest_rel = dest.strip_prefix(&workspace).unwrap_or(&dest).to_string_lossy().to_string();
+    Ok(dest_rel)
+}
+
+#[tauri::command]
+pub fn workspace_rename_file(
+    app: tauri::AppHandle,
+    relative_path: String,
+    new_name: String,
+) -> Result<String, String> {
+    let config = crate::config::load_config(&app)?;
+    let workspace = std::path::PathBuf::from(&config.workspace_path);
+    let source = workspace.join(&relative_path);
+    if !source.exists() {
+        return Err("文件不存在".to_string());
+    }
+    let parent = source.parent().unwrap();
+    let dest = parent.join(&new_name);
+    if dest.exists() {
+        return Err("目标文件已存在".to_string());
+    }
+    fs::rename(&source, &dest).map_err(|e| e.to_string())?;
+    let dest_rel = dest.strip_prefix(&workspace).unwrap_or(&dest).to_string_lossy().to_string();
+    Ok(dest_rel)
+}
+
+#[tauri::command]
+pub fn workspace_move_file(
+    app: tauri::AppHandle,
+    relative_path: String,
+    dest_dir: String,
+) -> Result<String, String> {
+    let config = crate::config::load_config(&app)?;
+    let workspace = std::path::PathBuf::from(&config.workspace_path);
+    let source = workspace.join(&relative_path);
+    if !source.exists() {
+        return Err("文件不存在".to_string());
+    }
+    let target_dir = workspace.join(&dest_dir);
+    if !target_dir.is_dir() {
+        return Err("目标目录不存在".to_string());
+    }
+    let filename = source.file_name().unwrap();
+    let dest = target_dir.join(filename);
+    if dest.exists() {
+        return Err("目标位置已存在同名文件".to_string());
+    }
+    fs::rename(&source, &dest).map_err(|e| e.to_string())?;
+    let dest_rel = dest.strip_prefix(&workspace).unwrap_or(&dest).to_string_lossy().to_string();
+    Ok(dest_rel)
+}
+
+#[tauri::command]
+pub fn workspace_delete_file(
+    app: tauri::AppHandle,
+    relative_path: String,
+) -> Result<(), String> {
+    let config = crate::config::load_config(&app)?;
+    let workspace = std::path::PathBuf::from(&config.workspace_path);
+    let target = workspace.join(&relative_path);
+    if !target.exists() {
+        return Err("文件不存在".to_string());
+    }
+    if target.is_dir() {
+        fs::remove_dir_all(&target).map_err(|e| e.to_string())?;
+    } else {
+        fs::remove_file(&target).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

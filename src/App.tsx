@@ -12,6 +12,8 @@ import { IdentityDetail } from './components/IdentityDetail'
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { SidebarTabs } from './components/SidebarTabs'
 import type { SidebarTab } from './components/SidebarTabs'
+import { FileTree } from './components/FileTree'
+import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { useIdentity } from './hooks/useIdentity'
 import { TodoSidebar } from './components/TodoSidebar'
 import { ConversationDialog } from './components/ConversationDialog'
@@ -38,6 +40,7 @@ import {
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry, SessionMode } from './types'
+import type { WorkspaceDirEntry } from './lib/tauri'
 import { useTranslation } from './contexts/I18nContext'
 
 const BASE_WIDTH = 320
@@ -101,6 +104,7 @@ export default function App() {
     visible: boolean
   } | null>(null)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
+  const [selectedFile, setSelectedFile] = useState<WorkspaceDirEntry | null>(null)
 
   const handleTabChange = useCallback((tab: SidebarTab) => {
     setSidebarTab(tab)
@@ -704,6 +708,19 @@ export default function App() {
                 onDelete={handleDeleteIdentity}
               />
             </div>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: sidebarTab === 'files' ? 'flex' : 'none',
+                flexDirection: 'column',
+              }}
+            >
+              <FileTree
+                selectedPath={selectedFile?.path ?? null}
+                onSelectFile={setSelectedFile}
+              />
+            </div>
           </div>
         </div>
 
@@ -729,7 +746,7 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          {sidebarTab === 'journal' ? (
+          <div style={{ display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <DetailPanel
               entry={selectedEntry}
               entries={entries}
@@ -741,13 +758,17 @@ export default function App() {
               onProcess={handleProcessEntry}
               onVisualDesign={handleVisualDesign}
             />
-          ) : (
+          </div>
+          <div style={{ display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <IdentityDetail
               identity={selectedIdentity}
               onRecord={handleRecord}
               onOpenDock={handleOpenDock}
             />
-          )}
+          </div>
+          <div style={{ display: sidebarTab === 'files' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <FilePreviewPanel file={selectedFile} />
+          </div>
         </div>
 
         {/* Todo sidebar */}

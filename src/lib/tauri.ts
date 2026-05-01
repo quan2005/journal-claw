@@ -543,6 +543,19 @@ export interface WorkspaceDirEntry {
   name: string
   is_dir: boolean
   path: string
+  mtime_secs: number
 }
 export const listWorkspaceDir = (relativePath: string): Promise<WorkspaceDirEntry[]> =>
   invoke<WorkspaceDirEntry[]>('list_workspace_dir', { relativePath })
+
+export const workspaceDuplicateFile = (relativePath: string): Promise<string> =>
+  invoke<string>('workspace_duplicate_file', { relativePath })
+
+export const workspaceRenameFile = (relativePath: string, newName: string): Promise<string> =>
+  invoke<string>('workspace_rename_file', { relativePath, newName })
+
+export const workspaceMoveFile = (relativePath: string, destDir: string): Promise<string> =>
+  invoke<string>('workspace_move_file', { relativePath, destDir })
+
+export const workspaceDeleteFile = (relativePath: string): Promise<void> =>
+  invoke<void>('workspace_delete_file', { relativePath })

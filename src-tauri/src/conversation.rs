@@ -396,6 +396,7 @@ fn messages_to_display(messages: &[Message]) -> Vec<LoadedMessage> {
                     let label = match *tool_name {
                         "bash" => llm::bash_tool::log_label(tool_input),
                         "load_skill" => llm::enable_skill::log_label(tool_input),
+                        "task" => llm::task_tool::log_label(tool_input),
                         name => llm::fs_tools::log_label(name, tool_input),
                     };
                     tools.push(DisplayTool {
@@ -1470,6 +1471,7 @@ async fn run_conversation_turn(
             let mut t = vec![
                 llm::bash_tool::definition(),
                 llm::enable_skill::definition(&skills),
+                llm::task_tool::definition(),
             ];
             t.extend(llm::fs_tools::definitions());
             t
@@ -1722,6 +1724,7 @@ async fn run_conversation_turn(
                     let label = match name.as_str() {
                         "bash" => llm::bash_tool::log_label(input),
                         "load_skill" => llm::enable_skill::log_label(input),
+                        "task" => llm::task_tool::log_label(input),
                         n => llm::fs_tools::log_label(n, input),
                     };
                     let _ = app.emit(
@@ -1735,8 +1738,73 @@ async fn run_conversation_turn(
 
                     let (result, image_data) = match name.as_str() {
                         "bash" => (llm::bash_tool::execute(input, workspace).await, None),
-                        "load_skill" => {
-                            (llm::enable_skill::execute(input, workspace).await, None)
+                        "load_skill" => (llm::enable_skill::execute(input, workspace).await, None),
+                        "task" => {
+                            let sub_cancel = cancel.child_token();
+                            let app_for_sub = app.clone();
+                            let sid_for_sub = sid.clone();
+                            let tool_id_for_sub = id.clone();
+                            let _ = app.emit(
+                                "conversation-stream",
+                                ConversationStreamPayload {
+                                    session_id: sid.clone(),
+                                    event: "subtask_start".to_string(),
+                                    data: serde_json::json!({
+                                        "tool_use_id": id,
+                                        "prompt": input.get("prompt").and_then(|v| v.as_str()).unwrap_or(""),
+                                    }).to_string(),
+                                },
+                            );
+                            let result = llm::task_tool::execute(
+                                input,
+                                workspace,
+                                engine,
+                                sub_cancel,
+                                move |evt| {
+                                    match &evt {
+                                        llm::tool_loop::AgentEvent::TextDelta(text) => {
+                                            let _ = app_for_sub.emit(
+                                                "conversation-stream",
+                                                ConversationStreamPayload {
+                                                    session_id: sid_for_sub.clone(),
+                                                    event: "subtask_delta".to_string(),
+                                                    data: serde_json::json!({
+                                                        "tool_use_id": tool_id_for_sub,
+                                                        "text": text,
+                                                    }).to_string(),
+                                                },
+                                            );
+                                        }
+                                        llm::tool_loop::AgentEvent::ToolStart { name, .. } => {
+                                            let _ = app_for_sub.emit(
+                                                "conversation-stream",
+                                                ConversationStreamPayload {
+                                                    session_id: sid_for_sub.clone(),
+                                                    event: "subtask_delta".to_string(),
+                                                    data: serde_json::json!({
+                                                        "tool_use_id": tool_id_for_sub,
+                                                        "tool": name,
+                                                    }).to_string(),
+                                                },
+                                            );
+                                        }
+                                        _ => {}
+                                    }
+                                },
+                                global_skills,
+                            ).await;
+                            let _ = app.emit(
+                                "conversation-stream",
+                                ConversationStreamPayload {
+                                    session_id: sid.clone(),
+                                    event: "subtask_end".to_string(),
+                                    data: serde_json::json!({
+                                        "tool_use_id": id,
+                                        "is_error": result.is_error,
+                                    }).to_string(),
+                                },
+                            );
+                            (result, None)
                         }
                         fs_name => {
                             if let Some((r, img)) =

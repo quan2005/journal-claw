@@ -1954,6 +1954,22 @@ function SubtaskBlock({
         >
           <polyline points="9 18 15 12 9 6" />
         </svg>
+        <span style={{ opacity: 0.4, flexShrink: 0 }}>
+          {subtask.isRunning
+            ? 'subtask running'
+            : totalTools > 0
+              ? `subtask, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
+              : 'subtask'}
+        </span>
+        {[...toolCounts.entries()].map(([tool, count], i) => (
+          <span
+            key={i}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 1, opacity: 0.5 }}
+          >
+            <ToolIcon name={tool} />
+            {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
+          </span>
+        ))}
         {subtask.isRunning ? (
           <Spinner size={11} borderWidth={1.5} />
         ) : subtask.isError ? (
@@ -1972,22 +1988,6 @@ function SubtaskBlock({
         ) : (
           <ToolIcon name="subtask" />
         )}
-        <span style={{ opacity: 0.4, flexShrink: 0 }}>
-          {subtask.isRunning
-            ? '子任务运行中'
-            : totalTools > 0
-              ? `子任务, ${totalTools} tool${totalTools !== 1 ? 's' : ''}`
-              : '子任务'}
-        </span>
-        {[...toolCounts.entries()].map(([tool, count], i) => (
-          <span
-            key={i}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 1, opacity: 0.5 }}
-          >
-            <ToolIcon name={tool} />
-            {count > 1 && <span style={{ fontSize: '0.6rem' }}>×{count}</span>}
-          </span>
-        ))}
       </div>
       {/* Prompt preview (collapsed) */}
       {!expanded && (

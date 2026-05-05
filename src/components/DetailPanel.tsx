@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { createMarkdownComponents } from '../lib/markdownComponents'
+import { stripFrontmatter } from '../lib/markdownUtils'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import type { JournalEntry } from '../types'
 import { getJournalEntryContent, getWorkspacePath, openFile } from '../lib/tauri'
@@ -883,7 +884,3 @@ export const DetailPanel = React.memo(function DetailPanel({
     </div>
   )
 })
-
-function stripFrontmatter(md: string): string {
-  return md.replace(/^---[\s\S]*?---\n?/, '').trim()
-}

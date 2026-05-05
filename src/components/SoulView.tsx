@@ -1,41 +1,9 @@
 // src/components/SoulView.tsx
+import React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getWorkspacePrompt, setWorkspacePrompt } from '../lib/tauri'
+import { highlightMarkdown } from '../lib/markdownUtils'
 import { useTranslation } from '../contexts/I18nContext'
-
-function highlightMarkdown(text: string): React.ReactNode[] {
-  return text.split('\n').map((line, i) => {
-    if (/^# /.test(line)) {
-      return (
-        <div key={i} style={{ color: 'var(--item-text)' }}>
-          {line}
-        </div>
-      )
-    }
-    if (/^## /.test(line)) {
-      return (
-        <div key={i} style={{ color: 'var(--item-meta)' }}>
-          {line}
-        </div>
-      )
-    }
-    const bulletMatch = line.match(/^(\s*)(- )(.*)/)
-    if (bulletMatch) {
-      return (
-        <div key={i}>
-          {bulletMatch[1]}
-          <span style={{ color: 'var(--record-btn)' }}>{bulletMatch[2]}</span>
-          <span style={{ color: 'var(--md-text, var(--item-meta))' }}>{bulletMatch[3]}</span>
-        </div>
-      )
-    }
-    return (
-      <div key={i} style={{ color: 'var(--md-text, var(--item-meta))' }}>
-        {line || '\u00A0'}
-      </div>
-    )
-  })
-}
 
 export default function SoulView() {
   const { t } = useTranslation()

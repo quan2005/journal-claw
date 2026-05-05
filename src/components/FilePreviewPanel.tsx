@@ -11,16 +11,13 @@ import {
 } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
 import { createMarkdownComponents } from '../lib/markdownComponents'
+import { stripFrontmatter } from '../lib/markdownUtils'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { Spinner } from './Spinner'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface FilePreviewPanelProps {
   file: WorkspaceDirEntry | null
-}
-
-function stripFrontmatter(md: string): string {
-  return md.replace(/^---[\s\S]*?---\n?/, '').trim()
 }
 
 const FAST_RENDERER_THRESHOLD = 100_000
@@ -144,20 +141,24 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
       const stripped = stripFrontmatter(content)
       if (stripped.length > FAST_RENDERER_THRESHOLD) {
         return (
-          <div className="md-body" style={{ padding: '24px 28px' }}>
-            <MarkdownRenderer content={stripped} entryPath={absolutePath} />
+          <div style={{ padding: '24px 28px' }}>
+            <div className="md-body">
+              <MarkdownRenderer content={stripped} entryPath={absolutePath} />
+            </div>
           </div>
         )
       }
       return (
-        <div className="md-body" style={{ padding: '24px 28px' }}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[[rehypeHighlight, { detect: false }]]}
-            components={createMarkdownComponents(absolutePath)}
-          >
-            {stripped}
-          </ReactMarkdown>
+        <div style={{ padding: '24px 28px' }}>
+          <div className="md-body">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[[rehypeHighlight, { detect: false }]]}
+              components={createMarkdownComponents(absolutePath)}
+            >
+              {stripped}
+            </ReactMarkdown>
+          </div>
         </div>
       )
     }

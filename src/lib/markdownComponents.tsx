@@ -1,25 +1,7 @@
 import React from 'react'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { MarkdownLi } from '../lib/markdownLi'
-
-function resolveRelativePath(baseDir: string, relative: string): string {
-  const parts = baseDir.split('/')
-  for (const segment of relative.split('/')) {
-    if (segment === '..') parts.pop()
-    else if (segment !== '.') parts.push(segment)
-  }
-  return parts.join('/')
-}
-
-function extractCodeText(children: React.ReactNode): string {
-  if (typeof children === 'string') return children
-  if (Array.isArray(children)) return children.map(extractCodeText).join('')
-  if (children && typeof children === 'object' && 'props' in (children as object)) {
-    const el = children as React.ReactElement<{ children?: React.ReactNode }>
-    return extractCodeText(el.props.children)
-  }
-  return ''
-}
+import { resolveRelativePath, extractCodeText } from './markdownUtils'
 
 function CodeBlock({
   className,
@@ -116,7 +98,14 @@ function CodeBlock({
   )
 }
 
-export function createMarkdownComponents(entryPath: string) {
+export interface MarkdownComponentsOptions {
+  entryPath: string
+  imgResolver?: (src: string, baseDir: string) => string
+}
+
+export function createMarkdownComponents(opts: string | MarkdownComponentsOptions) {
+  const entryPath = typeof opts === 'string' ? opts : opts.entryPath
+  const imgResolver = typeof opts === 'string' ? undefined : opts.imgResolver
   const entryDir = entryPath.substring(0, entryPath.lastIndexOf('/'))
 
   return {
@@ -249,7 +238,9 @@ export function createMarkdownComponents(entryPath: string) {
       <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
     ),
     code: ({ className, children }: { className?: string; children?: React.ReactNode }) => (
-      <code className={className}>{children}</code>
+      <code className={className} style={className ? undefined : { color: 'var(--md-code-text)' }}>
+        {children}
+      </code>
     ),
     pre: ({ children }: { children?: React.ReactNode }) => {
       const codeEl = children as React.ReactElement<{
@@ -296,10 +287,14 @@ export function createMarkdownComponents(entryPath: string) {
       if (!src) return null
       let resolvedSrc = src
       if (!src.startsWith('http')) {
-        const absPath = src.startsWith('/')
-          ? src
-          : resolveRelativePath(entryDir, decodeURIComponent(src))
-        resolvedSrc = convertFileSrc(absPath)
+        if (imgResolver) {
+          resolvedSrc = imgResolver(src, entryDir)
+        } else {
+          const absPath = src.startsWith('/')
+            ? src
+            : resolveRelativePath(entryDir, decodeURIComponent(src))
+          resolvedSrc = convertFileSrc(absPath)
+        }
       }
       return (
         <img

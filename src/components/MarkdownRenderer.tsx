@@ -4,6 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
+import { resolveRelativePath } from '../lib/markdownUtils'
 import hljs from 'highlight.js/lib/core'
 
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -88,15 +89,6 @@ marked.use({
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function resolveRelPath(base: string, rel: string): string {
-  const parts = base.split('/')
-  for (const seg of rel.split('/')) {
-    if (seg === '..') parts.pop()
-    else if (seg !== '.') parts.push(seg)
-  }
-  return parts.join('/')
-}
-
 function postProcessHtml(raw: string, entryPath?: string): string {
   let html = raw
   if (entryPath) {
@@ -105,7 +97,9 @@ function postProcessHtml(raw: string, entryPath?: string): string {
       /(<img\s[^>]*src=")([^"]+)(")/g,
       (_m: string, pre: string, src: string, post: string) => {
         if (src.startsWith('http')) return pre + src + post
-        const abs = src.startsWith('/') ? src : resolveRelPath(entryDir, decodeURIComponent(src))
+        const abs = src.startsWith('/')
+          ? src
+          : resolveRelativePath(entryDir, decodeURIComponent(src))
         return pre + convertFileSrc(abs) + post
       },
     )
@@ -333,7 +327,7 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
       if (mdLink && entryPath) {
         e.preventDefault()
         const entryDir = entryPath.substring(0, entryPath.lastIndexOf('/'))
-        const targetPath = resolveRelPath(entryDir, mdLink)
+        const targetPath = resolveRelativePath(entryDir, mdLink)
         const targetFilename = targetPath.substring(targetPath.lastIndexOf('/') + 1)
         window.dispatchEvent(
           new CustomEvent('journal-entry-navigate', {

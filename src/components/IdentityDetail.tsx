@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { Check, ChevronUp, ChevronDown, X } from 'lucide-react'
-import { MarkdownLi } from '../lib/markdownLi'
+import { ChevronUp, ChevronDown, X } from 'lucide-react'
+import { stripFrontmatter, resolveRelativePath, highlightMarkdown } from '../lib/markdownUtils'
+import { createMarkdownComponents } from '../lib/markdownComponents'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import type { IdentityEntry } from '../types'
 import {
   getIdentityContent,
@@ -23,21 +25,6 @@ import { useTranslation } from '../contexts/I18nContext'
 
 // Module-level translator for sub-components that can't use hooks
 const getT = () => createTranslator(detectLang())
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function stripFrontmatter(md: string): string {
-  return md.replace(/^---[\s\S]*?---\n?/, '').trim()
-}
-
-function extractCodeText(children: React.ReactNode): string {
-  if (typeof children === 'string') return children
-  if (Array.isArray(children)) return children.map(extractCodeText).join('')
-  if (children && typeof children === 'object' && 'props' in (children as object)) {
-    const el = children as React.ReactElement<{ children?: React.ReactNode }>
-    return extractCodeText(el.props.children)
-  }
-  return ''
-}
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 function DetailContextMenu({
@@ -139,114 +126,6 @@ function DetailContextMenu({
       </div>
     </div>
   )
-}
-
-// ── Code block ────────────────────────────────────────────────────────────────
-function CodeBlock({
-  children,
-  rawText,
-}: {
-  className?: string
-  children?: React.ReactNode
-  rawText?: string
-}) {
-  const [copied, setCopied] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  return (
-    <div
-      style={{ position: 'relative', margin: '12px 0' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {(hovered || copied) && (
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(rawText ?? '').then(() => {
-              setCopied(true)
-              setTimeout(() => setCopied(false), 1500)
-            })
-          }}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            zIndex: 1,
-            background: copied ? 'rgba(52,199,89,0.15)' : 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: copied ? '#34c759' : 'var(--item-meta)',
-            fontSize: 'var(--text-xs)',
-            padding: '2px 8px',
-            borderRadius: 5,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-mono)',
-            transition: 'color 0.15s, background 0.15s',
-            userSelect: 'none',
-          }}
-        >
-          {copied ? (
-            <>
-              <Check
-                size={12}
-                strokeWidth={2}
-                style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
-              />
-              {getT()('copied')}
-            </>
-          ) : (
-            getT()('copy')
-          )}
-        </button>
-      )}
-      <pre
-        style={{
-          margin: 0,
-          background: 'var(--md-pre-bg)',
-          borderRadius: 8,
-          padding: '10px 14px',
-          overflowX: 'auto',
-          fontSize: 'var(--text-base)',
-          lineHeight: 1.7,
-          color: 'var(--md-pre-text)',
-          fontFamily: 'var(--font-mono)',
-        }}
-      >
-        {children}
-      </pre>
-    </div>
-  )
-}
-
-// ── Syntax-highlight editor (from SoulView) ───────────────────────────────────
-function highlightMarkdown(text: string): React.ReactNode[] {
-  return text.split('\n').map((line, i) => {
-    if (/^# /.test(line))
-      return (
-        <div key={i} style={{ color: 'var(--item-text)' }}>
-          {line}
-        </div>
-      )
-    if (/^## /.test(line))
-      return (
-        <div key={i} style={{ color: 'var(--item-meta)' }}>
-          {line}
-        </div>
-      )
-    const bulletMatch = line.match(/^(\s*)(- )(.*)/)
-    if (bulletMatch) {
-      return (
-        <div key={i}>
-          {bulletMatch[1]}
-          <span style={{ color: 'var(--record-btn)' }}>{bulletMatch[2]}</span>
-          <span style={{ color: 'var(--md-text, var(--item-meta))' }}>{bulletMatch[3]}</span>
-        </div>
-      )
-    }
-    return (
-      <div key={i} style={{ color: 'var(--md-text, var(--item-meta))' }}>
-        {line || '\u00A0'}
-      </div>
-    )
-  })
 }
 
 // ── Search / Replace bar ─────────────────────────────────────────────────────
@@ -468,214 +347,6 @@ function SearchBar({
       )}
     </div>
   )
-}
-
-// ── Markdown components (same as DetailPanel) ─────────────────────────────────
-const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
-  h1: ({ children }) => (
-    <h1
-      style={{
-        fontFamily: 'var(--font-serif)',
-        fontSize: 'var(--text-xl)',
-        fontWeight: 'var(--font-semibold)',
-        color: 'var(--md-h1)',
-        margin: '0 0 16px',
-        lineHeight: 1.4,
-      }}
-    >
-      {children}
-    </h1>
-  ),
-  h2: ({ children }) => (
-    <h2
-      style={{
-        fontFamily: 'var(--font-serif)',
-        fontSize: 'var(--text-lg)',
-        fontWeight: 'var(--font-semibold)',
-        color: 'var(--md-h2)',
-        margin: '28px 0 10px',
-        lineHeight: 1.5,
-      }}
-    >
-      {children}
-    </h2>
-  ),
-  h3: ({ children }) => (
-    <h3
-      style={{
-        fontFamily: 'var(--font-serif)',
-        fontSize: 'var(--text-md)',
-        fontWeight: 'var(--font-semibold)',
-        color: 'var(--md-h3)',
-        margin: '20px 0 6px',
-        lineHeight: 1.5,
-      }}
-    >
-      {children}
-    </h3>
-  ),
-  h4: ({ children }) => (
-    <h4
-      style={{
-        fontSize: 'var(--text-sm)',
-        fontWeight: 'var(--font-semibold)',
-        color: 'var(--md-h3)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        margin: '14px 0 5px',
-      }}
-    >
-      {children}
-    </h4>
-  ),
-  h5: ({ children }) => (
-    <h5
-      style={{
-        fontSize: 'var(--text-base)',
-        fontWeight: 'var(--font-semibold)',
-        color: 'var(--md-h3)',
-        margin: '12px 0 4px',
-      }}
-    >
-      {children}
-    </h5>
-  ),
-  h6: ({ children }) => (
-    <h6
-      style={{
-        fontSize: 'var(--text-sm)',
-        fontWeight: 'var(--font-medium)',
-        color: 'var(--md-h3)',
-        margin: '10px 0 4px',
-      }}
-    >
-      {children}
-    </h6>
-  ),
-  p: ({ children }) => (
-    <p
-      style={{
-        fontSize: 'var(--text-md)',
-        color: 'var(--md-text)',
-        lineHeight: 1.9,
-        margin: '0 0 10px',
-      }}
-    >
-      {children}
-    </p>
-  ),
-  ul: ({ children }) => (
-    <ul
-      style={{
-        paddingLeft: 0,
-        margin: '6px 0 10px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 3,
-        listStyle: 'none',
-      }}
-    >
-      {children}
-    </ul>
-  ),
-  ol: ({ children }) => (
-    <ol
-      style={{
-        paddingLeft: 20,
-        margin: '6px 0 10px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 3,
-      }}
-    >
-      {children}
-    </ol>
-  ),
-  li: MarkdownLi,
-  strong: ({ children }) => (
-    <strong style={{ fontWeight: 'var(--font-semibold)', color: 'var(--md-strong)' }}>
-      {children}
-    </strong>
-  ),
-  em: ({ children }) => <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>,
-  code: ({ className, children }) => <code className={className}>{children}</code>,
-  pre: ({ children }) => {
-    const codeEl = children as React.ReactElement<{
-      className?: string
-      children?: React.ReactNode
-    }>
-    const rawText = extractCodeText(codeEl?.props?.children)
-    return (
-      <CodeBlock className={codeEl?.props?.className} rawText={rawText}>
-        {children}
-      </CodeBlock>
-    )
-  },
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="md-link"
-      style={{ cursor: 'pointer' }}
-    >
-      {children}
-    </a>
-  ),
-  blockquote: ({ children }) => (
-    <blockquote
-      style={{
-        borderLeft: '3px solid var(--md-quote-bar)',
-        paddingLeft: 12,
-        margin: '8px 0',
-        color: 'var(--md-quote-text)',
-      }}
-    >
-      {children}
-    </blockquote>
-  ),
-  hr: () => (
-    <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '16px 0' }} />
-  ),
-  table: ({ children }) => (
-    <div style={{ overflowX: 'auto', margin: '10px 0' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-base)' }}>
-        {children}
-      </table>
-    </div>
-  ),
-  th: ({ children }) => (
-    <th
-      style={{
-        padding: '6px 10px',
-        textAlign: 'left',
-        fontWeight: 'var(--font-semibold)',
-        fontSize: 'var(--text-sm)',
-        color: 'var(--md-h3)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        borderBottom: '2px solid var(--divider)',
-        whiteSpace: 'nowrap',
-        minWidth: 72,
-      }}
-    >
-      {children}
-    </th>
-  ),
-  td: ({ children }) => (
-    <td
-      style={{
-        padding: '5px 10px',
-        color: 'var(--md-text)',
-        lineHeight: 1.6,
-        verticalAlign: 'top',
-        borderBottom: '1px solid var(--divider)',
-        minWidth: 72,
-      }}
-    >
-      {children}
-    </td>
-  ),
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -1474,38 +1145,25 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
             </div>
           ) : bodyContent ? (
             <div className="md-body">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[[rehypeHighlight, { detect: false }]]}
-                components={{
-                  ...mdComponents,
-                  img: ({ src, alt }) => {
-                    if (!src) return null
-                    let resolvedSrc = src
-                    if (!src.startsWith('http') && identity) {
-                      const dir = identity.path.substring(0, identity.path.lastIndexOf('/'))
+              {bodyContent.length > 100_000 ? (
+                <MarkdownRenderer content={bodyContent} entryPath={identity.path} />
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[[rehypeHighlight, { detect: false }]]}
+                  components={createMarkdownComponents({
+                    entryPath: identity.path,
+                    imgResolver: (src, baseDir) => {
                       const absPath = src.startsWith('/')
                         ? src
-                        : resolveRelativePath(dir, decodeURIComponent(src))
-                      resolvedSrc = convertFileSrc(absPath)
-                    }
-                    return (
-                      <img
-                        src={resolvedSrc}
-                        alt={alt || ''}
-                        style={{
-                          maxWidth: '100%',
-                          height: 'auto',
-                          borderRadius: 6,
-                          margin: '8px 0',
-                        }}
-                      />
-                    )
-                  },
-                }}
-              >
-                {bodyContent}
-              </ReactMarkdown>
+                        : resolveRelativePath(baseDir, decodeURIComponent(src))
+                      return convertFileSrc(absPath)
+                    },
+                  })}
+                >
+                  {bodyContent}
+                </ReactMarkdown>
+              )}
             </div>
           ) : (
             <div style={{ color: 'var(--item-meta)', fontSize: 'var(--text-base)' }}>暂无内容</div>
@@ -1526,13 +1184,4 @@ export function IdentityDetail({ identity, onRecord, onOpenDock }: IdentityDetai
       />
     </div>
   )
-}
-
-function resolveRelativePath(baseDir: string, relative: string): string {
-  const parts = baseDir.split('/')
-  for (const segment of relative.split('/')) {
-    if (segment === '..') parts.pop()
-    else if (segment !== '.') parts.push(segment)
-  }
-  return parts.join('/')
 }

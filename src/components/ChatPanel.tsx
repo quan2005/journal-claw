@@ -7,6 +7,25 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import { useSmoothStream } from '../hooks/useSmoothStream'
 import { openFile } from '../lib/tauri'
 import { FileAttachments } from './FileAttachments'
+import type { ImageAttachment } from '../lib/tauri'
+import { fileKindFromName } from '../lib/fileKind'
+import clipboard from 'tauri-plugin-clipboard-api'
+import { open } from '@tauri-apps/plugin-dialog'
+import { SlashCommandMenu } from './SlashCommandMenu'
+import { AtMentionMenu } from './AtMentionMenu'
+import { useRecorder } from '../hooks/useRecorder'
+
+interface Attachment {
+  path: string
+  filename: string
+  kind: string
+}
+
+interface ImageAtt {
+  media_type: string
+  data: string
+  preview: string
+}
 
 // Per-tool SVG path data (24x24 viewBox, stroke-based)
 const TOOL_ICON_PATHS: Record<string, string> = {
@@ -32,10 +51,12 @@ export interface ChatPanelProps {
   usage: { input: number; output: number }
   stats: SessionStats | null
   pendingQueue: string[]
+  sessionId?: string | null
+  onSend: (text: string, images?: ImageAttachment[]) => void
+  onCancel: () => void
   onRetry: () => void
   onEditAndResend: (index: number, text: string) => void
   onRemovePendingItem: (index: number) => string | undefined
-  onPrefillText?: (text: string) => void
   onContinue: () => void
 }
 
@@ -46,17 +67,33 @@ export function ChatPanel({
   usage,
   stats,
   pendingQueue,
+  sessionId,
+  onSend,
+  onCancel,
   onRetry,
   onEditAndResend,
   onRemovePendingItem,
-  onPrefillText,
   onContinue,
 }: ChatPanelProps) {
   const { t } = useTranslation()
+  const { status: recorderStatus, start: startRecord, stop: stopRecord } = useRecorder()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [elapsed, setElapsed] = useState(0)
+
+  // Input bar state
+  const [inputValue, setInputValue] = useState('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [imageAttachments, setImageAttachments] = useState<ImageAtt[]>([])
+  const [focused, setFocused] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [slashOpen, setSlashOpen] = useState(false)
+  const [slashQuery, setSlashQuery] = useState('')
+  const [atOpen, setAtOpen] = useState(false)
+  const [atQuery, setAtQuery] = useState('')
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Track if user has scrolled up
   const handleScroll = useCallback(() => {
@@ -94,6 +131,195 @@ export function ChatPanel({
       setShowScrollBtn(false)
     }
   }, [])
+
+  // Auto-focus on mount and session change — skip if user has text selected
+  useEffect(() => {
+    const sel = document.getSelection()
+    if (sel && sel.type === 'Range') return
+    inputRef.current?.focus()
+  }, [sessionId])
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = inputRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+    }
+  }, [inputValue])
+
+  const addFiles = useCallback((paths: string[]) => {
+    const newAtts: Attachment[] = paths.map((p) => {
+      const filename = p.split('/').pop() ?? p
+      const kind = fileKindFromName(filename)
+      return { path: p, filename, kind }
+    })
+    setAttachments((prev) => [...prev, ...newAtts])
+  }, [])
+
+  const removeAttachment = useCallback((path: string) => {
+    setAttachments((prev) => prev.filter((a) => a.path !== path))
+  }, [])
+
+  const removeImage = useCallback((idx: number) => {
+    setImageAttachments((prev) => prev.filter((_, i) => i !== idx))
+  }, [])
+
+  const handleSend = useCallback(() => {
+    const text = inputValue.trim()
+    if (!text && imageAttachments.length === 0) return
+    const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
+    const parts = [fileRefs, text].filter(Boolean)
+    const payload = parts.join('\n\n')
+    const imgs =
+      imageAttachments.length > 0
+        ? imageAttachments.map(({ media_type, data }) => ({ media_type, data }))
+        : undefined
+    setInputValue('')
+    setAttachments([])
+    setImageAttachments([])
+    onSend(payload || '请看图片', imgs)
+  }, [inputValue, attachments, imageAttachments, onSend])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((slashOpen || atOpen) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return
+      if (atOpen && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return
+      if (e.key === 'Enter' && !e.shiftKey && !slashOpen && !atOpen) {
+        e.preventDefault()
+        handleSend()
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (isStreaming) {
+          onCancel()
+        } else {
+          setInputValue('')
+          setAttachments([])
+          setImageAttachments([])
+        }
+      }
+    },
+    [handleSend, isStreaming, onCancel, slashOpen, atOpen],
+  )
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    setInputValue(val)
+
+    // Slash command detection: starts with / and no space yet
+    if (val.startsWith('/') && !val.includes(' ') && val.length > 0) {
+      setSlashOpen(true)
+      setSlashQuery(val.slice(1))
+      setAtOpen(false)
+    } else {
+      setSlashOpen(false)
+    }
+
+    // @ mention detection: only trigger when @ appears at start or after whitespace
+    const cursorPos = e.target.selectionStart ?? val.length
+    const textBeforeCursor = val.slice(0, cursorPos)
+    const lastAt = textBeforeCursor.lastIndexOf('@')
+    if (
+      lastAt >= 0 &&
+      (lastAt === 0 || /\s/.test(textBeforeCursor[lastAt - 1])) &&
+      !textBeforeCursor.slice(lastAt).includes(' ')
+    ) {
+      setAtOpen(true)
+      setAtQuery(textBeforeCursor.slice(lastAt + 1))
+      setSlashOpen(false)
+    } else {
+      setAtOpen(false)
+      setAtQuery('')
+    }
+  }, [])
+
+  const handleSlashSelect = useCallback((skillName: string) => {
+    setSlashOpen(false)
+    setInputValue(`/${skillName} `)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }, [])
+
+  const handleAtSelect = useCallback(
+    (path: string) => {
+      setAtOpen(false)
+      const el = inputRef.current
+      const cursorPos = el?.selectionStart ?? inputValue.length
+      const textBeforeCursor = inputValue.slice(0, cursorPos)
+      const lastAt = textBeforeCursor.lastIndexOf('@')
+      if (lastAt >= 0) {
+        const before = inputValue.slice(0, lastAt)
+        const after = inputValue.slice(cursorPos)
+        setInputValue(`${before}@${path} ${after}`)
+      } else {
+        setInputValue(inputValue + `@${path} `)
+      }
+      setTimeout(() => {
+        const sel = document.getSelection()
+        if (sel && sel.type === 'Range') return
+        inputRef.current?.focus()
+      }, 0)
+    },
+    [inputValue],
+  )
+
+  const handleAddFile = useCallback(async () => {
+    const selected = await open({ multiple: true })
+    if (selected) {
+      const paths = Array.isArray(selected) ? selected : [selected]
+      addFiles(paths.filter((p): p is string => typeof p === 'string'))
+    }
+  }, [addFiles])
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragOver(false)
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length > 0) {
+        addFiles(files.map((f) => (f as File & { path?: string }).path ?? f.name))
+      }
+    },
+    [addFiles],
+  )
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          if (item.type.startsWith('image/')) {
+            e.preventDefault()
+            const blob = item.getAsFile()
+            if (!blob) return
+            const reader = new FileReader()
+            reader.onload = () => {
+              const dataUrl = reader.result as string
+              const [header, b64] = dataUrl.split(',')
+              const mediaType = header.match(/data:(.*?);/)?.[1] ?? 'image/png'
+              setImageAttachments((prev) => [
+                ...prev,
+                { media_type: mediaType, data: b64, preview: dataUrl },
+              ])
+            }
+            reader.readAsDataURL(blob)
+            return
+          }
+        }
+      }
+      clipboard
+        .readFiles()
+        .then((files) => {
+          if (files && files.length > 0) {
+            e.preventDefault()
+            addFiles(files)
+          }
+        })
+        .catch(() => {})
+    },
+    [addFiles],
+  )
 
   return (
     <>
@@ -320,7 +546,9 @@ export function ChatPanel({
               <span
                 onClick={() => {
                   const removed = onRemovePendingItem(i)
-                  if (removed) onPrefillText?.(removed)
+                  if (removed) {
+                    setInputValue((prev) => (prev ? prev + '\n' + removed : removed))
+                  }
                 }}
                 style={{
                   flexShrink: 0,
@@ -365,6 +593,352 @@ export function ChatPanel({
           </div>
         </div>
       )}
+
+      {/* Input bar */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDragOver(true)
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        style={{ padding: '8px 24px 12px', flexShrink: 0, position: 'relative' }}
+      >
+        {slashOpen && (
+          <SlashCommandMenu
+            query={slashQuery}
+            onSelect={handleSlashSelect}
+            onClose={() => setSlashOpen(false)}
+          />
+        )}
+
+        {atOpen && (
+          <AtMentionMenu
+            query={atQuery}
+            onSelect={handleAtSelect}
+            onClose={() => {
+              setAtOpen(false)
+              setAtQuery('')
+            }}
+          />
+        )}
+
+        {/* Fused container */}
+        <div
+          style={{
+            border: dragOver
+              ? '1.5px dashed var(--accent)'
+              : focused
+                ? '0.5px solid var(--accent)'
+                : '0.5px solid var(--dialog-inset-border)',
+            borderRadius: 12,
+            background: dragOver ? 'var(--item-hover-bg)' : 'var(--dialog-inset-bg)',
+            padding: '8px 12px 4px',
+            transition: 'border-color 0.15s ease-out, background 0.15s ease-out',
+            overflow: 'hidden',
+          }}
+        >
+          {dragOver && (
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: 11,
+                color: 'var(--accent)',
+                opacity: 0.6,
+                padding: '4px 0',
+              }}
+            >
+              释放以添加文件
+            </div>
+          )}
+
+          {/* Attachment chips */}
+          {attachments.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 6 }}>
+              {attachments.map((att) => (
+                <div
+                  key={att.path}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'var(--queue-bg)',
+                    border: '0.5px solid var(--queue-border)',
+                    borderRadius: 6,
+                    padding: '3px 8px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-text)',
+                  }}
+                >
+                  <span
+                    onClick={() => openFile(att.path).catch(() => {})}
+                    style={{
+                      maxWidth: 120,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                    }}
+                    title={att.path}
+                  >
+                    {att.filename}
+                  </span>
+                  <span
+                    onClick={() => removeAttachment(att.path)}
+                    style={{
+                      color: 'var(--item-meta)',
+                      cursor: 'pointer',
+                      marginLeft: 2,
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Image thumbnails */}
+          {imageAttachments.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 6 }}>
+              {imageAttachments.map((img, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    position: 'relative',
+                    width: 44,
+                    height: 44,
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    border: '0.5px solid var(--queue-border)',
+                  }}
+                >
+                  <img
+                    src={img.preview}
+                    alt=""
+                    onClick={() => setPreviewSrc(img.preview)}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <span
+                    onClick={() => removeImage(idx)}
+                    style={{
+                      position: 'absolute',
+                      top: 1,
+                      right: 1,
+                      background: 'rgba(0,0,0,0.5)',
+                      color: '#fff',
+                      borderRadius: '50%',
+                      width: 14,
+                      height: 14,
+                      fontSize: 10,
+                      lineHeight: '14px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Full-width textarea */}
+          <textarea
+            ref={inputRef}
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder="输入消息..."
+            rows={1}
+            style={{
+              display: 'block',
+              width: '100%',
+              resize: 'none',
+              border: 'none',
+              borderRadius: 0,
+              padding: '4px 0',
+              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-body)',
+              background: 'transparent',
+              color: 'var(--item-text)',
+              outline: 'none',
+              lineHeight: 1.5,
+              maxHeight: 160,
+              overflow: 'auto',
+            }}
+          />
+
+          {/* Toolbar row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '4px 0',
+            }}
+          >
+            <button
+              onClick={handleAddFile}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: dragOver ? 'var(--accent)' : 'var(--item-meta)',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'color 0.15s ease-out',
+              }}
+              title="添加文件"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {isStreaming && (
+                <button
+                  onClick={onCancel}
+                  style={{
+                    background: 'none',
+                    border: '0.5px solid var(--queue-border)',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--status-danger)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t('conversationStop')}
+                </button>
+              )}
+
+              {/* Mic button */}
+              <button
+                onClick={recorderStatus === 'recording' ? stopRecord : startRecord}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  background: recorderStatus === 'recording' ? '#ff3b30' : 'rgba(184,120,42,0.12)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: inputValue.trim() ? 0 : 1,
+                  boxShadow:
+                    recorderStatus === 'recording'
+                      ? '0 4px 16px rgba(255,59,48,0.3)'
+                      : '0 4px 12px rgba(184,120,42,0.18)',
+                  transition:
+                    'opacity 200ms ease-out, background 200ms ease-out, box-shadow 200ms ease-out',
+                }}
+              >
+                {recorderStatus === 'recording' ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="var(--record-btn-icon)"
+                    stroke="none"
+                  >
+                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+                    <path
+                      d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8"
+                      stroke="var(--record-btn-icon)"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
+                )}
+              </button>
+
+              {/* Send button */}
+              <button
+                onClick={handleSend}
+                disabled={!inputValue.trim() && imageAttachments.length === 0}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  background:
+                    inputValue.trim() || imageAttachments.length > 0
+                      ? 'var(--accent)'
+                      : 'var(--dialog-kbd-bg)',
+                  border: 'none',
+                  cursor: inputValue.trim() || imageAttachments.length > 0 ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: inputValue.trim() || imageAttachments.length > 0 ? 1 : 0.3,
+                  transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#fff"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="12" y1="19" x2="12" y2="5" />
+                  <polyline points="5 12 12 5 19 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Image lightbox */}
+        {previewSrc && (
+          <div
+            onClick={() => setPreviewSrc(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.75)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'zoom-out',
+            }}
+          >
+            <img
+              src={previewSrc}
+              alt=""
+              style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: 8 }}
+            />
+          </div>
+        )}
+      </div>
     </>
   )
 }

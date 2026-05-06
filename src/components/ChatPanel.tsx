@@ -26,34 +26,30 @@ const TOOL_ICON_PATHS: Record<string, string> = {
 }
 
 export interface ChatPanelProps {
-  sessionId: string | null
   mode: SessionMode
   messages: ConversationMessage[]
   isStreaming: boolean
   usage: { input: number; output: number }
   stats: SessionStats | null
   pendingQueue: string[]
-  onSend: (text: string, images?: import('../lib/tauri').ImageAttachment[]) => Promise<boolean>
-  onCancel: () => void
   onRetry: () => void
   onEditAndResend: (index: number, text: string) => void
   onRemovePendingItem: (index: number) => string | undefined
+  onPrefillText?: (text: string) => void
   onContinue: () => void
 }
 
 export function ChatPanel({
-  sessionId: _sessionId,
   mode,
   messages,
   isStreaming,
   usage,
   stats,
   pendingQueue,
-  onSend: _onSend,
-  onCancel: _onCancel,
   onRetry,
   onEditAndResend,
   onRemovePendingItem,
+  onPrefillText,
   onContinue,
 }: ChatPanelProps) {
   const { t } = useTranslation()
@@ -323,7 +319,8 @@ export function ChatPanel({
             >
               <span
                 onClick={() => {
-                  onRemovePendingItem(i)
+                  const removed = onRemovePendingItem(i)
+                  if (removed) onPrefillText?.(removed)
                 }}
                 style={{
                   flexShrink: 0,

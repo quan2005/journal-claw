@@ -8,6 +8,11 @@ export const en = {
   journal: 'Journal',
   files: 'Files',
 
+  // Right panel tabs
+  ideas: 'Ideas',
+  chat: 'Chat',
+  history: 'History',
+
   // File tree
   emptyFolder: 'Empty folder',
   openExternal: 'Open with system app',

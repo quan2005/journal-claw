@@ -10,6 +10,11 @@ export const zh: Strings = {
   journal: '流水',
   files: '文件',
 
+  // Right panel tabs
+  ideas: '想法',
+  chat: '探讨',
+  history: '历史',
+
   // File tree
   emptyFolder: '空文件夹',
   openExternal: '用系统应用打开',

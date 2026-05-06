@@ -9,10 +9,10 @@ interface TitleBarProps {
   isProcessing: boolean
   processingFilename?: string
   view: 'journal' | 'settings'
-  todoOpen: boolean
+  rightPanelOpen: boolean
   todoCount: number
-  onToggleTodo: () => void
-  onOpenConversation?: () => void
+  onToggleRightPanel: () => void
+  onOpenChat?: () => void
 }
 
 export function TitleBar({
@@ -21,10 +21,10 @@ export function TitleBar({
   isProcessing,
   processingFilename,
   view,
-  todoOpen,
+  rightPanelOpen,
   todoCount,
-  onToggleTodo,
-  onOpenConversation,
+  onToggleRightPanel,
+  onOpenChat,
 }: TitleBarProps) {
   const { t } = useTranslation()
   return (
@@ -62,7 +62,7 @@ export function TitleBar({
           <AiStatusPill
             isProcessing={isProcessing}
             processingFilename={processingFilename}
-            onClick={onOpenConversation}
+            onClick={onOpenChat}
           />
         )}
       </div>
@@ -72,13 +72,13 @@ export function TitleBar({
         {view !== 'settings' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
         {view !== 'settings' && (
           <button
-            onClick={onToggleTodo}
-            title={todoOpen ? t('todoTooltipClose') : t('todoTooltipOpen')}
+            onClick={onToggleRightPanel}
+            title={rightPanelOpen ? t('todoTooltipClose') : t('todoTooltipOpen')}
             style={{
-              background: todoOpen ? 'rgba(200,147,58,0.12)' : 'none',
+              background: rightPanelOpen ? 'rgba(200,147,58,0.12)' : 'none',
               border: 'none',
               cursor: 'pointer',
-              color: todoOpen ? 'var(--record-btn)' : 'var(--item-meta)',
+              color: rightPanelOpen ? 'var(--record-btn)' : 'var(--item-meta)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -87,7 +87,7 @@ export function TitleBar({
               padding: 0,
               borderRadius: 4,
               lineHeight: 1,
-              opacity: todoOpen ? 1 : 0.6,
+              opacity: rightPanelOpen ? 1 : 0.6,
               position: 'relative' as const,
             }}
           >
@@ -104,7 +104,7 @@ export function TitleBar({
               <path d="M9 11l3 3L22 4" />
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
-            {!todoOpen && todoCount > 0 && (
+            {!rightPanelOpen && todoCount > 0 && (
               <span
                 style={{
                   position: 'absolute' as const,

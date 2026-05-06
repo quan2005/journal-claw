@@ -522,9 +522,9 @@ export default function App() {
         isProcessing={isProcessing}
         processingFilename={processingFilename}
         view={view}
-        todoOpen={rightPanelOpen}
+        rightPanelOpen={rightPanelOpen}
         todoCount={todos.filter((t) => !t.done).length}
-        onToggleTodo={() =>
+        onToggleRightPanel={() =>
           setRightPanelOpen((prev) => {
             if (!prev) {
               setRightPanelTab('ideas')
@@ -535,7 +535,7 @@ export default function App() {
             return true
           })
         }
-        onOpenConversation={() => {
+        onOpenChat={() => {
           setRightPanelOpen(true)
           setRightPanelTab('chat')
         }}

@@ -166,6 +166,7 @@ export function ChatPanel({
   }, [])
 
   const handleSend = useCallback(() => {
+    if (recorderStatus === 'recording') return
     const text = inputValue.trim()
     if (!text && imageAttachments.length === 0) return
     const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
@@ -179,7 +180,7 @@ export function ChatPanel({
     setAttachments([])
     setImageAttachments([])
     onSend(payload || '请看图片', imgs)
-  }, [inputValue, attachments, imageAttachments, onSend])
+  }, [recorderStatus, inputValue, attachments, imageAttachments, onSend])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -880,7 +881,10 @@ export function ChatPanel({
               {/* Send button */}
               <button
                 onClick={handleSend}
-                disabled={!inputValue.trim() && imageAttachments.length === 0}
+                disabled={
+                  (!inputValue.trim() && imageAttachments.length === 0) ||
+                  recorderStatus === 'recording'
+                }
                 style={{
                   width: 30,
                   height: 30,
@@ -890,11 +894,19 @@ export function ChatPanel({
                       ? 'var(--accent)'
                       : 'var(--dialog-kbd-bg)',
                   border: 'none',
-                  cursor: inputValue.trim() || imageAttachments.length > 0 ? 'pointer' : 'default',
+                  cursor:
+                    (inputValue.trim() || imageAttachments.length > 0) &&
+                    recorderStatus !== 'recording'
+                      ? 'pointer'
+                      : 'default',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity: inputValue.trim() || imageAttachments.length > 0 ? 1 : 0.3,
+                  opacity:
+                    (inputValue.trim() || imageAttachments.length > 0) &&
+                    recorderStatus !== 'recording'
+                      ? 1
+                      : 0.3,
                   transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
                 }}
               >

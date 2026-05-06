@@ -4,8 +4,6 @@ import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { JournalList } from './components/JournalList'
 import { DetailPanel } from './components/DetailPanel'
-import { CommandDock } from './components/CommandDock'
-import { ProcessingQueue } from './components/ProcessingQueue'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { IdentityList, SOUL_PATH } from './components/IdentityList'
 import { IdentityDetail } from './components/IdentityDetail'
@@ -16,16 +14,11 @@ import { FileTree } from './components/FileTree'
 import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { useIdentity } from './hooks/useIdentity'
 import { TodoSidebar } from './components/TodoSidebar'
-import { ConversationDialog } from './components/ConversationDialog'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
 import { useTodos } from './hooks/useTodos'
 import {
-  importFile,
-  importAudioFile,
-  prepareAudioForAi,
-  conversationGetMessages,
   getEngineConfig,
   getAsrConfig,
   checkWhisperkitCliInstalled,
@@ -34,14 +27,18 @@ import {
   createSampleEntry,
   listAllJournalEntries,
   deleteIdentity,
-  enqueueWork as invokeEnqueueWork,
   cancelWorkItem,
   retryWorkItem,
+  prepareAudioForAi,
 } from './lib/tauri'
-import { fileKindFromName } from './lib/fileKind'
-import type { JournalEntry, QueueItem, IdentityEntry, SessionMode } from './types'
+import type { JournalEntry, QueueItem, IdentityEntry } from './types'
 import type { WorkspaceDirEntry } from './lib/tauri'
 import { useTranslation } from './contexts/I18nContext'
+import { RightPanel } from './components/RightPanel'
+import type { RightPanelTab } from './components/RightPanel'
+import { ChatPanel } from './components/ChatPanel'
+import { SessionList } from './components/SessionList'
+import { useConversation } from './hooks/useConversation'
 
 const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
@@ -59,7 +56,6 @@ export default function App() {
     isProcessing,
     dismissQueueItem,
     addConvertingItem,
-    markItemFailed,
     retryQueueItem,
     refresh,
   } = useJournal()
@@ -73,36 +69,15 @@ export default function App() {
     updateTodoText,
     setTodoPath,
     removeTodoPath,
-    setTodoSessionId,
   } = useTodos()
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
-  const [aiReady, setAiReady] = useState<boolean | null>(null)
-  const [asrReady, setAsrReady] = useState<boolean | null>(null)
-  const [audioRejected, setAudioRejected] = useState(false)
   const [view, setView] = useState<'journal' | 'settings'>('journal')
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(
     undefined,
   )
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [pendingFiles, setPendingFiles] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [dockOpen, setDockOpen] = useState(false)
-  const [dockAppendText, setDockAppendText] = useState('')
-  const [todoOpen, setTodoOpen] = useState(false)
-  const [conversationState, setConversationState] = useState<{
-    mode: SessionMode
-    context?: string
-    contextFiles?: string[]
-    initialInput?: string
-    initialSessionId?: string
-    initialStreaming?: boolean
-    initialUserMessage?: string
-    key?: number
-    _todoCallback?: { lineIndex: number; doneFile: boolean }
-    visible: boolean
-  } | null>(null)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
   const [selectedFile, setSelectedFile] = useState<WorkspaceDirEntry | null>(null)
 
@@ -111,13 +86,6 @@ export default function App() {
   }, [])
   const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
   const [mergeSource, setMergeSource] = useState<IdentityEntry | null>(null)
-  const [todoWidth, setTodoWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('journal_todo_width')
-    return saved ? parseInt(saved) : BASE_WIDTH
-  })
-  const [isTodoDragging, setIsTodoDragging] = useState(false)
-  const todoDragStartX = useRef(0)
-  const todoDragStartWidth = useRef(0)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_base_width')
     return saved ? parseInt(saved) : BASE_WIDTH
@@ -127,15 +95,29 @@ export default function App() {
   const dragStartWidth = useRef(0)
   const entriesRef = useRef(entries)
 
+  // Right panel state
+  const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('ideas')
+  const rightPanelTabRef = useRef<RightPanelTab>('ideas')
+  useEffect(() => {
+    rightPanelTabRef.current = rightPanelTab
+  }, [rightPanelTab])
+  const [rightPanelWidth, setRightPanelWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('journal_right_panel_width')
+    return saved ? parseInt(saved) : 320
+  })
+
   // Check AI engine availability on mount
   useEffect(() => {
     getEngineConfig()
       .then((cfg) => {
         const active = cfg.providers.find((p) => p.id === cfg.active_provider)
         const hasKey = (active?.api_key?.trim().length ?? 0) > 0
-        setAiReady(hasKey)
+        if (!hasKey) {
+          console.warn('[App] AI engine not configured')
+        }
       })
-      .catch(() => setAiReady(false))
+      .catch(() => {})
   }, [view]) // re-check after user closes settings
 
   // Check ASR readiness on mount and after settings are closed
@@ -143,11 +125,12 @@ export default function App() {
     getAsrConfig()
       .then(async (cfg) => {
         if (cfg.asr_engine === 'apple') {
-          setAsrReady(true)
           return
         }
         if (cfg.asr_engine === 'dashscope') {
-          setAsrReady(cfg.dashscope_api_key.trim().length > 0)
+          if (cfg.dashscope_api_key.trim().length === 0) {
+            console.warn('[App] ASR not configured')
+          }
           return
         }
         // whisperkit: need both CLI installed and model downloaded
@@ -155,26 +138,12 @@ export default function App() {
           checkWhisperkitCliInstalled(),
           checkWhisperkitModelDownloaded(cfg.whisperkit_model),
         ])
-        setAsrReady(cliOk && modelOk)
+        if (!cliOk || !modelOk) {
+          console.warn('[App] WhisperKit not ready')
+        }
       })
-      .catch(() => setAsrReady(false))
+      .catch(() => {})
   }, [view]) // re-check after settings closed
-
-  // Immediately clear overlay when an engine finishes installing successfully
-  useEffect(() => {
-    let unlisten: (() => void) | null = null
-    listen<{ engine: string; done: boolean; success: boolean }>(
-      'engine-install-log',
-      ({ payload }) => {
-        if (payload.done && payload.success) setAiReady(true)
-      },
-    ).then((fn) => {
-      unlisten = fn
-    })
-    return () => {
-      unlisten?.()
-    }
-  }, [])
 
   // 首次启动：写入示例条目并自动选中
   useEffect(() => {
@@ -189,7 +158,7 @@ export default function App() {
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Divider drag
+  // Divider drag (left sidebar)
   const onDividerMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true)
     dragStartX.current = e.clientX
@@ -212,29 +181,33 @@ export default function App() {
     }
   }, [isDragging])
 
-  // Todo sidebar divider drag
-  const onTodoDividerMouseDown = (e: React.MouseEvent) => {
-    setIsTodoDragging(true)
-    todoDragStartX.current = e.clientX
-    todoDragStartWidth.current = todoWidth
+  // Right panel divider drag
+  const [isRightPanelDragging, setIsRightPanelDragging] = useState(false)
+  const rightPanelDragStartX = useRef(0)
+  const rightPanelDragStartWidth = useRef(0)
+
+  const onRightPanelDividerMouseDown = (e: React.MouseEvent) => {
+    setIsRightPanelDragging(true)
+    rightPanelDragStartX.current = e.clientX
+    rightPanelDragStartWidth.current = rightPanelWidth
   }
+
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (!isTodoDragging) return
-      // Dragging left increases width, right decreases
-      const delta = todoDragStartX.current - e.clientX
-      const newWidth = Math.max(180, Math.min(560, todoDragStartWidth.current + delta))
-      setTodoWidth(newWidth)
-      localStorage.setItem('journal_todo_width', String(newWidth))
+      if (!isRightPanelDragging) return
+      const delta = rightPanelDragStartX.current - e.clientX
+      const newWidth = Math.max(200, Math.min(480, rightPanelDragStartWidth.current + delta))
+      setRightPanelWidth(newWidth)
+      localStorage.setItem('journal_right_panel_width', String(newWidth))
     }
-    const onUp = () => setIsTodoDragging(false)
+    const onUp = () => setIsRightPanelDragging(false)
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [isTodoDragging])
+  }, [isRightPanelDragging])
 
   // journal-entry-deleted event
   useEffect(() => {
@@ -288,7 +261,7 @@ export default function App() {
     }
   }, [])
 
-  // Open settings → about section from Rust menu
+  // Open settings -> about section from Rust menu
   useEffect(() => {
     let unlisten: (() => void) | null = null
     listen('open-settings-about', () => {
@@ -302,25 +275,42 @@ export default function App() {
     }
   }, [])
 
-  // Track conversation session when work queue creates one (don't auto-open dialog)
+  // useConversation hook
+  const {
+    sessionId,
+    messages,
+    isStreaming,
+    usage,
+    stats,
+    create,
+    send,
+    retry,
+    cancel,
+    load,
+    editAndResend,
+    pendingQueue,
+    removePendingItem,
+  } = useConversation()
+
+  // Helper to open chat panel
+  const openChatPanel = useCallback(
+    (sid?: string, context?: string, contextFiles?: string[]) => {
+      setRightPanelOpen(true)
+      setRightPanelTab('chat')
+      if (sid) load(sid)
+      if (context || contextFiles) create('agent', context, contextFiles)
+    },
+    [load, create],
+  )
+
+  // Track conversation session when work queue creates one
   useEffect(() => {
     let unlisten: (() => void) | null = null
     listen<{ item_id: string; session_id: string; prompt?: string }>(
       'work-item-session-created',
       (event) => {
-        const { session_id, prompt } = event.payload
-        setConversationState((prev) =>
-          prev?.visible
-            ? prev
-            : {
-                mode: 'agent',
-                initialSessionId: session_id,
-                initialStreaming: true,
-                initialUserMessage: prompt,
-                key: Date.now(),
-                visible: false,
-              },
-        )
+        const { session_id } = event.payload
+        openChatPanel(session_id)
       },
     ).then((fn) => {
       unlisten = fn
@@ -328,7 +318,7 @@ export default function App() {
     return () => {
       unlisten?.()
     }
-  }, [])
+  }, [openChatPanel])
 
   // Esc closes settings; Cmd+, toggles settings
   useEffect(() => {
@@ -343,17 +333,25 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 't') {
         e.preventDefault()
-        setTodoOpen((prev) => !prev)
+        setRightPanelOpen((prev) => {
+          if (!prev) {
+            setRightPanelTab('ideas')
+            return true
+          }
+          if (rightPanelTabRef.current === 'ideas') return false
+          setRightPanelTab('ideas')
+          return true
+        })
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setConversationState((prev) => {
-          if (prev) return { ...prev, visible: !prev.visible }
-          return {
-            mode: 'agent',
-            contextFiles: selectedEntry ? [selectedEntry.path] : undefined,
-            visible: true,
+        setRightPanelOpen((prev) => {
+          if (!prev) {
+            setRightPanelTab('chat')
+            return true
           }
+          setRightPanelTab('chat')
+          return true
         })
       }
     }
@@ -384,52 +382,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const handleFilesSubmit = async (paths: string[], note?: string) => {
-    setPendingFiles([])
-    const importedPaths: string[] = []
-    for (const path of paths) {
-      try {
-        const kind = fileKindFromName(path.split('/').pop() ?? path)
-        if (kind === 'audio') {
-          const result = await importAudioFile(path)
-          importedPaths.push(result.path)
-          addConvertingItem(result.path, result.filename)
-          try {
-            await prepareAudioForAi(result.path, result.year_month, note)
-          } catch (audioErr) {
-            console.error('[file-submit] audio prepare error:', String(audioErr))
-            markItemFailed(result.path, String(audioErr))
-          }
-        } else {
-          const result = await importFile(path)
-          importedPaths.push(result.path)
-        }
-      } catch (err) {
-        console.error('[file-submit] error:', String(err))
-      }
-    }
-    // Non-audio files: enqueue in Rust work queue
-    const nonAudioPaths = importedPaths.filter((p) => {
-      const ext = p.split('.').pop()?.toLowerCase() ?? ''
-      return !['m4a', 'wav', 'mp3', 'aac', 'ogg', 'flac'].includes(ext)
-    })
-    if (nonAudioPaths.length > 0) {
-      const prompt = note ? `分析并处理这些文件。备注：${note}` : '分析并处理这些文件'
-      const displayName = nonAudioPaths.map((p) => p.split('/').pop()).join(', ')
-      try {
-        await invokeEnqueueWork({ files: nonAudioPaths, prompt, displayName })
-      } catch (err) {
-        console.error('[file-submit] enqueue error:', String(err))
-      }
-    }
-    refresh()
-  }
-
-  const handleFilesCancel = () => setPendingFiles([])
-
-  const handleRemoveFile = (index: number) =>
-    setPendingFiles((prev) => prev.filter((_, i) => i !== index))
-
   const handleRecord = useCallback(async () => {
     if (status === 'idle') {
       await start()
@@ -440,7 +392,10 @@ export default function App() {
   }, [status, start, stop, addConvertingItem, t])
 
   const handleDeselect = useCallback(() => setSelectedEntry(null), [])
-  const handleOpenDock = useCallback(() => setDockOpen(true), [])
+  const handleOpenChat = useCallback(() => {
+    setRightPanelOpen(true)
+    setRightPanelTab('chat')
+  }, [])
   const handleSelectSample = useCallback(() => {
     createSampleEntry()
       .then(async () => {
@@ -454,27 +409,25 @@ export default function App() {
   const handleAddToTodo = useCallback(
     (text: string, source: string) => {
       addTodo(text, undefined, source)
-      setTodoOpen(true)
+      setRightPanelOpen(true)
+      setRightPanelTab('ideas')
     },
     [addTodo],
   )
-  const handleProcessEntry = useCallback((entry: JournalEntry) => {
-    const rel = `${entry.year_month}/${entry.filename}`
-    setDockAppendText(`@${rel}`)
-  }, [])
-  const handleVisualDesign = useCallback((entry: JournalEntry) => {
-    const rel = `${entry.year_month}/${entry.filename}`
-    setDockAppendText(`/visual-design-book @${rel}`)
-  }, [])
-
-  const handlePasteSubmit = async (text: string) => {
-    const preview = text.slice(0, 30) + (text.length > 30 ? '…' : '')
-    try {
-      await invokeEnqueueWork({ text, displayName: preview })
-    } catch (err) {
-      console.error('[paste-submit] enqueue error:', String(err))
-    }
-  }
+  const handleProcessEntry = useCallback(
+    (entry: JournalEntry) => {
+      const rel = `${entry.year_month}/${entry.filename}`
+      openChatPanel(undefined, `分析并处理日志 @${rel}`)
+    },
+    [openChatPanel],
+  )
+  const handleVisualDesign = useCallback(
+    (entry: JournalEntry) => {
+      const rel = `${entry.year_month}/${entry.filename}`
+      openChatPanel(undefined, `/visual-design-book @${rel}`)
+    },
+    [openChatPanel],
+  )
 
   const handleCancelQueueItem = async (item: QueueItem) => {
     try {
@@ -507,57 +460,6 @@ export default function App() {
     }
   }
 
-  const handlePasteFiles = useCallback(
-    (paths: string[]) => {
-      const audioExts = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac', '.mp4']
-      const isAudio = (p: string) => audioExts.some((ext) => p.toLowerCase().endsWith(ext))
-
-      let filteredPaths = paths
-      if (asrReady === false) {
-        const audioCount = paths.filter(isAudio).length
-        if (audioCount > 0) {
-          filteredPaths = paths.filter((p) => !isAudio(p))
-          setAudioRejected(true)
-          setTimeout(() => setAudioRejected(false), 2500)
-        }
-      }
-
-      setPendingFiles((prev) => {
-        const existing = new Set(prev)
-        const newPaths = filteredPaths.filter((p) => !existing.has(p))
-        if (newPaths.length === 0) return prev
-        return [...prev, ...newPaths].slice(0, 6)
-      })
-    },
-    [asrReady],
-  )
-
-  // Drop handling via Tauri native file drop
-  useEffect(() => {
-    let unlisten: (() => void) | null = null
-    getCurrentWebview()
-      .onDragDropEvent((event) => {
-        const type = event.payload.type
-        if (type === 'enter' || type === 'over') {
-          setIsDragOver(true)
-        } else if (type === 'leave') {
-          setIsDragOver(false)
-        } else if (type === 'drop') {
-          setIsDragOver(false)
-          const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
-          if (paths.length > 0) {
-            handlePasteFiles(paths)
-          }
-        }
-      })
-      .then((fn) => {
-        unlisten = fn
-      })
-    return () => {
-      unlisten?.()
-    }
-  }, [refresh, handlePasteFiles])
-
   const processingItem = queueItems.find((i) => i.status === 'processing')
   const processingFilename = processingItem?.filename
 
@@ -576,6 +478,10 @@ export default function App() {
           ...queueItems,
         ]
       : queueItems
+
+  // Preserved for future work queue UI integration in RightPanel
+  const _preserved = { handleCancelQueueItem, handleRetryQueueItem, visibleQueueItems }
+  void _preserved
 
   const SOUL_ENTRY: IdentityEntry = {
     filename: '__soul__',
@@ -616,18 +522,22 @@ export default function App() {
         isProcessing={isProcessing}
         processingFilename={processingFilename}
         view={view}
-        todoOpen={todoOpen}
+        todoOpen={rightPanelOpen}
         todoCount={todos.filter((t) => !t.done).length}
-        onToggleTodo={() => setTodoOpen((prev) => !prev)}
-        onOpenConversation={() => {
-          setConversationState((prev) => {
-            if (prev) return { ...prev, visible: !prev.visible }
-            return {
-              mode: 'agent',
-              contextFiles: selectedEntry ? [selectedEntry.path] : undefined,
-              visible: true,
+        onToggleTodo={() =>
+          setRightPanelOpen((prev) => {
+            if (!prev) {
+              setRightPanelTab('ideas')
+              return true
             }
+            if (rightPanelTabRef.current === 'ideas') return false
+            setRightPanelTab('ideas')
+            return true
           })
+        }
+        onOpenConversation={() => {
+          setRightPanelOpen(true)
+          setRightPanelTab('chat')
         }}
       />
 
@@ -680,7 +590,7 @@ export default function App() {
                 onSelect={setSelectedEntry}
                 onProcess={(entry) => {
                   const rel = `${entry.year_month}/${entry.filename}`
-                  setDockAppendText(`@${rel}`)
+                  openChatPanel(undefined, `分析并处理日志 @${rel}`)
                 }}
                 hasMore={hasMore}
                 loadingMore={loadingMore}
@@ -702,7 +612,7 @@ export default function App() {
                 onSelect={(identity) => setSelectedIdentity(identity)}
                 onProcess={(identity) => {
                   const rel = `identity/${identity.filename}`
-                  setDockAppendText(`@${rel}`)
+                  openChatPanel(undefined, `分析并处理画像 @${rel}`)
                 }}
                 onMerge={(identity) => setMergeSource(identity)}
                 onDelete={handleDeleteIdentity}
@@ -716,12 +626,67 @@ export default function App() {
                 flexDirection: 'column',
               }}
             >
-              <FileTree
-                selectedPath={selectedFile?.path ?? null}
-                onSelectFile={setSelectedFile}
-              />
+              <FileTree selectedPath={selectedFile?.path ?? null} onSelectFile={setSelectedFile} />
             </div>
           </div>
+
+          {/* Settings button fixed at bottom */}
+          {view !== 'settings' && (
+            <div
+              style={{
+                borderTop: '0.5px solid var(--divider)',
+                flexShrink: 0,
+                padding: '6px 10px',
+              }}
+            >
+              <button
+                onClick={() => setView('settings')}
+                title="Settings (⌘,)"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--item-meta)',
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  transition: 'background 0.15s ease-out',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--item-hover-bg)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span style={{ flex: 1, textAlign: 'left' }}>设置</span>
+                <kbd
+                  style={{
+                    fontSize: '0.5625rem',
+                    color: 'var(--item-meta)',
+                    opacity: 0.4,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  ⌘,
+                </kbd>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Divider */}
@@ -736,7 +701,7 @@ export default function App() {
           }}
         />
 
-        {/* Right: Detail panel / Identity detail */}
+        {/* Center: Detail panel / Identity detail */}
         <div
           style={{
             flex: 1,
@@ -746,36 +711,60 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          <div style={{ display: sidebarTab === 'journal' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div
+            style={{
+              display: sidebarTab === 'journal' ? 'flex' : 'none',
+              flexDirection: 'column',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
             <DetailPanel
               entry={selectedEntry}
               entries={entries}
               onDeselect={handleDeselect}
               onRecord={handleRecord}
-              onOpenDock={handleOpenDock}
+              onOpenDock={handleOpenChat}
               onSelectSample={handleSelectSample}
               onAddToTodo={handleAddToTodo}
               onProcess={handleProcessEntry}
               onVisualDesign={handleVisualDesign}
             />
           </div>
-          <div style={{ display: sidebarTab === 'identity' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div
+            style={{
+              display: sidebarTab === 'identity' ? 'flex' : 'none',
+              flexDirection: 'column',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
             <IdentityDetail
               identity={selectedIdentity}
               onRecord={handleRecord}
-              onOpenDock={handleOpenDock}
+              onOpenDock={handleOpenChat}
             />
           </div>
-          <div style={{ display: sidebarTab === 'files' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div
+            style={{
+              display: sidebarTab === 'files' ? 'flex' : 'none',
+              flexDirection: 'column',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
             <FilePreviewPanel file={selectedFile} />
           </div>
         </div>
 
-        {/* Todo sidebar */}
-        {todoOpen && (
+        {/* Right Panel */}
+        {rightPanelOpen && (
           <>
             <div
-              onMouseDown={onTodoDividerMouseDown}
+              onMouseDown={onRightPanelDividerMouseDown}
               style={{
                 width: DIVIDER_WIDTH,
                 flexShrink: 0,
@@ -784,95 +773,75 @@ export default function App() {
                 cursor: 'col-resize',
               }}
             />
-            <TodoSidebar
-              width={todoWidth}
-              todos={todos}
-              onToggle={toggleTodo}
-              onAdd={addTodo}
-              onDelete={deleteTodo}
-              onSetDue={setTodoDue}
-              onUpdateText={updateTodoText}
-              onSetPath={setTodoPath}
-              onRemovePath={removeTodoPath}
-              onOpenConversation={async (opts) => {
-                if (opts.sessionId) {
-                  // Check if session actually has messages (may fail for legacy brainstorm IDs)
-                  let msgs: unknown[] = []
-                  try {
-                    msgs = await conversationGetMessages(opts.sessionId)
-                  } catch {
-                    // Session not found — treat as new
-                  }
-                  if (msgs.length > 0) {
-                    // Has history — resume it; carry over streaming state if tracked
-                    const wasStreaming =
-                      conversationState?.initialSessionId === opts.sessionId &&
-                      conversationState?.initialStreaming
-                    setConversationState({
-                      mode: 'agent',
-                      initialSessionId: opts.sessionId,
-                      initialStreaming: wasStreaming || false,
-                      key: Date.now(),
-                      visible: true,
-                    })
-                    return
-                  }
-                }
-                // First time or empty session — open dialog immediately, let it create session
-                setConversationState({
-                  mode: 'agent',
-                  initialInput: `/ideate ${opts.context}`,
-                  key: Date.now(),
-                  visible: true,
-                  _todoCallback: { lineIndex: opts.lineIndex, doneFile: opts.doneFile },
-                })
+            <div
+              style={{
+                width: rightPanelWidth,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
               }}
-              onNavigateToSource={(filename: string) => {
-                const match = entries.find((e) => e.filename === filename)
-                if (match) {
-                  setSidebarTab('journal')
-                  setSelectedEntry(match)
+            >
+              <RightPanel
+                activeTab={rightPanelTab}
+                onTabChange={setRightPanelTab}
+                ideasContent={
+                  <TodoSidebar
+                    width={rightPanelWidth}
+                    todos={todos}
+                    onToggle={toggleTodo}
+                    onAdd={addTodo}
+                    onDelete={deleteTodo}
+                    onSetDue={setTodoDue}
+                    onUpdateText={updateTodoText}
+                    onSetPath={setTodoPath}
+                    onRemovePath={removeTodoPath}
+                    onOpenConversation={async (opts) => {
+                      if (opts.sessionId) {
+                        openChatPanel(opts.sessionId)
+                      } else {
+                        openChatPanel(undefined, opts.context)
+                      }
+                    }}
+                    onNavigateToSource={(filename: string) => {
+                      const match = entries.find((e) => e.filename === filename)
+                      if (match) {
+                        setSidebarTab('journal')
+                        setSelectedEntry(match)
+                      }
+                    }}
+                  />
                 }
-              }}
-            />
+                chatContent={
+                  <ChatPanel
+                    sessionId={sessionId}
+                    mode="agent"
+                    messages={messages}
+                    isStreaming={isStreaming}
+                    usage={usage}
+                    stats={stats}
+                    pendingQueue={pendingQueue}
+                    onSend={send}
+                    onCancel={cancel}
+                    onRetry={retry}
+                    onEditAndResend={editAndResend}
+                    onRemovePendingItem={removePendingItem}
+                    onContinue={() => send('请继续')}
+                  />
+                }
+                historyContent={
+                  <SessionList
+                    activeSessionId={sessionId}
+                    onSelect={(id: string) => openChatPanel(id)}
+                    width={rightPanelWidth}
+                    collapsed={false}
+                  />
+                }
+              />
+            </div>
           </>
         )}
       </div>
-
-      {conversationState && (
-        <ConversationDialog
-          key={conversationState.key ?? 0}
-          mode={conversationState.mode}
-          context={conversationState.context}
-          contextFiles={conversationState.contextFiles}
-          initialInput={conversationState.initialInput}
-          initialSessionId={conversationState.initialSessionId}
-          initialStreaming={conversationState.initialStreaming}
-          initialUserMessage={conversationState.initialUserMessage}
-          visible={conversationState.visible}
-          onClose={() =>
-            setConversationState((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    visible: false,
-                    initialInput: undefined,
-                    initialSessionId: undefined,
-                    initialUserMessage: undefined,
-                    initialStreaming: undefined,
-                    _todoCallback: undefined,
-                  }
-                : null,
-            )
-          }
-          onSessionCreated={(sid) => {
-            const cb = conversationState?._todoCallback
-            if (cb) {
-              setTodoSessionId(cb.lineIndex, sid, cb.doneFile)
-            }
-          }}
-        />
-      )}
 
       {mergeSource && (
         <MergeIdentityDialog
@@ -885,114 +854,6 @@ export default function App() {
           }}
         />
       )}
-      <div
-        style={{
-          position: 'relative',
-          flexShrink: 0,
-          display: view === 'settings' ? 'none' : undefined,
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 10,
-          }}
-        >
-          <ProcessingQueue
-            items={visibleQueueItems}
-            onDismiss={dismissQueueItem}
-            onCancel={handleCancelQueueItem}
-            onRetry={handleRetryQueueItem}
-            onOpenConversation={(queueItem) => {
-              if (queueItem.sessionId) {
-                setConversationState({
-                  mode: 'agent',
-                  initialSessionId: queueItem.sessionId,
-                  initialStreaming: queueItem.status === 'processing',
-                  key: Date.now(),
-                  visible: true,
-                })
-              }
-            }}
-          />
-        </div>
-        <CommandDock
-          isDragOver={isDragOver}
-          pendingFiles={pendingFiles}
-          onPasteSubmit={handlePasteSubmit}
-          onFilesSubmit={handleFilesSubmit}
-          onFilesCancel={handleFilesCancel}
-          onRemoveFile={handleRemoveFile}
-          onPasteFiles={handlePasteFiles}
-          recorderStatus={status}
-          onRecord={handleRecord}
-          asrReady={asrReady}
-          audioRejected={audioRejected}
-          onOpenSettings={() => setView((v) => (v === 'settings' ? 'journal' : 'settings'))}
-          externalOpen={dockOpen}
-          onExternalOpenConsumed={() => setDockOpen(false)}
-          appendText={dockAppendText}
-          onAppendTextConsumed={() => setDockAppendText('')}
-        />
-        {aiReady === false && (
-          <div
-            onClick={() => setView('settings')}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'var(--bg)',
-              opacity: 0.93,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              cursor: 'pointer',
-              zIndex: 20,
-              borderTop: '0.5px solid var(--divider)',
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--item-meta)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--item-meta)',
-                letterSpacing: '0.03em',
-              }}
-            >
-              {t('aiNotConfigured')}
-            </span>
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--dock-paste-label)',
-                background: 'var(--dock-paste-bg)',
-                border: '0.5px solid var(--dock-paste-border)',
-                borderRadius: 5,
-                padding: '2px 8px',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {t('goToSettings')}
-            </span>
-          </div>
-        )}
-      </div>
     </div>
   )
 }

@@ -123,7 +123,17 @@ export function RightPanel({
         {activeTab === 'ideas' && ideasContent}
         {activeTab === 'chat' && (
           <>
-            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>{chatContent}</div>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {chatContent}
+            </div>
             {chatInputBar}
           </>
         )}

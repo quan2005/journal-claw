@@ -836,44 +836,35 @@ export function ChatPanel({
               <button
                 onClick={recorderStatus === 'recording' ? stopRecord : startRecord}
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '50%',
-                  background: recorderStatus === 'recording' ? '#ff3b30' : 'rgba(184,120,42,0.12)',
+                  background: 'none',
                   border: 'none',
                   cursor: 'pointer',
+                  padding: 4,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   opacity: inputValue.trim() ? 0 : 1,
-                  boxShadow:
-                    recorderStatus === 'recording'
-                      ? '0 4px 16px rgba(255,59,48,0.3)'
-                      : '0 4px 12px rgba(184,120,42,0.18)',
-                  transition:
-                    'opacity 200ms ease-out, background 200ms ease-out, box-shadow 200ms ease-out',
+                  color: recorderStatus === 'recording' ? '#ff3b30' : 'var(--item-meta)',
+                  transition: 'opacity 200ms ease-out, color 150ms ease-out',
                 }}
               >
                 {recorderStatus === 'recording' ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <rect x="4" y="4" width="16" height="16" rx="2" />
                   </svg>
                 ) : (
                   <svg
-                    width="13"
-                    height="13"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
-                    fill="var(--record-btn-icon)"
-                    stroke="none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
                     <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
-                    <path
-                      d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8"
-                      stroke="var(--record-btn-icon)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      fill="none"
-                    />
+                    <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" />
                   </svg>
                 )}
               </button>
@@ -886,19 +877,14 @@ export function ChatPanel({
                   recorderStatus === 'recording'
                 }
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '50%',
-                  background:
-                    inputValue.trim() || imageAttachments.length > 0
-                      ? 'var(--record-btn)'
-                      : 'var(--dialog-kbd-bg)',
+                  background: 'none',
                   border: 'none',
                   cursor:
                     (inputValue.trim() || imageAttachments.length > 0) &&
                     recorderStatus !== 'recording'
                       ? 'pointer'
                       : 'default',
+                  padding: 4,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -907,7 +893,11 @@ export function ChatPanel({
                     recorderStatus !== 'recording'
                       ? 1
                       : 0.3,
-                  transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
+                  color:
+                    inputValue.trim() || imageAttachments.length > 0
+                      ? 'var(--record-btn)'
+                      : 'var(--item-meta)',
+                  transition: 'opacity 200ms ease-out, color 150ms ease-out',
                 }}
               >
                 <svg
@@ -915,8 +905,8 @@ export function ChatPanel({
                   height="14"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#fff"
-                  strokeWidth="2.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >

@@ -628,9 +628,9 @@ export function ChatPanel({
         <div
           style={{
             border: dragOver
-              ? '1.5px dashed var(--accent)'
+              ? '1.5px dashed var(--record-btn)'
               : focused
-                ? '0.5px solid var(--accent)'
+                ? '0.5px solid var(--record-btn)'
                 : '0.5px solid var(--dialog-inset-border)',
             borderRadius: 12,
             background: dragOver ? 'var(--item-hover-bg)' : 'var(--dialog-inset-bg)',
@@ -644,12 +644,12 @@ export function ChatPanel({
               style={{
                 textAlign: 'center',
                 fontSize: 11,
-                color: 'var(--accent)',
+                color: 'var(--record-btn)',
                 opacity: 0.6,
                 padding: '4px 0',
               }}
             >
-              释放以添加文件
+              {t('dropToAddFiles')}
             </div>
           )}
 
@@ -758,7 +758,7 @@ export function ChatPanel({
             onPaste={handlePaste}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder="输入消息..."
+            placeholder={t('conversationInputPlaceholder')}
             rows={1}
             style={{
               display: 'block',
@@ -792,14 +792,14 @@ export function ChatPanel({
               style={{
                 background: 'none',
                 border: 'none',
-                color: dragOver ? 'var(--accent)' : 'var(--item-meta)',
+                color: dragOver ? 'var(--record-btn)' : 'var(--item-meta)',
                 cursor: 'pointer',
                 padding: '2px',
                 display: 'flex',
                 alignItems: 'center',
                 transition: 'color 0.15s ease-out',
               }}
-              title="添加文件"
+              title={t('addFile')}
             >
               <svg
                 width="16"
@@ -891,7 +891,7 @@ export function ChatPanel({
                   borderRadius: '50%',
                   background:
                     inputValue.trim() || imageAttachments.length > 0
-                      ? 'var(--accent)'
+                      ? 'var(--record-btn)'
                       : 'var(--dialog-kbd-bg)',
                   border: 'none',
                   cursor:

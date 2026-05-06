@@ -427,6 +427,8 @@ export const zh: Strings = {
   conversationAgentHint: '输入问题，我来帮你…',
   conversationThinking: '思考中…',
   conversationInputPlaceholder: '输入消息…',
+  dropToAddFiles: '释放以添加文件',
+  addFile: '添加文件',
   conversationSend: '发送',
   conversationStop: '停止',
   scrollToBottom: '回到底部',

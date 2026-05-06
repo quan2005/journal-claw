@@ -406,6 +406,8 @@ export const en = {
   conversationAgentHint: 'Ask me anything…',
   conversationThinking: 'Thinking…',
   conversationInputPlaceholder: 'Type a message…',
+  dropToAddFiles: 'Drop to add files',
+  addFile: 'Add file',
   conversationSend: 'Send',
   conversationStop: 'Stop',
   scrollToBottom: 'Scroll to bottom',

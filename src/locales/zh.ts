@@ -57,8 +57,7 @@ export const zh: Strings = {
   aiReady: '谨迹待命中',
 
   // TitleBar
-  todoTooltipOpen: '待办 (⌘T)',
-  todoTooltipClose: '收起待办 (⌘T)',
+  sidebarToggle: '侧边栏 (⌘T)',
 
   // Context menus (journal + identity)
   referenceEntry: '引用',

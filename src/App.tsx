@@ -333,15 +333,7 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 't') {
         e.preventDefault()
-        setRightPanelOpen((prev) => {
-          if (!prev) {
-            setRightPanelTab('ideas')
-            return true
-          }
-          if (rightPanelTabRef.current === 'ideas') return false
-          setRightPanelTab('ideas')
-          return true
-        })
+        setRightPanelOpen((prev) => !prev)
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
@@ -522,19 +514,8 @@ export default function App() {
         isProcessing={isProcessing}
         processingFilename={processingFilename}
         view={view}
-        rightPanelOpen={rightPanelOpen}
-        todoCount={todos.filter((t) => !t.done).length}
-        onToggleRightPanel={() =>
-          setRightPanelOpen((prev) => {
-            if (!prev) {
-              setRightPanelTab('ideas')
-              return true
-            }
-            if (rightPanelTabRef.current === 'ideas') return false
-            setRightPanelTab('ideas')
-            return true
-          })
-        }
+        sidebarOpen={rightPanelOpen}
+        onToggleSidebar={() => setRightPanelOpen((prev) => !prev)}
         onOpenChat={() => {
           setRightPanelOpen(true)
           setRightPanelTab('chat')

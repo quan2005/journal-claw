@@ -9,9 +9,8 @@ interface TitleBarProps {
   isProcessing: boolean
   processingFilename?: string
   view: 'journal' | 'settings'
-  rightPanelOpen: boolean
-  todoCount: number
-  onToggleRightPanel: () => void
+  sidebarOpen: boolean
+  onToggleSidebar: () => void
   onOpenChat?: () => void
 }
 
@@ -21,9 +20,8 @@ export function TitleBar({
   isProcessing,
   processingFilename,
   view,
-  rightPanelOpen,
-  todoCount,
-  onToggleRightPanel,
+  sidebarOpen,
+  onToggleSidebar,
   onOpenChat,
 }: TitleBarProps) {
   const { t } = useTranslation()
@@ -67,18 +65,18 @@ export function TitleBar({
         )}
       </div>
 
-      {/* Right: theme toggle + todo button */}
+      {/* Right: theme toggle + sidebar toggle */}
       <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8 }}>
         {view !== 'settings' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
         {view !== 'settings' && (
           <button
-            onClick={onToggleRightPanel}
-            title={rightPanelOpen ? t('todoTooltipClose') : t('todoTooltipOpen')}
+            onClick={onToggleSidebar}
+            title={t('sidebarToggle')}
             style={{
-              background: rightPanelOpen ? 'rgba(200,147,58,0.12)' : 'none',
+              background: sidebarOpen ? 'rgba(200,147,58,0.12)' : 'none',
               border: 'none',
               cursor: 'pointer',
-              color: rightPanelOpen ? 'var(--record-btn)' : 'var(--item-meta)',
+              color: sidebarOpen ? 'var(--record-btn)' : 'var(--item-meta)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -87,8 +85,7 @@ export function TitleBar({
               padding: 0,
               borderRadius: 4,
               lineHeight: 1,
-              opacity: rightPanelOpen ? 1 : 0.6,
-              position: 'relative' as const,
+              opacity: sidebarOpen ? 1 : 0.6,
             }}
           >
             <svg
@@ -101,30 +98,9 @@ export function TitleBar({
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M9 11l3 3L22 4" />
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M9 3v18" />
             </svg>
-            {!rightPanelOpen && todoCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute' as const,
-                  top: -2,
-                  right: -4,
-                  background: 'var(--record-btn)',
-                  color: 'var(--bg)',
-                  fontSize: 9,
-                  fontWeight: 'var(--font-semibold)' /* micro badge — below token scale */,
-                  width: 14,
-                  height: 14,
-                  borderRadius: 7,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {todoCount > 9 ? '9+' : todoCount}
-              </span>
-            )}
           </button>
         )}
       </div>

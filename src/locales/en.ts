@@ -55,8 +55,7 @@ export const en = {
   aiReady: 'JournalClaw ready',
 
   // TitleBar
-  todoTooltipOpen: 'Todo (⌘T)',
-  todoTooltipClose: 'Hide Todo (⌘T)',
+  sidebarToggle: 'Toggle Sidebar (⌘T)',
 
   // Context menus (journal + identity)
   referenceEntry: 'Reference',

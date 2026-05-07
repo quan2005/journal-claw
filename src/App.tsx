@@ -290,15 +290,19 @@ export default function App() {
     editAndResend,
     pendingQueue,
     removePendingItem,
+    newSession,
   } = useConversation()
+
+  const [chatInitialText, setChatInitialText] = useState('')
 
   // Helper to open chat panel
   const openChatPanel = useCallback(
-    (sid?: string, context?: string, contextFiles?: string[]) => {
+    (sid?: string, initialText?: string, contextFiles?: string[]) => {
       setRightPanelOpen(true)
       setRightPanelTab('chat')
       if (sid) load(sid)
-      if (context || contextFiles) create('agent', context, contextFiles)
+      if (initialText) setChatInitialText(initialText)
+      if (contextFiles) create('agent', undefined, contextFiles)
     },
     [load, create],
   )
@@ -346,10 +350,16 @@ export default function App() {
           return true
         })
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault()
+        newSession()
+        setRightPanelOpen(true)
+        setRightPanelTab('chat')
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [newSession])
 
   // Zoom: Cmd+Plus / Cmd+Minus / Cmd+0
   useEffect(() => {
@@ -801,6 +811,7 @@ export default function App() {
                     usage={usage}
                     stats={stats}
                     pendingQueue={pendingQueue}
+                    initialInput={chatInitialText}
                     onSend={send}
                     onCancel={cancel}
                     onRetry={retry}

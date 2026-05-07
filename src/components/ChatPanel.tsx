@@ -52,6 +52,7 @@ export interface ChatPanelProps {
   stats: SessionStats | null
   pendingQueue: string[]
   sessionId?: string | null
+  initialInput?: string
   onSend: (text: string, images?: ImageAttachment[]) => void
   onCancel: () => void
   onRetry: () => void
@@ -68,6 +69,7 @@ export function ChatPanel({
   stats,
   pendingQueue,
   sessionId,
+  initialInput,
   onSend,
   onCancel,
   onRetry,
@@ -131,6 +133,25 @@ export function ChatPanel({
       setShowScrollBtn(false)
     }
   }, [])
+
+  const lastConsumedRef = useRef<string | undefined>(undefined)
+
+  // Sync external initialInput into the textarea — only when it changes to a new value
+  useEffect(() => {
+    if (initialInput && initialInput !== lastConsumedRef.current) {
+      lastConsumedRef.current = initialInput
+      setInputValue(initialInput)
+      setTimeout(() => {
+        const el = inputRef.current
+        if (el) {
+          el.focus()
+          el.setSelectionRange(el.value.length, el.value.length)
+          el.style.height = 'auto'
+          el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+        }
+      }, 0)
+    }
+  }, [initialInput])
 
   // Auto-focus on mount and session change — skip if user has text selected
   useEffect(() => {

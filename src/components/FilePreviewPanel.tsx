@@ -12,6 +12,7 @@ import {
 import { fileKindFromName } from '../lib/fileKind'
 import { createMarkdownComponents } from '../lib/markdownComponents'
 import { stripFrontmatter } from '../lib/markdownUtils'
+import hljs from 'highlight.js'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { Spinner } from './Spinner'
 import { useTranslation } from '../contexts/I18nContext'
@@ -21,6 +22,76 @@ interface FilePreviewPanelProps {
 }
 
 const FAST_RENDERER_THRESHOLD = 100_000
+
+const EXT_TO_LANG: Record<string, string> = {
+  ts: 'typescript',
+  tsx: 'typescript',
+  js: 'javascript',
+  jsx: 'javascript',
+  rs: 'rust',
+  py: 'python',
+  css: 'css',
+  json: 'json',
+  xml: 'xml',
+  yaml: 'yaml',
+  yml: 'yaml',
+  toml: 'ini',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  sql: 'sql',
+  go: 'go',
+  java: 'java',
+  kt: 'kotlin',
+  kts: 'kotlin',
+  swift: 'swift',
+  c: 'c',
+  cpp: 'cpp',
+  h: 'c',
+  rb: 'ruby',
+  php: 'php',
+  lua: 'lua',
+  scss: 'scss',
+  less: 'less',
+  vue: 'html',
+  svelte: 'html',
+}
+
+function parseCSV(text: string): { headers: string[]; rows: string[][] } | null {
+  const lines = text.split('\n').filter((l) => l.trim())
+  if (lines.length === 0) return null
+  const result: string[][] = []
+  for (const line of lines) {
+    const row: string[] = []
+    let col = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            col += '"'
+            i++
+          } else inQuotes = false
+        } else {
+          col += ch
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true
+        } else if (ch === ',') {
+          row.push(col)
+          col = ''
+        } else {
+          col += ch
+        }
+      }
+    }
+    row.push(col)
+    result.push(row)
+  }
+  return { headers: result[0], rows: result.slice(1) }
+}
 
 function buildHtmlBlobUrl(html: string, absolutePath: string): string {
   const dirPath = absolutePath.substring(0, absolutePath.lastIndexOf('/'))
@@ -64,7 +135,13 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
       setContent(null)
       return
     }
-    if (kind === 'markdown' || kind === 'text' || kind === 'html') {
+    if (
+      kind === 'markdown' ||
+      kind === 'text' ||
+      kind === 'html' ||
+      kind === 'code' ||
+      kind === 'csv'
+    ) {
       setLoading(true)
       getJournalEntryContent(absolutePath)
         .then((c) => {
@@ -208,6 +285,127 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
       )
     }
 
+    if (kind === 'pdf') {
+      const src = convertFileSrc(absolutePath)
+      return (
+        <iframe
+          src={src}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+          }}
+        />
+      )
+    }
+
+    if (kind === 'code' && content !== null) {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+      const lang = EXT_TO_LANG[ext]
+      let html: string
+      if (lang && hljs.getLanguage(lang)) {
+        html = hljs.highlight(content, { language: lang }).value
+      } else {
+        html = hljs.highlightAuto(content).value
+      }
+      return (
+        <pre
+          className="hljs"
+          style={{
+            margin: 0,
+            borderRadius: 0,
+            flex: 1,
+            overflow: 'auto',
+            padding: '24px 28px',
+            fontSize: 'var(--text-sm)',
+            lineHeight: 1.6,
+          }}
+        >
+          <code
+            className={`hljs${lang ? ` language-${lang}` : ''}`}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </pre>
+      )
+    }
+
+    if (kind === 'csv' && content !== null) {
+      const data = parseCSV(content)
+      if (!data) {
+        return (
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            {file.name}
+          </div>
+        )
+      }
+      return (
+        <div style={{ padding: 24, overflow: 'auto', flex: 1 }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse' as const,
+                fontSize: 'var(--text-base)',
+              }}
+            >
+              <thead>
+                <tr>
+                  {data.headers.map((h, i) => (
+                    <th
+                      key={i}
+                      style={{
+                        padding: '6px 10px',
+                        textAlign: 'left' as const,
+                        fontWeight: 'var(--font-semibold)',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--md-h3)',
+                        textTransform: 'uppercase' as const,
+                        letterSpacing: '0.05em',
+                        borderBottom: '2px solid var(--divider)',
+                        whiteSpace: 'nowrap' as const,
+                        minWidth: 72,
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td
+                        key={ci}
+                        style={{
+                          padding: '5px 10px',
+                          color: 'var(--md-text)',
+                          lineHeight: 1.6,
+                          verticalAlign: 'top' as const,
+                          borderBottom: '1px solid var(--divider)',
+                          minWidth: 72,
+                        }}
+                      >
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
+    }
     return (
       <div
         style={{
@@ -275,7 +473,7 @@ export function FilePreviewPanel({ file }: FilePreviewPanelProps) {
     )
   }
 
-  const isFullBleed = kind === 'html' || kind === 'image'
+  const isFullBleed = kind === 'html' || kind === 'image' || kind === 'pdf'
 
   return (
     <div

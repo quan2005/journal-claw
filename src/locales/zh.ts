@@ -19,6 +19,8 @@ export const zh: Strings = {
   emptyFolder: '空文件夹',
   openExternal: '用系统应用打开',
   selectFileToPreview: '选择文件以预览',
+  filterFiles: '搜索文件…',
+  noResults: '没有找到文件',
 
   // Settings nav
   general: '通用',

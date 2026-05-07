@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import { listWorkspaceDir, getWorkspacePath, type WorkspaceDirEntry } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
 import { useTranslation } from '../contexts/I18nContext'
@@ -105,6 +105,19 @@ function Chevron({ expanded }: { expanded: boolean }) {
   )
 }
 
+/** Flatten all loaded entries (files only, skipping dirs) into a single list */
+function flattenEntries(dirs: Map<string, DirState>): WorkspaceDirEntry[] {
+  const result: WorkspaceDirEntry[] = []
+  for (const [, state] of dirs) {
+    for (const entry of state.entries) {
+      if (!entry.is_dir) {
+        result.push(entry)
+      }
+    }
+  }
+  return result
+}
+
 export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
   const { t } = useTranslation()
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map())
@@ -116,6 +129,12 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
     x: number
     y: number
   } | null>(null)
+  const [filterQuery, setFilterQuery] = useState('')
+  const [searchActive, setSearchActive] = useState(false)
+  const filterRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const searchBarRef = useRef<HTMLDivElement>(null)
+  const didInitialScroll = useRef(false)
 
   useEffect(() => {
     getWorkspacePath().then((wp) => {
@@ -127,6 +146,36 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
       setDirs(new Map([['', { entries, loading: false, expanded: true }]]))
     })
   }, [])
+
+  // Hide search bar on mount by scrolling past it
+  useLayoutEffect(() => {
+    if (!didInitialScroll.current && scrollRef.current && searchBarRef.current) {
+      scrollRef.current.scrollTop = searchBarRef.current.offsetHeight
+      didInitialScroll.current = true
+    }
+  }, [])
+
+  // Keep search bar hidden when search is inactive
+  useEffect(() => {
+    if (!searchActive && didInitialScroll.current && scrollRef.current && searchBarRef.current) {
+      const barH = searchBarRef.current.offsetHeight
+      if (scrollRef.current.scrollTop < barH) {
+        scrollRef.current.scrollTop = barH
+      }
+    }
+  }, [searchActive])
+
+  function dismissSearch() {
+    setFilterQuery('')
+    filterRef.current?.blur()
+    setSearchActive(false)
+    if (scrollRef.current && searchBarRef.current) {
+      scrollRef.current.scrollTo({
+        top: searchBarRef.current.offsetHeight,
+        behavior: 'smooth',
+      })
+    }
+  }
 
   const toggleDir = useCallback((path: string) => {
     setDirs((prev) => {
@@ -248,23 +297,209 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
     })
   }
 
+  const lowerFilter = filterQuery.toLowerCase()
+  const flatFiles = flattenEntries(dirs)
+  const filteredFiles = filterQuery
+    ? flatFiles.filter((f) => f.name.toLowerCase().includes(lowerFilter))
+    : flatFiles
+  const isFiltering = filterQuery.length > 0
+
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-      {workspaceName && (
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        {/* Search input — inside scroll container, hidden above fold */}
         <div
+          ref={searchBarRef}
           style={{
-            padding: '10px 14px 6px',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--item-meta)',
-            fontWeight: 'var(--font-semibold)' as unknown as number,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
+            padding: '8px 12px',
+            borderBottom: '0.5px solid var(--divider)',
+            background: 'var(--sidebar-bg-translucent, rgba(30,30,30,0.72))',
+            backdropFilter: 'saturate(180%) blur(20px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+            ...(searchActive ? { position: 'sticky' as const, top: 0, zIndex: 10 } : {}),
           }}
         >
-          {workspaceName}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 8px',
+              background: 'var(--filter-input-bg, rgba(128,128,128,0.08))',
+              borderRadius: 6,
+            }}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ opacity: 0.35, flexShrink: 0 }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              ref={filterRef}
+              type="text"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              onFocus={() => setSearchActive(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  dismissSearch()
+                }
+              }}
+              placeholder={t('filterFiles') ?? 'Filter files…'}
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-body)',
+                color: 'var(--item-text)',
+              }}
+            />
+            {filterQuery && (
+              <button
+                onClick={() => {
+                  setFilterQuery('')
+                  filterRef.current?.focus()
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  color: 'var(--item-meta)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: 0.5,
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
-      )}
-      {renderEntries('', 0)}
+
+        {/* Content: filtered flat list or normal tree */}
+        {isFiltering ? (
+          <>
+            {workspaceName && (
+              <div
+                style={{
+                  padding: '10px 14px 6px',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-meta)',
+                  fontWeight: 'var(--font-semibold)' as unknown as number,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {workspaceName}
+              </div>
+            )}
+            {filteredFiles.length === 0 ? (
+              <div
+                style={{
+                  padding: '24px 14px',
+                  textAlign: 'center',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-meta)',
+                  fontStyle: 'italic',
+                }}
+              >
+                {t('noResults')}
+              </div>
+            ) : (
+              filteredFiles.map((entry) => {
+                const isSelected = entry.path === selectedPath
+                const isHovered = entry.path === hoveredPath
+                return (
+                  <div
+                    key={entry.path}
+                    onClick={() => onSelectFile(entry)}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
+                      setContextMenu({ entry, x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseEnter={() => setHoveredPath(entry.path)}
+                    onMouseLeave={() => setHoveredPath(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      paddingLeft: 30,
+                      paddingRight: 14,
+                      paddingTop: 5,
+                      paddingBottom: 5,
+                      cursor: 'pointer',
+                      userSelect: 'none' as const,
+                      background: isSelected
+                        ? 'var(--item-selected-bg)'
+                        : isHovered
+                          ? 'var(--item-hover-bg)'
+                          : 'transparent',
+                      color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+                      fontSize: 'var(--text-sm)',
+                      fontFamily: 'var(--font-body)',
+                      lineHeight: 1.4,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    <FileIcon name={entry.name} isDir={false} />
+                    <span
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {entry.name}
+                    </span>
+                  </div>
+                )
+              })
+            )}
+          </>
+        ) : (
+          <>
+            {workspaceName && (
+              <div
+                style={{
+                  padding: '10px 14px 6px',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-meta)',
+                  fontWeight: 'var(--font-semibold)' as unknown as number,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {workspaceName}
+              </div>
+            )}
+            {renderEntries('', 0)}
+          </>
+        )}
+      </div>
       {contextMenu && (
         <FileTreeContextMenu
           x={contextMenu.x}

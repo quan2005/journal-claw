@@ -17,6 +17,8 @@ export const en = {
   emptyFolder: 'Empty folder',
   openExternal: 'Open with system app',
   selectFileToPreview: 'Select a file to preview',
+  filterFiles: 'Filter files...',
+  noResults: 'No matching files',
 
   // Settings nav
   general: 'General',

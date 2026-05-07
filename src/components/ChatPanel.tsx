@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { SessionMode, ConversationMessage, MessageBlock, WebSearchResultItem } from '../types'
+import type {
+  SessionMode,
+  ConversationMessage,
+  MessageBlock,
+  WebSearchResultItem,
+  Attachment,
+} from '../types'
 import type { SessionStats } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
@@ -14,12 +20,6 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
 import { useRecorder } from '../hooks/useRecorder'
-
-interface Attachment {
-  path: string
-  filename: string
-  kind: string
-}
 
 interface ImageAtt {
   media_type: string

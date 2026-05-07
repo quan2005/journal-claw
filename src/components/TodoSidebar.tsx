@@ -649,7 +649,6 @@ function computeGroupDisplayNames(paths: string[]): Map<string, string> {
 
 // ── TodoSidebar ──────────────────────────────────────────────────────────────
 interface TodoSidebarProps {
-  width: number
   todos: TodoItem[]
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
   onAdd: (text: string, due?: string, source?: string, path?: string) => void
@@ -669,7 +668,6 @@ interface TodoSidebarProps {
 }
 
 export function TodoSidebar({
-  width,
   todos,
   onToggle,
   onAdd,
@@ -788,13 +786,11 @@ export function TodoSidebar({
   return (
     <div
       style={{
-        width,
-        flexShrink: 0,
-        borderLeft: '0.5px solid var(--divider)',
         padding: '12px 0',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
+        flex: 1,
       }}
     >
       {/* Header */}

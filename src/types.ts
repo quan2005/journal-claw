@@ -122,6 +122,19 @@ export interface QueueItem {
   sessionId?: string // conversation session ID
 }
 
+// ── 通用附件（文件拖放 / 粘贴）───────────────────────
+export interface Attachment {
+  path: string
+  filename: string
+  kind: string
+}
+
+// ── 斜杠命令 ──────────────────────────────────────────
+export interface SlashCommand {
+  name: string
+  description: string
+}
+
 // ── 对话框 ──────────────────────────────────────────────
 export type SessionMode = 'chat' | 'agent'
 
@@ -134,12 +147,27 @@ export interface WebSearchResultItem {
 export type MessageBlock =
   | { type: 'text'; content: string }
   | { type: 'thinking'; content: string }
-  | { type: 'tool'; name: string; label: string; input?: Record<string, unknown>; output?: string; isError?: boolean }
+  | {
+      type: 'tool'
+      name: string
+      label: string
+      input?: Record<string, unknown>
+      output?: string
+      isError?: boolean
+    }
   | { type: 'web_search'; query: string; results: WebSearchResultItem[] }
   | { type: 'error'; code: string; message: string; retryable: boolean }
   | { type: 'loop_warning'; message: string }
   | { type: 'truncated' }
-  | { type: 'subtask'; toolUseId: string; prompt: string; summary?: string; isError?: boolean; isRunning?: boolean; tools?: { name: string; label: string; output?: string; isError?: boolean }[] }
+  | {
+      type: 'subtask'
+      toolUseId: string
+      prompt: string
+      summary?: string
+      isError?: boolean
+      isRunning?: boolean
+      tools?: { name: string; label: string; output?: string; isError?: boolean }[]
+    }
 
 export interface ConversationMessage {
   role: 'user' | 'assistant'

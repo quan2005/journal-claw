@@ -787,7 +787,6 @@ export default function App() {
                 onTabChange={setRightPanelTab}
                 ideasContent={
                   <TodoSidebar
-                    width={rightPanelWidth}
                     todos={todos}
                     onToggle={toggleTodo}
                     onAdd={addTodo}
@@ -833,8 +832,7 @@ export default function App() {
                   <SessionList
                     activeSessionId={sessionId}
                     onSelect={(id: string) => openChatPanel(id)}
-                    width={rightPanelWidth}
-                    collapsed={false}
+                    fullWidth
                   />
                 }
               />

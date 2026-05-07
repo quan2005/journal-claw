@@ -10,9 +10,16 @@ interface SessionListProps {
   onSelect: (id: string, isStreaming: boolean) => void
   width?: number
   collapsed?: boolean
+  fullWidth?: boolean
 }
 
-export function SessionList({ activeSessionId, onSelect, width, collapsed }: SessionListProps) {
+export function SessionList({
+  activeSessionId,
+  onSelect,
+  width,
+  collapsed,
+  fullWidth,
+}: SessionListProps) {
   const { t } = useTranslation()
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -220,14 +227,14 @@ export function SessionList({ activeSessionId, onSelect, width, collapsed }: Ses
   return (
     <div
       style={{
-        width: collapsed ? 0 : (width ?? SESSION_LIST_WIDTH),
-        borderRight: collapsed ? 'none' : '1px solid var(--dialog-glass-divider)',
+        width: collapsed ? 0 : fullWidth ? '100%' : (width ?? SESSION_LIST_WIDTH),
+        borderRight: collapsed || fullWidth ? 'none' : '1px solid var(--dialog-glass-divider)',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--dialog-sidebar-bg)',
-        flexShrink: 0,
+        background: fullWidth ? 'transparent' : 'var(--dialog-sidebar-bg)',
+        flexShrink: fullWidth ? 1 : 0,
         overflow: 'hidden',
-        transition: 'width 200ms ease-out',
+        transition: fullWidth ? undefined : 'width 200ms ease-out',
       }}
     >
       <style>{`

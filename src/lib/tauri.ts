@@ -417,16 +417,9 @@ export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_
 export const openSkillsDir = (scope: 'project' | 'global'): Promise<void> =>
   invoke<void>('open_skills_dir', { scope })
 
-// Conversation dialog
-export type SessionMode = 'chat' | 'agent'
-
-export const conversationCreate = (
-  mode: SessionMode,
-  context?: string,
-  contextFiles?: string[],
-): Promise<string> =>
+// Conversation
+export const conversationCreate = (context?: string, contextFiles?: string[]): Promise<string> =>
   invoke<string>('conversation_create', {
-    mode,
     context: context ?? null,
     contextFiles: contextFiles ?? null,
   })
@@ -461,7 +454,6 @@ export const conversationRetry = (sessionId: string): Promise<void> =>
 export interface SessionSummary {
   id: string
   title: string | null
-  mode: SessionMode
   created_at: number
   updated_at: number
   is_streaming: boolean

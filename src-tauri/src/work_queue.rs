@@ -193,7 +193,6 @@ async fn run_work_item(app: &AppHandle, item: &WorkItem) -> Result<String, Strin
     let sid = conversation::conversation_create(
         app.clone(),
         store.clone(),
-        conversation::SessionMode::Agent,
         None,
         None,
     )

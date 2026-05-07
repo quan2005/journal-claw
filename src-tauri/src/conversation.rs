@@ -18,19 +18,10 @@ pub struct ImageAttachment {
 
 // ── Types ────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SessionMode {
-    Chat,
-    Agent,
-    Observe,
-}
-
 pub(crate) struct ConversationSession {
     messages: Vec<Message>,
     /// `None` until the first send — built lazily to keep create() instant.
     system_prompt: Option<String>,
-    mode: SessionMode,
     cancel: Option<CancellationToken>,
     workspace: String,
     pending_user_messages: Vec<String>,
@@ -69,7 +60,6 @@ pub struct ConversationStreamPayload {
 pub struct SessionSummary {
     pub id: String,
     pub title: Option<String>,
-    pub mode: SessionMode,
     pub created_at: u64,
     pub updated_at: u64,
     pub is_streaming: bool,
@@ -82,7 +72,6 @@ struct PersistedSessionV2 {
     id: String,
     title: Option<String>,
     title_locked: bool,
-    mode: SessionMode,
     created_at: u64,
     updated_at: u64,
     #[serde(default)]
@@ -104,7 +93,8 @@ struct PersistedSessionV1 {
     id: String,
     title: Option<String>,
     title_locked: bool,
-    mode: SessionMode,
+    #[serde(default)]
+    mode: Option<String>,
     created_at: u64,
     updated_at: u64,
     messages: Vec<PersistedMessageV1>,
@@ -162,7 +152,6 @@ fn save_session_to_disk(workspace: &str, session_id: &str, session: &Conversatio
         id: session_id.to_string(),
         title: session.title.clone(),
         title_locked: session.title_locked,
-        mode: session.mode,
         created_at: session.created_at,
         updated_at: now_secs(),
         version: 2,
@@ -200,7 +189,6 @@ fn load_session_summaries(workspace: &str) -> Vec<SessionSummary> {
                 summaries.push(SessionSummary {
                     id: v2.id,
                     title: v2.title,
-                    mode: v2.mode,
                     created_at: v2.created_at,
                     updated_at: v2.updated_at,
                     is_streaming: false,
@@ -214,7 +202,6 @@ fn load_session_summaries(workspace: &str) -> Vec<SessionSummary> {
                 summaries.push(SessionSummary {
                     id: v1.id,
                     title: v1.title,
-                    mode: v1.mode,
                     created_at: v1.created_at,
                     updated_at: v1.updated_at,
                     is_streaming: false,
@@ -483,7 +470,6 @@ fn migrate_v1_to_v2(v1: PersistedSessionV1) -> PersistedSessionV2 {
         id: v1.id,
         title: v1.title,
         title_locked: v1.title_locked,
-        mode: v1.mode,
         created_at: v1.created_at,
         updated_at: v1.updated_at,
         version: 2,
@@ -520,7 +506,6 @@ fn load_persisted_session(workspace: &str, session_id: &str) -> Result<Persisted
 pub async fn conversation_create(
     app: AppHandle,
     store: tauri::State<'_, ConversationStore>,
-    mode: SessionMode,
     context: Option<String>,
     context_files: Option<Vec<String>>,
 ) -> Result<String, String> {
@@ -535,7 +520,6 @@ pub async fn conversation_create(
     let session = ConversationSession {
         messages: Vec::new(),
         system_prompt: None, // built lazily on first send
-        mode,
         cancel: None,
         workspace,
         pending_user_messages: Vec::new(),
@@ -557,10 +541,7 @@ pub async fn conversation_create(
         .map_err(|e| e.to_string())?
         .insert(session_id.clone(), session);
 
-    eprintln!(
-        "[conversation] created session {} mode={:?}",
-        session_id, mode
-    );
+    eprintln!("[conversation] created session {}", session_id);
     Ok(session_id)
 }
 
@@ -596,12 +577,11 @@ pub async fn conversation_send(
 
     if needs_prompt {
         // Heavy work happens here, outside the lock
-        let (workspace, mode, ctx, ctx_files) = {
+        let (workspace, ctx, ctx_files) = {
             let sessions = store.0.lock().map_err(|e| e.to_string())?;
             let s = sessions.get(&session_id).unwrap();
             (
                 s.workspace.clone(),
-                s.mode,
                 s.context.clone(),
                 s.context_files.clone(),
             )
@@ -621,22 +601,10 @@ pub async fn conversation_send(
             .map(|files| build_context_section(files))
             .unwrap_or_default();
 
-        let system_prompt = match mode {
-            SessionMode::Chat => {
-                let topic = ctx.as_deref().unwrap_or("自由对话");
-                format!(
-                    "{}{}\n\n## 当前模式\n\n你正在与用户进行主题探讨。围绕以下主题展开对话：\n\n{}\n\n请直接回应，不要执行任何文件操作。",
-                    base_system, context_section, topic
-                )
-            }
-            SessionMode::Agent => {
-                format!(
-                    "{}{}\n\n## 当前模式\n\n你正在与用户进行通用问答。可以使用 bash 工具执行命令来辅助回答。\n\n### 工具使用原则\n\n- **bash**: 需要执行命令、读写文件、运行脚本时使用\n- **web_search**: 查询实时信息 — 新闻事件、最新文档版本、技术发布动态、需要验证的事实性问题。返回搜索结果摘要供你引用。",
-                    base_system, context_section
-                )
-            }
-            SessionMode::Observe => base_system,
-        };
+        let system_prompt = format!(
+            "{}{}\n\n## 当前模式\n\n你正在与用户进行通用问答。可以使用 bash 工具执行命令来辅助回答。\n\n### 工具使用原则\n\n- **bash**: 需要执行命令、读写文件、运行脚本时使用\n- **web_search**: 查询实时信息 — 新闻事件、最新文档版本、技术发布动态、需要验证的事实性问题。返回搜索结果摘要供你引用。",
+            base_system, context_section
+        );
 
         // Store the built prompt and clear deferred fields
         let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
@@ -648,7 +616,7 @@ pub async fn conversation_send(
     }
 
     // ── Extract session data under lock, then release ────
-    let (messages, system_prompt, mode, workspace, cancel_token, provisional_title) = {
+    let (messages, system_prompt, workspace, cancel_token, provisional_title) = {
         let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
         let session = sessions
             .get_mut(&session_id)
@@ -732,7 +700,6 @@ pub async fn conversation_send(
         (
             session.messages.clone(),
             session.system_prompt.clone().unwrap_or_default(),
-            session.mode,
             session.workspace.clone(),
             cancel,
             provisional_title,
@@ -762,7 +729,6 @@ pub async fn conversation_send(
             &workspace,
             &system_prompt,
             messages,
-            mode,
             &sid,
             &app_clone,
             cancel_token.clone(),
@@ -1110,7 +1076,7 @@ async fn conversation_continue(
 ) -> Result<(), String> {
     let cfg = config::load_config(&app)?;
 
-    let (messages, system_prompt, mode, workspace, cancel_token) = {
+    let (messages, system_prompt, workspace, cancel_token) = {
         let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
         let session = sessions
             .get_mut(&session_id)
@@ -1127,7 +1093,6 @@ async fn conversation_continue(
         (
             session.messages.clone(),
             session.system_prompt.clone().unwrap_or_default(),
-            session.mode,
             session.workspace.clone(),
             cancel,
         )
@@ -1143,7 +1108,6 @@ async fn conversation_continue(
             &workspace,
             &system_prompt,
             messages,
-            mode,
             &sid,
             &app_clone,
             cancel_token,
@@ -1285,7 +1249,6 @@ pub async fn conversation_list(
                 summaries.push(SessionSummary {
                     id: id.clone(),
                     title: session.title.clone(),
-                    mode: session.mode,
                     created_at: session.created_at,
                     updated_at: now_secs(),
                     is_streaming: session.cancel.is_some(),
@@ -1397,21 +1360,10 @@ pub async fn conversation_load(
             global_skills,
         )
         .await;
-        match persisted.mode {
-            SessionMode::Chat => {
-                format!(
-                    "{}\n\n## 当前模式\n\n你正在与用户进行主题探讨。请直接回应，不要执行任何文件操作。",
-                    base_system
-                )
-            }
-            SessionMode::Agent => {
-                format!(
-                    "{}\n\n## 当前模式\n\n你正在与用户进行通用问答。可以使用 bash 工具执行命令来辅助回答。",
-                    base_system
-                )
-            }
-            SessionMode::Observe => base_system,
-        }
+        format!(
+            "{}\n\n## 当前模式\n\n你正在与用户进行通用问答。可以使用 bash 工具执行命令来辅助回答。",
+            base_system
+        )
     };
 
     let display = messages_to_display(&persisted.messages);
@@ -1419,7 +1371,6 @@ pub async fn conversation_load(
     let session = ConversationSession {
         messages: persisted.messages,
         system_prompt: Some(system_prompt),
-        mode: persisted.mode,
         cancel: None,
         workspace,
         pending_user_messages: Vec::new(),
@@ -1459,30 +1410,20 @@ async fn run_conversation_turn(
     workspace: &str,
     system_prompt: &str,
     mut messages: Vec<Message>,
-    mode: SessionMode,
     session_id: &str,
     app: &AppHandle,
     cancel: CancellationToken,
     global_skills: bool,
 ) -> Result<(Vec<Message>, u64, u64), (llm::types::LlmError, Vec<Message>, u64, u64)> {
-    let tools = match mode {
-        SessionMode::Agent => {
-            let skills = llm::prompt::scan_skills(workspace, global_skills).await;
-            let mut t = vec![
-                llm::bash_tool::definition(),
-                llm::enable_skill::definition(&skills),
-                llm::task_tool::definition(),
-            ];
-            t.extend(llm::fs_tools::definitions());
-            t
-        }
-        _ => vec![],
-    };
+    let skills = llm::prompt::scan_skills(workspace, global_skills).await;
+    let mut tools = vec![
+        llm::bash_tool::definition(),
+        llm::enable_skill::definition(&skills),
+        llm::task_tool::definition(),
+    ];
+    tools.extend(llm::fs_tools::definitions());
 
-    let max_turns: usize = match mode {
-        SessionMode::Agent => 60,
-        _ => 1,
-    };
+    let max_turns: usize = 60;
 
     let sid = session_id.to_string();
     let mut loop_detector = LoopDetector::new();

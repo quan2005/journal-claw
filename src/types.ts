@@ -135,9 +135,6 @@ export interface SlashCommand {
   description: string
 }
 
-// ── 对话框 ──────────────────────────────────────────────
-export type SessionMode = 'chat' | 'agent'
-
 export interface WebSearchResultItem {
   url: string
   title: string

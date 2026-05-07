@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import type { ConversationMessage, ConversationStreamPayload, SessionMode } from '../types'
+import type { ConversationMessage, ConversationStreamPayload } from '../types'
 import type { ImageAttachment } from '../lib/tauri'
 import {
   conversationCreate,
@@ -32,7 +32,6 @@ export function useConversation() {
   const isStreamingRef = useRef(false)
   const pendingCreateRef = useRef<Promise<string> | null>(null)
   // Deferred create params — stored by create(), consumed by send()
-  const deferredModeRef = useRef<SessionMode>('chat')
   const deferredContextRef = useRef<string | undefined>(undefined)
   const deferredContextFilesRef = useRef<string[] | undefined>(undefined)
 
@@ -453,23 +452,20 @@ export function useConversation() {
     }
   }, [updateSessionMessages, getQueue, setQueue])
 
-  const create = useEventCallback(
-    (mode: SessionMode, context?: string, contextFiles?: string[]) => {
-      sessionIdRef.current = null
-      setSessionId(null)
-      setMessages([])
-      setIsStreaming(false)
-      isStreamingRef.current = false
-      setTitle(null)
-      setPendingQueue([])
-      setUsage({ input: 0, output: 0 })
-      setStats(null)
-      pendingCreateRef.current = null
-      deferredModeRef.current = mode
-      deferredContextRef.current = context
-      deferredContextFilesRef.current = contextFiles
-    },
-  )
+  const create = useEventCallback((context?: string, contextFiles?: string[]) => {
+    sessionIdRef.current = null
+    setSessionId(null)
+    setMessages([])
+    setIsStreaming(false)
+    isStreamingRef.current = false
+    setTitle(null)
+    setPendingQueue([])
+    setUsage({ input: 0, output: 0 })
+    setStats(null)
+    pendingCreateRef.current = null
+    deferredContextRef.current = context
+    deferredContextFilesRef.current = contextFiles
+  })
 
   const send = useEventCallback(
     async (text: string, images?: ImageAttachment[]): Promise<boolean> => {
@@ -492,7 +488,6 @@ export function useConversation() {
       // Lazy session creation — first message triggers the real IPC create
       if (!sessionIdRef.current && !pendingCreateRef.current) {
         const p = conversationCreate(
-          deferredModeRef.current,
           deferredContextRef.current,
           deferredContextFilesRef.current,
         ).then((id) => {
@@ -627,7 +622,7 @@ export function useConversation() {
 
   const newSession = useEventCallback(() => {
     close()
-    create('agent')
+    create()
   })
 
   const load = useEventCallback(

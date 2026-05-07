@@ -1,11 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type {
-  SessionMode,
-  ConversationMessage,
-  MessageBlock,
-  WebSearchResultItem,
-  Attachment,
-} from '../types'
+import type { ConversationMessage, MessageBlock, WebSearchResultItem, Attachment } from '../types'
 import type { SessionStats } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
@@ -45,7 +39,6 @@ const TOOL_ICON_PATHS: Record<string, string> = {
 }
 
 export interface ChatPanelProps {
-  mode: SessionMode
   messages: ConversationMessage[]
   isStreaming: boolean
   usage: { input: number; output: number }
@@ -62,7 +55,6 @@ export interface ChatPanelProps {
 }
 
 export function ChatPanel({
-  mode,
   messages,
   isStreaming,
   usage,
@@ -376,7 +368,7 @@ export function ChatPanel({
                 opacity: 0.35,
               }}
             >
-              {mode === 'chat' ? t('conversationChat') : t('conversationAgent')}
+              {t('conversationAgent')}
             </span>
             <span
               style={{
@@ -385,7 +377,7 @@ export function ChatPanel({
                 opacity: 0.3,
               }}
             >
-              {mode === 'chat' ? t('conversationChatHint') : t('conversationAgentHint')}
+              {t('conversationAgentHint')}
             </span>
             <div
               style={{

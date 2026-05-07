@@ -128,6 +128,27 @@ export function ChatPanel({
 
   const lastConsumedRef = useRef<string | undefined>(undefined)
 
+  // Listen for chat-append-text custom events — any component can append @path to current input
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail
+      if (!text) return
+      setInputValue((prev) => {
+        const trimmed = prev.trimEnd()
+        return trimmed ? `${trimmed} ${text}` : text
+      })
+      setTimeout(() => {
+        const el = inputRef.current
+        if (el) {
+          el.focus()
+          el.setSelectionRange(el.value.length, el.value.length)
+        }
+      }, 50)
+    }
+    window.addEventListener('chat-append-text', handler)
+    return () => window.removeEventListener('chat-append-text', handler)
+  }, [])
+
   // Sync external initialInput into the textarea — only when it changes to a new value
   useEffect(() => {
     if (initialInput && initialInput !== lastConsumedRef.current) {

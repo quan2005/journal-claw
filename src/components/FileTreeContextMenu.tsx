@@ -17,6 +17,7 @@ interface FileTreeContextMenuProps {
   isDir: boolean
   onClose: () => void
   onRefresh: () => void
+  onReference?: () => void
 }
 
 type MenuItem =
@@ -32,6 +33,7 @@ export function FileTreeContextMenu({
   isDir,
   onClose,
   onRefresh,
+  onReference,
 }: FileTreeContextMenuProps) {
   const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
@@ -131,6 +133,19 @@ export function FileTreeContextMenu({
   }
 
   const items: MenuItem[] = [
+    ...(onReference && !isDir
+      ? [
+          {
+            type: 'action' as const,
+            label: t('referenceEntry'),
+            icon: 'reference',
+            onClick: () => {
+              onReference()
+              onClose()
+            },
+          },
+        ]
+      : []),
     {
       type: 'action',
       label: t('openInEditor'),
@@ -282,6 +297,22 @@ function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
   }
 
   switch (icon) {
+    case 'reference':
+      return (
+        <svg {...props}>
+          <text
+            x="12"
+            y="18"
+            textAnchor="middle"
+            fontSize="22"
+            fontWeight="700"
+            fill={color}
+            stroke="none"
+          >
+            @
+          </text>
+        </svg>
+      )
     case 'edit':
       return (
         <svg {...props}>

@@ -105,19 +105,6 @@ function Chevron({ expanded }: { expanded: boolean }) {
   )
 }
 
-/** Flatten all loaded entries (files only, skipping dirs) into a single list */
-function flattenEntries(dirs: Map<string, DirState>): WorkspaceDirEntry[] {
-  const result: WorkspaceDirEntry[] = []
-  for (const [, state] of dirs) {
-    for (const entry of state.entries) {
-      if (!entry.is_dir) {
-        result.push(entry)
-      }
-    }
-  }
-  return result
-}
-
 /** Recursively load all subdirectories under the given paths */
 async function loadAllDirectories(
   currentDirs: Map<string, DirState>,
@@ -392,11 +379,124 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
   }
 
   const lowerFilter = filterQuery.toLowerCase()
-  const flatFiles = flattenEntries(dirs)
-  const filteredFiles = filterQuery
-    ? flatFiles.filter((f) => f.name.toLowerCase().includes(lowerFilter))
-    : flatFiles
   const isFiltering = filterQuery.length > 0
+
+  // Check if a directory or any of its descendants contain a matching file
+  const dirContainsMatch = (parentPath: string): boolean => {
+    const state = dirs.get(parentPath)
+    if (!state) return false
+    for (const entry of state.entries) {
+      if (!entry.is_dir) {
+        if (entry.name.toLowerCase().includes(lowerFilter)) return true
+      } else {
+        if (dirContainsMatch(entry.path)) return true
+      }
+    }
+    return false
+  }
+
+  // Filtered tree rendering — only shows matching files and dirs that contain matches
+  const renderFilteredEntries = (parentPath: string, depth: number): React.ReactNode => {
+    const state = dirs.get(parentPath)
+    if (!state) return null
+
+    return state.entries.map((entry) => {
+      const indent = 14 + Math.min(depth, MAX_INDENT_DEPTH) * 16
+      const isSelected = entry.path === selectedPath
+      const isHovered = entry.path === hoveredPath
+      const nameMatches = entry.name.toLowerCase().includes(lowerFilter)
+
+      if (entry.is_dir) {
+        // Only show directory if it contains matching descendants
+        if (!dirContainsMatch(entry.path)) return null
+        const childState = dirs.get(entry.path)
+        return (
+          <div key={entry.path}>
+            <div
+              onClick={() => toggleDir(entry.path)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setContextMenu({ entry, x: e.clientX, y: e.clientY })
+              }}
+              onMouseEnter={() => setHoveredPath(entry.path)}
+              onMouseLeave={() => setHoveredPath(null)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                paddingLeft: indent,
+                paddingRight: 14,
+                paddingTop: 5,
+                paddingBottom: 5,
+                cursor: 'pointer',
+                userSelect: 'none' as const,
+                background: isSelected
+                  ? 'var(--item-selected-bg)'
+                  : isHovered
+                    ? 'var(--item-hover-bg)'
+                    : 'transparent',
+                color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-body)',
+                lineHeight: 1.4,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <Chevron expanded={!!childState?.expanded} />
+              <FileIcon name={entry.name} isDir={true} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.name}</span>
+            </div>
+            {childState?.expanded && renderFilteredEntries(entry.path, depth + 1)}
+          </div>
+        )
+      }
+
+      // File: only show if name matches
+      if (!nameMatches) return null
+      return (
+        <div key={entry.path}>
+          <div
+            onClick={() => onSelectFile(entry)}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              setContextMenu({ entry, x: e.clientX, y: e.clientY })
+            }}
+            onMouseEnter={() => setHoveredPath(entry.path)}
+            onMouseLeave={() => setHoveredPath(null)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              paddingLeft: indent,
+              paddingRight: 14,
+              paddingTop: 5,
+              paddingBottom: 5,
+              cursor: 'pointer',
+              userSelect: 'none' as const,
+              background: isSelected
+                ? 'var(--item-selected-bg)'
+                : isHovered
+                  ? 'var(--item-hover-bg)'
+                  : 'transparent',
+              color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-body)',
+              lineHeight: 1.4,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            <div style={{ width: 10, flexShrink: 0 }} />
+            <FileIcon name={entry.name} isDir={false} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.name}</span>
+          </div>
+        </div>
+      )
+    })
+  }
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -494,7 +594,7 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
           </div>
         </div>
 
-        {/* Content: filtered flat list or normal tree */}
+        {/* Content: filtered tree or normal tree */}
         {isFiltering ? (
           loadingAll ? (
             <div
@@ -511,86 +611,20 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
               <Spinner size={12} />
               <span>扫描文件中…</span>
             </div>
+          ) : dirContainsMatch('') ? (
+            <>{renderFilteredEntries('', 0)}</>
           ) : (
-            <>
-              {workspaceName && (
-                <div
-                  style={{
-                    padding: '10px 14px 6px',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--item-meta)',
-                    fontWeight: 'var(--font-semibold)' as unknown as number,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {workspaceName}
-                </div>
-              )}
-              {filteredFiles.length === 0 ? (
-                <div
-                  style={{
-                    padding: '24px 14px',
-                    textAlign: 'center',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--item-meta)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {t('noResults')}
-                </div>
-              ) : (
-                filteredFiles.map((entry) => {
-                  const isSelected = entry.path === selectedPath
-                  const isHovered = entry.path === hoveredPath
-                  return (
-                    <div
-                      key={entry.path}
-                      onClick={() => onSelectFile(entry)}
-                      onContextMenu={(e) => {
-                        e.preventDefault()
-                        setContextMenu({ entry, x: e.clientX, y: e.clientY })
-                      }}
-                      onMouseEnter={() => setHoveredPath(entry.path)}
-                      onMouseLeave={() => setHoveredPath(null)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        paddingLeft: 30,
-                        paddingRight: 14,
-                        paddingTop: 5,
-                        paddingBottom: 5,
-                        cursor: 'pointer',
-                        userSelect: 'none' as const,
-                        background: isSelected
-                          ? 'var(--item-selected-bg)'
-                          : isHovered
-                            ? 'var(--item-hover-bg)'
-                            : 'transparent',
-                        color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-                        fontSize: 'var(--text-sm)',
-                        fontFamily: 'var(--font-body)',
-                        lineHeight: 1.4,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      <FileIcon name={entry.name} isDir={false} />
-                      <span
-                        style={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {entry.name}
-                      </span>
-                    </div>
-                  )
-                })
-              )}
-            </>
+            <div
+              style={{
+                padding: '24px 14px',
+                textAlign: 'center',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--item-meta)',
+                fontStyle: 'italic',
+              }}
+            >
+              {t('noResults')}
+            </div>
           )
         ) : (
           <>
@@ -623,6 +657,17 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
           }
           isDir={contextMenu.entry.is_dir}
           onClose={() => setContextMenu(null)}
+          onReference={
+            !contextMenu.entry.is_dir
+              ? () => {
+                  window.dispatchEvent(
+                    new CustomEvent('chat-append-text', {
+                      detail: `@${contextMenu.entry.path}`,
+                    }),
+                  )
+                }
+              : undefined
+          }
           onRefresh={() => {
             const parentPath = contextMenu.entry.path.includes('/')
               ? contextMenu.entry.path.substring(0, contextMenu.entry.path.lastIndexOf('/'))

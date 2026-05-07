@@ -37,7 +37,6 @@ import { useTranslation } from './contexts/I18nContext'
 import { RightPanel } from './components/RightPanel'
 import type { RightPanelTab } from './components/RightPanel'
 import { ChatPanel } from './components/ChatPanel'
-import { SessionList } from './components/SessionList'
 import { useConversation } from './hooks/useConversation'
 
 const BASE_WIDTH = 320
@@ -98,10 +97,6 @@ export default function App() {
   // Right panel state
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('ideas')
-  const rightPanelTabRef = useRef<RightPanelTab>('ideas')
-  useEffect(() => {
-    rightPanelTabRef.current = rightPanelTab
-  }, [rightPanelTab])
   const [rightPanelWidth, setRightPanelWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_right_panel_width')
     return saved ? parseInt(saved) : 320
@@ -275,7 +270,7 @@ export default function App() {
     }
   }, [])
 
-  // useConversation hook
+  // useConversation hook (multi-session)
   const {
     sessionId,
     messages,
@@ -290,21 +285,30 @@ export default function App() {
     editAndResend,
     pendingQueue,
     removePendingItem,
-    newSession,
+    newTab,
   } = useConversation()
 
   const [chatInitialText, setChatInitialText] = useState('')
 
-  // Helper to open chat panel
+  // Helper to open chat panel (creates new tab per interaction)
   const openChatPanel = useCallback(
     (sid?: string, initialText?: string, contextFiles?: string[]) => {
       setRightPanelOpen(true)
       setRightPanelTab('chat')
-      if (sid) load(sid)
-      if (initialText) setChatInitialText(initialText)
-      if (contextFiles) create(undefined, contextFiles)
+      if (sid) {
+        // Open existing session as a tab
+        load(sid, undefined, initialText)
+      } else if (contextFiles) {
+        // Create new tab with context files
+        create(undefined, contextFiles)
+        if (initialText) setChatInitialText(initialText)
+      } else {
+        // Plain new tab
+        newTab()
+        if (initialText) setChatInitialText(initialText)
+      }
     },
-    [load, create],
+    [load, create, newTab],
   )
 
   // Track conversation session when work queue creates one
@@ -341,25 +345,18 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setRightPanelOpen((prev) => {
-          if (!prev) {
-            setRightPanelTab('chat')
-            return true
-          }
-          setRightPanelTab('chat')
-          return true
-        })
+        setRightPanelOpen((prev) => !prev)
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
-        newSession()
+        newTab()
         setRightPanelOpen(true)
         setRightPanelTab('chat')
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [newSession])
+  }, [newTab])
 
   // Zoom: Cmd+Plus / Cmd+Minus / Cmd+0
   useEffect(() => {
@@ -416,13 +413,14 @@ export default function App() {
     },
     [addTodo],
   )
-  const handleProcessEntry = useCallback(
-    (entry: JournalEntry) => {
-      const rel = `${entry.year_month}/${entry.filename}`
-      openChatPanel(undefined, `分析并处理日志 @${rel}`)
-    },
-    [openChatPanel],
-  )
+  const handleProcessEntry = useCallback((entry: JournalEntry) => {
+    const rel = `${entry.year_month}/${entry.filename}`
+    setRightPanelOpen(true)
+    setRightPanelTab('chat')
+    window.dispatchEvent(
+      new CustomEvent('chat-append-text', { detail: `@${rel}` }),
+    )
+  }, [])
   const handleVisualDesign = useCallback(
     (entry: JournalEntry) => {
       const rel = `${entry.year_month}/${entry.filename}`
@@ -581,7 +579,11 @@ export default function App() {
                 onSelect={setSelectedEntry}
                 onProcess={(entry) => {
                   const rel = `${entry.year_month}/${entry.filename}`
-                  openChatPanel(undefined, `分析并处理日志 @${rel}`)
+                  setRightPanelOpen(true)
+                  setRightPanelTab('chat')
+                  window.dispatchEvent(
+                    new CustomEvent('chat-append-text', { detail: `@${rel}` }),
+                  )
                 }}
                 hasMore={hasMore}
                 loadingMore={loadingMore}
@@ -603,7 +605,11 @@ export default function App() {
                 onSelect={(identity) => setSelectedIdentity(identity)}
                 onProcess={(identity) => {
                   const rel = `identity/${identity.filename}`
-                  openChatPanel(undefined, `分析并处理画像 @${rel}`)
+                  setRightPanelOpen(true)
+                  setRightPanelTab('chat')
+                  window.dispatchEvent(
+                    new CustomEvent('chat-append-text', { detail: `@${rel}` }),
+                  )
                 }}
                 onMerge={(identity) => setMergeSource(identity)}
                 onDelete={handleDeleteIdentity}
@@ -791,6 +797,7 @@ export default function App() {
               <RightPanel
                 activeTab={rightPanelTab}
                 onTabChange={setRightPanelTab}
+                activeSessionId={sessionId}
                 ideasContent={
                   <TodoSidebar
                     todos={todos}
@@ -834,13 +841,7 @@ export default function App() {
                     onContinue={() => send('请继续')}
                   />
                 }
-                historyContent={
-                  <SessionList
-                    activeSessionId={sessionId}
-                    onSelect={(id: string) => openChatPanel(id)}
-                    fullWidth
-                  />
-                }
+                onHistorySelect={(id: string) => openChatPanel(id)}
               />
             </div>
           </>

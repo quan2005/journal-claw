@@ -1,15 +1,17 @@
-import type { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { useTranslation } from '../contexts/I18nContext'
+import { HistoryFloatingButton } from './HistoryFloatingButton'
 
-export type RightPanelTab = 'ideas' | 'chat' | 'history'
+export type RightPanelTab = 'ideas' | 'chat'
 
 interface RightPanelProps {
   activeTab: RightPanelTab
   onTabChange: (tab: RightPanelTab) => void
   ideasContent: ReactNode
   chatContent: ReactNode
-  historyContent: ReactNode
-  chatInputBar?: ReactNode // rendered below chat content, fixed at bottom, only for chat tab
+  chatInputBar?: ReactNode
+  activeSessionId?: string | null
+  onHistorySelect?: (id: string) => void
 }
 
 export function RightPanel({
@@ -17,8 +19,9 @@ export function RightPanel({
   onTabChange,
   ideasContent,
   chatContent,
-  historyContent,
   chatInputBar,
+  activeSessionId,
+  onHistorySelect,
 }: RightPanelProps) {
   const { t } = useTranslation()
 
@@ -52,7 +55,7 @@ export function RightPanel({
         overflow: 'hidden',
       }}
     >
-      {/* Tab bar */}
+      {/* Top-level tab bar (ideas | chat) */}
       <div
         style={{
           display: 'flex',
@@ -92,22 +95,6 @@ export function RightPanel({
           </svg>
           {t('chat')}
         </button>
-        <button style={btnStyle('history')} onClick={() => onTabChange('history')}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          {t('history')}
-        </button>
       </div>
 
       {/* Tab content */}
@@ -130,14 +117,21 @@ export function RightPanel({
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
+                position: 'relative',
               }}
             >
+              {/* Floating history button */}
+              {onHistorySelect && (
+                <HistoryFloatingButton
+                  activeSessionId={activeSessionId ?? null}
+                  onSelect={onHistorySelect}
+                />
+              )}
               {chatContent}
             </div>
             {chatInputBar}
           </>
         )}
-        {activeTab === 'history' && historyContent}
       </div>
     </div>
   )

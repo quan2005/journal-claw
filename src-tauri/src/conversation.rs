@@ -601,10 +601,7 @@ pub async fn conversation_send(
             .map(|files| build_context_section(files))
             .unwrap_or_default();
 
-        let system_prompt = format!(
-            "{}{}\n\n## 当前模式\n\n你正在与用户进行通用问答。可以使用 bash 工具执行命令来辅助回答。\n\n### 工具使用原则\n\n- **bash**: 需要执行命令、读写文件、运行脚本时使用\n- **web_search**: 查询实时信息 — 新闻事件、最新文档版本、技术发布动态、需要验证的事实性问题。返回搜索结果摘要供你引用。",
-            base_system, context_section
-        );
+        let system_prompt = format!("{}{}", base_system, context_section);
 
         // Store the built prompt and clear deferred fields
         let mut sessions = store.0.lock().map_err(|e| e.to_string())?;
@@ -1360,10 +1357,7 @@ pub async fn conversation_load(
             global_skills,
         )
         .await;
-        format!(
-            "{}\n\n## 当前模式\n\n你正在与用户进行通用问答。可以使用 bash 工具执行命令来辅助回答。",
-            base_system
-        )
+        base_system
     };
 
     let display = messages_to_display(&persisted.messages);

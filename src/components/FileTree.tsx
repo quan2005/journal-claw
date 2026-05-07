@@ -118,6 +118,65 @@ function flattenEntries(dirs: Map<string, DirState>): WorkspaceDirEntry[] {
   return result
 }
 
+/** Recursively load all subdirectories under the given paths */
+async function loadAllDirectories(
+  currentDirs: Map<string, DirState>,
+): Promise<Map<string, DirState>> {
+  const next = new Map(currentDirs)
+
+  // Collect all unloaded directories
+  const toLoad: string[] = []
+  for (const [, state] of currentDirs) {
+    for (const entry of state.entries) {
+      if (entry.is_dir && !currentDirs.has(entry.path)) {
+        toLoad.push(entry.path)
+      }
+    }
+  }
+
+  // Load in batches to avoid overwhelming the system
+  const BATCH_SIZE = 8
+  for (let i = 0; i < toLoad.length; i += BATCH_SIZE) {
+    const batch = toLoad.slice(i, i + BATCH_SIZE)
+    const results = await Promise.allSettled(
+      batch.map(async (path) => {
+        const entries = await listWorkspaceDir(path)
+        return { path, entries }
+      }),
+    )
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        next.set(r.value.path, {
+          entries: r.value.entries,
+          loading: false,
+          expanded: false,
+        })
+      }
+    }
+  }
+
+  // Recurse: check if any newly loaded dirs contain more subdirs
+  let hasMore = false
+  for (const path of toLoad) {
+    const state = next.get(path)
+    if (state) {
+      for (const entry of state.entries) {
+        if (entry.is_dir && !next.has(entry.path)) {
+          hasMore = true
+          break
+        }
+      }
+    }
+    if (hasMore) break
+  }
+
+  if (hasMore) {
+    return loadAllDirectories(next)
+  }
+
+  return next
+}
+
 export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
   const { t } = useTranslation()
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map())
@@ -131,10 +190,12 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
   } | null>(null)
   const [filterQuery, setFilterQuery] = useState('')
   const [searchActive, setSearchActive] = useState(false)
+  const [loadingAll, setLoadingAll] = useState(false)
   const filterRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const searchBarRef = useRef<HTMLDivElement>(null)
   const didInitialScroll = useRef(false)
+  const allDirsLoaded = useRef(false)
 
   useEffect(() => {
     getWorkspacePath().then((wp) => {
@@ -146,6 +207,39 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
       setDirs(new Map([['', { entries, loading: false, expanded: true }]]))
     })
   }, [])
+
+  // When user starts typing a filter query, eagerly load all subdirectories
+  useEffect(() => {
+    if (!filterQuery || allDirsLoaded.current) return
+
+    let cancelled = false
+    setLoadingAll(true)
+
+    // Need to read latest dirs — use the setter callback pattern
+    setDirs((prev) => {
+      if (cancelled) return prev
+      loadAllDirectories(prev).then((full) => {
+        if (!cancelled) {
+          setDirs(full)
+          setLoadingAll(false)
+          allDirsLoaded.current = true
+        }
+      })
+      return prev
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [filterQuery])
+
+  // Reset allDirsLoaded when filter is cleared (so next search re-scans freshest state)
+  useEffect(() => {
+    if (!filterQuery) {
+      allDirsLoaded.current = false
+      setLoadingAll(false)
+    }
+  }, [filterQuery])
 
   // Hide search bar on mount by scrolling past it
   useLayoutEffect(() => {
@@ -365,7 +459,8 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
                 color: 'var(--item-text)',
               }}
             />
-            {filterQuery && (
+            {loadingAll && <Spinner size={12} />}
+            {filterQuery && !loadingAll && (
               <button
                 onClick={() => {
                   setFilterQuery('')
@@ -401,85 +496,102 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps) {
 
         {/* Content: filtered flat list or normal tree */}
         {isFiltering ? (
-          <>
-            {workspaceName && (
-              <div
-                style={{
-                  padding: '10px 14px 6px',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--item-meta)',
-                  fontWeight: 'var(--font-semibold)' as unknown as number,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {workspaceName}
-              </div>
-            )}
-            {filteredFiles.length === 0 ? (
-              <div
-                style={{
-                  padding: '24px 14px',
-                  textAlign: 'center',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--item-meta)',
-                  fontStyle: 'italic',
-                }}
-              >
-                {t('noResults')}
-              </div>
-            ) : (
-              filteredFiles.map((entry) => {
-                const isSelected = entry.path === selectedPath
-                const isHovered = entry.path === hoveredPath
-                return (
-                  <div
-                    key={entry.path}
-                    onClick={() => onSelectFile(entry)}
-                    onContextMenu={(e) => {
-                      e.preventDefault()
-                      setContextMenu({ entry, x: e.clientX, y: e.clientY })
-                    }}
-                    onMouseEnter={() => setHoveredPath(entry.path)}
-                    onMouseLeave={() => setHoveredPath(null)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      paddingLeft: 30,
-                      paddingRight: 14,
-                      paddingTop: 5,
-                      paddingBottom: 5,
-                      cursor: 'pointer',
-                      userSelect: 'none' as const,
-                      background: isSelected
-                        ? 'var(--item-selected-bg)'
-                        : isHovered
-                          ? 'var(--item-hover-bg)'
-                          : 'transparent',
-                      color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-                      fontSize: 'var(--text-sm)',
-                      fontFamily: 'var(--font-body)',
-                      lineHeight: 1.4,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    <FileIcon name={entry.name} isDir={false} />
-                    <span
+          loadingAll ? (
+            <div
+              style={{
+                padding: '24px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                color: 'var(--item-meta)',
+                fontSize: 'var(--text-xs)',
+              }}
+            >
+              <Spinner size={12} />
+              <span>扫描文件中…</span>
+            </div>
+          ) : (
+            <>
+              {workspaceName && (
+                <div
+                  style={{
+                    padding: '10px 14px 6px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-meta)',
+                    fontWeight: 'var(--font-semibold)' as unknown as number,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {workspaceName}
+                </div>
+              )}
+              {filteredFiles.length === 0 ? (
+                <div
+                  style={{
+                    padding: '24px 14px',
+                    textAlign: 'center',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--item-meta)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {t('noResults')}
+                </div>
+              ) : (
+                filteredFiles.map((entry) => {
+                  const isSelected = entry.path === selectedPath
+                  const isHovered = entry.path === hoveredPath
+                  return (
+                    <div
+                      key={entry.path}
+                      onClick={() => onSelectFile(entry)}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        setContextMenu({ entry, x: e.clientX, y: e.clientY })
+                      }}
+                      onMouseEnter={() => setHoveredPath(entry.path)}
+                      onMouseLeave={() => setHoveredPath(null)}
                       style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingLeft: 30,
+                        paddingRight: 14,
+                        paddingTop: 5,
+                        paddingBottom: 5,
+                        cursor: 'pointer',
+                        userSelect: 'none' as const,
+                        background: isSelected
+                          ? 'var(--item-selected-bg)'
+                          : isHovered
+                            ? 'var(--item-hover-bg)'
+                            : 'transparent',
+                        color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontFamily: 'var(--font-body)',
+                        lineHeight: 1.4,
+                        whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {entry.name}
-                    </span>
-                  </div>
-                )
-              })
-            )}
-          </>
+                      <FileIcon name={entry.name} isDir={false} />
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {entry.name}
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </>
+          )
         ) : (
           <>
             {workspaceName && (

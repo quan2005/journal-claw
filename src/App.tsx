@@ -302,7 +302,7 @@ export default function App() {
       setRightPanelTab('chat')
       if (sid) load(sid)
       if (initialText) setChatInitialText(initialText)
-      if (contextFiles) create('agent', undefined, contextFiles)
+      if (contextFiles) create(undefined, contextFiles)
     },
     [load, create],
   )
@@ -759,9 +759,23 @@ export default function App() {
               style={{
                 width: DIVIDER_WIDTH,
                 flexShrink: 0,
-                background: 'transparent',
+                background: isRightPanelDragging
+                  ? 'var(--divider-active, rgba(184,120,42,0.08))'
+                  : 'transparent',
                 userSelect: 'none' as const,
                 cursor: 'col-resize',
+                transition: 'background-color 0.15s ease-out',
+              }}
+              onMouseEnter={(e) => {
+                if (!isRightPanelDragging) {
+                  ;(e.target as HTMLElement).style.background =
+                    'var(--divider-hover, rgba(128,128,128,0.06))'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isRightPanelDragging) {
+                  ;(e.target as HTMLElement).style.background = 'transparent'
+                }
               }}
             />
             <div
@@ -771,6 +785,7 @@ export default function App() {
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
+                borderLeft: '0.5px solid var(--divider)',
               }}
             >
               <RightPanel
@@ -805,7 +820,6 @@ export default function App() {
                 chatContent={
                   <ChatPanel
                     sessionId={sessionId}
-                    mode="agent"
                     messages={messages}
                     isStreaming={isStreaming}
                     usage={usage}

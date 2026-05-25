@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import rehypeHighlight from 'rehype-highlight'
-import { createMarkdownComponents } from '../lib/markdownComponents'
-import { stripFrontmatter } from '../lib/markdownUtils'
-import { MarkdownRenderer } from './MarkdownRenderer'
+import { renderMarkdown } from '../lib/markdown'
 import type { JournalEntry } from '../types'
 import { getJournalEntryContent, getWorkspacePath, openFile } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
@@ -361,30 +356,9 @@ export const DetailPanel = React.memo(function DetailPanel({
   const displayTags = entry ? pickDisplayTags(entry.tags, Infinity) : []
 
   // Memoize markdown DOM so text selection survives parent re-renders
-  // Large files (>100KB) use the fast innerHTML-based renderer to avoid
-  // creating tens of thousands of React elements.
-  const FAST_RENDERER_THRESHOLD = 100_000
   const markdownNode = useMemo(() => {
     if (content === null) return null
-    const stripped = stripFrontmatter(content)
-    if (stripped.length > FAST_RENDERER_THRESHOLD) {
-      return (
-        <div className="md-body">
-          <MarkdownRenderer content={stripped} entryPath={entry?.path} />
-        </div>
-      )
-    }
-    return (
-      <div className="md-body">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[[rehypeHighlight, { detect: false }]]}
-          components={createMarkdownComponents(entry?.path ?? '')}
-        >
-          {stripped}
-        </ReactMarkdown>
-      </div>
-    )
+    return renderMarkdown(content, entry?.path ?? '')
   }, [content, entry?.path])
 
   if (!entry) {

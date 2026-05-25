@@ -78,7 +78,7 @@ function SectionHeader({
       </span>
 
       {/* Icon */}
-      <span style={{ opacity: 0.55, display: 'flex', alignItems: 'center' }}>{icon}</span>
+      <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary, #a0988c)' }}>{icon}</span>
 
       {/* Label */}
       <span

@@ -7,7 +7,6 @@ import { DetailView } from './components/DetailView'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { useIdentity } from './hooks/useIdentity'
-import { TodoSidebar } from './components/TodoSidebar'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
@@ -34,7 +33,6 @@ import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import { useTranslation } from './contexts/I18nContext'
 import { RightPanel } from './components/RightPanel'
-import type { RightPanelTab } from './components/RightPanel'
 import { ChatPanel } from './components/ChatPanel'
 import { useConversation } from './hooks/useConversation'
 import OnboardingView from './components/OnboardingView'
@@ -81,6 +79,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
+  const [previousSelection, setPreviousSelection] = useState<TreeSelection | null>(null)
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -112,7 +111,6 @@ export default function App() {
 
   // Right panel state
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
-  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('ideas')
   const [rightPanelWidth, setRightPanelWidth] = useState<number>(() => {
     const saved = localStorage.getItem('journal_right_panel_width')
     return saved ? parseInt(saved) : 320
@@ -297,7 +295,6 @@ export default function App() {
   const openChatPanel = useCallback(
     (sid?: string, initialText?: string, contextFiles?: string[]) => {
       setRightPanelOpen(true)
-      setRightPanelTab('chat')
       if (sid) {
         // Open existing session as a tab
         load(sid, undefined, initialText)
@@ -354,7 +351,6 @@ export default function App() {
         e.preventDefault()
         newTab()
         setRightPanelOpen(true)
-        setRightPanelTab('chat')
       }
     }
     window.addEventListener('keydown', handler)
@@ -473,12 +469,42 @@ export default function App() {
   }, [status, start, stop, addConvertingItem, t])
 
   const handleDeselect = useCallback(() => {
-    setSelectedEntry(null)
-    setTreeSelection(null)
+    if (treeSelection?.type === 'ideas') {
+      setTreeSelection(previousSelection)
+      setPreviousSelection(null)
+    } else {
+      setSelectedEntry(null)
+      setTreeSelection(null)
+    }
+  }, [treeSelection, previousSelection])
+
+  const handleSelectIdeas = useCallback(() => {
+    if (treeSelection?.type === 'ideas') {
+      setTreeSelection(previousSelection)
+      setPreviousSelection(null)
+    } else {
+      setPreviousSelection(treeSelection)
+      setTreeSelection({ type: 'ideas', path: '__ideas__' })
+    }
+  }, [treeSelection, previousSelection])
+
+  const handleTreeSelect = useCallback((sel: TreeSelection) => {
+    setPreviousSelection(null)
+    setTreeSelection(sel)
   }, [])
+
+  const handleTreeDeselect = useCallback(() => {
+    if (treeSelection?.type === 'ideas') {
+      setTreeSelection(previousSelection)
+      setPreviousSelection(null)
+    } else {
+      setTreeSelection(null)
+      setSelectedEntry(null)
+    }
+  }, [treeSelection, previousSelection])
+
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
-    setRightPanelTab('chat')
   }, [])
   const handleSelectSample = useCallback(() => {
     createSampleEntry()
@@ -493,15 +519,16 @@ export default function App() {
   const handleAddToTodo = useCallback(
     (text: string, source: string) => {
       addTodo(text, undefined, source)
-      setRightPanelOpen(true)
-      setRightPanelTab('ideas')
+      if (treeSelection?.type !== 'ideas') {
+        setPreviousSelection(treeSelection)
+      }
+      setTreeSelection({ type: 'ideas', path: '__ideas__' })
     },
-    [addTodo],
+    [addTodo, treeSelection],
   )
   const handleProcessEntry = useCallback((entry: JournalEntry) => {
     const rel = `${entry.year_month}/${entry.filename}`
     setRightPanelOpen(true)
-    setRightPanelTab('chat')
     window.dispatchEvent(
       new CustomEvent('chat-append-text', { detail: `@${rel}` }),
     )
@@ -626,7 +653,6 @@ export default function App() {
         onToggleSidebar={() => setRightPanelOpen((prev) => !prev)}
         onOpenChat={() => {
           setRightPanelOpen(true)
-          setRightPanelTab('chat')
         }}
       />
 
@@ -664,8 +690,8 @@ export default function App() {
         >
           <TreeSidebar
             selected={treeSelection}
-            onSelect={setTreeSelection}
-            onDeselect={() => setTreeSelection(null)}
+            onSelect={handleTreeSelect}
+            onDeselect={handleTreeDeselect}
             entries={entries}
             identities={allIdentities}
             identityLoading={identityLoading}
@@ -674,13 +700,14 @@ export default function App() {
             onLoadMore={loadMore}
             onAtRef={(path: string) => {
               setRightPanelOpen(true)
-              setRightPanelTab('chat')
               window.dispatchEvent(
                 new CustomEvent('chat-append-text', { detail: `@${path}` }),
               )
             }}
             todayYearMonth={todayYearMonth}
             todayDay={todayDay}
+            ideasCount={todos.filter(t => !t.done).length}
+            onSelectIdeas={handleSelectIdeas}
           />
           {/* Settings button fixed at bottom */}
           {view !== 'settings' && (
@@ -764,11 +791,12 @@ export default function App() {
           }}
         >
           <DetailView
-            type={!treeSelection || treeSelection.type === 'journal'
-              ? 'journal'
-              : treeSelection.type === 'identity'
-              ? 'identity'
-              : 'topic-file'}
+            type={
+              treeSelection?.type === 'ideas' ? 'ideas'
+              : !treeSelection || treeSelection.type === 'journal' ? 'journal'
+              : treeSelection.type === 'identity' ? 'identity'
+              : 'topic-file'
+            }
             entry={treeSelection?.type === 'journal'
               ? entries.find(e => `${e.year_month}/${e.filename}` === treeSelection.path) || selectedEntry || undefined
               : selectedEntry || undefined}
@@ -789,6 +817,27 @@ export default function App() {
             onAddToTodo={handleAddToTodo}
             onProcess={handleProcessEntry}
             onVisualDesign={handleVisualDesign}
+            todos={todos}
+            onToggleTodo={toggleTodo}
+            onAddTodo={addTodo}
+            onDeleteTodo={deleteTodo}
+            onSetTodoDue={setTodoDue}
+            onUpdateTodoText={updateTodoText}
+            onSetTodoPath={setTodoPath}
+            onRemoveTodoPath={removeTodoPath}
+            onOpenTodoConversation={async (opts) => {
+              if (opts.sessionId) {
+                openChatPanel(opts.sessionId)
+              } else {
+                openChatPanel(undefined, opts.context)
+              }
+            }}
+            onNavigateTodoSource={(filename: string) => {
+              const match = entries.find((e) => e.filename === filename)
+              if (match) {
+                setTreeSelection({ type: 'journal', path: `${match.year_month}/${match.filename}` })
+              }
+            }}
           />
         </div>
 
@@ -830,34 +879,7 @@ export default function App() {
               }}
             >
               <RightPanel
-                activeTab={rightPanelTab}
-                onTabChange={setRightPanelTab}
                 activeSessionId={sessionId}
-                ideasContent={
-                  <TodoSidebar
-                    todos={todos}
-                    onToggle={toggleTodo}
-                    onAdd={addTodo}
-                    onDelete={deleteTodo}
-                    onSetDue={setTodoDue}
-                    onUpdateText={updateTodoText}
-                    onSetPath={setTodoPath}
-                    onRemovePath={removeTodoPath}
-                    onOpenConversation={async (opts) => {
-                      if (opts.sessionId) {
-                        openChatPanel(opts.sessionId)
-                      } else {
-                        openChatPanel(undefined, opts.context)
-                      }
-                    }}
-                    onNavigateToSource={(filename: string) => {
-                      const match = entries.find((e) => e.filename === filename)
-                      if (match) {
-                        setTreeSelection({ type: 'journal', path: `${match.year_month}/${match.filename}` })
-                      }
-                    }}
-                  />
-                }
                 chatContent={
                   <ChatPanel
                     sessionId={sessionId}

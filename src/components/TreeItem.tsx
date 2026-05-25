@@ -249,18 +249,18 @@ export function TreeItem({
       }}
     >
 
-      {/* Animated selection bar — 3px wide, grows from 0 to 16px */}
+      {/* Animated selection bar — 3px wide, adapts to item height */}
       <span
         style={{
           position: 'absolute' as const,
           left: 0,
-          top: '50%',
-          transform: 'translateY(-50%)',
+          top: 9,
+          bottom: 9,
           width: 3,
-          height: isSelected ? 16 : 0,
           borderRadius: 2,
           background: 'var(--accent, #C8933B)',
-          transition: 'height 0.2s ease-out',
+          transform: isSelected ? 'scaleY(1)' : 'scaleY(0)',
+          transition: 'transform 0.2s ease-out',
         }}
       />
 

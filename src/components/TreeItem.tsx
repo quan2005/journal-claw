@@ -266,12 +266,14 @@ export function TreeItem({
           isToday={isToday}
         />
 
-        {/* Name / Title — truncates to make room for actions on hover */}
+        {/* Name / Title — shrinks only after tags are hidden */}
         <div
           ref={titleRef}
           title={titleOverflow ? displayName : undefined}
           style={{
-            flex: 1,
+            flexGrow: 1,
+            flexShrink: 1,
+            flexBasis: 'auto',
             minWidth: 0,
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
@@ -285,14 +287,15 @@ export function TreeItem({
           {displayName}
         </div>
 
-        {/* Tags */}
+        {/* Tags — hidden first when space is tight (high flex-shrink) */}
         {tags.length > 0 && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              flexShrink: 0,
+              flexShrink: 999,
+              minWidth: 0,
               overflow: 'hidden',
             }}
           >

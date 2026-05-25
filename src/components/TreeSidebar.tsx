@@ -3,8 +3,10 @@ import type { JournalEntry, IdentityEntry, TreeSelection } from '../types'
 import { MonthDivider } from './MonthDivider'
 import { TreeItem } from './TreeItem'
 import { TopicTree } from './TopicTree'
+import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
+import { deleteJournalEntry, deleteIdentity, deleteTopic } from '../lib/tauri'
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -196,7 +198,8 @@ export function TreeSidebar({
   todayDay,
 }: TreeSidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-  const { items: pinnedItems, refresh: refreshPinned } = usePinned()
+  const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
+  const { items: pinnedItems, pin, unpin, refresh: refreshPinned } = usePinned()
   const { dirs, loading: topicsLoading, load: loadTopics, toggleDir } = useTopics()
 
   // Initialize on mount
@@ -290,6 +293,42 @@ export function TreeSidebar({
     [entries, identities],
   )
 
+  // ── Context menu ────────────────────────────────────────────────────────
+
+  const handleMore = useCallback(
+    (
+      itemType: string,
+      name: string,
+      path: string,
+      isPinned: boolean,
+      x: number,
+      y: number,
+    ) => {
+      setCtxMenu({ itemType: itemType as TreeContextMenuState['itemType'], name, path, isPinned, x, y })
+    },
+    [],
+  )
+
+  const handleDelete = useCallback(
+    async (itemType: string, path: string) => {
+      try {
+        if (itemType === 'journal') {
+          await deleteJournalEntry(path)
+        } else if (itemType === 'identity') {
+          await deleteIdentity(path)
+        } else if (itemType === 'topic-file' || itemType === 'topic-folder') {
+          await deleteTopic(path)
+        }
+        onDeselect()
+        refreshPinned()
+        loadTopics()
+      } catch (e) {
+        console.error('[TreeSidebar] delete failed:', e)
+      }
+    },
+    [onDeselect, refreshPinned, loadTopics],
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -336,6 +375,9 @@ export function TreeSidebar({
                     onAt={() =>
                       onAtRef(`${entry.year_month}/${entry.filename}`)
                     }
+                    onMore={(x, y) =>
+                      handleMore('journal', entry.title, entry.path, true, x, y)
+                    }
                   />
                 )
               }
@@ -352,6 +394,9 @@ export function TreeSidebar({
                     handleSelect({ type: 'identity', path: identity.path })
                   }
                   onAt={() => onAtRef(`identities/${identity.filename}`)}
+                  onMore={(x, y) =>
+                    handleMore('identity', identity.name, identity.path, true, x, y)
+                  }
                 />
               )
             })}
@@ -381,6 +426,9 @@ export function TreeSidebar({
                   handleSelect({ type: 'identity', path: identity.path })
                 }
                 onAt={() => onAtRef(`identities/${identity.filename}`)}
+                onMore={(x, y) =>
+                  handleMore('identity', identity.name, identity.path, false, x, y)
+                }
               />
             ))}
             {identityLoading && (
@@ -429,6 +477,9 @@ export function TreeSidebar({
                     }
                     onAt={() =>
                       onAtRef(`${entry.year_month}/${entry.filename}`)
+                    }
+                    onMore={(x, y) =>
+                      handleMore('journal', entry.title, entry.path, false, x, y)
                     }
                   />
                 ))}
@@ -501,12 +552,45 @@ export function TreeSidebar({
                   })
                 }
                 onAt={(path) => onAtRef(path)}
-                onMore={() => {}}
+                onMore={(entry, x, y) =>
+                  handleMore(
+                    entry.is_dir ? 'topic-folder' : 'topic-file',
+                    entry.name,
+                    entry.path,
+                    false,
+                    x,
+                    y,
+                  )
+                }
               />
             )}
           </>
         )}
       </div>
+
+      {/* Context Menu */}
+      {ctxMenu && (
+        <TreeContextMenu
+          state={ctxMenu}
+          onClose={() => setCtxMenu(null)}
+          onAt={(path) => {
+            onAtRef(path)
+            setCtxMenu(null)
+          }}
+          onPin={(type, path) => {
+            pin(type, path)
+            setCtxMenu(null)
+          }}
+          onUnpin={(path) => {
+            unpin(path)
+            setCtxMenu(null)
+          }}
+          onDelete={(type, path) => {
+            handleDelete(type, path)
+            setCtxMenu(null)
+          }}
+        />
+      )}
     </div>
   )
 }

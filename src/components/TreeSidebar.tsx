@@ -370,9 +370,9 @@ export function TreeSidebar({
                       entry.year_month === todayYearMonth &&
                       entry.day === todayDay
                     }
-                    isSelected={isSelected('journal', entry.path)}
+                    isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
                     onClick={() =>
-                      handleSelect({ type: 'journal', path: entry.path })
+                      handleSelect({ type: 'journal', path: `${entry.year_month}/${entry.filename}` })
                     }
                     onAt={() =>
                       onAtRef(`${entry.year_month}/${entry.filename}`)
@@ -473,9 +473,9 @@ export function TreeSidebar({
                       entry.year_month === todayYearMonth &&
                       entry.day === todayDay
                     }
-                    isSelected={isSelected('journal', entry.path)}
+                    isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
                     onClick={() =>
-                      handleSelect({ type: 'journal', path: entry.path })
+                      handleSelect({ type: 'journal', path: `${entry.year_month}/${entry.filename}` })
                     }
                     onAt={() =>
                       onAtRef(`${entry.year_month}/${entry.filename}`)

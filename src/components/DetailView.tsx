@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { renderMarkdown } from '../lib/markdown'
-import type { JournalEntry, IdentityEntry } from '../types'
+import type { JournalEntry, IdentityEntry, TodoItem } from '../types'
 import {
   getJournalEntryContent,
   getIdentityContent,
@@ -13,6 +13,7 @@ import {
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName, type FileKind } from '../lib/fileKind'
 import { Spinner } from './Spinner'
+import { TodoSidebar } from './TodoSidebar'
 import { FindBar } from './FindBar'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { createTranslator, detectLang } from '../lib/i18n'
@@ -24,7 +25,7 @@ const getT = () => createTranslator(detectLang())
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 export interface DetailViewProps {
-  type: 'journal' | 'identity' | 'topic-file'
+  type: 'journal' | 'identity' | 'topic-file' | 'ideas'
 
   // Journal
   entry?: JournalEntry
@@ -35,6 +36,24 @@ export interface DetailViewProps {
 
   // Topic file
   file?: WorkspaceDirEntry
+
+  // Ideas (todo list)
+  todos?: TodoItem[]
+  onToggleTodo?: (lineIndex: number, checked: boolean, doneFile: boolean) => void
+  onAddTodo?: (text: string, due?: string, source?: string, path?: string) => void
+  onDeleteTodo?: (lineIndex: number, doneFile: boolean) => void
+  onSetTodoDue?: (lineIndex: number, due: string | null, doneFile: boolean) => void
+  onUpdateTodoText?: (lineIndex: number, text: string, doneFile: boolean) => void
+  onSetTodoPath?: (lineIndex: number, path: string | null, doneFile: boolean) => void
+  onRemoveTodoPath?: (lineIndex: number, doneFile: boolean) => void
+  onOpenTodoConversation?: (opts: {
+    mode: 'chat'
+    context: string
+    sessionId: string | null
+    lineIndex: number
+    doneFile: boolean
+  }) => void
+  onNavigateTodoSource?: (filename: string) => void
 
   // Shared callbacks (all optional)
   onDeselect?: () => void
@@ -376,6 +395,16 @@ export const DetailView = React.memo(function DetailView({
   entries = [],
   identity,
   file,
+  todos,
+  onToggleTodo,
+  onAddTodo,
+  onDeleteTodo,
+  onSetTodoDue,
+  onUpdateTodoText,
+  onSetTodoPath,
+  onRemoveTodoPath,
+  onOpenTodoConversation,
+  onNavigateTodoSource,
   onDeselect,
   onRecord,
   onOpenDock,
@@ -612,6 +641,70 @@ export const DetailView = React.memo(function DetailView({
 
   // ── Empty state ─────────────────────────────────────────────────────────
   const hasSelection = (isJournalMode && entry) || (isIdentityMode && identity) || (isFileMode && file)
+
+  const isIdeasMode = type === 'ideas'
+
+  // Ideas mode: render TodoSidebar in center area
+  if (isIdeasMode) {
+    const uncheckedCount = todos?.filter(t => !t.done).length ?? 0
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--detail-bg)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Toolbar */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '10px 20px',
+            flexShrink: 0,
+            borderBottom: '0.5px solid var(--divider)',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--accent, #B8782A)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase' as const,
+              fontWeight: 'var(--font-medium)',
+            }}
+          >
+            想法
+          </span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)' }}>
+            {uncheckedCount} 个待办
+          </span>
+        </div>
+
+        {/* TodoSidebar content */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {todos !== undefined && onToggleTodo && onAddTodo && onDeleteTodo ? (
+            <TodoSidebar
+              todos={todos}
+              onToggle={onToggleTodo}
+              onAdd={onAddTodo}
+              onDelete={onDeleteTodo}
+              onSetDue={onSetTodoDue ?? (() => {})}
+              onUpdateText={onUpdateTodoText ?? (() => {})}
+              onSetPath={onSetTodoPath ?? (() => {})}
+              onRemovePath={onRemoveTodoPath ?? (() => {})}
+              onOpenConversation={onOpenTodoConversation}
+              onNavigateToSource={onNavigateTodoSource}
+            />
+          ) : null}
+        </div>
+      </div>
+    )
+  }
 
   if (!hasSelection) {
     const isEmpty = isJournalMode && entries.length === 0

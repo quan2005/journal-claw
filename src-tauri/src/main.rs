@@ -17,6 +17,7 @@ mod recordings;
 mod skills;
 mod speaker_profiles;
 mod todos;
+mod topics;
 mod transcription;
 mod types;
 mod work_queue;
@@ -356,6 +357,10 @@ fn main() {
             skills::workspace_rename_file,
             skills::workspace_move_file,
             skills::workspace_delete_file,
+            topics::list_topics_dir,
+            topics::create_topic,
+            topics::delete_topic,
+            topics::import_file_to_topic,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

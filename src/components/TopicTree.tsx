@@ -39,6 +39,7 @@ export function TopicTree({
             padding: `5px 4px 5px ${rowIndent}px`,
             borderRadius: 6, cursor: 'pointer',
             fontSize: '0.8125rem', whiteSpace: 'nowrap',
+            overflow: 'hidden',
             background: isSelected ? 'var(--tree-selected-bg, rgba(200,147,59,0.10))' : 'transparent',
             color: isSelected ? 'var(--accent, #C8933B)' : 'var(--text, #e6ded4)',
             transition: 'background 0.1s',

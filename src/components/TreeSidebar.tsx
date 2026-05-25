@@ -293,7 +293,7 @@ export function TreeSidebar({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 8px' }}>
       {/* ════════════════════════════════════════════════════════════════════
           Pinned Section
           ════════════════════════════════════════════════════════════════════ */}

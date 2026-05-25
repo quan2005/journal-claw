@@ -405,7 +405,7 @@ export function TreeItem({
             color: '#5c5852',
             lineHeight: 1.5,
             marginTop: 2,
-            paddingLeft: 28, // 20px block + 8px gap
+            paddingLeft: 0,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',

@@ -78,7 +78,7 @@ export function TreeContextMenu({
     itemType === 'topic-folder' ? '删除文件夹' : '删除条目'
 
   const items: MenuItemDef[] = [
-    { type: 'action', label: '@ 引用', shortcut: '@', icon: 'at', onClick: handleAt },
+    { type: 'action', label: '引用', shortcut: '@', icon: 'at', onClick: handleAt },
     {
       type: 'action',
       label: isPinned ? '取消置顶' : '置顶',
@@ -153,12 +153,17 @@ export function TreeContextMenu({
 const iconPaths: Record<string, React.ReactNode> = {
   at: (
     <g>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M16 8v5a3 3 0 0 1-6 0v-1" />
+      <circle cx="12" cy="12" r="10" />
+      <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, sans-serif">@</text>
     </g>
   ),
   pin: (
-    <path d="M12 2v8l-4 6v2h8v-2l-4-6V2" />
+    <g>
+      <circle cx="12" cy="4.5" r="2" />
+      <line x1="12" y1="6.5" x2="12" y2="14" />
+      <path d="M7 14l5 6 5-6" />
+      <line x1="7" y1="20" x2="17" y2="20" />
+    </g>
   ),
   copy: (
     <g>

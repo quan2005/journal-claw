@@ -196,8 +196,18 @@ export function TreeItem({
   const [titleRef, titleOverflow] = useTextOverflow<HTMLDivElement>()
 
   useEffect(() => {
-    if (isSelected) {
-      ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (isSelected && ref.current) {
+      const el = ref.current
+      const scrollParent = el.parentElement
+      if (scrollParent) {
+        const parentRect = scrollParent.getBoundingClientRect()
+        const elRect = el.getBoundingClientRect()
+        const isFullyVisible =
+          elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom
+        if (!isFullyVisible) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'instant' as ScrollBehavior })
+        }
+      }
     }
   }, [isSelected])
 

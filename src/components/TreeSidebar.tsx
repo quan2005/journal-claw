@@ -343,14 +343,7 @@ export function TreeSidebar({
           Pinned Section
           ════════════════════════════════════════════════════════════════════ */}
       {pinnedItems.length > 0 && (
-        <div
-          style={{
-            background: 'rgba(200,147,59,0.03)',
-            borderRadius: 8,
-            padding: '4px 0 6px',
-            marginBottom: 6,
-          }}
-        >
+        <div style={{ marginBottom: 2 }}>
           <SectionHeader
             collapsed={isCollapsed('pinned')}
             onToggle={() => toggleSection('pinned')}

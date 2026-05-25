@@ -569,3 +569,38 @@ export const workspaceMoveFile = (relativePath: string, destDir: string): Promis
 
 export const workspaceDeleteFile = (relativePath: string): Promise<void> =>
   invoke<void>('workspace_delete_file', { relativePath })
+
+// ── Topics ──────────────────────────────────────────────────
+
+export interface TopicEntry {
+  name: string
+  is_dir: boolean
+  path: string // workspace-relative
+  mtime_secs: number
+}
+
+export const listTopicsDir = (relativePath: string): Promise<TopicEntry[]> =>
+  invoke<TopicEntry[]>('list_topics_dir', { relativePath })
+
+export const createTopic = (name: string, parentPath?: string): Promise<void> =>
+  invoke<void>('create_topic', { name, parentPath: parentPath ?? null })
+
+export const deleteTopic = (relativePath: string): Promise<void> =>
+  invoke<void>('delete_topic', { relativePath })
+
+export const importFileToTopic = (source: string, topicPath: string): Promise<string> =>
+  invoke<string>('import_file_to_topic', { source, topicPath })
+
+// ── Pinned ───────────────────────────────────────────────────
+
+export interface PinnedItem {
+  type: 'journal' | 'identity'
+  path: string
+  order: number
+}
+
+export const getPinnedItems = (): Promise<PinnedItem[]> =>
+  invoke<PinnedItem[]>('get_pinned_items')
+
+export const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
+  invoke<void>('set_pinned_items', { items })

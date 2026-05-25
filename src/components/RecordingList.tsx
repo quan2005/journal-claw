@@ -128,7 +128,7 @@ export function RecordingList({
 
       {groups.map((group) => (
         <div key={group.yearMonth} style={{ marginBottom: 8 }}>
-          <MonthDivider yearMonth={group.yearMonth} />
+          <MonthDivider label={group.yearMonth} />
           {group.dayGroups.map((dayGroup) =>
             dayGroup.items.map((item, idx) => {
               const isProcessingOnly =

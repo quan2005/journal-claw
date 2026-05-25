@@ -1,31 +1,33 @@
-import { useTranslation } from '../contexts/I18nContext'
+// src/components/MonthDivider.tsx
 
 interface MonthDividerProps {
-  yearMonth: string // "202603" or "2603"
+  label: string // format: "2605" → display as "2026年5月"
 }
 
-export function MonthDivider({ yearMonth }: MonthDividerProps) {
-  const { s, lang } = useTranslation()
-  // Support both 4-digit (2603) and 6-digit (202603) formats
-  const isShort = yearMonth.length === 4
-  const year = isShort ? 2000 + parseInt(yearMonth.slice(0, 2)) : parseInt(yearMonth.slice(0, 4))
-  const month = parseInt(isShort ? yearMonth.slice(2, 4) : yearMonth.slice(4, 6))
-  const monthName = s.monthNames[month - 1] ?? String(month)
-  const label = lang === 'zh' ? `${year}年${month}月` : `${monthName} ${year}`
+const MONTH_NAMES: Record<string, string> = {
+  '01': '1月', '02': '2月', '03': '3月', '04': '4月',
+  '05': '5月', '06': '6月', '07': '7月', '08': '8月',
+  '09': '9月', '10': '10月', '11': '11月', '12': '12月',
+}
+
+export function MonthDivider({ label }: MonthDividerProps) {
+  // label format: "2605" → "2026年5月"
+  const year = `20${label.slice(0, 2)}`
+  const monthNum = label.slice(2)
+  const month = MONTH_NAMES[monthNum] ?? `${parseInt(monthNum, 10)}月`
+  const display = `${year}年${month}`
 
   return (
-    <div style={{ paddingTop: 24, paddingBottom: 0 }}>
-      <div
-        style={{
-          padding: '0 20px 10px',
-          fontSize: 'var(--text-md)',
-          fontWeight: 'var(--font-semibold)',
-          color: 'var(--item-text)',
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ height: 1, background: 'var(--divider)', margin: '0 0' }} />
+    <div
+      style={{
+        padding: '14px 8px 6px',
+        fontSize: '0.6875rem',
+        fontWeight: 600,
+        color: 'var(--text-tertiary, #5c5852)',
+        letterSpacing: '0.04em',
+      }}
+    >
+      {display}
     </div>
   )
 }

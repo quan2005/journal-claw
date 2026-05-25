@@ -19,6 +19,8 @@ import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
 import { useTodos } from './hooks/useTodos'
 import {
+  importFile,
+  importAudioFile,
   getEngineConfig,
   getAsrConfig,
   checkWhisperkitCliInstalled,
@@ -27,10 +29,15 @@ import {
   createSampleEntry,
   listAllJournalEntries,
   deleteIdentity,
+  enqueueWork as invokeEnqueueWork,
   cancelWorkItem,
   retryWorkItem,
   prepareAudioForAi,
+  getWorkspacePath,
+  getOnboardingStatus,
+  completeOnboarding,
 } from './lib/tauri'
+import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry } from './types'
 import type { WorkspaceDirEntry } from './lib/tauri'
 import { useTranslation } from './contexts/I18nContext'
@@ -38,6 +45,7 @@ import { RightPanel } from './components/RightPanel'
 import type { RightPanelTab } from './components/RightPanel'
 import { ChatPanel } from './components/ChatPanel'
 import { useConversation } from './hooks/useConversation'
+import OnboardingView from './components/OnboardingView'
 
 const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
@@ -55,6 +63,7 @@ export default function App() {
     isProcessing,
     dismissQueueItem,
     addConvertingItem,
+    markItemFailed,
     retryQueueItem,
     refresh,
   } = useJournal()
@@ -77,8 +86,26 @@ export default function App() {
   )
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
   const [selectedFile, setSelectedFile] = useState<WorkspaceDirEntry | null>(null)
+
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingLoading, setOnboardingLoading] = useState(true)
+  const [defaultWsPath, setDefaultWsPath] = useState('')
+
+  useEffect(() => {
+    Promise.all([getOnboardingStatus(), getWorkspacePath()])
+      .then(([status, wsPath]) => {
+        setDefaultWsPath(wsPath || '')
+        if (!status.completed) {
+          setShowOnboarding(true)
+        }
+        setOnboardingLoading(false)
+      })
+      .catch(() => setOnboardingLoading(false))
+  }, [])
 
   const handleTabChange = useCallback((tab: SidebarTab) => {
     setSidebarTab(tab)
@@ -139,19 +166,6 @@ export default function App() {
       })
       .catch(() => {})
   }, [view]) // re-check after settings closed
-
-  // 首次启动：写入示例条目并自动选中
-  useEffect(() => {
-    createSampleEntryIfNeeded()
-      .then(async (created) => {
-        if (!created) return
-        await refresh()
-        const all = await listAllJournalEntries()
-        const sample = all.find((e) => e.title === '产品评审示例')
-        if (sample) setSelectedEntry(sample)
-      })
-      .catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Divider drag (left sidebar)
   const onDividerMouseDown = (e: React.MouseEvent) => {
@@ -381,6 +395,85 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // ── Global file drop handling ──────────────────────────────
+
+  const handleFilesSubmit = useCallback(
+    async (paths: string[]) => {
+      const importedPaths: string[] = []
+      for (const path of paths) {
+        try {
+          const kind = fileKindFromName(path.split('/').pop() ?? path)
+          if (kind === 'audio') {
+            const result = await importAudioFile(path)
+            importedPaths.push(result.path)
+            addConvertingItem(result.path, result.filename)
+            try {
+              await prepareAudioForAi(result.path, result.year_month)
+            } catch (audioErr) {
+              console.error('[file-submit] audio prepare error:', String(audioErr))
+              markItemFailed(result.path, String(audioErr))
+            }
+          } else {
+            const result = await importFile(path)
+            importedPaths.push(result.path)
+          }
+        } catch (err) {
+          console.error('[file-submit] error:', String(err))
+        }
+      }
+      // Non-audio files: enqueue in Rust work queue
+      const nonAudioPaths = importedPaths.filter((p) => {
+        const ext = p.split('.').pop()?.toLowerCase() ?? ''
+        return !['m4a', 'wav', 'mp3', 'aac', 'ogg', 'flac'].includes(ext)
+      })
+      if (nonAudioPaths.length > 0) {
+        const prompt = '分析并处理这些文件'
+        const displayName = nonAudioPaths.map((p) => p.split('/').pop()).join(', ')
+        try {
+          await invokeEnqueueWork({ files: nonAudioPaths, prompt, displayName })
+        } catch (err) {
+          console.error('[file-submit] enqueue error:', String(err))
+        }
+      }
+      refresh()
+    },
+    [addConvertingItem, markItemFailed, refresh],
+  )
+
+  const handleDropFiles = useCallback(
+    (paths: string[]) => {
+      if (paths.length > 0) {
+        handleFilesSubmit(paths)
+      }
+    },
+    [handleFilesSubmit],
+  )
+
+  // Tauri native file drop listener
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type === 'drop') {
+          setIsDragOver(false)
+          const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
+          if (paths.length > 0) {
+            handleDropFiles(paths)
+          }
+        } else if (event.payload.type === 'enter' || event.payload.type === 'over') {
+          setIsDragOver(true)
+        } else if (event.payload.type === 'leave') {
+          setIsDragOver(false)
+        }
+      })
+      .then((fn) => {
+        unlisten = fn
+      })
+    return () => {
+      unlisten?.()
+    }
+  }, [handleDropFiles])
+
   const handleRecord = useCallback(async () => {
     if (status === 'idle') {
       await start()
@@ -506,6 +599,21 @@ export default function App() {
     }
   }
 
+  const handleOnboardingComplete = useCallback(async () => {
+    await completeOnboarding()
+    setShowOnboarding(false)
+    // Trigger sample entry creation after onboarding completes (original first-run logic)
+    createSampleEntryIfNeeded()
+      .then(async (created) => {
+        if (!created) return
+        await refresh()
+        const all = await listAllJournalEntries()
+        const sample = all.find((e) => e.title === '产品评审示例')
+        if (sample) setSelectedEntry(sample)
+      })
+      .catch(() => {})
+  }, [refresh])
+
   return (
     <div
       style={{
@@ -516,6 +624,13 @@ export default function App() {
         overflow: 'hidden',
       }}
     >
+      {showOnboarding && !onboardingLoading && (
+        <OnboardingView
+          defaultWorkspacePath={defaultWsPath}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
+
       <TitleBar
         theme={theme}
         onThemeChange={setTheme}
@@ -858,6 +973,71 @@ export default function App() {
             refreshIdentity()
           }}
         />
+      )}
+
+      {/* Drag-over overlay */}
+      {isDragOver && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'color-mix(in srgb, var(--record-btn) 8%, transparent)',
+            border: '3px dashed var(--record-btn)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              padding: '24px 40px',
+              borderRadius: 16,
+              background: 'var(--dialog-glass-bg)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--dialog-glass-divider)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+              textAlign: 'center',
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--record-btn)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ marginBottom: 12, opacity: 0.8 }}
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <div
+              style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--font-semibold)',
+                color: 'var(--item-text)',
+                marginBottom: 4,
+              }}
+            >
+              {t('dropToAddFiles')}
+            </div>
+            <div
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--item-meta)',
+                opacity: 0.6,
+              }}
+            >
+              PDF · Word · Markdown · 音频 · 图片 · 代码
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

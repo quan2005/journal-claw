@@ -341,18 +341,7 @@ export function JournalList({
           )
         })}
 
-        {filtered.length === 0 && (
-          <div
-            style={{
-              padding: 32,
-              textAlign: 'center',
-              color: 'var(--item-meta)',
-              fontSize: 'var(--text-sm)',
-            }}
-          >
-            {t('noEntries')}
-          </div>
-        )}
+        {/* Empty state intentionally blank — no placeholder text */}
 
         {hasMore && (
           <div style={{ padding: '8px 14px 16px', display: 'flex', justifyContent: 'center' }}>

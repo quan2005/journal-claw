@@ -384,6 +384,49 @@ pub async fn list_journal_entries_by_months(
 }
 
 #[tauri::command]
+pub async fn list_journal_entries_paginated(
+    app: AppHandle,
+    offset: usize,
+    limit: usize,
+) -> Result<(Vec<JournalEntry>, usize), String> {
+    let cfg = config::load_config(&app)?;
+    if cfg.workspace_path.is_empty() {
+        return Ok((vec![], 0));
+    }
+    let workspace = cfg.workspace_path.clone();
+    tokio::task::spawn_blocking(move || {
+        let ws_path = std::path::PathBuf::from(&workspace);
+        if !ws_path.exists() {
+            return Ok((vec![], 0));
+        }
+
+        let mut all: Vec<JournalEntry> = vec![];
+        let read_dir = std::fs::read_dir(&ws_path).map_err(|e| e.to_string())?;
+
+        for entry in read_dir.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.len() == 4 && name.chars().all(|c| c.is_ascii_digit()) {
+                let mut batch = list_entries(&workspace, &name)?;
+                all.append(&mut batch);
+            }
+        }
+
+        all.sort_by(|a, b| {
+            b.year_month
+                .cmp(&a.year_month)
+                .then(b.day.cmp(&a.day))
+                .then(b.created_at_secs.cmp(&a.created_at_secs))
+        });
+
+        let total = all.len();
+        let page: Vec<JournalEntry> = all.into_iter().skip(offset).take(limit).collect();
+        Ok((page, total))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub fn get_journal_entry_content(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }

@@ -45,6 +45,9 @@ export const listJournalEntriesByMonths = (months: string[]) =>
 
 export const listAllJournalEntries = () => invoke<JournalEntry[]>('list_all_journal_entries')
 
+export const listJournalEntriesPaginated = (offset: number, limit: number): Promise<[JournalEntry[], number]> =>
+  invoke<[JournalEntry[], number]>('list_journal_entries_paginated', { offset, limit })
+
 export const getJournalEntryContent = (path: string) =>
   invoke<string>('get_journal_entry_content', { path })
 

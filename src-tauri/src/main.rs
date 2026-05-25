@@ -262,6 +262,7 @@ fn main() {
             journal::list_journal_entries,
             journal::list_available_months,
             journal::list_journal_entries_by_months,
+            journal::list_journal_entries_paginated,
             journal::get_journal_entry_content,
             journal::save_journal_entry_content,
             journal::delete_journal_entry,

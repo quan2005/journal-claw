@@ -345,24 +345,10 @@ export function TreeSidebar({
     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 8px' }}>
       {/* ════════════════════════════════════════════════════════════════════
           Ideas Entry (想法) — permanent, non-collapsible
+          Matches SectionHeader layout: indicator(12) + gap(6) + icon(13) + gap(6) + label
           ════════════════════════════════════════════════════════════════════ */}
       <div
         onClick={onSelectIdeas}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '12px 6px 8px',
-          cursor: 'pointer',
-          position: 'sticky' as const,
-          top: 0,
-          zIndex: 2,
-          background: 'var(--sidebar-bg, #131210)',
-          borderBottom: selected?.type === 'ideas'
-            ? '1px solid var(--accent-border, rgba(184,120,42,0.25))'
-            : '1px solid transparent',
-          transition: 'background 0.15s ease-out',
-        }}
         onMouseEnter={(e) => {
           if (selected?.type !== 'ideas') {
             (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
@@ -370,18 +356,60 @@ export function TreeSidebar({
         }}
         onMouseLeave={(e) => {
           if (selected?.type !== 'ideas') {
-            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-bg, #131210)'
+            (e.currentTarget as HTMLElement).style.background = 'transparent'
           }
         }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '10px 6px',
+          margin: '4px 0 6px',
+          cursor: 'pointer',
+          userSelect: 'none' as const,
+          borderRadius: 6,
+          background: selected?.type === 'ideas'
+            ? 'var(--accent-dim, rgba(200,147,59,0.08))'
+            : 'transparent',
+          transition: 'background 0.15s ease-out',
+        }}
       >
-        {/* Checkmark icon */}
+        {/* Indicator slot — 12px wide, same as section chevron slot.
+            Contains a 3px bar that grows to 16px when selected. */}
         <span
           style={{
+            width: 12,
+            height: 12,
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              width: 3,
+              height: selected?.type === 'ideas' ? 16 : 0,
+              borderRadius: 2,
+              background: 'var(--accent, #C8933B)',
+              transition: 'height 0.2s ease-out',
+            }}
+          />
+        </span>
+
+        {/* Checkmark icon — 13px, same width as section icons */}
+        <span
+          style={{
+            width: 13,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
             color: selected?.type === 'ideas'
-              ? 'var(--accent, #B8782A)'
-              : 'var(--text-secondary, #a0988c)',
+              ? 'var(--accent, #C8933B)'
+              : 'var(--item-meta, #8a8478)',
+            opacity: selected?.type !== 'ideas' ? 0.7 : 1,
+            transition: 'opacity 0.15s, color 0.15s',
           }}
         >
           <svg
@@ -403,24 +431,29 @@ export function TreeSidebar({
         <span
           style={{
             fontSize: '0.75rem',
-            fontWeight: 600,
+            fontWeight: 'var(--font-medium, 500)',
+            letterSpacing: '0.03em',
             color: selected?.type === 'ideas'
-              ? 'var(--accent, #B8782A)'
-              : 'var(--text-secondary, #a0988c)',
+              ? 'var(--accent, #C8933B)'
+              : 'var(--item-meta, #8a8478)',
+            transition: 'color 0.15s',
           }}
         >
           想法
         </span>
 
-        {/* Count badge */}
+        {/* Count */}
         {ideasCount > 0 && (
           <span
             style={{
               fontSize: '0.6875rem',
-              fontWeight: 400,
+              fontWeight: 'var(--font-medium, 500)',
               color: selected?.type === 'ideas'
-                ? 'var(--accent, #B8782A)'
+                ? 'var(--accent, #C8933B)'
                 : 'var(--text-tertiary, #5c5852)',
+              opacity: selected?.type === 'ideas' ? 0.7 : 1,
+              marginLeft: 'auto',
+              transition: 'color 0.15s',
             }}
           >
             {ideasCount}

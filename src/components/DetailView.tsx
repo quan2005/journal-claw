@@ -5,9 +5,7 @@ import {
   getJournalEntryContent,
   getIdentityContent,
   getWorkspacePrompt,
-  setWorkspacePrompt,
   resetWorkspacePrompt,
-  saveIdentityContent,
   getWorkspacePath,
   openFile,
   type WorkspaceDirEntry,
@@ -17,14 +15,11 @@ import { fileKindFromName, type FileKind } from '../lib/fileKind'
 import { Spinner } from './Spinner'
 import { FindBar } from './FindBar'
 import { convertFileSrc } from '@tauri-apps/api/core'
-import { highlightMarkdown } from '../lib/markdownUtils'
-import { ChevronUp, ChevronDown, X } from 'lucide-react'
 import { createTranslator, detectLang } from '../lib/i18n'
 import { ask } from '@tauri-apps/plugin-dialog'
 
 // ── Constants ───────────────────────────────────────────────────────────────────
 const SOUL_PATH = '__soul__'
-const AUTO_SAVE_DELAY = 800
 const getT = () => createTranslator(detectLang())
 
 // ── Props ──────────────────────────────────────────────────────────────────────
@@ -279,223 +274,6 @@ function DetailContextMenu({
   )
 }
 
-// ── Search / Replace bar for edit mode ─────────────────────────────────────────
-interface SearchBarProps {
-  text: string
-  showReplace: boolean
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>
-  onReplace: (newText: string) => void
-  onClose: () => void
-  onToggleReplace: () => void
-}
-
-function SearchBar({
-  text,
-  showReplace,
-  textareaRef,
-  onReplace,
-  onClose,
-  onToggleReplace,
-}: SearchBarProps) {
-  const [query, setQuery] = useState('')
-  const [replaceVal, setReplaceVal] = useState('')
-  const [matchIndex, setMatchIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const matches: number[] = useMemo(() => {
-    if (!query) return []
-    const positions: number[] = []
-    const lower = text.toLowerCase()
-    const q = query.toLowerCase()
-    let idx = 0
-    while ((idx = lower.indexOf(q, idx)) !== -1) {
-      positions.push(idx)
-      idx += 1
-    }
-    return positions
-  }, [text, query])
-
-  useEffect(() => {
-    if (matches.length > 0 && matchIndex >= matches.length) setMatchIndex(0)
-  }, [matches.length, matchIndex])
-
-  useEffect(() => {
-    if (!query || matches.length === 0 || !textareaRef.current) return
-    const pos = matches[matchIndex]
-    if (pos === undefined) return
-    textareaRef.current.focus()
-    textareaRef.current.setSelectionRange(pos, pos + query.length)
-  }, [matches, matchIndex, query, textareaRef])
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  const goNext = () => setMatchIndex((i) => (matches.length ? (i + 1) % matches.length : 0))
-  const goPrev = () =>
-    setMatchIndex((i) => (matches.length ? (i - 1 + matches.length) % matches.length : 0))
-
-  const replaceCurrent = () => {
-    if (!query || matches.length === 0) return
-    const pos = matches[matchIndex]
-    if (pos === undefined) return
-    const newText = text.slice(0, pos) + replaceVal + text.slice(pos + query.length)
-    onReplace(newText)
-  }
-
-  const replaceAll = () => {
-    if (!query || matches.length === 0) return
-    const newText = text.split(query).join(replaceVal)
-    onReplace(newText)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
-      return
-    }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      goNext()
-    }
-    if (e.key === 'Enter' && e.shiftKey) {
-      e.preventDefault()
-      goPrev()
-    }
-  }
-
-  const smallBtn: React.CSSProperties = {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--item-meta)',
-    cursor: 'pointer',
-    padding: '2px 4px',
-    borderRadius: 4,
-    display: 'flex',
-    alignItems: 'center',
-  }
-  const inputStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid var(--divider)',
-    borderRadius: 4,
-    padding: '3px 8px',
-    fontSize: 'var(--text-xs)',
-    color: 'var(--item-text)',
-    outline: 'none',
-    fontFamily: 'var(--font-mono)',
-    flex: 1,
-    minWidth: 0,
-  }
-  const actionBtn: React.CSSProperties = {
-    background: 'transparent',
-    border: '1px solid var(--divider)',
-    borderRadius: 4,
-    padding: '2px 8px',
-    fontSize: 'var(--text-xs)',
-    color: 'var(--item-meta)',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  }
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        zIndex: 20,
-        background: 'var(--detail-bg)',
-        border: '1px solid var(--divider)',
-        borderTop: 'none',
-        borderRight: 'none',
-        borderRadius: '0 0 0 8px',
-        padding: '8px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        minWidth: 300,
-      }}
-    >
-      {/* Search row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setMatchIndex(0)
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={getT()('search')}
-          style={inputStyle}
-        />
-        <span
-          style={{
-            fontSize: 'var(--text-xs)',
-            color: 'var(--item-meta)',
-            whiteSpace: 'nowrap',
-            minWidth: 36,
-            textAlign: 'center',
-          }}
-        >
-          {query ? `${matches.length ? matchIndex + 1 : 0}/${matches.length}` : ''}
-        </span>
-        <button onClick={goPrev} style={smallBtn} title={getT()('findPrev')}>
-          <ChevronUp size={14} />
-        </button>
-        <button onClick={goNext} style={smallBtn} title={getT()('findNext')}>
-          <ChevronDown size={14} />
-        </button>
-        {!showReplace && (
-          <button
-            onClick={onToggleReplace}
-            style={{ ...smallBtn, fontSize: 'var(--text-xs)' }}
-            title={getT()('replaceBtn')}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M17 2l4 4-4 4" />
-              <path d="M3 11V9a4 4 0 014-4h14" />
-              <path d="M7 22l-4-4 4-4" />
-              <path d="M21 13v2a4 4 0 01-4 4H3" />
-            </svg>
-          </button>
-        )}
-        <button onClick={onClose} style={smallBtn} title={getT()('closeFindBar')}>
-          <X size={14} />
-        </button>
-      </div>
-      {/* Replace row */}
-      {showReplace && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            value={replaceVal}
-            onChange={(e) => setReplaceVal(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={getT()('replacePlaceholder')}
-            style={inputStyle}
-          />
-          <button onClick={replaceCurrent} style={actionBtn}>
-            {getT()('replaceBtn')}
-          </button>
-          <button onClick={replaceAll} style={actionBtn}>
-            {getT()('replaceAll')}
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── CSV parser ─────────────────────────────────────────────────────────────────
 function parseCSV(text: string): { headers: string[]; rows: string[][] } | null {
   const lines = text.split('\n').filter((l) => l.trim())
@@ -610,23 +388,14 @@ export const DetailView = React.memo(function DetailView({
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showFind, setShowFind] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [editText, setEditText] = useState('')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [btnCooldown, setBtnCooldown] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const [showReplace, setShowReplace] = useState(false)
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [workspacePath, setWorkspacePath] = useState('')
+  const [resetCooldown, setResetCooldown] = useState(false)
 
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const backdropRef = useRef<HTMLDivElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  const isEditable = type === 'identity' || type === 'journal'
   const isSoul = type === 'identity' && identity?.path === SOUL_PATH
 
   // ── Workspace path ──────────────────────────────────────────────────────
@@ -636,8 +405,6 @@ export const DetailView = React.memo(function DetailView({
 
   // ── Content loading ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (editing) return
-
     if (type === 'journal' && entry) {
       CSS.highlights?.delete('search-result')
       CSS.highlights?.delete('search-current')
@@ -686,12 +453,11 @@ export const DetailView = React.memo(function DetailView({
       // No selection
       setContent(null)
       setLoading(false)
-      setEditing(false)
       setShowFind(false)
       CSS.highlights?.delete('search-result')
       CSS.highlights?.delete('search-current')
     }
-  }, [type, entry?.path, entry?.mtime_secs, identity?.path, identity?.mtime_secs, file?.path, isSoul, editing, workspacePath])
+  }, [type, entry?.path, entry?.mtime_secs, identity?.path, identity?.mtime_secs, file?.path, isSoul, workspacePath])
 
   // ── HTML blob URL ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -735,65 +501,6 @@ export const DetailView = React.memo(function DetailView({
     })
     return () => observer.disconnect()
   }, [applyThemeToIframe])
-
-  // ── Save ────────────────────────────────────────────────────────────────
-  const save = useCallback(
-    async (text: string) => {
-      if (type === 'identity' && identity) {
-        setSaveStatus('saving')
-        try {
-          if (isSoul) {
-            await setWorkspacePrompt(text)
-          } else {
-            await saveIdentityContent(identity.path, text)
-          }
-          setSaveStatus('saved')
-          setTimeout(() => setSaveStatus((s) => (s === 'saved' ? 'idle' : s)), 2000)
-        } catch (e) {
-          console.error('[DetailView] save failed', e)
-          setSaveStatus('error')
-        }
-      }
-    },
-    [type, identity, isSoul],
-  )
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value
-    setEditText(text)
-    setSaveStatus('idle')
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => save(text), AUTO_SAVE_DELAY)
-  }
-
-  const handleEditorScroll = () => {
-    if (textareaRef.current && backdropRef.current) {
-      backdropRef.current.scrollTop = textareaRef.current.scrollTop
-    }
-  }
-
-  const enterEdit = () => {
-    setEditText(content ?? '')
-    setSaveStatus('idle')
-    setEditing(true)
-  }
-
-  const exitEdit = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    setShowSearch(false)
-    setShowReplace(false)
-    save(editText).then(() => {
-      setContent(editText)
-      setEditing(false)
-    })
-  }
-
-  const handleSearchReplace = (newText: string) => {
-    setEditText(newText)
-    setSaveStatus('idle')
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => save(newText), AUTO_SAVE_DELAY)
-  }
 
   // ── Context menu ────────────────────────────────────────────────────────
   const showContextMenu = (x: number, y: number) => {
@@ -847,17 +554,16 @@ export const DetailView = React.memo(function DetailView({
   // Escape → deselect
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showFind && !editing) {
+      if (e.key === 'Escape' && !showFind) {
         onDeselect?.()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onDeselect, showFind, editing])
+  }, [onDeselect, showFind])
 
-  // Cmd+F opens find bar (read mode)
+  // Cmd+F opens find bar
   useEffect(() => {
-    if (editing) return
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
         e.preventDefault()
@@ -866,11 +572,10 @@ export const DetailView = React.memo(function DetailView({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [editing])
+  }, [])
 
-  // Cmd+A select all (read mode)
+  // Cmd+A select all
   useEffect(() => {
-    if (editing) return
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.key !== 'a') return
       if (!bodyRef.current) return
@@ -885,67 +590,7 @@ export const DetailView = React.memo(function DetailView({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [editing])
-
-  // Cmd+E to enter edit mode (read mode, identity/journal)
-  useEffect(() => {
-    if (editing || !isEditable) return
-    const hasContent = (type === 'journal' && entry) || (type === 'identity' && identity)
-    if (!hasContent) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
-        e.preventDefault()
-        enterEdit()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [editing, isEditable, type, entry, identity, content])
-
-  // Edit mode keyboard shortcuts
-  useEffect(() => {
-    if (!editing) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-        e.preventDefault()
-        setShowSearch(true)
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
-        e.preventDefault()
-        setShowSearch(true)
-        setShowReplace(true)
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault()
-        exitEdit()
-      }
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        e.preventDefault()
-        if (showSearch) {
-          setShowSearch(false)
-          setShowReplace(false)
-          textareaRef.current?.focus()
-        } else {
-          // Cancel: discard changes, no save
-          if (debounceRef.current) clearTimeout(debounceRef.current)
-          setShowSearch(false)
-          setShowReplace(false)
-          setEditing(false)
-        }
-      }
-    }
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [editing, showSearch, editText, exitEdit])
-
-  // ── Handle button clicks ────────────────────────────────────────────────
-  const handleBtnClick = (action: () => void) => {
-    if (btnCooldown) return
-    setBtnCooldown(true)
-    action()
-    setTimeout(() => setBtnCooldown(false), 600)
-  }
+  }, [])
 
   // ── Computed values ─────────────────────────────────────────────────────
   const isJournalMode = type === 'journal'
@@ -1561,7 +1206,7 @@ export const DetailView = React.memo(function DetailView({
     }
   }
 
-  // ── Journal / Identity / Markdown file reading/editing mode ─────────────
+  // ── Journal / Identity / Markdown file reading mode ─────────────────────
   const btnStyle: React.CSSProperties = {
     padding: '4px 14px',
     borderRadius: 6,
@@ -1587,7 +1232,7 @@ export const DetailView = React.memo(function DetailView({
         overflow: 'hidden',
       }}
     >
-      {!editing && showFind && (
+      {showFind && (
         <FindBar
           containerRef={bodyRef}
           onClose={() => {
@@ -1626,283 +1271,126 @@ export const DetailView = React.memo(function DetailView({
           {isFileMode && file ? file.name : ''}
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {editing ? (
-            <>
-              <button
-                onClick={() =>
-                  handleBtnClick(() => {
-                    if (debounceRef.current) clearTimeout(debounceRef.current)
-                    setShowSearch(false)
-                    setShowReplace(false)
-                    setEditing(false)
+          {isSoul && (
+            <button
+              onClick={() => {
+                if (resetCooldown) return
+                setResetCooldown(true)
+                ask('确认重置助手提示词？', {
+                  title: '重置助手提示词',
+                  kind: 'warning',
+                  okLabel: '重置',
+                  cancelLabel: '取消',
+                }).then((yes) => {
+                  if (!yes) {
+                    setResetCooldown(false)
+                    return
+                  }
+                  resetWorkspacePrompt().then((defaultContent) => {
+                    setContent(defaultContent)
+                    setResetCooldown(false)
                   })
-                }
-                disabled={btnCooldown}
-                style={{
-                  ...btnStyle,
-                  opacity: btnCooldown ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                }}
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)')
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)')
-                }
+                })
+              }}
+              disabled={resetCooldown}
+              style={{
+                ...btnStyle,
+                opacity: resetCooldown ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)')
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)')
+              }
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <span style={{ fontSize: 'var(--text-xs)', opacity: 0.5 }}>ESC</span>
-                取消
-              </button>
-              <button
-                onClick={() => handleBtnClick(exitEdit)}
-                disabled={saveStatus === 'saving' || btnCooldown}
-                style={{
-                  ...btnStyle,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  background: saveStatus === 'saving' ? 'var(--divider)' : 'transparent',
-                  cursor: saveStatus === 'saving' || btnCooldown ? 'not-allowed' : 'pointer',
-                  opacity: btnCooldown ? 0.5 : 1,
-                }}
-                onMouseDown={(e) => {
-                  if (!btnCooldown)
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      'rgba(255,255,255,0.08)'
-                }}
-                onMouseUp={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')
-                }
-              >
-                <span style={{ fontSize: 'var(--text-xs)', opacity: 0.5 }}>⌘S</span>
-                {saveStatus === 'saving' ? '保存中...' : '保存'}
-              </button>
-            </>
-          ) : (
-            <>
-              {isSoul && (
-                <button
-                  onClick={() => {
-                    ask('确认重置助手提示词？', {
-                      title: '重置助手提示词',
-                      kind: 'warning',
-                      okLabel: '重置',
-                      cancelLabel: '取消',
-                    }).then((yes) => {
-                      if (!yes) return
-                      handleBtnClick(async () => {
-                        const defaultContent = await resetWorkspacePrompt()
-                        setContent(defaultContent)
-                      })
-                    })
-                  }}
-                  disabled={btnCooldown}
-                  style={{
-                    ...btnStyle,
-                    opacity: btnCooldown ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)')
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)')
-                  }
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                  重置
-                </button>
-              )}
-              {isEditable && (
-                <button
-                  onClick={() => handleBtnClick(enterEdit)}
-                  disabled={btnCooldown}
-                  style={{
-                    ...btnStyle,
-                    opacity: btnCooldown ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}
-                  onMouseDown={(e) => {
-                    if (!btnCooldown)
-                      (e.currentTarget as HTMLButtonElement).style.background =
-                        'rgba(255,255,255,0.08)'
-                  }}
-                  onMouseUp={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')
-                  }
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)')
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)')
-                  }
-                >
-                  <span style={{ fontSize: 'var(--text-xs)', opacity: 0.5 }}>⌘E</span>
-                  编辑
-                </button>
-              )}
-            </>
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              重置
+            </button>
           )}
         </div>
       </div>
 
-      {/* Edit mode */}
-      {editing ? (
-        <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
-          {showSearch && (
-            <SearchBar
-              text={editText}
-              showReplace={showReplace}
-              textareaRef={textareaRef}
-              onReplace={handleSearchReplace}
-              onClose={() => {
-                setShowSearch(false)
-                setShowReplace(false)
-              }}
-              onToggleReplace={() => setShowReplace(true)}
-            />
-          )}
+      {/* Read mode */}
+      <div
+        ref={bodyRef}
+        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          showContextMenu(e.clientX, e.clientY)
+        }}
+      >
+        {/* Header: summary + tags + sources (journal) */}
+        {isJournalMode && entry && (
           <div
-            ref={backdropRef}
-            aria-hidden
             style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'var(--detail-bg)',
-              padding: '16px 28px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-md)',
-              lineHeight: 1.3,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              pointerEvents: 'none',
-              overflowY: 'auto',
+              marginBottom: 20,
+              paddingBottom: 16,
+              borderBottom: '0.5px solid var(--divider)',
             }}
           >
-            {highlightMarkdown(editText)}
-          </div>
-          <textarea
-            ref={textareaRef}
-            value={editText}
-            onChange={handleEditChange}
-            onScroll={handleEditorScroll}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: 0,
-              padding: '16px 28px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-md)',
-              lineHeight: 1.3,
-              wordBreak: 'break-word',
-              color: 'transparent',
-              caretColor: 'var(--item-text)',
-              cursor: 'text',
-              resize: 'none',
-              outline: 'none',
-              boxSizing: 'border-box',
-              overflowY: 'auto',
-            }}
-            spellCheck={false}
-            autoFocus
-          />
-        </div>
-      ) : (
-        /* Read mode */
-        <div
-          ref={bodyRef}
-          style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
-          onContextMenu={(e) => {
-            e.preventDefault()
-            showContextMenu(e.clientX, e.clientY)
-          }}
-        >
-          {/* Header: summary + tags + sources (journal) */}
-          {isJournalMode && entry && (
-            <div
-              style={{
-                marginBottom: 20,
-                paddingBottom: 16,
-                borderBottom: '0.5px solid var(--divider)',
-              }}
-            >
-              {entry.summary && (
-                <div
-                  style={{
-                    fontSize: 'var(--text-base)',
-                    color: 'var(--detail-summary)',
-                    lineHeight: 1.8,
-                    marginBottom: (pickDisplayTags(entry.tags, Infinity).length > 0 || entry.sources.length > 0) ? 10 : 0,
-                  }}
-                >
-                  {entry.summary}
-                </div>
-              )}
-              {(pickDisplayTags(entry.tags, Infinity).length > 0 || entry.sources.length > 0) && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {pickDisplayTags(entry.tags, Infinity).map((cfg, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        fontSize: 'var(--text-xs)',
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        fontWeight: 'var(--font-medium)',
-                        color: 'var(--tag-text)',
-                        background: 'var(--tag-bg)',
-                        fontFamily: 'var(--font-mono)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {cfg.label}
-                    </span>
-                  ))}
-                  {entry.sources.map((src, i) => {
-                    const filename = src.split('/').pop() ?? src
-                    const kind = fileKindFromName(filename)
-                    const dotIdx = filename.lastIndexOf('.')
-                    const namePart = dotIdx > 0 ? filename.slice(0, dotIdx) : filename
-                    const extLabel = dotIdx > 0 ? filename.slice(dotIdx + 1).toUpperCase() : ''
-                    const handleSourceClick = async () => {
-                      const srcFilename = src.split('/').pop() ?? src
-                      if (kind === 'markdown') {
-                        const match = entries.find((e) => e.filename === srcFilename)
-                        if (match) {
-                          window.dispatchEvent(
-                            new CustomEvent('journal-entry-navigate', {
-                              detail: { filename: srcFilename },
-                            }),
-                          )
-                        } else {
-                          try {
-                            const ws = await getWorkspacePath()
-                            await openFile(`${ws}/${src}`)
-                          } catch (e) {
-                            console.error('[source-click] open failed:', e)
-                          }
-                        }
+            {entry.summary && (
+              <div
+                style={{
+                  fontSize: 'var(--text-base)',
+                  color: 'var(--detail-summary)',
+                  lineHeight: 1.8,
+                  marginBottom: (pickDisplayTags(entry.tags, Infinity).length > 0 || entry.sources.length > 0) ? 10 : 0,
+                }}
+              >
+                {entry.summary}
+              </div>
+            )}
+            {(pickDisplayTags(entry.tags, Infinity).length > 0 || entry.sources.length > 0) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {pickDisplayTags(entry.tags, Infinity).map((cfg, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontWeight: 'var(--font-medium)',
+                      color: 'var(--tag-text)',
+                      background: 'var(--tag-bg)',
+                      fontFamily: 'var(--font-mono)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {cfg.label}
+                  </span>
+                ))}
+                {entry.sources.map((src, i) => {
+                  const filename = src.split('/').pop() ?? src
+                  const kind = fileKindFromName(filename)
+                  const dotIdx = filename.lastIndexOf('.')
+                  const namePart = dotIdx > 0 ? filename.slice(0, dotIdx) : filename
+                  const extLabel = dotIdx > 0 ? filename.slice(dotIdx + 1).toUpperCase() : ''
+                  const handleSourceClick = async () => {
+                    const srcFilename = src.split('/').pop() ?? src
+                    if (kind === 'markdown') {
+                      const match = entries.find((e) => e.filename === srcFilename)
+                      if (match) {
+                        window.dispatchEvent(
+                          new CustomEvent('journal-entry-navigate', {
+                            detail: { filename: srcFilename },
+                          }),
+                        )
                       } else {
                         try {
                           const ws = await getWorkspacePath()
@@ -1911,170 +1399,177 @@ export const DetailView = React.memo(function DetailView({
                           console.error('[source-click] open failed:', e)
                         }
                       }
+                    } else {
+                      try {
+                        const ws = await getWorkspacePath()
+                        await openFile(`${ws}/${src}`)
+                      } catch (e) {
+                        console.error('[source-click] open failed:', e)
+                      }
                     }
-                    return (
-                      <span
-                        key={`src-${i}`}
-                        data-testid="sources-row"
-                        onClick={handleSourceClick}
-                        onMouseEnter={(e) => {
-                          ;(e.currentTarget as HTMLElement).style.color = 'var(--item-selected-text)'
-                        }}
-                        onMouseLeave={(e) => {
-                          ;(e.currentTarget as HTMLElement).style.color = 'var(--item-meta)'
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          fontSize: 'var(--text-xs)',
-                          padding: '2px 7px',
-                          borderRadius: 4,
-                          color: 'var(--item-meta)',
-                          background: 'var(--item-icon-bg)',
-                          fontFamily: 'var(--font-mono)',
-                          maxWidth: 240,
-                          cursor: 'pointer',
-                          transition: 'color 0.15s ease-out',
-                        }}
-                      >
-                        <span
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            minWidth: 0,
-                          }}
-                        >
-                          {namePart}
-                        </span>
-                        {extLabel && (
-                          <span
-                            style={{
-                              flexShrink: 0,
-                              fontWeight: 'var(--font-medium)',
-                              opacity: 0.5,
-                            }}
-                          >
-                            {extLabel}
-                          </span>
-                        )}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Header: summary + tags + speaker (identity) */}
-          {isIdentityMode && identity && (
-            <div
-              style={{
-                marginBottom: 20,
-                paddingBottom: 16,
-                borderBottom: '0.5px solid var(--divider)',
-              }}
-            >
-              {identity.summary && (
-                <div
-                  style={{
-                    fontSize: 'var(--text-base)',
-                    color: 'var(--detail-summary)',
-                    lineHeight: 1.8,
-                    marginBottom:
-                      (identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0) ? 10 : 0,
-                  }}
-                >
-                  {identity.summary}
-                </div>
-              )}
-              {(identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0) && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {identity.speaker_id && (
+                  }
+                  return (
                     <span
+                      key={`src-${i}`}
+                      data-testid="sources-row"
+                      onClick={handleSourceClick}
+                      onMouseEnter={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.color = 'var(--item-selected-text)'
+                      }}
+                      onMouseLeave={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.color = 'var(--item-meta)'
+                      }}
                       style={{
-                        fontSize: 'var(--text-xs)',
-                        padding: '2px 9px',
-                        borderRadius: 4,
-                        fontWeight: 'var(--font-medium)',
-                        color: 'var(--item-meta)',
-                        background: 'rgba(255,255,255,0.10)',
-                        fontFamily: 'var(--font-mono)',
-                        whiteSpace: 'nowrap',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                      }}
-                    >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                        <line x1="12" y1="19" x2="12" y2="23" />
-                        <line x1="8" y1="23" x2="16" y2="23" />
-                      </svg>
-                      {identity.speaker_id}
-                    </span>
-                  )}
-                  {pickDisplayTags(identity.tags, Infinity).map((cfg, i) => (
-                    <span
-                      key={i}
-                      style={{
                         fontSize: 'var(--text-xs)',
-                        padding: '2px 9px',
+                        padding: '2px 7px',
                         borderRadius: 4,
-                        fontWeight: 'var(--font-medium)',
-                        color: 'var(--tag-text)',
-                        background: 'var(--tag-bg)',
+                        color: 'var(--item-meta)',
+                        background: 'var(--item-icon-bg)',
                         fontFamily: 'var(--font-mono)',
-                        whiteSpace: 'nowrap',
+                        maxWidth: 240,
+                        cursor: 'pointer',
+                        transition: 'color 0.15s ease-out',
                       }}
                     >
-                      {cfg.label}
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          minWidth: 0,
+                        }}
+                      >
+                        {namePart}
+                      </span>
+                      {extLabel && (
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            fontWeight: 'var(--font-medium)',
+                            opacity: 0.5,
+                          }}
+                        >
+                          {extLabel}
+                        </span>
+                      )}
                     </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Body content */}
-          {content === null && !loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
-              <Spinner size={20} />
-            </div>
-          ) : (
-            <div style={{ position: 'relative' }}>
-              {loading && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    paddingTop: 24,
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 1,
-                  }}
-                >
-                  <Spinner size={20} />
-                </div>
-              )}
-              <div style={{ opacity: loading ? 0.3 : 1, transition: 'opacity 0.15s ease-out' }}>
-                {markdownNode}
+                  )
+                })}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Header: summary + tags + speaker (identity) */}
+        {isIdentityMode && identity && (
+          <div
+            style={{
+              marginBottom: 20,
+              paddingBottom: 16,
+              borderBottom: '0.5px solid var(--divider)',
+            }}
+          >
+            {identity.summary && (
+              <div
+                style={{
+                  fontSize: 'var(--text-base)',
+                  color: 'var(--detail-summary)',
+                  lineHeight: 1.8,
+                  marginBottom:
+                    (identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0) ? 10 : 0,
+                }}
+              >
+                {identity.summary}
+              </div>
+            )}
+            {(identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {identity.speaker_id && (
+                  <span
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      padding: '2px 9px',
+                      borderRadius: 4,
+                      fontWeight: 'var(--font-medium)',
+                      color: 'var(--item-meta)',
+                      background: 'rgba(255,255,255,0.10)',
+                      fontFamily: 'var(--font-mono)',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                    {identity.speaker_id}
+                  </span>
+                )}
+                {pickDisplayTags(identity.tags, Infinity).map((cfg, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      padding: '2px 9px',
+                      borderRadius: 4,
+                      fontWeight: 'var(--font-medium)',
+                      color: 'var(--tag-text)',
+                      background: 'var(--tag-bg)',
+                      fontFamily: 'var(--font-mono)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {cfg.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Body content */}
+        {content === null && !loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
+            <Spinner size={20} />
+          </div>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            {loading && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  paddingTop: 24,
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 1,
+                }}
+              >
+                <Spinner size={20} />
+              </div>
+            )}
+            <div style={{ opacity: loading ? 0.3 : 1, transition: 'opacity 0.15s ease-out' }}>
+              {markdownNode}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <DetailContextMenu
         menuRef={ctxMenuRef}

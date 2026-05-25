@@ -81,7 +81,7 @@ export function TreeContextMenu({
     { type: 'action', label: '@ 引用', shortcut: '@', icon: 'at', onClick: handleAt },
     {
       type: 'action',
-      label: isPinned ? '取消钉选' : '钉选',
+      label: isPinned ? '取消置顶' : '置顶',
       icon: 'pin',
       onClick: isPinned ? handleUnpin : handlePin,
     },

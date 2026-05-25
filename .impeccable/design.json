@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-25T00:00:00Z",
+  "title": "Design System: 谨迹 (JournalClaw)",
+  "extensions": {
+    "colorMeta": {
+      "amber-gold": {
+        "role": "primary",
+        "displayName": "Amber Gold",
+        "canonical": "#C8933B",
+        "tonalRamp": [
+          "#0d0a05", "#1a1408", "#2a1f0f", "#3a2a14",
+          "#6a4f20", "#8a6528", "#C8933B", "#d9a44b",
+          "#e8c878", "#f0dca0", "#f5edd8", "#faf6ed"
+        ]
+      },
+      "amber-gold-light": {
+        "role": "primary",
+        "displayName": "Amber Gold (Light)",
+        "canonical": "#B8782A",
+        "tonalRamp": [
+          "#0d0a05", "#1a1408", "#2a1f0f", "#3a2a14",
+          "#6a4f20", "#8a6528", "#B8782A", "#d9a44b",
+          "#e8c878", "#f0dca0", "#f5edd8", "#faf6ed"
+        ]
+      },
+      "ink-charcoal": {
+        "role": "neutral",
+        "displayName": "Ink Charcoal",
+        "canonical": "#0f0f0f",
+        "tonalRamp": [
+          "#080809", "#0c0c0d", "#0f0f0f", "#141414",
+          "#161616", "#1a1a1b", "#1c1c1e", "#1e2228",
+          "#252525", "#2e3238", "#3a3e46", "#48484a"
+        ]
+      },
+      "warm-parchment": {
+        "role": "neutral",
+        "displayName": "Warm Parchment",
+        "canonical": "#e8e8e8",
+        "tonalRamp": [
+          "#1c1c1e", "#2a3038", "#3a3a3c", "#48484a",
+          "#586068", "#6a7278", "#a0a8ad", "#a2a6ae",
+          "#b0b4bc", "#c4c8d0", "#d4d8dc", "#e8e8e8"
+        ]
+      },
+      "cool-slate": {
+        "role": "neutral",
+        "displayName": "Cool Slate",
+        "canonical": "#a2a6ae",
+        "tonalRamp": [
+          "#353840", "#48484a", "#585c64", "#6a7278",
+          "#787c84", "#8a9298", "#a0a8ad", "#a2a6ae",
+          "#b0b4bc", "#b8c0c6", "#c0c8ce", "#d8dce0"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "List items, sidebar text, UI labels. The workhorse size at 14px." },
+      "detail": { "displayName": "Detail", "purpose": "Detail panel Markdown prose. Comfortable reading at 16px / 1.75." },
+      "title": { "displayName": "Title", "purpose": "Section headings, H2/H3 in detail panel." },
+      "display": { "displayName": "Display", "purpose": "Page-level titles. Rare." },
+      "label": { "displayName": "Label", "purpose": "Timestamps, auxiliary info, badge text at 12px." },
+      "mono": { "displayName": "Mono", "purpose": "Code blocks and inline code only. Never for UI." }
+    },
+    "shadows": [
+      {
+        "name": "ambient-low",
+        "value": "0 1px 3px rgba(0,0,0,0.06)",
+        "purpose": "Processing queue lift. Barely perceptible."
+      },
+      {
+        "name": "overlay-light",
+        "value": "0 4px 12px rgba(0,0,0,0.15)",
+        "purpose": "Context menus in light mode."
+      },
+      {
+        "name": "overlay-dark",
+        "value": "0 4px 12px rgba(0,0,0,0.5)",
+        "purpose": "Context menus in dark mode."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Default easing for all state transitions (ease-out-quart)."
+      },
+      {
+        "name": "duration-instant",
+        "value": "100–150ms",
+        "purpose": "Immediate feedback: button press, toggle."
+      },
+      {
+        "name": "duration-fast",
+        "value": "180–200ms",
+        "purpose": "Hover transitions, menu open/close."
+      },
+      {
+        "name": "duration-standard",
+        "value": "200–300ms",
+        "purpose": "Layout changes, panel transitions."
+      },
+      {
+        "name": "duration-entrance",
+        "value": "400–500ms",
+        "purpose": "Element entrance animations."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Recording Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The primary CTA. Filled amber-gold circle, 32px. Icon inverts against the fill.",
+      "html": "<button class=\"ds-btn-record\" aria-label=\"Record\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><circle cx=\"8\" cy=\"8\" r=\"6\" fill=\"currentColor\"/></svg></button>",
+      "css": ".ds-btn-record { width: 32px; height: 32px; border-radius: 50%; border: none; background: #C8933B; color: #0f0f0f; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.18s ease, transform 0.18s ease; flex-shrink: 0; } .ds-btn-record:hover { background: #d9a44b; transform: scale(1.04); } .ds-btn-record:focus-visible { outline: 2px solid color-mix(in srgb, #C8933B 68%, white); outline-offset: 2px; } .ds-btn-record.is-recording { background: #8a6528; animation: ds-pulse 2.4s ease-in-out infinite; } @keyframes ds-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }"
+    },
+    {
+      "name": "Journal List Item",
+      "kind": "custom",
+      "refersTo": "list-item-selected",
+      "description": "Flat journal entry row. No card chrome. Selected state uses left-bar amber accent.",
+      "html": "<div class=\"ds-list-item is-selected\"><span class=\"ds-list-item-bar\"></span><span class=\"ds-list-item-icon\">📄</span><div class=\"ds-list-item-content\"><span class=\"ds-list-item-title\">AI Platform Meeting Notes</span><span class=\"ds-list-item-meta\">14:30 · meeting, ai</span></div></div>",
+      "css": ".ds-list-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: transparent; border-left: 2px solid transparent; cursor: pointer; transition: background-color 0.15s ease; font-family: system-ui, -apple-system, sans-serif; } .ds-list-item:hover { background: rgba(255,255,255,0.03); } .ds-list-item.is-selected { background: #1a1c20; border-left-color: #C8933B; } .ds-list-item-bar { display: none; } .ds-list-item-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: #2c2c2e; border-radius: 6px; font-size: 14px; flex-shrink: 0; } .ds-list-item-content { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .ds-list-item-title { font-size: 14px; font-weight: 400; color: #e8e8e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-list-item.is-selected .ds-list-item-title { color: #C8933B; } .ds-list-item-meta { font-size: 13px; font-weight: 400; color: #a2a6ae; }"
+    },
+    {
+      "name": "AI Status Pill",
+      "kind": "chip",
+      "refersTo": "pill-ai",
+      "description": "Compact processing indicator. Amber-tinted, never calls attention to itself.",
+      "html": "<span class=\"ds-ai-pill\"><span class=\"ds-ai-pill-dot\"></span>Processing</span>",
+      "css": ".ds-ai-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 4px; background: #1a1708; border: 1px solid #3a3018; color: #C8933B; font-family: system-ui, -apple-system, sans-serif; font-size: 12px; font-weight: 500; line-height: 1.4; } .ds-ai-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: #C8933B; } .ds-ai-pill.is-active { background: #1a1408; border-color: #6a4f20; }"
+    },
+    {
+      "name": "Source Badge (Voice)",
+      "kind": "chip",
+      "refersTo": "badge-voice",
+      "description": "Compact badge indicating voice-recorded content origin.",
+      "html": "<span class=\"ds-badge-voice\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" fill=\"none\"><path d=\"M6 1C5.2 1 4.5 1.7 4.5 2.5V5.5C4.5 6.3 5.2 7 6 7C6.8 7 7.5 6.3 7.5 5.5V2.5C7.5 1.7 6.8 1 6 1Z\" fill=\"currentColor\"/><path d=\"M10 5C10 7.2 8.2 9 6 9C3.8 9 2 7.2 2 5\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linecap=\"round\"/></svg>Voice</span>",
+      "css": ".ds-badge-voice { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 4px; background: #2a1f0f; border: 1px solid #4a3010; color: #c8933a; font-family: system-ui, -apple-system, sans-serif; font-size: 12px; font-weight: 500; line-height: 1.4; }"
+    },
+    {
+      "name": "Source Badge (Document)",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Compact badge indicating document-imported content origin.",
+      "html": "<span class=\"ds-badge-doc\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" fill=\"none\"><path d=\"M3 1H7.5L10 3.5V11H3V1Z\" stroke=\"currentColor\" stroke-width=\"0.8\" fill=\"none\"/></svg>Document</span>",
+      "css": ".ds-badge-doc { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 4px; background: #0f1a2a; border: 1px solid #1a3050; color: #4a8ac8; font-family: system-ui, -apple-system, sans-serif; font-size: 12px; font-weight: 500; line-height: 1.4; }"
+    },
+    {
+      "name": "Segment Control",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Tab-like view switcher. Purely opacity-based — no borders or shadows.",
+      "html": "<div class=\"ds-segment-control\"><button class=\"ds-segment-btn is-active\">Journal</button><button class=\"ds-segment-btn\">Identity</button><button class=\"ds-segment-btn\">Files</button></div>",
+      "css": ".ds-segment-control { display: inline-flex; gap: 2px; padding: 2px; border-radius: 6px; background: rgba(128,128,128,0.08); } .ds-segment-btn { padding: 4px 12px; border: none; border-radius: 4px; background: transparent; color: #a2a6ae; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; } .ds-segment-btn.is-active { background: rgba(200,147,58,0.12); color: #C8933B; } .ds-segment-btn:hover:not(.is-active) { background: rgba(128,128,128,0.06); }"
+    },
+    {
+      "name": "Chat Input Bar",
+      "kind": "input",
+      "refersTo": null,
+      "description": "Message composition area at the bottom of the Chat panel. Single-row with send and mic buttons.",
+      "html": "<div class=\"ds-input-bar\"><input type=\"text\" class=\"ds-input-bar-field\" placeholder=\"Type a message...\" /><button class=\"ds-input-bar-btn\" aria-label=\"Send\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><path d=\"M2 8L14 2L8 14L7 9L2 8Z\" stroke=\"currentColor\" stroke-width=\"1.2\" fill=\"none\" stroke-linejoin=\"round\"/></svg></button></div>",
+      "css": ".ds-input-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: #141414; } .ds-input-bar-field { flex: 1; border: none; background: transparent; color: #e8e8e8; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.5; outline: none; } .ds-input-bar-field::placeholder { color: #a2a6ae; } .ds-input-bar-btn { width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; color: #C8933B; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.18s ease; } .ds-input-bar-btn:disabled { color: #48484a; cursor: default; } .ds-input-bar-btn:hover:not(:disabled) { color: #d9a44b; }"
+    },
+    {
+      "name": "Context Menu",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Right-click context menu. Overlay elevation with subtle shadow.",
+      "html": "<div class=\"ds-context-menu\"><button class=\"ds-context-menu-item\">Open</button><button class=\"ds-context-menu-item\">Copy Link</button><div class=\"ds-context-menu-divider\"></div><button class=\"ds-context-menu-item ds-context-menu-item--danger\">Delete</button></div>",
+      "css": ".ds-context-menu { padding: 4px; border-radius: 8px; background: #1e1e1e; border: 1px solid #2e3238; box-shadow: 0 4px 12px rgba(0,0,0,0.5); min-width: 160px; } .ds-context-menu-item { display: block; width: 100%; padding: 6px 12px; border: none; border-radius: 4px; background: transparent; color: #e8e8e8; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; text-align: left; cursor: pointer; } .ds-context-menu-item:hover { background: rgba(255,255,255,0.06); } .ds-context-menu-item--danger { color: #e06c60; } .ds-context-menu-divider { height: 1px; margin: 4px 8px; background: #1e2228; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Archival Ledger",
+    "overview": "谨迹 is a macOS journal app built on the metaphor of an archival ledger — the kind kept in brass-clasped bindings on ink-friendly paper, where every entry is deliberate and nothing calls attention to itself. The interface recedes so the content can breathe.\n\nThe signature move is the ink-cyan neutral system: all grays carry a subtle cold-cyan tint, sitting in a precise middle register that feels like high-quality paper under cool studio lighting. There is one and only one accent color: amber-gold — the color of aged brass, archival ink, and quality leather. Everything else is neutral.\n\nTypography is SF Pro via system-ui — the system font that disappears into the OS. The layout alternates between dense (list panel, 14px) and spacious (detail panel, 16px, 1.75 line-height). This contrast is intentional: scanning is fast, reading is comfortable.",
+    "keyCharacteristics": [
+      "Ink-cyan neutral surfaces — every gray has a subtle cold-cyan tint, never dead gray",
+      "One and only one accent: amber-gold for all interactive states",
+      "System font stack — SF Pro on macOS, zero loading cost",
+      "Dark mode as primary quality benchmark; light mode equally polished",
+      "4px spacing base unit with tight-loose rhythm",
+      "Animation discipline: transform + opacity only, ≤300ms, ease-out-quart",
+      "Three-column layout: resizable left list + center detail + toggleable right panel"
+    ],
+    "rules": [
+      {
+        "name": "The Single-Accent Rule",
+        "body": "Amber-gold is the one and only accent color. Never introduce a second chromatic color into the accent vocabulary. Amber-gold covers every interactive emphasis, without exception.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Pure-Black Rule",
+        "body": "#000000 and #ffffff are forbidden. Every neutral surface and text color carries the ink-cyan tint.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink-Cyan Neutral Rule",
+        "body": "All grays carry a subtle cold-cyan undertone (OKLCH hue 195–250). Warm-toned grays and dead grays are prohibited.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Extremes Rule",
+        "body": "Font weights 300 and 700+ are intentionally excluded. Hierarchy is built through size differences and the 400→500→600 ladder.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Font Rule",
+        "body": "All UI text uses the system font stack. IBM Plex Mono is reserved for code semantics.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Never add box-shadow to cards, list items, panels, or containers as decoration.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Left-Bar Rule",
+        "body": "The primary depth signal for selected or highlighted list items is a 2px left border in amber-gold.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use amber-gold for all interactive accent moments — buttons, selections, active states, links, checkboxes.",
+      "Do keep all neutrals ink-cyan tinted — every gray should have a subtle cold-cyan undertone.",
+      "Do use the left-bar pattern (2px amber border-left) for selected and highlighted list items.",
+      "Do maintain the density contrast: tight list (14px) vs. spacious detail (16px, 1.75lh).",
+      "Do animate only transform and opacity.",
+      "Do use cubic-bezier(0.16, 1, 0.3, 1) for all transitions.",
+      "Do implement prefers-reduced-motion fallbacks."
+    ],
+    "donts": [
+      "Don't introduce a second chromatic accent — amber-gold is the one and only accent color.",
+      "Don't use pure #000000 or #ffffff — use ink-tinted near-black and near-white.",
+      "Don't use warm-toned grays — the neutral system is ink-cyan.",
+      "Don't add card shadows or card-in-card nesting.",
+      "Don't use bounce or elastic easing — ease-out-quart only.",
+      "Don't animate layout properties (width, height, margin, padding).",
+      "Don't use decorative blur, gradients, or glow effects.",
+      "Don't use gradient text (background-clip: text with gradient).",
+      "Don't use font weights below 400 or above 600.",
+      "Don't use border-left greater than 1px as a colored side-stripe — the 2px left-bar is the sole exception.",
+      "Don't use IBM Plex Mono outside of code blocks.",
+      "Don't wrap everything in cards.",
+      "Don't use identical card grids with icon + heading + text repeated endlessly.",
+      "Don't use modals as the first solution.",
+      "Don't add color to Markdown headings in light mode."
+    ]
+  }
+}

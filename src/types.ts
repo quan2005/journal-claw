@@ -199,3 +199,27 @@ export interface ConversationStreamPayload {
   span_id?: string
   parent_span_id?: string
 }
+
+// ── Tree Sidebar ───────────────────────────────────────────
+
+/** 树节点类型 */
+export type TreeNodeType =
+  | 'pinned-section'
+  | 'identity'
+  | 'journal'
+  | 'journal-month'
+  | 'topic'
+  | 'topic-file'
+
+/** 树中选中项的标识 —— 由 (type, path) 唯一确定 */
+export interface TreeSelection {
+  type: TreeNodeType
+  path: string
+}
+
+/** 置顶条目（持久化在 workspace settings.json） */
+export interface PinnedItem {
+  type: 'journal' | 'identity'
+  path: string // workspace-relative path, e.g. "2605/25-xxx.md" or "identities/张三.md"
+  order: number
+}

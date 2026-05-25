@@ -344,6 +344,8 @@ fn main() {
             skills::open_skills_dir,
             workspace_settings::get_global_skills_enabled,
             workspace_settings::set_global_skills_enabled,
+            workspace_settings::get_pinned_items,
+            workspace_settings::set_pinned_items,
             work_queue::enqueue_work,
             work_queue::list_work_queue,
             work_queue::cancel_work_item,

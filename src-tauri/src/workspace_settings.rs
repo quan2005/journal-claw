@@ -58,6 +58,8 @@ struct WorkspaceSettings {
     auto_lint: AutoLintConfig,
     #[serde(default)]
     global_skills_enabled: bool,
+    #[serde(default)]
+    pinned: Option<Vec<PinnedItemData>>,
 }
 
 impl Default for WorkspaceSettings {
@@ -66,8 +68,17 @@ impl Default for WorkspaceSettings {
             theme: default_theme(),
             auto_lint: AutoLintConfig::default(),
             global_skills_enabled: false,
+            pinned: None,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PinnedItemData {
+    #[serde(rename = "type")]
+    pub item_type: String,
+    pub path: String,
+    pub order: usize,
 }
 
 fn default_theme() -> String {
@@ -174,6 +185,21 @@ pub fn is_global_skills_enabled(app: &AppHandle) -> bool {
     load_settings(app)
         .map(|s| s.global_skills_enabled)
         .unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn get_pinned_items(app: AppHandle) -> Result<Vec<PinnedItemData>, String> {
+    let settings = load_settings(&app)?;
+    let mut items = settings.pinned.unwrap_or_default();
+    items.sort_by_key(|i| i.order);
+    Ok(items)
+}
+
+#[tauri::command]
+pub fn set_pinned_items(app: AppHandle, items: Vec<PinnedItemData>) -> Result<(), String> {
+    let mut settings = load_settings(&app)?;
+    settings.pinned = Some(items);
+    save_settings(&app, &settings)
 }
 
 #[cfg(test)]

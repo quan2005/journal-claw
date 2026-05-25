@@ -210,6 +210,7 @@ export type TreeNodeType =
   | 'journal-month'
   | 'topic'
   | 'topic-file'
+  | 'ideas'
 
 /** 树中选中项的标识 —— 由 (type, path) 唯一确定 */
 export interface TreeSelection {

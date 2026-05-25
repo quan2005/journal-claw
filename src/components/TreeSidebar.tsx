@@ -23,6 +23,8 @@ interface TreeSidebarProps {
   onAtRef: (path: string) => void
   todayYearMonth: string
   todayDay: number
+  ideasCount: number
+  onSelectIdeas: () => void
 }
 
 // ── SectionHeader ──────────────────────────────────────────────────────────────
@@ -198,6 +200,8 @@ export function TreeSidebar({
   onAtRef,
   todayYearMonth,
   todayDay,
+  ideasCount,
+  onSelectIdeas,
 }: TreeSidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
@@ -339,6 +343,91 @@ export function TreeSidebar({
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 8px' }}>
+      {/* ════════════════════════════════════════════════════════════════════
+          Ideas Entry (想法) — permanent, non-collapsible
+          ════════════════════════════════════════════════════════════════════ */}
+      <div
+        onClick={onSelectIdeas}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '12px 6px 8px',
+          cursor: 'pointer',
+          position: 'sticky' as const,
+          top: 0,
+          zIndex: 2,
+          background: 'var(--sidebar-bg, #131210)',
+          borderBottom: selected?.type === 'ideas'
+            ? '1px solid var(--accent-border, rgba(184,120,42,0.25))'
+            : '1px solid transparent',
+          transition: 'background 0.15s ease-out',
+        }}
+        onMouseEnter={(e) => {
+          if (selected?.type !== 'ideas') {
+            (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (selected?.type !== 'ideas') {
+            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-bg, #131210)'
+          }
+        }}
+      >
+        {/* Checkmark icon */}
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            color: selected?.type === 'ideas'
+              ? 'var(--accent, #B8782A)'
+              : 'var(--text-secondary, #a0988c)',
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+        </span>
+
+        {/* Label */}
+        <span
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: selected?.type === 'ideas'
+              ? 'var(--accent, #B8782A)'
+              : 'var(--text-secondary, #a0988c)',
+          }}
+        >
+          想法
+        </span>
+
+        {/* Count badge */}
+        {ideasCount > 0 && (
+          <span
+            style={{
+              fontSize: '0.6875rem',
+              fontWeight: 400,
+              color: selected?.type === 'ideas'
+                ? 'var(--accent, #B8782A)'
+                : 'var(--text-tertiary, #5c5852)',
+            }}
+          >
+            {ideasCount}
+          </span>
+        )}
+      </div>
+
       {/* ════════════════════════════════════════════════════════════════════
           Pinned Section
           ════════════════════════════════════════════════════════════════════ */}

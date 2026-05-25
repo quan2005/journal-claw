@@ -686,7 +686,7 @@ export const DetailView = React.memo(function DetailView({
         </div>
 
         {/* TodoSidebar content */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {todos !== undefined && onToggleTodo && onAddTodo && onDeleteTodo ? (
             <TodoSidebar
               todos={todos}

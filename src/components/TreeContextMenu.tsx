@@ -13,7 +13,6 @@ export interface TreeContextMenuState {
 interface TreeContextMenuProps {
   state: TreeContextMenuState
   onClose: () => void
-  onAt: (path: string) => void
   onPin: (type: 'journal' | 'identity', path: string) => void
   onUnpin: (path: string) => void
   onDelete: (type: string, path: string) => void
@@ -24,7 +23,7 @@ type MenuItemDef =
   | { type: 'divider' }
 
 export function TreeContextMenu({
-  state, onClose, onAt, onPin, onUnpin, onDelete,
+  state, onClose, onPin, onUnpin, onDelete,
 }: TreeContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -67,10 +66,6 @@ export function TreeContextMenu({
     onClose()
   }
   function handleUnpin() { onUnpin(path); onClose() }
-  function handleAt() {
-    onAt(itemType === 'topic-file' || itemType === 'topic-folder' ? `topics/${path}` : path)
-    onClose()
-  }
   function handleDelete() { onDelete(itemType, path); onClose() }
 
   const deleteLabel =
@@ -78,7 +73,6 @@ export function TreeContextMenu({
     itemType === 'topic-folder' ? '删除文件夹' : '删除条目'
 
   const items: MenuItemDef[] = [
-    { type: 'action', label: '引用', shortcut: '@', icon: 'at', onClick: handleAt },
     {
       type: 'action',
       label: isPinned ? '取消置顶' : '置顶',
@@ -151,12 +145,6 @@ export function TreeContextMenu({
 // ── MenuIcon ────────────────────────────────────────────────────────────────────
 
 const iconPaths: Record<string, React.ReactNode> = {
-  at: (
-    <g>
-      <circle cx="12" cy="12" r="10" />
-      <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, sans-serif">@</text>
-    </g>
-  ),
   pin: (
     <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
   ),

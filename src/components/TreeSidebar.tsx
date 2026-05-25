@@ -579,10 +579,6 @@ export function TreeSidebar({
         <TreeContextMenu
           state={ctxMenu}
           onClose={() => setCtxMenu(null)}
-          onAt={(path) => {
-            onAtRef(path)
-            setCtxMenu(null)
-          }}
           onPin={(type, path) => {
             pin(type, path)
             setCtxMenu(null)

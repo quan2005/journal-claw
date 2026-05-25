@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAppVersion } from '../../lib/tauri'
+import { getAppVersion, openUrl, resetOnboarding } from '../../lib/tauri'
 import qrCode from '../../assets/wechat-qrcode.png'
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
@@ -10,6 +10,7 @@ export default function SectionAbout() {
   const { t } = useTranslation()
   const [version, setVersion] = useState('…')
   const [loading, setLoading] = useState(true)
+  const [resetLabel, setResetLabel] = useState(t('resetOnboarding'))
 
   useEffect(() => {
     getAppVersion()
@@ -100,6 +101,68 @@ export default function SectionAbout() {
             </div>
           </div>
 
+          {/* 文档 */}
+          <div style={{ marginBottom: 32 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: 'var(--duration-text)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 10,
+                fontWeight: 500,
+              }}
+            >
+              {t('docs')}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {(
+                [
+                  {
+                    label: t('docsUserGuide'),
+                    url: 'https://github.com/quan2005/journal/blob/main/docs/guide/index.md',
+                  },
+                  {
+                    label: t('docsDevGuide'),
+                    url: 'https://github.com/quan2005/journal/blob/main/docs/dev/index.md',
+                  },
+                  {
+                    label: t('docsDesign'),
+                    url: 'https://github.com/quan2005/journal/blob/main/docs/design/index.md',
+                  },
+                  {
+                    label: t('docsAi'),
+                    url: 'https://github.com/quan2005/journal/blob/main/llms.txt',
+                  },
+                ] as const
+              ).map(({ label, url }) => (
+                <button
+                  key={url}
+                  onClick={() => openUrl(url)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '6px 0',
+                    fontSize: 13,
+                    color: 'var(--item-meta)',
+                    textAlign: 'left',
+                    transition: 'color 0.15s',
+                    width: '100%',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--record-btn)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--item-meta)'
+                  }}
+                >
+                  {label} →
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* 联系作者 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 140, height: 180, borderRadius: 10, overflow: 'hidden' }}>
@@ -137,6 +200,34 @@ export default function SectionAbout() {
             >
               macOS · Tauri · React · Rust · Claude
             </div>
+            <button
+              onClick={async () => {
+                await resetOnboarding()
+                setResetLabel(t('resetOnboardingDone'))
+                setTimeout(() => setResetLabel(t('resetOnboarding')), 2000)
+              }}
+              style={{
+                marginTop: 16,
+                background: 'none',
+                border: '1px solid var(--divider)',
+                borderRadius: 5,
+                padding: '4px 14px',
+                fontSize: 11,
+                color: 'var(--duration-text)',
+                cursor: 'pointer',
+                transition: 'color 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--record-btn)'
+                e.currentTarget.style.borderColor = 'var(--record-btn)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--duration-text)'
+                e.currentTarget.style.borderColor = 'var(--divider)'
+              }}
+            >
+              {resetLabel}
+            </button>
             <div
               style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 8, lineHeight: 1.6 }}
             >

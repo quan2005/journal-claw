@@ -189,6 +189,10 @@ pub struct Config {
     // 首次启动引导
     #[serde(default)]
     pub sample_entry_created: bool,
+    #[serde(default)]
+    pub onboarding_completed: bool,
+    #[serde(default)]
+    pub onboarding_last_step: Option<u8>,
     // Feishu bridge
     #[serde(default)]
     pub feishu_enabled: bool,
@@ -1282,27 +1286,75 @@ pub async fn list_models(
 
     let client = reqwest::Client::new();
 
-    let (_url, req) = if protocol == "openai" {
-        // OpenAI compat: base_url already contains /v1, endpoint is /models
-        let url = format!("{}/models", effective_base_url.trim_end_matches('/'));
-        let req = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", api_key));
-        (url, req)
-    } else {
-        // Anthropic: base_url is root, endpoint is /v1/models
+    eprintln!(
+        "[list_models] engine={} protocol={} base_url={}",
+        engine, protocol, effective_base_url
+    );
+
+    // For Anthropic protocol, try the Anthropic-style models endpoint first.
+    // If it 404s (common for non-Anthropic providers like DeepSeek whose
+    // /anthropic path only serves Messages API), fall back to trying the
+    // OpenAI-compatible endpoint with Bearer auth.
+    if protocol == "anthropic" {
         let url = format!("{}/v1/models", effective_base_url.trim_end_matches('/'));
         let req = client
             .get(&url)
             .header("x-api-key", &api_key)
             .header("anthropic-version", "2023-06-01");
-        (url, req)
-    };
+        let resp = req.send().await.map_err(|e| {
+            eprintln!("[list_models] anthropic request failed: {}", e);
+            format!("请求失败: {}", e)
+        })?;
+        let status = resp.status().as_u16();
+        if status < 400 {
+            // Success — parse and return
+            let body: serde_json::Value = resp.json().await.map_err(|e| format!("解析失败: {}", e))?;
+            let mut models: Vec<String> = body["data"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+                .collect();
+            models.sort();
+            if !models.is_empty() {
+                return Ok(models);
+            }
+        }
+        eprintln!("[list_models] anthropic endpoint returned {}, falling back to OpenAI compat", status);
 
-    eprintln!(
-        "[list_models] engine={} protocol={} base_url={}",
-        engine, protocol, effective_base_url
-    );
+        // Fallback: try the provider's OpenAI-compatible endpoint with Bearer auth
+        let fallback_base = default_base_url_for_vendor(&engine);
+        let fallback_url = format!("{}/models", fallback_base.trim_end_matches('/'));
+        eprintln!("[list_models] fallback url={}", fallback_url);
+        let fb_req = client
+            .get(&fallback_url)
+            .header("Authorization", format!("Bearer {}", api_key));
+        let fb_resp = fb_req.send().await.map_err(|e| {
+            eprintln!("[list_models] fallback request failed: {}", e);
+            format!("请求失败: {}", e)
+        })?;
+        let fb_status = fb_resp.status().as_u16();
+        if fb_status >= 400 {
+            let text = fb_resp.text().await.unwrap_or_default();
+            eprintln!("[list_models] fallback API error ({}): {}", fb_status, text);
+            return Err(format!("API 错误 ({}): {}", fb_status, text));
+        }
+        let body: serde_json::Value = fb_resp.json().await.map_err(|e| format!("解析失败: {}", e))?;
+        let mut models: Vec<String> = body["data"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+            .collect();
+        models.sort();
+        return Ok(models);
+    }
+
+    // OpenAI protocol
+    let url = format!("{}/models", effective_base_url.trim_end_matches('/'));
+    let req = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_key));
 
     let response = req.send().await.map_err(|e| {
         eprintln!("[list_models] request failed: {}", e);

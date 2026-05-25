@@ -1,5 +1,6 @@
 mod ai_processor;
 mod audio_pipeline;
+mod onboarding;
 #[allow(dead_code)]
 mod audio_process;
 mod auto_lint;
@@ -278,6 +279,10 @@ fn main() {
             open_with_system,
             workspace_settings::get_workspace_theme,
             workspace_settings::set_workspace_theme,
+            onboarding::get_onboarding_status,
+            onboarding::complete_onboarding,
+            onboarding::set_onboarding_step,
+            onboarding::reset_onboarding,
             config::get_engine_config,
             config::set_engine_config,
             config::get_app_version,

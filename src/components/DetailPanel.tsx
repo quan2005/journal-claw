@@ -704,6 +704,23 @@ export const DetailPanel = React.memo(function DetailPanel({
           showContextMenu(e.clientX, e.clientY)
         }}
       >
+        {/* Empty workspace hint */}
+        {!entry && entries.length === 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              color: 'var(--duration-text)',
+              fontSize: 14,
+              userSelect: 'none',
+            }}
+          >
+            {getT()('onboarding.emptyState.hint')}
+          </div>
+        )}
+
         {/* Header: summary + tags */}
         <div
           style={{

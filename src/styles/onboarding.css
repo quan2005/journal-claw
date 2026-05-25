@@ -1,0 +1,451 @@
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ob-fade-in 200ms ease-out;
+}
+
+.onboarding-overlay--dismissing {
+  animation: ob-fade-out 250ms ease-out forwards;
+}
+
+@keyframes ob-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ob-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.onboarding-container {
+  width: 100%;
+  max-width: min(720px, 100%);
+  padding: 40px 42px 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* Step Indicator */
+.ob-step-indicator {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: -8px;
+}
+
+.ob-step-indicator--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 320px;
+}
+
+.ob-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.ob-step--done {
+  cursor: pointer;
+}
+
+.ob-step__dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 1.5px solid var(--divider);
+  color: var(--duration-text);
+  background: transparent;
+  transition:
+    background 160ms ease-out,
+    border-color 160ms ease-out;
+}
+
+.ob-step--done .ob-step__dot {
+  background: var(--record-btn);
+  border-color: var(--record-btn);
+  color: var(--bg);
+}
+
+.ob-step--active .ob-step__dot {
+  border-color: var(--record-btn);
+  color: var(--record-btn);
+  background: color-mix(in srgb, var(--record-btn) 8%, transparent);
+}
+
+.ob-step__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--duration-text);
+  white-space: nowrap;
+}
+
+.ob-step--done .ob-step__label,
+.ob-step--active .ob-step__label {
+  color: var(--item-text);
+}
+
+/* Step connector line */
+.ob-step__connector {
+  flex: 1;
+  height: 1px;
+  background: var(--divider);
+  margin: 0 12px;
+}
+
+/* Content area */
+.ob-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  gap: 24px;
+}
+
+.ob-title {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 0.98;
+  color: var(--item-text);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.ob-subtitle {
+  font-size: 15px;
+  color: var(--duration-text);
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ob-section-title {
+  font-size: 25px;
+  font-weight: 650;
+  color: var(--item-text);
+  margin: 0 0 4px;
+}
+
+/* Cards */
+.ob-card-grid {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.ob-card-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ob-card {
+  background: var(--detail-case-bg);
+  border: 1.5px solid var(--divider);
+  border-radius: 12px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease-out,
+    background 160ms ease-out;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ob-card:hover {
+  border-color: var(--item-meta);
+}
+
+.ob-card--selected {
+  border-color: var(--record-btn);
+  background: color-mix(in srgb, var(--record-btn) 6%, transparent);
+}
+
+.ob-card__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--record-btn) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.ob-card__body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.ob-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--item-text);
+  margin-bottom: 2px;
+}
+
+.ob-card__desc {
+  font-size: 12px;
+  color: var(--duration-text);
+  line-height: 1.4;
+}
+
+/* Workspace path card */
+.ob-workspace-card {
+  width: 100%;
+  background: var(--detail-case-bg);
+  border: 1.5px solid var(--divider);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ob-workspace-path {
+  font-size: 15px;
+  font-family: ui-monospace, monospace;
+  color: var(--item-text);
+  word-break: break-all;
+  padding: 6px 0;
+}
+
+/* Form elements */
+.ob-input-group {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ob-input-label {
+  font-size: 13px;
+  color: var(--item-meta);
+}
+
+.ob-input {
+  width: 100%;
+  background: var(--detail-case-bg);
+  border: 1.5px solid var(--divider);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--item-text);
+  font-family: ui-monospace, monospace;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 160ms ease-out;
+}
+
+.ob-input:focus {
+  border-color: var(--record-btn);
+}
+
+.ob-input-wrap {
+  position: relative;
+}
+
+.ob-input-wrap .ob-input {
+  padding-right: 38px;
+}
+
+.ob-input-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--item-meta);
+  display: flex;
+  align-items: center;
+}
+
+/* Buttons */
+.ob-btn-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.ob-btn {
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition:
+    background 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms ease-out;
+}
+
+.ob-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ob-btn--primary {
+  background: var(--record-btn);
+  color: var(--bg);
+}
+
+.ob-btn--primary:hover {
+  filter: brightness(1.1);
+}
+
+.ob-btn--secondary {
+  background: transparent;
+  color: var(--item-text);
+  border: 1.5px solid var(--divider);
+}
+
+.ob-btn--secondary:hover {
+  border-color: var(--item-meta);
+}
+
+.ob-btn--ghost {
+  background: transparent;
+  color: var(--duration-text);
+  border: none;
+  padding: 6px 12px;
+  font-weight: 500;
+}
+
+.ob-btn--ghost:hover {
+  color: var(--item-text);
+}
+
+/* Footer */
+.ob-footer {
+  margin-top: 4px;
+}
+
+/* Test result */
+.ob-test-result {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.ob-test-result--success {
+  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+  color: var(--status-success);
+}
+
+.ob-test-result--error {
+  background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+  color: var(--status-warning);
+}
+
+.ob-test-result--warn {
+  background: color-mix(in srgb, var(--record-btn) 10%, transparent);
+  color: var(--record-btn);
+}
+
+/* Error message */
+.ob-error {
+  font-size: 13px;
+  color: var(--status-warning);
+  text-align: left;
+  width: 100%;
+}
+
+/* Drag zone */
+.ob-drop-zone {
+  width: 100%;
+  min-height: 120px;
+  border: 2px dashed var(--divider);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease-out,
+    background 160ms ease-out;
+}
+
+.ob-drop-zone:hover,
+.ob-drop-zone--active {
+  border-color: var(--record-btn);
+  background: color-mix(in srgb, var(--record-btn) 4%, transparent);
+}
+
+/* Paste area */
+.ob-paste-area {
+  width: 100%;
+  min-height: 80px;
+  background: var(--detail-case-bg);
+  border: 1.5px solid var(--divider);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: text;
+  transition: border-color 160ms ease-out;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--duration-text);
+  box-sizing: border-box;
+}
+
+.ob-paste-area:hover {
+  border-color: var(--item-meta);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-overlay {
+    animation: none;
+  }
+
+  .onboarding-overlay--dismissing {
+    animation: none;
+  }
+
+  .ob-card,
+  .ob-btn,
+  .ob-input,
+  .ob-step__dot {
+    transition: none;
+  }
+
+  .ob-btn:hover {
+    transform: none;
+  }
+}

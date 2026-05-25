@@ -95,6 +95,8 @@ export const resetWorkspacePrompt = () => invoke<string>('reset_workspace_prompt
 
 export const openFile = (path: string): Promise<void> => invoke('open_with_system', { path })
 
+export const openUrl = (url: string): Promise<void> => invoke('open_with_system', { path: url })
+
 export const cancelAiProcessing = () => invoke<void>('cancel_ai_processing')
 
 export const cancelQueuedItem = (materialPath: string) =>
@@ -238,6 +240,22 @@ export const createSampleEntryIfNeeded = (): Promise<boolean> =>
   invoke<boolean>('create_sample_entry_if_needed')
 
 export const createSampleEntry = (): Promise<void> => invoke<void>('create_sample_entry')
+
+// Onboarding
+export interface OnboardingStatus {
+  completed: boolean
+  last_step: number | null
+}
+
+export const getOnboardingStatus = (): Promise<OnboardingStatus> =>
+  invoke<OnboardingStatus>('get_onboarding_status')
+
+export const completeOnboarding = (): Promise<void> => invoke<void>('complete_onboarding')
+
+export const setOnboardingStep = (step: number): Promise<void> =>
+  invoke<void>('set_onboarding_step', { step })
+
+export const resetOnboarding = (): Promise<void> => invoke<void>('reset_onboarding')
 
 // Speaker profiles (声纹档案)
 export const getSpeakerProfiles = (): Promise<SpeakerProfile[]> =>

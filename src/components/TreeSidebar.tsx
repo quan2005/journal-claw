@@ -121,8 +121,7 @@ function PinIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M12 2v8l-4 6v2h8v-2l-4-6V2" />
-      <line x1="10" y1="20" x2="14" y2="20" />
+      <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   )
 }

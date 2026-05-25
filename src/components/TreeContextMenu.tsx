@@ -158,12 +158,7 @@ const iconPaths: Record<string, React.ReactNode> = {
     </g>
   ),
   pin: (
-    <g>
-      <circle cx="12" cy="4.5" r="2" />
-      <line x1="12" y1="6.5" x2="12" y2="14" />
-      <path d="M7 14l5 6 5-6" />
-      <line x1="7" y1="20" x2="17" y2="20" />
-    </g>
+    <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
   ),
   copy: (
     <g>

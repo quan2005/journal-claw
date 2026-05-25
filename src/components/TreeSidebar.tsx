@@ -49,6 +49,10 @@ function SectionHeader({
         gap: 6,
         padding: '12px 6px 8px',
         cursor: 'pointer',
+        position: 'sticky' as const,
+        top: 0,
+        zIndex: 1,
+        background: 'var(--sidebar-bg, #131210)',
       }}
     >
       {/* Chevron */}

@@ -12,14 +12,19 @@ node_modules.nosync/
 dist/
 dist-ssr
 *.local
+.claude/settings.local.json
 src-tauri/target/
 src-tauri/target.nosync/
+src-tauri/binaries/
 .superpowers/
 .worktrees/
+.impeccable/
+.ideate/
+.plans/
+.kiro/
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 .idea
 .DS_Store
 *.suo

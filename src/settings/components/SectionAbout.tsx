@@ -132,7 +132,7 @@ export default function SectionAbout() {
                   },
                   {
                     label: t('docsAi'),
-                    url: 'https://github.com/quan2005/journal/blob/main/llms.txt',
+                    url: 'https://github.com/quan2005/journal/blob/main/docs/llms.txt',
                   },
                 ] as const
               ).map(({ label, url }) => (

@@ -473,6 +473,11 @@ export default function App() {
     setTreeSelection(null)
   }, [])
 
+  const handleTreeSelect = useCallback((sel: TreeSelection) => {
+    setShowIdeas(false)
+    setTreeSelection(sel)
+  }, [])
+
   const handleSelectIdeas = useCallback(() => {
     setShowIdeas((prev) => !prev)
   }, [])
@@ -661,7 +666,7 @@ export default function App() {
         >
           <TreeSidebar
             selected={treeSelection}
-            onSelect={setTreeSelection}
+            onSelect={handleTreeSelect}
             onDeselect={() => { setTreeSelection(null); setSelectedEntry(null) }}
             entries={entries}
             identities={allIdentities}

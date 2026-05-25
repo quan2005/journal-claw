@@ -79,7 +79,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
-  const [previousSelection, setPreviousSelection] = useState<TreeSelection | null>(null)
+  const [showIdeas, setShowIdeas] = useState(false)
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -469,39 +469,13 @@ export default function App() {
   }, [status, start, stop, addConvertingItem, t])
 
   const handleDeselect = useCallback(() => {
-    if (treeSelection?.type === 'ideas') {
-      setTreeSelection(previousSelection)
-      setPreviousSelection(null)
-    } else {
-      setSelectedEntry(null)
-      setTreeSelection(null)
-    }
-  }, [treeSelection, previousSelection])
-
-  const handleSelectIdeas = useCallback(() => {
-    if (treeSelection?.type === 'ideas') {
-      setTreeSelection(previousSelection)
-      setPreviousSelection(null)
-    } else {
-      setPreviousSelection(treeSelection)
-      setTreeSelection({ type: 'ideas', path: '__ideas__' })
-    }
-  }, [treeSelection, previousSelection])
-
-  const handleTreeSelect = useCallback((sel: TreeSelection) => {
-    setPreviousSelection(null)
-    setTreeSelection(sel)
+    setSelectedEntry(null)
+    setTreeSelection(null)
   }, [])
 
-  const handleTreeDeselect = useCallback(() => {
-    if (treeSelection?.type === 'ideas') {
-      setTreeSelection(previousSelection)
-      setPreviousSelection(null)
-    } else {
-      setTreeSelection(null)
-      setSelectedEntry(null)
-    }
-  }, [treeSelection, previousSelection])
+  const handleSelectIdeas = useCallback(() => {
+    setShowIdeas((prev) => !prev)
+  }, [])
 
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
@@ -519,12 +493,9 @@ export default function App() {
   const handleAddToTodo = useCallback(
     (text: string, source: string) => {
       addTodo(text, undefined, source)
-      if (treeSelection?.type !== 'ideas') {
-        setPreviousSelection(treeSelection)
-      }
-      setTreeSelection({ type: 'ideas', path: '__ideas__' })
+      setShowIdeas(true)
     },
-    [addTodo, treeSelection],
+    [addTodo],
   )
   const handleProcessEntry = useCallback((entry: JournalEntry) => {
     const rel = `${entry.year_month}/${entry.filename}`
@@ -690,8 +661,8 @@ export default function App() {
         >
           <TreeSidebar
             selected={treeSelection}
-            onSelect={handleTreeSelect}
-            onDeselect={handleTreeDeselect}
+            onSelect={setTreeSelection}
+            onDeselect={() => { setTreeSelection(null); setSelectedEntry(null) }}
             entries={entries}
             identities={allIdentities}
             identityLoading={identityLoading}
@@ -707,6 +678,7 @@ export default function App() {
             todayYearMonth={todayYearMonth}
             todayDay={todayDay}
             ideasCount={todos.filter(t => !t.done).length}
+            ideasSelected={showIdeas}
             onSelectIdeas={handleSelectIdeas}
           />
           {/* Settings button fixed at bottom */}
@@ -792,7 +764,7 @@ export default function App() {
         >
           <DetailView
             type={
-              treeSelection?.type === 'ideas' ? 'ideas'
+              showIdeas ? 'ideas'
               : !treeSelection || treeSelection.type === 'journal' ? 'journal'
               : treeSelection.type === 'identity' ? 'identity'
               : 'topic-file'

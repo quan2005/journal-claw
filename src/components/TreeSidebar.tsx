@@ -24,6 +24,7 @@ interface TreeSidebarProps {
   todayYearMonth: string
   todayDay: number
   ideasCount: number
+  ideasSelected: boolean
   onSelectIdeas: () => void
 }
 
@@ -201,6 +202,7 @@ export function TreeSidebar({
   todayYearMonth,
   todayDay,
   ideasCount,
+  ideasSelected,
   onSelectIdeas,
 }: TreeSidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -350,12 +352,12 @@ export function TreeSidebar({
       <div
         onClick={onSelectIdeas}
         onMouseEnter={(e) => {
-          if (selected?.type !== 'ideas') {
+          if (!ideasSelected) {
             (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
           }
         }}
         onMouseLeave={(e) => {
-          if (selected?.type !== 'ideas') {
+          if (!ideasSelected) {
             (e.currentTarget as HTMLElement).style.background = 'transparent'
           }
         }}
@@ -368,7 +370,7 @@ export function TreeSidebar({
           cursor: 'pointer',
           userSelect: 'none' as const,
           borderRadius: 6,
-          background: selected?.type === 'ideas'
+          background: ideasSelected
             ? 'var(--accent-dim, rgba(200,147,59,0.08))'
             : 'transparent',
           transition: 'background 0.15s ease-out',
@@ -389,7 +391,7 @@ export function TreeSidebar({
           <span
             style={{
               width: 3,
-              height: selected?.type === 'ideas' ? 16 : 0,
+              height: ideasSelected ? 16 : 0,
               borderRadius: 2,
               background: 'var(--accent, #C8933B)',
               transition: 'height 0.2s ease-out',
@@ -405,10 +407,10 @@ export function TreeSidebar({
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            color: selected?.type === 'ideas'
+            color: ideasSelected
               ? 'var(--accent, #C8933B)'
               : 'var(--item-meta, #8a8478)',
-            opacity: selected?.type !== 'ideas' ? 0.7 : 1,
+            opacity: !ideasSelected ? 0.7 : 1,
             transition: 'opacity 0.15s, color 0.15s',
           }}
         >
@@ -433,7 +435,7 @@ export function TreeSidebar({
             fontSize: '0.75rem',
             fontWeight: 'var(--font-medium, 500)',
             letterSpacing: '0.03em',
-            color: selected?.type === 'ideas'
+            color: ideasSelected
               ? 'var(--accent, #C8933B)'
               : 'var(--item-meta, #8a8478)',
             transition: 'color 0.15s',
@@ -448,10 +450,10 @@ export function TreeSidebar({
             style={{
               fontSize: '0.6875rem',
               fontWeight: 'var(--font-medium, 500)',
-              color: selected?.type === 'ideas'
+              color: ideasSelected
                 ? 'var(--accent, #C8933B)'
                 : 'var(--text-tertiary, #5c5852)',
-              opacity: selected?.type === 'ideas' ? 0.7 : 1,
+              opacity: ideasSelected ? 0.7 : 1,
               marginLeft: 'auto',
               transition: 'color 0.15s',
             }}

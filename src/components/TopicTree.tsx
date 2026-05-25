@@ -93,7 +93,13 @@ export function TopicTree({
             width: 0, overflow: 'hidden', opacity: 0,
           }}>
             <button onClick={(e) => { e.stopPropagation(); onAt(entry.path) }} style={actBtnStyle}>@</button>
-            <button onClick={(e) => { e.stopPropagation(); onMore(entry, e.clientX, e.clientY) }} style={actBtnStyle}>…</button>
+            <button onClick={(e) => { e.stopPropagation(); onMore(entry, e.clientX, e.clientY) }} style={actBtnStyle}>
+                    <svg width="14" height="4" viewBox="0 0 16 4" fill="currentColor" style={{ display: 'block' }}>
+                      <circle cx="2" cy="2" r="1.5" />
+                      <circle cx="8" cy="2" r="1.5" />
+                      <circle cx="14" cy="2" r="1.5" />
+                    </svg>
+                  </button>
           </div>
         </div>
 

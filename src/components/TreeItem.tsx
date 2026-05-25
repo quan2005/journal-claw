@@ -393,7 +393,11 @@ export function TreeItem({
                   ;(e.currentTarget as HTMLButtonElement).style.color = '#a0988c'
                 }}
               >
-                &#8230;
+                <svg width="14" height="4" viewBox="0 0 16 4" fill="currentColor" style={{ display: 'block' }}>
+                    <circle cx="2" cy="2" r="1.5" />
+                    <circle cx="8" cy="2" r="1.5" />
+                    <circle cx="14" cy="2" r="1.5" />
+                  </svg>
               </button>
             )}
           </div>

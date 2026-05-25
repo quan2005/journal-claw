@@ -19,7 +19,7 @@ import { convertFileSrc } from '@tauri-apps/api/core'
 import { pickDisplayTags } from '../lib/tags'
 import { FindBar } from './FindBar'
 import { Spinner } from './Spinner'
-import { SOUL_PATH } from './IdentityList'
+const SOUL_PATH = '__soul__'
 import { createTranslator, detectLang } from '../lib/i18n'
 import { useTranslation } from '../contexts/I18nContext'
 

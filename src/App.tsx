@@ -5,7 +5,6 @@ import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 import { DetailPanel } from './components/DetailPanel'
 import { SettingsPanel } from './settings/SettingsPanel'
-import { SOUL_PATH } from './components/IdentityList'
 import { IdentityDetail } from './components/IdentityDetail'
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { FilePreviewPanel } from './components/FilePreviewPanel'
@@ -35,8 +34,6 @@ import {
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
-import type { WorkspaceDirEntry } from './lib/tauri'
-import type { SidebarTab } from './components/SidebarTabs'
 import { useTranslation } from './contexts/I18nContext'
 import { RightPanel } from './components/RightPanel'
 import type { RightPanelTab } from './components/RightPanel'
@@ -44,6 +41,7 @@ import { ChatPanel } from './components/ChatPanel'
 import { useConversation } from './hooks/useConversation'
 import OnboardingView from './components/OnboardingView'
 
+const SOUL_PATH = '__soul__'
 const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
 
@@ -84,9 +82,7 @@ export default function App() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [_sidebarTab, _setSidebarTab] = useState<SidebarTab>('journal')
   const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
-  const [_selectedFile, _setSelectedFile] = useState<WorkspaceDirEntry | null>(null)
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)

@@ -2,15 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
-import { JournalList } from './components/JournalList'
+import { TreeSidebar } from './components/TreeSidebar'
 import { DetailPanel } from './components/DetailPanel'
 import { SettingsPanel } from './settings/SettingsPanel'
-import { IdentityList, SOUL_PATH } from './components/IdentityList'
+import { SOUL_PATH } from './components/IdentityList'
 import { IdentityDetail } from './components/IdentityDetail'
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
-import { SidebarTabs } from './components/SidebarTabs'
-import type { SidebarTab } from './components/SidebarTabs'
-import { FileTree } from './components/FileTree'
 import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { useIdentity } from './hooks/useIdentity'
 import { TodoSidebar } from './components/TodoSidebar'
@@ -28,7 +25,6 @@ import {
   createSampleEntryIfNeeded,
   createSampleEntry,
   listAllJournalEntries,
-  deleteIdentity,
   enqueueWork as invokeEnqueueWork,
   cancelWorkItem,
   retryWorkItem,
@@ -38,8 +34,9 @@ import {
   completeOnboarding,
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
-import type { JournalEntry, QueueItem, IdentityEntry } from './types'
+import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import type { WorkspaceDirEntry } from './lib/tauri'
+import type { SidebarTab } from './components/SidebarTabs'
 import { useTranslation } from './contexts/I18nContext'
 import { RightPanel } from './components/RightPanel'
 import type { RightPanelTab } from './components/RightPanel'
@@ -55,7 +52,7 @@ export default function App() {
   const { status, start, stop } = useRecorder()
   const {
     entries,
-    loading,
+    loading: _loading,
     loadingMore,
     hasMore,
     loadMore,
@@ -87,8 +84,9 @@ export default function App() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('journal')
-  const [selectedFile, setSelectedFile] = useState<WorkspaceDirEntry | null>(null)
+  const [_sidebarTab, _setSidebarTab] = useState<SidebarTab>('journal')
+  const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
+  const [_selectedFile, _setSelectedFile] = useState<WorkspaceDirEntry | null>(null)
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -107,9 +105,6 @@ export default function App() {
       .catch(() => setOnboardingLoading(false))
   }, [])
 
-  const handleTabChange = useCallback((tab: SidebarTab) => {
-    setSidebarTab(tab)
-  }, [])
   const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
   const [mergeSource, setMergeSource] = useState<IdentityEntry | null>(null)
   const [baseWidth, setBaseWidth] = useState<number>(() => {
@@ -483,7 +478,10 @@ export default function App() {
     }
   }, [status, start, stop, addConvertingItem, t])
 
-  const handleDeselect = useCallback(() => setSelectedEntry(null), [])
+  const handleDeselect = useCallback(() => {
+    setSelectedEntry(null)
+    setTreeSelection(null)
+  }, [])
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
     setRightPanelTab('chat')
@@ -588,17 +586,6 @@ export default function App() {
   }
   const allIdentities: IdentityEntry[] = [SOUL_ENTRY, ...identities]
 
-  const handleDeleteIdentity = async (identity: IdentityEntry) => {
-    if (!window.confirm(t('confirmDeleteIdentity', { name: identity.name }))) return
-    try {
-      await deleteIdentity(identity.path)
-      if (selectedIdentity?.path === identity.path) setSelectedIdentity(null)
-      refreshIdentity()
-    } catch (e) {
-      console.error('[App] identity delete failed', e)
-    }
-  }
-
   const handleOnboardingComplete = useCallback(async () => {
     await completeOnboarding()
     setShowOnboarding(false)
@@ -613,6 +600,10 @@ export default function App() {
       })
       .catch(() => {})
   }, [refresh])
+
+  const todayDate = new Date()
+  const todayYearMonth = `${String(todayDate.getFullYear()).slice(2)}${String(todayDate.getMonth() + 1).padStart(2, '0')}`
+  const todayDay = todayDate.getDate()
 
   return (
     <div
@@ -666,7 +657,7 @@ export default function App() {
       )}
 
       <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left: Journal list / Identity list */}
+        {/* Left: Tree Sidebar */}
         <div
           style={{
             width: baseWidth,
@@ -677,71 +668,26 @@ export default function App() {
             borderRight: '0.5px solid var(--divider)',
           }}
         >
-          <SidebarTabs active={sidebarTab} onChange={handleTabChange} />
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                display: sidebarTab === 'journal' ? 'flex' : 'none',
-                flexDirection: 'column',
-              }}
-            >
-              <JournalList
-                entries={entries}
-                loading={loading}
-                selectedPath={selectedEntry?.path ?? null}
-                onSelect={setSelectedEntry}
-                onProcess={(entry) => {
-                  const rel = `${entry.year_month}/${entry.filename}`
-                  setRightPanelOpen(true)
-                  setRightPanelTab('chat')
-                  window.dispatchEvent(
-                    new CustomEvent('chat-append-text', { detail: `@${rel}` }),
-                  )
-                }}
-                hasMore={hasMore}
-                loadingMore={loadingMore}
-                onLoadMore={loadMore}
-              />
-            </div>
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                display: sidebarTab === 'identity' ? 'flex' : 'none',
-                flexDirection: 'column',
-              }}
-            >
-              <IdentityList
-                identities={allIdentities}
-                loading={identityLoading}
-                selectedPath={selectedIdentity?.path ?? null}
-                onSelect={(identity) => setSelectedIdentity(identity)}
-                onProcess={(identity) => {
-                  const rel = `identity/${identity.filename}`
-                  setRightPanelOpen(true)
-                  setRightPanelTab('chat')
-                  window.dispatchEvent(
-                    new CustomEvent('chat-append-text', { detail: `@${rel}` }),
-                  )
-                }}
-                onMerge={(identity) => setMergeSource(identity)}
-                onDelete={handleDeleteIdentity}
-              />
-            </div>
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                display: sidebarTab === 'files' ? 'flex' : 'none',
-                flexDirection: 'column',
-              }}
-            >
-              <FileTree selectedPath={selectedFile?.path ?? null} onSelectFile={setSelectedFile} />
-            </div>
-          </div>
-
+          <TreeSidebar
+            selected={treeSelection}
+            onSelect={setTreeSelection}
+            onDeselect={() => setTreeSelection(null)}
+            entries={entries}
+            identities={allIdentities}
+            identityLoading={identityLoading}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
+            onAtRef={(path: string) => {
+              setRightPanelOpen(true)
+              setRightPanelTab('chat')
+              window.dispatchEvent(
+                new CustomEvent('chat-append-text', { detail: `@${path}` }),
+              )
+            }}
+            todayYearMonth={todayYearMonth}
+            todayDay={todayDay}
+          />
           {/* Settings button fixed at bottom */}
           {view !== 'settings' && (
             <div
@@ -813,7 +759,7 @@ export default function App() {
           }}
         />
 
-        {/* Center: Detail panel / Identity detail */}
+        {/* Center: Detail panel */}
         <div
           style={{
             flex: 1,
@@ -823,53 +769,45 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              display: sidebarTab === 'journal' ? 'flex' : 'none',
-              flexDirection: 'column',
-              flex: 1,
-              minWidth: 0,
-              overflow: 'hidden',
-            }}
-          >
-            <DetailPanel
-              entry={selectedEntry}
-              entries={entries}
-              onDeselect={handleDeselect}
-              onRecord={handleRecord}
-              onOpenDock={handleOpenChat}
-              onSelectSample={handleSelectSample}
-              onAddToTodo={handleAddToTodo}
-              onProcess={handleProcessEntry}
-              onVisualDesign={handleVisualDesign}
-            />
-          </div>
-          <div
-            style={{
-              display: sidebarTab === 'identity' ? 'flex' : 'none',
-              flexDirection: 'column',
-              flex: 1,
-              minWidth: 0,
-              overflow: 'hidden',
-            }}
-          >
-            <IdentityDetail
-              identity={selectedIdentity}
-              onRecord={handleRecord}
-              onOpenDock={handleOpenChat}
-            />
-          </div>
-          <div
-            style={{
-              display: sidebarTab === 'files' ? 'flex' : 'none',
-              flexDirection: 'column',
-              flex: 1,
-              minWidth: 0,
-              overflow: 'hidden',
-            }}
-          >
-            <FilePreviewPanel file={selectedFile} />
-          </div>
+          {/* Default/Journal detail */}
+          {(!treeSelection || treeSelection.type === 'journal') && (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <DetailPanel
+                entry={treeSelection?.type === 'journal'
+                  ? entries.find(e => `${e.year_month}/${e.filename}` === treeSelection.path) || selectedEntry
+                  : selectedEntry}
+                entries={entries}
+                onDeselect={handleDeselect}
+                onRecord={handleRecord}
+                onOpenDock={handleOpenChat}
+                onSelectSample={handleSelectSample}
+                onAddToTodo={handleAddToTodo}
+                onProcess={handleProcessEntry}
+                onVisualDesign={handleVisualDesign}
+              />
+            </div>
+          )}
+          {/* Identity detail */}
+          {treeSelection?.type === 'identity' && (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <IdentityDetail
+                identity={allIdentities.find(i => i.path === treeSelection.path) ?? null}
+                onRecord={handleRecord}
+                onOpenDock={handleOpenChat}
+              />
+            </div>
+          )}
+          {/* Topic file detail */}
+          {treeSelection?.type === 'topic-file' && (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <FilePreviewPanel file={{
+                name: treeSelection.path.split('/').pop() ?? '',
+                path: treeSelection.path,
+                is_dir: false,
+                mtime_secs: 0,
+              }} />
+            </div>
+          )}
         </div>
 
         {/* Right Panel */}
@@ -933,8 +871,7 @@ export default function App() {
                     onNavigateToSource={(filename: string) => {
                       const match = entries.find((e) => e.filename === filename)
                       if (match) {
-                        setSidebarTab('journal')
-                        setSelectedEntry(match)
+                        setTreeSelection({ type: 'journal', path: `${match.year_month}/${match.filename}` })
                       }
                     }}
                   />

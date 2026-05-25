@@ -231,12 +231,11 @@ export function TreeItem({
         paddingLeft,
         userSelect: 'none' as const,
         cursor: 'pointer',
+        position: 'relative' as const,
         background: isSelected
           ? 'rgba(200,147,59,0.10)'
           : 'transparent',
-        borderLeft: isSelected
-          ? '2px solid var(--accent, #C8933B)'
-          : '2px solid transparent',
+        transition: 'background 0.15s ease-out',
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
@@ -249,6 +248,22 @@ export function TreeItem({
         }
       }}
     >
+
+      {/* Animated selection bar — 3px wide, grows from 0 to 16px */}
+      <span
+        style={{
+          position: 'absolute' as const,
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 3,
+          height: isSelected ? 16 : 0,
+          borderRadius: 2,
+          background: 'var(--accent, #C8933B)',
+          transition: 'height 0.2s ease-out',
+        }}
+      />
+
       {/* Header row: block + name/title + tags + actions */}
       <div
         style={{

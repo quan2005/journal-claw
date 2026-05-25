@@ -311,8 +311,12 @@ export function TreeSidebar({
     async (itemType: string, path: string) => {
       try {
         if (itemType === 'journal') {
-          await deleteJournalEntry(path)
+          // path is relative like "2605/25-xxx.md", resolve to absolute
+          const entry = entries.find(e => `${e.year_month}/${e.filename}` === path)
+          const absPath = entry?.path ?? path
+          await deleteJournalEntry(absPath)
         } else if (itemType === 'identity') {
+          // path is already absolute for identities
           await deleteIdentity(path)
         } else if (itemType === 'topic-file' || itemType === 'topic-folder') {
           await deleteTopic(path)
@@ -324,7 +328,7 @@ export function TreeSidebar({
         console.error('[TreeSidebar] delete failed:', e)
       }
     },
-    [onDeselect, refreshPinned, loadTopics],
+    [entries, onDeselect, refreshPinned, loadTopics],
   )
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -374,7 +378,7 @@ export function TreeSidebar({
                       onAtRef(`${entry.year_month}/${entry.filename}`)
                     }
                     onMore={(x, y) =>
-                      handleMore('journal', entry.title, entry.path, true, x, y)
+                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, true, x, y)
                     }
                   />
                 )
@@ -477,7 +481,7 @@ export function TreeSidebar({
                       onAtRef(`${entry.year_month}/${entry.filename}`)
                     }
                     onMore={(x, y) =>
-                      handleMore('journal', entry.title, entry.path, false, x, y)
+                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, false, x, y)
                     }
                   />
                 ))}

@@ -3,11 +3,9 @@ import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
-import { DetailPanel } from './components/DetailPanel'
+import { DetailView } from './components/DetailView'
 import { SettingsPanel } from './settings/SettingsPanel'
-import { IdentityDetail } from './components/IdentityDetail'
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
-import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { useIdentity } from './hooks/useIdentity'
 import { TodoSidebar } from './components/TodoSidebar'
 import { useRecorder } from './hooks/useRecorder'
@@ -221,7 +219,7 @@ export default function App() {
   }, [refresh, selectedEntry])
 
   // Keep entriesRef in sync so navigate handler always sees latest entries
-  // Also sync selectedEntry so DetailPanel sees updated mtime_secs after file changes
+  // Also sync selectedEntry so DetailView sees updated mtime_secs after file changes
   useEffect(() => {
     entriesRef.current = entries
     setSelectedEntry((prev) => {
@@ -765,45 +763,33 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          {/* Default/Journal detail */}
-          {(!treeSelection || treeSelection.type === 'journal') && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <DetailPanel
-                entry={treeSelection?.type === 'journal'
-                  ? entries.find(e => `${e.year_month}/${e.filename}` === treeSelection.path) || selectedEntry
-                  : selectedEntry}
-                entries={entries}
-                onDeselect={handleDeselect}
-                onRecord={handleRecord}
-                onOpenDock={handleOpenChat}
-                onSelectSample={handleSelectSample}
-                onAddToTodo={handleAddToTodo}
-                onProcess={handleProcessEntry}
-                onVisualDesign={handleVisualDesign}
-              />
-            </div>
-          )}
-          {/* Identity detail */}
-          {treeSelection?.type === 'identity' && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <IdentityDetail
-                identity={allIdentities.find(i => i.path === treeSelection.path) ?? null}
-                onRecord={handleRecord}
-                onOpenDock={handleOpenChat}
-              />
-            </div>
-          )}
-          {/* Topic file detail */}
-          {treeSelection?.type === 'topic-file' && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <FilePreviewPanel file={{
-                name: treeSelection.path.split('/').pop() ?? '',
-                path: treeSelection.path,
-                is_dir: false,
-                mtime_secs: 0,
-              }} />
-            </div>
-          )}
+          <DetailView
+            type={!treeSelection || treeSelection.type === 'journal'
+              ? 'journal'
+              : treeSelection.type === 'identity'
+              ? 'identity'
+              : 'topic-file'}
+            entry={treeSelection?.type === 'journal'
+              ? entries.find(e => `${e.year_month}/${e.filename}` === treeSelection.path) || selectedEntry || undefined
+              : selectedEntry || undefined}
+            entries={entries}
+            identity={treeSelection?.type === 'identity'
+              ? allIdentities.find(i => i.path === treeSelection.path) ?? undefined
+              : undefined}
+            file={treeSelection?.type === 'topic-file' ? {
+              name: treeSelection.path.split('/').pop() ?? '',
+              path: treeSelection.path,
+              is_dir: false,
+              mtime_secs: 0,
+            } : undefined}
+            onDeselect={handleDeselect}
+            onRecord={handleRecord}
+            onOpenDock={handleOpenChat}
+            onSelectSample={handleSelectSample}
+            onAddToTodo={handleAddToTodo}
+            onProcess={handleProcessEntry}
+            onVisualDesign={handleVisualDesign}
+          />
         </div>
 
         {/* Right Panel */}

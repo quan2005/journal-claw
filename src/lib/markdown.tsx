@@ -35,7 +35,7 @@ export function renderMarkdown(
   if (isMdx) {
     return (
       <div className="md-body">
-        <MdxRenderer content={cleaned} _entryPath={absolutePath} />
+        <MdxRenderer content={cleaned} entryPath={absolutePath} />
       </div>
     )
   }

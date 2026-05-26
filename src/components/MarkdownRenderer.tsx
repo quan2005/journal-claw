@@ -307,7 +307,7 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
   const isMdx = entryPath?.endsWith('.mdx')
 
   if (isMdx) {
-    return <MdxRenderer content={content} _entryPath={entryPath} />
+    return <MdxRenderer content={content} entryPath={entryPath} />
   }
 
   const isLarge = content.length > LARGE_THRESHOLD

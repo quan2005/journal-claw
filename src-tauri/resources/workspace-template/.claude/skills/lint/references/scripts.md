@@ -6,11 +6,11 @@
 
 ```bash
 for dir in /path/to/workspace/26*/; do
-  echo "$(basename $dir): $(find "$dir" -maxdepth 1 -name "*.md" | wc -l) entries"
+  echo "$(basename $dir): $(find "$dir" -maxdepth 1 \( -name "*.mdx" -o -name "*.md" -o -name "*.html" -o -name "*.htm" \) | wc -l) entries"
 done
 ```
 
-## Phase 3.4：修复 frontmatter 格式
+## Phase 3.4：修复元数据格式
 
 ```bash
 .claude/scripts/fix-frontmatter
@@ -27,7 +27,7 @@ done
 
 ```bash
 WORKSPACE="$(cd "$(dirname "$0")/../.." && pwd)"
-TOTAL=$(find "$WORKSPACE" -maxdepth 2 -mindepth 2 -name "*.md" \
+TOTAL=$(find "$WORKSPACE" -maxdepth 2 -mindepth 2 \( -name "*.mdx" -o -name "*.md" -o -name "*.html" -o -name "*.htm" \) \
   -not -path "$WORKSPACE/.claude/*" \
   -regex ".*/[0-9][0-9][0-9][0-9]/.*" | wc -l | tr -d ' ')
 cat > "$WORKSPACE/.claude/last-lint.json" <<EOF

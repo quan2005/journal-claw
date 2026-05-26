@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
-# fix-frontmatter — 修复日志条目的 YAML frontmatter 格式问题
+# fix-frontmatter — 修复日志条目的元数据格式问题
 #
-# 问题模式：AI 生成的条目把 tags/summary 写成了 markdown 标题格式
-#   ---
-#   (空行)
-#   ## tags: [...]
-#   summary: ...
-#   (无闭合 ---)
-#
-# 修复为：
-#   ---
-#   tags: [...]
-#   summary: ...
-#   ---
+# 支持三种格式：
+#   MDX (.mdx):      YAML frontmatter (--- ... ---)
+#   Markdown (.md):  YAML frontmatter (--- ... ---)
+#   HTML (.html):    HTML comment metadata (<!-- ... -->)
 #
 # Usage:
 #   .claude/scripts/fix-frontmatter [--dry-run] [FILE...]
@@ -38,7 +30,7 @@ workspace="$(cd "${script_dir}/../.." && pwd)"
 if [[ ${#files[@]} -eq 0 ]]; then
   while IFS= read -r -d '' f; do
     files+=("$f")
-  done < <(find "$workspace" -maxdepth 3 -name "*.md" \
+  done < <(find "$workspace" -maxdepth 3 \( -name "*.mdx" -o -name "*.md" -o -name "*.html" -o -name "*.htm" \) \
     -not -path "$workspace/.claude/*" \
     -not -path "$workspace/identity/*" \
     -not -path "$workspace/refs/*" \
@@ -53,121 +45,171 @@ skipped=0
 for f in "${files[@]}"; do
   [[ -f "$f" ]] || continue
 
-  # Read first line — must be ---
-  first_line=$(head -1 "$f")
-  [[ "$first_line" == "---" ]] || continue
+  # Determine format by extension
+  is_html=false
+  [[ "$f" == *.html || "$f" == *.htm ]] && is_html=true
 
-  # Check if file has ## tags: or ## summary: (broken pattern)
-  # Only check within first 15 lines
-  head_block=$(head -15 "$f")
-  if ! echo "$head_block" | grep -qE '^## (tags|summary):'; then
-    # Also check: has opening --- but no closing --- in first 15 lines
-    close_count=$(echo "$head_block" | grep -c '^---$' || true)
-    if [[ $close_count -ge 2 ]]; then
-      continue  # frontmatter looks fine
+  if $is_html; then
+    # ── HTML comment metadata format ──
+    first_line=$(head -1 "$f")
+    [[ "$first_line" == "<!--" ]] || continue
+
+    tags_line=""
+    summary_line=""
+    sources_line=""
+    body_start=0
+    line_num=0
+    in_meta=true
+
+    while IFS= read -r line; do
+      line_num=$((line_num + 1))
+      [[ $line_num -eq 1 ]] && continue
+
+      if $in_meta; then
+        if [[ "$line" == "-->" ]]; then
+          in_meta=false
+          body_start=$((line_num + 1))
+          continue
+        fi
+        cleaned="${line#\#\# }"
+        if [[ "$cleaned" =~ ^tags:\ * ]]; then
+          tags_line="$cleaned"
+        elif [[ "$cleaned" =~ ^summary:\ * ]]; then
+          summary_line="$cleaned"
+        elif [[ "$cleaned" =~ ^sources:\ * ]]; then
+          sources_line="$cleaned"
+        fi
+      fi
+    done < "$f"
+
+    [[ -n "$tags_line" || -n "$summary_line" || -n "$sources_line" ]] || continue
+
+    if [[ $body_start -eq 0 ]]; then
+      body_start=$((line_num + 1))
     fi
-    # Has opening but no closing — might still need fix if summary/tags exist
-    if ! echo "$head_block" | grep -qE '^(tags|summary):'; then
-      continue  # no frontmatter fields at all, skip
+
+    new_fm="<!--"
+    [[ -n "$tags_line" ]] && new_fm+=$'\n'"$tags_line"
+    [[ -n "$summary_line" ]] && new_fm+=$'\n'"$summary_line"
+    [[ -n "$sources_line" ]] && new_fm+=$'\n'"$sources_line"
+    new_fm+=$'\n'"-->"
+
+    total_lines=$(wc -l < "$f")
+    body=""
+    if [[ $body_start -le $total_lines ]]; then
+      body=$(tail -n +$body_start "$f")
     fi
-  fi
+    body=$(echo "$body" | sed '/./,$!d')
 
-  # --- Parse and rebuild frontmatter ---
-  tags_line=""
-  summary_line=""
-  sources_line=""
-  body_start=0
-
-  # Read file line by line, extract frontmatter fields
-  line_num=0
-  in_frontmatter=true
-  found_close=false
-
-  while IFS= read -r line; do
-    line_num=$((line_num + 1))
-
-    # Skip first line (opening ---)
-    [[ $line_num -eq 1 ]] && continue
-
-    if $in_frontmatter; then
-      # Strip ## prefix if present
-      cleaned="${line#\#\# }"
-
-      # Check for closing ---
-      if [[ "$line" == "---" ]]; then
-        found_close=true
-        in_frontmatter=false
-        body_start=$((line_num + 1))
-        continue
-      fi
-
-      # Match tags: or summary:
-      if [[ "$cleaned" =~ ^tags:\ * ]]; then
-        tags_line="$cleaned"
-        continue
-      fi
-      if [[ "$cleaned" =~ ^summary:\ * ]]; then
-        summary_line="$cleaned"
-        continue
-      fi
-      if [[ "$cleaned" =~ ^sources:\ * ]]; then
-        sources_line="$cleaned"
-        continue
-      fi
-
-      # Empty line inside frontmatter — skip
-      if [[ -z "${line// /}" ]]; then
-        continue
-      fi
-
-      # Non-frontmatter line hit without closing ---
-      # This is where body starts
-      in_frontmatter=false
-      body_start=$line_num
+    if $dry_run; then
+      echo "WOULD FIX (HTML): $f"
+      echo "  tags: ${tags_line:-<missing>}"
+      echo "  summary: ${summary_line:0:60}..."
+    else
+      {
+        printf '%s\n' "$new_fm"
+        [[ -n "$body" ]] && printf '%s\n' "$body"
+      } > "${f}.tmp"
+      mv "${f}.tmp" "$f"
+      echo "FIXED: $(basename "$f")"
     fi
-  done < "$f"
+    fixed=$((fixed + 1))
 
-  # If we never found body_start (all frontmatter, no body)
-  if [[ $body_start -eq 0 ]]; then
-    body_start=$((line_num + 1))
-  fi
-
-  # Must have at least tags or summary to fix
-  if [[ -z "$tags_line" && -z "$summary_line" && -z "$sources_line" ]]; then
-    continue
-  fi
-
-  # Build new frontmatter
-  new_fm="---"$'\n'
-  [[ -n "$tags_line" ]] && new_fm+="$tags_line"$'\n'
-  [[ -n "$summary_line" ]] && new_fm+="$summary_line"$'\n'
-  [[ -n "$sources_line" ]] && new_fm+="$sources_line"$'\n'
-  new_fm+="---"$'\n'
-
-  # Extract body (from body_start to end)
-  total_lines=$(wc -l < "$f")
-  body=""
-  if [[ $body_start -le $total_lines ]]; then
-    body=$(tail -n +$body_start "$f")
-  fi
-
-  # Strip leading blank lines from body
-  body=$(echo "$body" | sed '/./,$!d')
-
-  if $dry_run; then
-    echo "WOULD FIX: $f"
-    echo "  tags: ${tags_line:-<missing>}"
-    echo "  summary: ${summary_line:0:60}..."
   else
-    # Write fixed file
-    {
-      printf '%s\n' "$new_fm"
-      [[ -n "$body" ]] && printf '%s\n' "$body"
-    } > "${f}.tmp"
-    mv "${f}.tmp" "$f"
-    echo "FIXED: $(basename "$f")"
+    # ── YAML frontmatter format (original .md logic) ──
+    first_line=$(head -1 "$f")
+    [[ "$first_line" == "---" ]] || continue
+
+    head_block=$(head -15 "$f")
+    if ! echo "$head_block" | grep -qE '^## (tags|summary):'; then
+      close_count=$(echo "$head_block" | grep -c '^---$' || true)
+      if [[ $close_count -ge 2 ]]; then
+        continue
+      fi
+      if ! echo "$head_block" | grep -qE '^(tags|summary):'; then
+        continue
+      fi
+    fi
+
+    tags_line=""
+    summary_line=""
+    sources_line=""
+    body_start=0
+    line_num=0
+    in_frontmatter=true
+    found_close=false
+
+    while IFS= read -r line; do
+      line_num=$((line_num + 1))
+      [[ $line_num -eq 1 ]] && continue
+
+      if $in_frontmatter; then
+        cleaned="${line#\#\# }"
+
+        if [[ "$line" == "---" ]]; then
+          found_close=true
+          in_frontmatter=false
+          body_start=$((line_num + 1))
+          continue
+        fi
+
+        if [[ "$cleaned" =~ ^tags:\ * ]]; then
+          tags_line="$cleaned"
+          continue
+        fi
+        if [[ "$cleaned" =~ ^summary:\ * ]]; then
+          summary_line="$cleaned"
+          continue
+        fi
+        if [[ "$cleaned" =~ ^sources:\ * ]]; then
+          sources_line="$cleaned"
+          continue
+        fi
+
+        if [[ -z "${line// /}" ]]; then
+          continue
+        fi
+
+        in_frontmatter=false
+        body_start=$line_num
+      fi
+    done < "$f"
+
+    if [[ $body_start -eq 0 ]]; then
+      body_start=$((line_num + 1))
+    fi
+
+    if [[ -z "$tags_line" && -z "$summary_line" && -z "$sources_line" ]]; then
+      continue
+    fi
+
+    new_fm="---"$'\n'
+    [[ -n "$tags_line" ]] && new_fm+="$tags_line"$'\n'
+    [[ -n "$summary_line" ]] && new_fm+="$summary_line"$'\n'
+    [[ -n "$sources_line" ]] && new_fm+="$sources_line"$'\n'
+    new_fm+="---"$'\n'
+
+    total_lines=$(wc -l < "$f")
+    body=""
+    if [[ $body_start -le $total_lines ]]; then
+      body=$(tail -n +$body_start "$f")
+    fi
+    body=$(echo "$body" | sed '/./,$!d')
+
+    if $dry_run; then
+      echo "WOULD FIX (MD): $f"
+      echo "  tags: ${tags_line:-<missing>}"
+      echo "  summary: ${summary_line:0:60}..."
+    else
+      {
+        printf '%s\n' "$new_fm"
+        [[ -n "$body" ]] && printf '%s\n' "$body"
+      } > "${f}.tmp"
+      mv "${f}.tmp" "$f"
+      echo "FIXED: $(basename "$f")"
+    fi
+    fixed=$((fixed + 1))
   fi
-  fixed=$((fixed + 1))
 done
 
 echo ""

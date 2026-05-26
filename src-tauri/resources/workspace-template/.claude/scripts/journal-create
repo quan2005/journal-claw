@@ -60,11 +60,11 @@ template_path="${repo_root}/refs/工作日记模版.md"
 mkdir -p "${target_dir}"
 
 base_name="${day}-${title}"
-target_path="${target_dir}/${base_name}.md"
+target_path="${target_dir}/${base_name}.mdx"
 counter=2
 while [[ -e "${target_path}" ]]; do
   suffix=$(printf '%02d' "${counter}")
-  target_path="${target_dir}/${base_name}-${suffix}.md"
+  target_path="${target_dir}/${base_name}-${suffix}.mdx"
   counter=$((counter + 1))
 done
 
@@ -75,40 +75,41 @@ if [[ -f "${template_path}" ]]; then
     "s/\\{\\{title\\}\\}/${title}/g; s/\\{\\{created_at\\}\\}/${created_at}/g" \
     "${template_path}" > "${target_path}"
 else
-  cat > "${target_path}" <<EOF
+  cat > "${target_path}" <<MDXEOF
 ---
 tags: [journal]
 summary:
+sources:
 ---
 
 # ${title}
 
 ## 背景
 
-- 
+-
 
 ## 核心结论
 
-- 
+-
 
 ## 关键事实
 
-- 
+-
 
 ## 判断与推理
 
-- 
+-
 
 ## 行动与待确认
 
-- 
+-
 
 ## 关联记录
 
-- 
+-
 
 *创建时间: ${created_at}*
-EOF
+MDXEOF
 fi
 
 echo "${target_path}"

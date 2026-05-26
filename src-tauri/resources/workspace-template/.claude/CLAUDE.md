@@ -12,7 +12,7 @@
 {workspace}/
   yyMM/                ← 年月目录，如 2604 = 2026 年 4 月
     raw/               ← 原始素材（录音/PDF/文本）；只读
-    DD-title.html      ← 日志条目，如 01-产品评审会议.html
+    DD-title.mdx      ← 日志条目，如 01-产品评审会议.mdx
   identity/            ← 人物与产品档案
     README.md          ← 用户本人
     {region}-{name}.md ← 其他人物
@@ -58,19 +58,19 @@
 
 ## 日志格式
 
-文件命名：`yyMM/DD-title.html`，标题具体不泛化。
+文件命名：`yyMM/DD-title.mdx`，标题具体不泛化。
 
-元数据放在文件顶部的 HTML 注释块中，只允许三项：
+所有日志使用 MDX 格式（Markdown + JSX 组件）。元数据用 YAML frontmatter：
 
-```html
-<!--
-tags: journal, meeting
+```yaml
+---
+tags: [journal, meeting]
 summary: 结论先行。背景与约束补充。
-sources: 2604/raw/file.m4a
--->
+sources: [2604/raw/file.m4a]
+---
 ```
 
-正文使用 Fragment HTML（无需 `<!doctype>`、`<html>`、`<head>`、`<body>` 标签），直接用语义标签组织内容。
+正文使用标准 Markdown 语法，需要结构化展示时使用内置 MDX 组件（见下文「MDX Components」）。
 
 ## 写作原则
 
@@ -85,48 +85,9 @@ sources: 2604/raw/file.m4a
 
 ## 日志排版
 
-底层使用 neat.style 自动排版语义 HTML（现代化蓝色主题，零 class，自动暗色模式）。在此基础上提供 10 个视觉组件：
+使用 Markdown 语法和 MDX 内置组件排版。标准 Markdown（标题、列表、表格、代码块等）负责结构，MDX 组件负责需要视觉强化的信息呈现。
 
-### 视觉组件
-
-| 场景 | 组件 | HTML 结构 |
-|---|---|---|
-| 方案对比、A/B/C 选项 | `.options` | `.options` > `.option` > `.letter` + `.content`（含 h3 + p） |
-| 结论卡片、要点分块 | `.cards` | `.cards` > `.card` > `.card-body`（含 strong + p） |
-| 设计示意/线框图 | `.mockup` | `.mockup` > `.mockup-header` + `.mockup-body` |
-| 并排对比 | `.split` | `.split` > div × 2（各含 h4 + p） |
-| 利弊权衡 | `.pros-cons` | `.pros-cons` > `.pros` + `.cons`（各含 h4 + ul） |
-| 决策/结论记录 | `.decisions` | `<div class="decisions"><h3>结论</h3><ul>...</ul></div>` |
-| 时间线 | `.timeline` | `.timeline` > `.timeline-item` > `.timeline-date` + `.timeline-body` |
-| 数据指标条 | `.kpi-bar` | `.kpi-bar` > `.kpi-item` > `.kpi-value` + `.kpi-label`（+ `.kpi-up`/`.kpi-down`） |
-| 水平流程节点 | `.flow` | `.flow` > `.flow-node` + `.flow-arrow` + `.flow-node` ... |
-| 垂直步骤 | `.flow-steps` | `.flow-steps` > `.flow-step`（每步含 strong + p） |
-| 线框占位 | `.placeholder` | `<div class="placeholder">` 虚线框 |
-| 线框元件 | `.mock-nav` `.mock-sidebar` `.mock-content` `.mock-button` `.mock-input` | 用于 `.mockup-body` 内部 |
-
-### Magic UI 组件
-
-Magic UI 提供动画交互式组件，直接写在 HTML 中即可渲染：
-
-| 场景 | 组件 | HTML 示例 |
-|---|---|---|
-| 数字滚动、KPI | `<magic-number-ticker>` | `<magic-number-ticker value="128" delay="0.3"></magic-number-ticker>` |
-| 滚动标签/横幅 | `<magic-marquee>` | `<magic-marquee pause-on-hover="true"><span>标签1</span><span>标签2</span></magic-marquee>` |
-| 卡片发光边框 | `<magic-border-beam>` | `<div style="position:relative; overflow:hidden; border-radius:12px"><magic-border-beam color-from="#3b82f6" color-to="#8b5cf6"></magic-border-beam>卡片内容</div>` |
-| 设备外框 | `<magic-safari>` | `<magic-safari url="example.com"></magic-safari>` |
-| 流程连接线 | `<magic-animated-beam>` | `<magic-animated-beam from-id="node-a" to-id="node-b" gradient-start-color="#3b82f6" gradient-stop-color="#8b5cf6"></magic-animated-beam>` |
-| 文字高亮标注 | `<magic-highlighter>` | `<magic-highlighter action="highlight" color="#ffd1dc">重点文字</magic-highlighter>` |
-| 自定义指针 | `<magic-pointer>` | `<div style="position:relative"><magic-pointer></magic-pointer>悬停看效果</div>` |
-
-**原则**：每条日志 1-2 个 Magic UI 组件，配合 1-3 个视觉组件。动画组件画龙点睛即可，不要堆砌。
-
-### 语义标签（neat.style 自动排版）
-
-标题 `<h1>`～`<h4>`、段落 `<p>`、引用 `<blockquote>`、列表 `<ul>/<ol>`、表格 `<table>`、代码 `<pre>/<code>`、卡片 `<article>`、折叠 `<details>/<summary>`、高亮 `<mark>`、增删 `<ins>/<del>`。
-
-排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）、`.placeholder`（虚线占位框）。
-
-**原则**：一条日志 1-3 个视觉组件 + 0-2 个 Magic UI 组件。简单内容用纯语义标签即可，不要为好看滥用组件。
+**原则**：一条日志 1-3 个 MDX 组件。能用纯 Markdown 表达的就不要用组件。
 
 ## MDX Components
 

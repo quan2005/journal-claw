@@ -16,21 +16,36 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 declare -a entries=()
 
 while IFS= read -r -d '' file; do
-  summary=$(awk '
-    /^---$/ { count++; next }
-    count == 1 && /^summary:/ {
-      sub(/^summary:[[:space:]]*/, "")
-      gsub(/^["'"'"']|["'"'"']$/, "")
-      print
-      exit
-    }
-  ' "$file")
+  # Extract summary: try HTML comment first, then YAML frontmatter
+  first_line=$(head -1 "$file")
+  if [[ "$first_line" == "<!--" ]]; then
+    summary=$(awk '
+      /^<!--$/ { count++; next }
+      count == 1 && /^summary:/ {
+        sub(/^summary:[[:space:]]*/, "")
+        gsub(/^["'"'"']|["'"'"']$/, "")
+        print
+        exit
+      }
+      /^-->$/ { exit }
+    ' "$file")
+  else
+    summary=$(awk '
+      /^---$/ { count++; next }
+      count == 1 && /^summary:/ {
+        sub(/^summary:[[:space:]]*/, "")
+        gsub(/^["'"'"']|["'"'"']$/, "")
+        print
+        exit
+      }
+    ' "$file")
+  fi
   mtime=$(stat -f "%m" "$file" 2>/dev/null || stat -c "%Y" "$file")
   summary="${summary:-[缺少 summary]}"
   if [[ "$summary" =~ [一-龥] ]]; then max_len=80; else max_len=300; fi
   [[ ${#summary} -gt $max_len ]] && summary="${summary:0:$((max_len-1))}…"
   entries+=("${mtime}	${file}	${summary}")
-done < <(find "$REPO_ROOT" -maxdepth 2 -mindepth 2 -name "*.md" \
+done < <(find "$REPO_ROOT" -maxdepth 2 -mindepth 2 \( -name "*.mdx" -o -name "*.md" -o -name "*.html" -o -name "*.htm" \) \
   -not -path "$REPO_ROOT/.claude/*" \
   -regex ".*/[0-9][0-9][0-9][0-9]/.*" \
   -print0)

@@ -91,17 +91,23 @@ sources: 2604/raw/file.m4a
 
 | 场景 | 组件 | HTML 结构 |
 |---|---|---|
-| 方案对比、A/B/C 选项 | `.compare` | `.compare` > `.compare-item` > `.compare-letter` + `.compare-body` |
-| 流程/步骤 | `.flow-steps` | `.flow-steps` > `.flow-step`（每步一个 div） |
-| 水平流程节点 | `.flow` | `.flow` > `.flow-node` + `.flow-arrow` + `.flow-node` ... |
+| 方案对比、A/B/C 选项 | `.options` | `.options` > `.option` > `.letter` + `.content`（含 h3 + p） |
+| 结论卡片、要点分块 | `.cards` | `.cards` > `.card` > `.card-body`（含 strong + p） |
 | 设计示意/线框图 | `.mockup` | `.mockup` > `.mockup-header` + `.mockup-body` |
+| 并排对比 | `.split` | `.split` > div × 2（各含 h4 + p） |
+| 利弊权衡 | `.pros-cons` | `.pros-cons` > `.pros` + `.cons`（各含 h4 + ul） |
+| 决策/结论记录 | `.decisions` | `<div class="decisions"><h3>结论</h3><ul>...</ul></div>` |
 | 时间线 | `.timeline` | `.timeline` > `.timeline-item` > `.timeline-date` + `.timeline-body` |
 | 数据指标条 | `.kpi-bar` | `.kpi-bar` > `.kpi-item` > `.kpi-value` + `.kpi-label`（+ `.kpi-up`/`.kpi-down`） |
-| 决策/结论记录 | `.decisions` | `<div class="decisions"><h3>结论</h3><ul>...</ul></div>` |
-| 利弊权衡 | `.pros-cons` | `.pros-cons` > `.pros` + `.cons`（各含 h4 + ul） |
+| 水平流程节点 | `.flow` | `.flow` > `.flow-node` + `.flow-arrow` + `.flow-node` ... |
+| 垂直步骤 | `.flow-steps` | `.flow-steps` > `.flow-step`（每步含 strong + p） |
+| 线框占位 | `.placeholder` | `<div class="placeholder">` 虚线框 |
+| 线框元件 | `.mock-nav` `.mock-sidebar` `.mock-content` `.mock-button` `.mock-input` | 用于 `.mockup-body` 内部 |
 
 ### 语义标签（Pico CSS 自动排版）
 
 标题 `<h1>`～`<h4>`、段落 `<p>`、引用 `<blockquote>`、列表 `<ul>/<ol>`、表格 `<table>`、代码 `<pre>/<code>`、卡片 `<article>`、折叠 `<details>/<summary>`、高亮 `<mark>`、增删 `<ins>/<del>`。
+
+排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）、`.placeholder`（虚线占位框）。
 
 **原则**：一条日志 1-3 个视觉组件。简单内容用纯语义标签即可，不要为好看滥用组件。

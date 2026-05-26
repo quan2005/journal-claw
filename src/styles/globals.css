@@ -42,6 +42,9 @@
   --space-12: 48px;
 
   --bg: #f5f6f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e5e5e7;
+  --text-tertiary: #a0a8ad;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
   --scrollbar-thumb: #d2d5d8;
@@ -203,6 +206,9 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --bg: #0f0f0f;
+    --bg-secondary: #1c1c1e;
+    --bg-tertiary: #2c2c2e;
+    --text-tertiary: #636366;
     --titlebar-bg: #161616;
     --divider: #1e2228;
     --scrollbar-thumb: rgba(255, 255, 255, 0.1);
@@ -356,6 +362,9 @@
 /* Explicit dark theme (overrides @media for manual theme selection) */
 [data-theme='dark'] {
   --bg: #0f0f0f;
+  --bg-secondary: #1c1c1e;
+  --bg-tertiary: #2c2c2e;
+  --text-tertiary: #636366;
   --titlebar-bg: #161616;
   --divider: #1e2228;
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);

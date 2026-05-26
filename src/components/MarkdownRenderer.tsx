@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
 import { resolveRelativePath } from '../lib/markdownUtils'
+import { MdxRenderer } from './MdxRenderer'
 import hljs from 'highlight.js/lib/core'
 
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -303,6 +304,12 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) {
+  const isMdx = entryPath?.endsWith('.mdx')
+
+  if (isMdx) {
+    return <MdxRenderer content={content} _entryPath={entryPath} />
+  }
+
   const isLarge = content.length > LARGE_THRESHOLD
 
   // Small files: synchronous parse

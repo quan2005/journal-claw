@@ -29,7 +29,7 @@ class MdxErrorBoundary extends Component<{ children: ReactNode; fallback: ReactN
 }
 
 export function MdxRenderer({ content }: Props) {
-  const [MdxContent, setMdxContent] = useState<React.ComponentType | null>(null)
+  const [MdxContent, setMdxContent] = useState<React.ComponentType<any> | null>(null)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
@@ -40,7 +40,6 @@ export function MdxRenderer({ content }: Props) {
         const result = await evaluate(content, {
           ...runtime,
           baseUrl: import.meta.url,
-          ...mdxComponents,
         })
         if (!cancelled) {
           setError(null)
@@ -82,7 +81,7 @@ export function MdxRenderer({ content }: Props) {
   return (
     <div className="md-content">
       <MdxErrorBoundary key={content} fallback={fallback}>
-        <MdxContent />
+        <MdxContent components={mdxComponents} />
       </MdxErrorBoundary>
     </div>
   )

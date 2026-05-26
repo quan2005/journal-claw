@@ -237,7 +237,7 @@ function wrapFragment(html: string, theme: 'light' | 'dark', bridges: string): s
       flex-shrink: 0;
       margin-right: 0.25rem;
     }
-    .mockup-body { padding: 1.5rem; }
+    .mockup-body { padding: 0; }
 
     /* Split view (side-by-side) */
     .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0; }

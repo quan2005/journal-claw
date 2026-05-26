@@ -560,3 +560,36 @@
 .mdx-file-icon {
   font-size: var(--text-lg);
 }
+
+/* ── Task 11: Charts ── */
+
+/* Chart wrapper */
+.mdx-chart {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+}
+.mdx-chart-title {
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  color: var(--text-secondary, #6a7278);
+  margin-bottom: var(--space-4);
+}
+
+/* ── Task 12: Mermaid ── */
+
+/* Mermaid */
+.mdx-mermaid {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.mdx-mermaid-caption {
+  font-size: var(--text-xs);
+  color: var(--text-secondary, #6a7278);
+  margin-top: var(--space-3);
+  text-align: center;
+}

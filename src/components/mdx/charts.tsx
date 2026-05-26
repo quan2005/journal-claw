@@ -1,17 +1,47 @@
-interface ChartData { label: string; value: number }
+import { Suspense, lazy } from 'react'
 
-export function BarChart({ data: _data, title, color: _color }: { data: ChartData[]; title?: string; color?: string }) {
-  return <div data-chart="bar">{title}</div>
+interface ChartData {
+  label: string
+  value: number
 }
 
-export function LineChart({ data: _data, title, color: _color }: { data: ChartData[]; title?: string; color?: string }) {
-  return <div data-chart="line">{title}</div>
+interface ChartProps {
+  data: ChartData[]
+  title?: string
+  color?: string
 }
 
-export function PieChart({ data: _data, title }: { data: ChartData[]; title?: string }) {
-  return <div data-chart="pie">{title}</div>
+const defaultColor = '#b8782a'
+
+function ChartFallback() {
+  return <div className="mdx-chart" style={{ minHeight: 200 }} />
 }
 
-export function RadarChart({ data: _data, title, color: _color }: { data: ChartData[]; title?: string; color?: string }) {
-  return <div data-chart="radar">{title}</div>
+function createLazyChart(
+  importer: () => Promise<{ default: React.ComponentType<{ data: ChartData[]; color: string }> }>,
+) {
+  const LazyComponent = lazy(importer)
+  return function ChartWrapper({ data, title, color }: ChartProps) {
+    return (
+      <div className="mdx-chart">
+        {title && <div className="mdx-chart-title">{title}</div>}
+        <Suspense fallback={<ChartFallback />}>
+          <LazyComponent data={data} color={color ?? defaultColor} />
+        </Suspense>
+      </div>
+    )
+  }
 }
+
+export const BarChart = createLazyChart(() =>
+  import('./chart-impl').then((m) => ({ default: m.BarChartImpl })),
+)
+export const LineChart = createLazyChart(() =>
+  import('./chart-impl').then((m) => ({ default: m.LineChartImpl })),
+)
+export const PieChart = createLazyChart(() =>
+  import('./chart-impl').then((m) => ({ default: m.PieChartImpl })),
+)
+export const RadarChart = createLazyChart(() =>
+  import('./chart-impl').then((m) => ({ default: m.RadarChartImpl })),
+)

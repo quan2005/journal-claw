@@ -83,42 +83,29 @@ sources: 2604/raw/file.m4a
 - 学习：突出概念、洞察、可迁移方法。
 - 复盘：突出目标、结果、原因、教训、改进。
 
-## 视觉组件速查
+## 日志排版
 
-正文使用语义化 HTML 标签 + 以下 CSS class。按 Open Design 设计系统组织：
+正文使用语义化 HTML 标签，由 Pico CSS 自动提供专业的排版样式。无需 class，直接用标签：
 
-### 排版与容器
+### 标题与段落
+- `<h1>` 主标题（每篇一个），`<h2>`～`<h4>` 章节标题
+- `<p>` 段落，`<strong>` / `<em>` 强调
+- `<blockquote>` 引用块，`<cite>` 出处
 
-| 场景 | 使用组件 |
-|---|---|
-| 正文页面容器 | `<div class="page">` 包裹整篇日志（白纸卡片浮于背景上） |
-| 章节分隔 | `<section class="section">` 包裹每个大章节 |
-| 副标题 | `<p class="subtitle">` 标题下方的概述文字 |
-| 元信息行 | `<div class="meta-row">` 包含多个 `<span><strong>标签</strong>内容</span>` |
-| 面包屑/分类 | `<div class="crumb">` 小号等宽字标签 |
+### 列表与表格
+- `<ul>` / `<ol>` / `<li>` 列表
+- `<table>` + `<thead>` + `<tbody>` + `<th>` + `<tr>` + `<td>` 表格
+- `<article>` 独立内容卡片
 
-### 内容组件
+### 代码与分割
+- `<code>` 行内代码，`<pre>` 代码块
+- `<hr>` 水平分割线
+- `<mark>` 高亮，`<ins>` / `<del>` 增删标注
 
-| 场景 | 使用组件 |
-|---|---|
-| 决策/结论记录 | `<div class="decisions"><h3>标题</h3><ul>...</ul></div>` 左侧 accent 色条 + 淡色背景 |
-| 议程/待办清单 | `<div class="agenda">` > `<div class="agenda-item">` > `.check` + `.body` + `.time`（`.done` 标记已完成） |
-| 通用提示/标注 | `<div class="callout callout-info">` / `callout-warn` / `callout-danger` |
-| 双栏面板 | `<div class="grid">` > `<div class="panel">` × 2 |
-| 参会人展示 | `<div class="attendees">` > `<div class="av-row">` > `<span class="av">AB</span>` |
-| 设计示意/线框 | `<div class="mockup">` > `.mockup-header` + `.mockup-body` |
+### 其他
+- `<details>` + `<summary>` 折叠块
+- `<kbd>` 键盘按键
+- `<small>` 辅助说明文字
+- `<footer>` 页脚元信息
 
-### 状态标签
-
-| 场景 | 使用组件 |
-|---|---|
-| 待办/进行中/阻塞/完成 | `<span class="pill pill-todo">` / `pill-progress` / `pill-blocked` / `pill-done` |
-| 小标签/分类 | `<p class="label">` 等宽字大写标签 |
-
-### 使用原则
-
-- **页面容器优先**：日志正文用 `.page` 包裹，形成纸卡片的视觉层次
-- **语义HTML为基础**：标题用 h1-h3，列表用 ul/ol/li，表格用 table。class 仅用于增强
-- **一条日志 1-3 个组件**：不滥用。简单段落和列表仍然是大多数内容的最佳选择
-- **状态用 pill**：不要在段落里写"状态：进行中"，用 `<span class="pill pill-progress">进行中</span>`
-- **结论用 decisions**：每个决策一条 li，left-border 提供视觉锚点
+**原则**：用最自然的 HTML 表达信息结构。Pico CSS 自动处理字体层级、间距、色彩、暗色模式。不要为了视觉效果添加不必要的 `<div>` 嵌套或 class。

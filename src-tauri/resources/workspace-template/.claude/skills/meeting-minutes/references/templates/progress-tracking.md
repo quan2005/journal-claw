@@ -4,7 +4,7 @@
 
 **核心价值**：快速提取状态变化和风险信号。读者关心的不是"此刻的状态"，而是"从上次到现在发生了什么"。
 
-**视觉增强**：进展汇总用 `.agenda` + `.agenda-item`（done 标记已完成），风险看板用 `.callout callout-warn`，待办清单用 `<table>` + `.pill` 状态标签。
+**排版**：Pico CSS 自动排版。风险看板用 `<blockquote>` 标注，待办清单用 `<table>`（支持 striped 斑马纹），状态用 `<mark>` 或 `<ins>`/`<del>`。
 
 ## 结构
 

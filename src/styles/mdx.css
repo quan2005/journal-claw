@@ -1,0 +1,50 @@
+/* ── MDX Component Styles ── */
+
+/* Section */
+.mdx-section {
+  margin-bottom: var(--space-8);
+}
+
+/* Subtitle */
+.mdx-subtitle {
+  color: var(--text-secondary, #6a7278);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-4);
+}
+
+/* Label */
+.mdx-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6a7278);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+
+/* Divider */
+.mdx-divider {
+  border: none;
+  border-top: 1px solid var(--divider);
+  margin: var(--space-6) 0;
+}
+.mdx-divider--labeled {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+  color: var(--text-secondary, #6a7278);
+  font-size: var(--text-xs);
+}
+.mdx-divider--labeled hr {
+  flex: 1;
+  border: none;
+  border-top: 1px solid var(--divider);
+}
+
+/* ── Shared card token ── */
+.mdx-card {
+  background: var(--bg-secondary, #ffffff);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: var(--space-4);
+}

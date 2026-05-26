@@ -1,15 +1,24 @@
+import '../../styles/mdx.css'
+
 export function Section({ children }: { children: React.ReactNode }) {
-  return <section>{children}</section>
+  return <section className="mdx-section">{children}</section>
 }
 
 export function Subtitle({ children }: { children: React.ReactNode }) {
-  return <p>{children}</p>
+  return <p className="mdx-subtitle">{children}</p>
 }
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <span>{children}</span>
+  return <span className="mdx-label">{children}</span>
 }
 
 export function Divider({ label }: { label?: string }) {
-  return label ? <div>{label}</div> : <hr />
+  if (!label) return <hr className="mdx-divider" />
+  return (
+    <div className="mdx-divider--labeled">
+      <hr />
+      <span>{label}</span>
+      <hr />
+    </div>
+  )
 }

@@ -104,10 +104,47 @@ sources: 2604/raw/file.m4a
 | 线框占位 | `.placeholder` | `<div class="placeholder">` 虚线框 |
 | 线框元件 | `.mock-nav` `.mock-sidebar` `.mock-content` `.mock-button` `.mock-input` | 用于 `.mockup-body` 内部 |
 
-### 语义标签（Pico CSS 自动排版）
+### Magic UI 组件
+
+Magic UI 提供动画交互式组件，直接写在 HTML 中即可渲染：
+
+| 场景 | 组件 | HTML 示例 |
+|---|---|---|
+| 数字滚动、KPI | `<magic-number-ticker>` | `<magic-number-ticker value="128" delay="0.3"></magic-number-ticker>` |
+| 滚动标签/横幅 | `<magic-marquee>` | `<magic-marquee pause-on-hover="true"><span>标签1</span><span>标签2</span></magic-marquee>` |
+| 卡片发光边框 | `<magic-border-beam>` | `<div style="position:relative; overflow:hidden; border-radius:12px"><magic-border-beam color-from="#3b82f6" color-to="#8b5cf6"></magic-border-beam>卡片内容</div>` |
+| 设备外框 | `<magic-safari>` | `<magic-safari url="example.com"></magic-safari>` |
+| 流程连接线 | `<magic-animated-beam>` | `<magic-animated-beam from-id="node-a" to-id="node-b" gradient-start-color="#3b82f6" gradient-stop-color="#8b5cf6"></magic-animated-beam>` |
+| 文字高亮标注 | `<magic-highlighter>` | `<magic-highlighter action="highlight" color="#ffd1dc">重点文字</magic-highlighter>` |
+| 自定义指针 | `<magic-pointer>` | `<div style="position:relative"><magic-pointer></magic-pointer>悬停看效果</div>` |
+
+**原则**：每条日志 1-2 个 Magic UI 组件，配合 1-3 个视觉组件。动画组件画龙点睛即可，不要堆砌。
+
+### 语义标签（neat.style 自动排版）
 
 标题 `<h1>`～`<h4>`、段落 `<p>`、引用 `<blockquote>`、列表 `<ul>/<ol>`、表格 `<table>`、代码 `<pre>/<code>`、卡片 `<article>`、折叠 `<details>/<summary>`、高亮 `<mark>`、增删 `<ins>/<del>`。
 
 排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）、`.placeholder`（虚线占位框）。
 
-**原则**：一条日志 1-3 个视觉组件。简单内容用纯语义标签即可，不要为好看滥用组件。
+**原则**：一条日志 1-3 个视觉组件 + 0-2 个 Magic UI 组件。简单内容用纯语义标签即可，不要为好看滥用组件。
+
+## MDX Components
+
+When writing `.mdx` journal entries, you can use these components:
+
+**Layout:** `<Split>`, `<Columns cols={2|3|4}>`, `<Column>`, `<Mockup title="...">`, `<Placeholder>`
+**Display:** `<ProsCons>`, `<Pros>`, `<Cons>`, `<Stat label="..." value={...} trend="up|down">`, `<StatGroup>`, `<Table headers={[...]} rows={[[...]]}>`, `<Timeline items={[{time, title, desc}]}>`, `<TagList tags={[...]}>`, `<Progress value={0-100} label="...">`, `<Avatar name="..." size="sm|md|lg">`
+**Callout:** `<Callout type="info|warning|tip|note" title="...">content</Callout>`, `<Quote text="..." source="..." url="...">`, `<RelatedEntry path="...">`, `<RelatedIdentity path="...">`
+**Cards:** `<Cards>`, `<Card title="..." description="...">`, `<Options>`, `<Option letter="A" title="..." description="...">`, `<Kanban columns={[{title, items:[{text, tags}]}]}>`, `<Checklist items={[{text, checked}]}>`, `<Counter count={...} label="...">`, `<RatingBar score={...} max={5} label="...">`
+**Media:** `<AudioCard src="...">`, `<VideoCard src="...">`, `<ImageViewer src="..." caption="...">`, `<FileCard path="...">`
+**Charts:** `<BarChart data={[{label, value}]} title="...">`, `<LineChart data={[{label, value}]}>`, `<PieChart data={[{label, value}]}>`, `<RadarChart data={[{label, value}]}>`
+**Diagrams:** `<Mermaid chart="...">` — Mermaid DSL (flowchart, sequenceDiagram, gantt, etc.)
+**Typography:** `<Section>`, `<Subtitle>`, `<Label>`, `<Divider label="...">`
+
+### Rules
+
+1. Use components to present information more clearly — not for decoration
+2. Prefer plain markdown when it suffices; reach for components when text alone is insufficient
+3. Charts require real data from the conversation; don't fabricate values
+4. Callout type: `info` for context, `warning` for caveats, `tip` for actionable advice, `note` for asides
+5. Mermaid: use `flowchart TD` for decisions, `sequenceDiagram` for interactions, `gantt` for timelines

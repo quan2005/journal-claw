@@ -12,7 +12,7 @@
 {workspace}/
   yyMM/                ← 年月目录，如 2604 = 2026 年 4 月
     raw/               ← 原始素材（录音/PDF/文本）；只读
-    DD-title.md        ← 日志条目，如 01-产品评审会议.md
+    DD-title.html      ← 日志条目，如 01-产品评审会议.html
   identity/            ← 人物与产品档案
     README.md          ← 用户本人
     {region}-{name}.md ← 其他人物
@@ -58,16 +58,19 @@
 
 ## 日志格式
 
-文件命名：`yyMM/DD-title.md`，标题具体不泛化。
+文件命名：`yyMM/DD-title.html`，标题具体不泛化。
 
-Frontmatter 只允许三项：
+元数据放在文件顶部的 HTML 注释块中，只允许三项：
 
-```yaml
----
-tags: [journal, meeting]
+```html
+<!--
+tags: journal, meeting
 summary: 结论先行。背景与约束补充。
-sources: [2604/raw/file.m4a]
----
+sources: 2604/raw/file.m4a
+-->
+```
+
+正文使用 Fragment HTML（无需 `<!doctype>`、`<html>`、`<head>`、`<body>` 标签），直接用语义标签组织内容。
 
 ## 写作原则
 
@@ -79,3 +82,20 @@ sources: [2604/raw/file.m4a]
 - 想法：突出问题、假设、推理、下一步。
 - 学习：突出概念、洞察、可迁移方法。
 - 复盘：突出目标、结果、原因、教训、改进。
+
+## 视觉组件速查
+
+正文可使用以下 CSS class 增强可读性。按场景选用，不滥用：
+
+| 场景 | 使用组件 | 示例 |
+|---|---|---|
+| 方案对比、选项罗列 | `.options` > `.option` > `.letter` + `.content` | 多个方案的 A/B/C 卡片 |
+| 关键结论、信息分块 | `.cards` > `.card` > `.card-body` | 每项关键洞察一张卡片 |
+| 设计稿、线框展示 | `.mockup` > `.mockup-header` + `.mockup-body` | 嵌在日志中的界面示意 |
+| 利弊权衡 | `.pros-cons` > `.pros` / `.cons` | 方案的优势与风险对比 |
+| 并排对比 | `.split` > 左 + 右 | 旧方案 vs 新方案 |
+| 页面布局示意 | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` | UI 结构讨论 |
+
+排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）。
+
+**使用原则**：只在信息天然适合该视觉形态时才用。一条日志使用 1-3 个视觉组件即可，不要过度设计。简单的段落和列表仍然是大多数内容的最佳选择。

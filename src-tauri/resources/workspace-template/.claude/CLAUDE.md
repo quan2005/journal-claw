@@ -85,27 +85,23 @@ sources: 2604/raw/file.m4a
 
 ## 日志排版
 
-正文使用语义化 HTML 标签，由 Pico CSS 自动提供专业的排版样式。无需 class，直接用标签：
+底层使用 Pico CSS 自动排版语义 HTML。在此基础上提供 8 个视觉组件，按场景选用：
 
-### 标题与段落
-- `<h1>` 主标题（每篇一个），`<h2>`～`<h4>` 章节标题
-- `<p>` 段落，`<strong>` / `<em>` 强调
-- `<blockquote>` 引用块，`<cite>` 出处
+### 视觉组件
 
-### 列表与表格
-- `<ul>` / `<ol>` / `<li>` 列表
-- `<table>` + `<thead>` + `<tbody>` + `<th>` + `<tr>` + `<td>` 表格
-- `<article>` 独立内容卡片
+| 场景 | 组件 | HTML 结构 |
+|---|---|---|
+| 方案对比、A/B/C 选项 | `.compare` | `.compare` > `.compare-item` > `.compare-letter` + `.compare-body` |
+| 流程/步骤 | `.flow-steps` | `.flow-steps` > `.flow-step`（每步一个 div） |
+| 水平流程节点 | `.flow` | `.flow` > `.flow-node` + `.flow-arrow` + `.flow-node` ... |
+| 设计示意/线框图 | `.mockup` | `.mockup` > `.mockup-header` + `.mockup-body` |
+| 时间线 | `.timeline` | `.timeline` > `.timeline-item` > `.timeline-date` + `.timeline-body` |
+| 数据指标条 | `.kpi-bar` | `.kpi-bar` > `.kpi-item` > `.kpi-value` + `.kpi-label`（+ `.kpi-up`/`.kpi-down`） |
+| 决策/结论记录 | `.decisions` | `<div class="decisions"><h3>结论</h3><ul>...</ul></div>` |
+| 利弊权衡 | `.pros-cons` | `.pros-cons` > `.pros` + `.cons`（各含 h4 + ul） |
 
-### 代码与分割
-- `<code>` 行内代码，`<pre>` 代码块
-- `<hr>` 水平分割线
-- `<mark>` 高亮，`<ins>` / `<del>` 增删标注
+### 语义标签（Pico CSS 自动排版）
 
-### 其他
-- `<details>` + `<summary>` 折叠块
-- `<kbd>` 键盘按键
-- `<small>` 辅助说明文字
-- `<footer>` 页脚元信息
+标题 `<h1>`～`<h4>`、段落 `<p>`、引用 `<blockquote>`、列表 `<ul>/<ol>`、表格 `<table>`、代码 `<pre>/<code>`、卡片 `<article>`、折叠 `<details>/<summary>`、高亮 `<mark>`、增删 `<ins>/<del>`。
 
-**原则**：用最自然的 HTML 表达信息结构。Pico CSS 自动处理字体层级、间距、色彩、暗色模式。不要为了视觉效果添加不必要的 `<div>` 嵌套或 class。
+**原则**：一条日志 1-3 个视觉组件。简单内容用纯语义标签即可，不要为好看滥用组件。

@@ -17,6 +17,7 @@ export const en = {
   emptyFolder: 'Empty folder',
   openExternal: 'Open with system app',
   selectFileToPreview: 'Select a file to preview',
+  artifact_preview: 'Preview',
   filterFiles: 'Filter files...',
   noResults: 'No matching files',
 
@@ -163,6 +164,8 @@ export const en = {
   copyText: 'Copy text',
   deleteTodo: 'Delete',
   exploreInDepth: 'Explore',
+  startDiscussion: 'Start discussion',
+  hasDiscussion: 'Has discussion',
   clearExploreSession: 'Clear explore session',
   setPath: 'Set path…',
   removePath: 'Remove path',

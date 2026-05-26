@@ -239,11 +239,6 @@ function DatePicker({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function statusBarStyle(item: TodoItem): { background: string; opacity?: number } {
-  if (item.done) return { background: 'var(--divider)' }
-  return { background: 'var(--divider)' }
-}
-
 function dueBadgeStyle(due: string): { color: string; background: string } {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -263,6 +258,7 @@ function formatDueShort(due: string): string {
 // ── TodoRow ──────────────────────────────────────────────────────────────────
 function TodoRow({
   item,
+  index,
   onToggle,
   onSetDue,
   onUpdateText,
@@ -272,6 +268,7 @@ function TodoRow({
   onOpenConversation,
 }: {
   item: TodoItem
+  index: number
   onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
   onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
   onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
@@ -340,56 +337,54 @@ function TodoRow({
         transition: 'background 0.1s ease-out',
       }}
     >
-      {/* Status bar */}
-      <div
+      {/* Numeral */}
+      <span
         style={{
-          width: 3,
-          alignSelf: 'stretch',
-          borderRadius: 1.5,
+          width: 14,
+          textAlign: 'right',
           flexShrink: 0,
-          ...statusBarStyle(item),
-        }}
-      />
-
-      {/* Checkbox */}
-      <div
-        onClick={() => onToggle(item.line_index, !item.done, item.done_file)}
-        onMouseEnter={(e) => {
-          if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--record-btn)'
-        }}
-        onMouseLeave={(e) => {
-          if (!item.done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--divider)'
-        }}
-        style={{
-          width: 12,
-          height: 12,
-          flexShrink: 0,
-          cursor: 'pointer',
-          marginTop: 3,
-          border: `1.5px solid ${item.done ? 'var(--record-btn)' : 'var(--divider)'}`,
-          borderRadius: 3,
-          background: item.done ? 'var(--record-btn)' : 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
+          alignSelf: 'center',
+          fontSize: '0.65rem',
+          fontWeight: 400,
+          fontFamily: "'SF Mono', 'IBM Plex Mono', var(--font-mono)",
+          lineHeight: 1,
+          color: 'var(--duration-text)',
+          opacity: item.done ? 0.4 : 0.7,
         }}
       >
-        {item.done && (
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--bg)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-      </div>
+        {index}
+      </span>
+
+      {/* Stroke bar — click to toggle done */}
+      <div
+        onClick={() => onToggle(item.line_index, !item.done, item.done_file)}
+        style={{
+          width: 2,
+          alignSelf: 'stretch',
+          borderRadius: 1,
+          flexShrink: 0,
+          cursor: 'pointer',
+          background: item.done
+            ? 'var(--record-btn)'
+            : item.session_id
+              ? 'var(--accent)'
+              : 'var(--border)',
+          opacity: item.done ? 0.6 : 1,
+          transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
+        }}
+        onMouseEnter={(e) => {
+          ;(e.currentTarget as HTMLElement).style.background = 'var(--record-btn)'
+          ;(e.currentTarget as HTMLElement).style.opacity = '0.8'
+        }}
+        onMouseLeave={(e) => {
+          ;(e.currentTarget as HTMLElement).style.background = item.done
+            ? 'var(--record-btn)'
+            : item.session_id
+              ? 'var(--accent)'
+              : 'var(--border)'
+          ;(e.currentTarget as HTMLElement).style.opacity = item.done ? '0.6' : '1'
+        }}
+      />
 
       {/* Text */}
       {editingText ? (
@@ -416,8 +411,8 @@ function TodoRow({
           style={{
             flex: 1,
             minWidth: 0,
-            fontSize: 'var(--text-xs)',
-            lineHeight: '18px',
+            fontSize: 'var(--text-sm)',
+            lineHeight: '20px',
             fontFamily: 'var(--font-body)',
             fontWeight: 'var(--font-normal)',
             color: 'var(--item-text)',
@@ -434,8 +429,8 @@ function TodoRow({
           style={{
             flex: 1,
             minWidth: 0,
-            fontSize: 'var(--text-xs)',
-            lineHeight: '18px',
+            fontSize: 'var(--text-sm)',
+            lineHeight: '20px',
             fontFamily: 'var(--font-body)',
             fontWeight: 'var(--font-normal)',
             color: item.done ? 'var(--muted-text)' : 'var(--item-text)',
@@ -563,19 +558,7 @@ function TodoRow({
               doneFile: item.done_file,
             })
           }
-          onMouseEnter={(e) => {
-            ;(e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute(
-              'stroke',
-              'var(--record-btn)',
-            )
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute(
-              'stroke',
-              'var(--duration-text)',
-            )
-          }}
-          title={t('exploreInDepth')}
+          title={item.session_id ? t('hasDiscussion') : t('startDiscussion')}
           style={{
             cursor: 'pointer',
             display: 'flex',
@@ -588,11 +571,12 @@ function TodoRow({
             width="12"
             height="12"
             viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--duration-text)"
+            fill={item.session_id ? 'var(--record-btn)' : 'none'}
+            stroke={item.session_id ? 'var(--record-btn)' : 'var(--duration-text)'}
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
+            style={{ opacity: item.session_id ? 1 : 0.5, transition: 'opacity 0.15s, stroke 0.15s, fill 0.15s' }}
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             <path d="M8 10h.01M12 10h.01M16 10h.01" />
@@ -882,10 +866,11 @@ export function TodoSidebar({
 
             {/* Rows */}
             {!collapsed &&
-              items.map((item) => (
+              items.map((item, i) => (
                 <TodoRow
                   key={item.line_index}
                   item={item}
+                  index={i + 1}
                   onToggle={onToggle}
                   onSetDue={onSetDue}
                   onUpdateText={onUpdateText}
@@ -1060,6 +1045,7 @@ export function TodoSidebar({
               <div key={item.line_index} style={{ opacity: 0.5 }}>
                 <TodoRow
                   item={item}
+                  index={0}
                   onToggle={onToggle}
                   onSetDue={onSetDue}
                   onUpdateText={onUpdateText}

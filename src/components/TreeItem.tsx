@@ -104,7 +104,7 @@ function ItemBlock({
           height="14"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#a0988c"
+          stroke="var(--item-meta)"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -134,11 +134,8 @@ function ItemBlock({
           justifyContent: 'center',
           fontSize: '0.6875rem',
           fontWeight: 600,
-          background: isTodayBlock ? '#C8933B' : 'rgba(128,128,128,0.12)',
-          color: isTodayBlock ? '#C8933B' : '#a0988c',
-          ...(isTodayBlock
-            ? { background: 'rgba(200,147,59,0.15)', color: 'var(--accent, #C8933B)' }
-            : {}),
+          background: isTodayBlock ? 'rgba(200,147,59,0.15)' : 'rgba(128,128,128,0.12)',
+          color: isTodayBlock ? 'var(--accent, #C8933B)' : 'var(--item-meta)',
         }}
       >
         {entry.day}
@@ -162,7 +159,7 @@ function ItemBlock({
           fontSize: '0.6875rem',
           fontWeight: 600,
           background: 'rgba(128,128,128,0.15)',
-          color: '#e6ded4',
+          color: 'var(--item-text)',
           userSelect: 'none' as const,
         }}
       >
@@ -302,7 +299,7 @@ export function TreeItem({
             minWidth: 0,
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
-            color: isSelected ? 'var(--accent, #C8933B)' : '#e6ded4',
+            color: isSelected ? 'var(--accent, #C8933B)' : 'var(--item-text)',
             lineHeight: 1.4,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -332,7 +329,7 @@ export function TreeItem({
                   padding: '2px 6px',
                   borderRadius: 4,
                   background: 'rgba(128,128,128,0.08)',
-                  color: '#a0988c',
+                  color: 'var(--item-meta)',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
                   lineHeight: 1.3,
@@ -373,18 +370,18 @@ export function TreeItem({
                   cursor: 'pointer',
                   borderRadius: 4,
                   padding: 0,
-                  color: '#a0988c',
+                  color: 'var(--item-meta)',
                   fontSize: '0.75rem',
                   lineHeight: 1,
                 }}
                 onMouseEnter={(e) => {
                   ;(e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.06)'
-                  ;(e.currentTarget as HTMLButtonElement).style.color = '#e6ded4'
+                    'var(--item-hover-bg)'
+                  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'
                 }}
                 onMouseLeave={(e) => {
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-                  ;(e.currentTarget as HTMLButtonElement).style.color = '#a0988c'
+                  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'
                 }}
               >
                 @
@@ -404,18 +401,18 @@ export function TreeItem({
                   cursor: 'pointer',
                   borderRadius: 4,
                   padding: 0,
-                  color: '#a0988c',
+                  color: 'var(--item-meta)',
                   fontSize: '0.875rem',
                   lineHeight: 1,
                 }}
                 onMouseEnter={(e) => {
                   ;(e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.06)'
-                  ;(e.currentTarget as HTMLButtonElement).style.color = '#e6ded4'
+                    'var(--item-hover-bg)'
+                  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'
                 }}
                 onMouseLeave={(e) => {
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-                  ;(e.currentTarget as HTMLButtonElement).style.color = '#a0988c'
+                  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'
                 }}
               >
                 <svg width="14" height="4" viewBox="0 0 16 4" fill="currentColor" style={{ display: 'block' }}>
@@ -434,7 +431,7 @@ export function TreeItem({
         <div
           style={{
             fontSize: '0.75rem',
-            color: '#5c5852',
+            color: 'var(--text-secondary, #5c5852)',
             lineHeight: 1.5,
             marginTop: 2,
             paddingLeft: 0,

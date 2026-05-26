@@ -19,6 +19,7 @@ export const zh: Strings = {
   emptyFolder: '空文件夹',
   openExternal: '用系统应用打开',
   selectFileToPreview: '选择文件以预览',
+  artifact_preview: '预览',
   filterFiles: '搜索文件…',
   noResults: '没有找到文件',
 
@@ -178,6 +179,8 @@ export const zh: Strings = {
   copyText: '复制文本',
   deleteTodo: '删除',
   exploreInDepth: '探讨',
+  startDiscussion: '开始探讨',
+  hasDiscussion: '已有探讨',
   clearExploreSession: '清理探讨进程',
   setPath: '设置路径…',
   removePath: '移除路径',

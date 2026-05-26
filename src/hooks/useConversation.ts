@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import type { ConversationMessage, ConversationStreamPayload } from '../types'
+import type { ConversationMessage, ConversationStreamPayload, MessageBlock } from '../types'
 import type { ImageAttachment } from '../lib/tauri'
 import {
   conversationCreate,
@@ -14,6 +14,7 @@ import {
 } from '../lib/tauri'
 import type { SessionStats } from '../lib/tauri'
 import { useEventCallback } from './useEventCallback'
+import { createArtifactParser } from '../artifacts/parser'
 
 // ── Module-level singletons — shared across all hook instances ──
 const globalCache = new Map<string, ConversationMessage[]>()
@@ -21,6 +22,7 @@ const globalStreamingSessions = new Set<string>()
 const globalPendingQueue = new Map<string, string[]>()
 const globalUsage = new Map<string, { input: number; output: number }>()
 const globalStats = new Map<string, SessionStats>()
+const artifactParsers = new Map<string, ReturnType<typeof createArtifactParser>>()
 
 // ── Session tab state ────────────────────────────────────
 
@@ -147,21 +149,67 @@ export function useConversation() {
           break
 
         case 'text_delta':
+          // Feed through artifact parser to detect <artifact> tags in stream
           updateTabMessages(sid, (prev) => {
             const last = prev[prev.length - 1]
-            if (last?.role === 'assistant') {
-              const blocks = [...(last.blocks ?? [])]
-              const lastBlock = blocks[blocks.length - 1]
-              if (lastBlock?.type === 'text') {
-                blocks[blocks.length - 1] = { ...lastBlock, content: lastBlock.content + data }
-              } else {
-                blocks.push({ type: 'text', content: data })
+            if (!artifactParsers.has(sid)) {
+              artifactParsers.set(sid, createArtifactParser())
+            }
+            const parser = artifactParsers.get(sid)!
+            const events = parser.feed(data)
+
+            const blocks: MessageBlock[] = [...(last?.blocks ?? [])]
+            let textContent = last?.content ?? ''
+
+            for (const evt of events) {
+              switch (evt.type) {
+                case 'text':
+                  textContent += evt.text
+                  blocks.push({ type: 'text', content: evt.text })
+                  break
+                case 'artifact:start':
+                  blocks.push({
+                    type: 'artifact',
+                    artifactType: evt.artifactType,
+                    title: evt.title,
+                    content: '',
+                    isStreaming: true,
+                  })
+                  break
+                case 'artifact:chunk': {
+                  // Append to the last streaming artifact block
+                  for (let i = blocks.length - 1; i >= 0; i--) {
+                    const b = blocks[i]
+                    if (b.type === 'artifact' && b.isStreaming) {
+                      blocks[i] = { ...b, content: b.content + evt.text }
+                      break
+                    }
+                  }
+                  break
+                }
+                case 'artifact:end': {
+                  // Mark the last streaming artifact block as done
+                  for (let i = blocks.length - 1; i >= 0; i--) {
+                    const b = blocks[i]
+                    if (b.type === 'artifact' && b.isStreaming) {
+                      blocks[i] = { ...b, isStreaming: false }
+                      break
+                    }
+                  }
+                  break
+                }
               }
-              return [...prev.slice(0, -1), { ...last, content: last.content + data, blocks }]
+            }
+
+            if (last?.role === 'assistant') {
+              return [
+                ...prev.slice(0, -1),
+                { ...last, content: textContent, blocks },
+              ]
             }
             return [
               ...prev,
-              { role: 'assistant', content: data, blocks: [{ type: 'text', content: data }] },
+              { role: 'assistant' as const, content: textContent, blocks },
             ]
           })
           break
@@ -295,6 +343,38 @@ export function useConversation() {
         }
 
         case 'done':
+          // Flush artifact parser to handle any remaining content
+          {
+            const parser = artifactParsers.get(sid)
+            if (parser) {
+              const flushEvents = parser.flush()
+              if (flushEvents.length > 0) {
+                updateTabMessages(sid, (prev) => {
+                  const last = prev[prev.length - 1]
+                  if (last?.role !== 'assistant') return prev
+                  const blocks = [...(last.blocks ?? [])]
+                  for (const evt of flushEvents) {
+                    if (evt.type === 'text') {
+                      blocks.push({ type: 'text', content: evt.text })
+                    } else if (evt.type === 'artifact:end') {
+                      for (let i = blocks.length - 1; i >= 0; i--) {
+                        const b = blocks[i]
+                        if (b.type === 'artifact' && b.isStreaming) {
+                          blocks[i] = { ...b, isStreaming: false }
+                          break
+                        }
+                      }
+                    }
+                  }
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...last, content: last.content, blocks },
+                  ]
+                })
+              }
+              artifactParsers.delete(sid)
+            }
+          }
           setTabStreaming(sid, false)
           if (data) {
             try {
@@ -328,6 +408,7 @@ export function useConversation() {
           break
 
         case 'error':
+          artifactParsers.delete(sid)
           setTabStreaming(sid, false)
           updateTabMessages(sid, (prev) => {
             let errorBlock: { type: 'error'; code: string; message: string; retryable: boolean }
@@ -675,6 +756,7 @@ export function useConversation() {
     globalPendingQueue.delete(id)
     globalUsage.delete(id)
     globalStats.delete(id)
+    artifactParsers.delete(id)
 
     // Remove from tabs
     setTabs((prev) => {

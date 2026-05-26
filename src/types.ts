@@ -165,6 +165,13 @@ export type MessageBlock =
       isRunning?: boolean
       tools?: { name: string; label: string; output?: string; isError?: boolean }[]
     }
+  | {
+      type: 'artifact'
+      artifactType: string
+      title: string
+      content: string
+      isStreaming: boolean
+    }
 
 export interface ConversationMessage {
   role: 'user' | 'assistant'

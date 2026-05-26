@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { renderMarkdown } from '../lib/markdown'
 import type { JournalEntry, IdentityEntry, TodoItem } from '../types'
 import {
@@ -18,6 +18,7 @@ import { FindBar } from './FindBar'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { createTranslator, detectLang } from '../lib/i18n'
 import { ask } from '@tauri-apps/plugin-dialog'
+import { SandboxPreview } from './SandboxPreview'
 
 // ── Constants ───────────────────────────────────────────────────────────────────
 const SOUL_PATH = '__soul__'
@@ -330,29 +331,6 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } | null 
   return { headers: result[0], rows: result.slice(1) }
 }
 
-// ── HTML blob URL builder ──────────────────────────────────────────────────────
-function buildHtmlBlobUrl(html: string, absolutePath: string): string {
-  const dirPath = absolutePath.substring(0, absolutePath.lastIndexOf('/'))
-  const baseUrl = convertFileSrc(dirPath + '/')
-  const hasCharset = /<meta[^>]+charset/i.test(html)
-  const charsetTag = hasCharset ? '' : '<meta charset="utf-8">'
-  const hasBase = /<base\s/i.test(html)
-  const baseTag = hasBase ? '' : `<base href="${baseUrl}">`
-  const injection = charsetTag + baseTag
-
-  let patched: string
-  if (/<head[\s>]/i.test(html)) {
-    patched = html.replace(/<head([\s>])/i, `<head$1${injection}`)
-  } else if (/<html[\s>]/i.test(html)) {
-    patched = html.replace(/<html([\s>][^>]*)>/i, `<html$1><head>${injection}</head>`)
-  } else {
-    patched = `<head>${injection}</head>${html}`
-  }
-
-  const blob = new Blob([patched], { type: 'text/html;charset=utf-8' })
-  return URL.createObjectURL(blob)
-}
-
 // ── Code language mapping ──────────────────────────────────────────────────────
 const EXT_TO_LANG: Record<string, string> = {
   ts: 'typescript',
@@ -417,13 +395,11 @@ export const DetailView = React.memo(function DetailView({
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showFind, setShowFind] = useState(false)
-  const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [workspacePath, setWorkspacePath] = useState('')
   const [resetCooldown, setResetCooldown] = useState(false)
 
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const isSoul = type === 'identity' && identity?.path === SOUL_PATH
 
@@ -487,49 +463,6 @@ export const DetailView = React.memo(function DetailView({
       CSS.highlights?.delete('search-current')
     }
   }, [type, entry?.path, entry?.mtime_secs, identity?.path, identity?.mtime_secs, file?.path, isSoul, workspacePath])
-
-  // ── HTML blob URL ───────────────────────────────────────────────────────
-  useEffect(() => {
-    const fileKind = file ? fileKindFromName(file.name) : null
-    if (fileKind === 'html' && content !== null && file) {
-      const absolutePath = `${workspacePath}/${file.path}`
-      const url = buildHtmlBlobUrl(content, absolutePath)
-      setBlobUrl(url)
-      return () => URL.revokeObjectURL(url)
-    }
-    setBlobUrl(null)
-  }, [content, file, workspacePath])
-
-  // ── Iframe theme sync ───────────────────────────────────────────────────
-  const applyThemeToIframe = useCallback(() => {
-    const iframe = iframeRef.current
-    if (!iframe) return
-    try {
-      const doc = iframe.contentDocument
-      if (!doc) return
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-      let style = doc.getElementById('__journal_theme')
-      if (!style) {
-        style = doc.createElement('style')
-        style.id = '__journal_theme'
-        doc.head.appendChild(style)
-      }
-      style.textContent = isDark
-        ? ':root { color-scheme: dark; } body { background: #1a1a1a; color: #e0e0e0; }'
-        : ':root { color-scheme: light; }'
-    } catch {
-      // cross-origin or not loaded yet
-    }
-  }, [])
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => applyThemeToIframe())
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
-    return () => observer.disconnect()
-  }, [applyThemeToIframe])
 
   // ── Context menu ────────────────────────────────────────────────────────
   const showContextMenu = (x: number, y: number) => {
@@ -629,15 +562,20 @@ export const DetailView = React.memo(function DetailView({
   const fileKind: FileKind | null = file ? fileKindFromName(file.name) : null
   const fileAbsolutePath = workspacePath && file ? `${workspacePath}/${file.path}` : ''
 
+  // Detect HTML journal entries — render as SandboxPreview, not markdown
+  const isHtmlContent =
+    (isJournalMode && entry?.filename.match(/\.html?$/i)) ||
+    (isFileMode && fileKind === 'html')
+
   // Markdown node for read mode
   const markdownNode = useMemo(() => {
-    if (content === null) return null
+    if (content === null || isHtmlContent) return null
     let absPath = ''
     if (isJournalMode && entry) absPath = entry.path
     else if (isIdentityMode && identity) absPath = identity.path
     else if (isFileMode && file) absPath = fileAbsolutePath
     return renderMarkdown(content, absPath)
-  }, [content, entry?.path, identity?.path, fileAbsolutePath, isJournalMode, isIdentityMode, isFileMode])
+  }, [content, entry?.path, identity?.path, fileAbsolutePath, isJournalMode, isIdentityMode, isFileMode, isHtmlContent])
 
   // ── Empty state ─────────────────────────────────────────────────────────
   const hasSelection = (isJournalMode && entry) || (isIdentityMode && identity) || (isFileMode && file)
@@ -646,7 +584,6 @@ export const DetailView = React.memo(function DetailView({
 
   // Ideas mode: render TodoSidebar in center area
   if (isIdeasMode) {
-    const uncheckedCount = todos?.filter(t => !t.done).length ?? 0
     return (
       <div
         style={{
@@ -658,33 +595,6 @@ export const DetailView = React.memo(function DetailView({
           overflow: 'hidden',
         }}
       >
-        {/* Toolbar */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '10px 20px',
-            flexShrink: 0,
-            borderBottom: '0.5px solid var(--divider)',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--accent, #B8782A)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase' as const,
-              fontWeight: 'var(--font-medium)',
-            }}
-          >
-            想法
-          </span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--duration-text)' }}>
-            {uncheckedCount} 个待办
-          </span>
-        </div>
-
         {/* TodoSidebar content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {todos !== undefined && onToggleTodo && onAddTodo && onDeleteTodo ? (
@@ -1082,30 +992,9 @@ export const DetailView = React.memo(function DetailView({
       )
     }
 
-    // HTML via iframe
-    if (fileKind === 'html' && blobUrl) {
-      return (
-        <div
-          style={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'var(--detail-bg)',
-            overflow: 'hidden',
-          }}
-        >
-          <iframe
-            ref={iframeRef}
-            src={blobUrl}
-            onLoad={applyThemeToIframe}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-            }}
-          />
-        </div>
-      )
+    // HTML via SandboxPreview
+    if (fileKind === 'html' && content !== null) {
+      return <SandboxPreview html={content} title={file.name} />
     }
 
     // Other (unsupported) file type
@@ -1422,14 +1311,14 @@ export const DetailView = React.memo(function DetailView({
       {/* Read mode */}
       <div
         ref={bodyRef}
-        style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}
+        style={{ flex: 1, overflowY: 'auto', padding: isHtmlContent ? 0 : '24px 28px' }}
         onContextMenu={(e) => {
           e.preventDefault()
           showContextMenu(e.clientX, e.clientY)
         }}
       >
         {/* Header: summary + tags + sources (journal) */}
-        {isJournalMode && entry && (
+        {isJournalMode && entry && !isHtmlContent && (
           <div
             style={{
               marginBottom: 20,
@@ -1637,7 +1526,9 @@ export const DetailView = React.memo(function DetailView({
         )}
 
         {/* Body content */}
-        {content === null && !loading ? (
+        {isHtmlContent && content !== null ? (
+          <SandboxPreview html={content} title={entry?.title ?? file?.name} />
+        ) : content === null && !loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
             <Spinner size={20} />
           </div>

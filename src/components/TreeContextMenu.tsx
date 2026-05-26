@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { revealInFinder, openFile } from '../lib/tauri'
+import { ask } from '@tauri-apps/plugin-dialog'
 
 export interface TreeContextMenuState {
   x: number
@@ -7,6 +8,7 @@ export interface TreeContextMenuState {
   itemType: 'identity' | 'journal' | 'topic-file' | 'topic-folder'
   name: string
   path: string
+  absolutePath?: string
   isPinned: boolean
 }
 
@@ -56,17 +58,22 @@ export function TreeContextMenu({
 
   async function copyPath() {
     try { await navigator.clipboard.writeText(path) } catch { /* ignore */ }
+    onClose()
   }
 
-  async function handleShowInFinder() { await revealInFinder(path) }
-  async function handleOpenInEditor() { await openFile(path) }
+  async function handleShowInFinder() { await revealInFinder(state.absolutePath ?? path); onClose() }
+  async function handleOpenInEditor() { await openFile(state.absolutePath ?? path); onClose() }
 
   function handlePin() {
     onPin(itemType === 'identity' ? 'identity' : 'journal', path)
     onClose()
   }
   function handleUnpin() { onUnpin(path); onClose() }
-  function handleDelete() { onDelete(itemType, path); onClose() }
+  async function handleDelete() {
+    onClose()
+    const confirmed = await ask(`确认删除「${name}」？`, { title: '删除确认', kind: 'warning' })
+    if (confirmed) onDelete(itemType, path)
+  }
 
   const deleteLabel =
     itemType === 'identity' ? '删除画像' :

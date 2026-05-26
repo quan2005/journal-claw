@@ -812,6 +812,7 @@ export default function App() {
             onNavigateTodoSource={(filename: string) => {
               const match = entries.find((e) => e.filename === filename)
               if (match) {
+                setShowIdeas(false)
                 setTreeSelection({ type: 'journal', path: `${match.year_month}/${match.filename}` })
               }
             }}

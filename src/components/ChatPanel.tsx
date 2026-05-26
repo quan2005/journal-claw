@@ -3,6 +3,7 @@ import type { ConversationMessage, MessageBlock, WebSearchResultItem, Attachment
 import type { SessionStats } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { Spinner } from './Spinner'
+import { SandboxPreview } from './SandboxPreview'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { useSmoothStream } from '../hooks/useSmoothStream'
 import { openFile } from '../lib/tauri'
@@ -1954,9 +1955,139 @@ function BlockRenderer({
       return <LoopWarningBlock message={block.message} />
     case 'truncated':
       return <TruncatedBlock onContinue={onContinue} />
+    case 'artifact':
+      return <ArtifactBlock artifact={block} streaming={streaming} />
     default:
       return null
   }
+}
+
+function ArtifactBlock({
+  artifact,
+  streaming,
+}: {
+  artifact: { artifactType: string; title: string; content: string; isStreaming: boolean }
+  streaming?: boolean
+}) {
+  const [expanded, setExpanded] = useState(true)
+  const { t } = useTranslation()
+
+  const isStreaming = artifact.isStreaming || streaming
+
+  // Only html artifacts get sandbox preview; others render as code
+  if (artifact.artifactType !== 'html') {
+    return (
+      <div
+        style={{
+          margin: '8px 0',
+          borderRadius: 8,
+          border: '1px solid var(--divider)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 12px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--item-meta)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span style={{ fontWeight: 500 }}>{artifact.title || 'Artifact'}</span>
+          <span style={{ opacity: 0.5 }}>{artifact.artifactType}</span>
+          {isStreaming && <Spinner size={10} />}
+          <span style={{ marginLeft: 'auto', opacity: 0.4 }}>
+            {expanded ? '▾' : '▸'}
+          </span>
+        </div>
+        {expanded && (
+          <pre
+            style={{
+              margin: 0,
+              padding: '12px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              maxHeight: 300,
+              overflow: 'auto',
+              borderTop: '1px solid var(--divider)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            <code>{artifact.content || ' '}</code>
+          </pre>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      style={{
+        margin: '8px 0',
+        borderRadius: 8,
+        border: '1px solid var(--divider)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header bar */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '8px 12px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--item-meta)',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span style={{ fontWeight: 500 }}>{artifact.title || t('artifact_preview')}</span>
+        {isStreaming && <Spinner size={10} />}
+        <span style={{ marginLeft: 'auto', opacity: 0.4 }}>
+          {expanded ? '▾' : '▸'}
+        </span>
+      </div>
+
+      {/* Preview body */}
+      {expanded && (
+        <div
+          style={{
+            minHeight: 150,
+            maxHeight: 400,
+            overflow: 'auto',
+            borderTop: '1px solid var(--divider)',
+          }}
+        >
+          {artifact.content ? (
+            <SandboxPreview html={artifact.content} title={artifact.title} />
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 150,
+                color: 'var(--text-secondary)',
+                fontSize: 'var(--text-xs)',
+              }}
+            >
+              <Spinner size={16} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function ToolBlock({

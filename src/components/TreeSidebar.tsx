@@ -311,8 +311,17 @@ export function TreeSidebar({
       isPinned: boolean,
       x: number,
       y: number,
+      absolutePath?: string,
     ) => {
-      setCtxMenu({ itemType: itemType as TreeContextMenuState['itemType'], name, path, isPinned, x, y })
+      setCtxMenu({
+        itemType: itemType as TreeContextMenuState['itemType'],
+        name,
+        path,
+        absolutePath,
+        isPinned,
+        x,
+        y,
+      })
     },
     [],
   )
@@ -432,12 +441,11 @@ export function TreeSidebar({
         {/* Label */}
         <span
           style={{
-            fontSize: '0.75rem',
-            fontWeight: 'var(--font-medium, 500)',
-            letterSpacing: '0.03em',
+            fontSize: 'var(--text-base, 0.875rem)',
+            fontWeight: 'var(--font-semibold, 600)',
             color: ideasSelected
               ? 'var(--accent, #C8933B)'
-              : 'var(--item-meta, #8a8478)',
+              : 'var(--item-text)',
             transition: 'color 0.15s',
           }}
         >
@@ -499,7 +507,7 @@ export function TreeSidebar({
                       onAtRef(`${entry.year_month}/${entry.filename}`)
                     }
                     onMore={(x, y) =>
-                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, true, x, y)
+                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, true, x, y, entry.path)
                     }
                   />
                 )
@@ -602,7 +610,7 @@ export function TreeSidebar({
                       onAtRef(`${entry.year_month}/${entry.filename}`)
                     }
                     onMore={(x, y) =>
-                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, false, x, y)
+                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, false, x, y, entry.path)
                     }
                   />
                 ))}

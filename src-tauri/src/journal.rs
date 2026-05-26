@@ -128,8 +128,11 @@ fn extract_inline_sequence(s: &str) -> Vec<String> {
 }
 
 pub fn parse_entry_filename(filename: &str) -> Option<(u32, String)> {
-    // "28-AI平台产品会议纪要.md" → Some((28, "AI平台产品会议纪要"))
-    let stem = filename.strip_suffix(".md")?;
+    // "28-AI平台产品会议纪要.md" 或 "28-dashboard.html" → Some((28, "title"))
+    let stem = filename
+        .strip_suffix(".md")
+        .or_else(|| filename.strip_suffix(".html"))
+        .or_else(|| filename.strip_suffix(".htm"))?;
     let dash_pos = stem.find('-')?;
     let day_str = &stem[..dash_pos];
     let title = &stem[dash_pos + 1..];

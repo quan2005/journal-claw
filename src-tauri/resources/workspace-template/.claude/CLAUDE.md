@@ -85,20 +85,40 @@ sources: 2604/raw/file.m4a
 
 ## 视觉组件速查
 
-正文可使用以下 CSS class 增强可读性。按场景选用，不滥用：
+正文使用语义化 HTML 标签 + 以下 CSS class。按 Open Design 设计系统组织：
 
-| 场景 | 使用组件 | 示例 |
-|---|---|---|
-| 方案对比、选项罗列 | `.options` > `.option` > `.letter` + `.content` | 多个方案的 A/B/C 卡片 |
-| 关键结论、信息分块 | `.cards` > `.card` > `.card-body` | 每项关键洞察一张卡片 |
-| 设计稿、线框展示 | `.mockup` > `.mockup-header` + `.mockup-body` | 嵌在日志中的界面示意 |
-| 利弊权衡 | `.pros-cons` > `.pros` / `.cons` | 方案的优势与风险对比 |
-| 并排对比 | `.split` > 左 + 右 | 旧方案 vs 新方案 |
-| 页面布局示意 | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` | UI 结构讨论 |
-| 复盘、时间线 | `.timeline` > `.timeline-item` > `.timeline-date` + `.timeline-body` | 项目里程碑、决策追溯、版本演进 |
-| 关键指标摘要 | `.kpi-bar` > `.kpi-item` > `.kpi-value` + `.kpi-label` | 周报/月报的数据快照 |
+### 排版与容器
 
-排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）。
-趋势标注：`.kpi-trend-up`（增长）、`.kpi-trend-down`（下降）。
+| 场景 | 使用组件 |
+|---|---|
+| 正文页面容器 | `<div class="page">` 包裹整篇日志（白纸卡片浮于背景上） |
+| 章节分隔 | `<section class="section">` 包裹每个大章节 |
+| 副标题 | `<p class="subtitle">` 标题下方的概述文字 |
+| 元信息行 | `<div class="meta-row">` 包含多个 `<span><strong>标签</strong>内容</span>` |
+| 面包屑/分类 | `<div class="crumb">` 小号等宽字标签 |
 
-**使用原则**：只在信息天然适合该视觉形态时才用。一条日志使用 1-3 个视觉组件即可，不要过度设计。简单的段落和列表仍然是大多数内容的最佳选择。
+### 内容组件
+
+| 场景 | 使用组件 |
+|---|---|
+| 决策/结论记录 | `<div class="decisions"><h3>标题</h3><ul>...</ul></div>` 左侧 accent 色条 + 淡色背景 |
+| 议程/待办清单 | `<div class="agenda">` > `<div class="agenda-item">` > `.check` + `.body` + `.time`（`.done` 标记已完成） |
+| 通用提示/标注 | `<div class="callout callout-info">` / `callout-warn` / `callout-danger` |
+| 双栏面板 | `<div class="grid">` > `<div class="panel">` × 2 |
+| 参会人展示 | `<div class="attendees">` > `<div class="av-row">` > `<span class="av">AB</span>` |
+| 设计示意/线框 | `<div class="mockup">` > `.mockup-header` + `.mockup-body` |
+
+### 状态标签
+
+| 场景 | 使用组件 |
+|---|---|
+| 待办/进行中/阻塞/完成 | `<span class="pill pill-todo">` / `pill-progress` / `pill-blocked` / `pill-done` |
+| 小标签/分类 | `<p class="label">` 等宽字大写标签 |
+
+### 使用原则
+
+- **页面容器优先**：日志正文用 `.page` 包裹，形成纸卡片的视觉层次
+- **语义HTML为基础**：标题用 h1-h3，列表用 ul/ol/li，表格用 table。class 仅用于增强
+- **一条日志 1-3 个组件**：不滥用。简单段落和列表仍然是大多数内容的最佳选择
+- **状态用 pill**：不要在段落里写"状态：进行中"，用 `<span class="pill pill-progress">进行中</span>`
+- **结论用 decisions**：每个决策一条 li，left-border 提供视觉锚点

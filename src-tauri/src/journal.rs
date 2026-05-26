@@ -36,6 +36,46 @@ struct FrontMatter {
     sources: Vec<String>,
 }
 
+/// Parse HTML comment metadata block at the top of .html journal entries.
+/// Format:
+/// ```html
+/// <!--
+/// tags: journal, meeting
+/// summary: 结论先行
+/// sources: 2604/raw/file.m4a
+/// -->
+/// ```
+fn parse_html_comment_metadata(content: &str) -> FrontMatter {
+    let mut summary = String::new();
+    let mut tags: Vec<String> = vec![];
+    let mut sources: Vec<String> = vec![];
+
+    let trimmed = content.trim_start();
+    let Some(inner) = trimmed
+        .strip_prefix("<!--")
+        .and_then(|rest| rest.find("-->").map(|end| &rest[..end]))
+    else {
+        return FrontMatter::default();
+    };
+
+    for line in inner.lines() {
+        let line = line.trim();
+        if let Some(val) = line.strip_prefix("tags:") {
+            tags = extract_inline_sequence(val.trim());
+        } else if let Some(val) = line.strip_prefix("summary:") {
+            summary = extract_scalar_value(val.trim());
+        } else if let Some(val) = line.strip_prefix("sources:") {
+            sources = extract_inline_sequence(val.trim());
+        }
+    }
+
+    FrontMatter {
+        summary,
+        tags,
+        sources,
+    }
+}
+
 /// Regex-based fallback for when gray_matter fails to parse malformed YAML frontmatter.
 /// Handles the common case of unescaped ASCII double-quotes inside a double-quoted
 /// YAML scalar (e.g. `summary: "创办"15餐厅"…"`), which is technically invalid YAML
@@ -130,7 +170,8 @@ fn extract_inline_sequence(s: &str) -> Vec<String> {
 pub fn parse_entry_filename(filename: &str) -> Option<(u32, String)> {
     // "28-AI平台产品会议纪要.md" 或 "28-dashboard.html" → Some((28, "title"))
     let stem = filename
-        .strip_suffix(".md")
+        .strip_suffix(".mdx")
+        .or_else(|| filename.strip_suffix(".md"))
         .or_else(|| filename.strip_suffix(".html"))
         .or_else(|| filename.strip_suffix(".htm"))?;
     let dash_pos = stem.find('-')?;
@@ -224,11 +265,17 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
 
         let content = std::fs::read_to_string(&path).unwrap_or_default();
 
-        let matter = Matter::<YAML>::new();
-        let fm: FrontMatter = matter
-            .parse_with_struct::<FrontMatter>(&content)
-            .map(|p| p.data)
-            .unwrap_or_else(|| parse_frontmatter_fallback(&content));
+        // Route to appropriate metadata parser based on file extension
+        let is_html = filename.ends_with(".html") || filename.ends_with(".htm");
+        let fm: FrontMatter = if is_html {
+            parse_html_comment_metadata(&content)
+        } else {
+            let matter = Matter::<YAML>::new();
+            matter
+                .parse_with_struct::<FrontMatter>(&content)
+                .map(|p| p.data)
+                .unwrap_or_else(|| parse_frontmatter_fallback(&content))
+        };
 
         let meta = entry.metadata().ok();
         // birthtime (created) for stable display time and same-day sort order
@@ -444,33 +491,34 @@ pub fn delete_journal_entry(path: String) -> Result<(), String> {
     std::fs::remove_file(&path).map_err(|e| e.to_string())
 }
 
-/// 示例条目 Markdown 内容（固定文案）
+/// 示例条目 Fragment HTML 内容（固定文案）
 fn sample_entry_content() -> String {
-    r#"---
+    r#"<!--
+tags: 示例, 产品, 会议
 summary: 这是 AI 帮你整理的示例——试着录一段音或粘贴一段会议记录
-tags: [示例, 产品, 会议]
----
+-->
 
-# 产品评审会议纪要
+<h1>产品评审会议纪要</h1>
 
-## 会议结论
+<h2>会议结论</h2>
+<ul>
+  <li>下一版本功能优先级已确定，重点投入 AI 摘要功能</li>
+  <li>UI 改版方案通过评审，进入设计执行阶段</li>
+  <li>技术债处理排期至 Q2 下半段</li>
+</ul>
 
-- 下一版本功能优先级已确定，重点投入 AI 摘要功能
-- UI 改版方案通过评审，进入设计执行阶段
-- 技术债处理排期至 Q2 下半段
+<h2>待办事项</h2>
+<ul>
+  <li>@设计：输出首页改版高保真稿，截止下周五</li>
+  <li>@后端：排期 API 优化，评估工作量</li>
+</ul>
 
-## 待办事项
+<h2>参会人员</h2>
+<p>产品、设计、前后端各一名</p>
 
-- @设计：输出首页改版高保真稿，截止下周五
-- @后端：排期 API 优化，评估工作量
+<hr>
 
-## 参会人员
-
-产品、设计、前后端各一名
-
----
-
-> 这条记录是示例，展示 AI 整理后的效果。你可以删除它，或直接录音 / 粘贴文件开始使用。
+<blockquote>这条记录是示例，展示 AI 整理后的效果。你可以删除它，或直接录音 / 粘贴文件开始使用。</blockquote>
 "#
     .to_string()
 }
@@ -480,7 +528,7 @@ tags: [示例, 产品, 会议]
 pub fn write_sample_entry(workspace: &str, year_month: &str, day: u32) -> Result<String, String> {
     use crate::workspace;
     workspace::ensure_dirs(workspace, year_month)?;
-    let filename = format!("{:02}-产品评审示例.md", day);
+    let filename = format!("{:02}-产品评审示例.html", day);
     let path = workspace::year_month_dir(workspace, year_month).join(&filename);
     if path.exists() {
         return Ok(path.to_string_lossy().to_string());
@@ -489,9 +537,9 @@ pub fn write_sample_entry(workspace: &str, year_month: &str, day: u32) -> Result
     Ok(path.to_string_lossy().to_string())
 }
 
-/// Returns true if the workspace contains at least one .md file in any yyMM/ directory.
+/// Returns true if the workspace contains at least one .md or .html file in any yyMM/ directory.
 /// Raw materials (in raw/) are ignored. Non-existent workspace returns false.
-fn workspace_has_any_md(workspace: &str) -> bool {
+fn workspace_has_any_entry(workspace: &str) -> bool {
     use crate::workspace;
     let ws_path = std::path::PathBuf::from(workspace);
     if !ws_path.exists() {
@@ -512,7 +560,7 @@ fn workspace_has_any_md(workspace: &str) -> bool {
         };
         for file in inner.flatten() {
             let fname = file.file_name().to_string_lossy().to_string();
-            if fname.ends_with(".md") {
+            if fname.ends_with(".md") || fname.ends_with(".html") || fname.ends_with(".htm") || fname.ends_with(".mdx") {
                 return true;
             }
         }
@@ -551,7 +599,7 @@ pub fn create_sample_entry_if_needed(app: AppHandle) -> Result<bool, String> {
         return Ok(false);
     }
     // Only insert if workspace has no existing .md files
-    if workspace_has_any_md(&cfg.workspace_path) {
+    if workspace_has_any_entry(&cfg.workspace_path) {
         return Ok(false);
     }
     let year_month = workspace::current_year_month();
@@ -582,6 +630,12 @@ mod tests {
     fn parse_entry_filename_no_match() {
         assert_eq!(parse_entry_filename("README.md"), None);
         assert_eq!(parse_entry_filename("not-a-journal"), None);
+    }
+
+    #[test]
+    fn parse_entry_filename_mdx() {
+        let r = parse_entry_filename("15-project-review.mdx");
+        assert_eq!(r, Some((15, "project-review".to_string())));
     }
 
     #[test]
@@ -686,11 +740,12 @@ mod tests {
         let content = std::fs::read_to_string(&path).unwrap();
         assert!(content.contains("产品评审会议纪要"));
         assert!(content.contains("summary:"));
+        assert!(content.contains("<!--"));
         std::fs::remove_dir_all(&tmp).ok();
     }
 
     #[test]
-    fn create_sample_skips_when_md_exists() {
+    fn create_sample_skips_when_entry_exists() {
         // workspace already has a .md file → function should return Ok(false) and NOT set flag
         // We test the helper directly since the command needs AppHandle.
         let tmp = std::env::temp_dir().join(format!(
@@ -706,12 +761,12 @@ mod tests {
         std::fs::create_dir_all(&ym_dir).unwrap();
         std::fs::write(ym_dir.join("01-existing.md"), "# hi").unwrap();
         // Helper should report the workspace is NOT empty
-        assert!(workspace_has_any_md(ws), "should detect existing .md");
+        assert!(workspace_has_any_entry(ws), "should detect existing .md");
         std::fs::remove_dir_all(&tmp).ok();
     }
 
     #[test]
-    fn create_sample_proceeds_when_no_md_exists() {
+    fn create_sample_proceeds_when_no_entry_exists() {
         let tmp = std::env::temp_dir().join(format!(
             "journal_empty_test_{}",
             std::time::SystemTime::now()
@@ -723,7 +778,7 @@ mod tests {
         // Workspace dir exists but has no yyMM dirs
         std::fs::create_dir_all(&tmp).unwrap();
         assert!(
-            !workspace_has_any_md(ws),
+            !workspace_has_any_entry(ws),
             "empty workspace should return false"
         );
         std::fs::remove_dir_all(&tmp).ok();

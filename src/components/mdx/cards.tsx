@@ -1,31 +1,141 @@
+// ── Cards / Card ────────────────────────────────────────
+
 export function Cards({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>
+  return <div className="mdx-cards">{children}</div>
 }
 
-export function Card({ title, description: _description }: { image?: string; title: string; description?: string }) {
-  return <div><h3>{title}</h3></div>
+export function Card({
+  image,
+  title,
+  description,
+}: {
+  image?: string
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="mdx-card">
+      {image && <div className="mdx-card-image">{image}</div>}
+      <div className="mdx-card-body">
+        <h3>{title}</h3>
+        {description && <p>{description}</p>}
+      </div>
+    </div>
+  )
 }
+
+// ── Options / Option ────────────────────────────────────
 
 export function Options({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>
+  return <div className="mdx-options">{children}</div>
 }
 
-export function Option({ letter, title, description: _description }: { letter: string; title: string; description?: string }) {
-  return <div>{letter}: {title}</div>
+export function Option({
+  letter,
+  title,
+  description,
+}: {
+  letter: string
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="mdx-option">
+      <div className="mdx-option-letter">{letter}</div>
+      <div className="mdx-option-content">
+        <h4>{title}</h4>
+        {description && <p>{description}</p>}
+      </div>
+    </div>
+  )
 }
 
-export function Kanban({ columns }: { columns: { title: string; items: { text: string; tags?: string[] }[] }[] }) {
-  return <div>{columns.map((c, i) => <div key={i}>{c.title}</div>)}</div>
+// ── Kanban ──────────────────────────────────────────────
+
+export function Kanban({
+  columns,
+}: {
+  columns: { title: string; items: { text: string; tags?: string[] }[] }[]
+}) {
+  return (
+    <div className="mdx-kanban">
+      {columns.map((col, ci) => (
+        <div key={ci} className="mdx-kanban-column">
+          <div className="mdx-kanban-column-title">{col.title}</div>
+          {col.items.map((item, ii) => (
+            <div key={ii} className="mdx-kanban-item">
+              {item.text}
+              {item.tags && item.tags.length > 0 && (
+                <div className="mdx-tag-list">
+                  {item.tags.map((t, ti) => <span key={ti} className="mdx-tag">{t}</span>)}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
 }
 
-export function Checklist({ items }: { items: { text: string; checked?: boolean }[] }) {
-  return <ul>{items.map((item, i) => <li key={i}>{item.checked ? '✓' : '○'} {item.text}</li>)}</ul>
+// ── Checklist ───────────────────────────────────────────
+
+export function Checklist({
+  items,
+}: {
+  items: { text: string; checked?: boolean }[]
+}) {
+  return (
+    <ul className="mdx-checklist">
+      {items.map((item, i) => (
+        <li key={i} className="mdx-checklist-item">
+          <span className={`mdx-checklist-marker ${item.checked ? 'mdx-checklist-marker--checked' : 'mdx-checklist-marker--unchecked'}`}>
+            {item.checked ? '✓' : '○'}
+          </span>
+          <span>{item.text}</span>
+        </li>
+      ))}
+    </ul>
+  )
 }
+
+// ── Counter ─────────────────────────────────────────────
 
 export function Counter({ count, label }: { count: number; label: string }) {
-  return <div>{count} {label}</div>
+  return (
+    <div className="mdx-counter">
+      <span className="mdx-counter-count">{count}</span>
+      <span className="mdx-counter-label">{label}</span>
+    </div>
+  )
 }
 
-export function RatingBar({ score, max = 5, label: _label }: { score: number; max?: number; label?: string }) {
-  return <div>{'★'.repeat(Math.round(score))}{'☆'.repeat(max - Math.round(score))}</div>
+// ── RatingBar ───────────────────────────────────────────
+
+export function RatingBar({
+  score,
+  max = 5,
+  label,
+}: {
+  score: number
+  max?: number
+  label?: string
+}) {
+  const clamped = Math.max(0, Math.min(score, max))
+  const filled = Math.round(clamped)
+  return (
+    <div className="mdx-rating">
+      <div className="mdx-rating-stars">
+        {Array.from({ length: max }, (_, i) => (
+          <span
+            key={i}
+            className={`mdx-rating-star ${i < filled ? 'mdx-rating-star--filled' : 'mdx-rating-star--empty'}`}
+          >
+            {i < filled ? '★' : '☆'}
+          </span>
+        ))}
+      </div>
+      {label && <span className="mdx-rating-label">{label}</span>}
+    </div>
+  )
 }

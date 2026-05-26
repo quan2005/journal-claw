@@ -187,17 +187,21 @@ function wrapFragment(html: string, theme: 'light' | 'dark', bridges: string): s
     .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
 
     /* Cards (visual grid) */
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1rem 0; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
     .card {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
-    .card-body { padding: 1rem; }
-    .card-body h3 { margin-bottom: 0.25rem; font-size: 0.95rem; }
-    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+    .card-body { padding: 1rem 1.125rem; font-size: 0.9rem; line-height: 1.6; color: var(--text); }
+    .card-body h3 { margin: 0 0 0.35rem; font-size: 0.95rem; font-weight: 600; }
+    .card-body h4 { margin: 0 0 0.25rem; font-size: 0.875rem; font-weight: 600; }
+    .card-body p { color: var(--text-secondary); font-size: 0.875rem; margin: 0 0 0.5rem; }
+    .card-body p:last-child { margin-bottom: 0; }
+    .card-body strong { color: var(--text); }
 
     /* Mockup container */
     .mockup {
@@ -206,18 +210,45 @@ function wrapFragment(html: string, theme: 'light' | 'dark', bridges: string): s
       border-radius: 12px;
       overflow: hidden;
       margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     .mockup-header {
       background: var(--bg-tertiary);
-      padding: 0.5rem 1rem;
+      padding: 0.6rem 1rem;
       font-size: 0.75rem;
+      font-weight: 500;
       color: var(--text-secondary);
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+    }
+    .mockup-header::before {
+      content: '';
+      display: flex;
+      gap: 6px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #ff5f57;
+      box-shadow:
+        16px 0 0 #ffbd2e,
+        32px 0 0 #28ca41;
+      flex-shrink: 0;
+      margin-right: 0.25rem;
     }
     .mockup-body { padding: 1.5rem; }
 
     /* Split view (side-by-side) */
     .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0; }
+    .split > * {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.125rem;
+    }
+    .split h4 { font-size: 0.875rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
+    .split p { font-size: 0.875rem; color: var(--text-secondary); margin: 0; }
     @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
 
     /* Pros/Cons */
@@ -238,12 +269,91 @@ function wrapFragment(html: string, theme: 'light' | 'dark', bridges: string): s
       color: var(--text-tertiary);
     }
 
+    /* Timeline */
+    .timeline { position: relative; padding-left: 1.75rem; margin: 1rem 0; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0.35rem;
+      top: 0.35rem;
+      bottom: 0.35rem;
+      width: 2px;
+      background: var(--border);
+      border-radius: 1px;
+    }
+    .timeline-item { position: relative; margin-bottom: 1.25rem; }
+    .timeline-item:last-child { margin-bottom: 0; }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -1.4rem;
+      top: 0.35rem;
+      width: 0.5rem; height: 0.5rem;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .timeline-item .timeline-date {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .timeline-item .timeline-body { font-size: 0.9rem; line-height: 1.6; color: var(--text); }
+    .timeline-item .timeline-body p { margin: 0; color: var(--text); }
+
+    /* KPI Bar (key metrics) */
+    .kpi-bar {
+      display: flex; gap: 1.5rem; flex-wrap: wrap;
+      margin: 1rem 0;
+      padding: 1rem 1.25rem;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .kpi-item { display: flex; flex-direction: column; min-width: 80px; }
+    .kpi-value {
+      font-size: 1.4rem; font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+      font-family: var(--font-mono);
+    }
+    .kpi-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.15rem;
+    }
+    .kpi-trend-up { color: var(--success); font-size: 0.8rem; font-weight: 600; }
+    .kpi-trend-down { color: var(--error); font-size: 0.8rem; font-weight: 600; }
+
     /* Inline mockup elements */
-    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; border-radius: 8px 8px 0 0; }
-    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
-    .mock-content { padding: 1.5rem; flex: 1; }
-    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; display: inline-block; }
-    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; font-size: 0.85rem; }
+    .mock-nav {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      padding: 0.6rem 1rem;
+      display: flex; gap: 1.5rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.02em;
+    }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 160px; font-size: 0.85rem; color: var(--text-secondary); }
+    .mock-content { padding: 1.25rem; flex: 1; font-size: 0.9rem; }
+    .mock-button {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: inline-block;
+      letter-spacing: 0.02em;
+    }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; width: 100%; font-size: 0.85rem; color: var(--text-muted); }
   </style>
   ${bridges}
 </head>

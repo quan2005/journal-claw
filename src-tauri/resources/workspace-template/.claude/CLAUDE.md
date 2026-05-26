@@ -95,7 +95,10 @@ sources: 2604/raw/file.m4a
 | 利弊权衡 | `.pros-cons` > `.pros` / `.cons` | 方案的优势与风险对比 |
 | 并排对比 | `.split` > 左 + 右 | 旧方案 vs 新方案 |
 | 页面布局示意 | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` | UI 结构讨论 |
+| 复盘、时间线 | `.timeline` > `.timeline-item` > `.timeline-date` + `.timeline-body` | 项目里程碑、决策追溯、版本演进 |
+| 关键指标摘要 | `.kpi-bar` > `.kpi-item` > `.kpi-value` + `.kpi-label` | 周报/月报的数据快照 |
 
 排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）。
+趋势标注：`.kpi-trend-up`（增长）、`.kpi-trend-down`（下降）。
 
 **使用原则**：只在信息天然适合该视觉形态时才用。一条日志使用 1-3 个视觉组件即可，不要过度设计。简单的段落和列表仍然是大多数内容的最佳选择。

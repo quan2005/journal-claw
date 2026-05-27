@@ -761,9 +761,16 @@
 .mdx-diagram-body {
   position: relative;
   min-height: 280px;
-  padding: 28px 32px;
+  padding: 16px 20px;
   overflow: auto;
   background: #101010;
+}
+
+.mdx-diagram-body canvas {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  margin: 0 auto;
 }
 
 [data-theme='light'] .mdx-diagram-body {

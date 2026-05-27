@@ -438,8 +438,7 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     const dpr = window.devicePixelRatio || 1
     canvas.width = canvasW * dpr
     canvas.height = canvasH * dpr
-    canvas.style.width = `${canvasW}px`
-    canvas.style.height = `${canvasH}px`
+    // CSS sizing handled by .mdx-diagram-body canvas { max-width: 100%; height: auto; }
 
     const ctx = canvas.getContext('2d')!
     ctx.save()
@@ -510,7 +509,7 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
-        <canvas ref={canvasRef} style={{ display: 'block', margin: '0 auto', pointerEvents: 'none' }} />
+        <canvas ref={canvasRef} style={{ pointerEvents: 'none' }} />
       </div>
       {caption && <div className="mdx-diagram-caption">{caption}</div>}
     </div>

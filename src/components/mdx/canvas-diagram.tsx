@@ -500,7 +500,7 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     draggingRef.current = false
   }, [])
 
-  // Wheel: Ctrl/Cmd = zoom-to-cursor, otherwise pan
+  // Wheel: Ctrl/Cmd = zoom-to-cursor. Normal scroll handled by overflow:auto.
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault()
@@ -514,9 +514,6 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
         setPanY((py) => my - (my - py) * (ns / s))
         return ns
       })
-    } else {
-      setPanX((px) => px - e.deltaX)
-      setPanY((py) => py - e.deltaY)
     }
   }, [getCanvasPos])
 

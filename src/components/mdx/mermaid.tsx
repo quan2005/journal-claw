@@ -1,4 +1,4 @@
-import { useEffect, useState, useId, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import type mermaidType from 'mermaid'
 
 interface Props {
@@ -6,47 +6,31 @@ interface Props {
   caption?: string
 }
 
-function useMermaidTheme() {
-  const resolve = () =>
-    document.documentElement.getAttribute('data-theme') === 'dark'
-
-  const [isDark, setIsDark] = useState(resolve)
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => setIsDark(resolve()))
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
-    return () => observer.disconnect()
-  }, [])
-
-  return {
-    isDark,
-    themeVariables: isDark
-      ? {
-          primaryColor: '#c8933b',
-          primaryBorderColor: '#c8933b',
-          lineColor: '#8e8e93',
-          textColor: '#a8acb4',
-          primaryTextColor: '#e8e8e8',
-          mainBkg: '#1c1c1e',
-          secondBkg: '#2c2c2e',
-          tertiaryColor: '#0f0f0f',
-          background: '#0f0f0f',
-        }
-      : {
-          primaryColor: '#b8782a',
-          primaryBorderColor: '#b8782a',
-          lineColor: '#6a7278',
-          textColor: '#2a3038',
-          primaryTextColor: '#1c1c1e',
-          mainBkg: '#ffffff',
-          secondBkg: '#f7f8f9',
-          tertiaryColor: '#f5f6f7',
-          background: '#ffffff',
-        },
-  }
+function resolveThemeVars(): Record<string, string> {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark'
+  return dark
+    ? {
+        primaryColor: '#c8933b',
+        primaryBorderColor: '#c8933b',
+        lineColor: '#8e8e93',
+        textColor: '#a8acb4',
+        primaryTextColor: '#e8e8e8',
+        mainBkg: '#1c1c1e',
+        secondBkg: '#2c2c2e',
+        tertiaryColor: '#0f0f0f',
+        background: '#0f0f0f',
+      }
+    : {
+        primaryColor: '#b8782a',
+        primaryBorderColor: '#b8782a',
+        lineColor: '#6a7278',
+        textColor: '#2a3038',
+        primaryTextColor: '#1c1c1e',
+        mainBkg: '#ffffff',
+        secondBkg: '#f7f8f9',
+        tertiaryColor: '#f5f6f7',
+        background: '#ffffff',
+      }
 }
 
 function detectMermaidType(chart: string): string {
@@ -59,6 +43,15 @@ function detectMermaidType(chart: string): string {
   if (first.startsWith('pie')) return 'pie'
   if (first.startsWith('stateDiagram')) return 'state'
   return 'unknown'
+}
+
+function dedent(str: string): string {
+  const lines = str.split('\n')
+  const minIndent = lines
+    .filter((l) => l.trim().length > 0)
+    .reduce((min, l) => Math.min(min, l.match(/^ */)?.[0].length ?? 0), Infinity)
+  if (minIndent === Infinity || minIndent === 0) return str
+  return lines.map((l) => l.slice(minIndent)).join('\n')
 }
 
 let mermaidModule: typeof mermaidType | null = null
@@ -77,64 +70,82 @@ async function getMermaid(themeVars: Record<string, string>) {
   return mermaidModule
 }
 
-function dedent(str: string): string {
-  const lines = str.split('\n')
-  const minIndent = lines
-    .filter((l) => l.trim().length > 0)
-    .reduce((min, l) => Math.min(min, l.match(/^ */)?.[0].length ?? 0), Infinity)
-  if (minIndent === Infinity || minIndent === 0) return str
-  return lines.map((l) => l.slice(minIndent)).join('\n')
-}
-
 export function Mermaid({ chart, caption }: Props) {
-  const [svg, setSvg] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const { themeVariables } = useMermaidTheme()
-  const baseId = useId().replace(/:/g, '')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
   const diagramType = useMemo(() => detectMermaidType(chart), [chart])
   const normalizedChart = useMemo(() => dedent(chart), [chart])
+  const [themeTick, setThemeTick] = useState(0)
+
+  // Re-render on theme change
+  useEffect(() => {
+    const observer = new MutationObserver(() => setThemeTick((n) => n + 1))
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
+    const container = containerRef.current
+    const errorEl = errorRef.current
+    if (!container || !errorEl) return
+
     let cancelled = false
-    setSvg(null)
-    setError(null)
 
-    getMermaid(themeVariables)
-      .then(async (mermaid) => {
-        const { svg: rendered } = await mermaid.render(`mermaid-${baseId}`, normalizedChart)
-        if (!cancelled) {
-          setSvg(rendered || null)
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : String(e))
-        }
-      })
+    async function render() {
+      const el = container!
+      const err = errorEl!
+      el.innerHTML = ''
 
-    return () => { cancelled = true }
-  }, [baseId, normalizedChart, themeVariables])
+      const themeVars = resolveThemeVars()
+
+      try {
+        const mermaid = await getMermaid(themeVars)
+
+        if (cancelled) return
+
+        const id = `mermaid-${Math.random().toString(36).slice(2, 8)}`
+        el.innerHTML = `<pre class="mermaid" id="${id}">${normalizedChart}</pre>`
+
+        await mermaid.run({
+          nodes: [el.querySelector(`#${id}`)!],
+        })
+
+        if (cancelled) {
+          el.innerHTML = ''
+          return
+        }
+
+        err.innerHTML = ''
+      } catch (e) {
+        if (cancelled) return
+        el.innerHTML = ''
+        err.innerHTML = `
+            <div class="mdx-diagram-error">
+              <div class="mdx-diagram-error-title">Diagram render failed</div>
+              <div class="mdx-diagram-error-message">${e instanceof Error ? e.message : String(e)}</div>
+              <details class="mdx-diagram-error-source">
+                <summary>View Mermaid source</summary>
+                <pre>${normalizedChart.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+              </details>
+            </div>`
+      }
+    }
+
+    render()
+
+    return () => {
+      cancelled = true
+    }
+  }, [normalizedChart, themeTick])
 
   return (
     <div className={`mdx-diagram-frame${diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : ''}`}>
       <div className="mdx-diagram-body">
-        {error ? (
-          <div className="mdx-diagram-error">
-            <div className="mdx-diagram-error-title">Diagram render failed</div>
-            <div className="mdx-diagram-error-message">{error}</div>
-            <details className="mdx-diagram-error-source">
-              <summary>View Mermaid source</summary>
-              <pre>{normalizedChart}</pre>
-            </details>
-          </div>
-        ) : svg != null ? (
-          <div
-            className="mdx-mermaid-svg"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
-        ) : (
-          <div className="mdx-diagram-loading">Rendering diagram...</div>
-        )}
+        <div ref={containerRef} className="mdx-mermaid-svg" />
+        <div ref={errorRef} />
       </div>
       {caption && <div className="mdx-diagram-caption">{caption}</div>}
     </div>

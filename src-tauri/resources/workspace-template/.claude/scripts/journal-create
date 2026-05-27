@@ -84,29 +84,59 @@ sources:
 
 # ${title}
 
-## 背景
+<Subtitle>结论先行，细节在后</Subtitle>
 
--
+<Section>
 
-## 核心结论
+## 背景与结论
 
--
+<Callout type="info" title="核心结论">
+
+（一句话：发生了什么、结论是什么）
+
+</Callout>
+
+</Section>
+
+<Section>
 
 ## 关键事实
 
--
+<Timeline
+  items={[
+    { time: '', title: '', desc: '' },
+  ]}
+/>
+
+</Section>
+
+<Section>
 
 ## 判断与推理
 
 -
 
+</Section>
+
+<Section>
+
 ## 行动与待确认
 
--
+<Checklist
+  items={[
+    { text: '', checked: false },
+  ]}
+/>
 
-## 关联记录
+</Section>
 
--
+<Section>
+
+## 关联
+
+<RelatedEntry path="" label="" />
+
+</Section>
 
 *创建时间: ${created_at}*
 MDXEOF

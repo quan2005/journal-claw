@@ -416,9 +416,11 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
   const [, setTick] = useState(0)
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
+  const [scale, setScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
   const draggingRef = useRef(false)
   const dragRef = useRef({ startX: 0, startY: 0, panStartX: 0, panStartY: 0 })
+  const pinchRef = useRef({ startDist: 0, startScale: 1, midX: 0, midY: 0, panStartX: 0, panStartY: 0 })
 
   useEffect(() => {
     const observer = new MutationObserver(() => setTick((n) => n + 1))
@@ -444,12 +446,14 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     ctx.save()
     ctx.scale(dpr, dpr)
     ctx.translate(panX, panY)
+    ctx.scale(scale, scale)
 
     const t = resolveTheme()
 
-    // Background — extend beyond viewport to cover pan offset
+    // Background — extend beyond viewport to cover pan + zoom offset
+    const margin = 200 / scale
     ctx.fillStyle = t.bg
-    ctx.fillRect(-panX - 100, -panY - 100, canvasW + 200, canvasH + 200)
+    ctx.fillRect(-panX / scale - margin, -panY / scale - margin, canvasW / scale + margin * 2, canvasH / scale + margin * 2)
 
     // Edges
     for (const edge of layoutEdges) {
@@ -462,11 +466,18 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     }
 
     ctx.restore()
-  }, [layoutNodes, layoutEdges, canvasW, canvasH, panX, panY])
+  }, [layoutNodes, layoutEdges, canvasW, canvasH, panX, panY, scale])
 
-  // ── Pan via translate ──
+  // ── Pan & Zoom handlers ──
 
+  const getCanvasPos = useCallback(() => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    return { left: rect?.left ?? 0, top: rect?.top ?? 0 }
+  }, [])
+
+  // Mouse drag pan
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
     e.preventDefault()
     setIsDragging(true)
     draggingRef.current = true
@@ -489,9 +500,72 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     draggingRef.current = false
   }, [])
 
+  // Wheel: Ctrl/Cmd = zoom-to-cursor, otherwise pan
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    setPanX((px) => px - e.deltaX)
-    setPanY((py) => py - e.deltaY)
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      const { left, top } = getCanvasPos()
+      const mx = e.clientX - left
+      const my = e.clientY - top
+      const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08
+      setScale((s) => {
+        const ns = Math.max(0.2, Math.min(4, s * factor))
+        setPanX((px) => mx - (mx - px) * (ns / s))
+        setPanY((py) => my - (my - py) * (ns / s))
+        return ns
+      })
+    } else {
+      setPanX((px) => px - e.deltaX)
+      setPanY((py) => py - e.deltaY)
+    }
+  }, [getCanvasPos])
+
+  // Touch: single finger pan, two finger pinch zoom
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const t = e.touches[0]
+      dragRef.current = {
+        startX: t.clientX, startY: t.clientY,
+        panStartX: panX, panStartY: panY,
+      }
+      draggingRef.current = true
+      setIsDragging(true)
+    } else if (e.touches.length === 2) {
+      draggingRef.current = false
+      const t1 = e.touches[0]; const t2 = e.touches[1]
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+      const { left, top } = getCanvasPos()
+      const mx = (t1.clientX + t2.clientX) / 2 - left
+      const my = (t1.clientY + t2.clientY) / 2 - top
+      pinchRef.current = { startDist: dist, startScale: scale, midX: mx, midY: my, panStartX: panX, panStartY: panY }
+    }
+  }, [panX, panY, scale, getCanvasPos])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
+    if (e.touches.length === 1 && draggingRef.current) {
+      const t = e.touches[0]
+      const dx = t.clientX - dragRef.current.startX
+      const dy = t.clientY - dragRef.current.startY
+      setPanX(dragRef.current.panStartX + dx)
+      setPanY(dragRef.current.panStartY + dy)
+    } else if (e.touches.length === 2) {
+      const t1 = e.touches[0]; const t2 = e.touches[1]
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+      const { left, top } = getCanvasPos()
+      const mx = (t1.clientX + t2.clientX) / 2 - left
+      const my = (t1.clientY + t2.clientY) / 2 - top
+      const p = pinchRef.current
+      const ns = Math.max(0.2, Math.min(4, p.startScale * (dist / p.startDist)))
+      setScale(ns)
+      setPanX(mx - (mx - p.panStartX) * (ns / p.startScale))
+      setPanY(my - (my - p.panStartY) * (ns / p.startScale))
+    }
+  }, [getCanvasPos])
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false)
+    draggingRef.current = false
   }, [])
 
   return (
@@ -502,12 +576,17 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
         style={{
           overflow: 'auto',
           cursor: isDragging ? 'grabbing' : 'grab',
+          touchAction: 'none',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         <canvas ref={canvasRef} style={{ pointerEvents: 'none' }} />
       </div>

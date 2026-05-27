@@ -748,31 +748,43 @@
   opacity: 0.5;
 }
 
-/* ── Diagram Frame (Mermaid) ── */
+/* ── Diagram Frame (Mermaid + CanvasDiagram) ── */
 
 .mdx-diagram-frame {
   border: 1px solid var(--divider);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--bg-secondary);
   overflow: hidden;
   margin: var(--space-4) 0;
 }
 
 .mdx-diagram-body {
-  padding: 24px;
+  position: relative;
+  min-height: 280px;
+  padding: 28px 32px;
   overflow: auto;
-  min-height: 220px;
+  background: #101010;
+}
+
+[data-theme='light'] .mdx-diagram-body {
+  background: #fafaf8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .mdx-diagram-body {
+    background: #fafaf8;
+  }
 }
 
 .mdx-diagram-caption {
   border-top: 1px solid var(--divider);
-  padding: 10px 14px;
+  padding: 12px 16px;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
 }
 
-/* Mermaid SVG */
+/* Mermaid SVG base */
 .mdx-mermaid-svg svg {
   display: block;
   max-width: 100%;
@@ -790,10 +802,70 @@
   font-family: Inter, ui-sans-serif, system-ui;
 }
 
-/* Gantt: allow horizontal scroll */
+/* ── Gantt-specific ── */
+
+.mdx-diagram-frame--gantt .mdx-diagram-body {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 28px 24px;
+}
+
 .mdx-diagram-frame--gantt .mdx-mermaid-svg svg {
+  min-width: 960px;
   max-width: none;
-  min-width: 860px;
+}
+
+/* Gantt task text — dark text on light bars */
+.mdx-diagram-frame--gantt .taskText,
+.mdx-diagram-frame--gantt .taskTextOutsideRight,
+.mdx-diagram-frame--gantt .taskTextOutsideLeft {
+  fill: #1c1c1e !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+/* Gantt active task — white text on dark amber */
+.mdx-diagram-frame--gantt .activeTaskText {
+  fill: #0f0f0f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+/* Gantt title */
+.mdx-diagram-frame--gantt .titleText {
+  font-size: 18px !important;
+  font-weight: 500 !important;
+}
+
+/* Gantt section backgrounds */
+.mdx-diagram-frame--gantt .section0,
+.mdx-diagram-frame--gantt .section1,
+.mdx-diagram-frame--gantt .section2,
+.mdx-diagram-frame--gantt .section3 {
+  fill-opacity: 0.06 !important;
+}
+
+.mdx-diagram-frame--gantt .sectionTitle {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+/* Gantt grid and today line */
+.mdx-diagram-frame--gantt .grid .tick {
+  stroke: #2c2c2e !important;
+  stroke-opacity: 0.4 !important;
+}
+
+.mdx-diagram-frame--gantt .today {
+  stroke: #c8933b !important;
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 4 4 !important;
+}
+
+/* ── Flowchart-specific ── */
+
+.mdx-diagram-frame--flowchart .mdx-mermaid-svg svg {
+  max-width: 100%;
 }
 
 /* Diagram loading */

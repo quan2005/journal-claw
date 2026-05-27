@@ -6,33 +6,6 @@ interface Props {
   caption?: string
 }
 
-function resolveThemeVars(): Record<string, string> {
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark'
-  return dark
-    ? {
-        primaryColor: '#c8933b',
-        primaryBorderColor: '#c8933b',
-        lineColor: '#8e8e93',
-        textColor: '#a8acb4',
-        primaryTextColor: '#e8e8e8',
-        mainBkg: '#1c1c1e',
-        secondBkg: '#2c2c2e',
-        tertiaryColor: '#0f0f0f',
-        background: '#0f0f0f',
-      }
-    : {
-        primaryColor: '#b8782a',
-        primaryBorderColor: '#b8782a',
-        lineColor: '#6a7278',
-        textColor: '#2a3038',
-        primaryTextColor: '#1c1c1e',
-        mainBkg: '#ffffff',
-        secondBkg: '#f7f8f9',
-        tertiaryColor: '#f5f6f7',
-        background: '#ffffff',
-      }
-}
-
 function detectMermaidType(chart: string): string {
   const first = chart.trim().split('\n')[0]?.trim() ?? ''
   if (first.startsWith('flowchart') || first.startsWith('graph')) return 'flowchart'
@@ -56,17 +29,78 @@ function dedent(str: string): string {
 
 let mermaidModule: typeof mermaidType | null = null
 
-async function getMermaid(themeVars: Record<string, string>) {
+async function getMermaid(isDark: boolean, type: string) {
   if (!mermaidModule) {
     mermaidModule = (await import('mermaid')).default
   }
-  mermaidModule.initialize({
+
+  const base: Record<string, any> = {
     startOnLoad: false,
     theme: 'base',
-    themeVariables: themeVars,
     securityLevel: 'strict',
     htmlLabels: false,
-  })
+    fontFamily: 'Inter, ui-sans-serif, system-ui',
+    themeVariables: isDark
+      ? {
+          primaryColor: '#c8933b',
+          primaryBorderColor: '#c8933b',
+          lineColor: '#3a3a3c',
+          textColor: '#a2a6ae',
+          primaryTextColor: '#e8e8e8',
+          mainBkg: '#1c1c1e',
+          secondBkg: '#2c2c2e',
+          tertiaryColor: '#101010',
+          background: '#101010',
+          fontSize: '13px',
+          titleColor: '#e8e8e8',
+          tertiaryTextColor: '#a2a6ae',
+        }
+      : {
+          primaryColor: '#b8782a',
+          primaryBorderColor: '#b8782a',
+          lineColor: '#d8dce0',
+          textColor: '#4a5058',
+          primaryTextColor: '#1c1c1e',
+          mainBkg: '#ffffff',
+          secondBkg: '#f7f8f9',
+          tertiaryColor: '#f5f6f7',
+          background: '#fafaf8',
+          fontSize: '13px',
+          titleColor: '#1c1c1e',
+          tertiaryTextColor: '#6a7278',
+        },
+  }
+
+  if (type === 'gantt') {
+    base.gantt = {
+      useWidth: 960,
+      leftPadding: 100,
+      topPadding: 48,
+      barHeight: 28,
+      barGap: 8,
+      gridLineStartPadding: 24,
+      fontSize: 13,
+      numberSectionStyles: 4,
+      axisFormat: '%m-%d',
+      titleTopMargin: 24,
+    }
+    base.themeVariables = {
+      ...base.themeVariables,
+      taskBkgColor: isDark ? '#c8c8c8' : '#e5e5e7',
+      taskTextColor: isDark ? '#1c1c1e' : '#1c1c1e',
+      taskTextOutsideColor: isDark ? '#a2a6ae' : '#4a5058',
+      taskBorderColor: isDark ? '#6a6a6a' : '#b8c0c6',
+      activeTaskBkgColor: isDark ? '#c8933b' : '#b8782a',
+      activeTaskBorderColor: isDark ? '#a07820' : '#8a6500',
+      activeTaskTextColor: '#0f0f0f',
+      sectionBkgColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+      altSectionBkgColor: isDark ? 'rgba(200,147,59,0.06)' : 'rgba(184,120,42,0.04)',
+      gridColor: isDark ? '#2c2c2e' : '#e5e5e7',
+      todayLineColor: isDark ? '#c8933b' : '#b8782a',
+    }
+  }
+
+  mermaidModule.initialize(base)
   return mermaidModule
 }
 
@@ -77,13 +111,9 @@ export function Mermaid({ chart, caption }: Props) {
   const normalizedChart = useMemo(() => dedent(chart), [chart])
   const [themeTick, setThemeTick] = useState(0)
 
-  // Re-render on theme change
   useEffect(() => {
     const observer = new MutationObserver(() => setThemeTick((n) => n + 1))
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     return () => observer.disconnect()
   }, [])
 
@@ -99,25 +129,18 @@ export function Mermaid({ chart, caption }: Props) {
       const err = errorEl!
       el.innerHTML = ''
 
-      const themeVars = resolveThemeVars()
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
 
       try {
-        const mermaid = await getMermaid(themeVars)
-
+        const mermaid = await getMermaid(isDark, diagramType)
         if (cancelled) return
 
         const id = `mermaid-${Math.random().toString(36).slice(2, 8)}`
         el.innerHTML = `<pre class="mermaid" id="${id}">${normalizedChart}</pre>`
 
-        await mermaid.run({
-          nodes: [el.querySelector(`#${id}`)!],
-        })
+        await mermaid.run({ nodes: [el.querySelector(`#${id}`)!] })
 
-        if (cancelled) {
-          el.innerHTML = ''
-          return
-        }
-
+        if (cancelled) { el.innerHTML = ''; return }
         err.innerHTML = ''
       } catch (e) {
         if (cancelled) return
@@ -135,14 +158,13 @@ export function Mermaid({ chart, caption }: Props) {
     }
 
     render()
+    return () => { cancelled = true }
+  }, [normalizedChart, diagramType, themeTick])
 
-    return () => {
-      cancelled = true
-    }
-  }, [normalizedChart, themeTick])
+  const typeClass = diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : diagramType === 'flowchart' ? ' mdx-diagram-frame--flowchart' : ''
 
   return (
-    <div className={`mdx-diagram-frame${diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : ''}`}>
+    <div className={`mdx-diagram-frame${typeClass}`}>
       <div className="mdx-diagram-body">
         <div ref={containerRef} className="mdx-mermaid-svg" />
         <div ref={errorRef} />

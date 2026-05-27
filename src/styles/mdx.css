@@ -698,9 +698,8 @@
   font-size: var(--text-lg);
 }
 
-/* ── Task 11: Charts ── */
+/* ── Charts ── */
 
-/* Chart wrapper */
 .mdx-chart {
   margin: var(--space-4) 0;
   padding: var(--space-4);
@@ -711,8 +710,42 @@
 .mdx-chart-title {
   font-weight: var(--font-medium);
   font-size: var(--text-sm);
-  color: var(--text-secondary, #6a7278);
+  color: var(--text-secondary);
   margin-bottom: var(--space-4);
+}
+
+/* Empty state */
+.mdx-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 200px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.mdx-chart-empty-icon {
+  font-size: var(--text-2xl);
+  opacity: 0.3;
+}
+
+/* Error state */
+.mdx-chart-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 200px;
+  color: var(--status-danger);
+  font-size: var(--text-sm);
+}
+
+.mdx-chart-error-icon {
+  font-size: var(--text-xl);
+  opacity: 0.5;
 }
 
 /* ── Diagram Frame (Mermaid) ── */

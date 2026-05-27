@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
@@ -412,7 +412,13 @@ function drawEdge(ctx: CanvasRenderingContext2D, t: Theme, edge: LayoutEdge) {
 
 export function CanvasDiagram({ nodes, edges, caption }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [, setTick] = useState(0)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const draggingRef = useRef(false)
+  const dragRef = useRef({ startX: 0, startY: 0, panStartX: 0, panStartY: 0 })
 
   useEffect(() => {
     const observer = new MutationObserver(() => setTick((n) => n + 1))
@@ -436,13 +442,15 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     canvas.style.height = `${canvasH}px`
 
     const ctx = canvas.getContext('2d')!
+    ctx.save()
     ctx.scale(dpr, dpr)
+    ctx.translate(panX, panY)
 
     const t = resolveTheme()
 
-    // Background
+    // Background — fill entire canvas (accounting for pan)
     ctx.fillStyle = t.bg
-    ctx.fillRect(0, 0, canvasW, canvasH)
+    ctx.fillRect(-panX, -panY, canvasW, canvasH)
 
     // Edges
     for (const edge of layoutEdges) {
@@ -453,12 +461,54 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     for (const node of layoutNodes) {
       drawNode(ctx, t, node)
     }
-  }, [layoutNodes, layoutEdges, canvasW, canvasH])
+
+    ctx.restore()
+  }, [layoutNodes, layoutEdges, canvasW, canvasH, panX, panY])
+
+  // ── Pan handlers ──
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsDragging(true)
+    draggingRef.current = true
+    dragRef.current = { startX: e.clientX, startY: e.clientY, panStartX: panX, panStartY: panY }
+  }, [panX, panY])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!draggingRef.current) return
+    const dx = e.clientX - dragRef.current.startX
+    const dy = e.clientY - dragRef.current.startY
+    setPanX(dragRef.current.panStartX + dx)
+    setPanY(dragRef.current.panStartY + dy)
+  }, [])
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+    draggingRef.current = false
+  }, [])
+
+  // Wheel / trackpad pan
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    setPanX((px) => px - e.deltaX)
+    setPanY((py) => py - e.deltaY)
+  }, [])
 
   return (
     <div className="mdx-diagram-frame">
-      <div className="mdx-diagram-body" style={{ overflow: 'auto' }}>
-        <canvas ref={canvasRef} style={{ display: 'block', margin: '0 auto' }} />
+      <div
+        ref={containerRef}
+        className="mdx-diagram-body"
+        style={{
+          overflow: 'hidden',
+          cursor: isDragging ? 'grabbing' : 'grab',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+      >
+        <canvas ref={canvasRef} style={{ display: 'block', margin: '0 auto', pointerEvents: 'none' }} />
       </div>
       {caption && <div className="mdx-diagram-caption">{caption}</div>}
     </div>

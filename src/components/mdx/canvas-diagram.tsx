@@ -157,13 +157,13 @@ function pillarNode(ctx, x, y, w, h, label, fillColor) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface Props {
-  children: string
+  code: string
   width?: number
   height?: number
   caption?: string
 }
 
-export function CanvasDiagram({ children, width = 800, height = 400, caption }: Props) {
+export function CanvasDiagram({ code, width = 800, height = 400, caption }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [, setTick] = useState(0)
 
@@ -192,7 +192,7 @@ export function CanvasDiagram({ children, width = 800, height = 400, caption }: 
     const t = resolveTheme()
 
     try {
-      const draw = new Function('ctx', 'w', 'h', 't', helpers + children)
+      const draw = new Function('ctx', 'w', 'h', 't', helpers + code)
       draw(ctx, width, height, t)
     } catch (e) {
       ctx.fillStyle = t.danger
@@ -201,7 +201,7 @@ export function CanvasDiagram({ children, width = 800, height = 400, caption }: 
       ctx.textBaseline = 'top'
       ctx.fillText('Diagram render error: ' + (e instanceof Error ? e.message : String(e)), 20, 20)
     }
-  }, [children, width, height])
+  }, [code, width, height])
 
   return (
     <div className="mdx-diagram-frame">

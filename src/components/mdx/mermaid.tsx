@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useId, useMemo } from 'react'
 import type mermaidType from 'mermaid'
 
 interface Props {
@@ -69,7 +69,7 @@ async function getMermaid(themeVars: Record<string, string>) {
   }
   mermaidModule.initialize({
     startOnLoad: false,
-    theme: 'default',
+    theme: 'base',
     themeVariables: themeVars,
     securityLevel: 'strict',
     htmlLabels: false,
@@ -89,9 +89,8 @@ function dedent(str: string): string {
 export function Mermaid({ chart, caption }: Props) {
   const [svg, setSvg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const { themeVariables } = useMermaidTheme()
-  const renderId = useRef(`mermaid-${Math.random().toString(36).slice(2, 8)}`)
+  const baseId = useId().replace(/:/g, '')
   const diagramType = useMemo(() => detectMermaidType(chart), [chart])
   const normalizedChart = useMemo(() => dedent(chart), [chart])
 
@@ -99,25 +98,22 @@ export function Mermaid({ chart, caption }: Props) {
     let cancelled = false
     setSvg(null)
     setError(null)
-    setLoading(true)
 
     getMermaid(themeVariables)
       .then(async (mermaid) => {
-        const { svg: rendered } = await mermaid.render(renderId.current, normalizedChart)
+        const { svg: rendered } = await mermaid.render(`mermaid-${baseId}`, normalizedChart)
         if (!cancelled) {
-          setSvg(rendered)
-          setLoading(false)
+          setSvg(rendered || null)
         }
       })
       .catch((e) => {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : String(e))
-          setLoading(false)
         }
       })
 
     return () => { cancelled = true }
-  }, [normalizedChart, themeVariables])
+  }, [baseId, normalizedChart, themeVariables])
 
   return (
     <div className={`mdx-diagram-frame${diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : ''}`}>
@@ -131,14 +127,14 @@ export function Mermaid({ chart, caption }: Props) {
               <pre>{normalizedChart}</pre>
             </details>
           </div>
-        ) : svg ? (
+        ) : svg != null ? (
           <div
             className="mdx-mermaid-svg"
             dangerouslySetInnerHTML={{ __html: svg }}
           />
-        ) : loading ? (
+        ) : (
           <div className="mdx-diagram-loading">Rendering diagram...</div>
-        ) : null}
+        )}
       </div>
       {caption && <div className="mdx-diagram-caption">{caption}</div>}
     </div>

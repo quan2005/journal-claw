@@ -34,7 +34,7 @@ export { Mermaid } from './mermaid'
 export { Section, Subtitle, Label, Divider } from './typography'
 
 // Device mockups
-export { Iphone, useDeviceDensity } from './device-mockups'
+export { Phone, useDeviceDensity } from './device-mockups'
 
 // Grid & Flow
 export { Grid, Col, Flow } from './grid'
@@ -49,7 +49,7 @@ import { AudioCard, VideoCard, ImageViewer, FileCard } from './media'
 import { BarChart, LineChart, PieChart, RadarChart } from './charts'
 import { Mermaid } from './mermaid'
 import { Section, Subtitle, Label, Divider } from './typography'
-import { Iphone } from './device-mockups'
+import { Phone } from './device-mockups'
 import { Grid, Col, Flow } from './grid'
 
 export const mdxComponents = {
@@ -61,7 +61,7 @@ export const mdxComponents = {
   BarChart, LineChart, PieChart, RadarChart,
   Mermaid,
   Section, Subtitle, Label, Divider,
-  Iphone,
+  Phone,
   DeviceShowcase,
   Grid, Col, Flow,
 }

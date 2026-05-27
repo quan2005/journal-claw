@@ -414,9 +414,11 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [, setTick] = useState(0)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const draggingRef = useRef(false)
-  const dragRef = useRef({ startX: 0, startY: 0, scrollStartX: 0, scrollStartY: 0 })
+  const dragRef = useRef({ startX: 0, startY: 0, panStartX: 0, panStartY: 0 })
 
   useEffect(() => {
     const observer = new MutationObserver(() => setTick((n) => n + 1))
@@ -440,13 +442,15 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     canvas.style.height = `${canvasH}px`
 
     const ctx = canvas.getContext('2d')!
+    ctx.save()
     ctx.scale(dpr, dpr)
+    ctx.translate(panX, panY)
 
     const t = resolveTheme()
 
-    // Background
+    // Background — extend beyond viewport to cover pan offset
     ctx.fillStyle = t.bg
-    ctx.fillRect(0, 0, canvasW, canvasH)
+    ctx.fillRect(-panX - 100, -panY - 100, canvasW + 200, canvasH + 200)
 
     // Edges
     for (const edge of layoutEdges) {
@@ -457,29 +461,28 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     for (const node of layoutNodes) {
       drawNode(ctx, t, node)
     }
-  }, [layoutNodes, layoutEdges, canvasW, canvasH])
 
-  // ── Pan via scroll ──
+    ctx.restore()
+  }, [layoutNodes, layoutEdges, canvasW, canvasH, panX, panY])
+
+  // ── Pan via translate ──
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    const el = containerRef.current
-    if (!el) return
+    e.preventDefault()
     setIsDragging(true)
     draggingRef.current = true
     dragRef.current = {
       startX: e.clientX, startY: e.clientY,
-      scrollStartX: el.scrollLeft, scrollStartY: el.scrollTop,
+      panStartX: panX, panStartY: panY,
     }
-  }, [])
+  }, [panX, panY])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!draggingRef.current) return
-    const el = containerRef.current
-    if (!el) return
     const dx = e.clientX - dragRef.current.startX
     const dy = e.clientY - dragRef.current.startY
-    el.scrollLeft = dragRef.current.scrollStartX - dx
-    el.scrollTop = dragRef.current.scrollStartY - dy
+    setPanX(dragRef.current.panStartX + dx)
+    setPanY(dragRef.current.panStartY + dy)
   }, [])
 
   const handleMouseUp = useCallback(() => {
@@ -488,10 +491,8 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
   }, [])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    const el = containerRef.current
-    if (!el) return
-    el.scrollLeft += e.deltaX
-    el.scrollTop += e.deltaY
+    setPanX((px) => px - e.deltaX)
+    setPanY((py) => py - e.deltaY)
   }, [])
 
   return (

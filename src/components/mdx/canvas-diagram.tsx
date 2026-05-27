@@ -4,13 +4,15 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 // Types
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface CanvasNode {
+type NodeType = 'start' | 'process' | 'decision' | 'input' | 'output' | 'junction'
+
+export interface CanvasNode {
   id: string
   label: string
-  type?: 'start' | 'process' | 'decision' | 'input' | 'output'
+  type?: NodeType
 }
 
-interface CanvasEdge {
+export interface CanvasEdge {
   from: string
   to: string
   label?: string
@@ -34,35 +36,50 @@ interface Theme {
   grid: string
   border: string
   text: string
+  edgeStroke: string
+  labelBg: string
 }
 
 function resolveTheme(): Theme {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark'
   return dark
-    ? { bg: '#101010', fg: '#e8e8e8', accent: '#c8933b', accentBg: 'rgba(200,147,59,0.12)', grid: '#2c2c2e', border: '#3a3a3c', text: '#a2a6ae' }
-    : { bg: '#fafaf8', fg: '#1c1c1e', accent: '#b8782a', accentBg: '#fbf3e5', grid: '#e5e5e7', border: '#d8dce0', text: '#6a7278' }
+    ? {
+        bg: '#101010', fg: '#e8e8e8', accent: '#c8933b',
+        accentBg: 'rgba(200,147,59,0.12)', grid: '#2c2c2e',
+        border: '#3a3a3c', text: '#a2a6ae',
+        edgeStroke: 'rgba(255,255,255,0.22)', labelBg: '#1c1c1e',
+      }
+    : {
+        bg: '#fafaf8', fg: '#1c1c1e', accent: '#b8782a',
+        accentBg: '#fbf3e5', grid: '#e5e5e7',
+        border: '#d8dce0', text: '#6a7278',
+        edgeStroke: 'rgba(0,0,0,0.18)', labelBg: '#ffffff',
+      }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Layout algorithm
+// Layout
 // ═══════════════════════════════════════════════════════════════════════════
 
 const NODE_W = 156
 const NODE_H = 38
-const LAYER_GAP = 56
+const DIAMOND_W = 112
+const DIAMOND_H = 56
+const LAYER_GAP = 60
 const NODE_GAP_X = 28
-const PAD_X = 40
-const PAD_Y = 32
+const PAD_X = 48
+const PAD_Y = 36
+const MIN_CANVAS_W = 480
+const MIN_CANVAS_H = 320
+const MAX_CANVAS_H = 720
 
 interface LayoutNode {
   id: string
   label: string
   type: string
-  x: number
-  y: number
-  w: number
-  h: number
+  x: number; y: number; w: number; h: number
   layer: number
+  visible: boolean
 }
 
 interface LayoutEdge {
@@ -71,10 +88,16 @@ interface LayoutEdge {
   label?: string
 }
 
-function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): { layoutNodes: LayoutNode[]; layoutEdges: LayoutEdge[]; canvasW: number; canvasH: number } {
+function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
+  layoutNodes: LayoutNode[]
+  layoutEdges: LayoutEdge[]
+  canvasW: number
+  canvasH: number
+} {
   const nodeMap = new Map<string, CanvasNode>()
   for (const n of nodes) nodeMap.set(n.id, n)
 
+  // ── Layer assignment (BFS from roots) ──
   const inDegree = new Map<string, number>()
   const outEdges = new Map<string, string[]>()
   for (const n of nodes) { inDegree.set(n.id, 0); outEdges.set(n.id, []) }
@@ -83,78 +106,183 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): { layoutNodes:
     outEdges.get(e.from)?.push(e.to)
   }
 
-  // Assign layers via BFS from root nodes (inDegree === 0)
   const layer = new Map<string, number>()
   const queue: string[] = []
   for (const [id, deg] of inDegree) {
     if (deg === 0) { layer.set(id, 0); queue.push(id) }
   }
-  // If all nodes have incoming edges (cycle), pick first node
   if (queue.length === 0 && nodes.length > 0) {
-    layer.set(nodes[0].id, 0)
-    queue.push(nodes[0].id)
+    layer.set(nodes[0].id, 0); queue.push(nodes[0].id)
   }
 
   while (queue.length > 0) {
     const cur = queue.shift()!
     const curLayer = layer.get(cur)!
     for (const next of outEdges.get(cur) || []) {
-      if (!layer.has(next)) {
+      const nextLayer = (layer.get(next) ?? -1)
+      if (nextLayer < curLayer + 1) {
         layer.set(next, curLayer + 1)
         queue.push(next)
-      } else {
-        layer.set(next, Math.max(layer.get(next)!, curLayer + 1))
       }
     }
   }
 
-  // Assign remaining unlayered nodes
   let maxLayer = 0
   for (const n of nodes) {
     if (!layer.has(n.id)) layer.set(n.id, 0)
     maxLayer = Math.max(maxLayer, layer.get(n.id)!)
   }
 
-  // Group nodes by layer
-  const layerGroups = new Map<number, CanvasNode[]>()
+  // ── Junction insertion for convergence points ──
+  // When multiple nodes at same layer converge to one target, insert a junction
+  const junctionNodes: CanvasNode[] = []
+  const junctionEdges: CanvasEdge[] = []
+  let jid = 0
+
   for (const n of nodes) {
+    const incoming = edges.filter((e) => e.to === n.id)
+    if (incoming.length >= 2) {
+      const sources = incoming.map((e) => e.from)
+      const sourceLayers = sources.map((s) => layer.get(s) ?? 0)
+      const maxSourceLayer = Math.max(...sourceLayers)
+      const targetLayer = layer.get(n.id)!
+
+      // Only insert junction if sources are in same layer and target is directly below
+      const allSameLayer = sourceLayers.every((l) => l === maxSourceLayer)
+      if (allSameLayer && maxSourceLayer === targetLayer - 1) {
+        const jId = `__junction_${jid++}`
+        junctionNodes.push({ id: jId, label: '', type: 'junction' })
+        layer.set(jId, targetLayer) // junction at target's layer
+
+        // Rewire: sources → junction, junction → target
+        for (const e of incoming) {
+          junctionEdges.push({ from: e.from, to: jId, label: e.label })
+        }
+        junctionEdges.push({ from: jId, to: n.id })
+
+        // Original incoming edges will be filtered out below
+      }
+    }
+  }
+
+  // Build final edge list: keep non-convergent edges, add junction edges
+  const convergentTargets = new Set<string>()
+  for (const n of nodes) {
+    const incoming = edges.filter((e) => e.to === n.id)
+    if (incoming.length >= 2) {
+      const sourceLayers = incoming.map((e) => layer.get(e.from) ?? 0)
+      const maxSourceLayer = Math.max(...sourceLayers)
+      const targetLayer = layer.get(n.id)!
+      if (sourceLayers.every((l) => l === maxSourceLayer) && maxSourceLayer === targetLayer - 1) {
+        convergentTargets.add(n.id)
+      }
+    }
+  }
+
+  const finalEdges: CanvasEdge[] = []
+  for (const e of edges) {
+    if (convergentTargets.has(e.to)) continue // replaced by junction
+    finalEdges.push(e)
+  }
+  for (const je of junctionEdges) finalEdges.push(je)
+
+  const allNodes = [...nodes, ...junctionNodes]
+
+  // ── Position nodes ──
+  const layerGroups = new Map<number, CanvasNode[]>()
+  for (const n of allNodes) {
     const l = layer.get(n.id) || 0
     if (!layerGroups.has(l)) layerGroups.set(l, [])
     layerGroups.get(l)!.push(n)
   }
 
-  // Position nodes
   const layoutNodes: LayoutNode[] = []
-  let maxRowWidth = 0
 
   for (let l = 0; l <= maxLayer; l++) {
     const group = layerGroups.get(l) || []
-    const rowW = group.length * NODE_W + (group.length - 1) * NODE_GAP_X
-    maxRowWidth = Math.max(maxRowWidth, rowW)
+    const nonJunction = group.filter((n) => n.type !== 'junction')
+    const rowW = nonJunction.length * NODE_W + (nonJunction.length - 1) * NODE_GAP_X
 
-    for (let i = 0; i < group.length; i++) {
-      const n = group[i]
+    // Position visible nodes
+    let vi = 0
+    for (const n of group) {
+      if (n.type === 'junction') {
+        // Junction position will be set after visible nodes
+        layoutNodes.push({
+          id: n.id, label: n.label, type: 'junction',
+          x: 0, y: 0, w: 8, h: 8,
+          layer: l, visible: false,
+        })
+        continue
+      }
+      const startX = (rowW / 2) - ((nonJunction.length - 1) * (NODE_W + NODE_GAP_X)) / 2
+      const isDiamond = n.type === 'decision'
       layoutNodes.push({
-        id: n.id,
-        label: n.label,
-        type: n.type || 'process',
-        x: PAD_X + (rowW / 2 - (group.length * (NODE_W + NODE_GAP_X) - NODE_GAP_X) / 2) + i * (NODE_W + NODE_GAP_X),
-        y: PAD_Y + l * (NODE_H + LAYER_GAP),
-        w: NODE_W,
-        h: NODE_H,
-        layer: l,
+        id: n.id, label: n.label, type: n.type || 'process',
+        x: startX + vi * (NODE_W + NODE_GAP_X),
+        y: l * (NODE_H + LAYER_GAP),
+        w: isDiamond ? DIAMOND_W : NODE_W,
+        h: isDiamond ? DIAMOND_H : NODE_H,
+        layer: l, visible: true,
       })
+      vi++
+    }
+
+    // Position junction at the center of its source nodes
+    for (const ln of layoutNodes.filter((n) => n.type === 'junction' && n.layer === l)) {
+      const sources = junctionEdges.filter((je) => je.to === ln.id).map((je) => je.from)
+      const sourceNodes = layoutNodes.filter((n) => sources.includes(n.id) && n.visible)
+      if (sourceNodes.length >= 2) {
+        const minX = Math.min(...sourceNodes.map((n) => n.x + n.w / 2))
+        const maxX = Math.max(...sourceNodes.map((n) => n.x + n.w / 2))
+        ln.x = (minX + maxX) / 2
+        ln.y = l * (NODE_H + LAYER_GAP) + NODE_H / 2
+      } else {
+        ln.x = 240
+        ln.y = l * (NODE_H + LAYER_GAP) + NODE_H / 2
+      }
     }
   }
 
-  const canvasW = Math.max(520, Math.ceil(PAD_X * 2 + maxRowWidth))
-  const canvasH = Math.ceil(PAD_Y * 2 + (maxLayer + 1) * NODE_H + maxLayer * LAYER_GAP)
+  // ── Bounding box of all visible nodes ──
+  const visibleNodes = layoutNodes.filter((n) => n.visible)
+  if (visibleNodes.length === 0) {
+    return { layoutNodes, layoutEdges: [], canvasW: MIN_CANVAS_W, canvasH: MIN_CANVAS_H }
+  }
 
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const n of visibleNodes) {
+    minX = Math.min(minX, n.x)
+    minY = Math.min(minY, n.y)
+    maxX = Math.max(maxX, n.x + n.w)
+    maxY = Math.max(maxY, n.y + n.h)
+  }
+
+  // Include edge labels in bounds estimate (rough: add 60px right margin per label)
+  const hasEdgeLabels = finalEdges.some((e) => e.label)
+  const labelMargin = hasEdgeLabels ? 60 : 0
+
+  const boundsW = maxX - minX + labelMargin
+  const boundsH = maxY - minY
+
+  const canvasW = Math.max(MIN_CANVAS_W, Math.ceil(boundsW + PAD_X * 2))
+  const canvasH = Math.max(MIN_CANVAS_H, Math.min(Math.ceil(boundsH + PAD_Y * 2), MAX_CANVAS_H))
+
+  // ── Center nodes horizontally ──
+  const offsetX = (canvasW - (maxX - minX)) / 2 - minX
+  const offsetY = (canvasH - boundsH) / 2 - minY
+
+  for (const n of layoutNodes) {
+    n.x += offsetX
+    n.y += offsetY
+  }
+
+  // ── Map edge references to layout nodes ──
   const lnMap = new Map<string, LayoutNode>()
   for (const ln of layoutNodes) lnMap.set(ln.id, ln)
 
   const layoutEdges: LayoutEdge[] = []
-  for (const e of edges) {
+  for (const e of finalEdges) {
     const from = lnMap.get(e.from)
     const to = lnMap.get(e.to)
     if (from && to) layoutEdges.push({ from, to, label: e.label })
@@ -164,74 +292,62 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): { layoutNodes:
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Drawing helpers
+// Drawing
 // ═══════════════════════════════════════════════════════════════════════════
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y, x + w, y + r, r); ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r); ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x, y + h, x, y + h - r, r); ctx.lineTo(x, y + r)
+  ctx.arcTo(x, y, x + r, y, r); ctx.closePath()
+}
+
 function drawNode(ctx: CanvasRenderingContext2D, t: Theme, n: LayoutNode) {
+  if (n.type === 'junction') {
+    // Small filled dot at junction point
+    ctx.fillStyle = t.edgeStroke
+    ctx.beginPath()
+    ctx.arc(n.x, n.y, 4, 0, Math.PI * 2)
+    ctx.fill()
+    return
+  }
+
   const { x, y, w, h } = n
 
   if (n.type === 'decision') {
-    // Diamond
     const cx = x + w / 2, cy = y + h / 2
-    const dw = w * 0.75, dh = h * 1.2
+    const dw = w, dh = h
     ctx.fillStyle = t.accentBg
     ctx.beginPath()
-    ctx.moveTo(cx, cy - dh / 2)
-    ctx.lineTo(cx + dw / 2, cy)
-    ctx.lineTo(cx, cy + dh / 2)
-    ctx.lineTo(cx - dw / 2, cy)
+    ctx.moveTo(cx, cy - dh / 2); ctx.lineTo(cx + dw / 2, cy)
+    ctx.lineTo(cx, cy + dh / 2); ctx.lineTo(cx - dw / 2, cy)
     ctx.closePath()
     ctx.fill()
-    ctx.strokeStyle = t.accent
-    ctx.lineWidth = 1.25
-    ctx.stroke()
+    ctx.strokeStyle = t.accent; ctx.lineWidth = 1.25; ctx.stroke()
     ctx.fillStyle = t.fg
-    ctx.font = '13px system-ui'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
+    ctx.font = '13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(n.label, cx, cy)
   } else if (n.type === 'start' || n.type === 'output') {
-    // Strong accent background
     ctx.fillStyle = t.accent
-    roundRect(ctx, x, y, w, h, 8)
-    ctx.fill()
-    ctx.fillStyle = n.type === 'start' ? t.bg : t.bg
-    ctx.font = '600 13px system-ui'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
+    roundRect(ctx, x, y, w, h, 8); ctx.fill()
+    ctx.fillStyle = '#fff'
+    ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(n.label, x + w / 2, y + h / 2)
   } else {
-    // Default process node
     ctx.fillStyle = t.accentBg
-    roundRect(ctx, x, y, w, h, 8)
-    ctx.fill()
-    ctx.strokeStyle = t.border
-    ctx.lineWidth = 1.25
-    roundRect(ctx, x, y, w, h, 8)
-    ctx.stroke()
+    roundRect(ctx, x, y, w, h, 8); ctx.fill()
+    ctx.strokeStyle = t.border; ctx.lineWidth = 1.25
+    roundRect(ctx, x, y, w, h, 8); ctx.stroke()
     ctx.fillStyle = t.fg
-    ctx.font = '13px system-ui'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
+    ctx.font = '13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(n.label, x + w / 2, y + h / 2)
   }
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + w - r, y)
-  ctx.arcTo(x + w, y, x + w, y + r, r)
-  ctx.lineTo(x + w, y + h - r)
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
-  ctx.lineTo(x + r, y + h)
-  ctx.arcTo(x, y + h, x, y + h - r, r)
-  ctx.lineTo(x, y + r)
-  ctx.arcTo(x, y, x + r, y, r)
-  ctx.closePath()
-}
-
-function drawArrowHead(ctx: CanvasRenderingContext2D, toX: number, toY: number, angle: number, size: number) {
+function drawArrow(ctx: CanvasRenderingContext2D, toX: number, toY: number, angle: number, size: number, color: string) {
+  ctx.fillStyle = color
   ctx.beginPath()
   ctx.moveTo(toX, toY)
   ctx.lineTo(toX - size * Math.cos(angle - Math.PI / 7), toY - size * Math.sin(angle - Math.PI / 7))
@@ -246,17 +362,16 @@ function drawEdge(ctx: CanvasRenderingContext2D, t: Theme, edge: LayoutEdge) {
   const toCx = edge.to.x + edge.to.w / 2
   const toCy = edge.to.y
 
-  ctx.strokeStyle = t.border
-  ctx.lineWidth = 1.25
-  ctx.fillStyle = t.border
+  ctx.strokeStyle = t.edgeStroke
+  ctx.lineWidth = 1.4
 
   const midY = (fromCy + toCy) / 2
 
-  // Orthogonal path: down → across → down
   ctx.beginPath()
   ctx.moveTo(fromCx, fromCy)
-  if (Math.abs(fromCx - toCx) < 4 && edge.from.layer + 1 === edge.to.layer) {
-    // Direct vertical when aligned
+
+  if (Math.abs(fromCx - toCx) < 4 && edge.from.layer + 1 <= edge.to.layer) {
+    // Direct vertical
     ctx.lineTo(toCx, toCy)
   } else {
     ctx.lineTo(fromCx, midY)
@@ -265,17 +380,29 @@ function drawEdge(ctx: CanvasRenderingContext2D, t: Theme, edge: LayoutEdge) {
   }
   ctx.stroke()
 
-  // Arrowhead at endpoint
-  const angle = Math.PI / 2 // pointing down
-  ctx.fillStyle = t.border
-  drawArrowHead(ctx, toCx, toCy - 1, angle, 7)
+  // Arrowhead
+  drawArrow(ctx, toCx, toCy - 1, Math.PI / 2, 7, t.edgeStroke)
 
-  // Edge label
+  // Edge label — above horizontal segment with background
   if (edge.label) {
-    ctx.fillStyle = t.text
+    const labelX = (fromCx + toCx) / 2
+    const labelY = midY - 7
+
     ctx.font = '11px system-ui'
+    const metrics = ctx.measureText(edge.label)
+    const lw = metrics.width + 12
+    const lh = 18
+
+    // Background pill
+    ctx.fillStyle = t.labelBg
+    roundRect(ctx, labelX - lw / 2, labelY - lh / 2, lw, lh, 9)
+    ctx.fill()
+
+    // Text
+    ctx.fillStyle = t.text
     ctx.textAlign = 'center'
-    ctx.fillText(edge.label, (fromCx + toCx) / 2 + 40, midY - 5)
+    ctx.textBaseline = 'middle'
+    ctx.fillText(edge.label, labelX, labelY)
   }
 }
 
@@ -284,11 +411,9 @@ function drawEdge(ctx: CanvasRenderingContext2D, t: Theme, edge: LayoutEdge) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function CanvasDiagram({ nodes, edges, caption }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [, setTick] = useState(0)
 
-  // Re-render on theme change
   useEffect(() => {
     const observer = new MutationObserver(() => setTick((n) => n + 1))
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
@@ -324,7 +449,7 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
       drawEdge(ctx, t, edge)
     }
 
-    // Nodes (drawn after edges so they're on top)
+    // Nodes (on top)
     for (const node of layoutNodes) {
       drawNode(ctx, t, node)
     }
@@ -332,7 +457,7 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
 
   return (
     <div className="mdx-diagram-frame">
-      <div className="mdx-diagram-body" ref={containerRef} style={{ overflow: 'auto' }}>
+      <div className="mdx-diagram-body" style={{ overflow: 'auto' }}>
         <canvas ref={canvasRef} style={{ display: 'block', margin: '0 auto' }} />
       </div>
       {caption && <div className="mdx-diagram-caption">{caption}</div>}

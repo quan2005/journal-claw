@@ -75,28 +75,37 @@ async function getMermaid(isDark: boolean, type: string) {
     base.gantt = {
       useWidth: 960,
       leftPadding: 100,
-      topPadding: 48,
+      topPadding: 40,
       barHeight: 28,
       barGap: 8,
       gridLineStartPadding: 24,
       fontSize: 13,
       numberSectionStyles: 4,
       axisFormat: '%m-%d',
-      titleTopMargin: 24,
+      titleTopMargin: 20,
     }
     base.themeVariables = {
       ...base.themeVariables,
-      taskBkgColor: isDark ? '#c8c8c8' : '#e5e5e7',
-      taskTextColor: isDark ? '#1c1c1e' : '#1c1c1e',
-      taskTextOutsideColor: isDark ? '#a2a6ae' : '#4a5058',
-      taskBorderColor: isDark ? '#6a6a6a' : '#b8c0c6',
+      // Light task bars → dark text for contrast
+      taskBkgColor: isDark ? '#d4d4d4' : '#d8d8d8',
+      taskTextColor: '#1a1a1a',
+      taskTextDarkColor: '#1a1a1a',
+      taskTextOutsideColor: isDark ? '#b0b0b0' : '#3a3a3a',
+      taskBorderColor: isDark ? '#888888' : '#a0a0a0',
+      // Active task → dark amber, dark text
       activeTaskBkgColor: isDark ? '#c8933b' : '#b8782a',
       activeTaskBorderColor: isDark ? '#a07820' : '#8a6500',
       activeTaskTextColor: '#0f0f0f',
-      sectionBkgColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-      altSectionBkgColor: isDark ? 'rgba(200,147,59,0.06)' : 'rgba(184,120,42,0.04)',
+      activeTaskTextDarkColor: '#0f0f0f',
+      // Sections — subtle
+      sectionBkgColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+      sectionBkgColor2: isDark ? 'rgba(200,147,59,0.04)' : 'rgba(184,120,42,0.03)',
+      altSectionBkgColor: isDark ? 'rgba(200,147,59,0.04)' : 'rgba(184,120,42,0.03)',
+      // Grid & accent
       gridColor: isDark ? '#2c2c2e' : '#e5e5e7',
       todayLineColor: isDark ? '#c8933b' : '#b8782a',
+      // Title
+      titleColor: isDark ? '#d0d0d0' : '#2a2a2a',
     }
   }
 

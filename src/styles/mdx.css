@@ -815,17 +815,19 @@
   max-width: none;
 }
 
-/* Gantt task text — dark text on light bars */
+/* Gantt task text — always dark on light bars */
 .mdx-diagram-frame--gantt .taskText,
 .mdx-diagram-frame--gantt .taskTextOutsideRight,
-.mdx-diagram-frame--gantt .taskTextOutsideLeft {
-  fill: #1c1c1e !important;
+.mdx-diagram-frame--gantt .taskTextOutsideLeft,
+.mdx-diagram-frame--gantt text[class*="task"] {
+  fill: #1a1a1a !important;
   font-size: 13px !important;
   font-weight: 500 !important;
 }
 
-/* Gantt active task — white text on dark amber */
-.mdx-diagram-frame--gantt .activeTaskText {
+/* Gantt active task — black text on amber */
+.mdx-diagram-frame--gantt .activeTaskText,
+.mdx-diagram-frame--gantt .active .taskText {
   fill: #0f0f0f !important;
   font-size: 13px !important;
   font-weight: 500 !important;
@@ -833,27 +835,28 @@
 
 /* Gantt title */
 .mdx-diagram-frame--gantt .titleText {
-  font-size: 18px !important;
+  font-size: 16px !important;
   font-weight: 500 !important;
 }
 
-/* Gantt section backgrounds */
+/* Gantt section backgrounds — very subtle */
 .mdx-diagram-frame--gantt .section0,
 .mdx-diagram-frame--gantt .section1,
 .mdx-diagram-frame--gantt .section2,
-.mdx-diagram-frame--gantt .section3 {
-  fill-opacity: 0.06 !important;
+.mdx-diagram-frame--gantt .section3,
+.mdx-diagram-frame--gantt rect[class*="section"] {
+  fill-opacity: 0.04 !important;
 }
 
-.mdx-diagram-frame--gantt .sectionTitle {
+.mdx-diagram-frame--gantt .sectionTitle,
+.mdx-diagram-frame--gantt text[class*="sectionTitle"] {
   font-size: 14px !important;
   font-weight: 500 !important;
 }
 
-/* Gantt grid and today line */
+/* Gantt grid lines */
 .mdx-diagram-frame--gantt .grid .tick {
-  stroke: #2c2c2e !important;
-  stroke-opacity: 0.4 !important;
+  stroke-opacity: 0.3 !important;
 }
 
 .mdx-diagram-frame--gantt .today {

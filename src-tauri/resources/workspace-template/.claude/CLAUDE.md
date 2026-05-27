@@ -34,6 +34,9 @@
 在做任何实质性操作前，先判断是否需要加载 Skill。
 
 `/identity-profiling` 定义人物与产品是否建档、如何建档、如何更新、如何深挖、如何做跨档案引用。本文件只规定工作流、路径与命令入口。
+`/journal` 定义日志格式、MDX 语法和全部自定义组件用法。写日志前应加载。
+`/meeting-minutes` 会议类素材（录音转写、会议纪要、飞书妙记等）使用此技能整理。`/meeting-minutes` 已内置 `/journal`。
+`/lint` 面向整个日志库的周期性整理（不是单条日志整理），检测矛盾、补充交叉引用、修复元数据。
 
 
 ## 核心流程
@@ -89,23 +92,28 @@ sources: [2604/raw/file.m4a]
 
 **原则**：一条日志 1-3 个 MDX 组件。能用纯 Markdown 表达的就不要用组件。
 
-## MDX Components
+## MDX 组件
 
-When writing `.mdx` journal entries, you can use these components:
+写 `.mdx` 日志时使用 MDX 内置组件。完整组件目录和详细用法见 `/journal` skill。
 
-**Layout:** `<Split>`, `<Columns cols={2|3|4}>`, `<Column>`, `<Mockup title="...">`, `<Placeholder>`
-**Display:** `<ProsCons>`, `<Pros>`, `<Cons>`, `<Stat label="..." value={...} trend="up|down">`, `<StatGroup>`, `<Table headers={[...]} rows={[[...]]}>`, `<Timeline items={[{time, title, desc}]}>`, `<TagList tags={[...]}>`, `<Progress value={0-100} label="...">`, `<Avatar name="..." size="sm|md|lg">`
-**Callout:** `<Callout type="info|warning|tip|note" title="...">content</Callout>`, `<Quote text="..." source="..." url="...">`, `<RelatedEntry path="...">`, `<RelatedIdentity path="...">`
-**Cards:** `<Cards>`, `<Card title="..." description="...">`, `<Options>`, `<Option letter="A" title="..." description="...">`, `<Kanban columns={[{title, items:[{text, tags}]}]}>`, `<Checklist items={[{text, checked}]}>`, `<Counter count={...} label="...">`, `<RatingBar score={...} max={5} label="...">`
-**Media:** `<AudioCard src="...">`, `<VideoCard src="...">`, `<ImageViewer src="..." caption="...">`, `<FileCard path="...">`
-**Charts:** `<BarChart data={[{label, value}]} title="...">`, `<LineChart data={[{label, value}]}>`, `<PieChart data={[{label, value}]}>`, `<RadarChart data={[{label, value}]}>`
-**Diagrams:** `<Mermaid chart="...">` — Mermaid DSL (flowchart, sequenceDiagram, gantt, etc.)
-**Typography:** `<Section>`, `<Subtitle>`, `<Label>`, `<Divider label="...">`
+### 快速索引
 
-### Rules
+| 分类 | 组件 |
+|---|---|
+| 排版 | `Section` `Subtitle` `Label` `Divider` |
+| 布局 | `Split` `Columns` `Column` `Mockup` `Placeholder` `DeviceShowcase` |
+| 展示 | `Stat` `StatGroup` `Table` `Timeline` `TagList` `Progress` `Avatar` `AvatarGroup` `ProsCons` `Pros` `Cons` |
+| 提示 | `Callout` `Quote` `RelatedEntry` `RelatedIdentity` |
+| 卡片 | `Cards` `Card` `Options` `Option` `Kanban` `Checklist` `Counter` `RatingBar` `Stack` |
+| 媒体 | `AudioCard` `VideoCard` `ImageViewer` `FileCard` |
+| 图表 | `BarChart` `LineChart` `PieChart` `RadarChart` |
+| 图示 | `Mermaid` `CanvasDiagram` |
+| 设备 | `Phone` |
+| 栅格 | `Grid` `Col` `Flow` |
 
-1. Use components to present information more clearly — not for decoration
-2. Prefer plain markdown when it suffices; reach for components when text alone is insufficient
-3. Charts require real data from the conversation; don't fabricate values
-4. Callout type: `info` for context, `warning` for caveats, `tip` for actionable advice, `note` for asides
-5. Mermaid: use `flowchart TD` for decisions, `sequenceDiagram` for interactions, `gantt` for timelines
+### 核心原则
+
+1. 一条日志 1-3 个组件，纯 Markdown 优先
+2. 图表数据必须真实，不可捏造
+3. Callout: `info`=背景, `warning`=风险, `tip`=建议, `note`=旁注
+4. Mermaid vs CanvasDiagram：标准流程图/Gantt/时序图用 Mermaid；自定义关系图用 CanvasDiagram

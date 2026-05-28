@@ -1,8 +1,10 @@
+import { FileText, Film, Volume2 } from 'lucide-react'
+
 export function AudioCard({ src, title }: { src: string; title?: string }) {
   return (
     <div className="mdx-media-card">
       <div className="mdx-media-header">
-        <span>{'🔊'}</span>
+        <Volume2 className="mdx-media-icon" aria-hidden="true" size={14} strokeWidth={1.8} />
         <span>{title ?? 'Audio'}</span>
       </div>
       <div className="mdx-media-body">
@@ -24,7 +26,7 @@ export function VideoCard({
   return (
     <div className="mdx-media-card">
       <div className="mdx-media-header">
-        <span>{'🎬'}</span>
+        <Film className="mdx-media-icon" aria-hidden="true" size={14} strokeWidth={1.8} />
         <span>{title ?? 'Video'}</span>
       </div>
       <div className="mdx-media-body">
@@ -62,7 +64,7 @@ export function FileCard({
 }) {
   return (
     <a className="mdx-file-card" data-filepath={path} style={{ cursor: 'pointer' }}>
-      <span className="mdx-file-icon">{'📄'}</span>
+      <FileText className="mdx-file-icon" aria-hidden="true" size={15} strokeWidth={1.8} />
       <span>{label ?? path}</span>
     </a>
   )

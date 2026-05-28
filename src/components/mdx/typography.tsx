@@ -1,7 +1,14 @@
 import '../../styles/mdx.css'
 
-export function Section({ children }: { children: React.ReactNode }) {
-  return <section className="mdx-section">{children}</section>
+export function Section({
+  children,
+  density = 'default',
+}: {
+  children: React.ReactNode
+  density?: 'compact' | 'default' | 'relaxed'
+}) {
+  const cls = density === 'default' ? 'mdx-section' : `mdx-section mdx-section--${density}`
+  return <section className={cls}>{children}</section>
 }
 
 export function Subtitle({ children }: { children: React.ReactNode }) {

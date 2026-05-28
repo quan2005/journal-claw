@@ -128,7 +128,7 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
         style={{
           fontFamily: 'var(--font-serif)',
           fontSize: 'var(--text-lg)',
-          fontWeight: 'var(--font-semibold)',
+          fontWeight: 'var(--font-bold)',
           color: 'var(--md-h2)',
           margin: '28px 0 10px',
           lineHeight: 1.5,

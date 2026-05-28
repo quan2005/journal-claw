@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Visual Companion 工作流图解</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f7;
+    --bg-card: #ffffff;
+    --bg-code: #1d1f21;
+    --border: #d1d1d6;
+    --text: #1d1d1f;
+    --text-secondary: #86868b;
+    --accent: #0071e3;
+    --accent-dim: rgba(0,113,227,0.08);
+    --amber: #b8782a;
+    --green: #34c759;
+    --red: #ff3b30;
+    --file: #f0e6d3;
+    --file-border: #d4c8a8;
+    --step: #e8f0fe;
+    --step-border: #a8c8fa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d1d1f;
+      --bg-card: #2d2d2f;
+      --bg-code: #1a1a1c;
+      --border: #424245;
+      --text: #f5f5f7;
+      --text-secondary: #86868b;
+      --accent: #0a84ff;
+      --accent-dim: rgba(10,132,255,0.1);
+      --amber: #c8933b;
+      --file: #2d2a22;
+      --file-border: #4a4535;
+      --step: rgba(10,132,255,0.08);
+      --step-border: rgba(10,132,255,0.25);
+    }
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ===== INTRO ===== */
+  .intro {
+    text-align: center;
+    padding: 3rem 2rem 2rem;
+  }
+  .intro h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .intro .tagline {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    margin-top: 0.5rem;
+  }
+
+  /* ===== ARCH DIAGRAM ===== */
+  .arch {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 0;
+    align-items: center;
+    padding: 1.5rem 1rem;
+    margin: 0 2rem 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow-x: auto;
+  }
+  .arch-node {
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--accent-dim);
+    border: 1px solid transparent;
+    min-width: 100px;
+  }
+  .arch-node.key { background: rgba(184,120,42,0.1); border-color: rgba(184,120,42,0.3); }
+  .arch-node.server { background: rgba(52,199,89,0.08); border-color: rgba(52,199,89,0.2); }
+  .arch-node.browser { background: rgba(255,149,0,0.08); border-color: rgba(255,149,0,0.2); }
+  .arch-arrow {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0 0.25rem;
+    min-width: 70px;
+  }
+  .arch-arrow::after { content: "→"; font-size: 1.2rem; display: block; }
+
+  /* ===== SECTION ===== */
+  .section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 2rem 2rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-title .num {
+    background: var(--accent);
+    color: white;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  /* ===== CODE BLOCKS ===== */
+  .code-block {
+    margin: 1rem 2rem;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .code-block .filename {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    padding: 0.4rem 1rem;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.03em;
+  }
+  .code-block pre {
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", monospace;
+    font-size: 0.78rem;
+    line-height: 1.65;
+    tab-size: 2;
+  }
+  .code-block code { color: var(--text); }
+  .tok-tag { color: #e06c75; }
+  .tok-attr { color: #d19a66; }
+  .tok-val { color: #98c379; }
+  .tok-fn { color: #61afef; }
+  .tok-str { color: #98c379; }
+  .tok-comment { color: #5c6370; font-style: italic; }
+
+  @media (prefers-color-scheme: dark) {
+    .tok-tag { color: #f07178; }
+    .tok-attr { color: #ffcb6b; }
+    .tok-val { color: #c3e88d; }
+    .tok-fn { color: #82aaff; }
+    .tok-str { color: #c3e88d; }
+  }
+
+  /* ===== PROSE ===== */
+  .prose {
+    padding: 0.5rem 2rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+  .prose strong { color: var(--text); }
+
+  /* ===== COMPARISON ===== */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1rem 2rem;
+  }
+  @media (max-width: 700px) { .comparison { grid-template-columns: 1fr; } }
+  .comparison .col {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .comparison .col-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .comparison .col-body { padding: 1rem; }
+  .comparison .col-body pre {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  .comparison .label-bad { color: var(--red); font-size: 0.7rem; font-weight: 600; }
+  .comparison .label-good { color: var(--green); font-size: 0.7rem; font-weight: 600; }
+
+  /* ===== FLOW STEPS ===== */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1rem 2rem;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+  }
+  .flow-step .step-num {
+    background: var(--accent);
+    color: white;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  .flow-step .step-body { flex: 1; }
+  .flow-step .step-action {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .flow-step .step-detail {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
+  }
+  .flow-step .step-detail code {
+    background: var(--bg);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    font-size: 0.78rem;
+  }
+  .flow-connector {
+    width: 2px;
+    height: 1rem;
+    background: var(--border);
+    margin-left: 1.7rem;
+  }
+
+  /* ===== FOUR FILES OVERVIEW ===== */
+  .files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1rem 2rem;
+  }
+  .file-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    border-top: 3px solid var(--accent);
+  }
+  .file-card.server { border-top-color: var(--green); }
+  .file-card.template { border-top-color: var(--amber); }
+  .file-card.helper { border-top-color: #ff9500; }
+  .file-card.guide { border-top-color: var(--red); }
+  .file-card .fc-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    font-family: "SF Mono", monospace;
+  }
+  .file-card .fc-role {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+  }
+
+  /* ===== CSS CHEAT SHEET ===== */
+  .cheatsheet {
+    margin: 1rem 2rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .cheatsheet table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  .cheatsheet thead th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+  .cheatsheet td {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cheatsheet td:first-child { font-family: "SF Mono", monospace; font-size: 0.75rem; color: var(--accent); }
+  .cheatsheet td:last-child { color: var(--text-secondary); font-size: 0.78rem; }
+  .cheatsheet tr:last-child td { border-bottom: none; }
+
+  /* ===== SUBTLE FOOTER ===== */
+  .footer {
+    text-align: center;
+    padding: 3rem 2rem 2rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="intro">
+  <h1>Visual Companion<br>Mockup 工作流</h1>
+  <p class="tagline">四个文件，零外部依赖，一条全自动管道</p>
+</div>
+
+<!-- ARCHITECTURE PIPELINE -->
+<div class="arch">
+  <div class="arch-node key">AI 写<br>content fragment</div>
+  <div class="arch-arrow">Write 工具<br>写入 screen_dir</div>
+  <div class="arch-node server">server.cjs<br>检测新文件</div>
+  <div class="arch-arrow">注入 frame<br>+ helper.js</div>
+  <div class="arch-node browser">浏览器<br>展示 + 交互</div>
+  <div class="arch-arrow">WebSocket<br>回传点击</div>
+  <div class="arch-node server">server.cjs<br>写入 events</div>
+  <div class="arch-arrow">Read 工具<br>读 events 文件</div>
+  <div class="arch-node key">AI 获取<br>用户选择</div>
+</div>
+
+<!-- SECTION 1: THE FOUR FILES -->
+<div class="section-title"><span class="num">1</span> 四大核心文件</div>
+
+<div class="files-grid">
+  <div class="file-card server">
+    <div class="fc-name">scripts/server.cjs</div>
+    <div class="fc-role">HTTP 服务器 + WebSocket + 文件监控。手写 RFC 6455 帧编解码，零 npm 依赖。自动包裹 content fragment 到 frame template。</div>
+  </div>
+  <div class="file-card template">
+    <div class="fc-name">scripts/frame-template.html</div>
+    <div class="fc-role">页面外壳：CSS 变量主题系统（Apple SF 风格）、dark/light 自适应、网格布局、线框组件库。<!-- CONTENT --> 注释是 AI 内容的注入点。</div>
+  </div>
+  <div class="file-card helper">
+    <div class="fc-name">scripts/helper.js</div>
+    <div class="fc-role">客户端脚本（注入到每页）。WebSocket 连接管理、点击事件捕获、toggleSelect() 选择 UI、reload 响应。</div>
+  </div>
+  <div class="file-card guide">
+    <div class="fc-name">visual-companion.md</div>
+    <div class="fc-role">AI 操作指南。定义何时用浏览器 vs 终端、CSS 类速查、启动命令、事件格式、文件命名规范。</div>
+  </div>
+</div>
+
+<!-- SECTION 2: FRAGMENT VS FULL DOC -->
+<div class="section-title"><span class="num">2</span> Content Fragment — 核心设计决策</div>
+
+<div class="prose">
+  server.cjs 通过检测第一行是否以 <code>&lt;!DOCTYPE</code> 或 <code>&lt;html</code> 开头来判断：<strong>Fragment → 自动包裹 frame；Full doc → 只注入 helper.js</strong>。<br>默认写 fragment，让 AI 无需关心 CSS 和页面结构。
+</div>
+
+<div class="comparison">
+  <div class="col">
+    <div class="col-header"><span class="label-good">AI 写的（默认）</span></div>
+    <div class="col-body">
+      <pre>&lt;!-- 只有内容语义，零样板代码 --&gt;
+&lt;h2&gt;Which layout works better?&lt;/h2&gt;
+&lt;p class="subtitle"&gt;Consider readability&lt;/p&gt;
+
+&lt;div class="options"&gt;
+  &lt;div class="option" data-choice="a"
+       onclick="toggleSelect(this)"&gt;
+    &lt;div class="letter"&gt;A&lt;/div&gt;
+    &lt;div class="content"&gt;
+      &lt;h3&gt;Single Column&lt;/h3&gt;
+      &lt;p&gt;Clean, focused reading&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="option" data-choice="b"
+       onclick="toggleSelect(this)"&gt;
+    &lt;div class="letter"&gt;B&lt;/div&gt;
+    &lt;div class="content"&gt;
+      &lt;h3&gt;Two Column&lt;/h3&gt;
+      &lt;p&gt;Sidebar + main area&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+    </div>
+  </div>
+  <div class="col">
+    <div class="col-header">服务器自动包裹后的最终页面</div>
+    <div class="col-body">
+      <pre>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Superpowers Brainstorming&lt;/title&gt;
+  &lt;style&gt;
+    /* frame-template.html 的完整 CSS */
+    /* — 主题变量、排版、选项、卡片、mockup... */
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="header"&gt;
+    &lt;h1&gt;Superpowers Brainstorming&lt;/h1&gt;
+    &lt;div class="status"&gt;Connected&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="main"&gt;
+    &lt;div id="claude-content"&gt;
+      ← AI 的 content fragment 注入在这
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="indicator-bar"&gt;
+    &lt;span id="indicator-text"&gt;
+      Click an option above...
+    &lt;/span&gt;
+  &lt;/div&gt;
+  &lt;script&gt;/* helper.js */&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: AI WORK LOOP -->
+<div class="section-title"><span class="num">3</span> AI 工作循环（每次交互一轮）</div>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <div class="step-action">检查服务器存活</div>
+      <div class="step-detail">Read <code>state_dir/server-info</code>，若不存在（或 <code>server-stopped</code> 文件存在）则重启。服务器 30 分钟无活动自动退出。</div>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <div class="step-action">Write HTML fragment → screen_dir</div>
+      <div class="step-detail">语义化文件名（<code>layout.html</code>, <code>style-v2.html</code>），绝不复用文件名。只用 Write 工具，不用 cat/heredoc。</div>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <div class="step-action">fs.watch 检测新文件 → 清空旧 events → 广播 reload</div>
+      <div class="step-detail">server.cjs 的 <code>knownFiles</code> Set 区分"新文件"和"覆盖"。新文件才清 events、log screen-added。WebSocket broadcast <code>{type:'reload'}</code>。</div>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <div class="step-action">浏览器自动刷新，用户查看 + 点击选项</div>
+      <div class="step-detail">helper.js 的 <code>toggleSelect()</code> 处理单选/多选、更新底部 indicator bar。每次点击通过 WebSocket 发 <code>{type:'click', choice, text, timestamp}</code>。</div>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <div class="step-action">server.cjs 收到 WebSocket 消息 → append 写入 events 文件</div>
+      <div class="step-detail">一行一个 JSON：<code>{"type":"click","choice":"a","text":"...","timestamp":1706000101}</code></div>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="step-num">6</div>
+    <div class="step-body">
+      <div class="step-action">AI 下一轮：Read events 文件 + 用户终端文字 → 决定下一步</div>
+      <div class="step-detail">合并双通道反馈。events 可揭示用户犹豫路径（多次点击才确定）。若 events 不存在 → 用户未交互浏览器。</div>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="step-num">7</div>
+    <div class="step-body">
+      <div class="step-action">迭代 或 push waiting.html 切回终端模式</div>
+      <div class="step-detail">当前问题未定 → 写新版本（layout-v2.html）。当前问题已定 → push waiting screen 清屏，继续终端文字讨论。</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 4: CSS CLASS CHEAT SHEET -->
+<div class="section-title"><span class="num">4</span> AI 可用的 CSS 组件库速查</div>
+
+<div class="prose">
+  所有样式预定义在 frame-template.html 中。AI 只需记住这些 class 组合，无需手写 CSS。
+</div>
+
+<div class="cheatsheet">
+  <table>
+    <thead>
+      <tr><th>HTML 模式</th><th>视觉效果</th><th>用途</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>.options > .option > .letter + .content</td>
+        <td>竖排 A/B/C 卡片，hover 蓝边，选中蓝底，字母徽章变色</td>
+        <td>文字选项选择（单选默认，data-multiselect 变多选）</td>
+      </tr>
+      <tr>
+        <td>.cards > .card > .card-image + .card-body</td>
+        <td>响应式网格（minmax 280px），卡片 hover 上浮 + 阴影</td>
+        <td>视觉设计/线框图对比选择</td>
+      </tr>
+      <tr>
+        <td>.mockup > .mockup-header + .mockup-body</td>
+        <td>模拟窗口外观，灰底 header 条 + 白色内容区</td>
+        <td>展示 UI 设计、页面布局线框图</td>
+      </tr>
+      <tr>
+        <td>.split > .mockup × 2</td>
+        <td>1:1 并排网格（700px 以下堆叠）</td>
+        <td>并排对比两个方案</td>
+      </tr>
+      <tr>
+        <td>.pros-cons > .pros + .cons</td>
+        <td>1:1 网格，绿色标题 "Pros" / 红色 "Cons"</td>
+        <td>方案优劣对比</td>
+      </tr>
+      <tr>
+        <td>.mock-nav / .mock-sidebar / .mock-content</td>
+        <td>蓝色导航条 / 灰色侧栏 / 白色内容区</td>
+        <td>页面骨架线框图</td>
+      </tr>
+      <tr>
+        <td>.mock-button / .mock-input</td>
+        <td>蓝色按钮 / 圆角输入框</td>
+        <td>线框图中的控件</td>
+      </tr>
+      <tr>
+        <td>.placeholder</td>
+        <td>虚线边框 + 居中文字</td>
+        <td>标注未设计/占位区域</td>
+      </tr>
+      <tr>
+        <td>h2 / h3 / .subtitle / .section / .label</td>
+        <td>统一字号字重层级</td>
+        <td>排版：标题、副标题、区块分隔、小标签</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SECTION 5: KEY DESIGN DECISIONS -->
+<div class="section-title"><span class="num">5</span> 关键设计决策与约束</div>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="step-num" style="background:var(--amber)">A</div>
+    <div class="step-body">
+      <div class="step-action">Fragment 优先，极少用 full document</div>
+      <div class="step-detail">降低 AI 写出破损 HTML 的概率。全页控制仅用于需要脱离 frame 框架的特殊场景。</div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num" style="background:var(--amber)">B</div>
+    <div class="step-body">
+      <div class="step-action">文件名即状态：不复用，语义化，v2/v3 版本迭代</div>
+      <div class="step-detail">server.cjs 通过 <code>knownFiles</code> Set 跟踪所有历史文件。新文件名 → 清空旧 events 数据 → 新屏幕独立的交互上下文。</div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num" style="background:var(--amber)">C</div>
+    <div class="step-body">
+      <div class="step-action">双通道反馈：events（结构化点击流）+ 终端文字</div>
+      <div class="step-detail">events 存储完整的点击序列（含犹豫路径），终端文字提供非结构化补充。AI 合并两者做判断。</div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num" style="background:var(--amber)">D</div>
+    <div class="step-body">
+      <div class="step-action">Server 生命周期绑定 session</div>
+      <div class="step-detail">30 分钟闲置 → 自杀。主进程退出（kill -0 检查 owner PID）→ 自杀。写入 <code>server-stopped</code> 哨兵文件供 AI 检测。</div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num" style="background:var(--amber)">E</div>
+    <div class="step-body">
+      <div class="step-action">waiting screen 清屏协议</div>
+      <div class="step-detail">当下一轮问题不需要浏览器时，push 一个极简 waiting.html 防止用户盯着已解决的选择界面。</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  superpowers/brainstorming visual companion &nbsp;—&nbsp; 四个文件，一条管道。
+</div>
+
+</body>
+</html>

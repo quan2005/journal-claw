@@ -51,6 +51,9 @@ export const listJournalEntriesPaginated = (offset: number, limit: number): Prom
 export const getJournalEntryContent = (path: string) =>
   invoke<string>('get_journal_entry_content', { path })
 
+export const compileMdx = (source: string, filepath?: string) =>
+  invoke<string>('compile_mdx', { source, filepath: filepath ?? null })
+
 // Materials
 export const importFile = (srcPath: string) =>
   invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Design → 谨迹 整合分析</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f7;
+    --bg-card: #fff;
+    --bg-code: #1d1f21;
+    --border: #d1d1d6;
+    --text: #1d1d1f;
+    --text-secondary: #86868b;
+    --accent: #0071e3;
+    --accent-dim: rgba(0,113,227,0.07);
+    --amber: #b8782a;
+    --amber-dim: rgba(184,120,42,0.08);
+    --green: #34c759;
+    --green-dim: rgba(52,199,89,0.08);
+    --red: #ff3b30;
+    --red-dim: rgba(255,59,48,0.08);
+    --purple: #af52de;
+    --purple-dim: rgba(175,82,222,0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d1d1f;
+      --bg-card: #2d2d2f;
+      --bg-code: #1a1a1c;
+      --border: #424245;
+      --text: #f5f5f7;
+      --text-secondary: #86868b;
+      --accent: #0a84ff;
+      --accent-dim: rgba(10,132,255,0.1);
+      --amber: #c8933b;
+      --amber-dim: rgba(200,147,59,0.1);
+      --green-dim: rgba(52,199,89,0.08);
+      --red-dim: rgba(255,59,48,0.08);
+      --purple-dim: rgba(175,82,222,0.1);
+    }
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 3rem 2rem 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .hero h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+  .hero p { color: var(--text-secondary); margin-top: 0.5rem; font-size: 1rem; }
+
+  /* ── PIPELINE COMPARISON ── */
+  .pipeline {
+    max-width: 1000px;
+    margin: 0 auto 2rem;
+    padding: 0 2rem;
+  }
+  .pipeline-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  @media (max-width: 700px) { .pipeline-grid { grid-template-columns: 1fr; } }
+  .pkg {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .pkg-header {
+    padding: 0.6rem 1rem;
+    font-weight: 700;
+    font-size: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .pkg-header.od { border-top: 3px solid var(--accent); }
+  .pkg-header.jn { border-top: 3px solid var(--amber); }
+  .pkg-body { padding: 1rem; font-size: 0.82rem; }
+  .pkg-body .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .pkg-body .item:last-child { border-bottom: none; }
+  .item .icon {
+    width: 1.3rem; height: 1.3rem;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+  .icon.yes { background: var(--green-dim); color: var(--green); }
+  .icon.no  { background: var(--red-dim); color: var(--red); }
+  .icon.partial { background: var(--amber-dim); color: var(--amber); }
+  .item-label { font-weight: 600; }
+  .item-desc { color: var(--text-secondary); font-size: 0.75rem; }
+
+  /* ── GAP BRIDGE ── */
+  .gap-bridge {
+    max-width: 1000px;
+    margin: 0 auto 2rem;
+    padding: 0 2rem;
+  }
+  .gap-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .gap-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    border-left: 4px solid var(--accent);
+  }
+  .gap-item.copy { border-left-color: var(--amber); }
+  .gap-item.adapt { border-left-color: var(--green); }
+  .gap-item.build { border-left-color: var(--purple); }
+  .gap-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15em 0.6em;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  .badge-copy { background: var(--amber-dim); color: var(--amber); }
+  .badge-adapt { background: var(--green-dim); color: var(--green); }
+  .badge-build { background: var(--purple-dim); color: var(--purple); }
+  .gap-body { flex: 1; }
+  .gap-what { font-weight: 600; font-size: 0.88rem; }
+  .gap-why { color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.15rem; }
+  .gap-src { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem; }
+  .gap-src code { font-size: 0.7rem; background: var(--bg); padding: 0.1em 0.4em; border-radius: 3px; }
+
+  /* ── ARCH FLOW ── */
+  .arch-flow {
+    max-width: 1000px;
+    margin: 0 auto 2rem;
+    padding: 1.5rem 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .arch-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+  }
+  .arch-box {
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid;
+  }
+  .arch-box.stream { background: var(--accent-dim); border-color: var(--accent); }
+  .arch-box.parse { background: var(--green-dim); border-color: var(--green); }
+  .arch-box.sandbox { background: var(--amber-dim); border-color: var(--amber); }
+  .arch-box.render { background: var(--purple-dim); border-color: var(--purple); }
+  .arch-box.journal { background: var(--red-dim); border-color: var(--red); }
+  .arch-arr { color: var(--text-secondary); font-weight: 700; font-size: 1.1rem; }
+
+  /* ── CODE BLOCK ── */
+  .code-section {
+    max-width: 1000px;
+    margin: 0 auto 2rem;
+    padding: 0 2rem;
+  }
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .code-block .fn {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    padding: 0.35rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .code-block pre {
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.72rem;
+    line-height: 1.65;
+    tab-size: 2;
+  }
+  .code-block code { color: #abb2bf; }
+  .kw { color: #c678dd; }
+  .fnc { color: #61afef; }
+  .str { color: #98c379; }
+  .cmt { color: #5c6370; font-style: italic; }
+  .num { color: #d19a66; }
+  @media (prefers-color-scheme: dark) {
+    .kw { color: #c678dd; }
+    .fnc { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .num { color: #ffcb6b; }
+  }
+
+  /* ── SECURITY TABLE ── */
+  .sec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 700px) { .sec-grid { grid-template-columns: 1fr; } }
+  .sec-col {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .sec-col h4 {
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-col h4.od { background: var(--accent-dim); }
+  .sec-col h4.jn { background: var(--red-dim); }
+  .sec-col ul {
+    list-style: none;
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem;
+  }
+  .sec-col li {
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-col li:last-child { border-bottom: none; }
+  .sec-col .pass { color: var(--green); }
+  .sec-col .fail { color: var(--red); }
+  .sec-col .warn { color: var(--amber); }
+
+  /* ── SECTION TITLE ── */
+  .sect {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 2rem 0.75rem;
+  }
+  .sect h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .sect h2 .num {
+    background: var(--accent);
+    color: white;
+    width: 1.6rem; height: 1.6rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; flex-shrink: 0;
+  }
+  .sect p { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.3rem; }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center;
+    padding: 3rem 2rem 2rem;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+  }
+
+  /* ── PHASE CARD ── */
+  .phases {
+    max-width: 1000px;
+    margin: 1rem auto 2rem;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 700px) { .phases { grid-template-columns: 1fr; } }
+  .phase-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    border-top: 3px solid;
+  }
+  .phase-card.p1 { border-top-color: var(--accent); }
+  .phase-card.p2 { border-top-color: var(--amber); }
+  .phase-card.p3 { border-top-color: var(--green); }
+  .phase-card h4 { font-size: 0.85rem; margin-bottom: 0.4rem; }
+  .phase-card p { font-size: 0.78rem; color: var(--text-secondary); }
+  .phase-card .tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.1em 0.5em;
+    border-radius: 3px;
+    margin-right: 0.3rem;
+    margin-bottom: 0.3rem;
+  }
+  .tag.easy { background: var(--green-dim); color: var(--green); }
+  .tag.medium { background: var(--amber-dim); color: var(--amber); }
+  .tag.hard { background: var(--red-dim); color: var(--red); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Open Design 流式 Artifact + 沙盒预览<br>→ 谨迹整合分析</h1>
+  <p>两个项目的核心子系统对比 · 能力差距 · 分阶段整合路径</p>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 1: CAPABILITY COMPARISON
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">1</span> 能力对比：Open Design vs 谨迹</h2><p>聚焦三个子系统：流式解析、沙盒预览、模板渲染</p></div>
+
+<div class="pipeline">
+  <div class="pipeline-grid">
+    <!-- Open Design -->
+    <div class="pkg">
+      <div class="pkg-header od">Open Design — 流式 Artifact + 沙盒预览</div>
+      <div class="pkg-body">
+        <div class="item">
+          <div class="icon yes">✓</div>
+          <div>
+            <div class="item-label">流式 Artifact 解析器</div>
+            <div class="item-desc">Generator 模式，实时解析 &lt;artifact&gt; XML 标签，边收边渲染</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon yes">✓</div>
+          <div>
+            <div class="item-label">沙盒 iframe（srcDoc 模式）</div>
+            <div class="item-desc">sandbox="allow-scripts"，多桥接注入（存储/焦点/选择/调色板/截图）</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon yes">✓</div>
+          <div>
+            <div class="item-label">沙盒 iframe（URL-load 模式）</div>
+            <div class="item-desc">多文件项目，支持 source map + HTTP 缓存</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon yes">✓</div>
+          <div>
+            <div class="item-label">Live Artifact 模板引擎</div>
+            <div class="item-desc">{{data.path}} 插值 + 安全验证 + 自动刷新</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon yes">✓</div>
+          <div>
+            <div class="item-label">Fragment → Full Doc 自动包裹</div>
+            <div class="item-desc">检测 &lt;!doctype / &lt;html 前缀，与 brainstorming visual companion 同模式</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon yes">✓</div>
+          <div>
+            <div class="item-label">Lazy srcDoc Transport</div>
+            <div class="item-desc">536 字节外壳 → postMessage 激活，解决双 iframe 切换闪烁</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 谨迹 -->
+    <div class="pkg">
+      <div class="pkg-header jn">谨迹 — 当前渲染状态</div>
+      <div class="pkg-body">
+        <div class="item">
+          <div class="icon no">✗</div>
+          <div>
+            <div class="item-label">流式 Artifact 解析器</div>
+            <div class="item-desc">无。Conversation streaming 仅处理 text/thinking/tool 块</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon partial">△</div>
+          <div>
+            <div class="item-label">Markdown 渲染</div>
+            <div class="item-desc">react-markdown（小文件）+ marked/DOMPurify（大文件）</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon no">✗</div>
+          <div>
+            <div class="item-label">沙盒 HTML 预览</div>
+            <div class="item-desc">HTML 文件通过 iframe + Blob URL 展示，<strong>无 sandbox 属性</strong></div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon no">✗</div>
+          <div>
+            <div class="item-label">模板引擎</div>
+            <div class="item-desc">无</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon no">✗</div>
+          <div>
+            <div class="item-label">Fragment 包裹</div>
+            <div class="item-desc">无。HTML 文件原样渲染，依赖文件本身是完整文档</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="icon no">✗</div>
+          <div>
+            <div class="item-label">主题注入到 iframe</div>
+            <div class="item-desc">有 MutationObserver 尝试同步主题，但无 postMessage 桥接机制</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 2: DEEP DIVE — THREE KEY PATTERNS
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">2</span> 三个核心模式深度剖析</h2><p>逐一分析 Open Design 的实现精髓，及谨迹可复用/改造之处</p></div>
+
+<!-- Pattern A: Streaming Parser -->
+<div class="code-section">
+<div class="code-block">
+  <div class="fn">apps/web/src/artifacts/parser.ts — 流式 Artifact 解析器</div>
+  <pre><code><span class="cmt">// Generator 模式：feed(delta) → yield ArtifactEvent</span>
+<span class="kw">export type</span> ArtifactEvent =
+  | { type: <span class="str">'text'</span>; delta: <span class="kw">string</span> }
+  | { type: <span class="str">'artifact:start'</span>; identifier: <span class="kw">string</span>; artifactType: <span class="kw">string</span>; title: <span class="kw">string</span> }
+  | { type: <span class="str">'artifact:chunk'</span>; identifier: <span class="kw">string</span>; delta: <span class="kw">string</span> }
+  | { type: <span class="str">'artifact:end'</span>; identifier: <span class="kw">string</span>; fullContent: <span class="kw">string</span> };
+
+<span class="kw">function</span>* <span class="fnc">feed</span>(delta: <span class="kw">string</span>): <span class="kw">Generator</span>&lt;ArtifactEvent&gt; {
+  state.buffer += delta;
+  <span class="cmt">// 开标签检测：处理 partial tag（跨 chunk）、code fence 跳过</span>
+  <span class="cmt">// 闭合标签检测：flush 内容，yield artifact:end</span>
+  <span class="cmt">// 未闭合时 hold back 尾部数据，等待下一个 chunk</span>
+}</code></pre>
+</div>
+
+<div style="margin-bottom:1.5rem; padding:0 2rem;">
+  <p style="font-size:0.82rem; color:var(--text-secondary);">
+    <strong>精髓：</strong>findOpenTag() 的 hold-back 逻辑极其细致——跳过 code fence 内的假标签、
+    延迟未闭合的 partial tag、检测尾部可能形成标签的前缀字符。
+    这使得解析器可以在<strong>不缓存完整输出</strong>的前提下，安全地边接收边渲染。
+  </p>
+</div>
+</div>
+
+<!-- Pattern B: srcDoc Builder -->
+<div class="code-section">
+<div class="code-block">
+  <div class="fn">apps/web/src/runtime/srcdoc.ts — buildSrcdoc() 桥接注入管道</div>
+  <pre><code><span class="kw">export function</span> <span class="fnc">buildSrcdoc</span>(html: <span class="kw">string</span>, options: SrcdocOptions = {}): <span class="kw">string</span> {
+  <span class="cmt">// 1. Fragment → Full Doc（与 brainstorming visual companion 同模式）</span>
+  <span class="kw">const</span> wrapped = isFullDoc ? html : <span class="str">`&lt;!doctype html&gt;&lt;html&gt;...&lt;body&gt;${html}&lt;/body&gt;&lt;/html&gt;`</span>;
+
+  <span class="cmt">// 2. 桥接注入管道（顺序重要）</span>
+  <span class="kw">const</span> withOdIds     = <span class="fnc">annotateMissingOdIds</span>(wrapped);          <span class="cmt">// 元素标记</span>
+  <span class="kw">const</span> withBase      = <span class="fnc">injectBaseHref</span>(withOdIds, base);          <span class="cmt">// 相对路径</span>
+  <span class="kw">const</span> withShim      = <span class="fnc">injectSandboxShim</span>(withBase);              <span class="cmt">// ★ 核心安全</span>
+  <span class="kw">const</span> withFocus     = <span class="fnc">injectPreviewFocusGuard</span>(withShim);        <span class="cmt">// ★ 焦点防护</span>
+  <span class="kw">const</span> withDeck      = <span class="fnc">injectDeckBridge</span>(withFocus);              <span class="cmt">// PPT 翻页</span>
+  <span class="kw">const</span> withSelection = <span class="fnc">injectSelectionBridge</span>(withDeck);         <span class="cmt">// 元素选择</span>
+  <span class="kw">const</span> withPalette   = <span class="fnc">injectPaletteBridge</span>(withSelection);       <span class="cmt">// 调色板</span>
+  <span class="kw">const</span> withEdit      = <span class="fnc">injectManualEditBridge</span>(withPalette);      <span class="cmt">// 手动编辑</span>
+  <span class="kw">const</span> withTweaks    = <span class="fnc">injectTweaksBridge</span>(withEdit);             <span class="cmt">// 面板切换</span>
+  <span class="kw">const</span> withSnapshot  = <span class="fnc">injectSnapshotBridge</span>(withTweaks);        <span class="cmt">// 截图</span>
+  <span class="kw">return</span> <span class="fnc">injectSrcdocTransportActivationBridge</span>(withSnapshot); <span class="cmt">// 延迟激活</span>
+}</code></pre>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; padding:0 2rem; margin-bottom:1.5rem;">
+  <div>
+    <h4 style="font-size:0.82rem; margin-bottom:0.5rem;">Sandbox Shim（★ 谨迹最需要）</h4>
+    <p style="font-size:0.75rem; color:var(--text-secondary);">
+      因为 sandbox="allow-scripts" <strong>不含 allow-same-origin</strong>，
+      localStorage/sessionStorage 会抛异常。
+      Shim 用内存 Map 模拟这两个 API，让依赖 Web Storage 的 artifact 正常运行。
+      同时拦截锚点链接和 target="_blank"。
+    </p>
+  </div>
+  <div>
+    <h4 style="font-size:0.82rem; margin-bottom:0.5rem;">Focus Guard（★ 谨迹需要）</h4>
+    <p style="font-size:0.75rem; color:var(--text-secondary);">
+      重写 window.focus() 和 HTMLElement.prototype.focus()，
+      仅在<strong>用户交互 1 秒内</strong>才允许元素获得焦点。
+      防止嵌入内容劫持键盘焦点（意外触发快捷键等）。
+    </p>
+  </div>
+</div>
+</div>
+
+<!-- Pattern C: Live Artifact -->
+<div class="code-section">
+<div class="code-block">
+  <div class="fn">apps/daemon/src/live-artifacts/render.ts — 模板渲染 + 安全验证</div>
+  <pre><code><span class="cmt">// 最小的 Mustache 式插值：{{data.xxx.yyy}}</span>
+<span class="kw">function</span> <span class="fnc">renderHtmlTemplateV1</span>(templateHtml, data):
+  <span class="cmt">// 安全规则（在渲染前验证模板）</span>
+  <span class="cmt">//   BLOCK: &lt;script&gt;, &lt;iframe&gt;, srcdoc=, on* event handlers, javascript: URLs</span>
+  <span class="cmt">//   ALLOW: 自定义 data-od-* 指令</span>
+  <span class="cmt">// 插值值一律 HTML-escape（无 raw 插值）</span>
+
+  <span class="cmt">// 存储结构（.live-artifacts/&lt;id&gt;/）:</span>
+  <span class="cmt">//   artifact.json     — 清单（title, slug, sources, preview config）</span>
+  <span class="cmt">//   template.html      — 带 {{data.xxx}} 占位符的 HTML</span>
+  <span class="cmt">//   data.json          — 数据源输出（经 output mapping 转换后）</span>
+  <span class="cmt">//   index.html         — 渲染结果（可预览的最终文件）</span></code></pre>
+</div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 3: GAP ANALYSIS — WHAT TO BRING OVER
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">3</span> 差距项 & 整合策略</h2><p>按"可直接复用 / 需改造 / 需新建"分类</p></div>
+
+<div class="gap-bridge">
+  <div class="gap-list">
+
+    <div class="gap-item copy">
+      <div class="gap-badge badge-copy">复用</div>
+      <div class="gap-body">
+        <div class="gap-what">Streaming Artifact Parser（流式解析器）</div>
+        <div class="gap-why">Generator 模式的 XML 标签解析器几乎可以直接复制到谨迹的 conversation streaming 管道中。Open Design 的 parser.ts 只有 250 行，零依赖，纯逻辑。在谨迹的 useConversation.ts 中对 streaming text 块调用 feed()，yield 出 artifact:start/chunk/end 事件。</div>
+        <div class="gap-src">源：<code>apps/web/src/artifacts/parser.ts</code></div>
+      </div>
+    </div>
+
+    <div class="gap-item copy">
+      <div class="gap-badge badge-copy">复用</div>
+      <div class="gap-body">
+        <div class="gap-what">Sandbox Shim（存储 polyfill）</div>
+        <div class="gap-why">injectSandboxShim() 的核心逻辑（in-memory storage + 锚点/外链拦截）完全通用，与业务无关。直接复制到谨迹的 HTML 预处理管道。</div>
+        <div class="gap-src">源：<code>apps/web/src/runtime/srcdoc.ts:611-675</code></div>
+      </div>
+    </div>
+
+    <div class="gap-item copy">
+      <div class="gap-badge badge-copy">复用</div>
+      <div class="gap-body">
+        <div class="gap-what">Preview Focus Guard（焦点防护）</div>
+        <div class="gap-why">在谨迹中嵌入的 HTML 内容可能会调用 .focus() 劫持键盘。这个 40 行的脚本直接复制即可。</div>
+        <div class="gap-src">源：<code>apps/web/src/runtime/srcdoc.ts:677-710</code></div>
+      </div>
+    </div>
+
+    <div class="gap-item adapt">
+      <div class="gap-badge badge-adapt">改造</div>
+      <div class="gap-body">
+        <div class="gap-what">Fragment → Full Doc 包裹</div>
+        <div class="gap-why">两种现有模式：brainstorming 的 frame-template.html 包裹（Apple 主题），Open Design 的 buildSrcdoc 最小外壳。谨迹需要自己的包裹器：注入谨迹主题 CSS 变量 + 琥珀金 accent + 系统字体。</div>
+        <div class="gap-src">参考：<code>srcdoc.ts buildSrcdoc()</code> + <code>frame-template.html</code></div>
+      </div>
+    </div>
+
+    <div class="gap-item adapt">
+      <div class="gap-badge badge-adapt">改造</div>
+      <div class="gap-body">
+        <div class="gap-what">主题同步（Theme Bridge）</div>
+        <div class="gap-why">Open Design 的 palette bridge 是换色调色板。谨迹需要的是 dark/light 主题同步——通过 postMessage 告诉 iframe 当前主题，iframe 内监听并切换 CSS 类名。谨迹已有 MutationObserver 尝试，替换为 postMessage 桥接更可靠。</div>
+        <div class="gap-src">参考：<code>injectPaletteBridge()</code> 的 postMessage 模式</div>
+      </div>
+    </div>
+
+    <div class="gap-item build">
+      <div class="gap-badge badge-build">新建</div>
+      <div class="gap-body">
+        <div class="gap-what">Sandboxed HTML Preview 组件</div>
+        <div class="gap-why">新建一个 SandboxPreview 组件，替代 DetailView 中无 sandbox 的 iframe。核心：<code>&lt;iframe sandbox="allow-scripts" srcdoc={...} /&gt;</code>，并将 sandbox shim + focus guard 注入 srcdoc。</div>
+        <div class="gap-src">新建：<code>src/components/SandboxPreview.tsx</code></div>
+      </div>
+    </div>
+
+    <div class="gap-item build">
+      <div class="gap-badge badge-build">新建</div>
+      <div class="gap-body">
+        <div class="gap-what">Artifact 渲染器注册表</div>
+        <div class="gap-why">类似 Open Design 的 renderer-registry.ts。按 artifactType 分发渲染器：html → SandboxPreview，markdown → MarkdownRenderer，react-component → 错误/不支持。</div>
+        <div class="gap-src">新建：<code>src/artifacts/renderer-registry.ts</code></div>
+      </div>
+    </div>
+
+    <div class="gap-item build">
+      <div class="gap-badge badge-build">新建</div>
+      <div class="gap-body">
+        <div class="gap-what">Conversation Streaming 管道扩展</div>
+        <div class="gap-why">在现有的 conversation-stream 事件处理中插入 ArtifactParser，将 artifact 事件独立发射（或合并到现有 stream 中）。需要新增 artifact:start/chunk/end 事件类型。</div>
+        <div class="gap-src">改动：<code>src-tauri/src/conversation.rs</code> + <code>src/hooks/useConversation.ts</code></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 4: BRIDGE INJECTION PIPELINE (for 谨迹)
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">4</span> 谨迹的桥接注入管道（设计草案）</h2><p>比 Open Design 精简得多——只保留安全必需的桥接 + 主题同步</p></div>
+
+<div class="code-section">
+<div class="code-block">
+  <div class="fn">谨迹 SandboxPreview 的 buildSrcdoc() — 精简版管道</div>
+  <pre><code><span class="kw">export function</span> <span class="fnc">buildJournalSrcdoc</span>(html: <span class="kw">string</span>, options: {
+  baseHref?: <span class="kw">string</span>;      <span class="cmt">// 资源相对路径解析</span>
+  theme: <span class="str">'light'</span> | <span class="str">'dark'</span>; <span class="cmt">// 主题注入</span>
+}): <span class="kw">string</span> {
+
+  <span class="cmt">// 1. Fragment → Full Doc（注入谨迹主题 CSS 变量）</span>
+  <span class="kw">const</span> wrapped = isFullDoc(html) ? html : <span class="fnc">wrapJournalShell</span>(html, options.theme);
+
+  <span class="cmt">// 2. 核心安全桥接（从 Open Design 直接复用）</span>
+  <span class="kw">const</span> withBase   = <span class="fnc">injectBaseHref</span>(wrapped, options.baseHref);
+  <span class="kw">const</span> withShim   = <span class="fnc">injectSandboxShim</span>(withBase);     <span class="cmt">// ★ storage polyfill</span>
+  <span class="kw">const</span> withFocus  = <span class="fnc">injectPreviewFocusGuard</span>(withShim); <span class="cmt">// ★ 焦点防护</span>
+
+  <span class="cmt">// 3. 谨迹专属桥接</span>
+  <span class="kw">const</span> withTheme  = <span class="fnc">injectThemeBridge</span>(withFocus, options.theme); <span class="cmt">// 主题同步</span>
+
+  <span class="kw">return</span> withTheme;
+}</code></pre>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem; padding:0 2rem; margin-bottom:1.5rem;">
+  <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:0.8rem;">
+    <div style="font-size:0.7rem; font-weight:700; color:var(--amber); margin-bottom:0.3rem;">wrapJournalShell()</div>
+    <p style="font-size:0.72rem; color:var(--text-secondary);">包裹完整的 HTML 文档，head 中包含谨迹的 CSS 变量定义（--amber, --bg, --text 等），同步注入当前主题 class。</p>
+  </div>
+  <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:0.8rem;">
+    <div style="font-size:0.7rem; font-weight:700; color:var(--amber); margin-bottom:0.3rem;">injectThemeBridge()</div>
+    <p style="font-size:0.72rem; color:var(--text-secondary);">监听 <code>message</code> 的 <code>od:theme</code> 事件，切换 <code>&lt;html&gt;</code> 的 dark/light class。与谨迹的 useTheme hook 通过 postMessage 同步。</p>
+  </div>
+  <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:0.8rem;">
+    <div style="font-size:0.7rem; font-weight:700; color:var(--amber); margin-bottom:0.3rem;">injectSandboxShim()</div>
+    <p style="font-size:0.72rem; color:var(--text-secondary);">从 Open Design 直接复制。内存 Map 模拟 localStorage/sessionStorage，拦截锚点导航和 target="_blank"。</p>
+  </div>
+</div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 5: SECURITY BOUNDARY
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">5</span> 安全边界对比</h2></div>
+
+<div class="sec-grid" style="max-width:1000px; margin:1rem auto 2rem; padding:0 2rem;">
+  <div class="sec-col">
+    <h4 class="od">Open Design — 沙盒预览安全模型</h4>
+    <ul>
+      <li><span class="pass">✓ sandbox="allow-scripts"</span> — 不含 allow-same-origin</li>
+      <li><span class="pass">✓ Storage polyfill</span> — localStorage/sessionStorage 不会崩溃</li>
+      <li><span class="pass">✓ Focus guard</span> — 不允许自动聚焦</li>
+      <li><span class="pass">✓ CSP via sandbox</span> — 禁止插件/表单提交/弹窗等</li>
+      <li><span class="pass">✓ postMessage 隔离</span> — 仅有明确允许的消息类型</li>
+      <li><span class="pass">✓ 模板安全验证</span> — 拦截 script/iframe/事件处理器</li>
+      <li><span class="warn">△ allow-scripts 允许执行</span> — 这是功能需求，非漏洞</li>
+    </ul>
+  </div>
+  <div class="sec-col">
+    <h4 class="jn">谨迹 — 当前 HTML 预览安全模型</h4>
+    <ul>
+      <li><span class="fail">✗ 无 sandbox 属性</span> — iframe 拥有完整权限</li>
+      <li><span class="fail">✗ 无 storage shim</span> — 不存在（因为没 sandbox 不需要）</li>
+      <li><span class="fail">✗ 无 focus guard</span> — HTML 可劫持键盘焦点</li>
+      <li><span class="fail">✗ 无 CSP</span> — index.html 无任何 CSP meta 标签</li>
+      <li><span class="warn">△ DOMPurify for markdown</span> — 仅覆盖 marked 输出路径</li>
+      <li><span class="warn">△ Tauri 环境</span> — 非浏览器扩展，但仍有风险</li>
+      <li><span class="fail">✗ Blob URL iframe src</span> — 绕过了浏览器同源保护</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 6: INTEGRATION ROADMAP
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">6</span> 分阶段整合路线图</h2><p>三个阶段：修复安全 → 动态渲染 → 模板系统</p></div>
+
+<div class="phases">
+  <div class="phase-card p1">
+    <h4>Phase 1：安全沙盒</h4>
+    <p>替换当前不安全的 HTML iframe，引入 sandbox 机制</p>
+    <div style="margin-top:0.8rem;">
+      <span class="tag easy">~2h</span>
+      <span class="tag easy">低风险</span>
+    </div>
+    <ul style="font-size:0.72rem; color:var(--text-secondary); margin-top:0.5rem; padding-left:1.2rem;">
+      <li>新建 SandboxPreview 组件</li>
+      <li>复制 injectSandboxShim + injectPreviewFocusGuard</li>
+      <li>DetailView 中替换 buildHtmlBlobUrl 路径</li>
+      <li>iframe sandbox="allow-scripts"</li>
+    </ul>
+  </div>
+  <div class="phase-card p2">
+    <h4>Phase 2：流式 Artifact</h4>
+    <p>在 Conversation streaming 中解析 &lt;artifact&gt; 标签，实时渲染 HTML</p>
+    <div style="margin-top:0.8rem;">
+      <span class="tag medium">~1d</span>
+      <span class="tag medium">中风险</span>
+    </div>
+    <ul style="font-size:0.72rem; color:var(--text-secondary); margin-top:0.5rem; padding-left:1.2rem;">
+      <li>复制 Artifact Parser 到 src/artifacts/</li>
+      <li>扩展 conversation-stream 事件类型</li>
+      <li>新建 ArtifactRenderer 注册表</li>
+      <li>在 ConversationDialog 中展示 artifact</li>
+    </ul>
+  </div>
+  <div class="phase-card p3">
+    <h4>Phase 3：模板引擎</h4>
+    <p>支持 {{data.xxx}} 插值 + 数据源 + 自动刷新，打造动态仪表盘</p>
+    <div style="margin-top:0.8rem;">
+      <span class="tag hard">~3d</span>
+      <span class="tag hard">新功能</span>
+    </div>
+    <ul style="font-size:0.72rem; color:var(--text-secondary); margin-top:0.5rem; padding-left:1.2rem;">
+      <li>Live Artifact store（文件系统）</li>
+      <li>模板渲染引擎 + 安全验证</li>
+      <li>数据源适配（journal API）</li>
+      <li>自动刷新调度</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 7: KEY INSIGHT — THE TWO WRAPPING PATTERNS
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">7</span> 重要发现：两个项目的 Fragment 包裹模式完全一致</h2></div>
+
+<div style="max-width:1000px; margin:0 auto 2rem; padding:0 2rem;">
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+      <div style="font-weight:700; font-size:0.78rem; margin-bottom:0.5rem;">Brainstorming Visual Companion</div>
+      <code style="font-size:0.68rem; background:var(--bg-code); display:block; padding:0.5rem; border-radius:4px;">
+        server.cjs:isFullDocument()<br>
+        → startsWith('&lt;!doctype') or startsWith('&lt;html')<br>
+        → Fragment → wrapInFrame(frame-template.html)
+      </code>
+    </div>
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+      <div style="font-weight:700; font-size:0.78rem; margin-bottom:0.5rem;">Open Design srcDoc Builder</div>
+      <code style="font-size:0.68rem; background:var(--bg-code); display:block; padding:0.5rem; border-radius:4px;">
+        srcdoc.ts:buildSrcdoc()<br>
+        → head.startsWith('&lt;!doctype') or head.startsWith('&lt;html')<br>
+        → Fragment → wrap minimal doctype shell
+      </code>
+    </div>
+  </div>
+  <p style="font-size:0.82rem; color:var(--text-secondary);">
+    <strong>两者都采用了相同的设计决策：</strong>AI 只需写 HTML 片段，无需 &lt;html&gt; / &lt;head&gt; / &lt;style&gt; 样板代码。
+    系统自动检测并包裹完整文档外壳。区别在于包裹的内容——brainstorming 注入 Apple 风格的 frame UI（header/indicator bar），
+    Open Design 注入最小外壳 + 安全桥接。谨迹需要的是<strong>后者的安全模型 + 谨迹自身的设计主题</strong>。
+  </p>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 8: DATA FLOW DIAGRAM
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">8</span> 整合后的数据流（目标架构）</h2></div>
+
+<div class="arch-flow">
+  <div class="arch-row" style="margin-bottom:0.8rem;">
+    <div class="arch-box stream">AI 文本流</div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box parse">ArtifactParser<br>feed(delta)</div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box sandbox">SandboxPreview<br>buildJournalSrcdoc()</div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box render">iframe<br>sandbox="allow-scripts"</div>
+  </div>
+  <div style="text-align:center; font-size:0.72rem; color:var(--text-secondary);">
+    三条数据路径：
+    &nbsp; (A) Conversation stream → ArtifactParser → SandboxPreview → iframe srcdoc
+    &nbsp; (B) 本地 HTML 文件 → buildJournalSrcdoc() → iframe srcdoc
+    &nbsp; (C) Live Artifact → template.html + data.json → render → index.html → iframe
+  </div>
+</div>
+
+<!-- ────────────────────────────────────
+  SECTION 9: WHAT NOT TO BRING
+  ──────────────────────────────────── -->
+<div class="sect"><h2><span class="num">9</span> 不需要引入的部分</h2></div>
+
+<div style="max-width:1000px; margin:0 auto 2rem; padding:0 2rem;">
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:1rem;">
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; border-left:3px solid var(--red);">
+      <div style="font-weight:700; font-size:0.8rem; margin-bottom:0.3rem;">Selection Bridge</div>
+      <p style="font-size:0.72rem; color:var(--text-secondary);">点击元素标注功能，谨迹不需要</p>
+    </div>
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; border-left:3px solid var(--red);">
+      <div style="font-weight:700; font-size:0.8rem; margin-bottom:0.3rem;">Deck Bridge</div>
+      <p style="font-size:0.72rem; color:var(--text-secondary);">PPT 翻页控制，谨迹无此场景</p>
+    </div>
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; border-left:3px solid var(--red);">
+      <div style="font-weight:700; font-size:0.8rem; margin-bottom:0.3rem;">Palette Bridge</div>
+      <p style="font-size:0.72rem; color:var(--text-secondary);">全局换色调，谨迹主题固定为琥珀金</p>
+    </div>
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; border-left:3px solid var(--red);">
+      <div style="font-weight:700; font-size:0.8rem; margin-bottom:0.3rem;">Manual Edit Bridge</div>
+      <p style="font-size:0.72rem; color:var(--text-secondary);">设计编辑模式，与日志阅读场景无关</p>
+    </div>
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; border-left:3px solid var(--red);">
+      <div style="font-weight:700; font-size:0.8rem; margin-bottom:0.3rem;">Snapshot Bridge</div>
+      <p style="font-size:0.72rem; color:var(--text-secondary);">SVG 截图，谨迹不需要</p>
+    </div>
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; border-left:3px solid var(--amber);">
+      <div style="font-weight:700; font-size:0.8rem; margin-bottom:0.3rem;">文件系统与 daemon 基础设施</div>
+      <p style="font-size:0.72rem; color:var(--text-secondary);">谨迹已有自己的 Rust 后端，不需要引入 Express + SQLite</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  谨迹 × Open Design 整合分析 &nbsp;—&nbsp; 安全沙盒优先，流式 artifact 跟进，模板引擎为延展
+</div>
+
+</body>
+</html>

@@ -1,74 +1,77 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MdxRenderer } from '../components/MdxRenderer'
+import { createMdxComponent, toRunnableFunctionBody } from '../lib/mdxRuntime'
+import { compileMdx } from '../lib/tauri'
 
-// Mock @mdx-js/mdx evaluate
-vi.mock('@mdx-js/mdx', () => ({
-  evaluate: vi.fn(),
+vi.mock('../lib/tauri', () => ({
+  compileMdx: vi.fn(),
+  getWorkspacePath: vi.fn(async () => '/tmp/journal'),
+  openFile: vi.fn(),
 }))
 
-describe('MdxRenderer', () => {
-  it('renders simple MDX content', async () => {
-    const { evaluate } = await import('@mdx-js/mdx')
-    const MockContent = () => 'Hello MDX'
-    ;(evaluate as ReturnType<typeof vi.fn>).mockResolvedValue({
-      default: MockContent,
-    })
+const compiledParagraph = `import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+function _createMdxContent(props) {
+  const _components = Object.assign({p: "p", strong: "strong"}, props.components);
+  return _jsxs(_components.p, {children: ["Hello ", _jsx(_components.strong, {children: "world"})]});
+}
+function MDXContent(props = {}) {
+  const {wrapper: MDXLayout} = props.components || {};
+  return MDXLayout ? _jsx(MDXLayout, Object.assign({}, props, {children: _jsx(_createMdxContent, props)})) : _createMdxContent(props);
+}
+export default MDXContent;`
 
-    render(<MdxRenderer content="# Hello" />)
-    await waitFor(() => {
-      expect(screen.getByText('Hello MDX')).toBeTruthy()
-    })
+const compiledUnknown = `import { jsx as _jsx } from "react/jsx-runtime";
+function _missingMdxReference(id) {
+  throw new Error("Expected component \`" + id + "\` to be defined");
+}
+function _createMdxContent(props) {
+  const {UnknownThing} = props.components || {};
+  if (!UnknownThing) _missingMdxReference("UnknownThing");
+  return _jsx(UnknownThing, {children: "test"});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+
+describe('mdxRuntime', () => {
+  it('turns mdxjs output into a callable component', () => {
+    const Component = createMdxComponent(compiledParagraph)
+    const { container } = render(<Component components={{}} />)
+
+    expect(container.textContent).toContain('Hello world')
   })
 
-  it('falls back to raw text on evaluate error', async () => {
-    const { evaluate } = await import('@mdx-js/mdx')
-    ;(evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('MDX compile error'),
+  it('rejects unsupported module output', () => {
+    expect(() => toRunnableFunctionBody('export const x = 1')).toThrow(
+      'unsupported module shape',
     )
+  })
+})
 
-    render(<MdxRenderer content="# Hello World" />)
+describe('MdxRenderer', () => {
+  beforeEach(() => {
+    vi.mocked(compileMdx).mockReset()
+  })
+
+  it('renders compiled MDX content', async () => {
+    vi.mocked(compileMdx).mockResolvedValue(compiledParagraph)
+
+    const { container } = render(<MdxRenderer content="Hello **world**" />)
+
     await waitFor(() => {
-      expect(screen.getByText('# Hello World')).toBeTruthy()
+      expect(container.textContent).toContain('Hello world')
     })
   })
 
-  it('shows fallback when MDX component throws at runtime', async () => {
-    const { evaluate } = await import('@mdx-js/mdx')
-    const ThrowingContent = () => {
-      throw new Error('Runtime render error')
-    }
-    ;(evaluate as ReturnType<typeof vi.fn>).mockResolvedValue({
-      default: ThrowingContent,
-    })
+  it('shows an error for unknown components', async () => {
+    vi.mocked(compileMdx).mockResolvedValue(compiledUnknown)
 
-    render(<MdxRenderer content="# Safe fallback" />)
+    render(<MdxRenderer content="<UnknownThing>test</UnknownThing>" />)
+
     await waitFor(() => {
-      // ErrorBoundary catches the runtime error and shows the raw content fallback
-      expect(screen.getByText('# Safe fallback')).toBeTruthy()
-    })
-  })
-
-  it('shows loading state while evaluate is pending', async () => {
-    const { evaluate } = await import('@mdx-js/mdx')
-    let resolveEvaluate: (value: unknown) => void
-    const evaluatePromise = new Promise((resolve) => {
-      resolveEvaluate = resolve
-    })
-    ;(evaluate as ReturnType<typeof vi.fn>).mockReturnValue(evaluatePromise)
-
-    render(<MdxRenderer content="# Loading test" />)
-
-    // Loading state should be visible before evaluate resolves
-    expect(document.querySelector('.md-content--loading')).toBeTruthy()
-
-    // Resolve evaluate
-    const MockContent = () => 'Loaded'
-    resolveEvaluate!({ default: MockContent })
-
-    // Content should appear after resolve
-    await waitFor(() => {
-      expect(screen.getByText('Loaded')).toBeTruthy()
+      expect(screen.getByText(/MDX render failed/)).toBeTruthy()
     })
   })
 })

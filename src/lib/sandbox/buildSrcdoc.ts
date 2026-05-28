@@ -2,6 +2,9 @@ import { injectSandboxShim, injectPreviewFocusGuard, injectThemeBridge } from '.
 // neat.style — "One line to make raw HTML beautiful" • MIT • 3KB
 // https://neat.style — modern blue accent, zero classes, auto dark mode
 import neatCSS from './neat.css?raw'
+// Magic UI — React + Tailwind + Motion components for rich journal entries
+import magicUICSS from './magicui/dist/magicui.bundle.css?raw'
+import magicUIJS from './magicui/dist/magicui.bundle.js?raw'
 
 export function buildSrcdoc(html: string, theme: 'light' | 'dark'): string {
   const head = html.trimStart().slice(0, 64).toLowerCase()
@@ -21,13 +24,16 @@ export function buildSrcdoc(html: string, theme: 'light' | 'dark'): string {
 }
 
 function injectBridges(doc: string, bridges: string): string {
+  const magicUIResources = `<style>${magicUICSS}</style>\n<script>${magicUIJS}</script>`
+  const combined = `${magicUIResources}\n${bridges}`
+
   if (/<\/head>/i.test(doc)) {
-    return doc.replace(/<\/head>/i, `${bridges}\n</head>`)
+    return doc.replace(/<\/head>/i, `${combined}\n</head>`)
   }
   if (/<body[^>]*>/i.test(doc)) {
-    return doc.replace(/<body([^>]*)>/i, `<body$1>${bridges}`)
+    return doc.replace(/<body([^>]*)>/i, `<body$1>${combined}`)
   }
-  return bridges + doc
+  return combined + doc
 }
 
 /**
@@ -35,6 +41,9 @@ function injectBridges(doc: string, bridges: string): string {
  * Uses neat.style variables for core colors, extends with surface hierarchy for components.
  */
 const componentCSS = (isDark: boolean) => `
+/* ===== Override neat.style body max-width for responsive panels ===== */
+body { max-width: none; }
+
 /* ===== Surface hierarchy (extends neat.style) ===== */
 :root {
   --bg-primary: ${isDark ? '#181a20' : '#ffffff'};
@@ -188,6 +197,8 @@ function wrapFragment(html: string, theme: 'light' | 'dark', bridges: string): s
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>${neatCSS}</style>
   <style>${componentCSS(isDark)}</style>
+  <style>${magicUICSS}</style>
+  <script>${magicUIJS}</script>
   ${bridges}
 </head>
 <body>

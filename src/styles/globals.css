@@ -19,7 +19,7 @@
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
-  /* 700+ intentionally excluded — design spec caps at semibold (600) */
+  --font-bold: 700;
 
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -39,11 +39,14 @@
   --space-4: 16px;
   --space-6: 24px;
   --space-8: 32px;
+  --space-5: 20px;
   --space-12: 48px;
 
   --bg: #f5f6f7;
   --bg-secondary: #ffffff;
   --bg-tertiary: #e5e5e7;
+  --text-primary: #1c1c1e;
+  --text-secondary: #6a7278;
   --text-tertiary: #a0a8ad;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
@@ -115,13 +118,14 @@
   /* Markdown typography */
   --md-h1: #1c1c1e;
   --md-h2: #2a3038;
-  --md-h3: #2a3038;
+  --md-h3: #4a5058;
   --md-text: #2a3038;
   --md-strong: #1c1c1e;
   --md-em: #2a3038;
   --md-bullet: #586068;
   --md-code-bg: #e8eaec;
   --md-code-text: #8a6500;
+  --md-code-lang: #6a7278;
   --md-pre-bg: #f7f8f9;
   --md-pre-text: #2d2d2d;
   --md-quote-bar: #c0c8ce;
@@ -189,6 +193,14 @@
   --status-success-bg: #e5f2ea;
   --status-on-fill: #fafaf8; /* text/icon on colored fill */
 
+  /* Callout semantic tokens */
+  --callout-info-border: #0071e3;
+  --callout-info-bg: rgba(0, 113, 227, 0.06);
+  --callout-warning-border: var(--status-warning);
+  --callout-warning-bg: var(--status-warning-bg);
+  --callout-tip-border: var(--status-success);
+  --callout-tip-bg: var(--status-success-bg);
+
   /* File type icons — flat, no gradients */
   --file-pdf: #b5312a;
   --file-docx: #3a5fa8;
@@ -208,6 +220,8 @@
     --bg: #0f0f0f;
     --bg-secondary: #1c1c1e;
     --bg-tertiary: #2c2c2e;
+    --text-primary: #e8e8e8;
+    --text-secondary: #a2a6ae;
     --text-tertiary: #636366;
     --titlebar-bg: #161616;
     --divider: #1e2228;
@@ -275,13 +289,14 @@
     /* Markdown typography — dark */
     --md-h1: #c8933b;
     --md-h2: #c8933b;
-    --md-h3: #b0b4bc;
+    --md-h3: #8b929c;
     --md-text: #a8acb4;
     --md-strong: #c8933b;
     --md-em: #c4c8d0;
     --md-bullet: #808488;
     --md-code-bg: rgba(255, 255, 255, 0.08);
     --md-code-text: #88b4e0;
+    --md-code-lang: #8b929c;
     --md-pre-bg: #141414;
     --md-pre-text: #d4d4d4;
     --md-quote-bar: #48484a;
@@ -347,6 +362,14 @@
     --status-success: #5ba67a; /* 6.6:1 on #0F0F0F */
     --status-success-bg: rgba(91, 166, 122, 0.12);
     --status-on-fill: #0f0f0f;
+
+    /* Callout semantic tokens — dark */
+    --callout-info-border: #4a9cf0;
+    --callout-info-bg: rgba(74, 156, 240, 0.1);
+    --callout-warning-border: var(--status-warning);
+    --callout-warning-bg: var(--status-warning-bg);
+    --callout-tip-border: var(--status-success);
+    --callout-tip-bg: var(--status-success-bg);
     --file-pdf: #e06c60;
     --file-docx: #5a8ae0;
     --file-markdown: #a89880; /* --t2 warm */
@@ -364,6 +387,8 @@
   --bg: #0f0f0f;
   --bg-secondary: #1c1c1e;
   --bg-tertiary: #2c2c2e;
+  --text-primary: #e8e8e8;
+  --text-secondary: #a2a6ae;
   --text-tertiary: #636366;
   --titlebar-bg: #161616;
   --divider: #1e2228;
@@ -419,13 +444,14 @@
   --dock-kbd-border: #6a4f20;
   --md-h1: #c8933b;
   --md-h2: #c8933b;
-  --md-h3: #b0b4bc;
+  --md-h3: #8b929c;
   --md-text: #a8acb4;
   --md-strong: #c8933b;
   --md-em: #c4c8d0;
   --md-bullet: #808488;
   --md-code-bg: rgba(255, 255, 255, 0.08);
   --md-code-text: #88b4e0;
+  --md-code-lang: #8b929c;
   --md-pre-bg: #141414;
   --md-pre-text: #d4d4d4;
   --md-quote-bar: #48484a;
@@ -472,6 +498,14 @@
   --status-success: #5ba67a; /* 6.6:1 on #0F0F0F */
   --status-success-bg: rgba(91, 166, 122, 0.12);
   --status-on-fill: #0f0f0f;
+
+  /* Callout semantic tokens — dark */
+  --callout-info-border: #4a9cf0;
+  --callout-info-bg: rgba(74, 156, 240, 0.1);
+  --callout-warning-border: var(--status-warning);
+  --callout-warning-bg: var(--status-warning-bg);
+  --callout-tip-border: var(--status-success);
+  --callout-tip-bg: var(--status-success-bg);
   --file-pdf: #e06c60;
   --file-docx: #5a8ae0;
   --file-markdown: #a89880; /* --t2 warm */
@@ -785,13 +819,14 @@ body,
   --dock-kbd-border: #d4b878;
   --md-h1: #1c1c1e;
   --md-h2: #2a3038;
-  --md-h3: #2a3038;
+  --md-h3: #4a5058;
   --md-text: #2a3038;
   --md-strong: #1c1c1e;
   --md-em: #2a3038;
   --md-bullet: #586068;
   --md-code-bg: #e8eaec;
   --md-code-text: #8a6500;
+  --md-code-lang: #6a7278;
   --md-pre-bg: #f7f8f9;
   --md-pre-text: #2d2d2d;
   --md-quote-bar: #c0c8ce;

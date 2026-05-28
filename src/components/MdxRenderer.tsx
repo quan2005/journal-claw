@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, Component, type ReactNode } from 'react'
-import { evaluate } from '@mdx-js/mdx'
-import * as runtime from 'react/jsx-runtime'
-import { getWorkspacePath, openFile } from '../lib/tauri'
+import { useCallback, useEffect, useMemo, useState, Component, type ReactNode } from 'react'
+import { compileMdx, getWorkspacePath, openFile } from '../lib/tauri'
 import { resolveRelativePath } from '../lib/markdownUtils'
+import { createMarkdownComponents } from '../lib/markdownComponents'
 import { mdxComponents } from './mdx'
+import { createMdxComponent, type MdxRuntimeComponent } from '../lib/mdxRuntime'
 
 interface Props {
   content: string
@@ -13,6 +13,13 @@ interface Props {
 interface State {
   hasError: boolean
   error?: Error
+}
+
+interface CompileState {
+  key: string
+  status: 'loading' | 'ready' | 'error'
+  component?: MdxRuntimeComponent
+  error?: string
 }
 
 class MdxErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, State> {
@@ -30,34 +37,76 @@ class MdxErrorBoundary extends Component<{ children: ReactNode; fallback: ReactN
   }
 }
 
+// ── Compile cache ──────────────────────────────────────────────────────────
+
+const MAX_COMPILED_CACHE = 50
+const compiledCache = new Map<string, MdxRuntimeComponent>()
+
+function getCachedComponent(key: string): MdxRuntimeComponent | undefined {
+  return compiledCache.get(key)
+}
+
+function setCachedComponent(key: string, component: MdxRuntimeComponent) {
+  compiledCache.set(key, component)
+  if (compiledCache.size > MAX_COMPILED_CACHE) {
+    const firstKey = compiledCache.keys().next().value
+    if (firstKey) compiledCache.delete(firstKey)
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
+
 export function MdxRenderer({ content, entryPath }: Props) {
-  const [MdxContent, setMdxContent] = useState<React.ComponentType<any> | null>(null)
-  const [error, setError] = useState<Error | null>(null)
+  const cacheKey = `${entryPath ?? ''}\0${content}`
+  const [compileState, setCompileState] = useState<CompileState>(() => {
+    const cached = getCachedComponent(cacheKey)
+    return cached
+      ? { key: cacheKey, status: 'ready', component: cached }
+      : { key: cacheKey, status: 'loading' }
+  })
+
+  const markdownComponents = useMemo(
+    () => createMarkdownComponents({ entryPath: entryPath || '' }),
+    [entryPath],
+  )
+
+  const components = useMemo(
+    () => ({ ...markdownComponents, ...mdxComponents }),
+    [markdownComponents],
+  )
 
   useEffect(() => {
     let cancelled = false
+    const cached = getCachedComponent(cacheKey)
 
-    async function compile() {
-      try {
-        const result = await evaluate(content, {
-          ...runtime,
-          baseUrl: import.meta.url,
-        })
-        if (!cancelled) {
-          setError(null)
-          // Function wrapper prevents React from treating the component as a state updater
-          setMdxContent(() => result.default)
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e : new Error(String(e)))
-        }
-      }
+    if (cached) {
+      setCompileState({ key: cacheKey, status: 'ready', component: cached })
+      return
     }
 
-    compile()
-    return () => { cancelled = true }
-  }, [content])
+    setCompileState({ key: cacheKey, status: 'loading' })
+    compileMdx(content, entryPath)
+      .then((compiled) => createMdxComponent(compiled))
+      .then((component) => {
+        setCachedComponent(cacheKey, component)
+        if (!cancelled) {
+          setCompileState({ key: cacheKey, status: 'ready', component })
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setCompileState({ key: cacheKey, status: 'error', error: getErrorMessage(error) })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [cacheKey, content, entryPath])
 
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -96,30 +145,29 @@ export function MdxRenderer({ content, entryPath }: Props) {
   )
 
   const fallback = (
-    <div className="md-content">
+    <div className="md-content mdx-content">
+      <div className="mdx-error-banner">MDX render failed.</div>
       <pre className="mdx-fallback">{content}</pre>
     </div>
   )
 
-  if (error) {
-    return (
-      <div className="md-content">
-        <div className="mdx-error-banner">
-          MDX compile error — showing raw source. {error.message}
-        </div>
-        <pre className="mdx-fallback">{content}</pre>
-      </div>
-    )
-  }
-
-  if (!MdxContent) {
-    return <div className="md-content md-content--loading" />
-  }
+  const activeState: CompileState =
+    compileState.key === cacheKey
+      ? compileState
+      : { key: cacheKey, status: 'loading' }
+  const Content = activeState.component
 
   return (
-    <div className="md-content" onClick={handleClick}>
-      <MdxErrorBoundary key={content} fallback={fallback}>
-        <MdxContent components={mdxComponents} />
+    <div className="md-content mdx-content" onClick={handleClick}>
+      <MdxErrorBoundary key={cacheKey} fallback={fallback}>
+        {activeState.status === 'loading' && <div className="mdx-loading" aria-busy="true" />}
+        {activeState.status === 'error' && (
+          <>
+            <div className="mdx-error-banner">MDX compile failed: {activeState.error}</div>
+            <pre className="mdx-fallback">{content}</pre>
+          </>
+        )}
+        {activeState.status === 'ready' && Content && <Content components={components} />}
       </MdxErrorBoundary>
     </div>
   )

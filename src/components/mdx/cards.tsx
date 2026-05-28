@@ -8,13 +8,16 @@ export function Card({
   image,
   title,
   description,
+  variant = 'default',
 }: {
   image?: string
   title: string
   description?: string
+  variant?: 'default' | 'subtle' | 'elevated'
 }) {
+  const cls = variant === 'default' ? 'mdx-card' : `mdx-card mdx-card--${variant}`
   return (
-    <div className="mdx-card">
+    <div className={cls}>
       {image && <div className="mdx-card-image">{image}</div>}
       <div className="mdx-card-body">
         <h3>{title}</h3>
@@ -24,7 +27,28 @@ export function Card({
   )
 }
 
-// ── Options / Option ────────────────────────────────────
+// ── Stack — vertical spacing ──────────────────────────
+
+export function Stack({
+  children,
+  gap = 4,
+}: {
+  children: React.ReactNode
+  gap?: number
+}) {
+  return (
+    <div
+      className="mdx-stack"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: `var(--space-${gap})`,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
 
 export function Options({ children }: { children: React.ReactNode }) {
   return <div className="mdx-options">{children}</div>

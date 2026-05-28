@@ -44,6 +44,7 @@ export const zh: Strings = {
   submit: '提交整理',
   submitted: '已提交，谨迹整理中…',
   submitFailed: '提交失败',
+  openFileFailed: '无法打开文件',
   audioRejected: '语音转写未配置，音频文件已忽略',
   settingsTooltip: '设置 (⌘,)',
   startRecording: '开始录音',

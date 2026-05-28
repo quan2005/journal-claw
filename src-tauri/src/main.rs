@@ -7,6 +7,7 @@ mod auto_lint;
 mod config;
 mod conversation;
 mod feishu_bridge;
+mod frontmatter;
 mod identity;
 mod journal;
 mod llm;

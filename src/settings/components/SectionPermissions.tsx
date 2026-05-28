@@ -224,13 +224,13 @@ export default function SectionPermissions() {
       setPerms((current) => {
         if (current) {
           if (current.microphone === 'denied' || current.microphone === 'restricted') {
-            openPrivacySettings('microphone').catch(() => {})
+            openPrivacySettings('microphone').catch(console.error)
           }
           if (
             current.speech_recognition === 'denied' ||
             current.speech_recognition === 'restricted'
           ) {
-            openPrivacySettings('speech_recognition').catch(() => {})
+            openPrivacySettings('speech_recognition').catch(console.error)
           }
         }
         return current

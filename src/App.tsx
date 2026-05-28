@@ -1,16 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 import { DetailView } from './components/DetailView'
-import { SettingsPanel } from './settings/SettingsPanel'
+const SettingsPanel = lazy(() =>
+  import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
+)
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { useIdentity } from './hooks/useIdentity'
 import { useRecorder } from './hooks/useRecorder'
 import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { useTodos } from './hooks/useTodos'
+import { useUI } from './contexts/UIContext'
+import { useTodoContext } from './contexts/TodoContext'
 import {
   importFile,
   importAudioFile,
@@ -38,7 +41,6 @@ import { useConversation } from './hooks/useConversation'
 import OnboardingView from './components/OnboardingView'
 
 const SOUL_PATH = '__soul__'
-const BASE_WIDTH = 320
 const DIVIDER_WIDTH = 7
 
 export default function App() {
@@ -59,27 +61,23 @@ export default function App() {
     refresh,
   } = useJournal()
   const { theme, setTheme } = useTheme()
-  const {
-    todos,
-    addTodo,
-    toggleTodo,
-    deleteTodo,
-    setTodoDue,
-    updateTodoText,
-    setTodoPath,
-    removeTodoPath,
-  } = useTodos()
+  const { todos, addTodo } = useTodoContext()
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
-  const [view, setView] = useState<'journal' | 'settings'>('journal')
-  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(
-    undefined,
-  )
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
-  const [showIdeas, setShowIdeas] = useState(false)
+  const {
+    view, setView,
+    settingsInitialSection, setSettingsInitialSection,
+    selectedEntry, setSelectedEntry,
+    isDragging, setIsDragging,
+    isDragOver, setIsDragOver,
+    treeSelection, setTreeSelection,
+    showIdeas, setShowIdeas,
+    sidebarWidth, setSidebarWidth,
+    rightPanelOpen, setRightPanelOpen,
+    rightPanelWidth, setRightPanelWidth,
+    chatInitialText, setChatInitialText,
+    deselect,
+  } = useUI()
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -100,21 +98,10 @@ export default function App() {
 
   const [selectedIdentity, setSelectedIdentity] = useState<IdentityEntry | null>(null)
   const [mergeSource, setMergeSource] = useState<IdentityEntry | null>(null)
-  const [baseWidth, setBaseWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('journal_base_width')
-    return saved ? parseInt(saved) : BASE_WIDTH
-  })
 
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
   const entriesRef = useRef(entries)
-
-  // Right panel state
-  const [rightPanelOpen, setRightPanelOpen] = useState(true)
-  const [rightPanelWidth, setRightPanelWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('journal_right_panel_width')
-    return saved ? parseInt(saved) : 320
-  })
 
   // Check AI engine availability on mount
   useEffect(() => {
@@ -158,15 +145,14 @@ export default function App() {
   const onDividerMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true)
     dragStartX.current = e.clientX
-    dragStartWidth.current = baseWidth
+    dragStartWidth.current = sidebarWidth
   }
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!isDragging) return
       const delta = e.clientX - dragStartX.current
       const newWidth = Math.max(220, Math.min(560, dragStartWidth.current + delta))
-      setBaseWidth(newWidth)
-      localStorage.setItem('journal_base_width', String(newWidth))
+      setSidebarWidth(newWidth)
     }
     const onUp = () => setIsDragging(false)
     window.addEventListener('mousemove', onMove)
@@ -288,8 +274,6 @@ export default function App() {
     removePendingItem,
     newTab,
   } = useConversation()
-
-  const [chatInitialText, setChatInitialText] = useState('')
 
   // Helper to open chat panel (creates new tab per interaction)
   const openChatPanel = useCallback(
@@ -469,9 +453,8 @@ export default function App() {
   }, [status, start, stop, addConvertingItem, t])
 
   const handleDeselect = useCallback(() => {
-    setSelectedEntry(null)
-    setTreeSelection(null)
-  }, [])
+    deselect()
+  }, [deselect])
 
   const handleTreeSelect = useCallback((sel: TreeSelection) => {
     setShowIdeas(false)
@@ -644,11 +627,13 @@ export default function App() {
             background: 'var(--bg)',
           }}
         >
-          <SettingsPanel
-            initialSection={settingsInitialSection}
-            onSectionConsumed={() => setSettingsInitialSection(undefined)}
-            onClose={() => setView('journal')}
-          />
+          <Suspense fallback={null}>
+            <SettingsPanel
+              initialSection={settingsInitialSection}
+              onSectionConsumed={() => setSettingsInitialSection(undefined)}
+              onClose={() => setView('journal')}
+            />
+          </Suspense>
         </div>
       )}
 
@@ -656,7 +641,7 @@ export default function App() {
         {/* Left: Tree Sidebar */}
         <div
           style={{
-            width: baseWidth,
+            width: sidebarWidth,
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
@@ -794,28 +779,6 @@ export default function App() {
             onAddToTodo={handleAddToTodo}
             onProcess={handleProcessEntry}
             onVisualDesign={handleVisualDesign}
-            todos={todos}
-            onToggleTodo={toggleTodo}
-            onAddTodo={addTodo}
-            onDeleteTodo={deleteTodo}
-            onSetTodoDue={setTodoDue}
-            onUpdateTodoText={updateTodoText}
-            onSetTodoPath={setTodoPath}
-            onRemoveTodoPath={removeTodoPath}
-            onOpenTodoConversation={async (opts) => {
-              if (opts.sessionId) {
-                openChatPanel(opts.sessionId)
-              } else {
-                openChatPanel(undefined, opts.context)
-              }
-            }}
-            onNavigateTodoSource={(filename: string) => {
-              const match = entries.find((e) => e.filename === filename)
-              if (match) {
-                setShowIdeas(false)
-                setTreeSelection({ type: 'journal', path: `${match.year_month}/${match.filename}` })
-              }
-            }}
           />
         </div>
 

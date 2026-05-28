@@ -42,6 +42,7 @@ export const en = {
   submit: 'Submit',
   submitted: 'Submitted — JournalClaw is processing…',
   submitFailed: 'Submit failed',
+  openFileFailed: 'Unable to open file',
   audioRejected: 'Voice transcription not configured, audio ignored',
   settingsTooltip: 'Settings (⌘,)',
   startRecording: 'Start recording',

@@ -12,49 +12,9 @@ pub struct SkillInfo {
 }
 
 fn parse_skill_frontmatter(content: &str) -> Option<(String, String)> {
-    let mut name = String::new();
-    let mut description = String::new();
-
-    // Try standard YAML frontmatter first: ---\n...\n---
-    let trimmed = content.trim();
-    if let Some(rest) = trimmed.strip_prefix("---") {
-        if let Some(end) = rest.find("---") {
-            let yaml_block = &rest[..end];
-            for line in yaml_block.lines() {
-                let line = line.trim().trim_start_matches('#').trim();
-                if let Some(val) = line.strip_prefix("name:") {
-                    name = val.trim().trim_matches('"').trim_matches('\'').to_string();
-                } else if let Some(val) = line.strip_prefix("description:") {
-                    description = val.trim().trim_matches('"').trim_matches('\'').to_string();
-                }
-            }
-        }
-    }
-
-    // Fallback: scan first 30 lines for name:/description: (handles unclosed frontmatter)
-    if name.is_empty() {
-        for line in content.lines().take(30) {
-            let line = line.trim().trim_start_matches('#').trim();
-            if name.is_empty() {
-                if let Some(val) = line.strip_prefix("name:") {
-                    name = val.trim().trim_matches('"').trim_matches('\'').to_string();
-                }
-            }
-            if description.is_empty() {
-                if let Some(val) = line.strip_prefix("description:") {
-                    description = val.trim().trim_matches('"').trim_matches('\'').to_string();
-                }
-            }
-            if !name.is_empty() && !description.is_empty() {
-                break;
-            }
-        }
-    }
-
-    if name.is_empty() {
-        return None;
-    }
-
+    let name = crate::frontmatter::parse_frontmatter_field(content, "name")?;
+    let description = crate::frontmatter::parse_frontmatter_field(content, "description")
+        .unwrap_or_default();
     Some((name, description))
 }
 

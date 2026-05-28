@@ -1,13 +1,17 @@
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
-fn get_macos_version() -> String {
-    std::process::Command::new("sw_vers")
-        .arg("-productVersion")
-        .output()
-        .ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|v| v.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+fn get_macos_version() -> &'static str {
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION.get_or_init(|| {
+        std::process::Command::new("sw_vers")
+            .arg("-productVersion")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|v| v.trim().to_string())
+            .unwrap_or_else(|| "unknown".to_string())
+    })
 }
 
 /// Build the full system prompt for the built-in AI engine.
@@ -163,21 +167,7 @@ pub async fn scan_skills(
 }
 
 pub fn parse_skill_description(content: &str) -> Option<String> {
-    let trimmed = content.trim();
-    if !trimmed.starts_with("---") {
-        return None;
-    }
-    let rest = &trimmed[3..];
-    let end = rest.find("---")?;
-    let yaml_block = &rest[..end];
-
-    for line in yaml_block.lines() {
-        let line = line.trim();
-        if let Some(val) = line.strip_prefix("description:") {
-            return Some(val.trim().trim_matches('"').trim_matches('\'').to_string());
-        }
-    }
-    None
+    crate::frontmatter::parse_frontmatter_field(content, "description")
 }
 
 #[cfg(test)]

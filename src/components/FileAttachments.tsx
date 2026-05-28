@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
 import { openFile, getWorkspacePath } from '../lib/tauri'
+import { useToast } from '../contexts/ToastContext'
+import { useTranslation } from '../contexts/I18nContext'
 import type { MessageBlock } from '../types'
 
 export function FileAttachments({ blocks }: { blocks: MessageBlock[] }) {
+  const { showToast } = useToast()
+  const { t } = useTranslation()
   const [workspacePath, setWorkspacePath] = useState('')
 
   useEffect(() => {
     getWorkspacePath()
       .then(setWorkspacePath)
-      .catch(() => {})
+      .catch(console.error)
   }, [])
 
   const filePaths = new Map<string, string>()
@@ -38,7 +42,7 @@ export function FileAttachments({ blocks }: { blocks: MessageBlock[] }) {
         return (
           <span
             key={relPath}
-            onClick={() => openFile(absPath).catch(() => {})}
+            onClick={() => openFile(absPath).catch(() => showToast('warning', t('openFileFailed')))}
             onMouseEnter={(e) => {
               ;(e.currentTarget as HTMLElement).style.color = 'var(--item-selected-text)'
             }}

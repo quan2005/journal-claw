@@ -72,6 +72,7 @@ export function TitleBar({
           <button
             onClick={onToggleSidebar}
             title={t('sidebarToggle')}
+            aria-label={t('sidebarToggle')}
             style={{
               background: sidebarOpen ? 'rgba(200,147,58,0.12)' : 'none',
               border: 'none',

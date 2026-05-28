@@ -721,7 +721,7 @@ export function useConversation() {
       // Load stats
       conversationGetStats(id)
         .then((s) => setTabStats(id, s))
-        .catch(() => {})
+        .catch(console.error)
 
       setTabs((prev) => [...prev.filter((t) => t.sessionId !== id), tabState])
       setActiveTabId(id)

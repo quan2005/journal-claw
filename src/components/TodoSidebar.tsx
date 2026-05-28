@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
+import { useTodoContext } from '../contexts/TodoContext'
 import { pickFolder } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
@@ -633,14 +634,6 @@ function computeGroupDisplayNames(paths: string[]): Map<string, string> {
 
 // ── TodoSidebar ──────────────────────────────────────────────────────────────
 interface TodoSidebarProps {
-  todos: TodoItem[]
-  onToggle: (lineIndex: number, checked: boolean, doneFile: boolean) => void
-  onAdd: (text: string, due?: string, source?: string, path?: string) => void
-  onDelete: (lineIndex: number, doneFile: boolean) => void
-  onSetDue: (lineIndex: number, due: string | null, doneFile: boolean) => void
-  onUpdateText: (lineIndex: number, text: string, doneFile: boolean) => void
-  onSetPath: (lineIndex: number, path: string | null, doneFile: boolean) => void
-  onRemovePath: (lineIndex: number, doneFile: boolean) => void
   onOpenConversation?: (opts: {
     mode: 'chat'
     context: string
@@ -652,18 +645,20 @@ interface TodoSidebarProps {
 }
 
 export function TodoSidebar({
-  todos,
-  onToggle,
-  onAdd,
-  onDelete,
-  onSetDue,
-  onUpdateText,
-  onSetPath,
-  onRemovePath,
   onOpenConversation,
   onNavigateToSource,
 }: TodoSidebarProps) {
   const { t } = useTranslation()
+  const {
+    todos,
+    toggleTodo: onToggle,
+    addTodo: onAdd,
+    deleteTodo: onDelete,
+    setTodoDue: onSetDue,
+    updateTodoText: onUpdateText,
+    setTodoPath: onSetPath,
+    removeTodoPath: onRemovePath,
+  } = useTodoContext()
   const [showCompleted, setShowCompleted] = useState(false)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [addingGroup, setAddingGroup] = useState<string | null>(null) // group key or null

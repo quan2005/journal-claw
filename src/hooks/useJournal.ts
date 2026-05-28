@@ -170,7 +170,7 @@ export function useJournal() {
       return prev
     })
     // Try Rust work queue
-    invokeDismissWork(id).catch(() => {})
+    invokeDismissWork(id).catch(console.error)
   }, [])
 
   const addConvertingItem = useCallback((placeholderPath: string, filename: string) => {
@@ -217,8 +217,6 @@ export function useJournal() {
   useEffect(() => {
     refresh()
     refreshWorkQueue()
-
-    const pollInterval = setInterval(refresh, 3000)
 
     // Work queue updates from Rust
     const unlistenWorkQueue = listen('work-queue-updated', () => {
@@ -436,7 +434,6 @@ export function useJournal() {
     })
 
     return () => {
-      clearInterval(pollInterval)
       refreshing.current = false
       unlistenWorkQueue.then((fn) => fn())
       unlistenProcessing.then((fn) => fn())

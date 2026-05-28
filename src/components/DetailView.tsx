@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { renderMarkdown } from '../lib/markdown'
-import type { JournalEntry, IdentityEntry, TodoItem } from '../types'
+import type { JournalEntry, IdentityEntry } from '../types'
 import {
   getJournalEntryContent,
   getIdentityContent,
@@ -12,6 +12,8 @@ import {
 } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName, type FileKind } from '../lib/fileKind'
+import { parseCSV } from '../lib/parseCSV'
+import { EXT_TO_LANG } from '../lib/extToLang'
 import { Spinner } from './Spinner'
 import { TodoSidebar } from './TodoSidebar'
 import { FindBar } from './FindBar'
@@ -37,24 +39,6 @@ export interface DetailViewProps {
 
   // Topic file
   file?: WorkspaceDirEntry
-
-  // Ideas (todo list)
-  todos?: TodoItem[]
-  onToggleTodo?: (lineIndex: number, checked: boolean, doneFile: boolean) => void
-  onAddTodo?: (text: string, due?: string, source?: string, path?: string) => void
-  onDeleteTodo?: (lineIndex: number, doneFile: boolean) => void
-  onSetTodoDue?: (lineIndex: number, due: string | null, doneFile: boolean) => void
-  onUpdateTodoText?: (lineIndex: number, text: string, doneFile: boolean) => void
-  onSetTodoPath?: (lineIndex: number, path: string | null, doneFile: boolean) => void
-  onRemoveTodoPath?: (lineIndex: number, doneFile: boolean) => void
-  onOpenTodoConversation?: (opts: {
-    mode: 'chat'
-    context: string
-    sessionId: string | null
-    lineIndex: number
-    doneFile: boolean
-  }) => void
-  onNavigateTodoSource?: (filename: string) => void
 
   // Shared callbacks (all optional)
   onDeselect?: () => void
@@ -294,78 +278,6 @@ function DetailContextMenu({
   )
 }
 
-// ── CSV parser ─────────────────────────────────────────────────────────────────
-function parseCSV(text: string): { headers: string[]; rows: string[][] } | null {
-  const lines = text.split('\n').filter((l) => l.trim())
-  if (lines.length === 0) return null
-  const result: string[][] = []
-  for (const line of lines) {
-    const row: string[] = []
-    let col = ''
-    let inQuotes = false
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i]
-      if (inQuotes) {
-        if (ch === '"') {
-          if (i + 1 < line.length && line[i + 1] === '"') {
-            col += '"'
-            i++
-          } else inQuotes = false
-        } else {
-          col += ch
-        }
-      } else {
-        if (ch === '"') {
-          inQuotes = true
-        } else if (ch === ',') {
-          row.push(col)
-          col = ''
-        } else {
-          col += ch
-        }
-      }
-    }
-    row.push(col)
-    result.push(row)
-  }
-  return { headers: result[0], rows: result.slice(1) }
-}
-
-// ── Code language mapping ──────────────────────────────────────────────────────
-const EXT_TO_LANG: Record<string, string> = {
-  ts: 'typescript',
-  tsx: 'typescript',
-  js: 'javascript',
-  jsx: 'javascript',
-  rs: 'rust',
-  py: 'python',
-  css: 'css',
-  json: 'json',
-  xml: 'xml',
-  yaml: 'yaml',
-  yml: 'yaml',
-  toml: 'ini',
-  sh: 'bash',
-  bash: 'bash',
-  zsh: 'bash',
-  sql: 'sql',
-  go: 'go',
-  java: 'java',
-  kt: 'kotlin',
-  kts: 'kotlin',
-  swift: 'swift',
-  c: 'c',
-  cpp: 'cpp',
-  h: 'c',
-  rb: 'ruby',
-  php: 'php',
-  lua: 'lua',
-  scss: 'scss',
-  less: 'less',
-  vue: 'html',
-  svelte: 'html',
-}
-
 // ── Main component ─────────────────────────────────────────────────────────────
 export const DetailView = React.memo(function DetailView({
   type,
@@ -373,16 +285,6 @@ export const DetailView = React.memo(function DetailView({
   entries = [],
   identity,
   file,
-  todos,
-  onToggleTodo,
-  onAddTodo,
-  onDeleteTodo,
-  onSetTodoDue,
-  onUpdateTodoText,
-  onSetTodoPath,
-  onRemoveTodoPath,
-  onOpenTodoConversation,
-  onNavigateTodoSource,
   onDeselect,
   onRecord,
   onOpenDock,
@@ -597,20 +499,7 @@ export const DetailView = React.memo(function DetailView({
       >
         {/* TodoSidebar content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {todos !== undefined && onToggleTodo && onAddTodo && onDeleteTodo ? (
-            <TodoSidebar
-              todos={todos}
-              onToggle={onToggleTodo}
-              onAdd={onAddTodo}
-              onDelete={onDeleteTodo}
-              onSetDue={onSetTodoDue ?? (() => {})}
-              onUpdateText={onUpdateTodoText ?? (() => {})}
-              onSetPath={onSetTodoPath ?? (() => {})}
-              onRemovePath={onRemoveTodoPath ?? (() => {})}
-              onOpenConversation={onOpenTodoConversation}
-              onNavigateToSource={onNavigateTodoSource}
-            />
-          ) : null}
+          <TodoSidebar />
         </div>
       </div>
     )

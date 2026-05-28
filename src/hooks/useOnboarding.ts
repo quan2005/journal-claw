@@ -38,7 +38,7 @@ export function useOnboarding(defaultWorkspacePath: string): OnboardingState {
   const setStep = useCallback((s: OnboardingStep, path?: string) => {
     setStepState(s)
     if (path) setWorkspacePath(path)
-    setOnboardingStep(s).catch(() => {})
+    setOnboardingStep(s).catch(console.error)
   }, [])
 
   const dismiss = useCallback(async () => {

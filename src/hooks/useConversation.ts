@@ -165,7 +165,17 @@ export function useConversation() {
               switch (evt.type) {
                 case 'text':
                   textContent += evt.text
-                  blocks.push({ type: 'text', content: evt.text })
+                  // Merge into last text block — streaming chunks should not
+                  // create separate block-level elements in the renderer.
+                  const lastTextBlock = blocks[blocks.length - 1]
+                  if (lastTextBlock?.type === 'text') {
+                    blocks[blocks.length - 1] = {
+                      ...lastTextBlock,
+                      content: lastTextBlock.content + evt.text,
+                    }
+                  } else {
+                    blocks.push({ type: 'text', content: evt.text })
+                  }
                   break
                 case 'artifact:start':
                   blocks.push({
@@ -355,7 +365,15 @@ export function useConversation() {
                   const blocks = [...(last.blocks ?? [])]
                   for (const evt of flushEvents) {
                     if (evt.type === 'text') {
-                      blocks.push({ type: 'text', content: evt.text })
+                      const lastBlock = blocks[blocks.length - 1]
+                      if (lastBlock?.type === 'text') {
+                        blocks[blocks.length - 1] = {
+                          ...lastBlock,
+                          content: lastBlock.content + evt.text,
+                        }
+                      } else {
+                        blocks.push({ type: 'text', content: evt.text })
+                      }
                     } else if (evt.type === 'artifact:end') {
                       for (let i = blocks.length - 1; i >= 0; i--) {
                         const b = blocks[i]

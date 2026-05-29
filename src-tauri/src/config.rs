@@ -1352,6 +1352,7 @@ pub async fn list_models(
     engine: String,
     api_key: String,
     base_url: String,
+    protocol: Option<String>,
 ) -> Result<Vec<String>, String> {
     let effective_base_url = if base_url.is_empty() {
         default_base_url_for_vendor(&engine)
@@ -1363,14 +1364,16 @@ pub async fn list_models(
         return Err("API Key 未配置".to_string());
     }
 
-    // Determine protocol from active provider config
-    let protocol = load_config(&app)
-        .ok()
-        .and_then(|c| {
-            c.providers
-                .iter()
-                .find(|p| p.id == engine)
-                .map(|p| p.protocol.clone())
+    // Prefer the current settings form value; fall back to persisted config.
+    let protocol = protocol
+        .filter(|p| !p.trim().is_empty())
+        .or_else(|| {
+            load_config(&app).ok().and_then(|c| {
+                c.providers
+                    .iter()
+                    .find(|p| p.id == engine)
+                    .map(|p| p.protocol.clone())
+            })
         })
         .unwrap_or_else(|| "anthropic".to_string());
 

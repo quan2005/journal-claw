@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { ChartFrame, type ChartLayout, type ChartData } from './chart-impl'
+import { ChartFrame, type ChartLayout, type ChartData } from './chart-frame'
 
 interface ChartProps {
   data: ChartData[]

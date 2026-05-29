@@ -20,7 +20,7 @@ export function formatTimer(totalSecs: number): string {
 }
 
 /**
- * Extract yyyyMM group key from a display_name like "录音 2026-03-12 22:41".
+ * Extract yyyyMM group key from a display_name like "会议音频 2026-03-12 22:41".
  * Returns "202603".
  */
 export function formatYearMonth(displayName: string): string {

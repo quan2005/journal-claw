@@ -15,6 +15,7 @@ export default defineConfig(async () => ({
     setupFiles: ['./src/tests/setup.ts'],
   },
   build: {
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

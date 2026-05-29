@@ -1,17 +1,8 @@
 // ── UI 主题 ────────────────────────────────────────────
 export type Theme = 'light' | 'dark' | 'system'
 
-// ── 旧类型（保留，录音管道仍在使用）──────────────────────
+// ── 转写类型（用于导入音频的 transcript sidecar）──────────
 export type TranscriptionProgress = 'uploading' | 'transcribing' | 'completed' | 'failed'
-
-export interface RecordingItem {
-  filename: string
-  path: string
-  display_name: string
-  duration_secs: number
-  year_month: string
-  transcript_status: TranscriptionProgress | null
-}
 
 export interface TranscriptSegment {
   speaker: string | null
@@ -68,7 +59,7 @@ export interface SpeakerProfile {
   name: string
   /** 自动生成的名称，如"说话人 1" */
   auto_name: string
-  recording_count: number
+  audio_count: number
   created_at: number
   last_seen_at: number
 }
@@ -102,7 +93,6 @@ export interface TodoItem {
 
 // ── Processing queue ────────────────────────────────────
 export type QueueItemStatus =
-  | 'recording'
   | 'converting'
   | 'queued'
   | 'processing'
@@ -110,15 +100,13 @@ export type QueueItemStatus =
   | 'failed'
 
 export interface QueueItem {
-  id: string // work queue id (wq-xxx) or synthetic path for recording/converting
+  id: string // work queue id (wq-xxx) or synthetic path for local audio conversion
   path: string
   filename: string
   status: QueueItemStatus
   error?: string
   addedAt: number
   logs: string[]
-  elapsedSecs?: number // only for 'recording' status
-  audioLevel?: number // only for 'recording' status, 0.0–1.0 RMS
   sessionId?: string // conversation session ID
 }
 

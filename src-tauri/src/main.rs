@@ -1,4 +1,5 @@
 mod ai_processor;
+mod audio_files;
 mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
@@ -15,14 +16,11 @@ mod mdx;
 mod onboarding;
 mod permissions;
 mod platform;
-mod recorder;
-mod recordings;
 mod skills;
 mod speaker_profiles;
 mod todos;
 mod topics;
 mod transcription;
-mod types;
 mod work_queue;
 mod workspace;
 mod workspace_settings;
@@ -74,7 +72,6 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(recorder::RecorderState(std::sync::Mutex::new(None)))
         .manage(ai_processor::AiQueue(ai_tx))
         .manage(ai_processor::CurrentTask(std::sync::Mutex::new(None)))
         .manage(ai_processor::CancelledPaths(std::sync::Mutex::new(
@@ -101,10 +98,6 @@ fn main() {
                 // ── Initialize workspace .claude/ on startup ──
                 if let Ok(cfg) = config::load_config(app.handle()) {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
-                    recorder::recover_interrupted_recordings(
-                        app.handle().clone(),
-                        &cfg.workspace_path,
-                    );
                 }
 
                 // ── Auto lint scheduler ──
@@ -244,12 +237,7 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            recordings::list_recordings,
-            recordings::delete_recording,
-            recordings::reveal_in_finder,
-            recordings::play_recording,
-            recorder::start_recording,
-            recorder::stop_recording,
+            audio_files::reveal_in_file_manager,
             config::get_api_key,
             config::set_api_key,
             config::open_settings,

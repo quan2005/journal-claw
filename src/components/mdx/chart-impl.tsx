@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   BarChart as RechartsBar,
   Bar,
@@ -16,102 +16,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import type { ChartData, ChartLayout } from './chart-frame'
 
 const amber = '#b8782a'
-
-export interface ChartData {
-  label: string
-  value: number
-}
-
-// ── ResizeObserver hook ─────────────────────────────────
-
-function useContainerWidth() {
-  const ref = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setWidth(entry.contentRect.width)
-      }
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  return { ref, width }
-}
-
-// ── Chart layout calculator ─────────────────────────────
-
-export type ChartType = 'bar' | 'line' | 'pie' | 'radar'
-
-export interface ChartLayout {
-  height: number
-  compact: boolean
-  narrow: boolean
-  margin: { top: number; right: number; bottom: number; left: number }
-}
-
-export function useChartLayout(type: ChartType, containerWidth: number, _dataLength: number): ChartLayout {
-  const compact = containerWidth < 560
-  const narrow = containerWidth < 420
-
-  const height = (() => {
-    switch (type) {
-      case 'bar':
-        return Math.max(220, Math.min(Math.round(containerWidth * 0.32), 340))
-      case 'line':
-        return Math.max(220, Math.min(Math.round(containerWidth * 0.30), 320))
-      case 'pie':
-        return compact ? 300 : 340
-      case 'radar':
-        return compact ? 300 : 360
-      default:
-        return 280
-    }
-  })()
-
-  const margin = narrow
-    ? { top: 4, right: 4, bottom: 4, left: 4 }
-    : { top: 8, right: 16, bottom: 8, left: 8 }
-
-  return { height, compact, narrow, margin }
-}
-
-// ── ChartFrame component ────────────────────────────────
-
-interface ChartFrameProps {
-  title?: string
-  type: ChartType
-  dataLength: number
-  children: (layout: ChartLayout) => ReactNode
-}
-
-export function ChartFrame({ title, type, dataLength, children }: ChartFrameProps) {
-  const { ref, width } = useContainerWidth()
-  const layout = useChartLayout(type, width, dataLength)
-  const isEmpty = dataLength === 0
-
-  return (
-    <div className="mdx-chart" ref={ref}>
-      {title && <div className="mdx-chart-title">{title}</div>}
-      {isEmpty ? (
-        <div className="mdx-chart-empty">
-          <span className="mdx-chart-empty-icon">—</span>
-          <span>No chart data</span>
-        </div>
-      ) : width > 0 ? (
-        children(layout)
-      ) : (
-        <div style={{ minHeight: layout.height }} />
-      )}
-    </div>
-  )
-}
 
 function useChartTheme() {
   const resolve = () =>
@@ -301,9 +208,9 @@ export function PieChartImpl({
                 fontSize: 13,
                 color: t.isDark ? '#e8e8e8' : '#1c1c1e',
               }}
-              formatter={(value: any, _name: any) => [
-                `${value} (${total > 0 ? Math.round((Number(value) / total) * 100) : 0}%)`,
-                _name,
+              formatter={(value, name) => [
+                `${value ?? ''} (${total > 0 ? Math.round((Number(value ?? 0) / total) * 100) : 0}%)`,
+                name,
               ]}
             />
           </RechartsPie>

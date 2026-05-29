@@ -200,7 +200,7 @@ fn resolve_audio_path(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
             .parent()
             .is_some_and(|parent| parent.as_os_str().is_empty())
     {
-        return crate::recordings::recordings_dir(app).map(|dir| dir.join(path));
+        return crate::audio_files::audio_cache_dir(app).map(|dir| dir.join(path));
     }
 
     Ok(candidate)
@@ -403,7 +403,7 @@ fn extract_whisperkit_transcription_text(stdout_text: &str) -> String {
     if let Some(start_idx) = stdout_text.find("Transcription of ") {
         let suffix = &stdout_text[start_idx..];
         // The line format is "Transcription of <filename>: <text>"
-        // The filename may itself contain ':' (e.g. "录音 14:04:51.m4a"),
+        // The filename may itself contain ':' (e.g. "会议音频 14:04:51.m4a"),
         // so we must find the ": " that follows the filename extension, not the
         // first ':' in the string.  We look for ": " (colon + space) after a
         // known audio extension to skip colons inside the filename.
@@ -1264,11 +1264,11 @@ pub async fn transcribe_audio_to_ai_markdown(
     file_path: PathBuf,
     duration_secs: f64,
 ) -> Result<PathBuf, String> {
-    // 前置检查：macOS 麦克风 + 语音识别权限
+    // 前置检查：Apple STT 需要 macOS 语音识别权限；导入音频不再请求麦克风权限。
     #[cfg(target_os = "macos")]
     {
         // Apple/SpeakerKit local tools cannot decode Opus in MP4 containers.
-        if crate::recordings::is_unsupported_codec(&file_path) {
+        if crate::audio_files::is_unsupported_codec(&file_path) {
             let msg = "不支持的音频编码（Opus），请转换为 AAC 格式后重试".to_string();
             eprintln!("[transcription] Opus codec detected, rejecting");
             save_transcript(&app, &file_path, "failed", &msg);
@@ -1276,10 +1276,9 @@ pub async fn transcribe_audio_to_ai_markdown(
         }
 
         use crate::permissions::PermStatus;
-        let mic = crate::permissions::macos::microphone_status();
         let speech = crate::permissions::macos::speech_recognition_status();
-        if matches!(mic, PermStatus::Denied) || matches!(speech, PermStatus::Denied) {
-            let msg = "缺少麦克风或语音识别权限，请前往「系统设置 → 隐私与安全性」授权".to_string();
+        if matches!(speech, PermStatus::Denied) {
+            let msg = "缺少语音识别权限，请前往「系统设置 → 隐私与安全性」授权".to_string();
             save_transcript(&app, &file_path, "failed", &msg);
             return Err(msg);
         }
@@ -2194,7 +2193,7 @@ pub fn retry_transcription(app: AppHandle, path: String) -> Result<(), String> {
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    let duration = crate::recordings::read_duration_pub(&file_path);
+    let duration = crate::audio_files::read_duration(&file_path);
     start_transcription(app, filename, file_path, duration);
     Ok(())
 }
@@ -2353,32 +2352,32 @@ Resolved audio paths:
 - /tmp/test.m4a
 Initializing models...
 Processing transcription result for: /tmp/test.m4a
-Transcription of test.m4a: 喂喂喂 你好 现在测试录音
+Transcription of test.m4a: 喂喂喂 你好 现在测试音频
 Preparing diarization models...
 "#;
 
         let transcript = parse_whisperkit_stdout(raw);
-        assert_eq!(transcript.text, "喂喂喂 你好 现在测试录音");
+        assert_eq!(transcript.text, "喂喂喂 你好 现在测试音频");
         assert!(transcript.segments.is_empty());
     }
 
     #[test]
     fn parse_whisperkit_stdout_extracts_diarization_segments() {
-        let raw = r#"Transcription of test.m4a: 喂喂喂 你好 现在测试录音
+        let raw = r#"Transcription of test.m4a: 喂喂喂 你好 现在测试音频
 ---- Speaker Diarization Results ----
 SPEAKER test 1 5.200 6.000 喂喂喂 你好 <NA> A <NA> <NA>
-SPEAKER test 1 12.000 4.500 现在测试录音 <NA> B <NA> <NA>
+SPEAKER test 1 12.000 4.500 现在测试音频 <NA> B <NA> <NA>
 "#;
 
         let transcript = parse_whisperkit_stdout(raw);
-        assert_eq!(transcript.text, "喂喂喂 你好 现在测试录音");
+        assert_eq!(transcript.text, "喂喂喂 你好 现在测试音频");
         assert_eq!(transcript.segments.len(), 2);
         assert_eq!(transcript.segments[0].speaker.as_deref(), Some("A"));
         assert_eq!(transcript.segments[0].start, 5.2);
         assert_eq!(transcript.segments[0].end, 11.2);
         assert_eq!(transcript.segments[0].text, "喂喂喂 你好");
         assert_eq!(transcript.segments[1].speaker.as_deref(), Some("B"));
-        assert_eq!(transcript.segments[1].text, "现在测试录音");
+        assert_eq!(transcript.segments[1].text, "现在测试音频");
     }
 
     #[test]

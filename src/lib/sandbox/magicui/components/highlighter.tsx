@@ -36,7 +36,7 @@ export function Highlighter({
   isView = false,
 }: HighlighterProps) {
   const elementRef = useRef<HTMLSpanElement>(null)
-  const annotationRef = useRef<any>(null)
+  const annotationRef = useRef<ReturnType<typeof annotate> | null>(null)
 
   const isInView = useInView(elementRef, {
     once: true,

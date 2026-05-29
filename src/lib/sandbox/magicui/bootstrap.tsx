@@ -9,6 +9,16 @@ import { Safari } from "./components/safari"
 import { AnimatedBeam } from "./components/animated-beam"
 import { Highlighter } from "./components/highlighter"
 
+type MagicProps = Record<string, unknown>
+
+const MagicNumberTickerComponent = NumberTicker as unknown as React.ComponentType<MagicProps>
+const MagicMarqueeComponent = Marquee as unknown as React.ComponentType<MagicProps>
+const MagicBorderBeamComponent = BorderBeam as unknown as React.ComponentType<MagicProps>
+const MagicPointerComponent = Pointer as unknown as React.ComponentType<MagicProps>
+const MagicSafariComponent = Safari as unknown as React.ComponentType<MagicProps>
+const MagicAnimatedBeamComponent = AnimatedBeam as unknown as React.ComponentType<MagicProps>
+const MagicHighlighterComponent = Highlighter as unknown as React.ComponentType<MagicProps>
+
 /** Convert kebab-case to camelCase */
 function camelize(s: string): string {
   return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
@@ -55,7 +65,7 @@ class MagicNumberTicker extends HTMLElement {
   connectedCallback() {
     const props = extractProps(this)
     const root = createRoot(this)
-    root.render(React.createElement(NumberTicker, props as any))
+    root.render(React.createElement(MagicNumberTickerComponent, props))
   }
 }
 
@@ -70,8 +80,8 @@ class MagicMarquee extends HTMLElement {
       const root = createRoot(this)
       root.render(
         React.createElement(
-          Marquee,
-          props as any,
+          MagicMarqueeComponent,
+          props,
           React.createElement("span", {
             dangerouslySetInnerHTML: htmlChildren(inner),
           })
@@ -94,7 +104,7 @@ class MagicBorderBeam extends HTMLElement {
     }
     const props = extractProps(this)
     const root = createRoot(this)
-    root.render(React.createElement(BorderBeam, props as any))
+    root.render(React.createElement(MagicBorderBeamComponent, props))
   }
 }
 
@@ -108,9 +118,9 @@ class MagicPointer extends HTMLElement {
       const children = React.createElement("div", {
         dangerouslySetInnerHTML: htmlChildren(this.innerHTML),
       })
-      root.render(React.createElement(Pointer, props as any, children))
+      root.render(React.createElement(MagicPointerComponent, props, children))
     } else {
-      root.render(React.createElement(Pointer, props as any))
+      root.render(React.createElement(MagicPointerComponent, props))
     }
   }
 }
@@ -120,7 +130,7 @@ class MagicSafari extends HTMLElement {
   connectedCallback() {
     const props = extractProps(this)
     const root = createRoot(this)
-    root.render(React.createElement(Safari, props as any))
+    root.render(React.createElement(MagicSafariComponent, props))
   }
 }
 
@@ -162,12 +172,12 @@ class MagicAnimatedBeam extends HTMLElement {
 
       const root = createRoot(this)
       root.render(
-        React.createElement(AnimatedBeam, {
+        React.createElement(MagicAnimatedBeamComponent, {
           ...props,
           containerRef,
           fromRef,
           toRef,
-        } as any)
+        })
       )
     })
   }
@@ -181,7 +191,7 @@ class MagicHighlighter extends HTMLElement {
     // Clear and re-render with React
     const root = createRoot(this)
     root.render(
-      React.createElement(Highlighter, props as any, text)
+      React.createElement(MagicHighlighterComponent, props, text)
     )
   }
 }

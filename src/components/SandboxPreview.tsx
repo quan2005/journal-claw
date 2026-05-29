@@ -18,13 +18,12 @@ export const SandboxPreview = React.memo(function SandboxPreview({
   style,
 }: SandboxPreviewProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>(getCurrentTheme)
+  const [srcdocKey, setSrcdocKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const iframeKeyRef = useRef(0)
 
   // Bump key on html change to force iframe remount (avoids stale srcdoc)
-  const srcdocKey = useMemo(() => {
-    iframeKeyRef.current += 1
-    return iframeKeyRef.current
+  useEffect(() => {
+    setSrcdocKey((key) => key + 1)
   }, [html])
 
   const srcdoc = useMemo(() => buildSrcdoc(html, theme), [html, theme])

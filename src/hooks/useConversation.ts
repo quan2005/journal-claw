@@ -163,7 +163,7 @@ export function useConversation() {
 
             for (const evt of events) {
               switch (evt.type) {
-                case 'text':
+                case 'text': {
                   textContent += evt.text
                   // Merge into last text block — streaming chunks should not
                   // create separate block-level elements in the renderer.
@@ -177,6 +177,7 @@ export function useConversation() {
                     blocks.push({ type: 'text', content: evt.text })
                   }
                   break
+                }
                 case 'artifact:start':
                   blocks.push({
                     type: 'artifact',

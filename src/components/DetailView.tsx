@@ -42,7 +42,6 @@ export interface DetailViewProps {
 
   // Shared callbacks (all optional)
   onDeselect?: () => void
-  onRecord?: () => void
   onOpenDock?: () => void
   onSelectSample?: () => void
   onAddToTodo?: (text: string, source: string) => void
@@ -286,7 +285,6 @@ export const DetailView = React.memo(function DetailView({
   identity,
   file,
   onDeselect,
-  onRecord,
   onOpenDock,
   onSelectSample,
   onAddToTodo,
@@ -366,10 +364,13 @@ export const DetailView = React.memo(function DetailView({
     }
   }, [
     type,
+    entry,
     entry?.path,
     entry?.mtime_secs,
+    identity,
     identity?.path,
     identity?.mtime_secs,
+    file,
     file?.path,
     isSoul,
     workspacePath,
@@ -487,8 +488,9 @@ export const DetailView = React.memo(function DetailView({
     return renderMarkdown(content, absPath)
   }, [
     content,
-    entry?.path,
-    identity?.path,
+    entry,
+    identity,
+    file,
     fileAbsolutePath,
     isJournalMode,
     isIdentityMode,
@@ -586,83 +588,6 @@ export const DetailView = React.memo(function DetailView({
               通过以下方式开始记录
             </div>
             <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-              {/* 录音卡片 */}
-              {onRecord && (
-                <button
-                  onClick={onRecord}
-                  style={{
-                    flex: 1,
-                    background: 'var(--detail-case-bg)',
-                    border: '1px solid var(--divider)',
-                    borderRadius: 10,
-                    padding: '16px 12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s, background 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
-                    ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
-                  }}
-                  onMouseLeave={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
-                    ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'var(--detail-case-bg)'
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: 'var(--item-icon-bg)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 8px',
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--item-meta)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
-                      <path d="M19 10a7 7 0 0 1-14 0" />
-                      <line x1="12" y1="19" x2="12" y2="22" />
-                      <line x1="8" y1="22" x2="16" y2="22" />
-                    </svg>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--item-text)',
-                      fontWeight: 'var(--font-semibold)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    录音记录
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--item-meta)',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    说出你的想法
-                    <br />
-                    AI 自动整理成日志
-                  </div>
-                </button>
-              )}
-
               {/* 粘贴卡片 */}
               {onOpenDock && (
                 <button

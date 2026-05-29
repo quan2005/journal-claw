@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { JournalEntry } from '../types'
-import { revealInFinder, openFile } from '../lib/tauri'
+import { revealInFileManager, openFile } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface JournalContextMenuProps {
@@ -59,8 +59,8 @@ export function JournalContextMenu({
     await navigator.clipboard.writeText(entry.path)
   }
 
-  async function handleShowInFinder() {
-    await revealInFinder(entry.path)
+  async function handleShowInFileManager() {
+    await revealInFileManager(entry.path)
   }
 
   async function handleOpenWithEditor() {
@@ -80,7 +80,12 @@ export function JournalContextMenu({
     { type: 'action', label: t('copyFilePath'), icon: 'path', onClick: copyPath },
     { type: 'divider' },
     { type: 'action', label: t('openInEditor'), icon: 'edit', onClick: handleOpenWithEditor },
-    { type: 'action', label: t('showInFinder'), icon: 'finder', onClick: handleShowInFinder },
+    {
+      type: 'action',
+      label: t('showInFileManager'),
+      icon: 'folder',
+      onClick: handleShowInFileManager,
+    },
     { type: 'divider' },
     {
       type: 'action',
@@ -178,7 +183,7 @@ function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       )
-    case 'finder':
+    case 'folder':
       return (
         <svg {...props}>
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />

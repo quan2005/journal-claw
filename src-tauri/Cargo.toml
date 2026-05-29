@@ -16,7 +16,6 @@ tauri = { version = "2", features = ["protocol-asset"] }
 # mdxjs 1.0.4's SWC stack still imports serde::__private; serde >=1.0.220 removed it.
 serde = { version = "=1.0.219", features = ["derive"] }
 serde_json = "1"
-cpal = "0.17"
 hound = "3.5"
 chrono = { version = "0.4", features = ["clock"] }
 mp4ameta = "0.13"

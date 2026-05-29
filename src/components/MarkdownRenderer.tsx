@@ -305,11 +305,6 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) {
   const isMdx = entryPath?.endsWith('.mdx')
-
-  if (isMdx) {
-    return <MdxRenderer content={content} entryPath={entryPath} />
-  }
-
   const isLarge = content.length > LARGE_THRESHOLD
 
   // Small files: synchronous parse
@@ -360,6 +355,10 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
     },
     [entryPath],
   )
+
+  if (isMdx) {
+    return <MdxRenderer content={content} entryPath={entryPath} />
+  }
 
   if (isLarge) {
     return <VirtualizedMarkdown content={content} entryPath={entryPath} onClick={handleClick} />

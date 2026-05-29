@@ -7,12 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }))
 
 import {
-  listRecordings,
-  startRecording,
-  stopRecording,
-  deleteRecording,
-  revealInFinder,
-  playRecording,
+  revealInFileManager,
   openSettings,
   getTranscript,
   retryTranscription,
@@ -99,9 +94,6 @@ beforeEach(() => {
 // No-param commands (batch)
 // ---------------------------------------------------------------------------
 const noParamCases: [string, () => Promise<unknown>, string][] = [
-  ['listRecordings', listRecordings, 'list_recordings'],
-  ['startRecording', startRecording, 'start_recording'],
-  ['stopRecording', stopRecording, 'stop_recording'],
   ['openSettings', openSettings, 'open_settings'],
   ['getApiKey', getApiKey, 'get_api_key'],
   ['getWorkspacePath', getWorkspacePath, 'get_workspace_path'],
@@ -142,22 +134,12 @@ describe('no-param commands', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Recording
+// Files
 // ---------------------------------------------------------------------------
-describe('Recording', () => {
-  it('deleteRecording passes { path }', async () => {
-    await deleteRecording('/tmp/rec.m4a')
-    expect(mockInvoke).toHaveBeenCalledWith('delete_recording', { path: '/tmp/rec.m4a' })
-  })
-
-  it('revealInFinder passes { path }', async () => {
-    await revealInFinder('/tmp/rec.m4a')
-    expect(mockInvoke).toHaveBeenCalledWith('reveal_in_finder', { path: '/tmp/rec.m4a' })
-  })
-
-  it('playRecording passes { path }', async () => {
-    await playRecording('/tmp/rec.m4a')
-    expect(mockInvoke).toHaveBeenCalledWith('play_recording', { path: '/tmp/rec.m4a' })
+describe('Files', () => {
+  it('revealInFileManager passes { path }', async () => {
+    await revealInFileManager('/tmp/audio.m4a')
+    expect(mockInvoke).toHaveBeenCalledWith('reveal_in_file_manager', { path: '/tmp/audio.m4a' })
   })
 })
 
@@ -402,8 +384,8 @@ describe('Speakers', () => {
 // ---------------------------------------------------------------------------
 describe('Permissions', () => {
   it('requestPermission passes { perm }', async () => {
-    await requestPermission('microphone')
-    expect(mockInvoke).toHaveBeenCalledWith('request_permission', { perm: 'microphone' })
+    await requestPermission('speech_recognition')
+    expect(mockInvoke).toHaveBeenCalledWith('request_permission', { perm: 'speech_recognition' })
   })
 
   it('openPrivacySettings passes { pane }', async () => {

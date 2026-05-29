@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
-  RecordingItem,
   Transcript,
   JournalEntry,
   SpeakerProfile,
@@ -9,17 +8,8 @@ import type {
   TodoItem,
 } from '../types'
 
-export const listRecordings = (): Promise<RecordingItem[]> => invoke('list_recordings')
-
-export const startRecording = (): Promise<string> => invoke('start_recording')
-
-export const stopRecording = (): Promise<void> => invoke('stop_recording')
-
-export const deleteRecording = (path: string): Promise<void> => invoke('delete_recording', { path })
-
-export const revealInFinder = (path: string): Promise<void> => invoke('reveal_in_finder', { path })
-
-export const playRecording = (path: string): Promise<void> => invoke('play_recording', { path })
+export const revealInFileManager = (path: string): Promise<void> =>
+  invoke('reveal_in_file_manager', { path })
 
 export const openSettings = (): Promise<void> => invoke('open_settings')
 
@@ -165,6 +155,15 @@ export interface BuiltinPreset {
 
 export const BUILTIN_PRESETS: BuiltinPreset[] = [
   {
+    id: 'anthropic',
+    label: 'Anthropic',
+    defaultProtocol: 'anthropic',
+    defaultBaseUrl: 'https://api.anthropic.com',
+    defaultModel: '',
+    apiKeyUrl: '',
+    apiKeyPlaceholder: 'sk-ant-…',
+  },
+  {
     id: 'deepseek',
     label: 'DeepSeek',
     defaultProtocol: 'openai',
@@ -299,17 +298,16 @@ export const checkSpeakerEmbedder = (): Promise<{
 // Permissions
 export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
 
-export const requestPermission = (perm: 'microphone' | 'speech_recognition'): Promise<PermStatus> =>
+export const requestPermission = (perm: 'speech_recognition'): Promise<PermStatus> =>
   invoke<PermStatus>('request_permission', { perm })
 export interface AppPermissions {
-  microphone: PermStatus
   speech_recognition: PermStatus
 }
 
 export const checkAppPermissions = (): Promise<AppPermissions> =>
   invoke<AppPermissions>('check_app_permissions')
 
-export const openPrivacySettings = (pane: 'microphone' | 'speech_recognition'): Promise<void> =>
+export const openPrivacySettings = (pane: 'speech_recognition'): Promise<void> =>
   invoke<void>('open_privacy_settings', { pane })
 
 // Identity library (身份档案)
@@ -530,8 +528,12 @@ export const conversationGetStats = (sessionId: string): Promise<SessionStats> =
   invoke<SessionStats>('conversation_get_stats', { sessionId })
 
 // Models
-export const listModels = (engine: string, apiKey: string, baseUrl: string): Promise<string[]> =>
-  invoke<string[]>('list_models', { engine, apiKey, baseUrl })
+export const listModels = (
+  engine: string,
+  apiKey: string,
+  baseUrl: string,
+  protocol?: string,
+): Promise<string[]> => invoke<string[]>('list_models', { engine, apiKey, baseUrl, protocol })
 
 // Work Queue
 export interface WorkItem {

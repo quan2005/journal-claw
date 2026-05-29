@@ -47,8 +47,6 @@ export const zh: Strings = {
   openFileFailed: '无法打开文件',
   audioRejected: '语音转写未配置，音频文件已忽略',
   settingsTooltip: '设置 (⌘,)',
-  startRecording: '开始录音',
-  stopRecording: '停止录音',
   voiceNotReady: '语音转写未就绪，请前往设置 → 语音转写',
 
   // ErrorBoundary
@@ -72,14 +70,13 @@ export const zh: Strings = {
   duplicate: '创建副本',
   moveTo: '移动到…',
   openInEditor: '用默认编辑器打开',
-  showInFinder: '在 Finder 中显示',
+  showInFileManager: '在文件管理器中显示',
   delete: '删除',
   mergeTo: '合并到…',
 
   // Identity list
   builtin: '内置',
   noProfiles: '暂无身份档案',
-  recordingHint: '录音后会自动创建说话人档案',
   me: '我',
 
   // IdentityDetail context menu
@@ -91,8 +88,6 @@ export const zh: Strings = {
   // DetailPanel (empty state)
   startCapturing: '通过以下方式开始记录',
   via: '开始',
-  recordCard: '录音记录',
-  recordCardHint: '说出你的想法\nAI 自动整理成日志',
   pasteCard: '粘贴 / 拖文件',
   pasteCardHint: '会议记录、日记\nAI 自动提炼关键信息',
   sampleCard: '创建示例条目',
@@ -111,13 +106,8 @@ export const zh: Strings = {
   saveFailed: '保存失败，请重试',
   save: '保存',
 
-  // RecordingList
-  recording: '录制中',
-  today: '今天',
-  processingDots: '处理中…',
-
   // JournalList / MonthDivider
-  noEntries: '还没有日志条目。点击录音按钮或拖入文件开始记录。',
+  noEntries: '还没有日志条目。拖入文件或粘贴文本开始记录。',
   weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
   monthNames: [
     '1月',
@@ -146,7 +136,6 @@ export const zh: Strings = {
   retryLabel: '重试',
   closeTooltip: '关闭',
   done: '完成',
-  recordingStatus: '录音中',
   confirmCancel: '确认取消？',
   confirm: '确认',
   cancelTooltip: '取消',
@@ -211,9 +200,31 @@ export const zh: Strings = {
   savingDots: '保存中…',
   saveFailedMsg: '保存失败，请重试',
   unsavedChanges: '有未保存修改',
+  generalSubtitle: '设置谨迹保存日志、原始素材、身份画像和待办的位置。',
+  workspaceFolder: '工作区文件夹',
+  workspaceSaveHint: '切换路径后，应用会读取另一个日志库。',
 
   // Settings: AI Engine
   aiEngineSection: '模型配置',
+  aiEngineSubtitle: '选择日志整理、对话和自动整理使用的模型供应商。',
+  providersTitle: '供应商',
+  providerCount: '{count} 个供应商',
+  providerDetails: '供应商设置',
+  providerDetailsHint: '这里的修改只影响当前选中的供应商。',
+  activeProviderLabel: '当前启用',
+  activeProviderHint: '用于日志整理、对话和自动整理。',
+  configured: '已配置',
+  notConfigured: '未配置',
+  apiKeyConfigured: 'API Key 已保存',
+  apiKeyMissing: '需要 API Key',
+  modelMissing: '未选择模型',
+  apiKeyHelp: '只保存在本机工作区配置中。',
+  baseUrlLabel: 'Base URL',
+  modelLabel: '模型',
+  noProvidersTitle: '还没有模型供应商',
+  noProvidersDesc: '添加一个供应商后，谨迹才能整理日志和进行对话。',
+  deleteProvider: '删除供应商',
+  confirmDeleteProvider: '删除「{name}」？这只会移除本地 API Key，不会删除远端账号。',
   comingSoon: '即将推出',
   inDevelopment: '开发中',
   installOneLiner: '一键安装',
@@ -255,16 +266,16 @@ export const zh: Strings = {
   retryHint: '失败后可直接重试，不用重新选模型。',
   switchModelHint: '切换模型不会打断当前下载任务。',
   modelStoreDir: '模型存放目录',
-  openInFinder: '在 Finder 中打开',
+  openInFileManager: '在文件管理器中打开',
   baseModelBundled: 'Base 模型已内置在应用包中。上方目录用于存放额外下载的 Small / Large 模型。',
   downloadFromHF:
     '点击下载按钮自动从 HuggingFace 下载，之后离线可用。也可手动将模型文件放入上方目录。',
-  dashscopeHint: '配置后，录音将自动上传至阿里云转写',
+  dashscopeHint: '配置后，音频文件将自动上传至阿里云转写',
   asrModel: '语音识别模型',
   asrModelHint: 'Flash 为实时识别，File Trans 适合长音频异步转写',
   speakerEmbedderUnavailable: '声纹识别不可用',
   speakerEmbedderHint:
-    '未检测到 SpeakerEmbedder 模型，录音转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。',
+    '未检测到 SpeakerEmbedder 模型，音频转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。',
 
   // Settings: Permissions
   permissionsSection: '授权管理',
@@ -276,8 +287,6 @@ export const zh: Strings = {
   grantAll: '一键授权',
   allGranted: '所有权限已就绪',
   clickToCheck: '点击「检测权限」查看各项授权状态',
-  permMic: '麦克风',
-  permMicDesc: '录音功能需要访问麦克风，用于语音转写和会议记录。',
   permSpeech: '语音识别',
   permSpeechDesc: '使用 Apple 语音识别引擎时需要此权限（DashScope / WhisperKit 不需要）。',
   statusGranted: '已授权',
@@ -294,12 +303,12 @@ export const zh: Strings = {
   // Settings: Speakers
   speakersSection: '声纹管理',
   speakersDesc:
-    '录音后自动识别说话人并注册声纹档案。在此处为说话人命名，AI 整理时将使用您设置的名称。',
+    '导入音频后自动识别说话人并注册声纹档案。在此处为说话人命名，AI 整理时将使用您设置的名称。',
   noSpeakers: '暂未检测到说话人',
-  noSpeakersHint: '完成一次录音后，系统将自动识别说话人并在此处显示',
+  noSpeakersHint: '导入一份带说话人的音频后，系统将在此处显示识别结果',
   speakerCount: '说话人档案（共 {count} 人）',
   unnamed: '未命名',
-  appearsIn: '出现在 {count} 条录音中',
+  appearsIn: '出现在 {count} 份音频中',
   nameTooltip: '命名',
   mergeTooltip: '合并到…',
   deleteTooltip: '删除',
@@ -354,8 +363,6 @@ export const zh: Strings = {
 
   // App confirm dialog
   confirmDeleteIdentity: '确认删除「{name}」的档案？',
-  recordingConverting: '录音处理中',
-
   // SectionVoice: model hints
   baseModelHint: '默认模型，中文效果稳定，适合日常会议记录',
   smallModelHint: '中文效果更好，适合会议记录',

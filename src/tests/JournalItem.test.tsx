@@ -16,7 +16,7 @@ const entry: JournalEntry = {
   created_at_secs: 1743120000,
   mtime_secs: 1743120000,
   materials: [
-    { filename: '录音.m4a', path: '/nb/2603/raw/录音.m4a', kind: 'audio', size_bytes: 1024 },
+    { filename: 'meeting.m4a', path: '/nb/2603/raw/meeting.m4a', kind: 'audio', size_bytes: 1024 },
   ],
 }
 

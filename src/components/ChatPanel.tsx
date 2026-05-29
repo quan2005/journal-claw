@@ -15,7 +15,6 @@ import clipboard from 'tauri-plugin-clipboard-api'
 import { open } from '@tauri-apps/plugin-dialog'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
-import { useRecorder } from '../hooks/useRecorder'
 
 interface ImageAtt {
   media_type: string
@@ -57,7 +56,6 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const { t } = useTranslation()
   const { showToast } = useToast()
-  const { status: recorderStatus, start: startRecord, stop: stopRecord } = useRecorder()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
@@ -187,7 +185,6 @@ export function ChatPanel({
   }, [])
 
   const handleSend = useCallback(() => {
-    if (recorderStatus === 'recording') return
     const text = inputValue.trim()
     if (!text && imageAttachments.length === 0) return
     const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
@@ -201,7 +198,7 @@ export function ChatPanel({
     setAttachments([])
     setImageAttachments([])
     onSend(payload || '请看图片', imgs)
-  }, [recorderStatus, inputValue, attachments, imageAttachments, onSend])
+  }, [inputValue, attachments, imageAttachments, onSend])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -856,67 +853,19 @@ export function ChatPanel({
                 </button>
               )}
 
-              {/* Mic button */}
-              <button
-                onClick={recorderStatus === 'recording' ? stopRecord : startRecord}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: inputValue.trim() ? 0 : 1,
-                  color: recorderStatus === 'recording' ? '#ff3b30' : 'var(--item-meta)',
-                  transition: 'opacity 200ms ease-out, color 150ms ease-out',
-                }}
-              >
-                {recorderStatus === 'recording' ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="4" y="4" width="16" height="16" rx="2" />
-                  </svg>
-                ) : (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
-                    <path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8" />
-                  </svg>
-                )}
-              </button>
-
               {/* Send button */}
               <button
                 onClick={handleSend}
-                disabled={
-                  (!inputValue.trim() && imageAttachments.length === 0) ||
-                  recorderStatus === 'recording'
-                }
+                disabled={!inputValue.trim() && imageAttachments.length === 0}
                 style={{
                   background: 'none',
                   border: 'none',
-                  cursor:
-                    (inputValue.trim() || imageAttachments.length > 0) &&
-                    recorderStatus !== 'recording'
-                      ? 'pointer'
-                      : 'default',
+                  cursor: inputValue.trim() || imageAttachments.length > 0 ? 'pointer' : 'default',
                   padding: 4,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity:
-                    (inputValue.trim() || imageAttachments.length > 0) &&
-                    recorderStatus !== 'recording'
-                      ? 1
-                      : 0.3,
+                  opacity: inputValue.trim() || imageAttachments.length > 0 ? 1 : 0.3,
                   color:
                     inputValue.trim() || imageAttachments.length > 0
                       ? 'var(--record-btn)'

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { revealInFinder, openFile } from '../lib/tauri'
+import { revealInFileManager, openFile } from '../lib/tauri'
 import { ask } from '@tauri-apps/plugin-dialog'
 
 export interface TreeContextMenuState {
@@ -61,7 +61,10 @@ export function TreeContextMenu({
     onClose()
   }
 
-  async function handleShowInFinder() { await revealInFinder(state.absolutePath ?? path); onClose() }
+  async function handleShowInFileManager() {
+    await revealInFileManager(state.absolutePath ?? path)
+    onClose()
+  }
   async function handleOpenInEditor() { await openFile(state.absolutePath ?? path); onClose() }
 
   function handlePin() {
@@ -89,7 +92,12 @@ export function TreeContextMenu({
     { type: 'action', label: '复制路径', shortcut: '⌘C', icon: 'copy', onClick: copyPath },
     { type: 'divider' },
     { type: 'action', label: '在编辑器中打开', icon: 'edit', onClick: handleOpenInEditor },
-    { type: 'action', label: '在 Finder 中显示', icon: 'finder', onClick: handleShowInFinder },
+    {
+      type: 'action',
+      label: '在文件管理器中显示',
+      icon: 'folder',
+      onClick: handleShowInFileManager,
+    },
     { type: 'divider' },
     { type: 'action', label: deleteLabel, shortcut: '⌫', icon: 'delete', danger: true, onClick: handleDelete },
   ]
@@ -167,7 +175,7 @@ const iconPaths: Record<string, React.ReactNode> = {
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </g>
   ),
-  finder: (
+  folder: (
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
   ),
   delete: (

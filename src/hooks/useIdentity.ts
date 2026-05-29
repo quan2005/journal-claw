@@ -21,7 +21,7 @@ export function useIdentity() {
   useEffect(() => {
     refresh()
 
-    // Refresh when speakers are updated (new speaker registered after recording)
+    // Refresh when speakers are updated after imported audio is processed
     const unlistenSpeakers = listen('speakers-updated', () => refresh())
     // Refresh when identity files change (merge, delete, create)
     const unlistenIdentity = listen('identity-updated', () => refresh())

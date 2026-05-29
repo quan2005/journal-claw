@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { MarkdownLi } from '../lib/markdownLi'

@@ -518,7 +518,7 @@ summary: 这是 AI 帮你整理的示例——试着录一段音或粘贴一段�
 
 <hr>
 
-<blockquote>这条记录是示例，展示 AI 整理后的效果。你可以删除它，或直接录音 / 粘贴文件开始使用。</blockquote>
+<blockquote>这条记录是示例，展示 AI 整理后的效果。你可以删除它，或拖入文件 / 粘贴文本开始使用。</blockquote>
 "#
     .to_string()
 }
@@ -640,7 +640,7 @@ mod tests {
 
     #[test]
     fn material_kind_audio() {
-        assert_eq!(material_kind("录音.m4a"), "audio");
+        assert_eq!(material_kind("meeting.m4a"), "audio");
         assert_eq!(material_kind("rec.wav"), "audio");
         assert_eq!(material_kind("clip.mp3"), "audio");
     }

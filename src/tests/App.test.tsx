@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, fireEvent, act } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import App from '../App'
+import { UIProvider } from '../contexts/UIContext'
+import { TodoProvider } from '../contexts/TodoContext'
+
+function renderApp() {
+  return renderWithProviders(
+    <UIProvider>
+      <TodoProvider>
+        <App />
+      </TodoProvider>
+    </UIProvider>,
+  )
+}
 
 // ── Tauri API mocks ──────────────────────────────────────
 
@@ -49,6 +61,24 @@ vi.mock('../lib/tauri', async () => {
       },
     ]),
     listAllJournalEntries: vi.fn().mockResolvedValue([]),
+    listWorkQueue: vi.fn().mockResolvedValue([]),
+    listTopicsDir: vi.fn().mockResolvedValue([]),
+    getPinnedItems: vi.fn().mockResolvedValue([]),
+    setPinnedItems: vi.fn().mockResolvedValue(undefined),
+    conversationList: vi.fn().mockResolvedValue([]),
+    conversationDelete: vi.fn().mockResolvedValue(undefined),
+    conversationCreate: vi.fn().mockResolvedValue('test-session'),
+    conversationSend: vi.fn().mockResolvedValue(undefined),
+    conversationCancel: vi.fn().mockResolvedValue(undefined),
+    conversationClose: vi.fn().mockResolvedValue(undefined),
+    conversationTruncate: vi.fn().mockResolvedValue(undefined),
+    conversationRetry: vi.fn().mockResolvedValue(undefined),
+    conversationGetMessages: vi.fn().mockResolvedValue([]),
+    conversationGetStats: vi.fn().mockResolvedValue({
+      elapsed_secs: 0,
+      total_input_tokens: 0,
+      total_output_tokens: 0,
+    }),
     getEngineConfig: vi.fn().mockResolvedValue({ active_provider: 'anthropic', providers: [] }),
     checkEngineInstalled: vi.fn().mockResolvedValue(true),
     getAsrConfig: vi.fn().mockResolvedValue({
@@ -75,8 +105,6 @@ vi.mock('../lib/tauri', async () => {
     cancelQueuedItem: vi.fn(),
     getJournalEntryContent: vi.fn().mockResolvedValue('# Test'),
     deleteJournalEntry: vi.fn(),
-    startRecording: vi.fn(),
-    stopRecording: vi.fn(),
     getWorkspaceSettings: vi.fn().mockResolvedValue({ theme: 'dark' }),
     setWorkspaceSettings: vi.fn(),
     listTodos: vi.fn().mockResolvedValue([]),
@@ -94,6 +122,8 @@ vi.mock('../lib/tauri', async () => {
     clearBrainstormSession: vi.fn(),
     openBrainstormTerminal: vi.fn(),
     getWorkspacePath: vi.fn().mockResolvedValue('/tmp/ws'),
+    getOnboardingStatus: vi.fn().mockResolvedValue({ completed: true, last_step: null }),
+    completeOnboarding: vi.fn().mockResolvedValue(undefined),
     getWorkspacePrompt: vi.fn().mockResolvedValue(''),
     setWorkspacePrompt: vi.fn(),
     resetWorkspacePrompt: vi.fn(),
@@ -118,14 +148,11 @@ vi.mock('../lib/tauri', async () => {
     getFeishuStatus: vi.fn().mockResolvedValue({ state: 'idle' }),
     listSkills: vi.fn().mockResolvedValue([]),
     openSkillsDir: vi.fn(),
-    revealInFinder: vi.fn(),
-    listRecordings: vi.fn().mockResolvedValue([]),
-    deleteRecording: vi.fn(),
-    playRecording: vi.fn(),
+    revealInFileManager: vi.fn(),
     getTranscript: vi.fn().mockResolvedValue(null),
     retryTranscription: vi.fn(),
     requestPermission: vi.fn(),
-    checkAppPermissions: vi.fn().mockResolvedValue({ microphone: true, speech_recognition: true }),
+    checkAppPermissions: vi.fn().mockResolvedValue({ speech_recognition: 'granted' }),
     openPrivacySettings: vi.fn(),
     getWhisperkitModelsDir: vi.fn().mockResolvedValue('/tmp/models'),
     getAppleSttVariant: vi.fn().mockResolvedValue('default'),
@@ -193,7 +220,7 @@ beforeEach(() => {
 describe('App', () => {
   it('renders without crashing', async () => {
     await act(async () => {
-      renderWithProviders(<App />)
+      renderApp()
     })
     // TitleBar should be visible
     expect(document.querySelector('[data-tauri-drag-region]')).toBeTruthy()
@@ -201,16 +228,17 @@ describe('App', () => {
 
   it('shows journal view by default', async () => {
     await act(async () => {
-      renderWithProviders(<App />)
+      renderApp()
     })
-    // Journal tab should be active
+    // Journal shell should be active, with no settings dialog open.
     await act(async () => {})
-    expect(screen.getByText('记忆')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /设置/ })).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: '设置' })).toBeNull()
   })
 
   it('toggles settings view with Cmd+,', async () => {
     await act(async () => {
-      renderWithProviders(<App />)
+      renderApp()
     })
     await act(async () => {})
 
@@ -219,8 +247,9 @@ describe('App', () => {
       fireEvent.keyDown(window, { key: ',', metaKey: true })
     })
 
-    // Settings panel should appear (has 保存 button)
-    expect(screen.queryAllByText('通用').length).toBeGreaterThan(0)
+    // Settings panel should appear as a modal over the journal shell.
+    expect(await screen.findByRole('dialog', { name: '设置' })).toBeTruthy()
+    expect((await screen.findAllByText('通用')).length).toBeGreaterThan(0)
 
     // Close settings with Escape
     await act(async () => {
@@ -228,12 +257,13 @@ describe('App', () => {
     })
 
     // Back to journal
-    expect(screen.getByText('记忆')).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: '设置' })).toBeNull()
+    expect(screen.getByRole('button', { name: /设置/ })).toBeTruthy()
   })
 
   it('switches sidebar tabs', async () => {
     await act(async () => {
-      renderWithProviders(<App />)
+      renderApp()
     })
     await act(async () => {})
 
@@ -249,7 +279,7 @@ describe('App', () => {
 
   it('toggles todo sidebar with Cmd+T', async () => {
     await act(async () => {
-      renderWithProviders(<App />)
+      renderApp()
     })
     await act(async () => {})
 

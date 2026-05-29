@@ -164,7 +164,7 @@ function PermRow({
 
 // ---- Section ----
 
-type SystemPerm = 'microphone' | 'speech_recognition'
+type SystemPerm = 'speech_recognition'
 
 const DEFAULT_PLATFORM: PlatformCapabilities = {
   os: 'macos',
@@ -236,10 +236,6 @@ export default function SectionPermissions() {
     setError(null)
     try {
       // Step 1: Request not_determined permissions (triggers system dialog)
-      if (perms.microphone === 'not_determined') {
-        const micStatus = await requestPermission('microphone')
-        setPerms((prev) => (prev ? { ...prev, microphone: micStatus } : prev))
-      }
       if (platform.native_permissions && perms.speech_recognition === 'not_determined') {
         const speechStatus = await requestPermission('speech_recognition')
         setPerms((prev) => (prev ? { ...prev, speech_recognition: speechStatus } : prev))
@@ -247,9 +243,6 @@ export default function SectionPermissions() {
       // Step 2: Open System Settings for denied/restricted permissions only
       setPerms((current) => {
         if (current) {
-          if (current.microphone === 'denied' || current.microphone === 'restricted') {
-            openPrivacySettings('microphone').catch(console.error)
-          }
           if (
             platform.native_permissions &&
             (current.speech_recognition === 'denied' || current.speech_recognition === 'restricted')
@@ -267,7 +260,6 @@ export default function SectionPermissions() {
 
   const allGranted =
     perms !== null &&
-    (perms.microphone === 'granted' || perms.microphone === 'unknown') &&
     (!platform.native_permissions ||
       perms.speech_recognition === 'granted' ||
       perms.speech_recognition === 'unknown') &&
@@ -413,33 +405,6 @@ export default function SectionPermissions() {
 
       {checked && perms && !loading && (
         <div style={{ animation: 'section-fadein 160ms ease-out both' }}>
-          {/* Microphone */}
-          <PermRow
-            icon={
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-            }
-            title={t('permMic')}
-            description={t('permMicDesc')}
-            status={perms.microphone}
-            actionLabel={permAction(perms.microphone, 'microphone')?.label}
-            onAction={permAction(perms.microphone, 'microphone')?.action}
-            t={t}
-          />
-
           {platform.native_permissions && (
             <PermRow
               icon={

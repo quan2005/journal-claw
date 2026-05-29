@@ -9,8 +9,7 @@ const SettingsPanel = lazy(() =>
 )
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { useIdentity } from './hooks/useIdentity'
-import { useRecorder } from './hooks/useRecorder'
-import { useJournal, RECORDING_PLACEHOLDER } from './hooks/useJournal'
+import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
 import { useUI } from './contexts/UIContext'
 import { useTodoContext } from './contexts/TodoContext'
@@ -45,7 +44,6 @@ const DIVIDER_WIDTH = 7
 
 export default function App() {
   const { t } = useTranslation()
-  const { status, start, stop } = useRecorder()
   const {
     entries,
     loading: _loading,
@@ -183,7 +181,7 @@ export default function App() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [isDragging])
+  }, [isDragging, setIsDragging, setSidebarWidth])
 
   // Right panel divider drag
   const [isRightPanelDragging, setIsRightPanelDragging] = useState(false)
@@ -211,7 +209,7 @@ export default function App() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [isRightPanelDragging])
+  }, [isRightPanelDragging, setRightPanelWidth])
 
   // journal-entry-deleted event
   useEffect(() => {
@@ -222,7 +220,7 @@ export default function App() {
     }
     window.addEventListener('journal-entry-deleted', handler)
     return () => window.removeEventListener('journal-entry-deleted', handler)
-  }, [refresh, selectedEntry])
+  }, [refresh, selectedEntry, setSelectedEntry])
 
   // Keep entriesRef in sync so navigate handler always sees latest entries
   // Also sync selectedEntry so DetailView sees updated mtime_secs after file changes
@@ -233,7 +231,7 @@ export default function App() {
       const updated = entries.find((e) => e.path === prev.path)
       return updated && updated.mtime_secs !== prev.mtime_secs ? updated : prev
     })
-  }, [entries])
+  }, [entries, setSelectedEntry])
 
   // Navigate to a journal entry via .md link click
   useEffect(() => {
@@ -249,7 +247,7 @@ export default function App() {
     }
     window.addEventListener('journal-entry-navigate', handler)
     return () => window.removeEventListener('journal-entry-navigate', handler)
-  }, [])
+  }, [setSelectedEntry])
 
   // Open settings from Rust menu (Cmd+,) or keyboard shortcut
   useEffect(() => {
@@ -263,7 +261,7 @@ export default function App() {
     return () => {
       unlisten?.()
     }
-  }, [])
+  }, [setSettingsInitialSection, setView])
 
   // Open settings -> about section from Rust menu
   useEffect(() => {
@@ -277,7 +275,7 @@ export default function App() {
     return () => {
       unlisten?.()
     }
-  }, [])
+  }, [setSettingsInitialSection, setView])
 
   // useConversation hook (multi-session)
   const {
@@ -314,7 +312,7 @@ export default function App() {
         if (initialText) setChatInitialText(initialText)
       }
     },
-    [load, create, newTab],
+    [create, load, newTab, setChatInitialText, setRightPanelOpen],
   )
 
   // Track conversation session when work queue creates one
@@ -361,7 +359,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [newTab])
+  }, [newTab, setRightPanelOpen, setView])
 
   // Zoom: Cmd+Plus / Cmd+Minus / Cmd+0
   useEffect(() => {
@@ -463,33 +461,27 @@ export default function App() {
     return () => {
       unlisten?.()
     }
-  }, [handleDropFiles])
-
-  const handleRecord = useCallback(async () => {
-    if (status === 'idle') {
-      await start()
-    } else {
-      await stop()
-      addConvertingItem(RECORDING_PLACEHOLDER, t('recordingConverting'))
-    }
-  }, [status, start, stop, addConvertingItem, t])
+  }, [handleDropFiles, setIsDragOver])
 
   const handleDeselect = useCallback(() => {
     deselect()
   }, [deselect])
 
-  const handleTreeSelect = useCallback((sel: TreeSelection) => {
-    setShowIdeas(false)
-    setTreeSelection(sel)
-  }, [])
+  const handleTreeSelect = useCallback(
+    (sel: TreeSelection) => {
+      setShowIdeas(false)
+      setTreeSelection(sel)
+    },
+    [setShowIdeas, setTreeSelection],
+  )
 
   const handleSelectIdeas = useCallback(() => {
     setShowIdeas((prev) => !prev)
-  }, [])
+  }, [setShowIdeas])
 
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
-  }, [])
+  }, [setRightPanelOpen])
   const handleSelectSample = useCallback(() => {
     createSampleEntry()
       .then(async () => {
@@ -499,19 +491,22 @@ export default function App() {
         if (sample) setSelectedEntry(sample)
       })
       .catch(() => {})
-  }, [refresh])
+  }, [refresh, setSelectedEntry])
   const handleAddToTodo = useCallback(
     (text: string, source: string) => {
       addTodo(text, undefined, source)
       setShowIdeas(true)
     },
-    [addTodo],
+    [addTodo, setShowIdeas],
   )
-  const handleProcessEntry = useCallback((entry: JournalEntry) => {
-    const rel = `${entry.year_month}/${entry.filename}`
-    setRightPanelOpen(true)
-    window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${rel}` }))
-  }, [])
+  const handleProcessEntry = useCallback(
+    (entry: JournalEntry) => {
+      const rel = `${entry.year_month}/${entry.filename}`
+      setRightPanelOpen(true)
+      window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${rel}` }))
+    },
+    [setRightPanelOpen],
+  )
   const handleVisualDesign = useCallback(
     (entry: JournalEntry) => {
       const rel = `${entry.year_month}/${entry.filename}`
@@ -524,7 +519,7 @@ export default function App() {
     try {
       await cancelWorkItem(item.id)
     } catch {
-      // Fallback for local items (recording/converting)
+      // Fallback for local audio conversion items
       dismissQueueItem(item.id)
     }
   }
@@ -554,24 +549,8 @@ export default function App() {
   const processingItem = queueItems.find((i) => i.status === 'processing')
   const processingFilename = processingItem?.filename
 
-  // Inject a virtual 'recording' item at the front of the queue when recording
-  const visibleQueueItems =
-    status === 'recording'
-      ? [
-          {
-            id: RECORDING_PLACEHOLDER,
-            path: RECORDING_PLACEHOLDER,
-            filename: t('recordingStatus'),
-            status: 'recording' as const,
-            addedAt: Date.now(),
-            logs: [],
-          },
-          ...queueItems,
-        ]
-      : queueItems
-
   // Preserved for future work queue UI integration in RightPanel
-  const _preserved = { handleCancelQueueItem, handleRetryQueueItem, visibleQueueItems }
+  const _preserved = { handleCancelQueueItem, handleRetryQueueItem, queueItems }
   void _preserved
 
   const SOUL_ENTRY: IdentityEntry = {
@@ -599,7 +578,7 @@ export default function App() {
         if (sample) setSelectedEntry(sample)
       })
       .catch(() => {})
-  }, [refresh])
+  }, [refresh, setSelectedEntry])
 
   const todayDate = new Date()
   const todayYearMonth = `${String(todayDate.getFullYear()).slice(2)}${String(todayDate.getMonth() + 1).padStart(2, '0')}`
@@ -627,7 +606,7 @@ export default function App() {
         onThemeChange={setTheme}
         isProcessing={isProcessing}
         processingFilename={processingFilename}
-        view={view}
+        view="journal"
         sidebarOpen={rightPanelOpen}
         onToggleSidebar={() => setRightPanelOpen((prev) => !prev)}
         onOpenChat={() => {
@@ -637,27 +616,61 @@ export default function App() {
 
       {view === 'settings' && (
         <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            top: 38,
-            zIndex: 10,
-            overflow: 'hidden',
-            animation: 'view-enter 0.2s ease-out',
-            background: 'var(--bg)',
+          className="settings-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setView('journal')
+            }
           }}
         >
-          <Suspense fallback={null}>
-            <SettingsPanel
-              initialSection={settingsInitialSection}
-              onSectionConsumed={() => setSettingsInitialSection(undefined)}
-              onClose={() => setView('journal')}
-            />
-          </Suspense>
+          <div
+            className="settings-modal-shell"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('settings')}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="settings-modal-close"
+              aria-label={t('close')}
+              title={t('close')}
+              onClick={() => setView('journal')}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+            <Suspense fallback={null}>
+              <SettingsPanel
+                initialSection={settingsInitialSection}
+                onSectionConsumed={() => setSettingsInitialSection(undefined)}
+                onClose={() => setView('journal')}
+              />
+            </Suspense>
+          </div>
         </div>
       )}
 
-      <div style={{ display: view === 'settings' ? 'none' : 'flex', flex: 1, overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          overflow: 'hidden',
+          filter: view === 'settings' ? 'saturate(0.9)' : undefined,
+        }}
+      >
         {/* Left: Tree Sidebar */}
         <div
           style={{
@@ -694,63 +707,69 @@ export default function App() {
             onSelectIdeas={handleSelectIdeas}
           />
           {/* Settings button fixed at bottom */}
-          {view !== 'settings' && (
-            <div
+          <div
+            style={{
+              borderTop: '0.5px solid var(--divider)',
+              flexShrink: 0,
+              padding: '6px 10px',
+              background: 'var(--sidebar-bg)',
+            }}
+          >
+            <button
+              onClick={() => setView('settings')}
+              title="Settings (⌘,)"
+              aria-pressed={view === 'settings'}
               style={{
-                borderTop: '0.5px solid var(--divider)',
-                flexShrink: 0,
-                padding: '6px 10px',
-                background: 'var(--sidebar-bg)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '6px 8px',
+                borderRadius: 6,
+                border: 'none',
+                background:
+                  view === 'settings'
+                    ? 'color-mix(in srgb, var(--record-btn) 12%, transparent)'
+                    : 'transparent',
+                color: view === 'settings' ? 'var(--record-btn)' : 'var(--item-meta)',
+                fontSize: 'var(--text-sm)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                transition: 'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out)',
+              }}
+              onMouseEnter={(e) => {
+                if (view !== 'settings') e.currentTarget.style.background = 'var(--item-hover-bg)'
+              }}
+              onMouseLeave={(e) => {
+                if (view !== 'settings') e.currentTarget.style.background = 'transparent'
               }}
             >
-              <button
-                onClick={() => setView('settings')}
-                title="Settings (⌘,)"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: '100%',
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--item-meta)',
-                  fontSize: 'var(--text-sm)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  transition: 'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out)',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--item-hover-bg)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                <span style={{ flex: 1, textAlign: 'left' }}>设置</span>
-                <kbd
-                  style={{
-                    fontSize: '0.5625rem',
-                    color: 'var(--item-meta)',
-                    opacity: 0.4,
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  ⌘,
-                </kbd>
-              </button>
-            </div>
-          )}
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span style={{ flex: 1, textAlign: 'left' }}>设置</span>
+              <kbd
+                style={{
+                  fontSize: '0.5625rem',
+                  color: view === 'settings' ? 'var(--record-btn)' : 'var(--item-meta)',
+                  opacity: view === 'settings' ? 0.7 : 0.4,
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                ⌘,
+              </kbd>
+            </button>
+          </div>
         </div>
 
         {/* Divider */}
@@ -809,7 +828,6 @@ export default function App() {
                 : undefined
             }
             onDeselect={handleDeselect}
-            onRecord={handleRecord}
             onOpenDock={handleOpenChat}
             onSelectSample={handleSelectSample}
             onAddToTodo={handleAddToTodo}

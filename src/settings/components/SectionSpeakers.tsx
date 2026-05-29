@@ -356,7 +356,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
             </div>
           )}
           <div style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 2 }}>
-            {t('appearsIn', { count: profile.recording_count })}
+            {t('appearsIn', { count: profile.audio_count })}
           </div>
         </div>
 
@@ -433,7 +433,7 @@ export default function SectionSpeakers() {
   useEffect(() => {
     reload()
 
-    // Refresh whenever backend registers new speakers after a recording
+    // Refresh whenever backend registers new speakers after imported audio is processed
     let unlisten: (() => void) | null = null
     listen('speakers-updated', () => {
       getSpeakerProfiles()

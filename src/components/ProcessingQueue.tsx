@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
@@ -62,140 +62,6 @@ function KindIcon({ kind }: { kind: string }) {
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
     </svg>
-  )
-}
-
-const ENVELOPE = Array.from({ length: 64 }, (_, i) => {
-  const x = (i / 63) * Math.PI
-  return 0.15 + 0.85 * Math.sin(x)
-})
-const MIN_H = 3
-const MAX_H = 22
-
-/** Listens to audio-level events directly and updates bars via DOM refs — zero React re-renders. */
-function AudioWaveform() {
-  const barsRef = useRef<(HTMLSpanElement | null)[]>([])
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined
-    listen<number>('audio-level', (event) => {
-      const level = Math.min(1, Math.max(0, event.payload * 6))
-      for (let i = 0; i < ENVELOPE.length; i++) {
-        const bar = barsRef.current[i]
-        if (bar) bar.style.height = `${MIN_H + (MAX_H - MIN_H) * level * ENVELOPE[i]}px`
-      }
-    }).then((fn) => {
-      unlisten = fn
-    })
-    return () => {
-      unlisten?.()
-    }
-  }, [])
-
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 2.5,
-        height: MAX_H,
-        flex: 1,
-      }}
-    >
-      {ENVELOPE.map((_, i) => (
-        <span
-          key={i}
-          ref={(el) => {
-            barsRef.current[i] = el
-          }}
-          style={{
-            width: 3,
-            height: MIN_H,
-            borderRadius: 2,
-            background: 'var(--record-btn)',
-            opacity: 0.9,
-            transition: 'height 0.08s cubic-bezier(0.16, 1, 0.3, 1)',
-            flexShrink: 0,
-          }}
-        />
-      ))}
-    </span>
-  )
-}
-
-function formatElapsed(secs: number): string {
-  const m = Math.floor(secs / 60)
-  const s = secs % 60
-  return `${m}:${String(s).padStart(2, '0')}`
-}
-
-/** Self-contained recording row — manages its own elapsed timer via ref + DOM. */
-function RecordingRow({ item, isLast }: { item: QueueItem; isLast: boolean }) {
-  const { t } = useTranslation()
-  const timerRef = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    const start = Date.now() - (item.elapsedSecs ?? 0) * 1000
-    const fmt = (secs: number) => {
-      const m = Math.floor(secs / 60)
-      const s = secs % 60
-      return `${m}:${String(s).padStart(2, '0')}`
-    }
-    const id = setInterval(() => {
-      if (timerRef.current)
-        timerRef.current.textContent = fmt(Math.floor((Date.now() - start) / 1000))
-    }, 1000)
-    return () => clearInterval(id)
-  }, [item.elapsedSecs])
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        height: 36,
-        padding: '0 20px',
-        borderBottom: isLast ? 'none' : '0.5px solid var(--queue-border)',
-        animation: 'queue-enter 0.2s ease-out',
-      }}
-    >
-      <span
-        style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--record-btn)',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-        }}
-      >
-        <span
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            background: 'var(--record-btn)',
-            flexShrink: 0,
-            animation: 'ai-breathe 1.2s ease-in-out infinite',
-          }}
-        />
-        {t('recordingStatus')}
-      </span>
-      <AudioWaveform />
-      <span
-        ref={timerRef}
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--record-btn)',
-          flexShrink: 0,
-        }}
-      >
-        {formatElapsed(item.elapsedSecs ?? 0)}
-      </span>
-    </div>
   )
 }
 
@@ -397,11 +263,6 @@ export function ProcessingQueue({
     >
       {items.map((item, idx) => {
         const isLast = idx === items.length - 1
-
-        // ── Recording row ──────────────────────────────────
-        if (item.status === 'recording') {
-          return <RecordingRow key={item.id} item={item} isLast={isLast} />
-        }
 
         // ── Normal queue row ───────────────────────────────
         const kind = fileKindFromName(item.filename)

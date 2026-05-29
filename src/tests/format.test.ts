@@ -21,7 +21,7 @@ describe('formatDuration', () => {
 
 describe('formatYearMonth', () => {
   it('extracts year_month from display_name', () => {
-    expect(formatYearMonth('录音 2026-03-12 22:41')).toBe('202603')
+    expect(formatYearMonth('会议音频 2026-03-12 22:41')).toBe('202603')
   })
   it('returns 000000 for unrecognised format', () => {
     expect(formatYearMonth('unknown')).toBe('000000')
@@ -30,6 +30,6 @@ describe('formatYearMonth', () => {
 
 describe('formatDisplayDate', () => {
   it('passes through display_name unchanged', () => {
-    expect(formatDisplayDate('录音 2026-03-12 22:41')).toBe('录音 2026-03-12 22:41')
+    expect(formatDisplayDate('会议音频 2026-03-12 22:41')).toBe('会议音频 2026-03-12 22:41')
   })
 })

@@ -577,14 +577,10 @@ pub async fn conversation_send(
 
     if needs_prompt {
         // Heavy work happens here, outside the lock
-        let (workspace, ctx, ctx_files) = {
+        let (workspace, ctx_files) = {
             let sessions = store.0.lock().map_err(|e| e.to_string())?;
             let s = sessions.get(&session_id).unwrap();
-            (
-                s.workspace.clone(),
-                s.context.clone(),
-                s.context_files.clone(),
-            )
+            (s.workspace.clone(), s.context_files.clone())
         };
 
         let global_skills = crate::workspace_settings::is_global_skills_enabled(&app);
@@ -1661,7 +1657,7 @@ async fn run_conversation_turn(
 
                 // Execute non-task tools sequentially
                 for idx in &other_calls_idx {
-                    let (id, name, input) = &tool_calls[*idx];
+                    let (_id, name, input) = &tool_calls[*idx];
                     if cancel.is_cancelled() {
                         return Err((
                             llm::types::LlmError::Cancelled,

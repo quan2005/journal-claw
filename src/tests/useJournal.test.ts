@@ -71,12 +71,12 @@ describe('useJournal', () => {
     const { result } = renderHook(() => useJournal())
     await act(async () => {})
     act(() => {
-      result.current.addConvertingItem('__recording__', '录音处理中')
+      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
     })
     expect(result.current.queueItems).toHaveLength(1)
     expect(result.current.queueItems[0]).toMatchObject({
-      path: '__recording__',
-      filename: '录音处理中',
+      path: '/ws/2603/raw/meeting.m4a',
+      filename: 'meeting.m4a',
       status: 'converting',
     })
     expect(result.current.isProcessing).toBe(false)
@@ -86,34 +86,10 @@ describe('useJournal', () => {
     const { result } = renderHook(() => useJournal())
     await act(async () => {})
     act(() => {
-      result.current.addConvertingItem('__recording__', '录音处理中')
-      result.current.addConvertingItem('__recording__', '录音处理中')
+      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
+      result.current.addConvertingItem('/ws/2603/raw/meeting.m4a', 'meeting.m4a')
     })
     expect(result.current.queueItems).toHaveLength(1)
-  })
-
-  it('recording-processed upgrades placeholder item to converting with real audio path', async () => {
-    const { result } = renderHook(() => useJournal())
-    await act(async () => {})
-
-    act(() => {
-      result.current.addConvertingItem('__recording__', '录音处理中')
-    })
-    expect(result.current.queueItems[0].status).toBe('converting')
-
-    act(() => {
-      fireEvent('recording-processed', {
-        filename: '录音 2026-03-30 10:00.m4a',
-        path: '/ws/2603/raw/录音 2026-03-30 10:00.m4a',
-      })
-    })
-
-    expect(result.current.queueItems[0]).toMatchObject({
-      path: '/ws/2603/raw/录音 2026-03-30 10:00.m4a',
-      filename: '录音 2026-03-30 10:00.m4a',
-      status: 'converting',
-    })
-    expect(result.current.queueItems.some((i) => i.path === '__recording__')).toBe(false)
   })
 
   it('audio-ai-material-ready removes local item and enqueues in Rust', async () => {
@@ -167,21 +143,5 @@ describe('useJournal', () => {
       status: 'failed',
       error: '转写失败',
     })
-  })
-
-  it('recording-processed is a no-op when no placeholder exists', async () => {
-    const { result } = renderHook(() => useJournal())
-    await act(async () => {})
-
-    expect(result.current.queueItems).toHaveLength(0)
-
-    act(() => {
-      fireEvent('recording-processed', {
-        filename: '录音 2026-03-30 10:00.m4a',
-        path: '/ws/2603/raw/录音 2026-03-30 10:00.m4a',
-      })
-    })
-
-    expect(result.current.queueItems).toHaveLength(0)
   })
 })

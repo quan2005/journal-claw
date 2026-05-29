@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Settings2,
   Cpu,
@@ -8,6 +8,7 @@ import {
   Puzzle,
   Blocks,
   Info,
+  ChevronLeft,
   type LucideIcon,
 } from 'lucide-react'
 import SectionGeneral from './components/SectionGeneral'
@@ -18,7 +19,7 @@ import SectionAutomation from './components/SectionAutomation'
 import SectionIM from './components/SectionFeishu'
 import SectionPlugins from './components/SectionPlugins'
 import SectionAbout from './components/SectionAbout'
-import { ALL_NAV_IDS, SECTION_TOP_GUTTER, type NavId, resolveActiveNav } from './navigation'
+import { ALL_NAV_IDS, type NavId } from './navigation'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface SettingsLayoutProps {
@@ -34,10 +35,6 @@ type NavItem = {
   icon: LucideIcon | React.FC<{ size?: number; strokeWidth?: number }>
 }
 
-interface SettingsContentProps {
-  registerSectionRef: (id: NavId, el: HTMLElement | null) => void
-}
-
 const navIconStyle: React.CSSProperties = {
   width: 16,
   height: 16,
@@ -47,42 +44,32 @@ const navIconStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-const SettingsContent = memo(function SettingsContent({
-  registerSectionRef,
-}: SettingsContentProps) {
-  return (
-    <>
-      <section id="general" ref={(el) => registerSectionRef('general', el)}>
-        <SectionGeneral />
-      </section>
-      <section id="ai" ref={(el) => registerSectionRef('ai', el)}>
-        <SectionAiEngine />
-      </section>
-      <section id="voice" ref={(el) => registerSectionRef('voice', el)}>
-        <SectionVoice />
-      </section>
-      <section id="permissions" ref={(el) => registerSectionRef('permissions', el)}>
-        <SectionPermissions />
-      </section>
-      <section id="automation" ref={(el) => registerSectionRef('automation', el)}>
-        <SectionAutomation />
-      </section>
-      <section id="plugins" ref={(el) => registerSectionRef('plugins', el)}>
-        <SectionPlugins />
-      </section>
-      <section id="im" ref={(el) => registerSectionRef('im', el)}>
-        <SectionIM />
-      </section>
-      <section
-        id="about"
-        ref={(el) => registerSectionRef('about', el)}
-        style={{ paddingBottom: 40 }}
-      >
-        <SectionAbout />
-      </section>
-    </>
-  )
-})
+const DISABLED_NAVS: ReadonlySet<NavId> = new Set(['im'])
+
+function isNavId(value?: string): value is NavId {
+  return !!value && ALL_NAV_IDS.includes(value as NavId)
+}
+
+function renderActiveSection(id: NavId) {
+  switch (id) {
+    case 'general':
+      return <SectionGeneral />
+    case 'ai':
+      return <SectionAiEngine />
+    case 'voice':
+      return <SectionVoice />
+    case 'permissions':
+      return <SectionPermissions />
+    case 'automation':
+      return <SectionAutomation />
+    case 'plugins':
+      return <SectionPlugins />
+    case 'im':
+      return <SectionIM />
+    case 'about':
+      return <SectionAbout />
+  }
+}
 
 export function SettingsLayout({
   height,
@@ -102,190 +89,22 @@ export function SettingsLayout({
     { id: 'im', label: t('thirdPartyTools'), icon: Blocks },
     { id: 'about', label: t('about'), icon: Info },
   ]
-  const [activeNav, setActiveNav] = useState<NavId>('general')
+  const [activeNav, setActiveNav] = useState<NavId>(() =>
+    isNavId(initialSection) ? initialSection : 'general',
+  )
   const scrollRef = useRef<HTMLDivElement>(null)
-  const sectionRefs = useRef<Partial<Record<NavId, HTMLElement>>>({})
-  const sectionTopsRef = useRef<Partial<Record<NavId, number>>>({})
-  const activeNavRef = useRef<NavId>('general')
-  const scrollSpyFrameRef = useRef<number | null>(null)
-  const navigationFrameRef = useRef<number | null>(null)
-  const isProgrammaticScrollRef = useRef(false)
-
-  const registerSectionRef = useCallback((id: NavId, el: HTMLElement | null) => {
-    if (el) {
-      sectionRefs.current[id] = el
-      return
-    }
-
-    delete sectionRefs.current[id]
-    delete sectionTopsRef.current[id]
-  }, [])
-
-  const refreshSectionTops = useCallback(() => {
-    const nextTops: Partial<Record<NavId, number>> = {}
-
-    for (const id of ALL_NAV_IDS) {
-      const section = sectionRefs.current[id]
-      if (section) {
-        nextTops[id] = section.offsetTop
-      }
-    }
-
-    sectionTopsRef.current = nextTops
-  }, [])
-
-  const syncActiveNav = useCallback(() => {
-    if (isProgrammaticScrollRef.current) return
-
-    const scroll = scrollRef.current
-    if (!scroll) return
-
-    const nextActive = resolveActiveNav(sectionTopsRef.current, scroll.scrollTop)
-    if (nextActive !== activeNavRef.current) {
-      activeNavRef.current = nextActive
-      setActiveNav(nextActive)
-    }
-  }, [])
-
-  const scheduleActiveNavSync = useCallback(() => {
-    if (scrollSpyFrameRef.current !== null) return
-
-    scrollSpyFrameRef.current = window.requestAnimationFrame(() => {
-      scrollSpyFrameRef.current = null
-      syncActiveNav()
-    })
-  }, [syncActiveNav])
-
-  const cancelNavigationAnimation = useCallback(() => {
-    if (navigationFrameRef.current !== null) {
-      window.cancelAnimationFrame(navigationFrameRef.current)
-      navigationFrameRef.current = null
-    }
-    isProgrammaticScrollRef.current = false
-  }, [])
 
   useEffect(() => {
-    activeNavRef.current = activeNav
+    if (!isNavId(initialSection)) return
+    setActiveNav(initialSection)
+    onSectionConsumed?.()
+  }, [initialSection, onSectionConsumed])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0
+    }
   }, [activeNav])
-
-  useEffect(() => {
-    const scroll = scrollRef.current
-    if (!scroll) return
-
-    refreshSectionTops()
-    scheduleActiveNavSync()
-
-    const handleScroll = () => {
-      scheduleActiveNavSync()
-    }
-
-    const handleWheel = () => {
-      if (isProgrammaticScrollRef.current) {
-        cancelNavigationAnimation()
-      }
-    }
-
-    const handleResize = () => {
-      refreshSectionTops()
-      scheduleActiveNavSync()
-    }
-
-    const resizeObserver =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(() => {
-            refreshSectionTops()
-            scheduleActiveNavSync()
-          })
-
-    if (resizeObserver) {
-      for (const id of ALL_NAV_IDS) {
-        const section = sectionRefs.current[id]
-        if (section) {
-          resizeObserver.observe(section)
-        }
-      }
-      resizeObserver.observe(scroll)
-    }
-
-    scroll.addEventListener('scroll', handleScroll, { passive: true })
-    scroll.addEventListener('wheel', handleWheel, { passive: true })
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      resizeObserver?.disconnect()
-      scroll.removeEventListener('scroll', handleScroll)
-      scroll.removeEventListener('wheel', handleWheel)
-      window.removeEventListener('resize', handleResize)
-      cancelNavigationAnimation()
-      if (scrollSpyFrameRef.current !== null) {
-        window.cancelAnimationFrame(scrollSpyFrameRef.current)
-        scrollSpyFrameRef.current = null
-      }
-    }
-  }, [cancelNavigationAnimation, refreshSectionTops, scheduleActiveNavSync])
-
-  const jumpTo = (id: NavId) => {
-    const scroll = scrollRef.current
-    const rawTargetTop = sectionTopsRef.current[id]
-    if (!scroll || typeof rawTargetTop !== 'number') return
-
-    const targetTop = Math.max(0, rawTargetTop - SECTION_TOP_GUTTER)
-
-    cancelNavigationAnimation()
-    activeNavRef.current = id
-    setActiveNav(id)
-
-    const startTop = scroll.scrollTop
-    const distance = targetTop - startTop
-    if (Math.abs(distance) < 2) {
-      scroll.scrollTop = targetTop
-      scheduleActiveNavSync()
-      return
-    }
-
-    const duration = Math.min(220, Math.max(140, Math.abs(distance) * 0.18))
-    const startTime = performance.now()
-    isProgrammaticScrollRef.current = true
-
-    const step = (now: number) => {
-      const currentScroll = scrollRef.current
-      if (!currentScroll) {
-        cancelNavigationAnimation()
-        return
-      }
-
-      const progress = Math.min(1, (now - startTime) / duration)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      currentScroll.scrollTop = startTop + distance * eased
-
-      if (progress < 1) {
-        navigationFrameRef.current = window.requestAnimationFrame(step)
-        return
-      }
-
-      currentScroll.scrollTop = targetTop
-      navigationFrameRef.current = null
-      isProgrammaticScrollRef.current = false
-      scheduleActiveNavSync()
-    }
-
-    navigationFrameRef.current = window.requestAnimationFrame(step)
-  }
-
-  // Jump to initial section when requested (e.g. from "About" menu)
-  useEffect(() => {
-    if (!initialSection || !ALL_NAV_IDS.includes(initialSection as NavId)) return
-    // Wait for section refs to be measured
-    const frame = requestAnimationFrame(() => {
-      refreshSectionTops()
-      jumpTo(initialSection as NavId)
-      onSectionConsumed?.()
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [initialSection]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const DISABLED_NAVS: ReadonlySet<NavId> = new Set(['im'])
 
   const navBtnStyle = (id: NavId): React.CSSProperties => ({
     width: '100%',
@@ -293,6 +112,7 @@ export function SettingsLayout({
     gridTemplateColumns: '16px minmax(0, 1fr)',
     alignItems: 'center',
     columnGap: 10,
+    minHeight: 34,
     padding: '8px 10px',
     borderRadius: 8,
     border: 'none',
@@ -300,17 +120,10 @@ export function SettingsLayout({
     fontSize: 14,
     fontWeight: 500,
     textAlign: 'left',
-    background: DISABLED_NAVS.has(id)
-      ? 'transparent'
-      : activeNav === id
-        ? 'rgba(200,147,58,0.12)'
-        : 'transparent',
-    color: DISABLED_NAVS.has(id)
-      ? 'var(--item-meta)'
-      : activeNav === id
-        ? 'var(--record-btn)'
-        : 'var(--item-meta)',
-    opacity: DISABLED_NAVS.has(id) ? 0.35 : 1,
+    background:
+      activeNav === id ? 'color-mix(in srgb, var(--record-btn) 14%, transparent)' : 'transparent',
+    color: activeNav === id ? 'var(--record-btn)' : 'var(--item-meta)',
+    opacity: DISABLED_NAVS.has(id) && activeNav !== id ? 0.35 : 1,
   })
 
   return (
@@ -326,22 +139,29 @@ export function SettingsLayout({
     >
       <nav
         style={{
-          width: 148,
+          width: 184,
           flexShrink: 0,
           background: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--divider)',
-          padding: '12px 8px',
+          padding: '16px 10px',
           display: 'flex',
           flexDirection: 'column',
           gap: 4,
+          minHeight: 0,
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
         }}
       >
         {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            id={`settings-nav-${id}`}
+            type="button"
             onClick={() => {
-              if (!DISABLED_NAVS.has(id)) jumpTo(id)
+              if (!DISABLED_NAVS.has(id)) setActiveNav(id)
             }}
+            aria-current={activeNav === id ? 'page' : undefined}
+            aria-disabled={DISABLED_NAVS.has(id)}
             style={navBtnStyle(id)}
           >
             <span style={navIconStyle}>
@@ -355,12 +175,14 @@ export function SettingsLayout({
             <div style={{ flex: 1 }} />
             <button
               onClick={onClose}
+              type="button"
               style={{
                 width: '100%',
                 display: 'grid',
                 gridTemplateColumns: '16px minmax(0, 1fr)',
                 alignItems: 'center',
                 columnGap: 10,
+                minHeight: 34,
                 padding: '8px 10px',
                 borderRadius: 8,
                 border: 'none',
@@ -373,18 +195,7 @@ export function SettingsLayout({
               }}
             >
               <span style={navIconStyle}>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
+                <ChevronLeft size={14} strokeWidth={1.5} />
               </span>
               <span style={{ minWidth: 0 }}>{t('back')}</span>
             </button>
@@ -392,8 +203,17 @@ export function SettingsLayout({
         )}
       </nav>
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-        <SettingsContent registerSectionRef={registerSectionRef} />
+      <div ref={scrollRef} className="settings-scroll">
+        <div className="settings-content-shell">
+          <section
+            key={activeNav}
+            id={activeNav}
+            className="settings-active-panel"
+            aria-labelledby={`settings-nav-${activeNav}`}
+          >
+            {renderActiveSection(activeNav)}
+          </section>
+        </div>
       </div>
     </div>
   )

@@ -10,8 +10,6 @@ import {
 import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
 import type { WorkItem } from '../lib/tauri'
 
-export const RECORDING_PLACEHOLDER = '__recording__'
-
 const BATCH_SIZE = 3
 
 /** Wrap a promise with a timeout — rejects if not settled within `ms`. */
@@ -53,7 +51,7 @@ export function useJournal() {
   const [loadedMonths, setLoadedMonths] = useState<string[]>([])
   const [loadingMore, setLoadingMore] = useState(false)
 
-  // Local-only queue items: recording + converting (pre-work-queue states)
+  // Local-only queue items: audio conversion state before work queue handoff
   const [localItems, setLocalItems] = useState<QueueItem[]>([])
   // Rust-managed work queue items
   const [workItems, setWorkItems] = useState<QueueItem[]>([])
@@ -160,7 +158,7 @@ export function useJournal() {
     }
   }, [])
 
-  // ── Local item helpers (recording / converting only) ───
+  // ── Local item helpers (audio conversion only) ──────────
 
   const dismissQueueItem = useCallback((id: string) => {
     // Try local first
@@ -248,20 +246,6 @@ export function useJournal() {
       } else if (status === 'processing') {
         setLocalItems((prev) => {
           const filename = material_path.split('/').pop() ?? material_path
-          const hasPlaceholder = prev.some((i) => i.path === RECORDING_PLACEHOLDER)
-          if (hasPlaceholder) {
-            return prev.map((i) =>
-              i.path === RECORDING_PLACEHOLDER
-                ? {
-                    ...i,
-                    id: material_path,
-                    path: material_path,
-                    filename,
-                    status: 'processing' as const,
-                  }
-                : i,
-            )
-          }
           if (prev.some((i) => i.path === material_path)) {
             return prev.map((i) =>
               i.path === material_path ? { ...i, status: 'processing' as const } : i,
@@ -308,23 +292,6 @@ export function useJournal() {
       refresh()
     })
 
-    const unlistenProcessed = listen<{ filename: string; path: string }>(
-      'recording-processed',
-      (event) => {
-        const { filename, path } = event.payload
-        setLocalItems((prev) => {
-          const hasPlaceholder = prev.some((i) => i.path === RECORDING_PLACEHOLDER)
-          if (!hasPlaceholder) return prev
-          return prev.map((i) =>
-            i.path === RECORDING_PLACEHOLDER
-              ? { ...i, id: path, path, filename, status: 'converting' as const }
-              : i,
-          )
-        })
-        refresh()
-      },
-    )
-
     const unlistenAudioReady = listen<{
       source_path: string
       material_path: string
@@ -351,10 +318,6 @@ export function useJournal() {
             ),
           )
         })
-    })
-
-    const unlistenDiscarded = listen<string>('recording-discarded', () => {
-      setLocalItems((prev) => prev.filter((i) => i.path !== RECORDING_PLACEHOLDER))
     })
 
     const unlistenAudioFailed = listen<{ source_path: string; filename: string; error: string }>(
@@ -433,20 +396,20 @@ export function useJournal() {
       }
     })
 
+    const timers = removalTimers.current
+
     return () => {
       refreshing.current = false
       unlistenWorkQueue.then((fn) => fn())
       unlistenProcessing.then((fn) => fn())
       unlistenLog.then((fn) => fn())
       unlistenUpdated.then((fn) => fn())
-      unlistenProcessed.then((fn) => fn())
       unlistenAudioReady.then((fn) => fn())
-      unlistenDiscarded.then((fn) => fn())
       unlistenAudioFailed.then((fn) => fn())
       unlistenPipelineFailed.then((fn) => fn())
       unlistenTranscriptionProgress.then((fn) => fn())
-      removalTimers.current.forEach((t) => clearTimeout(t))
-      removalTimers.current.clear()
+      timers.forEach((t) => clearTimeout(t))
+      timers.clear()
     }
   }, [refresh, refreshWorkQueue])
 

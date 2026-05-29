@@ -9,7 +9,7 @@ const SIMILARITY_THRESHOLD: f32 = 0.75;
 const MAX_EMBEDDINGS_PER_PROFILE: usize = 5;
 
 /// File-level lock to serialize load-modify-save cycles.
-/// Prevents concurrent recordings from corrupting the profiles file.
+/// Prevents concurrent audio imports from corrupting the profiles file.
 static PROFILES_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,7 +25,8 @@ pub struct SpeakerProfile {
     pub embeddings: Vec<Vec<f32>>,
     pub created_at: u64,
     pub last_seen_at: u64,
-    pub recording_count: u64,
+    #[serde(default, alias = "recording_count")]
+    pub audio_count: u64,
 }
 
 impl SpeakerProfile {
@@ -165,7 +166,7 @@ fn next_speaker_id(profiles: &[SpeakerProfile]) -> String {
     format!("{:05}", max_num + 1)
 }
 
-/// Given a list of embeddings (one per SPEAKER_XX key) from a single recording,
+/// Given a list of embeddings (one per SPEAKER_XX key) from a single audio file,
 /// match each against existing profiles or register new ones.
 ///
 /// Returns a mapping: SPEAKER_XX label → display name (for use in transcript).
@@ -218,7 +219,7 @@ pub fn identify_or_register_all(
                 // Matched — update profile stats and store new embedding sample
                 let profile = &mut profiles[idx];
                 profile.last_seen_at = now;
-                profile.recording_count += 1;
+                profile.audio_count += 1;
                 profile.add_embedding(embedding.clone());
                 let display = identity_names
                     .get(&profile.id)
@@ -241,7 +242,7 @@ pub fn identify_or_register_all(
             embeddings: vec![embedding.clone()],
             created_at: now,
             last_seen_at: now,
-            recording_count: 1,
+            audio_count: 1,
         };
         mapping.insert(label.clone(), format!("{} {}", auto_name, new_id));
         profiles.push(new_profile);
@@ -382,7 +383,7 @@ pub fn delete_speaker_profile(app: AppHandle, id: String) -> Result<(), String> 
 }
 
 /// Merge `source_id` into `target_id`: move embeddings (up to cap), accumulate
-/// recording_count, then delete the source profile.
+/// the existing count, then delete the source profile.
 #[tauri::command]
 pub fn merge_speaker_profiles(
     app: AppHandle,
@@ -411,7 +412,7 @@ pub fn merge_speaker_profiles(
 
     // Extract data from source before mutating
     let source_embeddings = profiles[source_idx].embeddings.clone();
-    let source_count = profiles[source_idx].recording_count;
+    let source_count = profiles[source_idx].audio_count;
     let source_last_seen = profiles[source_idx].last_seen_at;
 
     {
@@ -419,7 +420,7 @@ pub fn merge_speaker_profiles(
         for emb in source_embeddings {
             target.add_embedding(emb);
         }
-        target.recording_count += source_count;
+        target.audio_count += source_count;
         target.last_seen_at = target.last_seen_at.max(source_last_seen);
     }
 
@@ -502,7 +503,7 @@ mod tests {
                 embeddings: vec![],
                 created_at: 0,
                 last_seen_at: 0,
-                recording_count: 1,
+                audio_count: 1,
             },
             SpeakerProfile {
                 id: "00005".into(),
@@ -511,7 +512,7 @@ mod tests {
                 embeddings: vec![],
                 created_at: 0,
                 last_seen_at: 0,
-                recording_count: 1,
+                audio_count: 1,
             },
         ];
         assert_eq!(next_speaker_id(&profiles), "00006".to_string());
@@ -526,7 +527,7 @@ mod tests {
             embeddings: vec![],
             created_at: 0,
             last_seen_at: 0,
-            recording_count: 1,
+            audio_count: 1,
         }];
         assert_eq!(next_speaker_id(&profiles), "00001".to_string());
     }
@@ -540,7 +541,7 @@ mod tests {
             embeddings: vec![],
             created_at: 0,
             last_seen_at: 0,
-            recording_count: 0,
+            audio_count: 0,
         };
         for i in 0..7 {
             profile.add_embedding(vec![i as f32]);
@@ -549,5 +550,24 @@ mod tests {
         // Should contain the last 5: [2, 3, 4, 5, 6]
         assert_eq!(profile.embeddings[0], vec![2.0f32]);
         assert_eq!(profile.embeddings[4], vec![6.0f32]);
+    }
+
+    #[test]
+    fn speaker_profile_reads_legacy_recording_count() {
+        let raw = r#"{
+            "id": "00001",
+            "name": "",
+            "auto_name": "说话人 1",
+            "embeddings": [],
+            "created_at": 0,
+            "last_seen_at": 0,
+            "recording_count": 3
+        }"#;
+        let profile: SpeakerProfile = serde_json::from_str(raw).unwrap();
+        assert_eq!(profile.audio_count, 3);
+
+        let serialized = serde_json::to_value(profile).unwrap();
+        assert_eq!(serialized["audio_count"], 3);
+        assert!(serialized.get("recording_count").is_none());
     }
 }

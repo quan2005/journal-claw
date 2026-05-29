@@ -1132,7 +1132,7 @@ export default function SectionVoice() {
                     }}
                   >
                     <FolderOpen size={11} strokeWidth={1.5} />
-                    {t('openInFinder')}
+                    {t('openInFileManager')}
                   </button>
                   <div style={{ ...hintStyle, marginTop: 8 }}>
                     {isBundledModel ? t('baseModelBundled') : t('downloadFromHF')}

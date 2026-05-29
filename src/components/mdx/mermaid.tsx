@@ -29,12 +29,23 @@ function dedent(str: string): string {
 
 let mermaidModule: typeof mermaidType | null = null
 
+type MermaidThemeVariables = Record<string, string | number | boolean>
+type MermaidConfig = {
+  startOnLoad: boolean
+  theme: 'base'
+  securityLevel: 'strict'
+  htmlLabels: boolean
+  fontFamily: string
+  themeVariables: MermaidThemeVariables
+  gantt?: Record<string, string | number | boolean>
+}
+
 async function getMermaid(isDark: boolean, type: string) {
   if (!mermaidModule) {
     mermaidModule = (await import('mermaid')).default
   }
 
-  const base: Record<string, any> = {
+  const base: MermaidConfig = {
     startOnLoad: false,
     theme: 'base',
     securityLevel: 'strict',

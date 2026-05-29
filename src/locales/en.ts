@@ -45,8 +45,6 @@ export const en = {
   openFileFailed: 'Unable to open file',
   audioRejected: 'Voice transcription not configured, audio ignored',
   settingsTooltip: 'Settings (⌘,)',
-  startRecording: 'Start recording',
-  stopRecording: 'Stop recording',
   voiceNotReady: 'Voice transcription not ready — go to Settings → Voice',
 
   // ErrorBoundary
@@ -70,14 +68,13 @@ export const en = {
   duplicate: 'Duplicate',
   moveTo: 'Move To...',
   openInEditor: 'Open in default editor',
-  showInFinder: 'Show in Finder',
+  showInFileManager: 'Show in File Manager',
   delete: 'Delete',
   mergeTo: 'Merge to…',
 
   // Identity list
   builtin: 'Built-in',
   noProfiles: 'No profiles yet',
-  recordingHint: 'Speaker profiles are created automatically after recording',
   me: 'Me',
 
   // IdentityDetail context menu
@@ -89,8 +86,6 @@ export const en = {
   // DetailPanel (empty state)
   startCapturing: 'Start capturing',
   via: 'via',
-  recordCard: 'Voice recording',
-  recordCardHint: 'Speak your thoughts\nAI organizes them into journal entries',
   pasteCard: 'Paste / Drop files',
   pasteCardHint: 'Meeting notes, articles\nAI extracts the key information',
   sampleCard: 'Create sample entry',
@@ -109,13 +104,8 @@ export const en = {
   saveFailed: 'Save failed, please retry',
   save: 'Save',
 
-  // RecordingList
-  recording: 'Recording',
-  today: 'Today',
-  processingDots: 'Processing…',
-
   // JournalList / MonthDivider
-  noEntries: 'No journal entries yet. Start recording or drop a file.',
+  noEntries: 'No journal entries yet. Drop a file or paste text to start.',
   weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   loadMore: 'Load more',
@@ -131,7 +121,6 @@ export const en = {
   retryLabel: 'Retry',
   closeTooltip: 'Close',
   done: 'Done',
-  recordingStatus: 'Recording',
   confirmCancel: 'Cancel?',
   confirm: 'Confirm',
   cancelTooltip: 'Cancel',
@@ -183,9 +172,33 @@ export const en = {
   savingDots: 'Saving…',
   saveFailedMsg: 'Save failed, please retry',
   unsavedChanges: 'Unsaved changes',
+  generalSubtitle: 'Choose where JournalClaw keeps journals, raw materials, identities, and todos.',
+  workspaceFolder: 'Workspace folder',
+  workspaceSaveHint: 'Changing this path moves the app to another journal library.',
 
   // Settings: AI Engine
   aiEngineSection: 'Model',
+  aiEngineSubtitle:
+    'Choose the provider used for journal processing, conversations, and automation.',
+  providersTitle: 'Providers',
+  providerCount: '{count} providers',
+  providerDetails: 'Provider details',
+  providerDetailsHint: 'Edits here only affect the selected provider.',
+  activeProviderLabel: 'Active',
+  activeProviderHint: 'Used by journal processing, conversations, and automatic cleanup.',
+  configured: 'Configured',
+  notConfigured: 'Not configured',
+  apiKeyConfigured: 'API Key saved',
+  apiKeyMissing: 'API Key needed',
+  modelMissing: 'No model selected',
+  apiKeyHelp: 'Stored locally in this workspace configuration.',
+  baseUrlLabel: 'Base URL',
+  modelLabel: 'Model',
+  noProvidersTitle: 'No model provider yet',
+  noProvidersDesc: 'Add a provider so JournalClaw can organize journals and answer conversations.',
+  deleteProvider: 'Delete provider',
+  confirmDeleteProvider:
+    'Delete “{name}”? This removes the local API key but not the remote account.',
   comingSoon: 'Coming soon',
   inDevelopment: 'In development',
   installOneLiner: 'One-click install',
@@ -228,13 +241,13 @@ export const en = {
   retryHint: 'You can retry directly after failure — no need to re-select the model.',
   switchModelHint: "Switching models won't interrupt the current download.",
   modelStoreDir: 'Model storage directory',
-  openInFinder: 'Open in Finder',
+  openInFileManager: 'Open in File Manager',
   baseModelBundled:
     'Base model is bundled with the app. The directory above is for additionally downloaded Small/Large models.',
   downloadFromHF:
     'Click Download to fetch automatically from HuggingFace. You can also place model files manually into the directory above.',
   dashscopeHint:
-    'When configured, recordings are automatically uploaded to Alibaba Cloud for transcription',
+    'When configured, audio files are automatically uploaded to Alibaba Cloud for transcription',
   asrModel: 'ASR Model',
   asrModelHint: 'Flash for real-time recognition; File Trans for async transcription of long audio',
   speakerEmbedderUnavailable: 'Speaker recognition unavailable',
@@ -251,8 +264,6 @@ export const en = {
   grantAll: 'Grant all',
   allGranted: 'All permissions granted',
   clickToCheck: 'Click "Check permissions" to view authorization status',
-  permMic: 'Microphone',
-  permMicDesc: 'Required for recording — used for voice transcription and meeting capture.',
   permSpeech: 'Speech recognition',
   permSpeechDesc:
     'Required when using Apple speech recognition engine (not needed for DashScope / WhisperKit).',
@@ -270,12 +281,12 @@ export const en = {
   // Settings: Speakers
   speakersSection: 'Speaker Profiles',
   speakersDesc:
-    'Speakers are automatically identified after recording. Name them here — AI will use your names when organizing notes.',
+    'Speakers are automatically identified after importing audio. Name them here — AI will use your names when organizing notes.',
   noSpeakers: 'No speakers detected yet',
-  noSpeakersHint: 'Complete a recording and the system will automatically detect speakers here',
+  noSpeakersHint: 'Import audio with speakers and detected speakers will appear here',
   speakerCount: 'Speaker profiles ({count})',
   unnamed: 'Unnamed',
-  appearsIn: 'Appears in {count} recording(s)',
+  appearsIn: 'Appears in {count} audio file(s)',
   nameTooltip: 'Rename',
   mergeTooltip: 'Merge to…',
   deleteTooltip: 'Delete',
@@ -333,8 +344,6 @@ export const en = {
 
   // App confirm dialog
   confirmDeleteIdentity: 'Delete "{name}"\'s profile?',
-  recordingConverting: 'Recording',
-
   // SectionVoice: model hints
   baseModelHint: 'Default model, stable transcription for daily notes',
   smallModelHint: 'Better accuracy, great for meeting notes',

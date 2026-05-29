@@ -9,8 +9,9 @@ import { useTextOverflow } from '../hooks/useTextOverflow'
 // The class names match the component's className props below.
 const TREE_ITEM_CSS = `
   .tree-item-row:hover .tree-item-actions {
-    width: 48px !important;
     opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateX(0) !important;
   }
 `
 
@@ -51,7 +52,9 @@ function getDisplayTags(
   entry?: JournalEntry,
 ): string[] {
   if (itemType === 'identity' && identity) {
-    return normalizeTags(identity.tags).filter((t) => t !== 'journal').slice(0, 2)
+    return normalizeTags(identity.tags)
+      .filter((t) => t !== 'journal')
+      .slice(0, 2)
   }
   if (itemType === 'journal' && entry) {
     // pickDisplayTags already filters 'journal' and returns {label} objects
@@ -60,14 +63,23 @@ function getDisplayTags(
   return []
 }
 
-function getDisplayName(itemType: TreeItemProps['itemType'], identity?: IdentityEntry, entry?: JournalEntry, topicEntry?: TopicEntry): string {
+function getDisplayName(
+  itemType: TreeItemProps['itemType'],
+  identity?: IdentityEntry,
+  entry?: JournalEntry,
+  topicEntry?: TopicEntry,
+): string {
   if (itemType === 'identity' && identity) return identity.name
   if (itemType === 'journal' && entry) return entry.title
   if (itemType === 'topic-file' && topicEntry) return topicEntry.name
   return ''
 }
 
-function getDescription(itemType: TreeItemProps['itemType'], identity?: IdentityEntry, entry?: JournalEntry): string | undefined {
+function getDescription(
+  itemType: TreeItemProps['itemType'],
+  identity?: IdentityEntry,
+  entry?: JournalEntry,
+): string | undefined {
   if (itemType === 'identity' && identity?.summary) return identity.summary
   if (itemType === 'journal' && entry?.summary) return entry.summary
   return undefined
@@ -134,8 +146,8 @@ function ItemBlock({
           justifyContent: 'center',
           fontSize: '0.6875rem',
           fontWeight: 600,
-          background: isTodayBlock ? 'rgba(200,147,59,0.15)' : 'rgba(128,128,128,0.12)',
-          color: isTodayBlock ? 'var(--accent, #C8933B)' : 'var(--item-meta)',
+          background: isTodayBlock ? 'var(--record-highlight)' : 'var(--item-icon-bg)',
+          color: isTodayBlock ? 'var(--record-btn)' : 'var(--item-meta)',
         }}
       >
         {entry.day}
@@ -199,8 +211,7 @@ export function TreeItem({
       if (scrollParent) {
         const parentRect = scrollParent.getBoundingClientRect()
         const elRect = el.getBoundingClientRect()
-        const isFullyVisible =
-          elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom
+        const isFullyVisible = elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom
         if (!isFullyVisible) {
           el.scrollIntoView({ block: 'nearest', behavior: 'instant' as ScrollBehavior })
         }
@@ -239,14 +250,12 @@ export function TreeItem({
         userSelect: 'none' as const,
         cursor: 'pointer',
         position: 'relative' as const,
-        background: isSelected
-          ? 'rgba(200,147,59,0.10)'
-          : 'transparent',
-        transition: 'background 0.15s ease-out',
+        background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
+        transition: 'background-color 0.15s var(--ease-out)',
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          ;(e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.025)'
+          ;(e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'
         }
       }}
       onMouseLeave={(e) => {
@@ -255,7 +264,6 @@ export function TreeItem({
         }
       }}
     >
-
       {/* Animated selection bar — 3px wide, adapts to item height */}
       <span
         style={{
@@ -265,9 +273,9 @@ export function TreeItem({
           bottom: 9,
           width: 3,
           borderRadius: 2,
-          background: 'var(--accent, #C8933B)',
+          background: 'var(--record-btn)',
           transform: isSelected ? 'scaleY(1)' : 'scaleY(0)',
-          transition: 'transform 0.2s ease-out',
+          transition: 'transform 0.2s var(--ease-out)',
         }}
       />
 
@@ -281,12 +289,7 @@ export function TreeItem({
         }}
       >
         {/* Block (identity initial / journal date / topic icon) */}
-        <ItemBlock
-          itemType={itemType}
-          identity={identity}
-          entry={entry}
-          isToday={isToday}
-        />
+        <ItemBlock itemType={itemType} identity={identity} entry={entry} isToday={isToday} />
 
         {/* Name / Title — shrinks only after tags are hidden */}
         <div
@@ -299,7 +302,7 @@ export function TreeItem({
             minWidth: 0,
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
-            color: isSelected ? 'var(--accent, #C8933B)' : 'var(--item-text)',
+            color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
             lineHeight: 1.4,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -328,7 +331,7 @@ export function TreeItem({
                   fontSize: '0.6875rem',
                   padding: '2px 6px',
                   borderRadius: 4,
-                  background: 'rgba(128,128,128,0.08)',
+                  background: 'var(--tag-bg)',
                   color: 'var(--item-meta)',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
@@ -350,10 +353,12 @@ export function TreeItem({
               alignItems: 'center',
               gap: 2,
               flexShrink: 0,
-              width: 0,
+              width: 48,
               overflow: 'hidden',
               opacity: 0,
-              transition: 'width 0.15s ease-out, opacity 0.15s ease-out',
+              pointerEvents: 'none' as const,
+              transform: 'translateX(4px)',
+              transition: 'opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out)',
             }}
           >
             {onAt && (
@@ -375,8 +380,7 @@ export function TreeItem({
                   lineHeight: 1,
                 }}
                 onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLButtonElement).style.background =
-                    'var(--item-hover-bg)'
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)'
                   ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'
                 }}
                 onMouseLeave={(e) => {
@@ -406,8 +410,7 @@ export function TreeItem({
                   lineHeight: 1,
                 }}
                 onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLButtonElement).style.background =
-                    'var(--item-hover-bg)'
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover-bg)'
                   ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-text)'
                 }}
                 onMouseLeave={(e) => {
@@ -415,11 +418,17 @@ export function TreeItem({
                   ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--item-meta)'
                 }}
               >
-                <svg width="14" height="4" viewBox="0 0 16 4" fill="currentColor" style={{ display: 'block' }}>
-                    <circle cx="2" cy="2" r="1.5" />
-                    <circle cx="8" cy="2" r="1.5" />
-                    <circle cx="14" cy="2" r="1.5" />
-                  </svg>
+                <svg
+                  width="14"
+                  height="4"
+                  viewBox="0 0 16 4"
+                  fill="currentColor"
+                  style={{ display: 'block' }}
+                >
+                  <circle cx="2" cy="2" r="1.5" />
+                  <circle cx="8" cy="2" r="1.5" />
+                  <circle cx="14" cy="2" r="1.5" />
+                </svg>
               </button>
             )}
           </div>

@@ -141,15 +141,8 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
         height: hovered ? 'auto' : btnSize,
         maxHeight: hovered ? 'min(60vh, 480px)' : btnSize,
         borderRadius: hovered ? 12 : btnSize / 2,
-        background: hovered
-          ? 'var(--dialog-glass-bg, rgba(28,28,30,0.92))'
-          : 'var(--item-hover-bg)',
-        backdropFilter: hovered ? 'blur(20px) saturate(1.2)' : 'none',
-        WebkitBackdropFilter: hovered ? 'blur(20px) saturate(1.2)' : 'none',
-        border: hovered
-          ? '0.5px solid var(--dialog-glass-border, rgba(255,255,255,0.08))'
-          : '0.5px solid transparent',
-        boxShadow: hovered ? '0 8px 32px rgba(0,0,0,0.24), 0 2px 8px rgba(0,0,0,0.12)' : 'none',
+        background: hovered ? 'var(--detail-case-bg)' : 'var(--item-hover-bg)',
+        border: hovered ? '0.5px solid var(--detail-case-border)' : '0.5px solid transparent',
         overflow: 'hidden',
         transition: `
           width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -157,9 +150,7 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
           max-height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
           border-radius 0.25s cubic-bezier(0.16, 1, 0.3, 1),
           background 0.2s ease-out,
-          border-color 0.2s ease-out,
-          box-shadow 0.25s ease-out,
-          backdrop-filter 0.2s ease-out
+          border-color 0.2s ease-out
         `,
         cursor: hovered ? 'default' : 'pointer',
         userSelect: 'none',

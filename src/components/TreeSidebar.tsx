@@ -50,12 +50,13 @@ function SectionHeader({
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        padding: '12px 6px 8px',
+        padding: '14px 6px 7px',
         cursor: 'pointer',
         position: 'sticky' as const,
         top: 0,
         zIndex: 1,
-        background: 'var(--sidebar-bg, #131210)',
+        background: 'var(--sidebar-bg)',
+        boxShadow: '0 1px 0 color-mix(in srgb, var(--divider) 42%, transparent)',
       }}
     >
       {/* Chevron */}
@@ -69,7 +70,7 @@ function SectionHeader({
           flexShrink: 0,
           transition: 'transform 0.15s ease-out',
           transform: collapsed ? 'rotate(-90deg)' : 'none',
-          color: 'var(--text-tertiary, #5c5852)',
+          color: 'var(--duration-text)',
         }}
       >
         <svg
@@ -85,14 +86,17 @@ function SectionHeader({
       </span>
 
       {/* Icon */}
-      <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary, #a0988c)' }}>{icon}</span>
+      <span style={{ display: 'flex', alignItems: 'center', color: 'var(--item-meta)' }}>
+        {icon}
+      </span>
 
       {/* Label */}
       <span
         style={{
           fontSize: '0.75rem',
           fontWeight: 600,
-          color: 'var(--text-secondary, #a0988c)',
+          color: 'var(--item-meta)',
+          letterSpacing: '0.02em',
         }}
       >
         {label}
@@ -104,7 +108,7 @@ function SectionHeader({
           style={{
             fontSize: '0.6875rem',
             fontWeight: 400,
-            color: 'var(--text-tertiary, #5c5852)',
+            color: 'var(--duration-text)',
           }}
         >
           {count}
@@ -230,10 +234,7 @@ export function TreeSidebar({
     })
   }, [])
 
-  const isCollapsed = useCallback(
-    (key: string) => collapsed.has(key),
-    [collapsed],
-  )
+  const isCollapsed = useCallback((key: string) => collapsed.has(key), [collapsed])
 
   // ── Selection ─────────────────────────────────────────────────────────────
 
@@ -249,8 +250,7 @@ export function TreeSidebar({
   )
 
   const isSelected = useCallback(
-    (type: string, path: string) =>
-      selected?.type === type && selected?.path === path,
+    (type: string, path: string) => selected?.type === type && selected?.path === path,
     [selected],
   )
 
@@ -285,15 +285,11 @@ export function TreeSidebar({
   const resolvePinnedEntry = useCallback(
     (pinned: { type: 'journal' | 'identity'; path: string }) => {
       if (pinned.type === 'journal') {
-        return entries.find(
-          (e) => `${e.year_month}/${e.filename}` === pinned.path,
-        )
+        return entries.find((e) => `${e.year_month}/${e.filename}` === pinned.path)
       }
       if (pinned.type === 'identity') {
         return identities.find(
-          (i) =>
-            i.path === pinned.path ||
-            `identities/${i.filename}` === pinned.path,
+          (i) => i.path === pinned.path || `identities/${i.filename}` === pinned.path,
         )
       }
       return undefined
@@ -331,7 +327,7 @@ export function TreeSidebar({
       try {
         if (itemType === 'journal') {
           // path is relative like "2605/25-xxx.md", resolve to absolute
-          const entry = entries.find(e => `${e.year_month}/${e.filename}` === path)
+          const entry = entries.find((e) => `${e.year_month}/${e.filename}` === path)
           const absPath = entry?.path ?? path
           await deleteJournalEntry(absPath)
         } else if (itemType === 'identity') {
@@ -353,7 +349,15 @@ export function TreeSidebar({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 8px' }}>
+    <div
+      style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: '0 8px',
+        background: 'var(--sidebar-bg)',
+      }}
+    >
       {/* ════════════════════════════════════════════════════════════════════
           Ideas Entry (想法) — permanent, non-collapsible
           Matches SectionHeader layout: indicator(12) + gap(6) + icon(13) + gap(6) + label
@@ -362,12 +366,12 @@ export function TreeSidebar({
         onClick={onSelectIdeas}
         onMouseEnter={(e) => {
           if (!ideasSelected) {
-            (e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
+            ;(e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
           }
         }}
         onMouseLeave={(e) => {
           if (!ideasSelected) {
-            (e.currentTarget as HTMLElement).style.background = 'transparent'
+            ;(e.currentTarget as HTMLElement).style.background = 'transparent'
           }
         }}
         style={{
@@ -379,10 +383,8 @@ export function TreeSidebar({
           cursor: 'pointer',
           userSelect: 'none' as const,
           borderRadius: 6,
-          background: ideasSelected
-            ? 'var(--accent-dim, rgba(200,147,59,0.08))'
-            : 'transparent',
-          transition: 'background 0.15s ease-out',
+          background: ideasSelected ? 'var(--item-selected-bg)' : 'transparent',
+          transition: 'background-color 0.15s var(--ease-out)',
         }}
       >
         {/* Indicator slot — 12px wide, same as section chevron slot.
@@ -400,10 +402,11 @@ export function TreeSidebar({
           <span
             style={{
               width: 3,
-              height: ideasSelected ? 16 : 0,
+              height: 16,
               borderRadius: 2,
-              background: 'var(--accent, #C8933B)',
-              transition: 'height 0.2s ease-out',
+              background: 'var(--record-btn)',
+              transition: 'transform 0.2s var(--ease-out)',
+              transform: ideasSelected ? 'scaleY(1)' : 'scaleY(0)',
             }}
           />
         </span>
@@ -416,11 +419,9 @@ export function TreeSidebar({
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            color: ideasSelected
-              ? 'var(--accent, #C8933B)'
-              : 'var(--item-meta, #8a8478)',
+            color: ideasSelected ? 'var(--record-btn)' : 'var(--item-meta)',
             opacity: !ideasSelected ? 0.7 : 1,
-            transition: 'opacity 0.15s, color 0.15s',
+            transition: 'opacity 0.15s var(--ease-out), color 0.15s var(--ease-out)',
           }}
         >
           <svg
@@ -443,10 +444,8 @@ export function TreeSidebar({
           style={{
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
-            color: ideasSelected
-              ? 'var(--accent, #C8933B)'
-              : 'var(--item-text)',
-            transition: 'color 0.15s',
+            color: ideasSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+            transition: 'color 0.15s var(--ease-out)',
           }}
         >
           想法
@@ -458,12 +457,10 @@ export function TreeSidebar({
             style={{
               fontSize: '0.6875rem',
               fontWeight: 'var(--font-medium, 500)',
-              color: ideasSelected
-                ? 'var(--accent, #C8933B)'
-                : 'var(--text-tertiary, #5c5852)',
+              color: ideasSelected ? 'var(--item-selected-meta)' : 'var(--duration-text)',
               opacity: ideasSelected ? 0.7 : 1,
               marginLeft: 'auto',
-              transition: 'color 0.15s',
+              transition: 'color 0.15s var(--ease-out)',
             }}
           >
             {ideasCount}
@@ -495,19 +492,25 @@ export function TreeSidebar({
                     key={`pinned-journal-${entry.path}`}
                     itemType="journal"
                     entry={entry}
-                    isToday={
-                      entry.year_month === todayYearMonth &&
-                      entry.day === todayDay
-                    }
+                    isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
                     isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
                     onClick={() =>
-                      handleSelect({ type: 'journal', path: `${entry.year_month}/${entry.filename}` })
+                      handleSelect({
+                        type: 'journal',
+                        path: `${entry.year_month}/${entry.filename}`,
+                      })
                     }
-                    onAt={() =>
-                      onAtRef(`${entry.year_month}/${entry.filename}`)
-                    }
+                    onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
                     onMore={(x, y) =>
-                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, true, x, y, entry.path)
+                      handleMore(
+                        'journal',
+                        entry.title,
+                        `${entry.year_month}/${entry.filename}`,
+                        true,
+                        x,
+                        y,
+                        entry.path,
+                      )
                     }
                   />
                 )
@@ -521,9 +524,7 @@ export function TreeSidebar({
                   itemType="identity"
                   identity={identity}
                   isSelected={isSelected('identity', identity.path)}
-                  onClick={() =>
-                    handleSelect({ type: 'identity', path: identity.path })
-                  }
+                  onClick={() => handleSelect({ type: 'identity', path: identity.path })}
                   onAt={() => onAtRef(`identities/${identity.filename}`)}
                   onMore={(x, y) =>
                     handleMore('identity', identity.name, identity.path, true, x, y)
@@ -553,13 +554,9 @@ export function TreeSidebar({
                 itemType="identity"
                 identity={identity}
                 isSelected={isSelected('identity', identity.path)}
-                onClick={() =>
-                  handleSelect({ type: 'identity', path: identity.path })
-                }
+                onClick={() => handleSelect({ type: 'identity', path: identity.path })}
                 onAt={() => onAtRef(`identities/${identity.filename}`)}
-                onMore={(x, y) =>
-                  handleMore('identity', identity.name, identity.path, false, x, y)
-                }
+                onMore={(x, y) => handleMore('identity', identity.name, identity.path, false, x, y)}
               />
             ))}
             {identityLoading && (
@@ -598,19 +595,25 @@ export function TreeSidebar({
                     key={entry.path}
                     itemType="journal"
                     entry={entry}
-                    isToday={
-                      entry.year_month === todayYearMonth &&
-                      entry.day === todayDay
-                    }
+                    isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
                     isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
                     onClick={() =>
-                      handleSelect({ type: 'journal', path: `${entry.year_month}/${entry.filename}` })
+                      handleSelect({
+                        type: 'journal',
+                        path: `${entry.year_month}/${entry.filename}`,
+                      })
                     }
-                    onAt={() =>
-                      onAtRef(`${entry.year_month}/${entry.filename}`)
-                    }
+                    onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
                     onMore={(x, y) =>
-                      handleMore('journal', entry.title, `${entry.year_month}/${entry.filename}`, false, x, y, entry.path)
+                      handleMore(
+                        'journal',
+                        entry.title,
+                        `${entry.year_month}/${entry.filename}`,
+                        false,
+                        x,
+                        y,
+                        entry.path,
+                      )
                     }
                   />
                 ))}

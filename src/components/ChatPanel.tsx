@@ -589,9 +589,10 @@ export function ChatPanel({
                 style={{
                   maxWidth: '85%',
                   padding: '8px 12px',
-                  borderRadius: '10px 10px 2px 10px',
-                  background: 'var(--item-text)',
-                  color: 'var(--bg)',
+                  borderRadius: '8px 8px 2px 8px',
+                  background: 'var(--chat-user-bg)',
+                  color: 'var(--chat-user-text)',
+                  border: '0.5px solid var(--chat-user-border)',
                   fontSize: 'var(--text-sm)',
                   lineHeight: 1.6,
                   whiteSpace: 'pre-wrap',
@@ -654,7 +655,7 @@ export function ChatPanel({
                 ? '0.5px solid var(--record-btn)'
                 : '0.5px solid var(--dialog-inset-border)',
             borderRadius: 12,
-            background: dragOver ? 'var(--item-hover-bg)' : 'var(--dialog-inset-bg)',
+            background: dragOver ? 'var(--item-hover-bg)' : 'var(--detail-case-bg)',
             padding: '8px 12px 4px',
             transition: 'border-color 0.15s ease-out, background 0.15s ease-out',
             overflow: 'hidden',
@@ -693,7 +694,9 @@ export function ChatPanel({
                   }}
                 >
                   <span
-                    onClick={() => openFile(att.path).catch(() => showToast('warning', t('openFileFailed')))}
+                    onClick={() =>
+                      openFile(att.path).catch(() => showToast('warning', t('openFileFailed')))
+                    }
                     style={{
                       maxWidth: 120,
                       overflow: 'hidden',
@@ -1037,12 +1040,12 @@ function MessageBubble({
               width: '100%',
               boxSizing: 'border-box',
               padding: '8px 12px',
-              borderRadius: '10px 10px 2px 10px',
-              background: 'var(--item-text)',
-              color: 'var(--bg)',
+              borderRadius: '8px 8px 2px 8px',
+              background: 'var(--chat-user-bg)',
+              color: 'var(--chat-user-text)',
               fontSize: 'var(--text-sm)',
               lineHeight: 1.6,
-              border: '2px solid var(--record-btn)',
+              border: '1px solid var(--record-btn)',
               outline: 'none',
               resize: 'none',
               overflow: 'hidden',
@@ -1075,7 +1078,7 @@ function MessageBubble({
                 borderRadius: 4,
                 padding: '2px 10px',
                 fontSize: 12,
-                color: 'var(--bg)',
+                color: 'var(--record-btn-icon)',
                 cursor: 'pointer',
                 fontWeight: 500,
               }}
@@ -1098,9 +1101,10 @@ function MessageBubble({
         <div
           style={{
             padding: '8px 12px',
-            borderRadius: '10px 10px 2px 10px',
-            background: 'var(--item-text)',
-            color: 'var(--bg)',
+            borderRadius: '8px 8px 2px 8px',
+            background: 'var(--chat-user-bg)',
+            color: 'var(--chat-user-text)',
+            border: '0.5px solid var(--chat-user-border)',
             fontSize: 'var(--text-sm)',
             lineHeight: 1.6,
             whiteSpace: 'pre-wrap',
@@ -1212,7 +1216,8 @@ function UserContent({ text }: { text: string }) {
                 gap: 4,
                 padding: '2px 8px',
                 borderRadius: 4,
-                background: 'rgba(255,255,255,0.15)',
+                background: 'var(--chat-user-chip-bg)',
+                border: '0.5px solid var(--chat-user-border)',
                 cursor: 'pointer',
                 fontSize: 'var(--text-xs)',
                 marginBottom: 2,
@@ -1986,13 +1991,23 @@ function ArtifactBlock({
             color: 'var(--item-meta)',
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
           <span style={{ fontWeight: 500 }}>{artifact.title || 'Artifact'}</span>
           <span style={{ opacity: 0.5 }}>{artifact.artifactType}</span>
           {isStreaming && <Spinner size={10} />}
-          <span style={{ marginLeft: 'auto', opacity: 0.4 }}>
-            {expanded ? '▾' : '▸'}
-          </span>
+          <span style={{ marginLeft: 'auto', opacity: 0.4 }}>{expanded ? '▾' : '▸'}</span>
         </div>
         {expanded && (
           <pre
@@ -2038,12 +2053,20 @@ function ArtifactBlock({
           color: 'var(--item-meta)',
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </svg>
         <span style={{ fontWeight: 500 }}>{artifact.title || t('artifact_preview')}</span>
         {isStreaming && <Spinner size={10} />}
-        <span style={{ marginLeft: 'auto', opacity: 0.4 }}>
-          {expanded ? '▾' : '▸'}
-        </span>
+        <span style={{ marginLeft: 'auto', opacity: 0.4 }}>{expanded ? '▾' : '▸'}</span>
       </div>
 
       {/* Preview body */}

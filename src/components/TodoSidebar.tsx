@@ -368,8 +368,8 @@ function TodoRow({
           background: item.done
             ? 'var(--record-btn)'
             : item.session_id
-              ? 'var(--accent)'
-              : 'var(--border)',
+              ? 'var(--record-btn)'
+              : 'var(--divider)',
           opacity: item.done ? 0.6 : 1,
           transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
         }}
@@ -381,8 +381,8 @@ function TodoRow({
           ;(e.currentTarget as HTMLElement).style.background = item.done
             ? 'var(--record-btn)'
             : item.session_id
-              ? 'var(--accent)'
-              : 'var(--border)'
+              ? 'var(--record-btn)'
+              : 'var(--divider)'
           ;(e.currentTarget as HTMLElement).style.opacity = item.done ? '0.6' : '1'
         }}
       />
@@ -577,7 +577,10 @@ function TodoRow({
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ opacity: item.session_id ? 1 : 0.5, transition: 'opacity 0.15s, stroke 0.15s, fill 0.15s' }}
+            style={{
+              opacity: item.session_id ? 1 : 0.5,
+              transition: 'opacity 0.15s, stroke 0.15s, fill 0.15s',
+            }}
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             <path d="M8 10h.01M12 10h.01M16 10h.01" />
@@ -644,10 +647,7 @@ interface TodoSidebarProps {
   onNavigateToSource?: (filename: string) => void
 }
 
-export function TodoSidebar({
-  onOpenConversation,
-  onNavigateToSource,
-}: TodoSidebarProps) {
+export function TodoSidebar({ onOpenConversation, onNavigateToSource }: TodoSidebarProps) {
   const { t } = useTranslation()
   const {
     todos,

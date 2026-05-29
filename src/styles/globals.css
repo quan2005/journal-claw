@@ -50,6 +50,8 @@
   --text-tertiary: #a0a8ad;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
+  --divider-hover: color-mix(in srgb, var(--divider) 82%, var(--record-btn) 18%);
+  --divider-active: color-mix(in srgb, var(--divider) 68%, var(--record-btn) 32%);
   --scrollbar-thumb: #d2d5d8;
   --scrollbar-thumb-hover: #bec2c5;
   --month-label: #6a7278;
@@ -60,6 +62,7 @@
   --record-btn: #b8782a;
   --record-btn-hover: #a06820;
   --record-btn-icon: #f5f6f7;
+  --focus-ring: color-mix(in srgb, var(--record-btn) 62%, var(--bg));
   --segment-bg: rgba(128, 128, 128, 0.06);
   --segment-active-bg: rgba(184, 120, 42, 0.1);
   --segment-text: #6a7278;
@@ -140,6 +143,7 @@
 
   /* Detail panel */
   --detail-bg: var(--bg);
+  --detail-content-max: 820px;
   --detail-section-label: #6a7278;
   --detail-summary: #586068;
   --detail-case-bg: #f7f8f9;
@@ -166,6 +170,7 @@
 
   /* Dialog glass */
   --dialog-glass-rgb: 247, 248, 249;
+  --dialog-glass-bg: rgba(var(--dialog-glass-rgb), 0.96);
   --dialog-glass-border: rgba(0, 0, 0, 0.1);
   --dialog-glass-divider: rgba(0, 0, 0, 0.06);
   --dialog-sidebar-bg: rgba(0, 0, 0, 0.04);
@@ -173,6 +178,12 @@
   --dialog-inset-border: rgba(0, 0, 0, 0.1);
   --dialog-kbd-bg: rgba(0, 0, 0, 0.05);
   --dialog-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 16px 48px rgba(0, 0, 0, 0.12);
+
+  /* Conversation */
+  --chat-user-bg: color-mix(in srgb, var(--record-btn) 7%, var(--detail-case-bg));
+  --chat-user-border: color-mix(in srgb, var(--record-btn) 18%, var(--divider));
+  --chat-user-text: var(--item-text);
+  --chat-user-chip-bg: color-mix(in srgb, var(--record-btn) 12%, var(--bg));
 
   /* Context menu */
   --context-menu-bg: #f5f6f7;
@@ -225,6 +236,8 @@
     --text-tertiary: #636366;
     --titlebar-bg: #161616;
     --divider: #1e2228;
+    --divider-hover: color-mix(in srgb, var(--divider) 74%, var(--record-btn) 26%);
+    --divider-active: color-mix(in srgb, var(--divider) 58%, var(--record-btn) 42%);
     --scrollbar-thumb: rgba(255, 255, 255, 0.1);
     --scrollbar-thumb-hover: rgba(255, 255, 255, 0.18);
     --month-label: #5a5e68;
@@ -235,6 +248,7 @@
     --record-btn: #c8933b;
     --record-btn-hover: #d9a44b;
     --record-btn-icon: #0f0f0f;
+    --focus-ring: color-mix(in srgb, var(--record-btn) 64%, var(--bg));
     --segment-bg: rgba(128, 128, 128, 0.08);
     --segment-active-bg: rgba(200, 147, 58, 0.12);
     --segment-text: #5e6268;
@@ -311,6 +325,7 @@
 
     /* Detail panel */
     --detail-bg: var(--bg);
+    --detail-content-max: 820px;
     --detail-section-label: #353840;
     --detail-summary: #585c64;
     --detail-case-bg: #141414;
@@ -337,6 +352,7 @@
 
     /* Dialog glass */
     --dialog-glass-rgb: 28, 28, 30;
+    --dialog-glass-bg: rgba(var(--dialog-glass-rgb), 0.96);
     --dialog-glass-border: rgba(255, 255, 255, 0.12);
     --dialog-glass-divider: rgba(255, 255, 255, 0.08);
     --dialog-sidebar-bg: rgba(0, 0, 0, 0.15);
@@ -344,6 +360,12 @@
     --dialog-inset-border: rgba(255, 255, 255, 0.1);
     --dialog-kbd-bg: rgba(255, 255, 255, 0.06);
     --dialog-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 16px 48px rgba(0, 0, 0, 0.4);
+
+    /* Conversation */
+    --chat-user-bg: color-mix(in srgb, var(--record-btn) 9%, var(--detail-case-bg));
+    --chat-user-border: color-mix(in srgb, var(--record-btn) 20%, var(--divider));
+    --chat-user-text: var(--item-text);
+    --chat-user-chip-bg: color-mix(in srgb, var(--record-btn) 14%, var(--bg));
 
     /* Context menu */
     --context-menu-bg: #1e1e1e;
@@ -392,6 +414,8 @@
   --text-tertiary: #636366;
   --titlebar-bg: #161616;
   --divider: #1e2228;
+  --divider-hover: color-mix(in srgb, var(--divider) 74%, var(--record-btn) 26%);
+  --divider-active: color-mix(in srgb, var(--divider) 58%, var(--record-btn) 42%);
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.18);
   --month-label: #5a5e68;
@@ -402,6 +426,7 @@
   --record-btn: #c8933b;
   --record-btn-hover: #d9a44b;
   --record-btn-icon: #0f0f0f;
+  --focus-ring: color-mix(in srgb, var(--record-btn) 64%, var(--bg));
   --segment-bg: rgba(128, 128, 128, 0.08);
   --segment-active-bg: rgba(200, 147, 58, 0.12);
   --segment-text: #5e6268;
@@ -462,6 +487,7 @@
   --md-link: #6cb6ff;
   --md-link-hover: #8cc8ff;
   --detail-bg: var(--bg);
+  --detail-content-max: 820px;
   --detail-section-label: #353840;
   --detail-summary: #585c64;
   --detail-case-bg: #141414;
@@ -481,6 +507,19 @@
   --queue-bg: #1c1c1e;
   --queue-border: #2e3238;
   --queue-shadow: rgba(0, 0, 0, 0.3);
+  --dialog-glass-rgb: 28, 28, 30;
+  --dialog-glass-bg: rgba(var(--dialog-glass-rgb), 0.96);
+  --dialog-glass-border: rgba(255, 255, 255, 0.12);
+  --dialog-glass-divider: rgba(255, 255, 255, 0.08);
+  --dialog-sidebar-bg: rgba(0, 0, 0, 0.15);
+  --dialog-inset-bg: rgba(0, 0, 0, 0.2);
+  --dialog-inset-border: rgba(255, 255, 255, 0.1);
+  --dialog-kbd-bg: rgba(255, 255, 255, 0.06);
+  --dialog-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 16px 48px rgba(0, 0, 0, 0.4);
+  --chat-user-bg: color-mix(in srgb, var(--record-btn) 9%, var(--detail-case-bg));
+  --chat-user-border: color-mix(in srgb, var(--record-btn) 20%, var(--divider));
+  --chat-user-text: var(--item-text);
+  --chat-user-chip-bg: color-mix(in srgb, var(--record-btn) 14%, var(--bg));
   --context-menu-bg: #1e1e1e;
   --context-menu-border: #2e3238;
   --context-menu-shadow: rgba(0, 0, 0, 0.5);
@@ -767,6 +806,8 @@ body,
   --bg: #f5f6f7;
   --titlebar-bg: #edf0f1;
   --divider: #d8dce0;
+  --divider-hover: color-mix(in srgb, var(--divider) 82%, var(--record-btn) 18%);
+  --divider-active: color-mix(in srgb, var(--divider) 68%, var(--record-btn) 32%);
   --scrollbar-thumb: #d2d5d8;
   --scrollbar-thumb-hover: #bec2c5;
   --month-label: #6a7278;
@@ -777,6 +818,7 @@ body,
   --record-btn: #b8782a;
   --record-btn-hover: #a06820;
   --record-btn-icon: #f5f6f7;
+  --focus-ring: color-mix(in srgb, var(--record-btn) 62%, var(--bg));
   --segment-bg: rgba(128, 128, 128, 0.06);
   --segment-active-bg: rgba(184, 120, 42, 0.1);
   --segment-text: #6a7278;
@@ -837,6 +879,7 @@ body,
   --md-link: #8a6500;
   --md-link-hover: #6a4e00;
   --detail-bg: var(--bg);
+  --detail-content-max: 820px;
   --detail-section-label: #6a7278;
   --detail-summary: #586068;
   --detail-case-bg: #f7f8f9;
@@ -856,6 +899,19 @@ body,
   --queue-bg: #f7f8f9;
   --queue-border: #d0d4d8;
   --queue-shadow: rgba(0, 0, 0, 0.06);
+  --dialog-glass-rgb: 247, 248, 249;
+  --dialog-glass-bg: rgba(var(--dialog-glass-rgb), 0.96);
+  --dialog-glass-border: rgba(0, 0, 0, 0.1);
+  --dialog-glass-divider: rgba(0, 0, 0, 0.06);
+  --dialog-sidebar-bg: rgba(0, 0, 0, 0.04);
+  --dialog-inset-bg: rgba(0, 0, 0, 0.04);
+  --dialog-inset-border: rgba(0, 0, 0, 0.1);
+  --dialog-kbd-bg: rgba(0, 0, 0, 0.05);
+  --dialog-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 16px 48px rgba(0, 0, 0, 0.12);
+  --chat-user-bg: color-mix(in srgb, var(--record-btn) 7%, var(--detail-case-bg));
+  --chat-user-border: color-mix(in srgb, var(--record-btn) 18%, var(--divider));
+  --chat-user-text: var(--item-text);
+  --chat-user-chip-bg: color-mix(in srgb, var(--record-btn) 12%, var(--bg));
   --context-menu-bg: #f5f6f7;
   --context-menu-border: #d8dce0;
   --status-danger: #b5312a; /* 5.9:1 on #FAFAF8 */

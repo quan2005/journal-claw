@@ -65,17 +65,28 @@ export default function App() {
   const { identities, loading: identityLoading, refresh: refreshIdentity } = useIdentity()
 
   const {
-    view, setView,
-    settingsInitialSection, setSettingsInitialSection,
-    selectedEntry, setSelectedEntry,
-    isDragging, setIsDragging,
-    isDragOver, setIsDragOver,
-    treeSelection, setTreeSelection,
-    showIdeas, setShowIdeas,
-    sidebarWidth, setSidebarWidth,
-    rightPanelOpen, setRightPanelOpen,
-    rightPanelWidth, setRightPanelWidth,
-    chatInitialText, setChatInitialText,
+    view,
+    setView,
+    settingsInitialSection,
+    setSettingsInitialSection,
+    selectedEntry,
+    setSelectedEntry,
+    isDragging,
+    setIsDragging,
+    isDragOver,
+    setIsDragOver,
+    treeSelection,
+    setTreeSelection,
+    showIdeas,
+    setShowIdeas,
+    sidebarWidth,
+    setSidebarWidth,
+    rightPanelOpen,
+    setRightPanelOpen,
+    rightPanelWidth,
+    setRightPanelWidth,
+    chatInitialText,
+    setChatInitialText,
     deselect,
   } = useUI()
 
@@ -488,9 +499,7 @@ export default function App() {
   const handleProcessEntry = useCallback((entry: JournalEntry) => {
     const rel = `${entry.year_month}/${entry.filename}`
     setRightPanelOpen(true)
-    window.dispatchEvent(
-      new CustomEvent('chat-append-text', { detail: `@${rel}` }),
-    )
+    window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${rel}` }))
   }, [])
   const handleVisualDesign = useCallback(
     (entry: JournalEntry) => {
@@ -646,13 +655,17 @@ export default function App() {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            background: 'var(--sidebar-bg)',
             borderRight: '0.5px solid var(--divider)',
           }}
         >
           <TreeSidebar
             selected={treeSelection}
             onSelect={handleTreeSelect}
-            onDeselect={() => { setTreeSelection(null); setSelectedEntry(null) }}
+            onDeselect={() => {
+              setTreeSelection(null)
+              setSelectedEntry(null)
+            }}
             entries={entries}
             identities={allIdentities}
             identityLoading={identityLoading}
@@ -661,13 +674,11 @@ export default function App() {
             onLoadMore={loadMore}
             onAtRef={(path: string) => {
               setRightPanelOpen(true)
-              window.dispatchEvent(
-                new CustomEvent('chat-append-text', { detail: `@${path}` }),
-              )
+              window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${path}` }))
             }}
             todayYearMonth={todayYearMonth}
             todayDay={todayDay}
-            ideasCount={todos.filter(t => !t.done).length}
+            ideasCount={todos.filter((t) => !t.done).length}
             ideasSelected={showIdeas}
             onSelectIdeas={handleSelectIdeas}
           />
@@ -678,6 +689,7 @@ export default function App() {
                 borderTop: '0.5px solid var(--divider)',
                 flexShrink: 0,
                 padding: '6px 10px',
+                background: 'var(--sidebar-bg)',
               }}
             >
               <button
@@ -696,7 +708,7 @@ export default function App() {
                   fontSize: 'var(--text-sm)',
                   cursor: 'pointer',
                   fontFamily: 'var(--font-body)',
-                  transition: 'background 0.15s ease-out',
+                  transition: 'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out)',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--item-hover-bg)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -754,24 +766,37 @@ export default function App() {
         >
           <DetailView
             type={
-              showIdeas ? 'ideas'
-              : !treeSelection || treeSelection.type === 'journal' ? 'journal'
-              : treeSelection.type === 'identity' ? 'identity'
-              : 'topic-file'
+              showIdeas
+                ? 'ideas'
+                : !treeSelection || treeSelection.type === 'journal'
+                  ? 'journal'
+                  : treeSelection.type === 'identity'
+                    ? 'identity'
+                    : 'topic-file'
             }
-            entry={treeSelection?.type === 'journal'
-              ? entries.find(e => `${e.year_month}/${e.filename}` === treeSelection.path) || selectedEntry || undefined
-              : selectedEntry || undefined}
+            entry={
+              treeSelection?.type === 'journal'
+                ? entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ||
+                  selectedEntry ||
+                  undefined
+                : selectedEntry || undefined
+            }
             entries={entries}
-            identity={treeSelection?.type === 'identity'
-              ? allIdentities.find(i => i.path === treeSelection.path) ?? undefined
-              : undefined}
-            file={treeSelection?.type === 'topic-file' ? {
-              name: treeSelection.path.split('/').pop() ?? '',
-              path: treeSelection.path,
-              is_dir: false,
-              mtime_secs: 0,
-            } : undefined}
+            identity={
+              treeSelection?.type === 'identity'
+                ? (allIdentities.find((i) => i.path === treeSelection.path) ?? undefined)
+                : undefined
+            }
+            file={
+              treeSelection?.type === 'topic-file'
+                ? {
+                    name: treeSelection.path.split('/').pop() ?? '',
+                    path: treeSelection.path,
+                    is_dir: false,
+                    mtime_secs: 0,
+                  }
+                : undefined
+            }
             onDeselect={handleDeselect}
             onRecord={handleRecord}
             onOpenDock={handleOpenChat}
@@ -790,17 +815,14 @@ export default function App() {
               style={{
                 width: DIVIDER_WIDTH,
                 flexShrink: 0,
-                background: isRightPanelDragging
-                  ? 'var(--divider-active, rgba(184,120,42,0.08))'
-                  : 'transparent',
+                background: isRightPanelDragging ? 'var(--divider-active)' : 'transparent',
                 userSelect: 'none' as const,
                 cursor: 'col-resize',
-                transition: 'background-color 0.15s ease-out',
+                transition: 'background-color 0.15s var(--ease-out)',
               }}
               onMouseEnter={(e) => {
                 if (!isRightPanelDragging) {
-                  ;(e.target as HTMLElement).style.background =
-                    'var(--divider-hover, rgba(128,128,128,0.06))'
+                  ;(e.target as HTMLElement).style.background = 'var(--divider-hover)'
                 }
               }}
               onMouseLeave={(e) => {
@@ -816,6 +838,7 @@ export default function App() {
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
+                background: 'var(--sidebar-bg)',
                 borderLeft: '0.5px solid var(--divider)',
               }}
             >
@@ -864,8 +887,8 @@ export default function App() {
             position: 'fixed',
             inset: 0,
             zIndex: 9999,
-            background: 'color-mix(in srgb, var(--record-btn) 8%, transparent)',
-            border: '3px dashed var(--record-btn)',
+            background: 'color-mix(in srgb, var(--record-btn) 7%, var(--bg))',
+            border: '2px dashed var(--record-btn)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -874,13 +897,10 @@ export default function App() {
         >
           <div
             style={{
-              padding: '24px 40px',
-              borderRadius: 16,
-              background: 'var(--dialog-glass-bg)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--dialog-glass-divider)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+              padding: '22px 36px',
+              borderRadius: 10,
+              background: 'var(--detail-case-bg)',
+              border: '1px solid var(--detail-case-border)',
               textAlign: 'center',
             }}
           >

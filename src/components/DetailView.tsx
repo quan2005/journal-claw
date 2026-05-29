@@ -364,7 +364,16 @@ export const DetailView = React.memo(function DetailView({
       CSS.highlights?.delete('search-result')
       CSS.highlights?.delete('search-current')
     }
-  }, [type, entry?.path, entry?.mtime_secs, identity?.path, identity?.mtime_secs, file?.path, isSoul, workspacePath])
+  }, [
+    type,
+    entry?.path,
+    entry?.mtime_secs,
+    identity?.path,
+    identity?.mtime_secs,
+    file?.path,
+    isSoul,
+    workspacePath,
+  ])
 
   // ── Context menu ────────────────────────────────────────────────────────
   const showContextMenu = (x: number, y: number) => {
@@ -466,8 +475,7 @@ export const DetailView = React.memo(function DetailView({
 
   // Detect HTML journal entries — render as SandboxPreview, not markdown
   const isHtmlContent =
-    (isJournalMode && entry?.filename.match(/\.html?$/i)) ||
-    (isFileMode && fileKind === 'html')
+    (isJournalMode && entry?.filename.match(/\.html?$/i)) || (isFileMode && fileKind === 'html')
 
   // Markdown node for read mode
   const markdownNode = useMemo(() => {
@@ -477,10 +485,20 @@ export const DetailView = React.memo(function DetailView({
     else if (isIdentityMode && identity) absPath = identity.path
     else if (isFileMode && file) absPath = fileAbsolutePath
     return renderMarkdown(content, absPath)
-  }, [content, entry?.path, identity?.path, fileAbsolutePath, isJournalMode, isIdentityMode, isFileMode, isHtmlContent])
+  }, [
+    content,
+    entry?.path,
+    identity?.path,
+    fileAbsolutePath,
+    isJournalMode,
+    isIdentityMode,
+    isFileMode,
+    isHtmlContent,
+  ])
 
   // ── Empty state ─────────────────────────────────────────────────────────
-  const hasSelection = (isJournalMode && entry) || (isIdentityMode && identity) || (isFileMode && file)
+  const hasSelection =
+    (isJournalMode && entry) || (isIdentityMode && identity) || (isFileMode && file)
 
   const isIdeasMode = type === 'ideas'
 
@@ -574,15 +592,13 @@ export const DetailView = React.memo(function DetailView({
                   onClick={onRecord}
                   style={{
                     flex: 1,
-                    background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
+                    background: 'var(--detail-case-bg)',
                     border: '1px solid var(--divider)',
                     borderRadius: 10,
                     padding: '16px 12px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'opacity 0.15s, background 0.15s',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
@@ -592,7 +608,7 @@ export const DetailView = React.memo(function DetailView({
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
                     ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
+                      'var(--detail-case-bg)'
                   }}
                 >
                   <div
@@ -634,7 +650,11 @@ export const DetailView = React.memo(function DetailView({
                     录音记录
                   </div>
                   <div
-                    style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      lineHeight: 1.6,
+                    }}
                   >
                     说出你的想法
                     <br />
@@ -649,15 +669,13 @@ export const DetailView = React.memo(function DetailView({
                   onClick={onOpenDock}
                   style={{
                     flex: 1,
-                    background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
+                    background: 'var(--detail-case-bg)',
                     border: '1px solid var(--divider)',
                     borderRadius: 10,
                     padding: '16px 12px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'opacity 0.15s, background 0.15s',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
@@ -667,7 +685,7 @@ export const DetailView = React.memo(function DetailView({
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
                     ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
+                      'var(--detail-case-bg)'
                   }}
                 >
                   <div
@@ -708,7 +726,11 @@ export const DetailView = React.memo(function DetailView({
                     粘贴 / 拖文件
                   </div>
                   <div
-                    style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      lineHeight: 1.6,
+                    }}
                   >
                     会议记录、日记
                     <br />
@@ -723,7 +745,7 @@ export const DetailView = React.memo(function DetailView({
                   onClick={onSelectSample}
                   style={{
                     flex: 1,
-                    background: 'color-mix(in srgb, var(--detail-bg) 25%, transparent)',
+                    background: 'var(--detail-case-bg)',
                     border: '1px dashed var(--divider)',
                     borderStyle: 'dashed',
                     borderRadius: 10,
@@ -731,11 +753,9 @@ export const DetailView = React.memo(function DetailView({
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'opacity 0.15s, background 0.15s',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
                   }}
                   onMouseEnter={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'
+                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--record-btn)'
                     ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
                     ;(e.currentTarget as HTMLButtonElement).style.background =
                       'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
@@ -744,7 +764,7 @@ export const DetailView = React.memo(function DetailView({
                     ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
                     ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
                     ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'color-mix(in srgb, var(--detail-bg) 25%, transparent)'
+                      'var(--detail-case-bg)'
                   }}
                 >
                   <div
@@ -785,7 +805,11 @@ export const DetailView = React.memo(function DetailView({
                     创建示例条目
                   </div>
                   <div
-                    style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', lineHeight: 1.6 }}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--item-meta)',
+                      lineHeight: 1.6,
+                    }}
                   >
                     生成一条示例
                     <br />
@@ -977,9 +1001,7 @@ export const DetailView = React.memo(function DetailView({
               lineHeight: 1.6,
             }}
           >
-            <code className={`hljs${lang ? ` language-${lang}` : ''}`}>
-              {content}
-            </code>
+            <code className={`hljs${lang ? ` language-${lang}` : ''}`}>{content}</code>
           </pre>
         </div>
       )
@@ -1200,7 +1222,14 @@ export const DetailView = React.memo(function DetailView({
       {/* Read mode */}
       <div
         ref={bodyRef}
-        style={{ flex: 1, overflowY: 'auto', padding: isHtmlContent ? 0 : '24px 28px' }}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: isHtmlContent ? 0 : '26px 32px 40px',
+          width: '100%',
+          maxWidth: isHtmlContent ? undefined : 'var(--detail-content-max)',
+          margin: isHtmlContent ? undefined : '0 auto',
+        }}
         onContextMenu={(e) => {
           e.preventDefault()
           showContextMenu(e.clientX, e.clientY)
@@ -1221,7 +1250,10 @@ export const DetailView = React.memo(function DetailView({
                   fontSize: 'var(--text-base)',
                   color: 'var(--detail-summary)',
                   lineHeight: 1.8,
-                  marginBottom: (pickDisplayTags(entry.tags, Infinity).length > 0 || entry.sources.length > 0) ? 10 : 0,
+                  marginBottom:
+                    pickDisplayTags(entry.tags, Infinity).length > 0 || entry.sources.length > 0
+                      ? 10
+                      : 0,
                 }}
               >
                 {entry.summary}
@@ -1350,7 +1382,9 @@ export const DetailView = React.memo(function DetailView({
                   color: 'var(--detail-summary)',
                   lineHeight: 1.8,
                   marginBottom:
-                    (identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0) ? 10 : 0,
+                    identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0
+                      ? 10
+                      : 0,
                 }}
               >
                 {identity.summary}
@@ -1366,7 +1400,7 @@ export const DetailView = React.memo(function DetailView({
                       borderRadius: 4,
                       fontWeight: 'var(--font-medium)',
                       color: 'var(--item-meta)',
-                      background: 'rgba(255,255,255,0.10)',
+                      background: 'var(--item-icon-bg)',
                       fontFamily: 'var(--font-mono)',
                       whiteSpace: 'nowrap',
                       display: 'inline-flex',
@@ -1446,18 +1480,10 @@ export const DetailView = React.memo(function DetailView({
 
       <DetailContextMenu
         menuRef={ctxMenuRef}
-        mode={
-          isJournalMode ? 'journal' : isIdentityMode ? 'identity' : 'file'
-        }
-        onProcess={
-          isJournalMode && onProcess && entry
-            ? () => onProcess(entry)
-            : undefined
-        }
+        mode={isJournalMode ? 'journal' : isIdentityMode ? 'identity' : 'file'}
+        onProcess={isJournalMode && onProcess && entry ? () => onProcess(entry) : undefined}
         onVisualDesign={
-          isJournalMode && onVisualDesign && entry
-            ? () => onVisualDesign(entry)
-            : undefined
+          isJournalMode && onVisualDesign && entry ? () => onVisualDesign(entry) : undefined
         }
         onCopySelection={() => {
           const sel = window.getSelection()?.toString()

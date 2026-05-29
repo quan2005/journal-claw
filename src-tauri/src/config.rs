@@ -56,6 +56,15 @@ pub struct EngineConfig {
     pub providers: Vec<ProviderEntry>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PlatformCapabilities {
+    pub os: String,
+    pub apple_stt: bool,
+    pub whisperkit: bool,
+    pub speaker_diarization: bool,
+    pub native_permissions: bool,
+}
+
 pub struct BuiltinPreset {
     pub default_protocol: &'static str,
     pub id: &'static str,
@@ -171,7 +180,7 @@ pub struct Config {
     pub openai_code_model: String,
     // ASR 引擎配置
     #[serde(default = "default_asr_engine")]
-    pub asr_engine: String, // "apple" | "dashscope" | "whisperkit"
+    pub asr_engine: String, // macOS: "apple" | "whisperkit" | cloud; Windows/Linux: cloud only
     #[serde(default = "default_whisperkit_model")]
     pub whisperkit_model: String, // "base" | "small" | "large-v3-turbo"
     #[serde(default = "default_dashscope_asr_model")]
@@ -205,11 +214,13 @@ pub struct Config {
 }
 
 pub fn augmented_path() -> String {
-    let path_env = std::env::var("PATH").unwrap_or_default();
-    let home = std::env::var("HOME").unwrap_or_default();
-    let mut dirs: Vec<String> = path_env.split(':').map(|s| s.to_string()).collect();
+    let path_env = std::env::var_os("PATH").unwrap_or_default();
+    let home = dirs::home_dir().unwrap_or_default();
+    let home_str = home.to_string_lossy();
+    let mut dirs: Vec<PathBuf> = std::env::split_paths(&path_env).collect();
 
     // Standard locations
+    #[cfg(unix)]
     for d in &[
         "/usr/bin",
         "/bin",
@@ -218,37 +229,33 @@ pub fn augmented_path() -> String {
         "/usr/local/bin",
         "/opt/homebrew/bin",
     ] {
-        dirs.push(d.to_string());
+        dirs.push(PathBuf::from(d));
     }
-    if !home.is_empty() {
-        dirs.push(format!("{}/.local/bin", home));
+    if !home.as_os_str().is_empty() {
+        dirs.push(home.join(".local/bin"));
     }
 
     // Node version managers — tools installed as global npm packages may live here.
 
     // Volta: its bin dir contains shims directly (no version subdirs to scan).
-    let volta_bin = format!("{}/.volta/bin", home);
-    if std::path::Path::new(&volta_bin).exists() {
-        dirs.push(volta_bin);
+    let volta_bin = format!("{}/.volta/bin", home_str);
+    if Path::new(&volta_bin).exists() {
+        dirs.push(PathBuf::from(volta_bin));
     }
 
     // nvm / fnm / n: scan version directories for bin/
-    let node_manager_roots: Vec<std::path::PathBuf> = vec![
+    let node_manager_roots: Vec<PathBuf> = vec![
         // nvm
-        std::path::PathBuf::from(
-            std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{}/.nvm", home)),
-        )
-        .join("versions/node"),
+        PathBuf::from(std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{}/.nvm", home_str)))
+            .join("versions/node"),
         // fnm (node-versions subdir)
-        std::path::PathBuf::from(
-            std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm", home)),
+        PathBuf::from(
+            std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm", home_str)),
         )
         .join("node-versions"),
         // n (tj/n)
-        std::path::PathBuf::from(
-            std::env::var("N_PREFIX").unwrap_or_else(|_| "/usr/local".to_string()),
-        )
-        .join("n/versions/node"),
+        PathBuf::from(std::env::var("N_PREFIX").unwrap_or_else(|_| "/usr/local".to_string()))
+            .join("n/versions/node"),
     ];
 
     // For nvm / fnm / n: scan version directories for bin/
@@ -263,7 +270,7 @@ pub fn augmented_path() -> String {
             for v in versions {
                 let bin = v.join("bin");
                 if bin.exists() {
-                    dirs.push(bin.to_string_lossy().to_string());
+                    dirs.push(bin);
                 }
             }
         }
@@ -272,19 +279,22 @@ pub fn augmented_path() -> String {
     // Also check fnm aliases (e.g. ~/.local/share/fnm/aliases/default/bin)
     let fnm_aliases = format!(
         "{}/aliases",
-        std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm", home))
+        std::env::var("FNM_DIR").unwrap_or_else(|_| format!("{}/.local/share/fnm", home_str))
     );
     if let Ok(entries) = std::fs::read_dir(&fnm_aliases) {
         for e in entries.filter_map(|e| e.ok()) {
             let bin = e.path().join("bin");
             if bin.exists() {
-                dirs.push(bin.to_string_lossy().to_string());
+                dirs.push(bin);
             }
         }
     }
 
     dirs.dedup();
-    dirs.join(":")
+    std::env::join_paths(dirs)
+        .ok()
+        .and_then(|value| value.into_string().ok())
+        .unwrap_or_default()
 }
 
 fn default_active_vendor() -> String {
@@ -300,7 +310,14 @@ fn default_protocol() -> String {
 }
 
 fn default_asr_engine() -> String {
-    "apple".to_string()
+    #[cfg(target_os = "macos")]
+    {
+        "apple".to_string()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        "dashscope".to_string()
+    }
 }
 
 fn default_whisperkit_model() -> String {
@@ -317,6 +334,28 @@ fn default_volcengine_asr_resource_id() -> String {
 
 fn default_siliconflow_asr_model() -> String {
     "FunAudioLLM/SenseVoiceSmall".to_string()
+}
+
+fn supported_asr_engines() -> &'static [&'static str] {
+    #[cfg(target_os = "macos")]
+    {
+        &["apple", "dashscope", "whisperkit", "siliconflow", "zhipu"]
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        &["dashscope", "siliconflow", "zhipu"]
+    }
+}
+
+fn platform_capabilities() -> PlatformCapabilities {
+    let macos_local = cfg!(target_os = "macos");
+    PlatformCapabilities {
+        os: crate::platform::os_name().to_string(),
+        apple_stt: macos_local,
+        whisperkit: macos_local,
+        speaker_diarization: macos_local,
+        native_permissions: macos_local,
+    }
 }
 
 pub fn normalize_whisperkit_model(model: &str) -> Option<&'static str> {
@@ -439,7 +478,7 @@ fn sanitize_engine_config(config: &mut Config) {
         config.active_ai_engine = default_active_engine();
     }
 
-    let valid_asr_engines = ["apple", "dashscope", "whisperkit", "siliconflow", "zhipu"];
+    let valid_asr_engines = supported_asr_engines();
     if !valid_asr_engines.contains(&config.asr_engine.as_str()) {
         config.asr_engine = default_asr_engine();
     }
@@ -448,20 +487,24 @@ fn sanitize_engine_config(config: &mut Config) {
     // - 升级用户 + whisperkit + cli 未安装 → 自动切换为 apple
     // - 升级用户 + dashscope + API Key 已配置 → 保持不变
     // - 新用户默认 apple（已通过 default_asr_engine 实现）
-    if config.asr_engine == "whisperkit" && !cfg!(test) && find_whisperkit_cli_path().is_none() {
-        config.asr_engine = "apple".to_string();
-    }
-    if config.asr_engine == "volcengine" && config.volcengine_asr_api_key.is_empty() {
-        config.asr_engine = "apple".to_string();
-    }
-    if config.asr_engine == "siliconflow" && config.siliconflow_asr_api_key.trim().is_empty() {
-        config.asr_engine = "apple".to_string();
-    }
-    if config.asr_engine == "zhipu" && config.zhipu_asr_api_key.is_empty() {
-        config.asr_engine = "apple".to_string();
-    }
-    if config.asr_engine == "dashscope" && config.dashscope_api_key.trim().is_empty() {
-        config.asr_engine = "apple".to_string();
+    #[cfg(target_os = "macos")]
+    {
+        if config.asr_engine == "whisperkit" && !cfg!(test) && find_whisperkit_cli_path().is_none()
+        {
+            config.asr_engine = "apple".to_string();
+        }
+        if config.asr_engine == "volcengine" && config.volcengine_asr_api_key.is_empty() {
+            config.asr_engine = "apple".to_string();
+        }
+        if config.asr_engine == "siliconflow" && config.siliconflow_asr_api_key.trim().is_empty() {
+            config.asr_engine = "apple".to_string();
+        }
+        if config.asr_engine == "zhipu" && config.zhipu_asr_api_key.is_empty() {
+            config.asr_engine = "apple".to_string();
+        }
+        if config.asr_engine == "dashscope" && config.dashscope_api_key.trim().is_empty() {
+            config.asr_engine = "apple".to_string();
+        }
     }
 
     let valid_volcengine_resources = ["volc.bigasr.auc", "volc.seedasr.auc"];
@@ -531,15 +574,18 @@ pub fn find_whisperkit_model_dir(app: &AppHandle, model: &str) -> Option<PathBuf
 /// 在 PATH（含 /usr/local/bin, /opt/homebrew/bin）中查找 whisperkit-cli。
 /// 返回绝对路径，若未找到返回 None。
 pub fn find_whisperkit_cli_path() -> Option<String> {
-    let output = std::process::Command::new("/usr/bin/which")
-        .arg("whisperkit-cli")
-        .env("PATH", augmented_path())
-        .output()
-        .ok()?;
-    if output.status.success() {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !path.is_empty() {
-            return Some(path);
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("/usr/bin/which")
+            .arg("whisperkit-cli")
+            .env("PATH", augmented_path())
+            .output()
+            .ok()?;
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(path);
+            }
         }
     }
     None
@@ -554,81 +600,90 @@ pub fn check_whisperkit_cli_installed() -> bool {
 /// 立即返回，安装进度通过 "engine-install-log" 事件流式推送（engine: "whisperkit-cli"）。
 #[tauri::command]
 pub fn install_whisperkit_cli(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::Emitter;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        return Err("WhisperKit 仅支持 macOS".to_string());
+    }
 
-    let mut child = std::process::Command::new("brew")
-        .args(["install", "whisperkit-cli"])
-        .env("PATH", augmented_path())
-        .env("HOMEBREW_NO_AUTO_UPDATE", "1")
-        .env("HOMEBREW_NO_ENV_HINTS", "1")
-        .env("HOMEBREW_NO_ANALYTICS", "1")
-        .env("CI", "1")
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("启动 brew 失败（请确认已安装 Homebrew）: {}", e))?;
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::Emitter;
 
-    // Spawn a background thread to stream output and wait for completion.
-    // The command returns immediately so it doesn't block the IPC bridge.
-    tauri::async_runtime::spawn_blocking(move || {
-        use std::io::{BufRead, BufReader};
+        let mut child = std::process::Command::new("brew")
+            .args(["install", "whisperkit-cli"])
+            .env("PATH", augmented_path())
+            .env("HOMEBREW_NO_AUTO_UPDATE", "1")
+            .env("HOMEBREW_NO_ENV_HINTS", "1")
+            .env("HOMEBREW_NO_ANALYTICS", "1")
+            .env("CI", "1")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("启动 brew 失败（请确认已安装 Homebrew）: {}", e))?;
 
-        let emit = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
-            let _ = app.emit(
-                "engine-install-log",
-                serde_json::json!({
-                    "engine": "whisperkit-cli",
-                    "line": line,
-                    "done": done,
-                    "success": success,
-                }),
+        // Spawn a background thread to stream output and wait for completion.
+        // The command returns immediately so it doesn't block the IPC bridge.
+        tauri::async_runtime::spawn_blocking(move || {
+            use std::io::{BufRead, BufReader};
+
+            let emit = |app: &tauri::AppHandle, line: &str, done: bool, success: bool| {
+                let _ = app.emit(
+                    "engine-install-log",
+                    serde_json::json!({
+                        "engine": "whisperkit-cli",
+                        "line": line,
+                        "done": done,
+                        "success": success,
+                    }),
+                );
+            };
+
+            // Stream stderr (brew writes progress to stderr)
+            if let Some(stderr) = child.stderr.take() {
+                let app_clone = app.clone();
+                std::thread::spawn(move || {
+                    for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                        if !line.trim().is_empty() {
+                            let _ = app_clone.emit(
+                            "engine-install-log",
+                            serde_json::json!({ "engine": "whisperkit-cli", "line": line.trim(), "done": false, "success": false }),
+                        );
+                        }
+                    }
+                });
+            }
+
+            // Stream stdout
+            if let Some(stdout) = child.stdout.take() {
+                let app_clone = app.clone();
+                std::thread::spawn(move || {
+                    for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                        if !line.trim().is_empty() {
+                            let _ = app_clone.emit(
+                            "engine-install-log",
+                            serde_json::json!({ "engine": "whisperkit-cli", "line": line.trim(), "done": false, "success": false }),
+                        );
+                        }
+                    }
+                });
+            }
+
+            let success = child.wait().map(|s| s.success()).unwrap_or(false);
+            emit(
+                &app,
+                if success {
+                    "安装完成"
+                } else {
+                    "安装失败"
+                },
+                true,
+                success,
             );
-        };
+        });
 
-        // Stream stderr (brew writes progress to stderr)
-        if let Some(stderr) = child.stderr.take() {
-            let app_clone = app.clone();
-            std::thread::spawn(move || {
-                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                    if !line.trim().is_empty() {
-                        let _ = app_clone.emit(
-                            "engine-install-log",
-                            serde_json::json!({ "engine": "whisperkit-cli", "line": line.trim(), "done": false, "success": false }),
-                        );
-                    }
-                }
-            });
-        }
-
-        // Stream stdout
-        if let Some(stdout) = child.stdout.take() {
-            let app_clone = app.clone();
-            std::thread::spawn(move || {
-                for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-                    if !line.trim().is_empty() {
-                        let _ = app_clone.emit(
-                            "engine-install-log",
-                            serde_json::json!({ "engine": "whisperkit-cli", "line": line.trim(), "done": false, "success": false }),
-                        );
-                    }
-                }
-            });
-        }
-
-        let success = child.wait().map(|s| s.success()).unwrap_or(false);
-        emit(
-            &app,
-            if success {
-                "安装完成"
-            } else {
-                "安装失败"
-            },
-            true,
-            success,
-        );
-    });
-
-    Ok(())
+        Ok(())
+    }
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -637,8 +692,10 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 fn default_workspace_path() -> Result<String, String> {
-    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
-    let path = PathBuf::from(home).join("Documents").join("journal");
+    let base = dirs::document_dir()
+        .or_else(dirs::home_dir)
+        .ok_or_else(|| "无法解析用户目录".to_string())?;
+    let path = base.join("journal");
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -756,6 +813,11 @@ pub fn get_app_version(app: AppHandle) -> String {
 }
 
 #[tauri::command]
+pub fn get_platform_capabilities() -> PlatformCapabilities {
+    platform_capabilities()
+}
+
+#[tauri::command]
 pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
     let c = load_config(&app)?;
     Ok(AsrConfig {
@@ -776,18 +838,26 @@ pub fn get_asr_config(app: AppHandle) -> Result<AsrConfig, String> {
 /// - macOS < 26: "sf_speech_recognizer" (旧版 SFSpeechRecognizer)
 #[tauri::command]
 pub fn get_apple_stt_variant() -> String {
-    let major = std::process::Command::new("sw_vers")
-        .arg("-productVersion")
-        .output()
-        .ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .and_then(|v| v.trim().split('.').next().map(String::from))
-        .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(0);
-    if major >= 26 {
-        "speech_analyzer".to_string()
-    } else {
-        "sf_speech_recognizer".to_string()
+    #[cfg(not(target_os = "macos"))]
+    {
+        return "unavailable".to_string();
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let major = std::process::Command::new("sw_vers")
+            .arg("-productVersion")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .and_then(|v| v.trim().split('.').next().map(String::from))
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(0);
+        if major >= 26 {
+            "speech_analyzer".to_string()
+        } else {
+            "sf_speech_recognizer".to_string()
+        }
     }
 }
 
@@ -803,7 +873,7 @@ pub fn set_asr_config(
     siliconflow_asr_model: String,
     zhipu_asr_api_key: String,
 ) -> Result<(), String> {
-    let valid_engines = ["apple", "dashscope", "whisperkit", "siliconflow", "zhipu"];
+    let valid_engines = supported_asr_engines();
     if !valid_engines.contains(&asr_engine.as_str()) {
         return Err(format!("invalid asr_engine: {}", asr_engine));
     }
@@ -835,7 +905,16 @@ pub fn get_whisperkit_models_dir(app: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 pub fn check_whisperkit_model_downloaded(app: AppHandle, model: String) -> bool {
-    find_whisperkit_model_dir(&app, &model).is_some()
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, model);
+        return false;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        find_whisperkit_model_dir(&app, &model).is_some()
+    }
 }
 
 /// 下载指定的 WhisperKit 模型（通过触发一次空白音频转录，whisperkit-cli 会先下载模型）。
@@ -843,156 +922,166 @@ pub fn check_whisperkit_model_downloaded(app: AppHandle, model: String) -> bool 
 ///   { model, status: "downloading" | "done" | "error", message? }
 #[tauri::command]
 pub async fn download_whisperkit_model(app: AppHandle, model: String) -> Result<(), String> {
-    if find_whisperkit_model_dir(&app, &model).is_some() {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, model);
+        return Err("WhisperKit 仅支持 macOS".to_string());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if find_whisperkit_model_dir(&app, &model).is_some() {
+            let _ = app.emit(
+                "whisperkit-download-progress",
+                serde_json::json!({
+                    "model": model, "status": "done"
+                }),
+            );
+            return Ok(());
+        }
+
+        let model_cache_dir = whisperkit_models_dir(&app)?;
+        let _ = std::fs::create_dir_all(&model_cache_dir);
+
+        let cli_path = match find_whisperkit_cli_path() {
+            Some(path) => path,
+            None => {
+                let msg =
+                    "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
+                let _ = app.emit(
+                    "whisperkit-download-progress",
+                    serde_json::json!({
+                        "model": model, "status": "error", "message": msg
+                    }),
+                );
+                return Err(msg);
+            }
+        };
+
+        // 生成一个最小合法 WAV 文件（静音，16 采样，16kHz mono 16-bit）供触发下载
+        let tmp_wav = std::env::temp_dir().join("whisperkit_download_trigger.wav");
+        {
+            let num_samples: u32 = 16;
+            let sample_rate: u32 = 16000;
+            let num_channels: u16 = 1;
+            let bits_per_sample: u16 = 16;
+            let byte_rate = sample_rate * num_channels as u32 * bits_per_sample as u32 / 8;
+            let block_align = num_channels * bits_per_sample / 8;
+            let data_size = num_samples * num_channels as u32 * bits_per_sample as u32 / 8;
+            let file_size = 36 + data_size;
+            let mut wav: Vec<u8> = Vec::new();
+            wav.extend_from_slice(b"RIFF");
+            wav.extend_from_slice(&file_size.to_le_bytes());
+            wav.extend_from_slice(b"WAVE");
+            wav.extend_from_slice(b"fmt ");
+            wav.extend_from_slice(&16u32.to_le_bytes()); // chunk size
+            wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
+            wav.extend_from_slice(&num_channels.to_le_bytes());
+            wav.extend_from_slice(&sample_rate.to_le_bytes());
+            wav.extend_from_slice(&byte_rate.to_le_bytes());
+            wav.extend_from_slice(&block_align.to_le_bytes());
+            wav.extend_from_slice(&bits_per_sample.to_le_bytes());
+            wav.extend_from_slice(b"data");
+            wav.extend_from_slice(&data_size.to_le_bytes());
+            wav.extend(vec![0u8; data_size as usize]);
+            std::fs::write(&tmp_wav, wav).map_err(|e| e.to_string())?;
+        }
+
         let _ = app.emit(
             "whisperkit-download-progress",
             serde_json::json!({
-                "model": model, "status": "done"
+                "model": model, "status": "downloading", "message": "正在启动下载…"
             }),
         );
-        return Ok(());
-    }
+        let cli_model = whisperkit_cli_model_name(&model);
 
-    let model_cache_dir = whisperkit_models_dir(&app)?;
-    let _ = std::fs::create_dir_all(&model_cache_dir);
+        use std::process::Stdio;
+        use tokio::io::{AsyncBufReadExt, BufReader};
 
-    let cli_path = match find_whisperkit_cli_path() {
-        Some(path) => path,
-        None => {
-            let msg = "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
+        let mut cmd = tokio::process::Command::new(&cli_path);
+        cmd.args([
+            "transcribe",
+            "--audio-path",
+            tmp_wav.to_str().unwrap_or(""),
+            "--verbose",
+            "--language",
+            "zh",
+            "--download-model-path",
+            model_cache_dir.to_str().unwrap_or(""),
+            "--download-tokenizer-path",
+            model_cache_dir.to_str().unwrap_or(""),
+            "--model",
+            &cli_model,
+        ]);
+        cmd.env("HF_ENDPOINT", "https://hf-mirror.com");
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+        let app_for_spawn_error = app.clone();
+        let model_for_spawn_error = model.clone();
+        let mut child = cmd.spawn().map_err(|e| {
+            let _ = std::fs::remove_file(&tmp_wav);
+            let msg = format!("启动 whisperkit-cli 失败: {}", e);
+            let _ = app_for_spawn_error.emit(
+                "whisperkit-download-progress",
+                serde_json::json!({
+                    "model": model_for_spawn_error,
+                    "status": "error",
+                    "message": msg,
+                }),
+            );
+            msg
+        })?;
+
+        // 流式读取 stderr，逐行 emit 进度
+        if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            let model_clone = model.clone();
+            tokio::spawn(async move {
+                let mut reader = BufReader::new(stderr).lines();
+                while let Ok(Some(line)) = reader.next_line().await {
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    let _ = app_clone.emit(
+                        "whisperkit-download-progress",
+                        serde_json::json!({
+                            "model": model_clone,
+                            "status": "downloading",
+                            "message": line.trim(),
+                        }),
+                    );
+                }
+            });
+        }
+
+        let status = child.wait().await;
+        let _ = std::fs::remove_file(&tmp_wav);
+
+        // 判断模型是否已落盘（即使转录失败，只要模型下载了就算成功）
+        let downloaded = check_whisperkit_model_downloaded(app.clone(), model.clone());
+        let finished_successfully = status.as_ref().map(|s| s.success()).unwrap_or(false);
+        if downloaded || finished_successfully {
+            let _ = app.emit(
+                "whisperkit-download-progress",
+                serde_json::json!({
+                    "model": model, "status": "done"
+                }),
+            );
+            Ok(())
+        } else {
+            let detail = match status {
+                Ok(exit_status) => format!("whisperkit-cli 退出状态: {}", exit_status),
+                Err(error) => format!("等待 whisperkit-cli 结束失败: {}", error),
+            };
+            let msg = format!("下载失败，请检查网络连接后重试。{}", detail);
             let _ = app.emit(
                 "whisperkit-download-progress",
                 serde_json::json!({
                     "model": model, "status": "error", "message": msg
                 }),
             );
-            return Err(msg);
+            Err(msg)
         }
-    };
-
-    // 生成一个最小合法 WAV 文件（静音，16 采样，16kHz mono 16-bit）供触发下载
-    let tmp_wav = std::env::temp_dir().join("whisperkit_download_trigger.wav");
-    {
-        let num_samples: u32 = 16;
-        let sample_rate: u32 = 16000;
-        let num_channels: u16 = 1;
-        let bits_per_sample: u16 = 16;
-        let byte_rate = sample_rate * num_channels as u32 * bits_per_sample as u32 / 8;
-        let block_align = num_channels * bits_per_sample / 8;
-        let data_size = num_samples * num_channels as u32 * bits_per_sample as u32 / 8;
-        let file_size = 36 + data_size;
-        let mut wav: Vec<u8> = Vec::new();
-        wav.extend_from_slice(b"RIFF");
-        wav.extend_from_slice(&file_size.to_le_bytes());
-        wav.extend_from_slice(b"WAVE");
-        wav.extend_from_slice(b"fmt ");
-        wav.extend_from_slice(&16u32.to_le_bytes()); // chunk size
-        wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
-        wav.extend_from_slice(&num_channels.to_le_bytes());
-        wav.extend_from_slice(&sample_rate.to_le_bytes());
-        wav.extend_from_slice(&byte_rate.to_le_bytes());
-        wav.extend_from_slice(&block_align.to_le_bytes());
-        wav.extend_from_slice(&bits_per_sample.to_le_bytes());
-        wav.extend_from_slice(b"data");
-        wav.extend_from_slice(&data_size.to_le_bytes());
-        wav.extend(vec![0u8; data_size as usize]);
-        std::fs::write(&tmp_wav, wav).map_err(|e| e.to_string())?;
-    }
-
-    let _ = app.emit(
-        "whisperkit-download-progress",
-        serde_json::json!({
-            "model": model, "status": "downloading", "message": "正在启动下载…"
-        }),
-    );
-    let cli_model = whisperkit_cli_model_name(&model);
-
-    use std::process::Stdio;
-    use tokio::io::{AsyncBufReadExt, BufReader};
-
-    let mut cmd = tokio::process::Command::new(&cli_path);
-    cmd.args([
-        "transcribe",
-        "--audio-path",
-        tmp_wav.to_str().unwrap_or(""),
-        "--verbose",
-        "--language",
-        "zh",
-        "--download-model-path",
-        model_cache_dir.to_str().unwrap_or(""),
-        "--download-tokenizer-path",
-        model_cache_dir.to_str().unwrap_or(""),
-        "--model",
-        &cli_model,
-    ]);
-    cmd.env("HF_ENDPOINT", "https://hf-mirror.com");
-    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    let app_for_spawn_error = app.clone();
-    let model_for_spawn_error = model.clone();
-    let mut child = cmd.spawn().map_err(|e| {
-        let _ = std::fs::remove_file(&tmp_wav);
-        let msg = format!("启动 whisperkit-cli 失败: {}", e);
-        let _ = app_for_spawn_error.emit(
-            "whisperkit-download-progress",
-            serde_json::json!({
-                "model": model_for_spawn_error,
-                "status": "error",
-                "message": msg,
-            }),
-        );
-        msg
-    })?;
-
-    // 流式读取 stderr，逐行 emit 进度
-    if let Some(stderr) = child.stderr.take() {
-        let app_clone = app.clone();
-        let model_clone = model.clone();
-        tokio::spawn(async move {
-            let mut reader = BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = reader.next_line().await {
-                if line.trim().is_empty() {
-                    continue;
-                }
-                let _ = app_clone.emit(
-                    "whisperkit-download-progress",
-                    serde_json::json!({
-                        "model": model_clone,
-                        "status": "downloading",
-                        "message": line.trim(),
-                    }),
-                );
-            }
-        });
-    }
-
-    let status = child.wait().await;
-    let _ = std::fs::remove_file(&tmp_wav);
-
-    // 判断模型是否已落盘（即使转录失败，只要模型下载了就算成功）
-    let downloaded = check_whisperkit_model_downloaded(app.clone(), model.clone());
-    let finished_successfully = status.as_ref().map(|s| s.success()).unwrap_or(false);
-    if downloaded || finished_successfully {
-        let _ = app.emit(
-            "whisperkit-download-progress",
-            serde_json::json!({
-                "model": model, "status": "done"
-            }),
-        );
-        Ok(())
-    } else {
-        let detail = match status {
-            Ok(exit_status) => format!("whisperkit-cli 退出状态: {}", exit_status),
-            Err(error) => format!("等待 whisperkit-cli 结束失败: {}", error),
-        };
-        let msg = format!("下载失败，请检查网络连接后重试。{}", detail);
-        let _ = app.emit(
-            "whisperkit-download-progress",
-            serde_json::json!({
-                "model": model, "status": "error", "message": msg
-            }),
-        );
-        Err(msg)
     }
 }
 
@@ -1137,7 +1226,7 @@ mod tests {
     #[test]
     fn config_asr_fields_default() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.asr_engine, "apple");
+        assert_eq!(c.asr_engine, default_asr_engine());
         assert_eq!(c.whisperkit_model, "base");
     }
 
@@ -1181,7 +1270,7 @@ mod tests {
         };
         sanitize_engine_config(&mut c);
         assert_eq!(c.active_provider, "deepseek");
-        assert_eq!(c.asr_engine, "apple");
+        assert_eq!(c.asr_engine, default_asr_engine());
         assert_eq!(c.whisperkit_model, "base");
     }
 
@@ -1227,31 +1316,32 @@ mod tests {
 
     #[test]
     fn migration_apple_engine_stays_apple() {
-        // Apple 引擎保持不变
         let mut c = Config {
             asr_engine: "apple".into(),
             ..Config::default()
         };
         sanitize_engine_config(&mut c);
-        assert_eq!(c.asr_engine, "apple");
+        if cfg!(target_os = "macos") {
+            assert_eq!(c.asr_engine, "apple");
+        } else {
+            assert_eq!(c.asr_engine, default_asr_engine());
+        }
     }
 
     #[test]
-    fn migration_new_user_defaults_to_apple() {
-        // 新用户默认 apple（通过 default_asr_engine 实现）
+    fn migration_new_user_defaults_to_platform_engine() {
         let c: Config = serde_json::from_str("{}").unwrap();
-        assert_eq!(c.asr_engine, "apple");
+        assert_eq!(c.asr_engine, default_asr_engine());
     }
 
     #[test]
-    fn migration_invalid_engine_falls_back_to_apple() {
-        // 无效引擎名称回退为 apple
+    fn migration_invalid_engine_falls_back_to_platform_default() {
         let mut c = Config {
             asr_engine: "invalid_engine".into(),
             ..Config::default()
         };
         sanitize_engine_config(&mut c);
-        assert_eq!(c.asr_engine, "apple");
+        assert_eq!(c.asr_engine, default_asr_engine());
     }
 }
 
@@ -1308,7 +1398,8 @@ pub async fn list_models(
         let status = resp.status().as_u16();
         if status < 400 {
             // Success — parse and return
-            let body: serde_json::Value = resp.json().await.map_err(|e| format!("解析失败: {}", e))?;
+            let body: serde_json::Value =
+                resp.json().await.map_err(|e| format!("解析失败: {}", e))?;
             let mut models: Vec<String> = body["data"]
                 .as_array()
                 .unwrap_or(&vec![])
@@ -1320,7 +1411,10 @@ pub async fn list_models(
                 return Ok(models);
             }
         }
-        eprintln!("[list_models] anthropic endpoint returned {}, falling back to OpenAI compat", status);
+        eprintln!(
+            "[list_models] anthropic endpoint returned {}, falling back to OpenAI compat",
+            status
+        );
 
         // Fallback: try the provider's OpenAI-compatible endpoint with Bearer auth
         let fallback_base = default_base_url_for_vendor(&engine);
@@ -1339,7 +1433,10 @@ pub async fn list_models(
             eprintln!("[list_models] fallback API error ({}): {}", fb_status, text);
             return Err(format!("API 错误 ({}): {}", fb_status, text));
         }
-        let body: serde_json::Value = fb_resp.json().await.map_err(|e| format!("解析失败: {}", e))?;
+        let body: serde_json::Value = fb_resp
+            .json()
+            .await
+            .map_err(|e| format!("解析失败: {}", e))?;
         let mut models: Vec<String> = body["data"]
             .as_array()
             .unwrap_or(&vec![])

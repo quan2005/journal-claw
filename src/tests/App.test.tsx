@@ -105,6 +105,13 @@ vi.mock('../lib/tauri', async () => {
     createIdentity: vi.fn(),
     mergeIdentity: vi.fn(),
     getAppVersion: vi.fn().mockResolvedValue('0.12.1'),
+    getPlatformCapabilities: vi.fn().mockResolvedValue({
+      os: 'macos',
+      apple_stt: true,
+      whisperkit: true,
+      speaker_diarization: true,
+      native_permissions: true,
+    }),
     getAutoLintConfig: vi.fn().mockResolvedValue({ enabled: false }),
     getAutoLintStatus: vi.fn().mockResolvedValue({ state: 'idle' }),
     getFeishuConfig: vi.fn().mockResolvedValue({ enabled: false }),

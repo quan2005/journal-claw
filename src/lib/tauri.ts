@@ -45,7 +45,10 @@ export const listJournalEntriesByMonths = (months: string[]) =>
 
 export const listAllJournalEntries = () => invoke<JournalEntry[]>('list_all_journal_entries')
 
-export const listJournalEntriesPaginated = (offset: number, limit: number): Promise<[JournalEntry[], number]> =>
+export const listJournalEntriesPaginated = (
+  offset: number,
+  limit: number,
+): Promise<[JournalEntry[], number]> =>
   invoke<[JournalEntry[], number]>('list_journal_entries_paginated', { offset, limit })
 
 export const getJournalEntryContent = (path: string) =>
@@ -123,6 +126,17 @@ export const pickFolder = (): Promise<string | null> => {
 
 // App version
 export const getAppVersion = (): Promise<string> => invoke<string>('get_app_version')
+
+export interface PlatformCapabilities {
+  os: 'macos' | 'windows' | 'linux' | string
+  apple_stt: boolean
+  whisperkit: boolean
+  speaker_diarization: boolean
+  native_permissions: boolean
+}
+
+export const getPlatformCapabilities = (): Promise<PlatformCapabilities> =>
+  invoke<PlatformCapabilities>('get_platform_capabilities')
 
 // Engine config — provider list (v3)
 export interface ProviderEntry {
@@ -605,8 +619,7 @@ export interface PinnedItem {
   order: number
 }
 
-export const getPinnedItems = (): Promise<PinnedItem[]> =>
-  invoke<PinnedItem[]>('get_pinned_items')
+export const getPinnedItems = (): Promise<PinnedItem[]> => invoke<PinnedItem[]>('get_pinned_items')
 
 export const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
   invoke<void>('set_pinned_items', { items })

@@ -27,17 +27,17 @@ pub struct ActiveRecording {
 }
 
 /// Generate a unique filename for a new recording.
-/// Format: "DD-rec-HHmm.m4a", with "ss" appended if that file already exists.
+/// Format: "DD-rec-HHmm.wav", with "ss" appended if that file already exists.
 fn unique_filename(dir: &Path) -> String {
     use chrono::Datelike;
     let now = Local::now();
     let day = now.day();
     let base = format!("{:02}-rec-{}", day, now.format("%H%M"));
-    let candidate = format!("{}.m4a", base);
+    let candidate = format!("{}.wav", base);
     if !dir.join(&candidate).exists() {
         return candidate;
     }
-    format!("{:02}-rec-{}.m4a", day, now.format("%H%M%S"))
+    format!("{:02}-rec-{}.wav", day, now.format("%H%M%S"))
 }
 
 #[tauri::command]
@@ -236,49 +236,20 @@ pub async fn stop_recording(app: AppHandle, state: State<'_, RecorderState>) -> 
     // Notify frontend that processing has started
     let _ = app.emit("recording-processing", &filename);
 
-    // Heavy path: denoise + convert on a blocking thread
+    // Heavy path: finalize the public WAV path and feed it into the audio pipeline.
     let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        // 先用原始 WAV 直接转成 m4a（保留完整语音内容供转写使用）
-        let status = std::process::Command::new("afconvert")
-            .args([
-                "-f",
-                "m4af",
-                "-d",
-                "aac",
-                wav_path.to_str().unwrap(),
-                output_path.to_str().unwrap(),
-            ])
-            .status();
-
-        match status {
-            Ok(s) if s.success() => {
-                let _ = std::fs::remove_file(&wav_path);
-            }
-            Ok(s) => {
-                eprintln!("[recorder] afconvert failed: exit {}", s);
-                let _ = app_clone.emit(
-                    "audio-pipeline-failed",
-                    serde_json::json!({
-                        "filename": filename,
-                        "stage": "afconvert",
-                        "error": format!("音频转换失败 (exit {})", s),
-                    }),
-                );
-                return;
-            }
-            Err(e) => {
-                eprintln!("[recorder] afconvert spawn error: {}", e);
-                let _ = app_clone.emit(
-                    "audio-pipeline-failed",
-                    serde_json::json!({
-                        "filename": filename,
-                        "stage": "afconvert",
-                        "error": format!("afconvert 启动失败: {}", e),
-                    }),
-                );
-                return;
-            }
+        if let Err(error) = std::fs::rename(&wav_path, &output_path) {
+            eprintln!("[recorder] failed to move WAV into place: {}", error);
+            let _ = app_clone.emit(
+                "audio-ai-material-failed",
+                serde_json::json!({
+                    "source_path": output_path.to_string_lossy().as_ref(),
+                    "filename": filename,
+                    "error": format!("录音文件保存失败: {}", error),
+                }),
+            );
+            return;
         }
 
         let duration_secs = read_duration_pub(&output_path);
@@ -376,7 +347,7 @@ fn repair_wav_header(path: &Path) -> Result<(), String> {
 }
 
 /// Scan all `yyMM/raw/` dirs for orphaned `.wav.tmp` files left by interrupted recordings.
-/// For each one, convert to `.m4a` via afconvert and feed into the audio pipeline.
+/// For each one, repair the WAV header, move it into place, and feed it into the audio pipeline.
 pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
     let workspace = PathBuf::from(workspace);
     let entries = match std::fs::read_dir(&workspace) {
@@ -406,13 +377,13 @@ pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
                 continue;
             }
 
-            // Derive .m4a path: strip ".wav.tmp", append ".m4a"
+            // Derive .wav path: strip ".wav.tmp", append ".wav"
             let stem = name.trim_end_matches(".wav.tmp");
-            let m4a_path = PathBuf::from(format!("{}.m4a", stem));
+            let wav_output_path = PathBuf::from(format!("{}.wav", stem));
 
-            if m4a_path.exists() {
-                // Conversion already completed; clean up orphan
-                eprintln!("[recorder] removing orphaned tmp (m4a exists): {}", name);
+            if wav_output_path.exists() {
+                // Recovery already completed; clean up orphan
+                eprintln!("[recorder] removing orphaned tmp (wav exists): {}", name);
                 let _ = std::fs::remove_file(&path);
                 continue;
             }
@@ -429,33 +400,12 @@ pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
                     return;
                 }
 
-                let status = std::process::Command::new("afconvert")
-                    .args([
-                        "-f",
-                        "m4af",
-                        "-d",
-                        "aac",
-                        wav_path.to_str().unwrap(),
-                        m4a_path.to_str().unwrap(),
-                    ])
-                    .status();
-
-                if let Ok(s) = &status {
-                    if s.success() {
-                        let _ = std::fs::remove_file(&wav_path);
-                    } else {
-                        eprintln!("[recorder] afconvert failed for {:?}", wav_path);
-                        return;
-                    }
-                } else {
-                    eprintln!(
-                        "[recorder] afconvert error for {:?}: {:?}",
-                        wav_path, status
-                    );
+                if let Err(error) = std::fs::rename(&wav_path, &wav_output_path) {
+                    eprintln!("[recorder] failed to recover {:?}: {}", wav_path, error);
                     return;
                 }
 
-                let filename = m4a_path
+                let filename = wav_output_path
                     .file_name()
                     .unwrap_or_default()
                     .to_string_lossy()
@@ -465,12 +415,16 @@ pub fn recover_interrupted_recordings(app: AppHandle, workspace: &str) {
                     "recording-processed",
                     serde_json::json!({
                         "filename": filename,
-                        "path": m4a_path.to_string_lossy().as_ref(),
+                        "path": wav_output_path.to_string_lossy().as_ref(),
                     }),
                 );
 
                 crate::audio_pipeline::start_audio_pipeline(
-                    app_clone, m4a_path, year_month, true, None,
+                    app_clone,
+                    wav_output_path,
+                    year_month,
+                    true,
+                    None,
                 );
             });
         }

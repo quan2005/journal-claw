@@ -23,6 +23,7 @@ let downloadListener: ((event: { payload: DownloadPayload }) => void) | null = n
 const mockCheckWhisperkitCliInstalled = vi.fn()
 const mockInstallWhisperkitCli = vi.fn()
 const mockGetAppleSttVariant = vi.fn()
+const mockGetPlatformCapabilities = vi.fn()
 const mockGetSpeakerProfiles = vi.fn()
 const mockUpdateSpeakerName = vi.fn()
 const mockDeleteSpeakerProfile = vi.fn()
@@ -39,6 +40,7 @@ vi.mock('../lib/tauri', () => ({
   checkWhisperkitCliInstalled: (...args: unknown[]) => mockCheckWhisperkitCliInstalled(...args),
   installWhisperkitCli: (...args: unknown[]) => mockInstallWhisperkitCli(...args),
   getAppleSttVariant: (...args: unknown[]) => mockGetAppleSttVariant(...args),
+  getPlatformCapabilities: (...args: unknown[]) => mockGetPlatformCapabilities(...args),
   getSpeakerProfiles: (...args: unknown[]) => mockGetSpeakerProfiles(...args),
   updateSpeakerName: (...args: unknown[]) => mockUpdateSpeakerName(...args),
   deleteSpeakerProfile: (...args: unknown[]) => mockDeleteSpeakerProfile(...args),
@@ -105,6 +107,13 @@ describe('SectionVoice', () => {
     mockInstallWhisperkitCli.mockResolvedValue(undefined)
     mockDownloadWhisperkitModel.mockResolvedValue(undefined)
     mockGetAppleSttVariant.mockResolvedValue('default')
+    mockGetPlatformCapabilities.mockResolvedValue({
+      os: 'macos',
+      apple_stt: true,
+      whisperkit: true,
+      speaker_diarization: true,
+      native_permissions: true,
+    })
     mockGetSpeakerProfiles.mockResolvedValue([])
     mockUpdateSpeakerName.mockResolvedValue(undefined)
     mockDeleteSpeakerProfile.mockResolvedValue(undefined)

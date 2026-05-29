@@ -11,13 +11,13 @@ const MAX_OUTPUT_BYTES: usize = 100 * 1024; // 100 KB
 pub fn definition() -> ToolDefinition {
     ToolDefinition {
         name: "bash".to_string(),
-        description: "Fallback shell execution. Prefer using read/write/edit/glob/grep/mkdir/move/remove tools for file operations. Only use bash for non-file tasks like running scripts, git commands, or package managers.".to_string(),
+        description: "Fallback shell execution. Prefer using read/write/edit/glob/grep/mkdir/move/remove tools for file operations. Only use shell commands for non-file tasks like running scripts, git commands, or package managers.".to_string(),
         input_schema: json!({
             "type": "object",
             "properties": {
                 "command": {
                     "type": "string",
-                    "description": "The bash command to execute"
+                    "description": "The shell command to execute"
                 },
                 "timeout_ms": {
                     "type": "integer",
@@ -48,10 +48,27 @@ pub async fn execute(input: &Value, workspace_path: &str) -> ToolResult {
 
     let timeout = std::time::Duration::from_millis(timeout_ms);
 
-    let mut cmd = tokio::process::Command::new("bash");
-    cmd.arg("-c")
-        .arg(command)
-        .current_dir(workspace_path)
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        let mut cmd = tokio::process::Command::new("powershell");
+        cmd.args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            command,
+        ]);
+        cmd
+    };
+
+    #[cfg(not(target_os = "windows"))]
+    let mut cmd = {
+        let mut cmd = tokio::process::Command::new("bash");
+        cmd.arg("-c").arg(command);
+        cmd
+    };
+
+    cmd.current_dir(workspace_path)
         .env("PATH", config::augmented_path())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())

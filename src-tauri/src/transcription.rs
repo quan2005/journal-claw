@@ -162,8 +162,8 @@ impl AsrEngine for ZhipuEngine {
 
 fn create_asr_engine(cfg: &Config) -> Box<dyn AsrEngine> {
     match cfg.asr_engine.as_str() {
-        "apple" => Box::new(AppleSttEngine),
-        "whisperkit" => Box::new(WhisperKitEngine {
+        "apple" if cfg!(target_os = "macos") => Box::new(AppleSttEngine),
+        "whisperkit" if cfg!(target_os = "macos") => Box::new(WhisperKitEngine {
             model: cfg.whisperkit_model.clone(),
         }),
         "siliconflow" => Box::new(SiliconflowEngine {
@@ -1031,7 +1031,7 @@ async fn extract_audio_slice(source: &Path, start: f64, end: f64) -> Result<Path
         end * 1000.0
     ));
 
-    let status = tokio::process::Command::new("ffmpeg")
+    let ffmpeg_status = tokio::process::Command::new("ffmpeg")
         .args([
             "-y",
             "-ss",
@@ -1051,42 +1051,23 @@ async fn extract_audio_slice(source: &Path, start: f64, end: f64) -> Result<Path
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
-        .await
-        .map_err(|e| format!("ffmpeg 切片失败: {}", e))?;
+        .await;
 
-    if !status.success() {
-        // fallback: afconvert (macOS built-in) — convert whole file then trim with hound
-        let wav_tmp = std::env::temp_dir().join(format!(
-            "zhipu_full_{}.wav",
-            source.file_stem().unwrap_or_default().to_string_lossy()
-        ));
-        let af_status = tokio::process::Command::new("afconvert")
-            .args([
-                "-d",
-                "LEI16",
-                "-f",
-                "WAVE",
-                "-c",
-                "1",
-                &source.to_string_lossy(),
-                &wav_tmp.to_string_lossy(),
-            ])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-            .await
-            .map_err(|e| format!("afconvert 失败: {}", e))?;
+    if matches!(ffmpeg_status, Ok(status) if status.success()) {
+        return Ok(tmp);
+    }
 
-        if !af_status.success() {
-            return Err("无法转换音频格式（ffmpeg 和 afconvert 均失败）".to_string());
-        }
-
-        let reader =
-            hound::WavReader::open(&wav_tmp).map_err(|e| format!("读取 WAV 失败: {}", e))?;
+    if source
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("wav"))
+    {
+        let reader = hound::WavReader::open(source).map_err(|e| format!("读取 WAV 失败: {}", e))?;
         let spec = reader.spec();
         let sample_rate = spec.sample_rate as f64;
-        let start_sample = (start * sample_rate) as usize;
-        let end_sample = (end * sample_rate) as usize;
+        let channels = spec.channels as usize;
+        let start_sample = (start * sample_rate) as usize * channels;
+        let end_sample = (end * sample_rate) as usize * channels;
 
         let all_samples: Vec<i16> = reader
             .into_samples::<i16>()
@@ -1106,11 +1087,13 @@ async fn extract_audio_slice(source: &Path, start: f64, end: f64) -> Result<Path
         writer
             .finalize()
             .map_err(|e| format!("完成 WAV 切片失败: {}", e))?;
-
-        let _ = std::fs::remove_file(&wav_tmp);
+        return Ok(tmp);
     }
 
-    Ok(tmp)
+    match ffmpeg_status {
+        Ok(status) => Err(format!("ffmpeg 切片失败: {}", status)),
+        Err(error) => Err(format!("ffmpeg 切片失败: {}", error)),
+    }
 }
 
 async fn transcribe_with_zhipu(
@@ -1281,17 +1264,17 @@ pub async fn transcribe_audio_to_ai_markdown(
     file_path: PathBuf,
     duration_secs: f64,
 ) -> Result<PathBuf, String> {
-    // 前置检查：不兼容的音频编码（如 Opus in m4a）
-    if crate::recordings::is_unsupported_codec(&file_path) {
-        let msg = "不支持的音频编码（Opus），请转换为 AAC 格式后重试".to_string();
-        eprintln!("[transcription] Opus codec detected, rejecting");
-        save_transcript(&app, &file_path, "failed", &msg);
-        return Err(msg);
-    }
-
     // 前置检查：macOS 麦克风 + 语音识别权限
     #[cfg(target_os = "macos")]
     {
+        // Apple/SpeakerKit local tools cannot decode Opus in MP4 containers.
+        if crate::recordings::is_unsupported_codec(&file_path) {
+            let msg = "不支持的音频编码（Opus），请转换为 AAC 格式后重试".to_string();
+            eprintln!("[transcription] Opus codec detected, rejecting");
+            save_transcript(&app, &file_path, "failed", &msg);
+            return Err(msg);
+        }
+
         use crate::permissions::PermStatus;
         let mic = crate::permissions::macos::microphone_status();
         let speech = crate::permissions::macos::speech_recognition_status();
@@ -1314,8 +1297,9 @@ pub async fn transcribe_audio_to_ai_markdown(
         .to_string();
 
     // Step 1: 人声分割对齐（SpeakerKit diarization）
-    emit_progress(&app, &filename, "diarizing");
-    let (speakers, diarize_ok) =
+    #[cfg(target_os = "macos")]
+    let (speakers, diarize_ok) = {
+        emit_progress(&app, &filename, "diarizing");
         match diarize_with_speakerkit(app.clone(), file_path.clone(), duration_secs).await {
             Ok((mut speakers, embeddings)) => {
                 // Step 2: 声纹识别 — 匹配已知档案或注册新说话人
@@ -1337,9 +1321,13 @@ pub async fn transcribe_audio_to_ai_markdown(
                 );
                 (vec![], false)
             }
-        };
+        }
+    };
 
-    // Step 3: ASR 转写（通过 trait 分发到具体引擎，失败时自动降级到 Apple STT）
+    #[cfg(not(target_os = "macos"))]
+    let (speakers, diarize_ok) = (Vec::<SpeakerSegment>::new(), false);
+
+    // Step 3: ASR 转写（通过 trait 分发到具体引擎；Apple fallback 仅存在于 macOS）
     emit_progress(&app, &filename, "transcribing");
     let input = AsrInput {
         app: app.clone(),
@@ -1351,7 +1339,7 @@ pub async fn transcribe_audio_to_ai_markdown(
         let primary_name = engine.name().to_string();
         match engine.transcribe(&input).await {
             Ok(t) => (t, primary_name),
-            Err(e) if primary_name != "apple" => {
+            Err(e) if primary_name != "apple" && cfg!(target_os = "macos") => {
                 eprintln!(
                     "[transcription] engine '{}' failed: {}, falling back to Apple STT",
                     primary_name, e
@@ -1441,73 +1429,82 @@ pub fn compute_stt_timeout(duration_secs: f64) -> Duration {
 ///
 /// 按以下顺序查找，并在全部失败时报告所有已查找路径，方便诊断。
 pub fn find_journal_speech_path(app: &AppHandle) -> Result<PathBuf, String> {
-    // 打包后的二进制名（Tauri 去掉了 target triple 后缀）
-    let bundle_name = "journal-speech";
-    // 开发环境源目录里的文件名（保留 triple，与 externalBin 命名规范一致）
-    let dev_name = if cfg!(target_arch = "aarch64") {
-        "journal-speech-aarch64-apple-darwin"
-    } else {
-        "journal-speech-x86_64-apple-darwin"
-    };
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        return Err("journal-speech 仅支持 macOS".to_string());
+    }
 
-    let mut tried: Vec<PathBuf> = Vec::new();
+    #[cfg(target_os = "macos")]
+    {
+        // 打包后的二进制名（Tauri 去掉了 target triple 后缀）
+        let bundle_name = "journal-speech";
+        // 开发环境源目录里的文件名（保留 triple，与 externalBin 命名规范一致）
+        let dev_name = if cfg!(target_arch = "aarch64") {
+            "journal-speech-aarch64-apple-darwin"
+        } else {
+            "journal-speech-x86_64-apple-darwin"
+        };
 
-    // 1. current_exe().parent() → Contents/MacOS/journal-speech（Tauri v2 标准位置）
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let p = exe_dir.join(bundle_name);
+        let mut tried: Vec<PathBuf> = Vec::new();
+
+        // 1. current_exe().parent() → Contents/MacOS/journal-speech（Tauri v2 标准位置）
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let p = exe_dir.join(bundle_name);
+                if p.exists() {
+                    return Ok(p);
+                }
+                tried.push(p);
+            }
+        }
+
+        // 2. resource_dir()/../MacOS/journal-speech（通过 Tauri 路径 API 推导，同一位置的备用查找）
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            if let Some(contents_dir) = resource_dir.parent() {
+                let p = contents_dir.join("MacOS").join(bundle_name);
+                if p.exists() {
+                    return Ok(p);
+                }
+                tried.push(p);
+            }
+        }
+
+        // 3. 开发环境回退：src-tauri/binaries/（CARGO_MANIFEST_DIR 编译期常量）
+        {
+            let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("binaries")
+                .join(dev_name);
             if p.exists() {
                 return Ok(p);
             }
             tried.push(p);
         }
-    }
 
-    // 2. resource_dir()/../MacOS/journal-speech（通过 Tauri 路径 API 推导，同一位置的备用查找）
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        if let Some(contents_dir) = resource_dir.parent() {
-            let p = contents_dir.join("MacOS").join(bundle_name);
-            if p.exists() {
-                return Ok(p);
-            }
-            tried.push(p);
-        }
-    }
-
-    // 3. 开发环境回退：src-tauri/binaries/（CARGO_MANIFEST_DIR 编译期常量）
-    {
-        let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("binaries")
-            .join(dev_name);
-        if p.exists() {
-            return Ok(p);
-        }
-        tried.push(p);
-    }
-
-    // 4. 系统 PATH
-    if let Ok(output) = std::process::Command::new("/usr/bin/which")
-        .arg(bundle_name)
-        .env("PATH", config::augmented_path())
-        .output()
-    {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !path.is_empty() {
-                return Ok(PathBuf::from(path));
+        // 4. 系统 PATH
+        if let Ok(output) = std::process::Command::new("/usr/bin/which")
+            .arg(bundle_name)
+            .env("PATH", config::augmented_path())
+            .output()
+        {
+            if output.status.success() {
+                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !path.is_empty() {
+                    return Ok(PathBuf::from(path));
+                }
             }
         }
-    }
 
-    let tried_list = tried
-        .iter()
-        .map(|p| format!("  • {}", p.display()))
-        .collect::<Vec<_>>()
-        .join("\n");
-    Err(format!(
-        "未找到 journal-speech，请重新安装应用。\n已查找路径：\n{}",
-        tried_list
-    ))
+        let tried_list = tried
+            .iter()
+            .map(|p| format!("  • {}", p.display()))
+            .collect::<Vec<_>>()
+            .join("\n");
+        Err(format!(
+            "未找到 journal-speech，请重新安装应用。\n已查找路径：\n{}",
+            tried_list
+        ))
+    }
 }
 
 /// Apple STT 转写：调用 journal-speech transcribe sidecar。
@@ -1516,583 +1513,169 @@ pub async fn transcribe_with_apple_stt(
     file_path: PathBuf,
     duration_secs: f64,
 ) -> Result<Transcript, String> {
-    let filename = file_path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-
-    let cli_path = find_journal_speech_path(&app).inspect_err(|e| {
-        save_transcript(&app, &file_path, "failed", e);
-    })?;
-
-    // 推送 "transcribing" 状态
-    emit_progress(&app, &filename, "transcribing");
-
-    let mut cmd = Command::new(&cli_path);
-    cmd.args([
-        "transcribe",
-        "--audio",
-        file_path.to_str().unwrap_or(""),
-        "--language",
-        "zh-CN",
-    ]);
-
-    use std::process::Stdio;
-    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    let mut child = cmd.spawn().map_err(|e| {
-        let msg = format!("启动 journal-speech 失败: {}", e);
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = duration_secs;
+        let msg = "Apple 语音识别仅支持 macOS".to_string();
         save_transcript(&app, &file_path, "failed", &msg);
-        msg
-    })?;
+        return Err(msg);
+    }
 
-    // 流式读取 stderr 日志，同时累积用于错误报告
-    let stderr_lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
-    let stderr_handle = if let Some(stderr) = child.stderr.take() {
-        let app_clone = app.clone();
-        let fname = filename.clone();
-        let lines_clone = std::sync::Arc::clone(&stderr_lines);
-        Some(tokio::spawn(async move {
-            let mut reader = BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = reader.next_line().await {
-                if line.trim().is_empty() {
-                    continue;
+    #[cfg(target_os = "macos")]
+    {
+        let filename = file_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        let cli_path = find_journal_speech_path(&app).inspect_err(|e| {
+            save_transcript(&app, &file_path, "failed", e);
+        })?;
+
+        // 推送 "transcribing" 状态
+        emit_progress(&app, &filename, "transcribing");
+
+        let mut cmd = Command::new(&cli_path);
+        cmd.args([
+            "transcribe",
+            "--audio",
+            file_path.to_str().unwrap_or(""),
+            "--language",
+            "zh-CN",
+        ]);
+
+        use std::process::Stdio;
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+        let mut child = cmd.spawn().map_err(|e| {
+            let msg = format!("启动 journal-speech 失败: {}", e);
+            save_transcript(&app, &file_path, "failed", &msg);
+            msg
+        })?;
+
+        // 流式读取 stderr 日志，同时累积用于错误报告
+        let stderr_lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let stderr_handle = if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            let fname = filename.clone();
+            let lines_clone = std::sync::Arc::clone(&stderr_lines);
+            Some(tokio::spawn(async move {
+                let mut reader = BufReader::new(stderr).lines();
+                while let Ok(Some(line)) = reader.next_line().await {
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    if let Ok(mut v) = lines_clone.lock() {
+                        v.push(line.trim().to_string());
+                    }
+                    let _ = app_clone.emit(
+                        "transcription-progress",
+                        serde_json::json!({
+                            "filename": fname,
+                            "status": "transcribing",
+                            "message": line.trim(),
+                        }),
+                    );
                 }
-                if let Ok(mut v) = lines_clone.lock() {
-                    v.push(line.trim().to_string());
+            }))
+        } else {
+            None
+        };
+        // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
+        let timeout = compute_stt_timeout(duration_secs);
+        let stdout_bytes = if let Some(stdout) = child.stdout.take() {
+            let mut reader = BufReader::new(stdout);
+            let mut buf = String::new();
+            use tokio::io::AsyncReadExt;
+            match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
+                Ok(Ok(_)) => buf,
+                Ok(Err(_)) => String::new(),
+                Err(_) => {
+                    // stdout 读取超时，杀掉子进程
+                    let _ = child.kill().await;
+                    if let Some(h) = stderr_handle {
+                        let _ = h.await;
+                    }
+                    let msg = format!(
+                        "Apple STT 转写超时（{}秒），stdout 读取阻塞，已终止进程",
+                        timeout.as_secs()
+                    );
+                    save_transcript(&app, &file_path, "failed", &msg);
+                    return Err(msg);
                 }
-                let _ = app_clone.emit(
-                    "transcription-progress",
-                    serde_json::json!({
-                        "filename": fname,
-                        "status": "transcribing",
-                        "message": line.trim(),
-                    }),
-                );
             }
-        }))
-    } else {
-        None
-    };
-    // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
-    let timeout = compute_stt_timeout(duration_secs);
-    let stdout_bytes = if let Some(stdout) = child.stdout.take() {
-        let mut reader = BufReader::new(stdout);
-        let mut buf = String::new();
-        use tokio::io::AsyncReadExt;
-        match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
-            Ok(Ok(_)) => buf,
-            Ok(Err(_)) => String::new(),
-            Err(_) => {
-                // stdout 读取超时，杀掉子进程
-                let _ = child.kill().await;
-                if let Some(h) = stderr_handle {
-                    let _ = h.await;
-                }
-                let msg = format!(
-                    "Apple STT 转写超时（{}秒），stdout 读取阻塞，已终止进程",
-                    timeout.as_secs()
-                );
+        } else {
+            String::new()
+        };
+
+        // 等待子进程退出（带超时）
+        let wait_result = tokio::time::timeout(timeout, child.wait()).await;
+
+        // 清理 stderr reader
+        if let Some(h) = stderr_handle {
+            let _ = h.await;
+        }
+
+        let status = match wait_result {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => {
+                let msg = format!("等待 journal-speech 进程失败: {}", e);
                 save_transcript(&app, &file_path, "failed", &msg);
                 return Err(msg);
             }
-        }
-    } else {
-        String::new()
-    };
-
-    // 等待子进程退出（带超时）
-    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
-
-    // 清理 stderr reader
-    if let Some(h) = stderr_handle {
-        let _ = h.await;
-    }
-
-    let status = match wait_result {
-        Ok(Ok(s)) => s,
-        Ok(Err(e)) => {
-            let msg = format!("等待 journal-speech 进程失败: {}", e);
-            save_transcript(&app, &file_path, "failed", &msg);
-            return Err(msg);
-        }
-        Err(_) => {
-            // 超时：终止子进程
-            let msg = format!("Apple STT 转写超时（{}秒），已终止进程", timeout.as_secs());
-            save_transcript(&app, &file_path, "failed", &msg);
-            return Err(msg);
-        }
-    };
-
-    if !status.success() {
-        // 优先从 stdout JSON 解析错误，其次用累积的 stderr 行
-        let stderr_summary = stderr_lines
-            .lock()
-            .ok()
-            .map(|v| v.join("; "))
-            .filter(|s| !s.is_empty());
-        let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
-            .ok()
-            .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
-            .or(stderr_summary)
-            .unwrap_or_else(|| "journal-speech 转写失败".to_string());
-        save_transcript(&app, &file_path, "failed", &error_msg);
-        return Err(error_msg);
-    }
-
-    // 解析 JSON stdout 为 Transcript
-    let parsed: serde_json::Value = serde_json::from_str(&stdout_bytes).map_err(|e| {
-        let msg = format!("解析 journal-speech 输出失败: {}", e);
-        save_transcript(&app, &file_path, "failed", &msg);
-        msg
-    })?;
-
-    // 检查 CLI 返回的 status 字段
-    let cli_status = parsed
-        .get("status")
-        .and_then(|v| v.as_str())
-        .unwrap_or("unknown");
-    if cli_status == "failed" {
-        let error_msg = parsed
-            .get("error")
-            .and_then(|v| v.as_str())
-            .unwrap_or("未知错误")
-            .to_string();
-        save_transcript(&app, &file_path, "failed", &error_msg);
-        return Err(error_msg);
-    }
-
-    let text = parsed
-        .get("text")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-
-    let segments: Vec<WhisperSegment> = parsed
-        .get("segments")
-        .and_then(|s| s.as_array())
-        .map(|arr| {
-            arr.iter()
-                .map(|item| WhisperSegment {
-                    speaker: item
-                        .get("speaker")
-                        .and_then(|v| v.as_str())
-                        .map(String::from),
-                    start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                    end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                    text: item
-                        .get("text")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string(),
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let engine = parsed
-        .get("engine")
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    // SFSpeechRecognizer 返回词级别 segments，合并为句子级别
-    let merged_segments = merge_word_segments_to_sentences(&segments);
-    // 用合并后的句子文本替换原始 text（带标点）
-    let merged_text = merged_segments
-        .iter()
-        .map(|s| s.text.as_str())
-        .collect::<Vec<_>>()
-        .join("");
-
-    let transcript = Transcript {
-        status: "completed".to_string(),
-        text: if merged_segments.is_empty() {
-            text
-        } else {
-            merged_text
-        },
-        segments: merged_segments,
-        engine,
-    };
-
-    save_transcript_data(&file_path, &transcript);
-    emit_progress(&app, &filename, "completed");
-
-    Ok(transcript)
-}
-
-/// SpeakerKit 说话人分离：调用 journal-speech diarize sidecar。
-/// 返回 (segments, embeddings)，embeddings 可能为空 map（旧版 CLI 或失败时）。
-pub async fn diarize_with_speakerkit(
-    app: AppHandle,
-    file_path: PathBuf,
-    duration_secs: f64,
-) -> Result<(Vec<SpeakerSegment>, HashMap<String, Vec<f32>>), String> {
-    let filename = file_path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-
-    let cli_path = find_journal_speech_path(&app)?;
-
-    // 推送 "diarizing" 状态
-    emit_progress(&app, &filename, "diarizing");
-
-    let mut cmd = Command::new(&cli_path);
-    cmd.args(["diarize", "--audio", file_path.to_str().unwrap_or("")]);
-
-    // Pass model folder explicitly so Swift CLI can find models in dev mode
-    // (Tauri dev copies sidecar to target/debug/, breaking relative path resolution)
-    let model_candidates = [
-        // Packaged .app: Contents/MacOS/../Resources/resources/speakerkit-models
-        cli_path
-            .parent()
-            .and_then(|d| d.parent())
-            .map(|p| p.join("Resources/resources/speakerkit-models")),
-        // Dev: binary dir/../resources/speakerkit-models
-        cli_path
-            .parent()
-            .map(|d| d.join("../resources/speakerkit-models")),
-        // Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
-        Some(
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("resources/speakerkit-models"),
-        ),
-    ];
-    if let Some(folder) = model_candidates.into_iter().flatten().find(|p| p.exists()) {
-        if let Some(s) = folder
-            .canonicalize()
-            .ok()
-            .and_then(|p| p.to_str().map(String::from))
-        {
-            cmd.args(["--model-folder", &s]);
-        }
-    }
-
-    use std::process::Stdio;
-    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("启动 journal-speech diarize 失败: {}", e))?;
-
-    // 流式读取 stderr 日志，同时累积用于错误报告
-    let diarize_stderr_lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
-    let stderr_handle = if let Some(stderr) = child.stderr.take() {
-        let app_clone = app.clone();
-        let fname = filename.clone();
-        let lines_clone = std::sync::Arc::clone(&diarize_stderr_lines);
-        Some(tokio::spawn(async move {
-            let mut reader = BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = reader.next_line().await {
-                if line.trim().is_empty() {
-                    continue;
-                }
-                if let Ok(mut v) = lines_clone.lock() {
-                    v.push(line.trim().to_string());
-                }
-                let _ = app_clone.emit(
-                    "transcription-progress",
-                    serde_json::json!({
-                        "filename": fname,
-                        "status": "diarizing",
-                        "message": line.trim(),
-                    }),
-                );
-            }
-        }))
-    } else {
-        None
-    };
-
-    // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
-    let timeout = compute_stt_timeout(duration_secs);
-    let stdout_bytes = if let Some(stdout) = child.stdout.take() {
-        let mut reader = BufReader::new(stdout);
-        let mut buf = String::new();
-        use tokio::io::AsyncReadExt;
-        match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
-            Ok(Ok(_)) => buf,
-            Ok(Err(_)) => String::new(),
             Err(_) => {
-                let _ = child.kill().await;
-                if let Some(h) = stderr_handle {
-                    let _ = h.await;
-                }
-                return Err(format!(
-                    "SpeakerKit diarize 超时（{}秒），已终止进程",
-                    timeout.as_secs()
-                ));
+                // 超时：终止子进程
+                let msg = format!("Apple STT 转写超时（{}秒），已终止进程", timeout.as_secs());
+                save_transcript(&app, &file_path, "failed", &msg);
+                return Err(msg);
             }
+        };
+
+        if !status.success() {
+            // 优先从 stdout JSON 解析错误，其次用累积的 stderr 行
+            let stderr_summary = stderr_lines
+                .lock()
+                .ok()
+                .map(|v| v.join("; "))
+                .filter(|s| !s.is_empty());
+            let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
+                .ok()
+                .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+                .or(stderr_summary)
+                .unwrap_or_else(|| "journal-speech 转写失败".to_string());
+            save_transcript(&app, &file_path, "failed", &error_msg);
+            return Err(error_msg);
         }
-    } else {
-        String::new()
-    };
 
-    // 等待子进程退出（带超时）
-    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
-
-    // 清理 stderr reader
-    if let Some(h) = stderr_handle {
-        let _ = h.await;
-    }
-
-    let status = match wait_result {
-        Ok(Ok(s)) => s,
-        Ok(Err(e)) => {
-            return Err(format!("等待 journal-speech diarize 进程失败: {}", e));
-        }
-        Err(_) => {
-            return Err(format!(
-                "SpeakerKit 说话人分离超时（{}秒），已终止进程",
-                timeout.as_secs()
-            ));
-        }
-    };
-
-    if !status.success() {
-        let stderr_summary = diarize_stderr_lines
-            .lock()
-            .ok()
-            .map(|v| v.join("; "))
-            .filter(|s| !s.is_empty());
-        let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
-            .ok()
-            .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
-            .or(stderr_summary)
-            .unwrap_or_else(|| "journal-speech diarize 失败".to_string());
-        return Err(error_msg);
-    }
-
-    // 解析 JSON stdout
-    let parsed: serde_json::Value = serde_json::from_str(&stdout_bytes)
-        .map_err(|e| format!("解析 journal-speech diarize 输出失败: {}", e))?;
-
-    // 检查 CLI 返回的 status 字段
-    let cli_status = parsed
-        .get("status")
-        .and_then(|v| v.as_str())
-        .unwrap_or("unknown");
-    if cli_status == "failed" {
-        let error_msg = parsed
-            .get("error")
-            .and_then(|v| v.as_str())
-            .unwrap_or("未知错误")
-            .to_string();
-        return Err(error_msg);
-    }
-
-    // 解析 speakers 数组为 Vec<SpeakerSegment>
-    let speakers: Vec<SpeakerSegment> = parsed
-        .get("speakers")
-        .and_then(|s| s.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|item| {
-                    Some(SpeakerSegment {
-                        label: item.get("label").and_then(|v| v.as_str())?.to_string(),
-                        start: item.get("start").and_then(|v| v.as_f64())?,
-                        end: item.get("end").and_then(|v| v.as_f64())?,
-                    })
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-
-    // 解析声纹嵌入向量（新版 CLI 才有；旧版返回 null 或缺失时忽略）
-    let has_embeddings_key = parsed.get("embeddings").is_some();
-    let embeddings: HashMap<String, Vec<f32>> = parsed
-        .get("embeddings")
-        .and_then(|v| v.as_object())
-        .map(|obj| {
-            obj.iter()
-                .filter_map(|(label, arr)| {
-                    let vec: Vec<f32> = arr
-                        .as_array()?
-                        .iter()
-                        .filter_map(|x| x.as_f64().map(|f| f as f32))
-                        .collect();
-                    if vec.is_empty() {
-                        None
-                    } else {
-                        Some((label.clone(), vec))
-                    }
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-    eprintln!(
-        "[speaker_profiles] CLI output: {} speakers, embeddings key={}, parsed {} embeddings",
-        speakers.len(),
-        has_embeddings_key,
-        embeddings.len(),
-    );
-    if !has_embeddings_key {
-        eprintln!("[speaker_profiles] WARNING: no embeddings in CLI output. Swift CLI may not have SpeakerEmbedder model loaded.");
-    }
-
-    Ok((speakers, embeddings))
-}
-
-/// WhisperKit 转录：调用 whisperkit-cli sidecar，返回格式化 markdown 文本。
-/// 同时将 diarized transcript 写入 sidecar 文件（供 UI 展示）。
-pub async fn transcribe_with_whisperkit(
-    app: AppHandle,
-    file_path: PathBuf,
-    model: String,
-) -> Result<Transcript, String> {
-    let filename = file_path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-
-    // 模型缓存目录：app_data_dir/whisperkit-models/
-    let model_cache_dir = config::whisperkit_models_dir(&app)?;
-    let _ = std::fs::create_dir_all(&model_cache_dir);
-
-    let cli_path = match config::find_whisperkit_cli_path() {
-        Some(path) => path,
-        None => {
-            let message =
-                "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
-            save_transcript(&app, &file_path, "failed", &message);
-            return Err(message);
-        }
-    };
-
-    let _ = app.emit(
-        "transcription-progress",
-        serde_json::json!({
-            "filename": filename, "status": "transcribing"
-        }),
-    );
-
-    // 优先复用内置或已下载的模型目录；只有本机和应用资源里都不存在时才触发下载。
-    let model_dir = config::find_whisperkit_model_dir(&app, &model);
-    let cli_model = config::whisperkit_cli_model_name(&model);
-
-    let mut cmd = Command::new(&cli_path);
-    cmd.args([
-        "transcribe",
-        "--audio-path",
-        file_path.to_str().unwrap_or(""),
-        "--diarization",
-        "--verbose",
-        "--language",
-        "zh",
-    ]);
-    if let Some(ref dir) = model_dir {
-        cmd.args(["--model-path", dir.to_str().unwrap_or("")]);
-    } else {
-        cmd.args([
-            "--download-model-path",
-            model_cache_dir.to_str().unwrap_or(""),
-            "--download-tokenizer-path",
-            model_cache_dir.to_str().unwrap_or(""),
-            "--model",
-            &cli_model,
-        ]);
-    }
-
-    cmd.env("HF_ENDPOINT", "https://hf-mirror.com");
-    use std::process::Stdio;
-    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
-
-    // 流式读取 stderr（whisperkit-cli 的进度/日志输出在 stderr）
-    let stderr_handle = if let Some(stderr) = child.stderr.take() {
-        let app_clone = app.clone();
-        let fname = filename.clone();
-        Some(tokio::spawn(async move {
-            let mut reader = BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = reader.next_line().await {
-                // whisperkit-cli 下载进度行格式举例：
-                //   "Downloading model: 45.2 MB / 147.0 MB"
-                //   "Initializing models..."
-                //   "Starting transcription process..."
-                let msg = if line.contains("Downloading") || line.contains("MB") {
-                    line.clone()
-                } else if line.contains("Initializing") {
-                    "正在初始化模型…".to_string()
-                } else if line.contains("Starting transcription") {
-                    "正在转录…".to_string()
-                } else {
-                    continue;
-                };
-                let _ = app_clone.emit(
-                    "transcription-progress",
-                    serde_json::json!({
-                        "filename": fname, "status": "transcribing", "message": msg
-                    }),
-                );
-            }
-        }))
-    } else {
-        None
-    };
-
-    // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
-    let timeout = std::time::Duration::from_secs(1800); // whisperkit 首次需编译模型，给 30 分钟
-    let stdout_bytes = if let Some(stdout) = child.stdout.take() {
-        let mut reader = BufReader::new(stdout);
-        let mut buf = String::new();
-        use tokio::io::AsyncReadExt;
-        match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
-            Ok(Ok(_)) => buf,
-            Ok(Err(_)) => String::new(),
-            Err(_) => {
-                let _ = child.kill().await;
-                if let Some(h) = stderr_handle {
-                    let _ = h.await;
-                }
-                save_transcript(
-                    &app,
-                    &file_path,
-                    "failed",
-                    "WhisperKit 转录超时（1800秒），已终止进程",
-                );
-                return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
-            }
-        }
-    } else {
-        String::new()
-    };
-
-    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
-    if let Some(h) = stderr_handle {
-        let _ = h.await;
-    }
-
-    let status = match wait_result {
-        Ok(Ok(s)) => s,
-        Ok(Err(e)) => {
-            let msg = format!("等待 whisperkit-cli 进程失败: {}", e);
+        // 解析 JSON stdout 为 Transcript
+        let parsed: serde_json::Value = serde_json::from_str(&stdout_bytes).map_err(|e| {
+            let msg = format!("解析 journal-speech 输出失败: {}", e);
             save_transcript(&app, &file_path, "failed", &msg);
-            return Err(msg);
-        }
-        Err(_) => {
-            let _ = child.kill().await;
-            save_transcript(
-                &app,
-                &file_path,
-                "failed",
-                "WhisperKit 转录超时（1800秒），已终止进程",
-            );
-            return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
-        }
-    };
+            msg
+        })?;
 
-    if !status.success() {
-        save_transcript(&app, &file_path, "failed", "whisperkit 转录失败");
-        return Err("whisperkit-cli 退出码非零".to_string());
-    }
+        // 检查 CLI 返回的 status 字段
+        let cli_status = parsed
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        if cli_status == "failed" {
+            let error_msg = parsed
+                .get("error")
+                .and_then(|v| v.as_str())
+                .unwrap_or("未知错误")
+                .to_string();
+            save_transcript(&app, &file_path, "failed", &error_msg);
+            return Err(error_msg);
+        }
 
-    let transcript = if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&stdout_bytes) {
+        let text = parsed
+            .get("text")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
         let segments: Vec<WhisperSegment> = parsed
             .get("segments")
             .and_then(|s| s.as_array())
@@ -2114,32 +1697,478 @@ pub async fn transcribe_with_whisperkit(
                     .collect()
             })
             .unwrap_or_default();
-        let text = segments
+
+        let engine = parsed
+            .get("engine")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+
+        // SFSpeechRecognizer 返回词级别 segments，合并为句子级别
+        let merged_segments = merge_word_segments_to_sentences(&segments);
+        // 用合并后的句子文本替换原始 text（带标点）
+        let merged_text = merged_segments
             .iter()
-            .map(|segment| segment.text.trim())
+            .map(|s| s.text.as_str())
             .collect::<Vec<_>>()
-            .join(" ");
-        Transcript {
+            .join("");
+
+        let transcript = Transcript {
             status: "completed".to_string(),
-            text,
-            segments,
-            engine: Some("whisperkit".to_string()),
+            text: if merged_segments.is_empty() {
+                text
+            } else {
+                merged_text
+            },
+            segments: merged_segments,
+            engine,
+        };
+
+        save_transcript_data(&file_path, &transcript);
+        emit_progress(&app, &filename, "completed");
+
+        Ok(transcript)
+    }
+}
+
+/// SpeakerKit 说话人分离：调用 journal-speech diarize sidecar。
+/// 返回 (segments, embeddings)，embeddings 可能为空 map（旧版 CLI 或失败时）。
+pub async fn diarize_with_speakerkit(
+    app: AppHandle,
+    file_path: PathBuf,
+    duration_secs: f64,
+) -> Result<(Vec<SpeakerSegment>, HashMap<String, Vec<f32>>), String> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, file_path, duration_secs);
+        return Err("SpeakerKit 说话人分离仅支持 macOS".to_string());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let filename = file_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        let cli_path = find_journal_speech_path(&app)?;
+
+        // 推送 "diarizing" 状态
+        emit_progress(&app, &filename, "diarizing");
+
+        let mut cmd = Command::new(&cli_path);
+        cmd.args(["diarize", "--audio", file_path.to_str().unwrap_or("")]);
+
+        // Pass model folder explicitly so Swift CLI can find models in dev mode
+        // (Tauri dev copies sidecar to target/debug/, breaking relative path resolution)
+        let model_candidates = [
+            // Packaged .app: Contents/MacOS/../Resources/resources/speakerkit-models
+            cli_path
+                .parent()
+                .and_then(|d| d.parent())
+                .map(|p| p.join("Resources/resources/speakerkit-models")),
+            // Dev: binary dir/../resources/speakerkit-models
+            cli_path
+                .parent()
+                .map(|d| d.join("../resources/speakerkit-models")),
+            // Dev fallback: CARGO_MANIFEST_DIR/resources/speakerkit-models
+            Some(
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("resources/speakerkit-models"),
+            ),
+        ];
+        if let Some(folder) = model_candidates.into_iter().flatten().find(|p| p.exists()) {
+            if let Some(s) = folder
+                .canonicalize()
+                .ok()
+                .and_then(|p| p.to_str().map(String::from))
+            {
+                cmd.args(["--model-folder", &s]);
+            }
         }
-    } else {
-        let mut t = parse_whisperkit_stdout(&stdout_bytes);
-        t.engine = Some("whisperkit".to_string());
-        t
-    };
-    save_transcript_data(&file_path, &transcript);
 
-    let _ = app.emit(
-        "transcription-progress",
-        serde_json::json!({
-            "filename": filename, "status": "completed"
-        }),
-    );
+        use std::process::Stdio;
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    Ok(transcript)
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("启动 journal-speech diarize 失败: {}", e))?;
+
+        // 流式读取 stderr 日志，同时累积用于错误报告
+        let diarize_stderr_lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let stderr_handle = if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            let fname = filename.clone();
+            let lines_clone = std::sync::Arc::clone(&diarize_stderr_lines);
+            Some(tokio::spawn(async move {
+                let mut reader = BufReader::new(stderr).lines();
+                while let Ok(Some(line)) = reader.next_line().await {
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    if let Ok(mut v) = lines_clone.lock() {
+                        v.push(line.trim().to_string());
+                    }
+                    let _ = app_clone.emit(
+                        "transcription-progress",
+                        serde_json::json!({
+                            "filename": fname,
+                            "status": "diarizing",
+                            "message": line.trim(),
+                        }),
+                    );
+                }
+            }))
+        } else {
+            None
+        };
+
+        // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
+        let timeout = compute_stt_timeout(duration_secs);
+        let stdout_bytes = if let Some(stdout) = child.stdout.take() {
+            let mut reader = BufReader::new(stdout);
+            let mut buf = String::new();
+            use tokio::io::AsyncReadExt;
+            match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
+                Ok(Ok(_)) => buf,
+                Ok(Err(_)) => String::new(),
+                Err(_) => {
+                    let _ = child.kill().await;
+                    if let Some(h) = stderr_handle {
+                        let _ = h.await;
+                    }
+                    return Err(format!(
+                        "SpeakerKit diarize 超时（{}秒），已终止进程",
+                        timeout.as_secs()
+                    ));
+                }
+            }
+        } else {
+            String::new()
+        };
+
+        // 等待子进程退出（带超时）
+        let wait_result = tokio::time::timeout(timeout, child.wait()).await;
+
+        // 清理 stderr reader
+        if let Some(h) = stderr_handle {
+            let _ = h.await;
+        }
+
+        let status = match wait_result {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => {
+                return Err(format!("等待 journal-speech diarize 进程失败: {}", e));
+            }
+            Err(_) => {
+                return Err(format!(
+                    "SpeakerKit 说话人分离超时（{}秒），已终止进程",
+                    timeout.as_secs()
+                ));
+            }
+        };
+
+        if !status.success() {
+            let stderr_summary = diarize_stderr_lines
+                .lock()
+                .ok()
+                .map(|v| v.join("; "))
+                .filter(|s| !s.is_empty());
+            let error_msg = serde_json::from_str::<serde_json::Value>(&stdout_bytes)
+                .ok()
+                .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+                .or(stderr_summary)
+                .unwrap_or_else(|| "journal-speech diarize 失败".to_string());
+            return Err(error_msg);
+        }
+
+        // 解析 JSON stdout
+        let parsed: serde_json::Value = serde_json::from_str(&stdout_bytes)
+            .map_err(|e| format!("解析 journal-speech diarize 输出失败: {}", e))?;
+
+        // 检查 CLI 返回的 status 字段
+        let cli_status = parsed
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        if cli_status == "failed" {
+            let error_msg = parsed
+                .get("error")
+                .and_then(|v| v.as_str())
+                .unwrap_or("未知错误")
+                .to_string();
+            return Err(error_msg);
+        }
+
+        // 解析 speakers 数组为 Vec<SpeakerSegment>
+        let speakers: Vec<SpeakerSegment> = parsed
+            .get("speakers")
+            .and_then(|s| s.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|item| {
+                        Some(SpeakerSegment {
+                            label: item.get("label").and_then(|v| v.as_str())?.to_string(),
+                            start: item.get("start").and_then(|v| v.as_f64())?,
+                            end: item.get("end").and_then(|v| v.as_f64())?,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        // 解析声纹嵌入向量（新版 CLI 才有；旧版返回 null 或缺失时忽略）
+        let has_embeddings_key = parsed.get("embeddings").is_some();
+        let embeddings: HashMap<String, Vec<f32>> = parsed
+            .get("embeddings")
+            .and_then(|v| v.as_object())
+            .map(|obj| {
+                obj.iter()
+                    .filter_map(|(label, arr)| {
+                        let vec: Vec<f32> = arr
+                            .as_array()?
+                            .iter()
+                            .filter_map(|x| x.as_f64().map(|f| f as f32))
+                            .collect();
+                        if vec.is_empty() {
+                            None
+                        } else {
+                            Some((label.clone(), vec))
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        eprintln!(
+            "[speaker_profiles] CLI output: {} speakers, embeddings key={}, parsed {} embeddings",
+            speakers.len(),
+            has_embeddings_key,
+            embeddings.len(),
+        );
+        if !has_embeddings_key {
+            eprintln!("[speaker_profiles] WARNING: no embeddings in CLI output. Swift CLI may not have SpeakerEmbedder model loaded.");
+        }
+
+        Ok((speakers, embeddings))
+    }
+}
+
+/// WhisperKit 转录：调用 whisperkit-cli sidecar，返回格式化 markdown 文本。
+/// 同时将 diarized transcript 写入 sidecar 文件（供 UI 展示）。
+pub async fn transcribe_with_whisperkit(
+    app: AppHandle,
+    file_path: PathBuf,
+    model: String,
+) -> Result<Transcript, String> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = model;
+        let msg = "WhisperKit 仅支持 macOS".to_string();
+        save_transcript(&app, &file_path, "failed", &msg);
+        return Err(msg);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let filename = file_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        // 模型缓存目录：app_data_dir/whisperkit-models/
+        let model_cache_dir = config::whisperkit_models_dir(&app)?;
+        let _ = std::fs::create_dir_all(&model_cache_dir);
+
+        let cli_path = match config::find_whisperkit_cli_path() {
+            Some(path) => path,
+            None => {
+                let message =
+                    "未找到 whisperkit-cli，请先安装：brew install whisperkit-cli".to_string();
+                save_transcript(&app, &file_path, "failed", &message);
+                return Err(message);
+            }
+        };
+
+        let _ = app.emit(
+            "transcription-progress",
+            serde_json::json!({
+                "filename": filename, "status": "transcribing"
+            }),
+        );
+
+        // 优先复用内置或已下载的模型目录；只有本机和应用资源里都不存在时才触发下载。
+        let model_dir = config::find_whisperkit_model_dir(&app, &model);
+        let cli_model = config::whisperkit_cli_model_name(&model);
+
+        let mut cmd = Command::new(&cli_path);
+        cmd.args([
+            "transcribe",
+            "--audio-path",
+            file_path.to_str().unwrap_or(""),
+            "--diarization",
+            "--verbose",
+            "--language",
+            "zh",
+        ]);
+        if let Some(ref dir) = model_dir {
+            cmd.args(["--model-path", dir.to_str().unwrap_or("")]);
+        } else {
+            cmd.args([
+                "--download-model-path",
+                model_cache_dir.to_str().unwrap_or(""),
+                "--download-tokenizer-path",
+                model_cache_dir.to_str().unwrap_or(""),
+                "--model",
+                &cli_model,
+            ]);
+        }
+
+        cmd.env("HF_ENDPOINT", "https://hf-mirror.com");
+        use std::process::Stdio;
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("启动 whisperkit-cli 失败: {}", e))?;
+
+        // 流式读取 stderr（whisperkit-cli 的进度/日志输出在 stderr）
+        let stderr_handle = if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            let fname = filename.clone();
+            Some(tokio::spawn(async move {
+                let mut reader = BufReader::new(stderr).lines();
+                while let Ok(Some(line)) = reader.next_line().await {
+                    // whisperkit-cli 下载进度行格式举例：
+                    //   "Downloading model: 45.2 MB / 147.0 MB"
+                    //   "Initializing models..."
+                    //   "Starting transcription process..."
+                    let msg = if line.contains("Downloading") || line.contains("MB") {
+                        line.clone()
+                    } else if line.contains("Initializing") {
+                        "正在初始化模型…".to_string()
+                    } else if line.contains("Starting transcription") {
+                        "正在转录…".to_string()
+                    } else {
+                        continue;
+                    };
+                    let _ = app_clone.emit(
+                        "transcription-progress",
+                        serde_json::json!({
+                            "filename": fname, "status": "transcribing", "message": msg
+                        }),
+                    );
+                }
+            }))
+        } else {
+            None
+        };
+
+        // 收集 stdout（带超时，防止子进程卡死导致无限阻塞）
+        let timeout = std::time::Duration::from_secs(1800); // whisperkit 首次需编译模型，给 30 分钟
+        let stdout_bytes = if let Some(stdout) = child.stdout.take() {
+            let mut reader = BufReader::new(stdout);
+            let mut buf = String::new();
+            use tokio::io::AsyncReadExt;
+            match tokio::time::timeout(timeout, reader.read_to_string(&mut buf)).await {
+                Ok(Ok(_)) => buf,
+                Ok(Err(_)) => String::new(),
+                Err(_) => {
+                    let _ = child.kill().await;
+                    if let Some(h) = stderr_handle {
+                        let _ = h.await;
+                    }
+                    save_transcript(
+                        &app,
+                        &file_path,
+                        "failed",
+                        "WhisperKit 转录超时（1800秒），已终止进程",
+                    );
+                    return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
+                }
+            }
+        } else {
+            String::new()
+        };
+
+        let wait_result = tokio::time::timeout(timeout, child.wait()).await;
+        if let Some(h) = stderr_handle {
+            let _ = h.await;
+        }
+
+        let status = match wait_result {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => {
+                let msg = format!("等待 whisperkit-cli 进程失败: {}", e);
+                save_transcript(&app, &file_path, "failed", &msg);
+                return Err(msg);
+            }
+            Err(_) => {
+                let _ = child.kill().await;
+                save_transcript(
+                    &app,
+                    &file_path,
+                    "failed",
+                    "WhisperKit 转录超时（1800秒），已终止进程",
+                );
+                return Err("WhisperKit 转录超时（1800秒），已终止进程".to_string());
+            }
+        };
+
+        if !status.success() {
+            save_transcript(&app, &file_path, "failed", "whisperkit 转录失败");
+            return Err("whisperkit-cli 退出码非零".to_string());
+        }
+
+        let transcript =
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&stdout_bytes) {
+                let segments: Vec<WhisperSegment> = parsed
+                    .get("segments")
+                    .and_then(|s| s.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .map(|item| WhisperSegment {
+                                speaker: item
+                                    .get("speaker")
+                                    .and_then(|v| v.as_str())
+                                    .map(String::from),
+                                start: item.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                                end: item.get("end").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                                text: item
+                                    .get("text")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("")
+                                    .to_string(),
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let text = segments
+                    .iter()
+                    .map(|segment| segment.text.trim())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                Transcript {
+                    status: "completed".to_string(),
+                    text,
+                    segments,
+                    engine: Some("whisperkit".to_string()),
+                }
+            } else {
+                let mut t = parse_whisperkit_stdout(&stdout_bytes);
+                t.engine = Some("whisperkit".to_string());
+                t
+            };
+        save_transcript_data(&file_path, &transcript);
+
+        let _ = app.emit(
+            "transcription-progress",
+            serde_json::json!({
+                "filename": filename, "status": "completed"
+            }),
+        );
+
+        Ok(transcript)
+    }
 }
 
 #[tauri::command]

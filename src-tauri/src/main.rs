@@ -1,6 +1,5 @@
 mod ai_processor;
 mod audio_pipeline;
-mod onboarding;
 #[allow(dead_code)]
 mod audio_process;
 mod auto_lint;
@@ -13,7 +12,9 @@ mod journal;
 mod llm;
 mod materials;
 mod mdx;
+mod onboarding;
 mod permissions;
+mod platform;
 mod recorder;
 mod recordings;
 mod skills;
@@ -39,11 +40,7 @@ const MENU_QUIT_ID: &str = "quit";
 
 #[tauri::command]
 fn open_with_system(path: String) -> Result<(), String> {
-    std::process::Command::new("open")
-        .arg(&path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    platform::open_with_system(&path)
 }
 
 fn save_main_window_state(app: &AppHandle) {
@@ -291,6 +288,7 @@ fn main() {
             config::get_engine_config,
             config::set_engine_config,
             config::get_app_version,
+            config::get_platform_capabilities,
             config::get_asr_config,
             config::set_asr_config,
             config::get_apple_stt_variant,

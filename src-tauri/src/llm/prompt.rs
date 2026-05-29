@@ -1,19 +1,4 @@
 use std::path::PathBuf;
-use std::sync::OnceLock;
-
-fn get_macos_version() -> &'static str {
-    static VERSION: OnceLock<String> = OnceLock::new();
-    VERSION.get_or_init(|| {
-        std::process::Command::new("sw_vers")
-            .arg("-productVersion")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|v| v.trim().to_string())
-            .unwrap_or_else(|| "unknown".to_string())
-    })
-}
-
 /// Build the full system prompt for the built-in AI engine.
 ///
 /// Concatenates:
@@ -32,9 +17,9 @@ pub async fn build_system_prompt(
     // 0. Environment context
     let now = chrono::Local::now();
     let env_info = format!(
-        "## 环境信息\n\n- 工作目录: {}\n- 操作系统: macOS {}\n- 当前时间: {}",
+        "## 环境信息\n\n- 工作目录: {}\n- 操作系统: {}\n- 当前时间: {}",
         workspace_path,
-        get_macos_version(),
+        crate::platform::os_display_name(),
         now.format("%Y-%m-%d %H:%M (%A)"),
     );
     parts.push(env_info);

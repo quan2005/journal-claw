@@ -181,7 +181,7 @@ fn remove_silence(samples: &[f32]) -> Vec<f32> {
 /// Read WAV → resample to 48kHz mono → denoise → remove silence → write back.
 /// Per-step graceful degradation: denoise_audio and remove_silence are infallible.
 /// Only returns Err if reading or writing the WAV fails (or resampling fails);
-/// caller discards the error, preserving the original WAV for afconvert.
+/// caller discards the error, preserving the original WAV.
 pub fn process_audio(wav_path: &PathBuf) -> Result<(), String> {
     // 1. Read WAV
     let mut reader = hound::WavReader::open(wav_path).map_err(|e| e.to_string())?;

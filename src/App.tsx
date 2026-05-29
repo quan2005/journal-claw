@@ -131,22 +131,33 @@ export default function App() {
   useEffect(() => {
     getAsrConfig()
       .then(async (cfg) => {
-        if (cfg.asr_engine === 'apple') {
-          return
-        }
-        if (cfg.asr_engine === 'dashscope') {
-          if (cfg.dashscope_api_key.trim().length === 0) {
-            console.warn('[App] ASR not configured')
+        switch (cfg.asr_engine) {
+          case 'apple':
+            return
+          case 'whisperkit': {
+            const [cliOk, modelOk] = await Promise.all([
+              checkWhisperkitCliInstalled(),
+              checkWhisperkitModelDownloaded(cfg.whisperkit_model),
+            ])
+            if (!cliOk || !modelOk) {
+              console.warn('[App] WhisperKit not ready')
+            }
+            return
           }
-          return
-        }
-        // whisperkit: need both CLI installed and model downloaded
-        const [cliOk, modelOk] = await Promise.all([
-          checkWhisperkitCliInstalled(),
-          checkWhisperkitModelDownloaded(cfg.whisperkit_model),
-        ])
-        if (!cliOk || !modelOk) {
-          console.warn('[App] WhisperKit not ready')
+          case 'dashscope':
+            if (cfg.dashscope_api_key.trim().length === 0) {
+              console.warn('[App] ASR not configured')
+            }
+            return
+          case 'siliconflow':
+            if (cfg.siliconflow_asr_api_key.trim().length === 0) {
+              console.warn('[App] ASR not configured')
+            }
+            return
+          case 'zhipu':
+            if (cfg.zhipu_asr_api_key.trim().length === 0) {
+              console.warn('[App] ASR not configured')
+            }
         }
       })
       .catch(() => {})
@@ -382,7 +393,7 @@ export default function App() {
       const importedPaths: string[] = []
       for (const path of paths) {
         try {
-          const kind = fileKindFromName(path.split('/').pop() ?? path)
+          const kind = fileKindFromName(path.split(/[\\/]/).pop() ?? path)
           if (kind === 'audio') {
             const result = await importAudioFile(path)
             importedPaths.push(result.path)
@@ -408,7 +419,7 @@ export default function App() {
       })
       if (nonAudioPaths.length > 0) {
         const prompt = '分析并处理这些文件'
-        const displayName = nonAudioPaths.map((p) => p.split('/').pop()).join(', ')
+        const displayName = nonAudioPaths.map((p) => p.split(/[\\/]/).pop()).join(', ')
         try {
           await invokeEnqueueWork({ files: nonAudioPaths, prompt, displayName })
         } catch (err) {
@@ -529,7 +540,7 @@ export default function App() {
       return
     }
     // Local items (audio pipeline)
-    const parts = item.path.split('/')
+    const parts = item.path.split(/[\\/]/)
     const rawIdx = parts.lastIndexOf('raw')
     const yearMonth = rawIdx > 0 ? parts[rawIdx - 1] : (parts.slice(-2, -1)[0] ?? '')
     retryQueueItem(item.path, 'converting')

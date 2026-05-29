@@ -20,7 +20,9 @@ import {
   installWhisperkitCli,
   getAppleSttVariant,
   checkSpeakerEmbedder,
+  getPlatformCapabilities,
   type AsrConfig,
+  type PlatformCapabilities,
 } from '../../lib/tauri'
 import { invoke } from '@tauri-apps/api/core'
 import SkeletonRow from './SkeletonRow'
@@ -41,6 +43,14 @@ type WhisperDownloadSession = {
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+
+const DEFAULT_PLATFORM: PlatformCapabilities = {
+  os: 'macos',
+  apple_stt: true,
+  whisperkit: true,
+  speaker_diarization: true,
+  native_permissions: true,
+}
 
 const sectionStyle: React.CSSProperties = {
   padding: '28px 28px 180px',
@@ -179,6 +189,7 @@ export default function SectionVoice() {
   const [cliInstallLog, setCliInstallLog] = useState<string[]>([])
   const [appleSttVariant, setAppleSttVariant] = useState<string>('')
   const [embedderAvailable, setEmbedderAvailable] = useState<boolean | null>(null)
+  const [platform, setPlatform] = useState<PlatformCapabilities>(DEFAULT_PLATFORM)
 
   const refreshDownloadedModels = () => {
     const models: WhisperModel[] = ['base', 'small', 'large-v3-turbo']
@@ -190,20 +201,50 @@ export default function SectionVoice() {
   }
 
   useEffect(() => {
-    Promise.all([
-      getAsrConfig().then((loadedConfig) => {
-        setCfg(loadedConfig)
-        setPersistedCfg(loadedConfig)
-      }),
-      getWhisperkitModelsDir().then(setModelsDir),
-      checkWhisperkitCliInstalled().then(setCliInstalled),
-      getAppleSttVariant().then(setAppleSttVariant),
-      checkSpeakerEmbedder()
-        .then((r) => setEmbedderAvailable(r.available))
-        .catch(() => setEmbedderAvailable(false)),
-    ]).then(() => {
-      setLoading(false)
-      refreshDownloadedModels()
+    let cancelled = false
+
+    const load = async () => {
+      const loadedPlatform = await getPlatformCapabilities().catch(() => DEFAULT_PLATFORM)
+      if (cancelled) return
+      setPlatform(loadedPlatform)
+
+      const loadedConfig = await getAsrConfig()
+      if (cancelled) return
+      setCfg(loadedConfig)
+      setPersistedCfg(loadedConfig)
+
+      if (loadedPlatform.whisperkit) {
+        await Promise.all([
+          getWhisperkitModelsDir().then(setModelsDir),
+          checkWhisperkitCliInstalled().then(setCliInstalled),
+          getAppleSttVariant().then(setAppleSttVariant),
+        ])
+        if (!cancelled) {
+          refreshDownloadedModels()
+        }
+      } else {
+        setCliInstalled(false)
+        setDownloadedModels(new Set())
+      }
+
+      if (loadedPlatform.speaker_diarization) {
+        await checkSpeakerEmbedder()
+          .then((r) => setEmbedderAvailable(r.available))
+          .catch(() => setEmbedderAvailable(false))
+      } else {
+        setEmbedderAvailable(null)
+      }
+
+      if (!cancelled) {
+        setLoading(false)
+      }
+    }
+
+    load().catch((error) => {
+      console.error('[settings/voice] load failed', error)
+      if (!cancelled) {
+        setLoading(false)
+      }
     })
 
     // listen for download progress events from Rust
@@ -289,10 +330,11 @@ export default function SectionVoice() {
     })
 
     return () => {
+      cancelled = true
       unlisten?.()
       unlistenCliInstall?.()
     }
-  }, [])
+  }, [t])
 
   const handleSave = async () => {
     setSaveStatus('saving')
@@ -432,6 +474,12 @@ export default function SectionVoice() {
       ready: zhipuReady,
     },
   ]
+  const visibleEngines = ENGINES.filter((engine) => {
+    if (engine.id === 'apple') return platform.apple_stt
+    if (engine.id === 'whisperkit') return platform.whisperkit
+    return true
+  })
+  const engineGridColumns = `repeat(${visibleEngines.length}, minmax(0, 1fr))`
 
   return (
     <>
@@ -474,12 +522,12 @@ export default function SectionVoice() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
+                gridTemplateColumns: engineGridColumns,
                 gap: 10,
                 marginBottom: 18,
               }}
             >
-              {ENGINES.map(({ id, label, vendor, icon: Icon, ready }) => {
+              {visibleEngines.map(({ id, label, vendor, icon: Icon, ready }) => {
                 const isActive = cfg.asr_engine === id
                 return (
                   <div
@@ -539,7 +587,7 @@ export default function SectionVoice() {
             <div style={{ height: 1, background: 'var(--divider)', margin: '0 0 14px' }} />
 
             {/* 声纹模型状态 */}
-            {embedderAvailable === false && (
+            {platform.speaker_diarization && embedderAvailable === false && (
               <div
                 style={{
                   marginBottom: 14,
@@ -565,7 +613,7 @@ export default function SectionVoice() {
             )}
 
             {/* WhisperKit 配置 */}
-            {cfg.asr_engine === 'whisperkit' && (
+            {platform.whisperkit && cfg.asr_engine === 'whisperkit' && (
               <div style={{ marginBottom: 16 }}>
                 {cliInstalled === false && (
                   <div

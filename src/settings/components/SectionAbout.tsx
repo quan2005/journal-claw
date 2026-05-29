@@ -198,7 +198,7 @@ export default function SectionAbout() {
                 letterSpacing: '0.02em',
               }}
             >
-              macOS · Tauri · React · Rust · Claude
+              macOS / Windows · Tauri · React · Rust · Claude
             </div>
             <button
               onClick={async () => {

@@ -1,6 +1,11 @@
 import { useState, useCallback } from 'react'
-import { checkAppPermissions, openPrivacySettings, requestPermission } from '../../lib/tauri'
-import type { AppPermissions, PermStatus } from '../../lib/tauri'
+import {
+  checkAppPermissions,
+  getPlatformCapabilities,
+  openPrivacySettings,
+  requestPermission,
+} from '../../lib/tauri'
+import type { AppPermissions, PermStatus, PlatformCapabilities } from '../../lib/tauri'
 import SkeletonRow from './SkeletonRow'
 import { useTranslation, type TFn } from '../../contexts/I18nContext'
 
@@ -161,18 +166,31 @@ function PermRow({
 
 type SystemPerm = 'microphone' | 'speech_recognition'
 
+const DEFAULT_PLATFORM: PlatformCapabilities = {
+  os: 'macos',
+  apple_stt: true,
+  whisperkit: true,
+  speaker_diarization: true,
+  native_permissions: true,
+}
+
 export default function SectionPermissions() {
   const { t } = useTranslation()
   const [perms, setPerms] = useState<AppPermissions | null>(null)
   const [loading, setLoading] = useState(false)
   const [checked, setChecked] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [platform, setPlatform] = useState<PlatformCapabilities>(DEFAULT_PLATFORM)
 
   const handleCheck = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await checkAppPermissions()
+      const [capabilities, result] = await Promise.all([
+        getPlatformCapabilities().catch(() => DEFAULT_PLATFORM),
+        checkAppPermissions(),
+      ])
+      setPlatform(capabilities)
       setPerms(result)
       setChecked(true)
     } catch (err) {
@@ -183,26 +201,32 @@ export default function SectionPermissions() {
     }
   }, [])
 
-  const handleOpenSettings = useCallback(async (pane: SystemPerm) => {
-    try {
-      await openPrivacySettings(pane)
-    } catch (err) {
-      console.error(`[settings/permissions] failed to open ${pane} settings`, err)
-      setError(t('failedToOpen', { err: String(err) }))
-    }
-  }, [])
+  const handleOpenSettings = useCallback(
+    async (pane: SystemPerm) => {
+      try {
+        await openPrivacySettings(pane)
+      } catch (err) {
+        console.error(`[settings/permissions] failed to open ${pane} settings`, err)
+        setError(t('failedToOpen', { err: String(err) }))
+      }
+    },
+    [t],
+  )
 
   // Trigger system authorization dialog for a single permission
-  const handleRequest = useCallback(async (perm: SystemPerm) => {
-    setError(null)
-    try {
-      const newStatus = await requestPermission(perm)
-      setPerms((prev) => (prev ? { ...prev, [perm]: newStatus } : prev))
-    } catch (err) {
-      console.error(`[settings/permissions] request ${perm} failed`, err)
-      setError(t('requestFailed', { err: String(err) }))
-    }
-  }, [])
+  const handleRequest = useCallback(
+    async (perm: SystemPerm) => {
+      setError(null)
+      try {
+        const newStatus = await requestPermission(perm)
+        setPerms((prev) => (prev ? { ...prev, [perm]: newStatus } : prev))
+      } catch (err) {
+        console.error(`[settings/permissions] request ${perm} failed`, err)
+        setError(t('requestFailed', { err: String(err) }))
+      }
+    },
+    [t],
+  )
 
   const handleRequestAll = useCallback(async () => {
     if (!perms) {
@@ -216,7 +240,7 @@ export default function SectionPermissions() {
         const micStatus = await requestPermission('microphone')
         setPerms((prev) => (prev ? { ...prev, microphone: micStatus } : prev))
       }
-      if (perms.speech_recognition === 'not_determined') {
+      if (platform.native_permissions && perms.speech_recognition === 'not_determined') {
         const speechStatus = await requestPermission('speech_recognition')
         setPerms((prev) => (prev ? { ...prev, speech_recognition: speechStatus } : prev))
       }
@@ -227,8 +251,8 @@ export default function SectionPermissions() {
             openPrivacySettings('microphone').catch(console.error)
           }
           if (
-            current.speech_recognition === 'denied' ||
-            current.speech_recognition === 'restricted'
+            platform.native_permissions &&
+            (current.speech_recognition === 'denied' || current.speech_recognition === 'restricted')
           ) {
             openPrivacySettings('speech_recognition').catch(console.error)
           }
@@ -239,12 +263,14 @@ export default function SectionPermissions() {
       console.error('[settings/permissions] request all failed', err)
       setError(t('authError', { err: String(err) }))
     }
-  }, [perms, handleCheck])
+  }, [perms, handleCheck, platform.native_permissions, t])
 
   const allGranted =
     perms !== null &&
     (perms.microphone === 'granted' || perms.microphone === 'unknown') &&
-    (perms.speech_recognition === 'granted' || perms.speech_recognition === 'unknown') &&
+    (!platform.native_permissions ||
+      perms.speech_recognition === 'granted' ||
+      perms.speech_recognition === 'unknown') &&
     true
 
   // Determine action label per permission based on status
@@ -259,7 +285,7 @@ export default function SectionPermissions() {
       // denied / restricted → open System Settings
       return { label: t('openSystemSettings'), action: () => handleOpenSettings(perm) }
     },
-    [handleRequest, handleOpenSettings],
+    [t, handleRequest, handleOpenSettings],
   )
 
   return (
@@ -414,29 +440,30 @@ export default function SectionPermissions() {
             t={t}
           />
 
-          {/* Speech Recognition */}
-          <PermRow
-            icon={
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            }
-            title={t('permSpeech')}
-            description={t('permSpeechDesc')}
-            status={perms.speech_recognition}
-            actionLabel={permAction(perms.speech_recognition, 'speech_recognition')?.label}
-            onAction={permAction(perms.speech_recognition, 'speech_recognition')?.action}
-            t={t}
-          />
+          {platform.native_permissions && (
+            <PermRow
+              icon={
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              }
+              title={t('permSpeech')}
+              description={t('permSpeechDesc')}
+              status={perms.speech_recognition}
+              actionLabel={permAction(perms.speech_recognition, 'speech_recognition')?.label}
+              onAction={permAction(perms.speech_recognition, 'speech_recognition')?.action}
+              t={t}
+            />
+          )}
         </div>
       )}
     </div>

@@ -43,11 +43,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "resources/speakerkit-models"
-    ],
-    "externalBin": [
-      "binaries/journal-speech"
-    ]
+    "resources": [],
+    "externalBin": []
   }
 }

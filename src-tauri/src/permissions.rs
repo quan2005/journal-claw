@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::process::Command;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -206,27 +205,36 @@ pub fn request_permission(perm: String) -> Result<PermStatus, String> {
 /// Open the appropriate System Settings privacy pane.
 #[tauri::command]
 pub fn open_privacy_settings(pane: String) -> Result<(), String> {
-    let url = match pane.as_str() {
-        "microphone" => {
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
-        }
-        "speech_recognition" => {
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition"
-        }
-        _ => return Err(format!("unknown privacy pane: {}", pane)),
-    };
-    let status = Command::new("open")
-        .arg(url)
-        .status()
-        .map_err(|e| format!("failed to open privacy settings: {}", e))?;
-    if !status.success() {
-        return Err(format!(
-            "`open {}` exited with code {}",
-            url,
-            status.code().unwrap_or(-1)
-        ));
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = pane;
+        return Err("系统隐私设置跳转仅支持 macOS".to_string());
     }
-    Ok(())
+
+    #[cfg(target_os = "macos")]
+    {
+        let url = match pane.as_str() {
+            "microphone" => {
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+            }
+            "speech_recognition" => {
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition"
+            }
+            _ => return Err(format!("unknown privacy pane: {}", pane)),
+        };
+        let status = std::process::Command::new("open")
+            .arg(url)
+            .status()
+            .map_err(|e| format!("failed to open privacy settings: {}", e))?;
+        if !status.success() {
+            return Err(format!(
+                "`open {}` exited with code {}",
+                url,
+                status.code().unwrap_or(-1)
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

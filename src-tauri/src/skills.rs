@@ -116,11 +116,7 @@ pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), Strin
     };
 
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    std::process::Command::new("open")
-        .arg(&dir)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    crate::platform::open_with_system(&dir.to_string_lossy())
 }
 
 #[cfg(test)]

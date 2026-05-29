@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JournalClaw Automation Workbench Mockup</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #0f0f0f;
+        --titlebar-bg: #161616;
+        --sidebar-bg: #141414;
+        --panel-bg: #111111;
+        --surface: #141414;
+        --surface-2: #1a1a1a;
+        --divider: #1e2228;
+        --divider-strong: #2e3238;
+        --item-text: #e8e8e8;
+        --item-meta: #a2a6ae;
+        --duration-text: #585c64;
+        --month-label: #5a5e68;
+        --record-btn: #c8933b;
+        --record-btn-hover: #d9a44b;
+        --record-highlight: rgba(200, 147, 59, 0.06);
+        --record-highlight-bar: #c8933b;
+        --segment-bg: rgba(128, 128, 128, 0.08);
+        --segment-active-bg: rgba(200, 147, 58, 0.12);
+        --status-success: #5ba67a;
+        --status-danger: #e06c60;
+        --status-warning: #c8933b;
+        --font-body:
+          system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: var(--bg);
+        color: var(--item-text);
+        font-family: var(--font-body);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      .board {
+        width: min(1600px, 100%);
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .mock-title {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .mock-title h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .mock-title p {
+        max-width: 760px;
+        margin: 6px 0 0;
+        color: var(--item-meta);
+        font-size: 13px;
+      }
+
+      .note {
+        color: var(--duration-text);
+        font-size: 12px;
+      }
+
+      .app {
+        overflow: hidden;
+        height: 940px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: var(--bg);
+      }
+
+      .titlebar {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        height: 38px;
+        padding: 0 16px 0 70px;
+        border-bottom: 1px solid var(--divider);
+        background: var(--titlebar-bg);
+      }
+
+      .traffic {
+        position: absolute;
+        display: flex;
+        gap: 8px;
+        margin-left: -54px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #3a3a3c;
+      }
+
+      .ai-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 24px;
+        padding: 0 10px;
+        border: 1px solid #3a3018;
+        border-radius: 999px;
+        background: #1a1708;
+        color: var(--record-btn);
+        font-size: 12px;
+      }
+
+      .pulse {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--record-btn);
+      }
+
+      .title-actions {
+        justify-self: end;
+        display: flex;
+        gap: 8px;
+      }
+
+      .icon-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--item-meta);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        height: calc(100% - 38px);
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border-right: 1px solid var(--divider);
+        background: var(--sidebar-bg);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 14px 12px 8px;
+      }
+
+      .tab {
+        flex: 1;
+        min-height: 30px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--item-meta);
+        font-size: 13px;
+      }
+
+      .tab.active {
+        background: var(--segment-active-bg);
+        color: var(--record-btn);
+        font-weight: 500;
+      }
+
+      .sidebar-tools {
+        display: flex;
+        gap: 8px;
+        padding: 0 12px 10px;
+      }
+
+      .search {
+        flex: 1;
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid var(--divider);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .routine-list {
+        overflow: auto;
+        padding: 2px 8px 16px;
+      }
+
+      .month {
+        padding: 16px 8px 8px;
+        color: var(--month-label);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .routine-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        min-height: 74px;
+        padding: 10px 10px;
+        border-radius: 8px;
+        color: var(--item-text);
+      }
+
+      .routine-row.active {
+        background: var(--record-highlight);
+      }
+
+      .routine-row.active::before {
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        left: 0;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--record-highlight-bar);
+        content: "";
+      }
+
+      .time {
+        color: var(--record-btn);
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      .routine-main {
+        min-width: 0;
+      }
+
+      .routine-name {
+        overflow: hidden;
+        color: var(--item-text);
+        font-size: 13px;
+        font-weight: 500;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .routine-meta {
+        margin-top: 3px;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        border: 1px solid var(--divider);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--item-meta);
+        font-size: 11px;
+      }
+
+      .chip.gold {
+        border-color: rgba(200, 147, 59, 0.32);
+        background: rgba(200, 147, 59, 0.1);
+        color: var(--record-btn);
+      }
+
+      .chip.green {
+        border-color: rgba(91, 166, 122, 0.28);
+        color: var(--status-success);
+      }
+
+      .chip.red {
+        border-color: rgba(224, 108, 96, 0.28);
+        color: var(--status-danger);
+      }
+
+      .main {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-width: 0;
+        background: var(--bg);
+      }
+
+      .workbench-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 26px 30px 18px;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .eyebrow {
+        margin-bottom: 5px;
+        color: var(--month-label);
+        font-size: 12px;
+      }
+
+      .workbench-header h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 600;
+      }
+
+      .workbench-header p {
+        max-width: 680px;
+        margin: 8px 0 0;
+        color: var(--item-meta);
+        font-size: 13px;
+      }
+
+      .primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--record-btn);
+        color: #0f0f0f;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 11px;
+        border: 1px solid var(--divider);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .workbench-body {
+        overflow: auto;
+        padding: 20px 30px 28px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(340px, 0.9fr);
+        gap: 22px;
+        align-items: start;
+      }
+
+      .section {
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--divider);
+        margin-bottom: 22px;
+      }
+
+      .section:last-child {
+        border-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .section-title h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .section-title span {
+        color: var(--duration-text);
+        font-size: 12px;
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .metric {
+        min-height: 74px;
+        padding: 12px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .metric-value {
+        margin-top: 4px;
+        color: var(--item-text);
+        font-size: 22px;
+        font-weight: 600;
+      }
+
+      .metric-label {
+        color: var(--duration-text);
+        font-size: 12px;
+      }
+
+      .template-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .template {
+        min-height: 118px;
+        padding: 13px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .template.selected {
+        border-color: rgba(200, 147, 59, 0.42);
+        background: rgba(200, 147, 59, 0.06);
+      }
+
+      .template h4 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .template p {
+        margin: 7px 0 0;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .template-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .table {
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .table-row {
+        display: grid;
+        grid-template-columns: 1.1fr 0.8fr 0.7fr 0.7fr auto;
+        gap: 10px;
+        min-height: 58px;
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--divider);
+        align-items: center;
+        background: var(--surface);
+      }
+
+      .table-row:last-child {
+        border-bottom: 0;
+      }
+
+      .table-row.active {
+        background: rgba(200, 147, 59, 0.05);
+      }
+
+      .cell-title {
+        font-weight: 500;
+      }
+
+      .cell-sub {
+        margin-top: 3px;
+        color: var(--duration-text);
+        font-size: 12px;
+      }
+
+      .detail-panel {
+        position: sticky;
+        top: 0;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .detail-head {
+        padding: 16px;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .detail-head h3 {
+        margin: 0;
+        font-size: 17px;
+      }
+
+      .detail-head p {
+        margin: 7px 0 0;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .detail-block {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .detail-block:last-child {
+        border-bottom: 0;
+      }
+
+      .label {
+        margin-bottom: 8px;
+        color: var(--duration-text);
+        font-size: 11px;
+      }
+
+      .prompt {
+        min-height: 104px;
+        padding: 12px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: #101010;
+        color: #b4b8c0;
+        font-size: 12px;
+        line-height: 1.58;
+      }
+
+      .manifest {
+        display: grid;
+        gap: 8px;
+      }
+
+      .manifest-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        gap: 10px;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .manifest-row strong {
+        color: var(--duration-text);
+        font-weight: 500;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .flow-step {
+        min-height: 80px;
+        padding: 12px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .flow-step b {
+        display: block;
+        color: var(--record-btn);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .flow-step span {
+        display: block;
+        margin-top: 8px;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .modal-stage {
+        margin-top: 24px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        background: var(--bg);
+      }
+
+      .modal-title {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .modal-title h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .modal-title p {
+        margin: 6px 0 0;
+        color: var(--item-meta);
+        font-size: 12px;
+      }
+
+      .modal-grid {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        min-height: 540px;
+      }
+
+      .modal-left {
+        border-right: 1px solid var(--divider);
+        background: var(--sidebar-bg);
+        padding: 14px;
+      }
+
+      .modal-right {
+        padding: 18px 20px;
+      }
+
+      .template-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .template-list-item {
+        padding: 11px;
+        border-radius: 8px;
+        color: var(--item-meta);
+      }
+
+      .template-list-item.active {
+        background: var(--record-highlight);
+        color: var(--item-text);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .field {
+        min-width: 0;
+      }
+
+      .field.full {
+        grid-column: 1 / -1;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--duration-text);
+        font-size: 11px;
+      }
+
+      .input,
+      .textarea {
+        width: 100%;
+        border: 1px solid var(--divider);
+        border-radius: 6px;
+        background: #101010;
+        color: var(--item-text);
+        font-size: 13px;
+      }
+
+      .input {
+        height: 34px;
+        padding: 0 10px;
+      }
+
+      .textarea {
+        height: 146px;
+        padding: 10px;
+        resize: none;
+      }
+
+      .settings-strip {
+        display: grid;
+        grid-template-columns: 184px minmax(0, 1fr);
+        min-height: 320px;
+        margin-top: 24px;
+        border: 1px solid var(--divider);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .settings-nav {
+        padding: 14px 10px;
+        border-right: 1px solid var(--divider);
+        background: var(--sidebar-bg);
+      }
+
+      .settings-nav-row {
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 10px;
+        border-radius: 8px;
+        color: var(--item-meta);
+        font-size: 13px;
+      }
+
+      .settings-nav-row.active {
+        background: rgba(200, 147, 58, 0.14);
+        color: var(--record-btn);
+      }
+
+      .settings-content {
+        padding: 24px 28px;
+      }
+
+      .settings-content h3 {
+        margin: 0 0 16px;
+        font-size: 14px;
+      }
+
+      .setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 48px;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .setting-row:last-child {
+        border-bottom: 0;
+      }
+
+      .setting-row p {
+        margin: 3px 0 0;
+        color: var(--duration-text);
+        font-size: 12px;
+      }
+
+      .toggle {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--record-btn);
+      }
+
+      .toggle::after {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #0f0f0f;
+        content: "";
+      }
+
+      .small {
+        color: var(--duration-text);
+        font-size: 12px;
+      }
+
+      @media (max-width: 1200px) {
+        .grid,
+        .modal-grid,
+        .settings-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .detail-panel {
+          position: static;
+        }
+
+        .modal-left,
+        .settings-nav {
+          border-right: 0;
+          border-bottom: 1px solid var(--divider);
+        }
+
+        .template-grid,
+        .metric-row,
+        .flow {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="board">
+      <div class="mock-title">
+        <div>
+          <h1>自动化模块方案草案</h1>
+          <p>
+            双层模型：模板是入口，Routine 是内核。自动化拥有完整 Agent 权限，到点运行、直接执行、保留完整会话和 manifest。
+          </p>
+        </div>
+        <div class="note">Mockup / Dark baseline / 2026-05-29</div>
+      </div>
+
+      <div class="app">
+        <div class="titlebar">
+          <div class="traffic">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+          <div></div>
+          <div class="ai-pill"><span class="pulse"></span> 自动化将在 08:00 运行每日总结</div>
+          <div class="title-actions">
+            <button class="icon-button" title="Theme">◐</button>
+            <button class="icon-button" title="Sidebar">▥</button>
+          </div>
+        </div>
+
+        <div class="layout">
+          <aside class="sidebar">
+            <div class="tabs">
+              <button class="tab">日志</button>
+              <button class="tab">画像</button>
+              <button class="tab active">自动化</button>
+            </div>
+            <div class="sidebar-tools">
+              <input class="search" value="搜索自动化" aria-label="搜索自动化" />
+              <button class="secondary">新建</button>
+            </div>
+            <div class="routine-list">
+              <div class="month">总结</div>
+              <div class="routine-row active">
+                <div class="time">08:00</div>
+                <div class="routine-main">
+                  <div class="routine-name">每日总结</div>
+                  <div class="routine-meta">每天 · 读取昨天 · 完整 Agent</div>
+                  <div class="chips"><span class="chip green">已启用</span><span class="chip gold">模板</span></div>
+                </div>
+              </div>
+              <div class="routine-row">
+                <div class="time">Fri</div>
+                <div class="routine-main">
+                  <div class="routine-name">周报总结</div>
+                  <div class="routine-meta">周五 17:30 · 本周日志</div>
+                  <div class="chips"><span class="chip green">已启用</span></div>
+                </div>
+              </div>
+              <div class="routine-row">
+                <div class="time">01</div>
+                <div class="routine-main">
+                  <div class="routine-name">月度回顾</div>
+                  <div class="routine-meta">每月 1 日 · 上月全部日志</div>
+                  <div class="chips"><span class="chip">暂停</span></div>
+                </div>
+              </div>
+
+              <div class="month">观察</div>
+              <div class="routine-row">
+                <div class="time">22:00</div>
+                <div class="routine-main">
+                  <div class="routine-name">AI 平台项目观察</div>
+                  <div class="routine-meta">每天 · #AI平台 + 相关人物</div>
+                  <div class="chips"><span class="chip green">已启用</span><span class="chip">自定义</span></div>
+                </div>
+              </div>
+              <div class="routine-row">
+                <div class="time">Mon</div>
+                <div class="routine-main">
+                  <div class="routine-name">关键人物动态追踪</div>
+                  <div class="routine-meta">每周一 · 画像 + 近期会议</div>
+                  <div class="chips"><span class="chip green">已启用</span></div>
+                </div>
+              </div>
+
+              <div class="month">维护</div>
+              <div class="routine-row">
+                <div class="time">03:00</div>
+                <div class="routine-main">
+                  <div class="routine-name">日志库整理</div>
+                  <div class="routine-meta">每周日 · /lint 规则</div>
+                  <div class="chips"><span class="chip red">上次失败</span></div>
+                </div>
+              </div>
+              <div class="routine-row">
+                <div class="time">21:30</div>
+                <div class="routine-main">
+                  <div class="routine-name">待办提取与归并</div>
+                  <div class="routine-meta">每天 · 最近 24 小时</div>
+                  <div class="chips"><span class="chip green">已启用</span></div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="main">
+            <header class="workbench-header">
+              <div>
+                <div class="eyebrow">Automation Workbench</div>
+                <h2>自动化工作台</h2>
+                <p>
+                  用模板开始，用 Routine 承载。每个任务都是一条定时完整 Agent 会话，运行后留下摘要、会话和改动清单。
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px">
+                <button class="secondary">运行所选</button>
+                <button class="primary">新建自动化</button>
+              </div>
+            </header>
+
+            <div class="workbench-body">
+              <div class="section">
+                <div class="section-title">
+                  <h3>状态概览</h3>
+                  <span>默认只展示简短状态，详情进入 Run 会话</span>
+                </div>
+                <div class="metric-row">
+                  <div class="metric">
+                    <div class="metric-label">启用中</div>
+                    <div class="metric-value">7</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">今天将运行</div>
+                    <div class="metric-value">3</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">最近创建</div>
+                    <div class="metric-value">5</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">需查看失败</div>
+                    <div class="metric-value">1</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid">
+                <div>
+                  <div class="section">
+                    <div class="section-title">
+                      <h3>模板入口</h3>
+                      <span>模板可展开成完整 Routine</span>
+                    </div>
+                    <div class="template-grid">
+                      <div class="template selected">
+                        <h4>每日总结</h4>
+                        <p>每天固定时间读取昨天日志，生成一篇自动化日志条目。</p>
+                        <div class="template-footer"><span class="chip gold">总结</span><span class="chip">昨天</span></div>
+                      </div>
+                      <div class="template">
+                        <h4>周报总结</h4>
+                        <p>聚合本周日志、待办和项目进展，形成周报。</p>
+                        <div class="template-footer"><span class="chip gold">总结</span><span class="chip">本周</span></div>
+                      </div>
+                      <div class="template">
+                        <h4>项目观察</h4>
+                        <p>围绕一个项目或关键词持续观察，定期输出变化。</p>
+                        <div class="template-footer"><span class="chip">观察</span><span class="chip">自定义范围</span></div>
+                      </div>
+                      <div class="template">
+                        <h4>日志库整理</h4>
+                        <p>复用 /lint 规则，整理关联记录、画像矛盾和引用。</p>
+                        <div class="template-footer"><span class="chip">维护</span><span class="chip">完整 Agent</span></div>
+                      </div>
+                      <div class="template">
+                        <h4>待办提取</h4>
+                        <p>从近期日志提取行动项，更新 todos.md / done.md。</p>
+                        <div class="template-footer"><span class="chip">维护</span><span class="chip">最近 24h</span></div>
+                      </div>
+                      <div class="template">
+                        <h4>自定义 Agent</h4>
+                        <p>从空白 prompt 创建。入口弱化，但能力完整。</p>
+                        <div class="template-footer"><span class="chip">高级</span><span class="chip red">完整权限</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="section">
+                    <div class="section-title">
+                      <h3>Routine 列表</h3>
+                      <span>所有模板最终都是同一种底层对象</span>
+                    </div>
+                    <div class="table">
+                      <div class="table-row active">
+                        <div>
+                          <div class="cell-title">每日总结</div>
+                          <div class="cell-sub">模板：总结 / Scope：昨天</div>
+                        </div>
+                        <div>
+                          <div class="cell-title">每天 08:00</div>
+                          <div class="cell-sub">Asia/Hong_Kong</div>
+                        </div>
+                        <div><span class="chip green">已启用</span></div>
+                        <div>
+                          <div class="cell-title">上次成功</div>
+                          <div class="cell-sub">创建 1 篇日志</div>
+                        </div>
+                        <button class="secondary">详情</button>
+                      </div>
+                      <div class="table-row">
+                        <div>
+                          <div class="cell-title">AI 平台项目观察</div>
+                          <div class="cell-sub">自定义 Agent / Scope：#AI平台</div>
+                        </div>
+                        <div>
+                          <div class="cell-title">每天 22:00</div>
+                          <div class="cell-sub">最近 7 天</div>
+                        </div>
+                        <div><span class="chip green">已启用</span></div>
+                        <div>
+                          <div class="cell-title">待运行</div>
+                          <div class="cell-sub">今天 22:00</div>
+                        </div>
+                        <button class="secondary">详情</button>
+                      </div>
+                      <div class="table-row">
+                        <div>
+                          <div class="cell-title">日志库整理</div>
+                          <div class="cell-sub">维护 / 复用 /lint</div>
+                        </div>
+                        <div>
+                          <div class="cell-title">周日 03:00</div>
+                          <div class="cell-sub">全库</div>
+                        </div>
+                        <div><span class="chip red">失败</span></div>
+                        <div>
+                          <div class="cell-title">需查看</div>
+                          <div class="cell-sub">权限不足</div>
+                        </div>
+                        <button class="secondary">打开</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="section">
+                    <div class="section-title">
+                      <h3>统一运行链路</h3>
+                      <span>没有特殊任务分支，只有不同模板预设</span>
+                    </div>
+                    <div class="flow">
+                      <div class="flow-step"><b>01</b><span>Schedule 到点或手动运行</span></div>
+                      <div class="flow-step"><b>02</b><span>创建 AutomationRun 与会话</span></div>
+                      <div class="flow-step"><b>03</b><span>完整 Agent 读取 scope 并执行</span></div>
+                      <div class="flow-step"><b>04</b><span>Agent 自主创建或修改文件</span></div>
+                      <div class="flow-step"><b>05</b><span>保存 manifest、产物、完整会话</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <aside class="detail-panel">
+                  <div class="detail-head">
+                    <h3>每日总结</h3>
+                    <p>模板入口展开后的 Routine。用户看到的是具体任务，系统保存的是统一内核。</p>
+                    <div class="chips"><span class="chip green">已启用</span><span class="chip red">完整 Agent 权限</span></div>
+                  </div>
+                  <div class="detail-block">
+                    <div class="label">Routine 定义</div>
+                    <div class="manifest">
+                      <div class="manifest-row"><strong>Schedule</strong><span>每天 08:00 / Asia/Hong_Kong</span></div>
+                      <div class="manifest-row"><strong>Scope</strong><span>昨天的日志、待办变化、相关身份画像</span></div>
+                      <div class="manifest-row"><strong>Mode</strong><span>Unattended full agent session</span></div>
+                    </div>
+                  </div>
+                  <div class="detail-block">
+                    <div class="label">Prompt</div>
+                    <div class="prompt">
+                      阅读昨天的所有日志，提炼一天中真正值得回看的脉络。生成一篇克制、准确的每日总结，保留不确定性，不夸大结论。可以自主创建日志条目、补充待办或更新关联记录，但每项改动必须写入运行清单。
+                    </div>
+                  </div>
+                  <div class="detail-block">
+                    <div class="label">上次运行 Manifest</div>
+                    <div class="manifest">
+                      <div class="manifest-row"><strong>Summary</strong><span>生成 29-每日总结.md，补充 2 个待办，未修改原始日志。</span></div>
+                      <div class="manifest-row"><strong>Files read</strong><span>2605/28-*.md, todos.md, identities/*.md</span></div>
+                      <div class="manifest-row"><strong>Changed</strong><span>2605/29-每日总结.md, todos.md</span></div>
+                      <div class="manifest-row"><strong>Session</strong><span>打开完整会话详情</span></div>
+                    </div>
+                  </div>
+                  <div class="detail-block" style="display: flex; gap: 8px">
+                    <button class="primary">立即运行</button>
+                    <button class="secondary">编辑</button>
+                    <button class="secondary">暂停</button>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <div class="modal-stage">
+        <div class="modal-title">
+          <h2>新建 / 编辑自动化</h2>
+          <p>主入口是模板；自定义 Agent 入口保留，但不与模板平级。任何选择最终都会生成 Routine。</p>
+        </div>
+        <div class="modal-grid">
+          <div class="modal-left">
+            <div class="label">选择模板</div>
+            <div class="template-list">
+              <div class="template-list-item active">
+                <strong>每日总结</strong>
+                <div class="cell-sub">每天读取昨天，自动生成日志</div>
+              </div>
+              <div class="template-list-item">
+                <strong>周报总结</strong>
+                <div class="cell-sub">每周聚合进展与待办</div>
+              </div>
+              <div class="template-list-item">
+                <strong>项目观察</strong>
+                <div class="cell-sub">持续追踪关键词或项目</div>
+              </div>
+              <div class="template-list-item">
+                <strong>日志库整理</strong>
+                <div class="cell-sub">复用 /lint，定期维护</div>
+              </div>
+              <div class="template-list-item">
+                <strong>自定义 Agent</strong>
+                <div class="cell-sub">从空白 prompt 开始</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-right">
+            <div class="form-grid">
+              <div class="field">
+                <label>名称</label>
+                <input class="input" value="每日总结" />
+              </div>
+              <div class="field">
+                <label>频率</label>
+                <input class="input" value="每天 08:00" />
+              </div>
+              <div class="field">
+                <label>输入范围</label>
+                <input class="input" value="昨天的日志 + 相关待办 + 相关画像" />
+              </div>
+              <div class="field">
+                <label>Agent 权限</label>
+                <input class="input" value="完整权限 / 自动执行 / 保留 manifest" />
+              </div>
+              <div class="field full">
+                <label>Prompt</label>
+                <textarea class="textarea">
+阅读输入范围内的日志与关联信息。请自主判断最合适的产物形式，可以创建新日志、修改待办、补充关联记录。不要向用户反问；信息不足时记录不确定性。结束前生成 run manifest。</textarea
+                >
+              </div>
+              <div class="field full">
+                <label>上下文</label>
+                <div class="chips">
+                  <span class="chip gold">@昨天</span>
+                  <span class="chip">@todos.md</span>
+                  <span class="chip">@identities</span>
+                  <span class="chip">@/lint rules</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px">
+              <button class="secondary">取消</button>
+              <button class="primary">保存自动化</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-strip">
+        <div class="settings-nav">
+          <div class="settings-nav-row"><span>□</span><span>通用</span></div>
+          <div class="settings-nav-row"><span>□</span><span>AI 引擎</span></div>
+          <div class="settings-nav-row active"><span>□</span><span>自动化</span></div>
+          <div class="settings-nav-row"><span>□</span><span>权限</span></div>
+        </div>
+        <div class="settings-content">
+          <h3>全局自动化设置</h3>
+          <div class="setting-row">
+            <div>
+              <strong>允许后台自动化运行</strong>
+              <p>关闭后，所有 Routine 暂停；手动运行不受影响。</p>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <strong>默认 Agent 权限</strong>
+              <p>完整权限。每次运行保留会话、manifest 和改动清单。</p>
+            </div>
+            <span class="chip red">完整 Agent</span>
+          </div>
+          <div class="setting-row">
+            <div>
+              <strong>失败通知</strong>
+              <p>只在失败或连续跳过时提示，避免打扰阅读。</p>
+            </div>
+            <span class="chip green">开启</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

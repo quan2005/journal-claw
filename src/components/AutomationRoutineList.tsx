@@ -10,89 +10,32 @@ export function AutomationRoutineList({
   onSelect: (routine: AutomationRoutine) => void
 }) {
   if (routines.length === 0) {
-    return (
-      <div
-        style={{
-          padding: 14,
-          border: '1px solid var(--divider)',
-          borderRadius: 8,
-          color: 'var(--item-meta)',
-          fontSize: 13,
-        }}
-      >
-        还没有自动化
-      </div>
-    )
+    return <div className="automation-card automation-empty">还没有自动化</div>
   }
 
   return (
-    <div style={{ border: '1px solid var(--divider)', borderRadius: 8, overflow: 'auto' }}>
-      {routines.map((routine, index) => (
+    <div className="automation-card automation-routine-list">
+      {routines.map((routine) => (
         <button
           key={routine.id}
           type="button"
           onClick={() => onSelect(routine)}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(170px, 1.2fr) minmax(120px, 0.8fr) 72px 92px',
-            gap: 12,
-            alignItems: 'center',
-            width: '100%',
-            minWidth: 520,
-            minHeight: 58,
-            padding: '11px 12px',
-            border: 0,
-            borderBottom: index === routines.length - 1 ? 0 : '1px solid var(--divider)',
-            background:
-              selectedId === routine.id
-                ? 'color-mix(in srgb, var(--record-btn) 5%, var(--detail-case-bg))'
-                : 'var(--detail-case-bg)',
-            color: 'var(--item-text)',
-            textAlign: 'left',
-            cursor: 'pointer',
-          }}
+          className={`automation-routine-row${selectedId === routine.id ? ' is-selected' : ''}`}
         >
           <span style={{ minWidth: 0 }}>
-            <span style={{ display: 'block', fontWeight: 500 }}>{routine.title}</span>
-            <span
-              style={{
-                display: 'block',
-                marginTop: 3,
-                color: 'var(--duration-text)',
-                fontSize: 12,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span className="automation-row-title">{routine.title}</span>
+            <span className="automation-row-meta">
               {routine.template_id ? `模板：${routine.template_id}` : '自定义 Agent'}
             </span>
           </span>
           <span style={{ minWidth: 0 }}>
-            <span style={{ display: 'block', fontWeight: 500 }}>{scheduleLabel(routine)}</span>
-            <span
-              style={{
-                display: 'block',
-                marginTop: 3,
-                color: 'var(--duration-text)',
-                fontSize: 12,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {scopeLabel(routine)}
-            </span>
+            <span className="automation-row-title">{scheduleLabel(routine)}</span>
+            <span className="automation-row-meta">{scopeLabel(routine)}</span>
           </span>
-          <span
-            style={{
-              color: routine.enabled ? 'var(--status-success)' : 'var(--duration-text)',
-              fontSize: 12,
-            }}
-          >
+          <span className={`automation-pill${routine.enabled ? ' automation-pill-success' : ''}`}>
             {routine.enabled ? '已启用' : '暂停'}
           </span>
-          <span style={{ color: 'var(--item-meta)', fontSize: 12 }}>
+          <span className="automation-row-meta">
             {routine.last_run ? runLabel(routine.last_run.status) : '尚未运行'}
           </span>
         </button>

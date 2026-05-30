@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import type {
   AutomationRoutine,
   AutomationSchedule,
@@ -23,9 +23,13 @@ export function AutomationEditorDialog({
   onCreate: (request: CreateRoutineRequest) => Promise<void>
   onUpdate: (id: string, patch: UpdateRoutineRequest) => Promise<void>
 }) {
-  const seed = routine ?? templateToDraft(initialTemplate ?? templates[0])
+  const seed = routine ?? templateToDraft(initialTemplate ?? templates[0] ?? null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    routine?.template_id ?? initialTemplate?.id ?? templates[0]?.id ?? null,
+  )
   const [title, setTitle] = useState(seed.title)
   const [prompt, setPrompt] = useState(seed.prompt)
+  const [scheduleBase, setScheduleBase] = useState(seed.schedule)
   const [time, setTime] = useState(scheduleTime(seed.schedule))
   const [enabled, setEnabled] = useState(seed.enabled)
   const [scopeText, setScopeText] = useState(scopeLabel(seed.scope))
@@ -33,10 +37,23 @@ export function AutomationEditorDialog({
 
   const selectedTemplate = useMemo(
     () =>
-      templates.find((template) => template.id === (routine?.template_id ?? initialTemplate?.id)) ??
-      templates[0],
-    [initialTemplate?.id, routine?.template_id, templates],
+      selectedTemplateId ? templates.find((template) => template.id === selectedTemplateId) : null,
+    [selectedTemplateId, templates],
   )
+
+  const applyTemplate = (template: AutomationTemplate | null) => {
+    if (routine) {
+      return
+    }
+    setSelectedTemplateId(template?.id ?? null)
+    const next = templateToDraft(template)
+    setTitle(next.title)
+    setPrompt(next.prompt)
+    setScheduleBase(next.schedule)
+    setTime(scheduleTime(next.schedule))
+    setEnabled(next.enabled)
+    setScopeText(scopeLabel(next.scope))
+  }
 
   const save = async () => {
     if (!title.trim() || !prompt.trim()) {
@@ -44,14 +61,14 @@ export function AutomationEditorDialog({
     }
     setSaving(true)
     try {
-      const schedule = scheduleWithTime(seed.schedule, time)
+      const schedule = scheduleWithTime(scheduleBase, time)
       const scope = scopeFromText(scopeText)
       if (routine) {
         await onUpdate(routine.id, { title, prompt, schedule, scope, enabled })
       } else {
         await onCreate({
           title,
-          template_id: selectedTemplate?.id ?? null,
+          template_id: selectedTemplateId,
           prompt,
           schedule,
           scope,
@@ -68,93 +85,66 @@ export function AutomationEditorDialog({
     <div
       role="dialog"
       aria-modal="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.45)',
-      }}
+      className="automation-workbench automation-dialog-backdrop"
     >
-      <div
-        style={{
-          width: 'min(940px, calc(100vw - 56px))',
-          maxHeight: 'calc(100vh - 56px)',
-          overflow: 'hidden',
-          border: '1px solid var(--divider)',
-          borderRadius: 8,
-          background: 'var(--bg)',
-        }}
-      >
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--divider)' }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>{routine ? '编辑自动化' : '新建自动化'}</h2>
+      <div className="automation-dialog">
+        <div className="automation-dialog-header">
+          <h2 className="automation-dialog-title">{routine ? '编辑自动化' : '新建自动化'}</h2>
         </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(220px, 280px) minmax(0, 1fr)',
-            minHeight: 500,
-          }}
-        >
-          <div
-            style={{
-              padding: 14,
-              borderRight: '1px solid var(--divider)',
-              background: 'var(--sidebar-bg)',
-              overflow: 'auto',
-            }}
-          >
-            <div style={{ marginBottom: 8, color: 'var(--duration-text)', fontSize: 11 }}>模板</div>
+        <div className="automation-dialog-body">
+          <div className="automation-dialog-sidebar">
+            <div className="automation-label">模板</div>
             {templates.map((template) => (
-              <div
+              <button
                 key={template.id}
-                style={{
-                  padding: 11,
-                  borderRadius: 8,
-                  background:
-                    template.id === selectedTemplate?.id
-                      ? 'var(--record-highlight)'
-                      : 'transparent',
-                  color:
-                    template.id === selectedTemplate?.id ? 'var(--item-text)' : 'var(--item-meta)',
-                }}
+                type="button"
+                onClick={() => applyTemplate(template)}
+                className={`automation-dialog-template${
+                  template.id === selectedTemplate?.id ? ' is-selected' : ''
+                }`}
               >
                 <strong>{template.title}</strong>
-                <div style={{ marginTop: 3, color: 'var(--duration-text)', fontSize: 12 }}>
-                  {template.description}
-                </div>
-              </div>
+                <div className="automation-row-meta">{template.description}</div>
+              </button>
             ))}
+            {!routine && (
+              <button
+                type="button"
+                onClick={() => applyTemplate(null)}
+                className={`automation-dialog-template${selectedTemplateId === null ? ' is-selected' : ''}`}
+              >
+                <strong>空白创建</strong>
+                <div className="automation-row-meta">从空 prompt 创建自定义 Agent。</div>
+              </button>
+            )}
           </div>
-          <div style={{ padding: '18px 20px', overflow: 'auto' }}>
+          <div className="automation-dialog-main">
             <Field label="名称">
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                style={inputStyle}
+                className="automation-input"
               />
             </Field>
             <Field label="时间">
               <input
                 value={time}
                 onChange={(event) => setTime(event.target.value)}
-                style={inputStyle}
+                className="automation-input"
               />
             </Field>
             <Field label="输入范围">
               <input
                 value={scopeText}
                 onChange={(event) => setScopeText(event.target.value)}
-                style={inputStyle}
+                className="automation-input"
               />
             </Field>
             <Field label="Prompt">
               <textarea
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
-                style={{ ...inputStyle, height: 160, paddingTop: 10, resize: 'vertical' }}
+                className="automation-input automation-textarea"
               />
             </Field>
             <label
@@ -162,7 +152,7 @@ export function AutomationEditorDialog({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                color: 'var(--item-meta)',
+                color: 'var(--automation-text-muted)',
                 fontSize: 13,
               }}
             >
@@ -174,16 +164,14 @@ export function AutomationEditorDialog({
               启用这个自动化
             </label>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-              <button onClick={onClose} style={secondaryStyle}>
+              <button onClick={onClose} className="automation-button">
                 取消
               </button>
               <button
                 onClick={save}
                 disabled={saving || !title.trim() || !prompt.trim()}
-                style={{
-                  ...primaryStyle,
-                  opacity: saving || !title.trim() || !prompt.trim() ? 0.55 : 1,
-                }}
+                className="automation-button automation-button-primary"
+                style={{ opacity: saving || !title.trim() || !prompt.trim() ? 0.55 : 1 }}
               >
                 {saving ? '保存中' : '保存自动化'}
               </button>
@@ -195,14 +183,18 @@ export function AutomationEditorDialog({
   )
 }
 
-function templateToDraft(template: AutomationTemplate): AutomationRoutine {
+function templateToDraft(template: AutomationTemplate | null): AutomationRoutine {
   return {
     id: '',
-    title: template.title,
-    template_id: template.id,
-    prompt: template.default_prompt,
-    schedule: template.default_schedule,
-    scope: template.default_scope,
+    title: template?.title ?? '自定义 Agent',
+    template_id: template?.id ?? null,
+    prompt: template?.default_prompt ?? '',
+    schedule: template?.default_schedule ?? {
+      kind: 'daily',
+      time: '08:00',
+      timezone: 'Asia/Hong_Kong',
+    },
+    scope: template?.default_scope ?? { kind: 'workspace' },
     enabled: true,
     full_agent_access: true,
     created_at: '',
@@ -271,44 +263,9 @@ function scopeFromText(text: string): AutomationScope {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label style={{ display: 'block', marginBottom: 14 }}>
-      <span
-        style={{ display: 'block', marginBottom: 6, color: 'var(--duration-text)', fontSize: 11 }}
-      >
-        {label}
-      </span>
+    <label className="automation-field">
+      <span className="automation-label">{label}</span>
       {children}
     </label>
   )
-}
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  minHeight: 34,
-  padding: '0 10px',
-  border: '1px solid var(--divider)',
-  borderRadius: 6,
-  background: 'var(--detail-case-bg)',
-  color: 'var(--item-text)',
-  fontSize: 13,
-  fontFamily: 'var(--font-body)',
-}
-
-const primaryStyle: CSSProperties = {
-  minHeight: 32,
-  padding: '0 14px',
-  border: 0,
-  borderRadius: 6,
-  background: 'var(--record-btn)',
-  color: 'var(--record-btn-icon)',
-  fontWeight: 600,
-}
-
-const secondaryStyle: CSSProperties = {
-  minHeight: 30,
-  padding: '0 11px',
-  border: '1px solid var(--divider)',
-  borderRadius: 6,
-  background: 'transparent',
-  color: 'var(--item-meta)',
 }

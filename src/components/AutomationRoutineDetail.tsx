@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useState } from 'react'
 import type { AutomationRoutine, AutomationRun } from '../types'
 
 export function AutomationRoutineDetail({
@@ -18,12 +18,12 @@ export function AutomationRoutineDetail({
   onResume: (routine: AutomationRoutine) => void
   onOpenConversation: (sessionId: string) => void
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   if (!routine) {
     return (
-      <aside style={panelStyle}>
-        <div style={{ padding: 16, color: 'var(--item-meta)', fontSize: 13 }}>
-          选择一个自动化查看详情
-        </div>
+      <aside className="automation-card automation-detail">
+        <div className="automation-empty">选择一个自动化查看详情</div>
       </aside>
     )
   }
@@ -31,65 +31,73 @@ export function AutomationRoutineDetail({
   const latest = runs[0]
 
   return (
-    <aside style={panelStyle}>
-      <div style={{ padding: 16, borderBottom: '1px solid var(--divider)' }}>
-        <h3 style={{ margin: 0, fontSize: 17 }}>{routine.title}</h3>
-        <div style={{ marginTop: 8, color: 'var(--item-meta)', fontSize: 12 }}>
-          完整 Agent 权限 · 自动执行 · 保留 manifest
-        </div>
+    <aside className="automation-card automation-detail">
+      <div className="automation-detail-header">
+        <h3 className="automation-detail-title">{routine.title}</h3>
+        <div className="automation-detail-meta">完整 Agent 权限 · 自动执行 · 保留 manifest</div>
       </div>
-      <div style={blockStyle}>
-        <div style={labelStyle}>Prompt</div>
-        <div
-          style={{
-            padding: 12,
-            border: '1px solid var(--divider)',
-            borderRadius: 8,
-            color: 'var(--item-meta)',
-            fontSize: 12,
-            lineHeight: 1.58,
-            whiteSpace: 'pre-wrap',
-          }}
+
+      <div className="automation-detail-block">
+        <div className="automation-label">运行状态</div>
+        <ManifestRow label="时间" value={scheduleLabel(routine)} />
+        <ManifestRow label="范围" value={scopeLabel(routine)} />
+        <ManifestRow
+          label="上次"
+          value={routine.last_run?.summary ?? routine.last_run?.error ?? '尚未运行'}
+        />
+      </div>
+
+      {showAdvanced && (
+        <>
+          <div className="automation-detail-block">
+            <div className="automation-label">Prompt</div>
+            <div className="automation-pre">{routine.prompt}</div>
+          </div>
+          <div className="automation-detail-block">
+            <div className="automation-label">运行记录</div>
+            {latest?.manifest ? (
+              <>
+                <ManifestRow label="Summary" value={latest.manifest.summary} />
+                <ManifestRow
+                  label="Changed"
+                  value={latest.manifest.files_changed.join(', ') || '无文件变更'}
+                />
+                <ManifestRow label="Session" value={latest.manifest.conversation_id} />
+              </>
+            ) : (
+              <div className="automation-row-meta">
+                {routine.last_run?.error ?? '尚无 manifest'}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <div className="automation-actions">
+        <button
+          className="automation-button automation-button-primary"
+          onClick={() => onRun(routine)}
         >
-          {routine.prompt}
-        </div>
-      </div>
-      <div style={blockStyle}>
-        <div style={labelStyle}>上次运行</div>
-        {latest?.manifest ? (
-          <div style={{ display: 'grid', gap: 8, color: 'var(--item-meta)', fontSize: 12 }}>
-            <ManifestRow label="Summary" value={latest.manifest.summary} />
-            <ManifestRow
-              label="Changed"
-              value={latest.manifest.files_changed.join(', ') || '无文件变更'}
-            />
-            <ManifestRow label="Session" value={latest.manifest.conversation_id} />
-          </div>
-        ) : (
-          <div style={{ color: 'var(--duration-text)', fontSize: 12 }}>
-            {routine.last_run?.error ?? '尚无 manifest'}
-          </div>
-        )}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 16 }}>
-        <button style={primaryStyle} onClick={() => onRun(routine)}>
           立即运行
         </button>
-        <button style={secondaryStyle} onClick={() => onEdit(routine)}>
+        <button className="automation-button" onClick={() => onEdit(routine)}>
           编辑
         </button>
         {routine.enabled ? (
-          <button style={secondaryStyle} onClick={() => onPause(routine)}>
+          <button className="automation-button" onClick={() => onPause(routine)}>
             暂停
           </button>
         ) : (
-          <button style={secondaryStyle} onClick={() => onResume(routine)}>
+          <button className="automation-button" onClick={() => onResume(routine)}>
             启用
           </button>
         )}
+        <button className="automation-button" onClick={() => setShowAdvanced((value) => !value)}>
+          {showAdvanced ? '收起高级' : '高级'}
+        </button>
         {latest?.conversation_id && (
           <button
-            style={secondaryStyle}
+            className="automation-button"
             onClick={() => onOpenConversation(latest.conversation_id!)}
           >
             会话
@@ -102,45 +110,42 @@ export function AutomationRoutineDetail({
 
 function ManifestRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '82px minmax(0, 1fr)', gap: 10 }}>
-      <strong style={{ color: 'var(--duration-text)', fontWeight: 500 }}>{label}</strong>
+    <div className="automation-kv">
+      <strong>{label}</strong>
       <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{value}</span>
     </div>
   )
 }
 
-const panelStyle: CSSProperties = {
-  border: '1px solid var(--divider)',
-  borderRadius: 8,
-  background: 'var(--detail-case-bg)',
+function scheduleLabel(routine: AutomationRoutine) {
+  const schedule = routine.schedule
+  switch (schedule.kind) {
+    case 'daily':
+      return `每天 ${schedule.time}`
+    case 'weekdays':
+      return `工作日 ${schedule.time}`
+    case 'weekly':
+      return `每周 ${schedule.time}`
+    case 'monthly':
+      return `每月 ${schedule.day} 日 ${schedule.time}`
+  }
 }
 
-const blockStyle: CSSProperties = {
-  padding: 16,
-  borderBottom: '1px solid var(--divider)',
-}
-
-const labelStyle: CSSProperties = {
-  marginBottom: 8,
-  color: 'var(--duration-text)',
-  fontSize: 11,
-}
-
-const primaryStyle: CSSProperties = {
-  minHeight: 32,
-  padding: '0 14px',
-  border: 0,
-  borderRadius: 6,
-  background: 'var(--record-btn)',
-  color: 'var(--record-btn-icon)',
-  fontWeight: 600,
-}
-
-const secondaryStyle: CSSProperties = {
-  minHeight: 30,
-  padding: '0 11px',
-  border: '1px solid var(--divider)',
-  borderRadius: 6,
-  background: 'transparent',
-  color: 'var(--item-meta)',
+function scopeLabel(routine: AutomationRoutine) {
+  switch (routine.scope.kind) {
+    case 'relative':
+      return routine.scope.range
+    case 'recent_days':
+      return `最近 ${routine.scope.days} 天`
+    case 'month':
+      return routine.scope.year_month
+    case 'tags':
+      return routine.scope.tags.join(', ')
+    case 'identities':
+      return `${routine.scope.identity_ids.length} 个画像`
+    case 'keyword':
+      return routine.scope.query
+    case 'workspace':
+      return '全库'
+  }
 }

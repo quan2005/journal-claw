@@ -179,3 +179,24 @@ describe('Accent colors unchanged', () => {
     })
   }
 })
+
+describe('Dark theme surface contract', () => {
+  it('global app shell inherits readable foreground text', () => {
+    const shellRule = css.match(/html,\s*body,\s*#root\s*\{([^}]+)\}/)
+    expect(shellRule?.[1]).toContain('color: var(--item-text)')
+  })
+
+  it('automation workbench defines semantic surface tokens instead of ad-hoc inline colors', () => {
+    expect(css).toContain('.automation-workbench')
+    expect(css).toContain('--automation-surface:')
+    expect(css).toContain('--automation-text-muted:')
+    expect(css).toContain('--automation-text-faint:')
+  })
+
+  it('automation workbench does not use duration text for readable labels or supporting copy', () => {
+    const start = css.indexOf('/* ── Automation workbench')
+    const end = css.indexOf('/* ── Markdown body', start)
+    const automationCss = css.slice(start, end)
+    expect(automationCss).not.toContain('var(--duration-text)')
+  })
+})

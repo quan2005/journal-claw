@@ -4,7 +4,6 @@ import type { AutomationRoutine, AutomationTemplate } from '../types'
 import { AutomationEditorDialog } from './AutomationEditorDialog'
 import { AutomationRoutineDetail } from './AutomationRoutineDetail'
 import { AutomationRoutineList } from './AutomationRoutineList'
-import { AutomationTemplateGrid } from './AutomationTemplateGrid'
 
 export function AutomationWorkbench({
   onOpenConversation,
@@ -13,9 +12,9 @@ export function AutomationWorkbench({
 }) {
   const automation = useAutomation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const [editingRoutine, setEditingRoutine] = useState<AutomationRoutine | null>(null)
   const [draftTemplate, setDraftTemplate] = useState<AutomationTemplate | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const selectedRoutine = useMemo(
     () =>
@@ -37,9 +36,10 @@ export function AutomationWorkbench({
 
   const selectedRuns = selectedRoutine ? (automation.runsByRoutine[selectedRoutine.id] ?? []) : []
 
-  const handleTemplateSelect = (template: AutomationTemplate) => {
-    setSelectedTemplateId(template.id)
+  const handleCreate = () => {
+    const template = automation.templates[0] ?? null
     setDraftTemplate(template)
+    setCreating(true)
   }
 
   const handleRun = async (routine: AutomationRoutine) => {
@@ -47,75 +47,30 @@ export function AutomationWorkbench({
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 0,
-        height: '100%',
-        background: 'var(--bg)',
-      }}
-    >
-      <header style={{ padding: '26px 30px 18px', borderBottom: '1px solid var(--divider)' }}>
-        <div style={{ color: 'var(--month-label)', fontSize: 12, marginBottom: 5 }}>
-          Automation Workbench
+    <div className="automation-workbench">
+      <header className="automation-header">
+        <div>
+          <div className="automation-eyebrow">Scheduled routines</div>
+          <h2 className="automation-title">自动化</h2>
+          <div className="automation-summary">
+            {automation.counts.total === 0
+              ? '还没有自动化任务'
+              : `${automation.counts.enabled} 个启用 · ${automation.counts.total} 个任务${
+                  automation.counts.failed > 0 ? ` · ${automation.counts.failed} 个失败需查看` : ''
+                }`}
+          </div>
         </div>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>自动化工作台</h2>
+        <button className="automation-button automation-button-primary" onClick={handleCreate}>
+          新建自动化
+        </button>
       </header>
 
-      <div style={{ overflow: 'auto', padding: '20px 30px 28px' }}>
-        <section
-          style={{ paddingBottom: 22, borderBottom: '1px solid var(--divider)', marginBottom: 22 }}
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
-              gap: 10,
-            }}
-          >
-            <Metric label="启用中" value={automation.counts.enabled} />
-            <Metric label="全部自动化" value={automation.counts.total} />
-            <Metric label="需查看失败" value={automation.counts.failed} />
-          </div>
-        </section>
+      <div className="automation-body">
+        {automation.error && <div className="automation-alert">{automation.error}</div>}
 
-        {automation.error && (
-          <div
-            style={{
-              marginBottom: 18,
-              padding: 12,
-              border:
-                '1px solid color-mix(in srgb, var(--recording-red, #ff3b30) 42%, var(--divider))',
-              borderRadius: 8,
-              color: 'var(--item-text)',
-              background:
-                'color-mix(in srgb, var(--recording-red, #ff3b30) 6%, var(--detail-case-bg))',
-              fontSize: 13,
-            }}
-          >
-            {automation.error}
-          </div>
-        )}
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-            gap: 22,
-            alignItems: 'start',
-          }}
-        >
+        <div className="automation-grid">
           <div style={{ minWidth: 0 }}>
-            <SectionTitle title="模板入口" subtitle="Template" />
-            <AutomationTemplateGrid
-              templates={automation.templates}
-              selectedTemplateId={selectedTemplateId}
-              onSelect={handleTemplateSelect}
-            />
-
-            <div style={{ height: 22 }} />
-            <SectionTitle title="Routine 列表" subtitle="Kernel" />
+            <h3 className="automation-section-title">自动化任务</h3>
             <AutomationRoutineList
               routines={automation.routines}
               selectedId={selectedRoutine?.id ?? null}
@@ -137,7 +92,7 @@ export function AutomationWorkbench({
           />
         </div>
       </div>
-      {(editingRoutine || draftTemplate) && (
+      {(editingRoutine || creating) && (
         <AutomationEditorDialog
           templates={automation.templates}
           routine={editingRoutine}
@@ -145,6 +100,7 @@ export function AutomationWorkbench({
           onClose={() => {
             setEditingRoutine(null)
             setDraftTemplate(null)
+            setCreating(false)
           }}
           onCreate={async (request) => {
             const routine = await automation.create(request)
@@ -156,40 +112,6 @@ export function AutomationWorkbench({
           }}
         />
       )}
-    </div>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      style={{
-        minHeight: 74,
-        padding: 12,
-        border: '1px solid var(--divider)',
-        borderRadius: 8,
-        background: 'var(--detail-case-bg)',
-      }}
-    >
-      <div style={{ color: 'var(--duration-text)', fontSize: 12 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 22, fontWeight: 600 }}>{value}</div>
-    </div>
-  )
-}
-
-function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-        marginBottom: 12,
-      }}
-    >
-      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</h3>
-      <span style={{ color: 'var(--duration-text)', fontSize: 12 }}>{subtitle}</span>
     </div>
   )
 }

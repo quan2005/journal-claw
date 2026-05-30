@@ -188,20 +188,55 @@ fn template(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::automation_schedule::validate_schedule;
+    use std::collections::BTreeSet;
+
+    const REQUIRED_TEMPLATE_IDS: [&str; 10] = [
+        "daily-summary",
+        "weekly-summary",
+        "monthly-review",
+        "journal-lint",
+        "todo-digest",
+        "identity-maintenance",
+        "project-watch",
+        "person-watch",
+        "topic-research",
+        "custom-agent",
+    ];
 
     #[test]
     fn registry_contains_required_templates() {
-        let ids: Vec<String> = built_in_templates().into_iter().map(|t| t.id).collect();
-        assert!(ids.contains(&"daily-summary".to_string()));
-        assert!(ids.contains(&"weekly-summary".to_string()));
-        assert!(ids.contains(&"monthly-review".to_string()));
-        assert!(ids.contains(&"journal-lint".to_string()));
-        assert!(ids.contains(&"todo-digest".to_string()));
-        assert!(ids.contains(&"identity-maintenance".to_string()));
-        assert!(ids.contains(&"project-watch".to_string()));
-        assert!(ids.contains(&"person-watch".to_string()));
-        assert!(ids.contains(&"topic-research".to_string()));
-        assert!(ids.contains(&"custom-agent".to_string()));
+        let ids: BTreeSet<String> = built_in_templates().into_iter().map(|t| t.id).collect();
+        let expected: BTreeSet<String> = REQUIRED_TEMPLATE_IDS
+            .iter()
+            .map(|id| id.to_string())
+            .collect();
+
+        assert_eq!(ids, expected);
+    }
+
+    #[test]
+    fn templates_have_valid_defaults() {
+        for template in built_in_templates() {
+            assert!(!template.id.trim().is_empty());
+            assert!(!template.title.trim().is_empty());
+            assert!(!template.category.trim().is_empty());
+            assert!(!template.description.trim().is_empty());
+            assert!(!template.default_prompt.trim().is_empty());
+            validate_schedule(&template.default_schedule).unwrap();
+        }
+    }
+
+    #[test]
+    fn template_json_shape_is_stable() {
+        let value = serde_json::to_value(get_template("daily-summary").unwrap()).unwrap();
+
+        assert_eq!(value["id"], "daily-summary");
+        assert_eq!(value["category"], "总结");
+        assert_eq!(value["default_schedule"]["kind"], "daily");
+        assert_eq!(value["default_schedule"]["time"], "08:00");
+        assert_eq!(value["default_scope"]["kind"], "relative");
+        assert_eq!(value["default_scope"]["range"], "yesterday");
     }
 
     #[test]

@@ -1,12 +1,12 @@
 use crate::automation_runner::{run_routine_agent, RoutineAgentFailure};
-use crate::automation_schedule::{next_run_after, validate_schedule};
+use crate::automation_schedule::{next_run_after, parse_time, validate_schedule};
 use crate::automation_store::AutomationStore;
 use crate::automation_types::{
-    AutomationRoutine, AutomationRun, AutomationRunStatus, AutomationRunTrigger,
-    CreateRoutineRequest, UpdateRoutineRequest,
+    AutomationRoutine, AutomationRun, AutomationRunStatus, AutomationRunSummary,
+    AutomationRunTrigger, AutomationSchedule, CreateRoutineRequest, UpdateRoutineRequest,
 };
 use crate::config;
-use chrono::{Local, NaiveDateTime};
+use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime, Weekday};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
@@ -42,6 +42,16 @@ pub fn start_scheduler(app: AppHandle) {
             }
         }
     });
+}
+
+pub fn reconcile_running_runs(app: &AppHandle) -> Result<(), String> {
+    let workspace = config::load_config(app)?.workspace_path;
+    let store = AutomationStore::for_workspace(&workspace);
+    let runs = mark_running_runs_failed(&store, &Local::now().to_rfc3339())?;
+    for run in runs {
+        let _ = app.emit("automation-run-updated", &run);
+    }
+    Ok(())
 }
 
 pub fn notify_scheduler(app: &AppHandle) {
@@ -127,21 +137,14 @@ async fn run_due_routines(app: AppHandle) {
         return;
     };
     let now = Local::now().naive_local();
-    let probe = now - chrono::Duration::seconds(60);
     for routine in routines.into_iter().filter(|r| r.enabled) {
-        if let Ok(candidate) = next_run_after(&routine.schedule, probe) {
-            if candidate > now + chrono::Duration::seconds(2) {
-                continue;
-            }
-            let app_for_run = app.clone();
-            tauri::async_runtime::spawn(async move {
-                let _ = run_routine(
-                    app_for_run,
-                    routine.id.clone(),
-                    AutomationRunTrigger::Scheduled,
-                )
-                .await;
-            });
+        if should_run_due(&routine, now) {
+            let _ = run_routine(
+                app.clone(),
+                routine.id.clone(),
+                AutomationRunTrigger::Scheduled,
+            )
+            .await;
         }
     }
 }
@@ -207,10 +210,13 @@ async fn run_routine_inner(
     }
 
     store.upsert_run(run.clone())?;
-    let mut updated_routine = routine;
-    updated_routine.last_run = Some(run.summary());
-    store.upsert_routine(updated_routine)?;
     let _ = app.emit("automation-run-updated", &run);
+    if let Err(error) = update_routine_last_run(&store, &routine.id, run.summary()) {
+        eprintln!(
+            "[automation] failed to update last_run for {}: {}",
+            routine.id, error
+        );
+    }
     let _ = app.emit("journal-updated", ());
     Ok(run)
 }
@@ -247,6 +253,39 @@ fn apply_agent_failure_to_run(run: &mut AutomationRun, failure: RoutineAgentFail
     run.manifest = failure.manifest;
 }
 
+fn update_routine_last_run(
+    store: &AutomationStore,
+    routine_id: &str,
+    summary: AutomationRunSummary,
+) -> Result<(), String> {
+    let mut routine = match store.get_routine(routine_id) {
+        Ok(routine) => routine,
+        Err(error) if error.contains("routine not found") => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    routine.last_run = Some(summary);
+    store.upsert_routine(routine)
+}
+
+fn mark_running_runs_failed(
+    store: &AutomationStore,
+    completed_at: &str,
+) -> Result<Vec<AutomationRun>, String> {
+    let mut reconciled = Vec::new();
+    for mut run in store.list_runs()? {
+        if run.status != AutomationRunStatus::Running {
+            continue;
+        }
+        run.status = AutomationRunStatus::Failed;
+        run.completed_at = Some(completed_at.to_string());
+        run.error = Some("app closed during automation run".to_string());
+        store.upsert_run(run.clone())?;
+        update_routine_last_run(store, &run.routine_id, run.summary())?;
+        reconciled.push(run);
+    }
+    Ok(reconciled)
+}
+
 fn next_wait_duration(app: &AppHandle) -> Result<std::time::Duration, String> {
     let workspace = config::load_config(app)?.workspace_path;
     let routines = AutomationStore::for_workspace(&workspace).list_routines()?;
@@ -257,6 +296,14 @@ fn next_wait_duration_for_routines(
     routines: &[AutomationRoutine],
     now: NaiveDateTime,
 ) -> Result<std::time::Duration, String> {
+    if routines
+        .iter()
+        .filter(|routine| routine.enabled)
+        .any(|routine| should_run_due(routine, now))
+    {
+        return Ok(std::time::Duration::from_secs(0));
+    }
+
     let next = routines
         .iter()
         .filter(|routine| routine.enabled)
@@ -270,12 +317,107 @@ fn next_wait_duration_for_routines(
     })
 }
 
+fn should_run_due(routine: &AutomationRoutine, now: NaiveDateTime) -> bool {
+    let Ok(Some(due_at)) = latest_due_at(&routine.schedule, now) else {
+        return false;
+    };
+
+    if parse_rfc3339_local_naive(&routine.created_at)
+        .map(|created_at| created_at > due_at)
+        .unwrap_or(false)
+    {
+        return false;
+    }
+
+    routine
+        .last_run
+        .as_ref()
+        .and_then(|summary| parse_rfc3339_local_naive(&summary.started_at))
+        .map(|last_run_at| last_run_at < due_at)
+        .unwrap_or(true)
+}
+
+fn parse_rfc3339_local_naive(value: &str) -> Option<NaiveDateTime> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|dt| dt.naive_local())
+}
+
+fn latest_due_at(
+    schedule: &AutomationSchedule,
+    now: NaiveDateTime,
+) -> Result<Option<NaiveDateTime>, String> {
+    validate_schedule(schedule)?;
+    match schedule {
+        AutomationSchedule::Daily { time, .. } => {
+            let today = at_date(now.date(), time)?;
+            if today <= now {
+                Ok(Some(today))
+            } else {
+                Ok(Some(today - Duration::days(1)))
+            }
+        }
+        AutomationSchedule::Weekdays { time, .. } => {
+            for offset in 0..=7 {
+                let date = now.date() - Duration::days(offset);
+                if matches!(
+                    date.weekday(),
+                    Weekday::Mon | Weekday::Tue | Weekday::Wed | Weekday::Thu | Weekday::Fri
+                ) {
+                    let candidate = at_date(date, time)?;
+                    if candidate <= now {
+                        return Ok(Some(candidate));
+                    }
+                }
+            }
+            Ok(None)
+        }
+        AutomationSchedule::Weekly { weekday, time, .. } => {
+            for offset in 0..=7 {
+                let date = now.date() - Duration::days(offset);
+                if date.weekday().num_days_from_sunday() == *weekday {
+                    let candidate = at_date(date, time)?;
+                    if candidate <= now {
+                        return Ok(Some(candidate));
+                    }
+                }
+            }
+            Ok(None)
+        }
+        AutomationSchedule::Monthly { day, time, .. } => {
+            let mut year = now.year();
+            let mut month = now.month();
+            for _ in 0..14 {
+                if let Some(date) = NaiveDate::from_ymd_opt(year, month, *day) {
+                    let candidate = at_date(date, time)?;
+                    if candidate <= now {
+                        return Ok(Some(candidate));
+                    }
+                }
+                if month == 1 {
+                    year -= 1;
+                    month = 12;
+                } else {
+                    month -= 1;
+                }
+            }
+            Ok(None)
+        }
+    }
+}
+
+fn at_date(date: NaiveDate, time: &str) -> Result<NaiveDateTime, String> {
+    let (hour, minute) = parse_time(time)?;
+    date.and_hms_opt(hour, minute, 0)
+        .ok_or_else(|| "invalid date/time".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::automation_types::{
-        AutomationRun, AutomationRunStatus, AutomationRunTrigger, AutomationSchedule,
-        AutomationScope, RunManifest,
+        AutomationRun, AutomationRunStatus, AutomationRunSummary, AutomationRunTrigger,
+        AutomationSchedule, AutomationScope, RunManifest,
     };
 
     fn dt(s: &str) -> NaiveDateTime {
@@ -301,6 +443,33 @@ mod tests {
         }
     }
 
+    fn run(routine_id: &str, status: AutomationRunStatus) -> AutomationRun {
+        AutomationRun {
+            id: "run_1".to_string(),
+            routine_id: routine_id.to_string(),
+            trigger: AutomationRunTrigger::Scheduled,
+            status,
+            started_at: "2026-05-30T08:00:00+08:00".to_string(),
+            completed_at: None,
+            error: None,
+            conversation_id: Some("session_1".to_string()),
+            manifest: None,
+        }
+    }
+
+    fn summary(started_at: &str) -> AutomationRunSummary {
+        AutomationRunSummary {
+            id: "run_1".to_string(),
+            status: AutomationRunStatus::Succeeded,
+            trigger: AutomationRunTrigger::Scheduled,
+            started_at: started_at.to_string(),
+            completed_at: Some(started_at.to_string()),
+            summary: Some("done".to_string()),
+            error: None,
+            conversation_id: Some("session_1".to_string()),
+        }
+    }
+
     #[test]
     fn runtime_starts_with_empty_in_flight_set() {
         let runtime = AutomationRuntime::default();
@@ -318,6 +487,81 @@ mod tests {
         assert_eq!(
             next_wait_duration_for_routines(&routines, dt("2026-05-30 08:00:00")).unwrap(),
             std::time::Duration::from_secs(30 * 60)
+        );
+    }
+
+    #[test]
+    fn next_wait_is_immediate_when_routine_missed_due_time() {
+        let mut routine = routine("missed", "08:00", true);
+        routine.created_at = "2026-05-29T08:00:00+08:00".to_string();
+
+        assert_eq!(
+            next_wait_duration_for_routines(&[routine], dt("2026-05-30 10:00:00")).unwrap(),
+            std::time::Duration::from_secs(0)
+        );
+    }
+
+    #[test]
+    fn should_not_run_due_before_routine_existed() {
+        let mut routine = routine("new", "08:00", true);
+        routine.created_at = "2026-05-30T09:00:00+08:00".to_string();
+
+        assert!(!should_run_due(&routine, dt("2026-05-30 10:00:00")));
+    }
+
+    #[test]
+    fn should_not_run_due_when_last_run_covers_latest_due_time() {
+        let mut routine = routine("already", "08:00", true);
+        routine.created_at = "2026-05-29T08:00:00+08:00".to_string();
+        routine.last_run = Some(summary("2026-05-30T08:30:00+08:00"));
+
+        assert!(!should_run_due(&routine, dt("2026-05-30 10:00:00")));
+    }
+
+    #[test]
+    fn last_run_update_merges_into_current_routine_and_skips_deleted() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = AutomationStore::for_workspace(dir.path().to_str().unwrap());
+        let mut current = routine("routine_1", "08:00", true);
+        current.title = "edited title".to_string();
+        store.upsert_routine(current).unwrap();
+
+        update_routine_last_run(&store, "routine_1", summary("2026-05-30T08:30:00+08:00"))
+            .unwrap();
+        let updated = store.get_routine("routine_1").unwrap();
+        assert_eq!(updated.title, "edited title");
+        assert_eq!(updated.last_run.as_ref().unwrap().id, "run_1");
+
+        store.delete_routine("routine_1").unwrap();
+        update_routine_last_run(&store, "routine_1", summary("2026-05-30T09:30:00+08:00"))
+            .unwrap();
+        assert!(store.list_routines().unwrap().is_empty());
+    }
+
+    #[test]
+    fn startup_reconcile_marks_running_runs_failed() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = AutomationStore::for_workspace(dir.path().to_str().unwrap());
+        store
+            .upsert_routine(routine("routine_1", "08:00", true))
+            .unwrap();
+        store
+            .upsert_run(run("routine_1", AutomationRunStatus::Running))
+            .unwrap();
+
+        let reconciled =
+            mark_running_runs_failed(&store, "2026-05-30T09:00:00+08:00").unwrap();
+
+        assert_eq!(reconciled.len(), 1);
+        assert_eq!(reconciled[0].status, AutomationRunStatus::Failed);
+        assert_eq!(
+            reconciled[0].error.as_deref(),
+            Some("app closed during automation run")
+        );
+        let routine = store.get_routine("routine_1").unwrap();
+        assert_eq!(
+            routine.last_run.as_ref().unwrap().status,
+            AutomationRunStatus::Failed
         );
     }
 

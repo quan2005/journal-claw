@@ -114,6 +114,7 @@ fn main() {
                 // ── Auto lint scheduler ──
                 auto_lint::check_missed_run(app.handle());
                 auto_lint::start_scheduler(app.handle().clone());
+                let _ = automation::reconcile_running_runs(app.handle());
                 automation::start_scheduler(app.handle().clone());
                 // ── Feishu bridge ──
                 let feishu_app = app.handle().clone();

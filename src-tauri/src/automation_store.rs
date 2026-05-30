@@ -3,8 +3,15 @@
 
 use crate::automation_types::{AutomationRoutine, AutomationRun, RunManifest};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
+
+static STORE_LOCKS: OnceLock<Mutex<HashMap<PathBuf, Arc<Mutex<()>>>>> = OnceLock::new();
+static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone)]
 pub struct AutomationStore {
@@ -42,21 +49,21 @@ impl AutomationStore {
     }
 
     pub fn save_routines(&self, routines: &[AutomationRoutine]) -> Result<(), String> {
-        self.ensure_dirs()?;
-        let file = RoutinesFile {
-            routines: routines.to_vec(),
-        };
-        write_json(&self.routines_path(), &file)
+        let lock = self.mutation_lock()?;
+        let _guard = lock.lock().map_err(|e| e.to_string())?;
+        self.save_routines_unlocked(routines)
     }
 
     pub fn upsert_routine(&self, routine: AutomationRoutine) -> Result<(), String> {
-        let mut routines = self.list_routines()?;
+        let lock = self.mutation_lock()?;
+        let _guard = lock.lock().map_err(|e| e.to_string())?;
+        let mut routines = self.read_routines_file()?.routines;
         if let Some(existing) = routines.iter_mut().find(|r| r.id == routine.id) {
             *existing = routine;
         } else {
             routines.push(routine);
         }
-        self.save_routines(&routines)
+        self.save_routines_unlocked(&routines)
     }
 
     pub fn get_routine(&self, id: &str) -> Result<AutomationRoutine, String> {
@@ -67,12 +74,15 @@ impl AutomationStore {
     }
 
     pub fn delete_routine(&self, id: &str) -> Result<(), String> {
+        let lock = self.mutation_lock()?;
+        let _guard = lock.lock().map_err(|e| e.to_string())?;
         let routines: Vec<AutomationRoutine> = self
-            .list_routines()?
+            .read_routines_file()?
+            .routines
             .into_iter()
             .filter(|r| r.id != id)
             .collect();
-        self.save_routines(&routines)
+        self.save_routines_unlocked(&routines)
     }
 
     pub fn list_runs(&self) -> Result<Vec<AutomationRun>, String> {
@@ -91,12 +101,14 @@ impl AutomationStore {
     }
 
     pub fn upsert_run(&self, run: AutomationRun) -> Result<(), String> {
+        let lock = self.mutation_lock()?;
+        let _guard = lock.lock().map_err(|e| e.to_string())?;
         self.ensure_dirs()?;
         if let Some(manifest) = &run.manifest {
             self.save_manifest(&run.id, manifest)?;
         }
 
-        let mut runs = self.list_runs()?;
+        let mut runs = self.read_runs_file()?.runs;
         if let Some(existing) = runs.iter_mut().find(|r| r.id == run.id) {
             *existing = run;
         } else {
@@ -112,9 +124,17 @@ impl AutomationStore {
             .ok_or_else(|| format!("automation run not found: {}", run_id))
     }
 
-    pub fn save_manifest(&self, run_id: &str, manifest: &RunManifest) -> Result<(), String> {
+    fn save_manifest(&self, run_id: &str, manifest: &RunManifest) -> Result<(), String> {
         self.ensure_dirs()?;
-        write_json(&self.manifest_path(run_id), manifest)
+        write_json(&self.manifest_path(run_id)?, manifest)
+    }
+
+    fn save_routines_unlocked(&self, routines: &[AutomationRoutine]) -> Result<(), String> {
+        self.ensure_dirs()?;
+        let file = RoutinesFile {
+            routines: routines.to_vec(),
+        };
+        write_json(&self.routines_path(), &file)
     }
 
     fn read_routines_file(&self) -> Result<RoutinesFile, String> {
@@ -133,8 +153,18 @@ impl AutomationStore {
         self.root.join("runs.json")
     }
 
-    fn manifest_path(&self, run_id: &str) -> PathBuf {
-        self.root.join("manifests").join(format!("{}.json", run_id))
+    fn manifest_path(&self, run_id: &str) -> Result<PathBuf, String> {
+        validate_manifest_run_id(run_id)?;
+        Ok(self.root.join("manifests").join(format!("{}.json", run_id)))
+    }
+
+    fn mutation_lock(&self) -> Result<Arc<Mutex<()>>, String> {
+        let locks = STORE_LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
+        let mut locks = locks.lock().map_err(|e| e.to_string())?;
+        Ok(locks
+            .entry(self.root.clone())
+            .or_insert_with(|| Arc::new(Mutex::new(())))
+            .clone())
     }
 }
 
@@ -155,7 +185,63 @@ fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let data = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    let temp_path = temp_json_path(path)?;
+    let write_result = (|| -> Result<(), String> {
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)
+            .map_err(|e| e.to_string())?;
+        file.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+        file.write_all(b"\n").map_err(|e| e.to_string())?;
+        file.sync_all().map_err(|e| e.to_string())?;
+        drop(file);
+        fs::rename(&temp_path, path).map_err(|e| e.to_string())
+    })();
+
+    if write_result.is_err() {
+        let _ = fs::remove_file(&temp_path);
+    }
+    write_result
+}
+
+fn temp_json_path(path: &Path) -> Result<PathBuf, String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("path has no parent: {}", path.display()))?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| format!("path has no file name: {}", path.display()))?;
+    let counter = TEMP_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    Ok(parent.join(format!(
+        ".{}.{}.{}.tmp",
+        file_name,
+        std::process::id(),
+        counter
+    )))
+}
+
+fn validate_manifest_run_id(run_id: &str) -> Result<(), String> {
+    if run_id.is_empty() {
+        return Err("invalid automation run id for manifest filename: empty".to_string());
+    }
+    if run_id == ".." || run_id.contains("..") {
+        return Err(format!(
+            "invalid automation run id for manifest filename: {}",
+            run_id
+        ));
+    }
+    if !run_id
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+    {
+        return Err(format!(
+            "invalid automation run id for manifest filename: {}",
+            run_id
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -250,5 +336,74 @@ mod tests {
         assert_eq!(routines.len(), 1);
         assert_eq!(routines[0].title, "新的标题");
         assert_eq!(routines[0].last_run.as_ref().unwrap().id, "run_1");
+    }
+
+    #[test]
+    fn malicious_run_id_cannot_escape_manifest_dir_or_corrupt_runs() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = AutomationStore::for_workspace(dir.path().to_str().unwrap());
+        store
+            .upsert_run(AutomationRun {
+                id: "run_1".to_string(),
+                routine_id: "r_1".to_string(),
+                trigger: AutomationRunTrigger::Manual,
+                status: AutomationRunStatus::Succeeded,
+                started_at: "2026-05-30T08:00:00+08:00".to_string(),
+                completed_at: Some("2026-05-30T08:01:00+08:00".to_string()),
+                error: None,
+                conversation_id: Some("s_1".to_string()),
+                manifest: None,
+            })
+            .unwrap();
+        let outside_manifest = store.root().join("escape.json");
+        let bad_run_id = "../escape";
+
+        let result = store.upsert_run(AutomationRun {
+            id: bad_run_id.to_string(),
+            routine_id: "r_1".to_string(),
+            trigger: AutomationRunTrigger::Manual,
+            status: AutomationRunStatus::Succeeded,
+            started_at: "2026-05-30T08:00:00+08:00".to_string(),
+            completed_at: Some("2026-05-30T08:01:00+08:00".to_string()),
+            error: None,
+            conversation_id: Some("s_1".to_string()),
+            manifest: Some(RunManifest {
+                summary: "完成".to_string(),
+                conversation_id: "s_1".to_string(),
+                ..RunManifest::default()
+            }),
+        });
+
+        assert!(result.is_err());
+        assert!(!outside_manifest.exists());
+        let runs = store.list_runs().unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].id, "run_1");
+    }
+
+    #[test]
+    fn concurrent_routine_upserts_keep_all_updates() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = AutomationStore::for_workspace(dir.path().to_str().unwrap());
+        let handles: Vec<_> = (0..24)
+            .map(|index| {
+                let store = store.clone();
+                std::thread::spawn(move || {
+                    store
+                        .upsert_routine(routine(&format!("r_{}", index)))
+                        .unwrap();
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        let routines = store.list_routines().unwrap();
+        assert_eq!(routines.len(), 24);
+        for index in 0..24 {
+            assert!(routines.iter().any(|r| r.id == format!("r_{}", index)));
+        }
     }
 }

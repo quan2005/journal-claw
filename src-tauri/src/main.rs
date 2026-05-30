@@ -1,4 +1,6 @@
 mod ai_processor;
+mod automation;
+mod automation_commands;
 mod automation_runner;
 mod automation_schedule;
 mod automation_store;
@@ -88,6 +90,10 @@ fn main() {
             tokio::sync::Notify::new(),
         )))
         .manage(auto_lint::LintRunning(std::sync::Mutex::new(false)))
+        .manage(automation::AutomationNotify(std::sync::Arc::new(
+            tokio::sync::Notify::new(),
+        )))
+        .manage(automation::AutomationRuntime::default())
         .manage(feishu_bridge::BridgeStatusState(std::sync::Mutex::new(
             config::FeishuStatus {
                 state: "idle".to_string(),
@@ -108,6 +114,7 @@ fn main() {
                 // ── Auto lint scheduler ──
                 auto_lint::check_missed_run(app.handle());
                 auto_lint::start_scheduler(app.handle().clone());
+                automation::start_scheduler(app.handle().clone());
                 // ── Feishu bridge ──
                 let feishu_app = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
@@ -333,6 +340,16 @@ fn main() {
             workspace_settings::set_auto_lint_config,
             auto_lint::get_auto_lint_status,
             auto_lint::trigger_lint_now,
+            automation_commands::list_automation_templates,
+            automation_commands::list_routines,
+            automation_commands::create_routine,
+            automation_commands::update_routine,
+            automation_commands::delete_routine,
+            automation_commands::pause_routine,
+            automation_commands::resume_routine,
+            automation_commands::run_routine_now,
+            automation_commands::list_routine_runs,
+            automation_commands::get_automation_run,
             config::get_feishu_config,
             config::set_feishu_config,
             config::get_feishu_status,

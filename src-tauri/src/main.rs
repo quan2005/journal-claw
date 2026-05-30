@@ -1,4 +1,5 @@
 mod ai_processor;
+mod automation_schedule;
 mod automation_types;
 mod audio_files;
 mod audio_pipeline;

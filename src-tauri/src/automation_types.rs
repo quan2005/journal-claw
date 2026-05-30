@@ -1,10 +1,19 @@
+// These serde/IPC contract types are consumed incrementally by later automation modules.
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum AutomationSchedule {
-    Daily { time: String, timezone: String },
-    Weekdays { time: String, timezone: String },
+    Daily {
+        time: String,
+        timezone: String,
+    },
+    Weekdays {
+        time: String,
+        timezone: String,
+    },
     Weekly {
         weekday: u32,
         time: String,
@@ -184,8 +193,15 @@ mod tests {
             last_run: None,
         };
 
-        let json = serde_json::to_string(&routine).unwrap();
-        let parsed: AutomationRoutine = serde_json::from_str(&json).unwrap();
+        let value = serde_json::to_value(&routine).unwrap();
+        assert_eq!(value["schedule"]["kind"], "daily");
+        assert_eq!(value["schedule"]["time"], "08:00");
+        assert_eq!(value["schedule"]["timezone"], "Asia/Hong_Kong");
+        assert_eq!(value["scope"]["kind"], "relative");
+        assert_eq!(value["scope"]["range"], "yesterday");
+        assert_eq!(value["template_id"], "daily-summary");
+
+        let parsed: AutomationRoutine = serde_json::from_value(value).unwrap();
         assert_eq!(parsed, routine);
     }
 

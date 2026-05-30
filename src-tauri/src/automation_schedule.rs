@@ -159,6 +159,38 @@ mod tests {
     }
 
     #[test]
+    fn validate_schedule_rejects_invalid_weekday_day_and_timezone() {
+        assert!(validate_schedule(&AutomationSchedule::Weekly {
+            weekday: 7,
+            time: "09:00".to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        })
+        .is_err());
+        assert!(validate_schedule(&AutomationSchedule::Monthly {
+            day: 0,
+            time: "09:00".to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        })
+        .is_err());
+        assert!(validate_schedule(&AutomationSchedule::Monthly {
+            day: 32,
+            time: "09:00".to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        })
+        .is_err());
+        assert!(validate_schedule(&AutomationSchedule::Daily {
+            time: "09:00".to_string(),
+            timezone: "".to_string(),
+        })
+        .is_err());
+        assert!(validate_schedule(&AutomationSchedule::Daily {
+            time: "09:00".to_string(),
+            timezone: "UTC".to_string(),
+        })
+        .is_err());
+    }
+
+    #[test]
     fn daily_uses_today_when_time_is_future() {
         let schedule = AutomationSchedule::Daily {
             time: "08:00".to_string(),
@@ -204,6 +236,19 @@ mod tests {
         assert_eq!(
             next_run_after(&schedule, dt("2026-05-30 10:00:00")).unwrap(),
             dt("2026-06-05 17:30:00")
+        );
+    }
+
+    #[test]
+    fn weekly_exact_boundary_uses_next_week() {
+        let schedule = AutomationSchedule::Weekly {
+            weekday: 5,
+            time: "17:30".to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        };
+        assert_eq!(
+            next_run_after(&schedule, dt("2026-06-05 17:30:00")).unwrap(),
+            dt("2026-06-12 17:30:00")
         );
     }
 

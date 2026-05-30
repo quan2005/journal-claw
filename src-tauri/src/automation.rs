@@ -139,12 +139,19 @@ async fn run_due_routines(app: AppHandle) {
     let now = Local::now().naive_local();
     for routine in routines.into_iter().filter(|r| r.enabled) {
         if should_run_due(&routine, now) {
-            let _ = run_routine(
-                app.clone(),
-                routine.id.clone(),
-                AutomationRunTrigger::Scheduled,
-            )
-            .await;
+            let app_for_run = app.clone();
+            let routine_id = routine.id.clone();
+            let Ok(marked) = mark_routine_in_flight(&app_for_run, &routine_id) else {
+                continue;
+            };
+            if !marked {
+                continue;
+            }
+            tauri::async_runtime::spawn(async move {
+                let _ =
+                    run_marked_routine(app_for_run, routine_id, AutomationRunTrigger::Scheduled)
+                        .await;
+            });
         }
     }
 }
@@ -154,24 +161,43 @@ async fn run_routine(
     routine_id: String,
     trigger: AutomationRunTrigger,
 ) -> Result<AutomationRun, String> {
-    {
-        let runtime = app.state::<AutomationRuntime>();
-        let mut in_flight = runtime.in_flight.lock().map_err(|e| e.to_string())?;
-        if in_flight.contains(&routine_id) {
-            return create_skipped_run(&app, &routine_id, trigger, "routine already running");
-        }
-        in_flight.insert(routine_id.clone());
+    if !mark_routine_in_flight(&app, &routine_id)? {
+        return create_skipped_run(&app, &routine_id, trigger, "routine already running");
     }
 
+    run_marked_routine(app, routine_id, trigger).await
+}
+
+async fn run_marked_routine(
+    app: AppHandle,
+    routine_id: String,
+    trigger: AutomationRunTrigger,
+) -> Result<AutomationRun, String> {
     let result = run_routine_inner(app.clone(), routine_id.clone(), trigger).await;
 
+    clear_routine_in_flight(&app, &routine_id);
+    notify_scheduler(&app);
+    result
+}
+
+fn mark_routine_in_flight(app: &AppHandle, routine_id: &str) -> Result<bool, String> {
+    let runtime = app.state::<AutomationRuntime>();
+    let mut in_flight = runtime.in_flight.lock().map_err(|e| e.to_string())?;
+    if in_flight.contains(routine_id) {
+        return Ok(false);
+    }
+    in_flight.insert(routine_id.to_string());
+    Ok(true)
+}
+
+fn clear_routine_in_flight(app: &AppHandle, routine_id: &str) {
     {
         let runtime = app.state::<AutomationRuntime>();
-        let mut in_flight = runtime.in_flight.lock().map_err(|e| e.to_string())?;
-        in_flight.remove(&routine_id);
+        let Ok(mut in_flight) = runtime.in_flight.lock() else {
+            return;
+        };
+        in_flight.remove(routine_id);
     }
-
-    result
 }
 
 async fn run_routine_inner(
@@ -289,17 +315,39 @@ fn mark_running_runs_failed(
 fn next_wait_duration(app: &AppHandle) -> Result<std::time::Duration, String> {
     let workspace = config::load_config(app)?.workspace_path;
     let routines = AutomationStore::for_workspace(&workspace).list_routines()?;
-    next_wait_duration_for_routines(&routines, Local::now().naive_local())
+    let in_flight = {
+        let runtime = app.state::<AutomationRuntime>();
+        let snapshot = runtime
+            .in_flight
+            .lock()
+            .map_err(|e| e.to_string())?
+            .clone();
+        snapshot
+    };
+    next_wait_duration_for_routines_with_in_flight(
+        &routines,
+        Local::now().naive_local(),
+        &in_flight,
+    )
 }
 
+#[cfg(test)]
 fn next_wait_duration_for_routines(
     routines: &[AutomationRoutine],
     now: NaiveDateTime,
 ) -> Result<std::time::Duration, String> {
+    next_wait_duration_for_routines_with_in_flight(routines, now, &HashSet::new())
+}
+
+fn next_wait_duration_for_routines_with_in_flight(
+    routines: &[AutomationRoutine],
+    now: NaiveDateTime,
+    in_flight: &HashSet<String>,
+) -> Result<std::time::Duration, String> {
     if routines
         .iter()
         .filter(|routine| routine.enabled)
-        .any(|routine| should_run_due(routine, now))
+        .any(|routine| !in_flight.contains(&routine.id) && should_run_due(routine, now))
     {
         return Ok(std::time::Duration::from_secs(0));
     }
@@ -497,6 +545,41 @@ mod tests {
 
         assert_eq!(
             next_wait_duration_for_routines(&[routine], dt("2026-05-30 10:00:00")).unwrap(),
+            std::time::Duration::from_secs(0)
+        );
+    }
+
+    #[test]
+    fn next_wait_ignores_due_routines_already_in_flight() {
+        let mut routine = routine("missed", "08:00", true);
+        routine.created_at = "2026-05-29T08:00:00+08:00".to_string();
+        let in_flight = HashSet::from(["missed".to_string()]);
+
+        let wait = next_wait_duration_for_routines_with_in_flight(
+            &[routine],
+            dt("2026-05-30 10:00:00"),
+            &in_flight,
+        )
+        .unwrap();
+
+        assert!(wait > std::time::Duration::from_secs(0));
+    }
+
+    #[test]
+    fn next_wait_is_immediate_when_any_due_routine_is_not_in_flight() {
+        let mut running = routine("running", "08:00", true);
+        running.created_at = "2026-05-29T08:00:00+08:00".to_string();
+        let mut waiting = routine("waiting", "08:00", true);
+        waiting.created_at = "2026-05-29T08:00:00+08:00".to_string();
+        let in_flight = HashSet::from(["running".to_string()]);
+
+        assert_eq!(
+            next_wait_duration_for_routines_with_in_flight(
+                &[running, waiting],
+                dt("2026-05-30 10:00:00"),
+                &in_flight,
+            )
+            .unwrap(),
             std::time::Duration::from_secs(0)
         );
     }

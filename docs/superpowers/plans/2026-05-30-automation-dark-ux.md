@@ -13,6 +13,7 @@
 ### Task 1: Theme Contract Tests
 
 **Files:**
+
 - Modify: `src/tests/light-theme-unit.test.ts`
 - Test: `src/tests/light-theme-unit.test.ts`
 
@@ -22,6 +23,7 @@
 ### Task 2: Automation UX Tests
 
 **Files:**
+
 - Create: `src/tests/AutomationWorkbench.test.tsx`
 - Modify: `src/components/AutomationWorkbench.tsx`
 
@@ -31,6 +33,7 @@
 ### Task 3: Theme And Component Implementation
 
 **Files:**
+
 - Modify: `src/styles/globals.css`
 - Modify: `src/components/AutomationWorkbench.tsx`
 - Modify: `src/components/AutomationTemplateGrid.tsx`
@@ -46,9 +49,26 @@
 ### Task 4: Verification
 
 **Files:**
+
 - No production file changes expected.
 
 - [ ] Run `npm test -- src/tests/light-theme-unit.test.ts src/tests/AutomationWorkbench.test.tsx`.
 - [ ] Run `npm run lint`.
 - [ ] Run `npm run build`.
 - [ ] Run a Playwright dark-mode smoke against the automation workbench and verify no browser errors and visible primary text.
+
+### Task 5: Reference UX Alignment
+
+**Files:**
+
+- Modify: `src/tests/AutomationWorkbench.test.tsx`
+- Modify: `src/components/AutomationWorkbench.tsx`
+- Modify: `src/components/AutomationRoutineList.tsx`
+- Modify: `src/components/AutomationTemplateGrid.tsx`
+- Modify: `src/styles/globals.css`
+
+- [ ] Update the workbench test so the page has a top overview, a `你的自动化` section, and a visible `模板` library before opening the create dialog.
+- [ ] Run `npm test -- src/tests/AutomationWorkbench.test.tsx` and verify the test fails against the list-only implementation.
+- [ ] Replace the two-column default layout with a single-column page: overview header, user routines, template filters, template cards.
+- [ ] Keep details and editing in the existing dialog path; no default right-side detail panel.
+- [ ] Re-run targeted tests, lint, build, and dark-mode Playwright smoke.

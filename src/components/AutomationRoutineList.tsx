@@ -10,7 +10,15 @@ export function AutomationRoutineList({
   onSelect: (routine: AutomationRoutine) => void
 }) {
   if (routines.length === 0) {
-    return <div className="automation-card automation-empty">还没有自动化</div>
+    return (
+      <div className="automation-card automation-empty automation-empty-state">
+        <span className="automation-empty-icon">+</span>
+        <span>
+          <span className="automation-row-title">还没有自动化</span>
+          <span className="automation-row-meta">从模板创建一个，或从空白计划开始。</span>
+        </span>
+      </div>
+    )
   }
 
   return (
@@ -21,6 +29,7 @@ export function AutomationRoutineList({
           type="button"
           onClick={() => onSelect(routine)}
           className={`automation-routine-row${selectedId === routine.id ? ' is-selected' : ''}`}
+          aria-label={`自动化：${routine.title}，${scheduleLabel(routine)}`}
         >
           <span style={{ minWidth: 0 }}>
             <span className="automation-row-title">{routine.title}</span>

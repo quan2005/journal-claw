@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useAutomation } from '../hooks/useAutomation'
 import type { AutomationRoutine, AutomationTemplate } from '../types'
 import { AutomationEditorDialog } from './AutomationEditorDialog'
-import { AutomationRoutineDetail } from './AutomationRoutineDetail'
 import { AutomationRoutineList } from './AutomationRoutineList'
+import { AutomationTemplateGrid } from './AutomationTemplateGrid'
 
 export function AutomationWorkbench({
-  onOpenConversation,
+  onOpenConversation: _onOpenConversation,
 }: {
   onOpenConversation: (sessionId: string) => void
 }) {
@@ -15,6 +16,7 @@ export function AutomationWorkbench({
   const [editingRoutine, setEditingRoutine] = useState<AutomationRoutine | null>(null)
   const [draftTemplate, setDraftTemplate] = useState<AutomationTemplate | null>(null)
   const [creating, setCreating] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('全部')
 
   const selectedRoutine = useMemo(
     () =>
@@ -23,18 +25,29 @@ export function AutomationWorkbench({
       null,
     [automation.routines, selectedId],
   )
-  const selectedRoutineId = selectedRoutine?.id ?? null
-  const loadRuns = automation.loadRuns
-
   useEffect(() => {
-    if (!selectedRoutineId) {
-      return
+    if (!selectedRoutine && selectedId) {
+      setSelectedId(null)
     }
-    setSelectedId(selectedRoutineId)
-    void loadRuns(selectedRoutineId)
-  }, [loadRuns, selectedRoutineId])
+  }, [selectedId, selectedRoutine])
 
-  const selectedRuns = selectedRoutine ? (automation.runsByRoutine[selectedRoutine.id] ?? []) : []
+  const pausedCount = automation.counts.total - automation.counts.enabled
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    counts.set('全部', automation.templates.length)
+    for (const template of automation.templates) {
+      counts.set(template.category, (counts.get(template.category) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+  }, [automation.templates])
+
+  const visibleTemplates = useMemo(
+    () =>
+      activeCategory === '全部'
+        ? automation.templates
+        : automation.templates.filter((template) => template.category === activeCategory),
+    [activeCategory, automation.templates],
+  )
 
   const handleCreate = () => {
     const template = automation.templates[0] ?? null
@@ -42,54 +55,87 @@ export function AutomationWorkbench({
     setCreating(true)
   }
 
-  const handleRun = async (routine: AutomationRoutine) => {
-    await automation.runNow(routine.id)
+  const handleTemplateCreate = (template: AutomationTemplate) => {
+    setDraftTemplate(template)
+    setCreating(true)
   }
 
   return (
     <div className="automation-workbench">
       <header className="automation-header">
         <div>
-          <div className="automation-eyebrow">Scheduled routines</div>
+          <div className="automation-eyebrow">SCHEDULED AGENT SESSIONS</div>
           <h2 className="automation-title">自动化</h2>
           <div className="automation-summary">
-            {automation.counts.total === 0
-              ? '还没有自动化任务'
-              : `${automation.counts.enabled} 个启用 · ${automation.counts.total} 个任务${
-                  automation.counts.failed > 0 ? ` · ${automation.counts.failed} 个失败需查看` : ''
-                }`}
+            计划周期性 Agent 会话，用于总结、维护、研究和自定义工作流。
           </div>
         </div>
-        <button className="automation-button automation-button-primary" onClick={handleCreate}>
-          新建自动化
-        </button>
+        <div className="automation-header-actions">
+          <div className="automation-stats" aria-label="自动化统计">
+            <span aria-label={`${automation.counts.enabled} ACTIVE`}>
+              <strong>{automation.counts.enabled}</strong> ACTIVE
+            </span>
+            <span aria-label={`${pausedCount} PAUSED`}>
+              <strong>{pausedCount}</strong> PAUSED
+            </span>
+            <span aria-label={`${automation.templates.length} TEMPLATES`}>
+              <strong>{automation.templates.length}</strong> TEMPLATES
+            </span>
+          </div>
+          <button className="automation-button automation-button-primary" onClick={handleCreate}>
+            <Plus aria-hidden="true" size={17} strokeWidth={1.8} />
+            <span>新建自动化</span>
+          </button>
+        </div>
       </header>
 
       <div className="automation-body">
         {automation.error && <div className="automation-alert">{automation.error}</div>}
 
-        <div className="automation-grid">
-          <div style={{ minWidth: 0 }}>
-            <h3 className="automation-section-title">自动化任务</h3>
+        <div className="automation-stack">
+          <section>
+            <h3 className="automation-section-title">你的自动化</h3>
             <AutomationRoutineList
               routines={automation.routines}
               selectedId={selectedRoutine?.id ?? null}
               onSelect={(routine) => {
                 setSelectedId(routine.id)
                 void automation.loadRuns(routine.id)
+                setEditingRoutine(routine)
               }}
             />
-          </div>
+          </section>
 
-          <AutomationRoutineDetail
-            routine={selectedRoutine}
-            runs={selectedRuns}
-            onRun={handleRun}
-            onEdit={(routine) => setEditingRoutine(routine)}
-            onPause={(routine) => automation.pause(routine.id)}
-            onResume={(routine) => automation.resume(routine.id)}
-            onOpenConversation={onOpenConversation}
-          />
+          <section className="automation-template-section">
+            <div className="automation-template-section-head">
+              <div>
+                <h3 className="automation-section-title">模板</h3>
+                <div className="automation-summary">
+                  高质量模板和自定义 Agent 入口在同一个自动化流程里。
+                </div>
+              </div>
+              <div className="automation-template-count">
+                {visibleTemplates.length} of {automation.templates.length}
+              </div>
+            </div>
+            <div className="automation-tabs" aria-label="模板分类">
+              {categoryCounts.map(([category, count]) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`automation-tab${activeCategory === category ? ' is-active' : ''}`}
+                  onClick={() => setActiveCategory(category)}
+                >
+                  {category} <span>{count}</span>
+                </button>
+              ))}
+            </div>
+            <AutomationTemplateGrid
+              templates={visibleTemplates}
+              selectedTemplateId={draftTemplate?.id ?? null}
+              onSelect={handleTemplateCreate}
+            />
+          </section>
         </div>
       </div>
       {(editingRoutine || creating) && (

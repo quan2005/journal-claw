@@ -19,6 +19,7 @@ export function AutomationTemplateGrid({
             type="button"
             onClick={() => onSelect(template)}
             className={`automation-template-card${selected ? ' is-selected' : ''}`}
+            aria-label={`使用模板：${template.title}`}
           >
             <div className="automation-template-title">{template.title}</div>
             <div className="automation-template-desc">{template.description}</div>
@@ -26,6 +27,7 @@ export function AutomationTemplateGrid({
               <span className="automation-pill automation-pill-accent">{template.category}</span>
               <span className="automation-pill">{scheduleLabel(template.default_schedule)}</span>
             </div>
+            <div className="automation-template-action">使用模板 ›</div>
           </button>
         )
       })}

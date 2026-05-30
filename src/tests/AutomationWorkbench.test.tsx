@@ -73,23 +73,32 @@ describe('AutomationWorkbench', () => {
     vi.clearAllMocks()
   })
 
-  it('keeps routines as the primary surface and moves templates behind create', async () => {
+  it('shows user automations first and keeps templates visible as the creation library', async () => {
     renderWithProviders(<AutomationWorkbench onOpenConversation={vi.fn()} />)
 
     expect(screen.getByRole('heading', { name: '自动化' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '新建自动化' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /每日总结.*每天 08:00/s })).toBeTruthy()
+    expect(screen.getByLabelText('1 ACTIVE')).toBeTruthy()
+    expect(screen.getByLabelText('0 PAUSED')).toBeTruthy()
+    expect(screen.getByLabelText('2 TEMPLATES')).toBeTruthy()
 
-    expect(screen.queryByText('模板入口')).toBeNull()
+    expect(screen.getByRole('heading', { name: '你的自动化' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '自动化：每日总结，每天 08:00' })).toBeTruthy()
+
+    expect(screen.getByRole('heading', { name: '模板' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '全部 2' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '总结 1' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '使用模板：日志库整理' })).toBeTruthy()
+
     expect(screen.queryByRole('heading', { name: '新建自动化' })).toBeNull()
-    expect(screen.queryByText('每天读取昨天，生成一篇自动化日志条目。')).toBeNull()
+    expect(screen.queryByText('运行状态')).toBeNull()
     expect(screen.queryByText('Prompt')).toBeNull()
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '新建自动化' }))
+      fireEvent.click(screen.getByRole('button', { name: '使用模板：日志库整理' }))
     })
 
     expect(screen.getByRole('heading', { name: '新建自动化' })).toBeTruthy()
-    expect(screen.getByText('每天读取昨天，生成一篇自动化日志条目。')).toBeTruthy()
+    expect(screen.getByDisplayValue('日志库整理')).toBeTruthy()
   })
 })

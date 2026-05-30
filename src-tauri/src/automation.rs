@@ -58,6 +58,69 @@ pub fn notify_scheduler(app: &AppHandle) {
     app.state::<AutomationNotify>().0.notify_one();
 }
 
+pub fn ensure_legacy_lint_routine(app: &AppHandle) -> Result<(), String> {
+    let cfg = crate::workspace_settings::load_auto_lint_config(app).unwrap_or_default();
+    if !cfg.enabled {
+        return Ok(());
+    }
+
+    let workspace = config::load_config(app)?.workspace_path;
+    let store = AutomationStore::for_workspace(&workspace);
+    let existing = store
+        .list_routines()?
+        .into_iter()
+        .any(|routine| routine.template_id.as_deref() == Some("journal-lint"));
+    if existing {
+        return Ok(());
+    }
+
+    let template = crate::automation_templates::get_template("journal-lint")
+        .ok_or_else(|| "journal-lint template missing".to_string())?;
+    let schedule =
+        legacy_lint_schedule(&cfg.frequency, &cfg.time, template.default_schedule.clone());
+    let now = Local::now().to_rfc3339();
+    store.upsert_routine(AutomationRoutine {
+        id: "routine_journal_lint_legacy".to_string(),
+        title: template.title.clone(),
+        template_id: Some(template.id.clone()),
+        prompt: format!(
+            "{}\n\n仅当距离上次整理至少新增 {} 条日志时才执行整理；否则记录跳过原因。",
+            template.default_prompt, cfg.min_entries
+        ),
+        schedule,
+        scope: template.default_scope.clone(),
+        enabled: true,
+        full_agent_access: true,
+        created_at: now.clone(),
+        updated_at: now,
+        last_run: None,
+    })
+}
+
+fn legacy_lint_schedule(
+    frequency: &str,
+    time: &str,
+    fallback: AutomationSchedule,
+) -> AutomationSchedule {
+    match frequency {
+        "daily" => AutomationSchedule::Daily {
+            time: time.to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        },
+        "weekly" => AutomationSchedule::Weekly {
+            weekday: 0,
+            time: time.to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        },
+        "monthly" => AutomationSchedule::Monthly {
+            day: 1,
+            time: time.to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        },
+        _ => fallback,
+    }
+}
+
 pub fn create_routine(
     app: &AppHandle,
     request: CreateRoutineRequest,
@@ -677,5 +740,38 @@ mod tests {
         assert_eq!(run.error.as_deref(), Some("agent failed"));
         assert_eq!(run.conversation_id.as_deref(), Some("session_1"));
         assert_eq!(run.manifest, Some(manifest));
+    }
+
+    #[test]
+    fn legacy_lint_schedule_maps_old_config_values() {
+        let fallback = AutomationSchedule::Daily {
+            time: "03:00".to_string(),
+            timezone: "Asia/Hong_Kong".to_string(),
+        };
+
+        assert_eq!(
+            legacy_lint_schedule("daily", "12:00", fallback.clone()),
+            AutomationSchedule::Daily {
+                time: "12:00".to_string(),
+                timezone: "Asia/Hong_Kong".to_string(),
+            }
+        );
+        assert_eq!(
+            legacy_lint_schedule("weekly", "22:00", fallback.clone()),
+            AutomationSchedule::Weekly {
+                weekday: 0,
+                time: "22:00".to_string(),
+                timezone: "Asia/Hong_Kong".to_string(),
+            }
+        );
+        assert_eq!(
+            legacy_lint_schedule("monthly", "03:00", fallback.clone()),
+            AutomationSchedule::Monthly {
+                day: 1,
+                time: "03:00".to_string(),
+                timezone: "Asia/Hong_Kong".to_string(),
+            }
+        );
+        assert_eq!(legacy_lint_schedule("unknown", "03:00", fallback.clone()), fallback);
     }
 }

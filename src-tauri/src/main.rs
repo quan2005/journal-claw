@@ -110,6 +110,7 @@ fn main() {
                 if let Ok(cfg) = config::load_config(app.handle()) {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
                 }
+                let _ = automation::ensure_legacy_lint_routine(app.handle());
 
                 // ── Auto lint scheduler ──
                 auto_lint::check_missed_run(app.handle());

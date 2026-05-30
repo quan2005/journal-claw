@@ -1,7 +1,7 @@
 use crate::config;
 use crate::llm;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
@@ -31,6 +31,26 @@ pub struct UnattendedAgentResult {
     pub assistant_text: String,
     pub input_tokens: u64,
     pub output_tokens: u64,
+    pub files_read: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct UnattendedAgentError {
+    pub session_id: String,
+    pub message: String,
+    pub assistant_text: String,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub files_read: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct UnattendedToolTrace {
+    files_read: Vec<String>,
+    warnings: Vec<String>,
 }
 
 // ── Types ────────────────────────────────────────────────
@@ -176,6 +196,105 @@ fn collect_assistant_text(messages: &[Message]) -> String {
                 .join("\n")
         })
         .unwrap_or_default()
+}
+
+fn extract_unattended_tool_trace(messages: &[Message]) -> UnattendedToolTrace {
+    let mut files_read = BTreeSet::new();
+    let mut warnings = BTreeSet::new();
+    let mut tool_uses: HashMap<String, (String, serde_json::Value)> = HashMap::new();
+
+    for message in messages {
+        for block in &message.content {
+            match block {
+                ContentBlock::ToolUse { id, name, input } => {
+                    tool_uses.insert(id.clone(), (name.clone(), input.clone()));
+                    match name.as_str() {
+                        "read" | "stat" | "edit" => {
+                            add_trace_path(&mut files_read, input.get("path"));
+                        }
+                        "copy" | "move" => {
+                            add_trace_path(&mut files_read, input.get("source"));
+                        }
+                        "bash" => {
+                            warnings.insert(format!(
+                                "untracked bash access: {}",
+                                llm::bash_tool::log_label(input)
+                            ));
+                        }
+                        "task" => {
+                            warnings.insert("untracked task access".to_string());
+                        }
+                        _ => {}
+                    }
+                }
+                ContentBlock::ToolResult {
+                    tool_use_id,
+                    content,
+                    ..
+                } => {
+                    if let Some((name, _)) = tool_uses.get(tool_use_id) {
+                        match name.as_str() {
+                            "grep" => add_grep_result_paths(&mut files_read, content),
+                            "glob" => add_glob_result_paths(&mut files_read, content),
+                            _ => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    UnattendedToolTrace {
+        files_read: files_read.into_iter().collect(),
+        warnings: warnings.into_iter().collect(),
+    }
+}
+
+fn add_trace_path(paths: &mut BTreeSet<String>, value: Option<&serde_json::Value>) {
+    if let Some(path) = value.and_then(|v| v.as_str()).and_then(normalize_trace_path) {
+        paths.insert(path);
+    }
+}
+
+fn add_grep_result_paths(paths: &mut BTreeSet<String>, content: &str) {
+    for line in content.lines() {
+        let Some(rest) = line.strip_prefix('[') else {
+            continue;
+        };
+        let Some(end) = rest.find("] (") else {
+            continue;
+        };
+        if let Some(path) = normalize_trace_path(&rest[..end]) {
+            paths.insert(path);
+        }
+    }
+}
+
+fn add_glob_result_paths(paths: &mut BTreeSet<String>, content: &str) {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('(') || trimmed.starts_with("error:") {
+            continue;
+        }
+        if let Some(path) = normalize_trace_path(trimmed) {
+            paths.insert(path);
+        }
+    }
+}
+
+fn normalize_trace_path(path: &str) -> Option<String> {
+    let normalized = path.trim().trim_start_matches("./").replace('\\', "/");
+    if normalized.is_empty()
+        || normalized.starts_with('/')
+        || normalized == "."
+        || normalized == ".."
+        || normalized.starts_with("../")
+        || normalized.contains("/../")
+    {
+        return None;
+    }
+    Some(normalized)
 }
 
 fn save_session_to_disk(workspace: &str, session_id: &str, session: &ConversationSession) {
@@ -944,8 +1063,16 @@ pub async fn conversation_send(
 pub async fn run_unattended_agent_session(
     app: AppHandle,
     request: UnattendedAgentRequest,
-) -> Result<UnattendedAgentResult, String> {
-    let cfg = config::load_config(&app)?;
+) -> Result<UnattendedAgentResult, UnattendedAgentError> {
+    let cfg = config::load_config(&app).map_err(|message| UnattendedAgentError {
+        session_id: String::new(),
+        message,
+        assistant_text: String::new(),
+        input_tokens: 0,
+        output_tokens: 0,
+        files_read: Vec::new(),
+        warnings: Vec::new(),
+    })?;
     let workspace = cfg.workspace_path.clone();
     let session_id = generate_session_id();
     let global_skills = crate::workspace_settings::is_global_skills_enabled(&app);
@@ -992,7 +1119,15 @@ pub async fn run_unattended_agent_session(
         store
             .0
             .lock()
-            .map_err(|e| e.to_string())?
+            .map_err(|e| UnattendedAgentError {
+                session_id: session_id.clone(),
+                message: e.to_string(),
+                assistant_text: String::new(),
+                input_tokens: 0,
+                output_tokens: 0,
+                files_read: Vec::new(),
+                warnings: Vec::new(),
+            })?
             .insert(session_id.clone(), session);
     }
 
@@ -1013,11 +1148,28 @@ pub async fn run_unattended_agent_session(
     match result {
         Ok((updated_messages, input_tokens, output_tokens)) => {
             let assistant_text = collect_assistant_text(&updated_messages);
+            let trace = extract_unattended_tool_trace(&updated_messages);
             let done_data = {
-                let mut guard = store.0.lock().map_err(|e| e.to_string())?;
+                let mut guard = store.0.lock().map_err(|e| UnattendedAgentError {
+                    session_id: session_id.clone(),
+                    message: e.to_string(),
+                    assistant_text: assistant_text.clone(),
+                    input_tokens,
+                    output_tokens,
+                    files_read: trace.files_read.clone(),
+                    warnings: trace.warnings.clone(),
+                })?;
                 let session = guard
                     .get_mut(&session_id)
-                    .ok_or_else(|| format!("session missing after run: {}", session_id))?;
+                    .ok_or_else(|| UnattendedAgentError {
+                        session_id: session_id.clone(),
+                        message: format!("session missing after run: {}", session_id),
+                        assistant_text: assistant_text.clone(),
+                        input_tokens,
+                        output_tokens,
+                        files_read: trace.files_read.clone(),
+                        warnings: trace.warnings.clone(),
+                    })?;
                 if let Some(started) = session.turn_started_at.take() {
                     session.elapsed_secs += started.elapsed().as_secs_f64();
                 }
@@ -1048,10 +1200,14 @@ pub async fn run_unattended_agent_session(
                 assistant_text,
                 input_tokens,
                 output_tokens,
+                files_read: trace.files_read,
+                warnings: trace.warnings,
             })
         }
         Err((err, partial_messages, input_tokens, output_tokens)) => {
             let error_data = err.error_info().to_string();
+            let assistant_text = collect_assistant_text(&partial_messages);
+            let trace = extract_unattended_tool_trace(&partial_messages);
             let _ = app.emit(
                 "conversation-stream",
                 ConversationStreamPayload {
@@ -1061,7 +1217,15 @@ pub async fn run_unattended_agent_session(
                 },
             );
             let done_data = {
-                let mut guard = store.0.lock().map_err(|e| e.to_string())?;
+                let mut guard = store.0.lock().map_err(|e| UnattendedAgentError {
+                    session_id: session_id.clone(),
+                    message: e.to_string(),
+                    assistant_text: assistant_text.clone(),
+                    input_tokens,
+                    output_tokens,
+                    files_read: trace.files_read.clone(),
+                    warnings: trace.warnings.clone(),
+                })?;
                 if let Some(session) = guard.get_mut(&session_id) {
                     if let Some(started) = session.turn_started_at.take() {
                         session.elapsed_secs += started.elapsed().as_secs_f64();
@@ -1089,7 +1253,15 @@ pub async fn run_unattended_agent_session(
                     data: done_data,
                 },
             );
-            Err(format!("unattended agent failed: {}", err))
+            Err(UnattendedAgentError {
+                session_id,
+                message: format!("unattended agent failed: {}", err),
+                assistant_text,
+                input_tokens,
+                output_tokens,
+                files_read: trace.files_read,
+                warnings: trace.warnings,
+            })
         }
     }
 }
@@ -2214,5 +2386,72 @@ mod tests {
         ];
 
         assert_eq!(collect_assistant_text(&messages), "new 1\nnew 2");
+    }
+
+    #[test]
+    fn unattended_tool_trace_extracts_files_and_warnings() {
+        let messages = vec![
+            Message {
+                role: Role::Assistant,
+                content: vec![
+                    ContentBlock::ToolUse {
+                        id: "read_1".to_string(),
+                        name: "read".to_string(),
+                        input: serde_json::json!({"path": "2605/29-a.md"}),
+                    },
+                    ContentBlock::ToolUse {
+                        id: "grep_1".to_string(),
+                        name: "grep".to_string(),
+                        input: serde_json::json!({"pattern": "todo"}),
+                    },
+                    ContentBlock::ToolUse {
+                        id: "glob_1".to_string(),
+                        name: "glob".to_string(),
+                        input: serde_json::json!({"pattern": "**/*.md"}),
+                    },
+                    ContentBlock::ToolUse {
+                        id: "bash_1".to_string(),
+                        name: "bash".to_string(),
+                        input: serde_json::json!({"cmd": "sed -n '1,5p' todos.md"}),
+                    },
+                    ContentBlock::ToolUse {
+                        id: "task_1".to_string(),
+                        name: "task".to_string(),
+                        input: serde_json::json!({"prompt": "inspect todos"}),
+                    },
+                ],
+            },
+            Message {
+                role: Role::User,
+                content: vec![
+                    ContentBlock::ToolResult {
+                        tool_use_id: "grep_1".to_string(),
+                        content: "[todos.md] (1 matches):\n  >   1: - x\n".to_string(),
+                        is_error: false,
+                        image: None,
+                    },
+                    ContentBlock::ToolResult {
+                        tool_use_id: "glob_1".to_string(),
+                        content: "2605/30-b.md\n(no ignored line)\n".to_string(),
+                        is_error: false,
+                        image: None,
+                    },
+                ],
+            },
+        ];
+
+        let trace = extract_unattended_tool_trace(&messages);
+
+        assert_eq!(
+            trace.files_read,
+            vec!["2605/29-a.md", "2605/30-b.md", "todos.md"]
+        );
+        assert!(trace
+            .warnings
+            .iter()
+            .any(|warning| warning.starts_with("untracked bash access:")));
+        assert!(trace
+            .warnings
+            .contains(&"untracked task access".to_string()));
     }
 }

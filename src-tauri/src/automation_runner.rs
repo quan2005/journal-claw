@@ -6,8 +6,35 @@ use tauri::AppHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct FileStamp {
-    mtime_secs: u64,
+    mtime_nanos: u128,
     len: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SnapshotDiff {
+    created: Vec<String>,
+    modified: Vec<String>,
+    deleted: Vec<String>,
+}
+
+impl SnapshotDiff {
+    fn files_changed(&self) -> Vec<String> {
+        let mut changed =
+            Vec::with_capacity(self.created.len() + self.modified.len() + self.deleted.len());
+        changed.extend(self.created.iter().cloned());
+        changed.extend(self.modified.iter().cloned());
+        changed.extend(self.deleted.iter().cloned());
+        changed.sort();
+        changed
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct RoutineAgentFailure {
+    pub message: String,
+    pub conversation_id: Option<String>,
+    pub manifest: Option<RunManifest>,
 }
 
 #[allow(dead_code)]
@@ -16,7 +43,7 @@ pub async fn run_routine_agent(
     workspace: &str,
     routine: &AutomationRoutine,
     run: &AutomationRun,
-) -> Result<(String, RunManifest), String> {
+) -> Result<(String, RunManifest), RoutineAgentFailure> {
     let before = snapshot_workspace(workspace);
     let prompt = build_unattended_prompt(routine, run);
     let result = run_unattended_agent_session(
@@ -27,17 +54,48 @@ pub async fn run_routine_agent(
             context_files: Vec::new(),
         },
     )
-    .await?;
+    .await;
     let after = snapshot_workspace(workspace);
-    let changed = diff_snapshots(&before, &after);
-    let manifest = build_manifest(
-        workspace,
-        &result.session_id,
-        &routine.title,
-        &result.assistant_text,
-        changed,
-    );
-    Ok((result.session_id, manifest))
+    let changed = diff_snapshot_details(&before, &after);
+    match result {
+        Ok(result) => {
+            let manifest = build_manifest(
+                workspace,
+                &result.session_id,
+                &routine.title,
+                &result.assistant_text,
+                &result.files_read,
+                &result.warnings,
+                changed,
+            );
+            Ok((result.session_id, manifest))
+        }
+        Err(err) => {
+            if err.session_id.is_empty() {
+                return Err(RoutineAgentFailure {
+                    message: err.message,
+                    conversation_id: None,
+                    manifest: None,
+                });
+            }
+            let mut warnings = err.warnings.clone();
+            warnings.push(format!("automation failed: {}", err.message));
+            let manifest = build_manifest(
+                workspace,
+                &err.session_id,
+                &routine.title,
+                &err.assistant_text,
+                &err.files_read,
+                &warnings,
+                changed,
+            );
+            Err(RoutineAgentFailure {
+                message: err.message,
+                conversation_id: Some(err.session_id),
+                manifest: Some(manifest),
+            })
+        }
+    }
 }
 
 pub fn build_unattended_prompt(routine: &AutomationRoutine, run: &AutomationRun) -> String {
@@ -75,9 +133,13 @@ fn build_manifest(
     conversation_id: &str,
     title: &str,
     assistant_text: &str,
-    files_changed: Vec<String>,
+    files_read: &[String],
+    warnings: &[String],
+    changed: SnapshotDiff,
 ) -> RunManifest {
-    let entries_created = files_changed
+    let files_changed = changed.files_changed();
+    let entries_created = changed
+        .created
         .iter()
         .filter(|p| is_journal_entry_path(p))
         .cloned()
@@ -95,12 +157,12 @@ fn build_manifest(
 
     RunManifest {
         summary: summarize_text(title, assistant_text),
-        files_read: Vec::new(),
+        files_read: files_read.to_vec(),
         files_changed,
         entries_created,
         todos_changed,
         identities_changed,
-        warnings: Vec::new(),
+        warnings: warnings.to_vec(),
         conversation_id: conversation_id.to_string(),
     }
 }
@@ -149,22 +211,25 @@ fn visit_dir(root: &Path, dir: &Path, out: &mut BTreeMap<String, FileStamp>) {
         if is_excluded_snapshot_path(&rel_str) {
             continue;
         }
-        let Ok(meta) = entry.metadata() else {
+        let Ok(meta) = std::fs::symlink_metadata(&path) else {
             continue;
         };
+        if meta.file_type().is_symlink() && path.is_dir() {
+            continue;
+        }
         if meta.is_dir() {
             visit_dir(root, &path, out);
         } else if meta.is_file() {
-            let mtime_secs = meta
+            let mtime_nanos = meta
                 .modified()
                 .ok()
                 .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|d| d.as_secs())
+                .map(|d| d.as_nanos())
                 .unwrap_or(0);
             out.insert(
                 rel_str,
                 FileStamp {
-                    mtime_secs,
+                    mtime_nanos,
                     len: meta.len(),
                 },
             );
@@ -179,18 +244,32 @@ fn is_excluded_snapshot_path(path: &str) -> bool {
         || path.starts_with(".Codex/automations/")
 }
 
-fn diff_snapshots(
+fn diff_snapshot_details(
     before: &BTreeMap<String, FileStamp>,
     after: &BTreeMap<String, FileStamp>,
-) -> Vec<String> {
-    after
+) -> SnapshotDiff {
+    let created = after
+        .keys()
+        .filter(|path| !before.contains_key(*path))
+        .cloned()
+        .collect();
+    let modified = after
         .iter()
         .filter_map(|(path, stamp)| match before.get(path) {
-            None => Some(path.clone()),
             Some(prev) if prev != stamp => Some(path.clone()),
             _ => None,
         })
-        .collect()
+        .collect();
+    let deleted = before
+        .keys()
+        .filter(|path| !after.contains_key(*path))
+        .cloned()
+        .collect();
+    SnapshotDiff {
+        created,
+        modified,
+        deleted,
+    }
 }
 
 #[cfg(test)]
@@ -251,17 +330,47 @@ mod tests {
             "s_1",
             "每日总结",
             "创建了总结。",
-            vec![
-                "2605/30-每日总结.md".to_string(),
-                "todos.md".to_string(),
-                "identities/张三.md".to_string(),
-                "raw/a.txt".to_string(),
-            ],
+            &["2605/29-旧总结.md".to_string()],
+            &["warning".to_string()],
+            SnapshotDiff {
+                created: vec![
+                    "2605/30-每日总结.md".to_string(),
+                    "todos.md".to_string(),
+                    "identities/张三.md".to_string(),
+                    "raw/a.txt".to_string(),
+                ],
+                modified: Vec::new(),
+                deleted: Vec::new(),
+            },
         );
         assert_eq!(manifest.entries_created, vec!["2605/30-每日总结.md"]);
         assert_eq!(manifest.todos_changed, vec!["todos.md"]);
         assert_eq!(manifest.identities_changed, vec!["identities/张三.md"]);
+        assert_eq!(manifest.files_read, vec!["2605/29-旧总结.md"]);
+        assert_eq!(manifest.warnings, vec!["warning"]);
         assert_eq!(manifest.conversation_id, "s_1");
+    }
+
+    #[test]
+    fn manifest_only_classifies_before_absent_journal_entries_as_created() {
+        let manifest = build_manifest(
+            "/tmp/ws",
+            "s_1",
+            "每日总结",
+            "更新了总结。",
+            &[],
+            &[],
+            SnapshotDiff {
+                created: vec!["2605/30-new.md".to_string()],
+                modified: vec!["2605/29-existing.md".to_string()],
+                deleted: Vec::new(),
+            },
+        );
+
+        assert_eq!(manifest.entries_created, vec!["2605/30-new.md"]);
+        assert!(manifest
+            .files_changed
+            .contains(&"2605/29-existing.md".to_string()));
     }
 
     #[test]
@@ -274,9 +383,50 @@ mod tests {
         std::fs::write(root.join("2605/29-a.md"), "changed").unwrap();
         std::fs::write(root.join("todos.md"), "- x").unwrap();
         let after = snapshot_workspace(root.to_str().unwrap());
-        let changed = diff_snapshots(&before, &after);
+        let changed = diff_snapshot_details(&before, &after).files_changed();
         assert!(changed.contains(&"2605/29-a.md".to_string()));
         assert!(changed.contains(&"todos.md".to_string()));
+    }
+
+    #[test]
+    fn snapshot_diff_detects_deleted_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::write(root.join("todos.md"), "- x").unwrap();
+        let before = snapshot_workspace(root.to_str().unwrap());
+        std::fs::remove_file(root.join("todos.md")).unwrap();
+        let after = snapshot_workspace(root.to_str().unwrap());
+        let diff = diff_snapshot_details(&before, &after);
+
+        assert_eq!(diff.deleted, vec!["todos.md"]);
+        assert!(diff.files_changed().contains(&"todos.md".to_string()));
+    }
+
+    #[test]
+    fn snapshot_diff_detects_same_size_fast_edit() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::write(root.join("todos.md"), "abc").unwrap();
+        let before = snapshot_workspace(root.to_str().unwrap());
+        std::fs::write(root.join("todos.md"), "xyz").unwrap();
+        let after = snapshot_workspace(root.to_str().unwrap());
+        let diff = diff_snapshot_details(&before, &after);
+
+        assert_eq!(diff.modified, vec!["todos.md"]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn snapshot_skips_symlinked_directories() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("outside.md"), "outside").unwrap();
+        std::os::unix::fs::symlink(outside.path(), root.join("linked")).unwrap();
+
+        let snapshot = snapshot_workspace(root.to_str().unwrap());
+
+        assert!(!snapshot.contains_key("linked/outside.md"));
     }
 
     #[test]

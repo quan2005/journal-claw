@@ -489,6 +489,11 @@ export default function App() {
     setView('automation')
   }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
+  useEffect(() => {
+    window.addEventListener('open-automation-workbench', handleSelectAutomation)
+    return () => window.removeEventListener('open-automation-workbench', handleSelectAutomation)
+  }, [handleSelectAutomation])
+
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
   }, [setRightPanelOpen])

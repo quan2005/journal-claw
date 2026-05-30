@@ -16,6 +16,23 @@ pub struct ImageAttachment {
     pub data: String,
 }
 
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct UnattendedAgentRequest {
+    pub title: String,
+    pub user_message: String,
+    pub context_files: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct UnattendedAgentResult {
+    pub session_id: String,
+    pub assistant_text: String,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+}
+
 // ── Types ────────────────────────────────────────────────
 
 pub(crate) struct ConversationSession {
@@ -141,6 +158,24 @@ fn now_secs() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
+}
+
+fn collect_assistant_text(messages: &[Message]) -> String {
+    messages
+        .iter()
+        .rev()
+        .find(|m| m.role == Role::Assistant)
+        .map(|m| {
+            m.content
+                .iter()
+                .filter_map(|block| match block {
+                    ContentBlock::Text { text } => Some(text.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .unwrap_or_default()
 }
 
 fn save_session_to_disk(workspace: &str, session_id: &str, session: &ConversationSession) {
@@ -903,6 +938,117 @@ pub async fn conversation_send(
     });
 
     Ok(())
+}
+
+#[allow(dead_code)]
+pub async fn run_unattended_agent_session(
+    app: AppHandle,
+    request: UnattendedAgentRequest,
+) -> Result<UnattendedAgentResult, String> {
+    let cfg = config::load_config(&app)?;
+    let workspace = cfg.workspace_path.clone();
+    let session_id = generate_session_id();
+    let global_skills = crate::workspace_settings::is_global_skills_enabled(&app);
+    let base_system = llm::prompt::build_system_prompt(
+        &workspace,
+        crate::ai_processor::WORKSPACE_CLAUDE_MD,
+        global_skills,
+    )
+    .await;
+    let context_section = if request.context_files.is_empty() {
+        String::new()
+    } else {
+        build_context_section(&request.context_files)
+    };
+    let system_prompt = format!("{}{}", base_system, context_section);
+    let cancel = CancellationToken::new();
+    let messages = vec![Message {
+        role: Role::User,
+        content: vec![ContentBlock::Text {
+            text: request.user_message,
+        }],
+    }];
+
+    let session = ConversationSession {
+        messages: messages.clone(),
+        system_prompt: Some(system_prompt.clone()),
+        cancel: Some(cancel.clone()),
+        workspace: workspace.clone(),
+        pending_user_messages: Vec::new(),
+        title: Some(request.title),
+        title_locked: true,
+        created_at: now_secs(),
+        first_turn_done: false,
+        context: None,
+        context_files: None,
+        elapsed_secs: 0.0,
+        total_input_tokens: 0,
+        total_output_tokens: 0,
+        turn_started_at: Some(std::time::Instant::now()),
+    };
+
+    {
+        let store = app.state::<ConversationStore>();
+        store
+            .0
+            .lock()
+            .map_err(|e| e.to_string())?
+            .insert(session_id.clone(), session);
+    }
+
+    let engine = create_engine(&cfg);
+    let result = run_conversation_turn(
+        engine.as_ref(),
+        &workspace,
+        &system_prompt,
+        messages,
+        &session_id,
+        &app,
+        cancel,
+        global_skills,
+    )
+    .await;
+
+    let store = app.state::<ConversationStore>();
+    match result {
+        Ok((updated_messages, input_tokens, output_tokens)) => {
+            let assistant_text = collect_assistant_text(&updated_messages);
+            let mut guard = store.0.lock().map_err(|e| e.to_string())?;
+            let session = guard
+                .get_mut(&session_id)
+                .ok_or_else(|| format!("session missing after run: {}", session_id))?;
+            if let Some(started) = session.turn_started_at.take() {
+                session.elapsed_secs += started.elapsed().as_secs_f64();
+            }
+            session.total_input_tokens = input_tokens;
+            session.total_output_tokens = output_tokens;
+            session.messages = updated_messages;
+            session.cancel = None;
+            session.first_turn_done = true;
+            save_session_to_disk(&workspace, &session_id, session);
+
+            Ok(UnattendedAgentResult {
+                session_id,
+                assistant_text,
+                input_tokens,
+                output_tokens,
+            })
+        }
+        Err((err, partial_messages, input_tokens, output_tokens)) => {
+            let mut guard = store.0.lock().map_err(|e| e.to_string())?;
+            if let Some(session) = guard.get_mut(&session_id) {
+                if let Some(started) = session.turn_started_at.take() {
+                    session.elapsed_secs += started.elapsed().as_secs_f64();
+                }
+                session.messages = partial_messages;
+                session.cancel = None;
+                session.total_input_tokens = input_tokens;
+                session.total_output_tokens = output_tokens;
+                save_session_to_disk(&workspace, &session_id, session);
+            }
+            Err(format!("unattended agent failed: {}", err))
+        }
+    }
 }
 
 #[tauri::command]
@@ -1989,5 +2135,41 @@ async fn generate_title(
             }
         }
         Err(_) => user_text.chars().take(15).collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collect_assistant_text_uses_latest_assistant_message() {
+        let messages = vec![
+            Message {
+                role: Role::Assistant,
+                content: vec![ContentBlock::Text {
+                    text: "old".to_string(),
+                }],
+            },
+            Message {
+                role: Role::User,
+                content: vec![ContentBlock::Text {
+                    text: "again".to_string(),
+                }],
+            },
+            Message {
+                role: Role::Assistant,
+                content: vec![
+                    ContentBlock::Text {
+                        text: "new 1".to_string(),
+                    },
+                    ContentBlock::Text {
+                        text: "new 2".to_string(),
+                    },
+                ],
+            },
+        ];
+
+        assert_eq!(collect_assistant_text(&messages), "new 1\nnew 2");
     }
 }

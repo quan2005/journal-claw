@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAutomation } from '../hooks/useAutomation'
 import type { AutomationRoutine, AutomationTemplate } from '../types'
+import { AutomationEditorDialog } from './AutomationEditorDialog'
 import { AutomationRoutineDetail } from './AutomationRoutineDetail'
 import { AutomationRoutineList } from './AutomationRoutineList'
 import { AutomationTemplateGrid } from './AutomationTemplateGrid'
@@ -13,6 +14,8 @@ export function AutomationWorkbench({
   const automation = useAutomation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [editingRoutine, setEditingRoutine] = useState<AutomationRoutine | null>(null)
+  const [draftTemplate, setDraftTemplate] = useState<AutomationTemplate | null>(null)
 
   const selectedRoutine = useMemo(
     () =>
@@ -36,6 +39,7 @@ export function AutomationWorkbench({
 
   const handleTemplateSelect = (template: AutomationTemplate) => {
     setSelectedTemplateId(template.id)
+    setDraftTemplate(template)
   }
 
   const handleRun = async (routine: AutomationRoutine) => {
@@ -126,13 +130,32 @@ export function AutomationWorkbench({
             routine={selectedRoutine}
             runs={selectedRuns}
             onRun={handleRun}
-            onEdit={() => {}}
+            onEdit={(routine) => setEditingRoutine(routine)}
             onPause={(routine) => automation.pause(routine.id)}
             onResume={(routine) => automation.resume(routine.id)}
             onOpenConversation={onOpenConversation}
           />
         </div>
       </div>
+      {(editingRoutine || draftTemplate) && (
+        <AutomationEditorDialog
+          templates={automation.templates}
+          routine={editingRoutine}
+          initialTemplate={draftTemplate}
+          onClose={() => {
+            setEditingRoutine(null)
+            setDraftTemplate(null)
+          }}
+          onCreate={async (request) => {
+            const routine = await automation.create(request)
+            setSelectedId(routine.id)
+          }}
+          onUpdate={async (id, patch) => {
+            const routine = await automation.update(id, patch)
+            setSelectedId(routine.id)
+          }}
+        />
+      )}
     </div>
   )
 }

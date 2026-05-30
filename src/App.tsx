@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 import { DetailView } from './components/DetailView'
+import { AutomationWorkbench } from './components/AutomationWorkbench'
 const SettingsPanel = lazy(() =>
   import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
 )
@@ -469,15 +470,24 @@ export default function App() {
 
   const handleTreeSelect = useCallback(
     (sel: TreeSelection) => {
+      setView('journal')
       setShowIdeas(false)
       setTreeSelection(sel)
     },
-    [setShowIdeas, setTreeSelection],
+    [setShowIdeas, setTreeSelection, setView],
   )
 
   const handleSelectIdeas = useCallback(() => {
+    setView('journal')
     setShowIdeas((prev) => !prev)
-  }, [setShowIdeas])
+  }, [setShowIdeas, setView])
+
+  const handleSelectAutomation = useCallback(() => {
+    setShowIdeas(false)
+    setSelectedEntry(null)
+    setTreeSelection({ type: 'automation', path: '__automation__' })
+    setView('automation')
+  }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
@@ -705,6 +715,8 @@ export default function App() {
             ideasCount={todos.filter((t) => !t.done).length}
             ideasSelected={showIdeas}
             onSelectIdeas={handleSelectIdeas}
+            automationSelected={view === 'automation'}
+            onSelectAutomation={handleSelectAutomation}
           />
           {/* Settings button fixed at bottom */}
           <div
@@ -794,46 +806,50 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          <DetailView
-            type={
-              showIdeas
-                ? 'ideas'
-                : !treeSelection || treeSelection.type === 'journal'
-                  ? 'journal'
-                  : treeSelection.type === 'identity'
-                    ? 'identity'
-                    : 'topic-file'
-            }
-            entry={
-              treeSelection?.type === 'journal'
-                ? entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ||
-                  selectedEntry ||
-                  undefined
-                : selectedEntry || undefined
-            }
-            entries={entries}
-            identity={
-              treeSelection?.type === 'identity'
-                ? (allIdentities.find((i) => i.path === treeSelection.path) ?? undefined)
-                : undefined
-            }
-            file={
-              treeSelection?.type === 'topic-file'
-                ? {
-                    name: treeSelection.path.split('/').pop() ?? '',
-                    path: treeSelection.path,
-                    is_dir: false,
-                    mtime_secs: 0,
-                  }
-                : undefined
-            }
-            onDeselect={handleDeselect}
-            onOpenDock={handleOpenChat}
-            onSelectSample={handleSelectSample}
-            onAddToTodo={handleAddToTodo}
-            onProcess={handleProcessEntry}
-            onVisualDesign={handleVisualDesign}
-          />
+          {view === 'automation' ? (
+            <AutomationWorkbench onOpenConversation={(sessionId) => openChatPanel(sessionId)} />
+          ) : (
+            <DetailView
+              type={
+                showIdeas
+                  ? 'ideas'
+                  : !treeSelection || treeSelection.type === 'journal'
+                    ? 'journal'
+                    : treeSelection.type === 'identity'
+                      ? 'identity'
+                      : 'topic-file'
+              }
+              entry={
+                treeSelection?.type === 'journal'
+                  ? entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ||
+                    selectedEntry ||
+                    undefined
+                  : selectedEntry || undefined
+              }
+              entries={entries}
+              identity={
+                treeSelection?.type === 'identity'
+                  ? (allIdentities.find((i) => i.path === treeSelection.path) ?? undefined)
+                  : undefined
+              }
+              file={
+                treeSelection?.type === 'topic-file'
+                  ? {
+                      name: treeSelection.path.split('/').pop() ?? '',
+                      path: treeSelection.path,
+                      is_dir: false,
+                      mtime_secs: 0,
+                    }
+                  : undefined
+              }
+              onDeselect={handleDeselect}
+              onOpenDock={handleOpenChat}
+              onSelectSample={handleSelectSample}
+              onAddToTodo={handleAddToTodo}
+              onProcess={handleProcessEntry}
+              onVisualDesign={handleVisualDesign}
+            />
+          )}
         </div>
 
         {/* Right Panel */}

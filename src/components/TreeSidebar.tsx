@@ -26,6 +26,8 @@ interface TreeSidebarProps {
   ideasCount: number
   ideasSelected: boolean
   onSelectIdeas: () => void
+  automationSelected: boolean
+  onSelectAutomation: () => void
 }
 
 // ── SectionHeader ──────────────────────────────────────────────────────────────
@@ -208,6 +210,8 @@ export function TreeSidebar({
   ideasCount,
   ideasSelected,
   onSelectIdeas,
+  automationSelected,
+  onSelectAutomation,
 }: TreeSidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
@@ -466,6 +470,90 @@ export function TreeSidebar({
             {ideasCount}
           </span>
         )}
+      </div>
+
+      <div
+        onClick={onSelectAutomation}
+        onMouseEnter={(e) => {
+          if (!automationSelected) {
+            ;(e.currentTarget as HTMLElement).style.background = 'var(--item-hover-bg)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!automationSelected) {
+            ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+          }
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '10px 6px',
+          margin: '0 0 6px',
+          cursor: 'pointer',
+          userSelect: 'none' as const,
+          borderRadius: 6,
+          background: automationSelected ? 'var(--item-selected-bg)' : 'transparent',
+          transition: 'background-color 0.15s var(--ease-out)',
+        }}
+      >
+        <span
+          style={{
+            width: 12,
+            height: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              width: 3,
+              height: 16,
+              borderRadius: 2,
+              background: 'var(--record-btn)',
+              transition: 'transform 0.2s var(--ease-out)',
+              transform: automationSelected ? 'scaleY(1)' : 'scaleY(0)',
+            }}
+          />
+        </span>
+        <span
+          style={{
+            width: 13,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            color: automationSelected ? 'var(--record-btn)' : 'var(--item-meta)',
+            opacity: !automationSelected ? 0.7 : 1,
+            transition: 'opacity 0.15s var(--ease-out), color 0.15s var(--ease-out)',
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+        </span>
+        <span
+          style={{
+            fontSize: 'var(--text-base, 0.875rem)',
+            fontWeight: 'var(--font-semibold, 600)',
+            color: automationSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+            transition: 'color 0.15s var(--ease-out)',
+          }}
+        >
+          自动化
+        </span>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════

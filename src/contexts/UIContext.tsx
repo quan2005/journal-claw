@@ -30,9 +30,11 @@ const saveDim = (key: string, v: number) => {
 
 // ── Types ─────────────────────────────────────────────
 
+type AppView = 'journal' | 'settings' | 'automation'
+
 interface UIContextValue {
-  view: 'journal' | 'settings'
-  setView: Dispatch<SetStateAction<'journal' | 'settings'>>
+  view: AppView
+  setView: Dispatch<SetStateAction<AppView>>
   settingsInitialSection: string | undefined
   setSettingsInitialSection: Dispatch<SetStateAction<string | undefined>>
 
@@ -68,8 +70,10 @@ interface UIContextValue {
 const UIContext = createContext<UIContextValue>(null!)
 
 export function UIProvider({ children }: { children: ReactNode }) {
-  const [view, setView] = useState<'journal' | 'settings'>('journal')
-  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined)
+  const [view, setView] = useState<AppView>('journal')
+  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(
+    undefined,
+  )
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
   const [showIdeas, setShowIdeas] = useState(false)

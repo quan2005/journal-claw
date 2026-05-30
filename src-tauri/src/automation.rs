@@ -55,7 +55,7 @@ pub fn reconcile_running_runs(app: &AppHandle) -> Result<(), String> {
 }
 
 pub fn notify_scheduler(app: &AppHandle) {
-    app.state::<AutomationNotify>().0.notify_waiters();
+    app.state::<AutomationNotify>().0.notify_one();
 }
 
 pub fn create_routine(
@@ -147,11 +147,8 @@ async fn run_due_routines(app: AppHandle) {
             if !marked {
                 continue;
             }
-            tauri::async_runtime::spawn(async move {
-                let _ =
-                    run_marked_routine(app_for_run, routine_id, AutomationRunTrigger::Scheduled)
-                        .await;
-            });
+            let _ = run_marked_routine(app_for_run, routine_id, AutomationRunTrigger::Scheduled)
+                .await;
         }
     }
 }

@@ -1013,19 +1013,35 @@ pub async fn run_unattended_agent_session(
     match result {
         Ok((updated_messages, input_tokens, output_tokens)) => {
             let assistant_text = collect_assistant_text(&updated_messages);
-            let mut guard = store.0.lock().map_err(|e| e.to_string())?;
-            let session = guard
-                .get_mut(&session_id)
-                .ok_or_else(|| format!("session missing after run: {}", session_id))?;
-            if let Some(started) = session.turn_started_at.take() {
-                session.elapsed_secs += started.elapsed().as_secs_f64();
-            }
-            session.total_input_tokens = input_tokens;
-            session.total_output_tokens = output_tokens;
-            session.messages = updated_messages;
-            session.cancel = None;
-            session.first_turn_done = true;
-            save_session_to_disk(&workspace, &session_id, session);
+            let done_data = {
+                let mut guard = store.0.lock().map_err(|e| e.to_string())?;
+                let session = guard
+                    .get_mut(&session_id)
+                    .ok_or_else(|| format!("session missing after run: {}", session_id))?;
+                if let Some(started) = session.turn_started_at.take() {
+                    session.elapsed_secs += started.elapsed().as_secs_f64();
+                }
+                session.total_input_tokens = input_tokens;
+                session.total_output_tokens = output_tokens;
+                session.messages = updated_messages;
+                session.cancel = None;
+                session.first_turn_done = true;
+                save_session_to_disk(&workspace, &session_id, session);
+                serde_json::json!({
+                    "elapsed_secs": session.elapsed_secs,
+                    "total_input_tokens": session.total_input_tokens,
+                    "total_output_tokens": session.total_output_tokens,
+                })
+                .to_string()
+            };
+            let _ = app.emit(
+                "conversation-stream",
+                ConversationStreamPayload {
+                    session_id: session_id.clone(),
+                    event: "done".to_string(),
+                    data: done_data,
+                },
+            );
 
             Ok(UnattendedAgentResult {
                 session_id,
@@ -1035,17 +1051,44 @@ pub async fn run_unattended_agent_session(
             })
         }
         Err((err, partial_messages, input_tokens, output_tokens)) => {
-            let mut guard = store.0.lock().map_err(|e| e.to_string())?;
-            if let Some(session) = guard.get_mut(&session_id) {
-                if let Some(started) = session.turn_started_at.take() {
-                    session.elapsed_secs += started.elapsed().as_secs_f64();
+            let error_data = err.error_info().to_string();
+            let _ = app.emit(
+                "conversation-stream",
+                ConversationStreamPayload {
+                    session_id: session_id.clone(),
+                    event: "error".to_string(),
+                    data: error_data,
+                },
+            );
+            let done_data = {
+                let mut guard = store.0.lock().map_err(|e| e.to_string())?;
+                if let Some(session) = guard.get_mut(&session_id) {
+                    if let Some(started) = session.turn_started_at.take() {
+                        session.elapsed_secs += started.elapsed().as_secs_f64();
+                    }
+                    session.messages = partial_messages;
+                    session.cancel = None;
+                    session.total_input_tokens = input_tokens;
+                    session.total_output_tokens = output_tokens;
+                    save_session_to_disk(&workspace, &session_id, session);
+                    serde_json::json!({
+                        "elapsed_secs": session.elapsed_secs,
+                        "total_input_tokens": session.total_input_tokens,
+                        "total_output_tokens": session.total_output_tokens,
+                    })
+                    .to_string()
+                } else {
+                    String::new()
                 }
-                session.messages = partial_messages;
-                session.cancel = None;
-                session.total_input_tokens = input_tokens;
-                session.total_output_tokens = output_tokens;
-                save_session_to_disk(&workspace, &session_id, session);
-            }
+            };
+            let _ = app.emit(
+                "conversation-stream",
+                ConversationStreamPayload {
+                    session_id: session_id.clone(),
+                    event: "done".to_string(),
+                    data: done_data,
+                },
+            );
             Err(format!("unattended agent failed: {}", err))
         }
     }

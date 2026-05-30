@@ -74,6 +74,16 @@ import {
   setAutoLintConfig,
   getAutoLintStatus,
   triggerLintNow,
+  listAutomationTemplates,
+  listRoutines,
+  createRoutine,
+  updateRoutine,
+  deleteRoutine,
+  pauseRoutine,
+  resumeRoutine,
+  runRoutineNow,
+  listRoutineRuns,
+  getAutomationRun,
   getFeishuConfig,
   setFeishuConfig,
   getFeishuStatus,
@@ -83,6 +93,7 @@ import {
   type AsrConfig,
   type AutoLintConfig,
   type FeishuConfig,
+  type CreateRoutineRequest,
 } from '../lib/tauri'
 
 beforeEach(() => {
@@ -120,6 +131,8 @@ const noParamCases: [string, () => Promise<unknown>, string][] = [
   ['getAutoLintConfig', getAutoLintConfig, 'get_auto_lint_config'],
   ['getAutoLintStatus', getAutoLintStatus, 'get_auto_lint_status'],
   ['triggerLintNow', triggerLintNow, 'trigger_lint_now'],
+  ['listAutomationTemplates', listAutomationTemplates, 'list_automation_templates'],
+  ['listRoutines', listRoutines, 'list_routines'],
   ['getFeishuConfig', getFeishuConfig, 'get_feishu_config'],
   ['getFeishuStatus', getFeishuStatus, 'get_feishu_status'],
   ['listSkills', listSkills, 'list_skills'],
@@ -524,6 +537,63 @@ describe('Auto Lint', () => {
     }
     await setAutoLintConfig(config)
     expect(mockInvoke).toHaveBeenCalledWith('set_auto_lint_config', { config })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Automation
+// ---------------------------------------------------------------------------
+describe('Automation', () => {
+  const request: CreateRoutineRequest = {
+    title: '每日总结',
+    template_id: 'daily-summary',
+    prompt: '总结昨天',
+    schedule: { kind: 'daily', time: '08:00', timezone: 'Asia/Hong_Kong' },
+    scope: { kind: 'relative', range: 'yesterday' },
+    enabled: true,
+  }
+
+  it('createRoutine passes { request }', async () => {
+    await createRoutine(request)
+    expect(mockInvoke).toHaveBeenCalledWith('create_routine', { request })
+  })
+
+  it('updateRoutine passes { id, patch }', async () => {
+    await updateRoutine('routine_1', { enabled: false })
+    expect(mockInvoke).toHaveBeenCalledWith('update_routine', {
+      id: 'routine_1',
+      patch: { enabled: false },
+    })
+  })
+
+  it('deleteRoutine passes { id }', async () => {
+    await deleteRoutine('routine_1')
+    expect(mockInvoke).toHaveBeenCalledWith('delete_routine', { id: 'routine_1' })
+  })
+
+  it('pauseRoutine passes { id }', async () => {
+    await pauseRoutine('routine_1')
+    expect(mockInvoke).toHaveBeenCalledWith('pause_routine', { id: 'routine_1' })
+  })
+
+  it('resumeRoutine passes { id }', async () => {
+    await resumeRoutine('routine_1')
+    expect(mockInvoke).toHaveBeenCalledWith('resume_routine', { id: 'routine_1' })
+  })
+
+  it('runRoutineNow passes { id }', async () => {
+    await runRoutineNow('routine_1')
+    expect(mockInvoke).toHaveBeenCalledWith('run_routine_now', { id: 'routine_1' })
+  })
+
+  it('listRoutineRuns passes { id }', async () => {
+    await listRoutineRuns('routine_1')
+    expect(mockInvoke).toHaveBeenCalledWith('list_routine_runs', { id: 'routine_1' })
+  })
+
+  it('getAutomationRun passes { id }', async () => {
+    await getAutomationRun('run_1')
+    expect(mockInvoke).toHaveBeenCalledWith('get_automation_run', { id: 'run_1' })
   })
 })
 

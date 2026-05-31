@@ -17,6 +17,81 @@ pub struct TodoItem {
     pub done_file: bool,
 }
 
+fn normalize_todo_text(text: &str) -> String {
+    text.replace("\r\n", "\n")
+        .replace('\r', "\n")
+        .trim()
+        .to_string()
+}
+
+fn percent_encode_text(text: &str) -> String {
+    let mut encoded = String::new();
+    for byte in text.as_bytes() {
+        match *byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                encoded.push(*byte as char)
+            }
+            _ => encoded.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+    encoded
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn percent_decode_text(text: &str) -> Option<String> {
+    let bytes = text.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(high), Some(low)) = (hex_value(bytes[i + 1]), hex_value(bytes[i + 2])) {
+                decoded.push((high << 4) | low);
+                i += 3;
+                continue;
+            }
+        }
+        decoded.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8(decoded).ok()
+}
+
+fn todo_text_preview(text: &str) -> String {
+    let preview = text
+        .lines()
+        .next()
+        .unwrap_or("")
+        .trim()
+        .replace("<!--", "")
+        .replace("-->", "");
+    if preview.is_empty() {
+        "多行想法".to_string()
+    } else {
+        preview
+    }
+}
+
+fn render_todo_text_segment(text: &str) -> String {
+    let normalized = normalize_todo_text(text);
+    if normalized.contains('\n') || normalized.contains("<!--") || normalized.contains("-->") {
+        format!(
+            "{} <!-- text:{} -->",
+            todo_text_preview(&normalized),
+            percent_encode_text(&normalized)
+        )
+    } else {
+        normalized
+    }
+}
+
 /// Parse a single markdown line into a TodoItem, if it matches GFM task list syntax.
 fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     let trimmed = line.trim_start();
@@ -40,6 +115,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     let mut source: Option<String> = None;
     let mut path: Option<String> = None;
     let mut session_id: Option<String> = None;
+    let mut full_text: Option<String> = None;
 
     while let Some(start) = text.find("<!--") {
         if let Some(end) = text[start..].find("-->") {
@@ -54,6 +130,8 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
                 path = Some(val.trim().to_string());
             } else if let Some(val) = comment.strip_prefix("sid:") {
                 session_id = Some(val.trim().to_string());
+            } else if let Some(val) = comment.strip_prefix("text:") {
+                full_text = percent_decode_text(val.trim());
             }
             text = format!("{}{}", &text[..start], &text[start + end + 3..]);
         } else {
@@ -62,7 +140,7 @@ fn parse_todo_line(line: &str, line_index: usize) -> Option<TodoItem> {
     }
 
     Some(TodoItem {
-        text: text.trim().to_string(),
+        text: full_text.unwrap_or_else(|| text.trim().to_string()),
         done,
         due,
         done_date,
@@ -147,7 +225,7 @@ pub fn add_todo_to_workspace(
         "---\ndescription: 待办清单（仅未完成项），由用户手动添加或 AI 自动提取\nformat: GFM task list\nrules:\n  - 每行一条待办，`- [ ]` 未完成\n  - 截止日期用 HTML 注释 `<!-- due:YYYY-MM-DD -->` 附在行尾（可选）\n  - 来源用 `<!-- source:filename.md -->` 附在行尾（可选）\n  - 新条目追加到文件末尾\n  - 勾选后自动移入 todos.done.md，不要在此文件写 `- [x]`\n  - 不要重复已存在的条目\n---\n\n# 待办\n\n".to_string()
     };
 
-    let mut new_line = format!("- [ ] {}", text);
+    let mut new_line = format!("- [ ] {}", render_todo_text_segment(text));
     if let Some(d) = due {
         new_line.push_str(&format!(" <!-- due:{} -->", d));
     }
@@ -402,7 +480,7 @@ pub fn update_todo_text_in_workspace(
     let line = &lines[line_index];
     let trimmed = line.trim_start();
 
-    // Preserve the checkbox prefix and any trailing comments (due/done)
+    // Preserve the checkbox prefix and any trailing metadata comments.
     let prefix = if trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ") {
         "- [x] "
     } else if trimmed.starts_with("- [ ] ") {
@@ -411,25 +489,29 @@ pub fn update_todo_text_in_workspace(
         return Err("该行不是待办项".to_string());
     };
 
-    // Extract existing comments
+    // Extract existing comments, replacing the internal text comment when needed.
     let old_rest = &trimmed[6..];
-    let mut comments = String::new();
+    let mut comments: Vec<String> = Vec::new();
     let mut tmp = old_rest.to_string();
     while let Some(start) = tmp.find("<!--") {
         if let Some(end) = tmp[start..].find("-->") {
-            comments.push(' ');
-            comments.push_str(&tmp[start..start + end + 3]);
+            let full_comment = &tmp[start..start + end + 3];
+            let comment_body = tmp[start + 4..start + end].trim();
+            if !comment_body.starts_with("text:") {
+                comments.push(full_comment.to_string());
+            }
             tmp = format!("{}{}", &tmp[..start], &tmp[start + end + 3..]);
         } else {
             break;
         }
     }
 
-    lines[line_index] = if comments.is_empty() {
-        format!("{}{}", prefix, new_text.trim())
-    } else {
-        format!("{}{}{}", prefix, new_text.trim(), comments)
-    };
+    let mut new_line = format!("{}{}", prefix, render_todo_text_segment(new_text));
+    for comment in comments {
+        new_line.push(' ');
+        new_line.push_str(&comment);
+    }
+    lines[line_index] = new_line;
 
     writer(workspace, &(lines.join("\n") + "\n"))
 }
@@ -776,6 +858,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_multiline_text_comment() {
+        let items =
+            parse_todos("- [ ] first <!-- text:first%0Asecond --> <!-- due:2026-04-15 -->\n");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].text, "first\nsecond");
+        assert_eq!(items[0].due.as_deref(), Some("2026-04-15"));
+    }
+
+    #[test]
     fn parse_item_without_path() {
         let items = parse_todos("- [ ] 写周报\n");
         assert_eq!(items.len(), 1);
@@ -869,6 +960,51 @@ mod tests {
         .unwrap();
         let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
         assert!(content.contains("- [ ] 修复 bug <!-- path:~/Projects/app-x -->"));
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn add_todo_with_multiline_text_stays_one_physical_line() {
+        let tmp = std::env::temp_dir().join("journal_todo_add_multiline_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        add_todo_to_workspace(tmp.to_str().unwrap(), "first\nsecond", None, None, None).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        let task_lines: Vec<&str> = content
+            .lines()
+            .filter(|line| line.starts_with("- [ ]"))
+            .collect();
+        assert_eq!(
+            task_lines.len(),
+            1,
+            "multiline todo should remain one task line: {}",
+            content
+        );
+        assert!(task_lines[0].contains("<!-- text:first%0Asecond -->"));
+        let items = parse_todos(&content);
+        assert_eq!(items[0].text, "first\nsecond");
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn update_todo_text_with_multiline_preserves_metadata() {
+        let tmp = std::env::temp_dir().join("journal_todo_update_multiline_test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(
+            tmp.join("todos.md"),
+            "- [ ] old <!-- due:2026-04-15 --> <!-- source:note.md -->\n",
+        )
+        .unwrap();
+        update_todo_text_in_workspace(tmp.to_str().unwrap(), 0, "first\nsecond", false).unwrap();
+        let content = std::fs::read_to_string(tmp.join("todos.md")).unwrap();
+        assert!(content.contains("<!-- text:first%0Asecond -->"));
+        assert!(content.contains("<!-- due:2026-04-15 -->"));
+        assert!(content.contains("<!-- source:note.md -->"));
+        let items = parse_todos(&content);
+        assert_eq!(items[0].text, "first\nsecond");
+        assert_eq!(items[0].due.as_deref(), Some("2026-04-15"));
+        assert_eq!(items[0].source.as_deref(), Some("note.md"));
         std::fs::remove_dir_all(&tmp).ok();
     }
 

@@ -3,7 +3,13 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 const GLOBALS_CSS_PATH = path.resolve(__dirname, '../styles/globals.css')
+const MARKDOWN_CSS_PATH = path.resolve(__dirname, '../styles/markdown.css')
+const MDX_CSS_PATH = path.resolve(__dirname, '../styles/mdx.css')
+const DETAIL_VIEW_PATH = path.resolve(__dirname, '../components/DetailView.tsx')
 const css = fs.readFileSync(GLOBALS_CSS_PATH, 'utf-8')
+const markdownCss = fs.readFileSync(MARKDOWN_CSS_PATH, 'utf-8')
+const mdxCss = fs.readFileSync(MDX_CSS_PATH, 'utf-8')
+const detailViewSource = fs.readFileSync(DETAIL_VIEW_PATH, 'utf-8')
 
 /** Parse all variable declarations from a CSS block string */
 function parseVarsFromBlock(block: string): Map<string, string> {
@@ -71,8 +77,8 @@ describe('Dark theme invariance', () => {
     '--sidebar-bg': '#141414',
     '--dock-bg': '#141414',
     '--dock-border': '#252525',
-    '--md-h1': '#c8933b',
-    '--md-h2': '#c8933b',
+    '--md-h1': 'var(--journal-title-color)',
+    '--md-h2': 'var(--journal-title-color)',
     '--md-text': '#a8acb4',
     '--md-strong': '#c8933b',
     '--md-code-bg': 'rgba(255, 255, 255, 0.08)',
@@ -155,8 +161,8 @@ describe('Accent colors unchanged', () => {
     '--record-btn': '#b8782a',
     '--record-btn-hover': '#a06820',
     '--item-selected-text': '#7a5800',
-    '--md-h1': '#1c1c1e',
-    '--md-h2': '#2a3038',
+    '--md-h1': 'var(--journal-title-color)',
+    '--md-h2': 'var(--journal-title-color)',
     '--md-strong': '#1c1c1e',
     '--ai-pill-text': '#8a6500',
     '--ai-pill-active-text': '#6a4e00',
@@ -201,6 +207,73 @@ describe('Dark theme surface contract', () => {
   })
 })
 
+describe('Journal content frame contract', () => {
+  const rootMatch = css.match(/:root\s*\{([^}]+)\}/)
+  const rootVars = rootMatch ? parseVarsFromBlock(rootMatch[1]) : new Map()
+
+  it('defines shared readable, workbench, and title tokens', () => {
+    expect(rootVars.get('--journal-prose-max')).toBe('100%')
+    expect(rootVars.get('--journal-readable-max')).toBe('100%')
+    expect(rootVars.get('--journal-workbench-max')).toBe('1120px')
+    expect(rootVars.get('--journal-page-gutter')).toBe('min(56px, 5vw)')
+    expect(rootVars.get('--journal-title-size')).toBe('48px')
+    expect(rootVars.get('--journal-title-color')).toBe('var(--record-btn)')
+    expect(rootVars.get('--journal-summary-color')).toBe('var(--item-meta)')
+    expect(rootVars.get('--detail-content-max')).toBe('var(--journal-readable-max)')
+  })
+
+  it('aligns markdown, mdx, and detail read mode to the readable frame', () => {
+    const mdContentRule = markdownCss.match(/\.md-content\s*\{[^}]*\}/)?.[0] ?? ''
+    const mdProseRule = markdownCss.match(/\.md-content > :where\([^)]*\)\s*\{[^}]*\}/)?.[0] ?? ''
+    const mdxContentRule = mdxCss.match(/\.mdx-content\s*\{[^}]*\}/)?.[0] ?? ''
+    const mdxWideRule =
+      mdxCss.match(/\.mdx-content :where\(\s*\.mdx-chart[\s\S]*?\)\s*\{[^}]*\}/)?.[0] ?? ''
+    const mdBodyRule = css.match(/\.md-body\s*\{[^}]*\}/)?.[0] ?? ''
+
+    expect(mdContentRule).toContain('width: 100%')
+    expect(mdContentRule).toContain('max-width: var(--journal-readable-max)')
+    expect(mdProseRule).toContain('max-width: var(--journal-prose-max)')
+    expect(mdxContentRule).toContain('max-width: var(--journal-readable-max)')
+    expect(mdxWideRule).toContain('max-width: 100%')
+    expect(mdBodyRule).toContain('max-width: var(--journal-readable-max)')
+    expect(detailViewSource).toContain("padding: isHtmlContent ? 0 : 'var(--journal-detail-padding)'")
+    expect(detailViewSource).not.toContain('journal-readable-shell-max')
+    expect(detailViewSource).toContain("boxSizing: isHtmlContent ? undefined : 'border-box'")
+  })
+
+  it('aligns ideas and automation workbenches to the shared workbench frame', () => {
+    const ideasFrameRule =
+      css.match(
+        /\.ideas-workbench-header,\s*\.ideas-workbench-tabs,\s*\.ideas-workbench-main\s*\{[^}]*\}/,
+      )?.[0] ?? ''
+    const automationHeaderRule = css.match(/\.automation-header\s*\{[^}]*\}/)?.[0] ?? ''
+    const automationStackRule = css.match(/\.automation-stack\s*\{[^}]*\}/)?.[0] ?? ''
+
+    expect(ideasFrameRule).toContain('width: min(100%, var(--journal-workbench-max))')
+    expect(automationHeaderRule).toContain('var(--journal-workbench-max)')
+    expect(automationHeaderRule).toContain('var(--journal-page-gutter)')
+    expect(automationStackRule).toContain('width: min(100%, var(--journal-workbench-max))')
+    expect(automationStackRule).toContain('margin-left: auto')
+    expect(automationStackRule).toContain('margin-right: auto')
+  })
+
+  it('aligns workbench title and summary typography through shared tokens', () => {
+    const titleRule =
+      css.match(/\.automation-title,\s*\.ideas-workbench-title\s*\{[^}]*\}/)?.[0] ?? ''
+    const summaryRule =
+      css.match(/\.automation-summary,\s*\.ideas-workbench-summary\s*\{[^}]*\}/)?.[0] ?? ''
+    const mdHeadingRule =
+      markdownCss.match(/\.md-content h1,\s*\.md-content h2\s*\{[^}]*\}/)?.[0] ?? ''
+
+    expect(titleRule).toContain('color: var(--journal-title-color)')
+    expect(titleRule).toContain('font-size: var(--journal-title-size)')
+    expect(titleRule).toContain('font-weight: var(--journal-title-weight)')
+    expect(summaryRule).toContain('color: var(--journal-summary-color)')
+    expect(summaryRule).toContain('font-size: var(--journal-summary-size)')
+    expect(mdHeadingRule).toContain('color: var(--journal-title-color)')
+  })
+})
+
 describe('Ideas workbench surface contract', () => {
   it('defines ideas workbench classes and semantic tokens', () => {
     expect(css).toContain('.ideas-workbench')
@@ -219,5 +292,61 @@ describe('Ideas workbench surface contract', () => {
     expect(ideasCss).toContain('var(--detail-case-bg)')
     expect(ideasCss).not.toContain('linear-gradient')
     expect(ideasCss).not.toContain('box-shadow')
+  })
+
+  it('does not strike through completed idea rows', () => {
+    const selector = '.ideas-workbench-row.is-done .ideas-workbench-row-title'
+    const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const titleRule = css.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`))?.[0] ?? ''
+
+    expect(titleRule).not.toMatch(/text-decoration\s*:\s*line-through/)
+  })
+
+  it('uses a check-square icon style for idea rows', () => {
+    const rule = css.match(/\.ideas-workbench-complete\s*\{[^}]*\}/)?.[0] ?? ''
+    const iconRule = css.match(/\.ideas-workbench-complete-icon\s*\{[^}]*\}/)?.[0] ?? ''
+
+    expect(rule).toContain('display: inline-flex')
+    expect(rule).toContain('width: 28px')
+    expect(rule).toContain('height: 28px')
+    expect(rule).toContain('border: 0')
+    expect(rule).toContain('background: transparent')
+    expect(rule).toContain('border-radius: 6px')
+    expect(rule).not.toContain('border-radius: 999px')
+    expect(iconRule).toContain('width: 17px')
+    expect(iconRule).toContain('height: 17px')
+    expect(css).not.toMatch(/\.ideas-workbench-complete::after/)
+    expect(css).toMatch(
+      /\.ideas-workbench-complete:hover \.ideas-workbench-complete-check,\s*\.ideas-workbench-complete:focus-visible \.ideas-workbench-complete-check\s*\{[^}]*opacity: 0\.42/,
+    )
+  })
+
+  it('keeps idea rows compact without changing the control columns', () => {
+    const rowRule = css.match(/\.ideas-workbench-row\s*\{[^}]*\}/)?.[0] ?? ''
+    const listRule = css.match(/\.ideas-workbench-list\s*\{[^}]*\}/)?.[0] ?? ''
+    const surfaceRule =
+      css.match(
+        /\.ideas-workbench-row,\s*\.ideas-workbench-draft,\s*\.ideas-workbench-empty\s*\{[^}]*\}/,
+      )?.[0] ?? ''
+
+    expect(rowRule).toContain('grid-template-columns: 28px 26px minmax(180px, 1fr) 28px 28px 32px')
+    expect(rowRule).toContain('gap: 8px')
+    expect(rowRule).toContain('padding: 8px 12px')
+    expect(listRule).toContain('gap: 8px')
+    expect(surfaceRule).toContain('min-height: 60px')
+  })
+
+  it('aligns read and edit text boxes to avoid multiline height jumps', () => {
+    const sharedRule =
+      css.match(/\.ideas-workbench-text-button,\s*\.ideas-workbench-edit-input\s*\{[^}]*\}/)?.[0] ??
+      ''
+
+    expect(sharedRule).toContain('box-sizing: border-box')
+    expect(sharedRule).toContain('min-height: 36px')
+    expect(sharedRule).toContain('padding: 6px 10px')
+    expect(sharedRule).toContain('border: 1px solid transparent')
+    expect(sharedRule).toContain('line-height: 1.42')
+    expect(sharedRule).toContain('margin: 0')
+    expect(sharedRule).toContain('appearance: none')
   })
 })

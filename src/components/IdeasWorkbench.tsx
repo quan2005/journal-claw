@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
-import { CalendarDays, Check, Link2, MessageSquare, MoreHorizontal, Plus } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { CalendarDays, Link2, MessageSquare, Plus } from 'lucide-react'
 import { useTranslation } from '../contexts/I18nContext'
 import { useTodoContext } from '../contexts/TodoContext'
 import { pickFolder } from '../lib/tauri'
 import type { TodoItem } from '../types'
 import { DatePicker, formatDueShort } from './TodoSidebar'
 
-export type IdeasFilter = 'all' | 'discussed' | 'due' | 'done'
+export type IdeasFilter = 'all' | 'pendingDiscussion' | 'due' | 'done'
 
 export interface IdeaConversationRequest {
   mode: 'chat'
@@ -30,7 +30,7 @@ export interface IdeasWorkbenchProps {
 export function getIdeaStats(todos: TodoItem[]) {
   return {
     open: todos.filter((item) => !item.done).length,
-    discussed: todos.filter((item) => !!item.session_id).length,
+    pendingDiscussion: todos.filter((item) => !item.done && !item.session_id).length,
     due: todos.filter((item) => !item.done && !!item.due).length,
     done: todos.filter((item) => item.done).length,
     total: todos.length,
@@ -39,8 +39,8 @@ export function getIdeaStats(todos: TodoItem[]) {
 
 export function filterIdeas(todos: TodoItem[], filter: IdeasFilter) {
   switch (filter) {
-    case 'discussed':
-      return todos.filter((item) => !!item.session_id)
+    case 'pendingDiscussion':
+      return todos.filter((item) => !item.done && !item.session_id)
     case 'due':
       return todos.filter((item) => !item.done && !!item.due)
     case 'done':
@@ -60,6 +60,37 @@ export function ideaDueLabel(item: TodoItem) {
   return '无截止'
 }
 
+function resizeTextarea(element: HTMLTextAreaElement | null) {
+  if (!element) return
+  element.style.height = 'auto'
+  const style = window.getComputedStyle(element)
+  const borderHeight =
+    (Number.parseFloat(style.borderTopWidth) || 0) +
+    (Number.parseFloat(style.borderBottomWidth) || 0)
+  element.style.height = `${element.scrollHeight + borderHeight}px`
+}
+
+function IdeaCompleteIcon() {
+  return (
+    <svg
+      className="ideas-workbench-complete-icon"
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path className="ideas-workbench-complete-check" d="M9 11l3 3L22 4" />
+      <path
+        className="ideas-workbench-complete-box"
+        d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+      />
+    </svg>
+  )
+}
+
 export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: IdeasWorkbenchProps) {
   const { t } = useTranslation()
   const todoContext = useTodoContext()
@@ -67,6 +98,8 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
   const [drafting, setDrafting] = useState(false)
   const [draftText, setDraftText] = useState('')
   const [contextMenu, setContextMenu] = useState<IdeasContextMenuState | null>(null)
+  const [datePicker, setDatePicker] = useState<IdeasContextMenuState | null>(null)
+  const draftRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (!contextMenu) return
@@ -78,6 +111,10 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
       window.removeEventListener('keydown', close)
     }
   }, [contextMenu])
+
+  useLayoutEffect(() => {
+    if (drafting) resizeTextarea(draftRef.current)
+  }, [drafting, draftText])
 
   const stats = useMemo(() => getIdeaStats(todoContext.todos), [todoContext.todos])
   const visibleTodos = useMemo(
@@ -98,9 +135,9 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
   }
 
   const tabs: Array<{ id: IdeasFilter; label: string; count: number }> = [
-    { id: 'all', label: '全部', count: stats.open },
-    { id: 'discussed', label: '已探讨', count: stats.discussed },
-    { id: 'due', label: '有截止日期', count: stats.due },
+    { id: 'all', label: '全部（未完成）', count: stats.open },
+    { id: 'pendingDiscussion', label: '待探讨（未完成且未探讨）', count: stats.pendingDiscussion },
+    { id: 'due', label: '有截止日期（未完成）', count: stats.due },
     { id: 'done', label: '已完成', count: stats.done },
   ]
 
@@ -119,8 +156,8 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
             <span aria-label={`${stats.open} 未完成`}>
               <strong>{stats.open}</strong> 未完成
             </span>
-            <span aria-label={`${stats.discussed} 已探讨`}>
-              <strong>{stats.discussed}</strong> 已探讨
+            <span aria-label={`${stats.pendingDiscussion} 待探讨`}>
+              <strong>{stats.pendingDiscussion}</strong> 待探讨
             </span>
             <span aria-label={`${stats.due} 有截止日期`}>
               <strong>{stats.due}</strong> 有截止日期
@@ -151,24 +188,23 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
       </nav>
 
       <main className="ideas-workbench-main">
-        <div className="ideas-workbench-section-head">
-          <h3 className="ideas-workbench-section-title">
-            {activeFilter === 'done' ? '已完成' : '待处理'}
-          </h3>
-          <div className="ideas-workbench-count">
-            {visibleTodos.length} of {activeFilter === 'done' ? stats.done : stats.open}
-          </div>
-        </div>
-
         <div className="ideas-workbench-list">
           {drafting && (
             <div className="ideas-workbench-draft">
-              <input
+              <textarea
+                ref={draftRef}
                 aria-label="新想法内容"
                 value={draftText}
-                onChange={(event) => setDraftText(event.target.value)}
+                rows={1}
+                onChange={(event) => {
+                  setDraftText(event.target.value)
+                  resizeTextarea(event.currentTarget)
+                }}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter') void submitDraft()
+                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault()
+                    void submitDraft()
+                  }
                   if (event.key === 'Escape') {
                     setDrafting(false)
                     setDraftText('')
@@ -200,6 +236,7 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
                 onOpenConversation={onOpenConversation}
                 onNavigateToSource={onNavigateToSource}
                 onContextMenu={setContextMenu}
+                onOpenDuePicker={setDatePicker}
               />
             ))
           )}
@@ -211,7 +248,29 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
           state={contextMenu}
           onClose={() => setContextMenu(null)}
           onOpenConversation={onOpenConversation}
+          onNavigateToSource={onNavigateToSource}
+          onOpenDuePicker={setDatePicker}
         />
+      )}
+
+      {datePicker && (
+        <div
+          className="ideas-workbench-date-popover"
+          style={{ left: datePicker.x, top: datePicker.y }}
+        >
+          <DatePicker
+            initialValue={datePicker.item.due}
+            onSelect={(date) => {
+              void todoContext.setTodoDue(
+                datePicker.item.line_index,
+                date,
+                datePicker.item.done_file,
+              )
+              setDatePicker(null)
+            }}
+            onClose={() => setDatePicker(null)}
+          />
+        </div>
       )}
     </div>
   )
@@ -222,6 +281,8 @@ function IdeasLoadingRows() {
     <>
       {[0, 1, 2].map((row) => (
         <div key={row} className="ideas-workbench-row ideas-workbench-row-skeleton">
+          <span />
+          <span />
           <span />
           <span />
           <span />
@@ -238,20 +299,24 @@ function IdeasRow({
   onOpenConversation,
   onNavigateToSource,
   onContextMenu,
+  onOpenDuePicker,
 }: {
   item: TodoItem
   index: number
   onOpenConversation?: (opts: IdeaConversationRequest) => void
   onNavigateToSource?: (filename: string) => void
   onContextMenu: (state: IdeasContextMenuState) => void
+  onOpenDuePicker: (state: IdeasContextMenuState) => void
 }) {
   const todoContext = useTodoContext()
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [editingText, setEditingText] = useState(item.text)
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [datePickerPos, setDatePickerPos] = useState({ x: 0, y: 0 })
-  const rowRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<HTMLTextAreaElement>(null)
+
+  useLayoutEffect(() => {
+    if (editing) resizeTextarea(editorRef.current)
+  }, [editing, editingText])
 
   const submitText = async () => {
     const text = editingText.trim()
@@ -265,16 +330,14 @@ function IdeasRow({
 
   const openDatePicker = (event: MouseEvent) => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    setDatePickerPos({ x: rect.right - 210, y: rect.bottom + 4 })
-    setShowDatePicker(true)
+    onOpenDuePicker({ x: rect.right - 210, y: rect.bottom + 4, item })
   }
 
   const sourceLabel = ideaSourceLabel(item)
 
   return (
     <div
-      ref={rowRef}
-      className={`ideas-workbench-row${item.done ? ' is-done' : ''}`}
+      className={`ideas-workbench-row${item.done ? ' is-done' : ''}${editing ? ' is-editing' : ''}`}
       role="row"
       aria-label={item.text}
       onContextMenu={(event) => {
@@ -290,19 +353,27 @@ function IdeasRow({
           aria-label={`${item.done ? '恢复' : '完成'}：${item.text}`}
           onClick={() => void todoContext.toggleTodo(item.line_index, !item.done, item.done_file)}
         >
-          <Check aria-hidden="true" size={14} strokeWidth={2} />
+          <IdeaCompleteIcon />
         </button>
       </span>
 
       <span className="ideas-workbench-row-main">
         {editing ? (
-          <input
+          <textarea
+            ref={editorRef}
             aria-label="编辑想法"
             className="ideas-workbench-edit-input"
             value={editingText}
-            onChange={(event) => setEditingText(event.target.value)}
+            rows={1}
+            onChange={(event) => {
+              setEditingText(event.target.value)
+              resizeTextarea(event.currentTarget)
+            }}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') void submitText()
+              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault()
+                void submitText()
+              }
               if (event.key === 'Escape') {
                 setEditingText(item.text)
                 setEditing(false)
@@ -320,43 +391,36 @@ function IdeasRow({
             onClick={() => setEditing(true)}
           >
             <span className="ideas-workbench-row-title">{item.text}</span>
-            <span className="ideas-workbench-row-meta">
-              {item.session_id ? '已关联探讨' : '未探讨'} · {sourceLabel}
-            </span>
           </button>
         )}
-      </span>
-
-      <span className={`ideas-workbench-pill${item.session_id ? ' is-accent' : ''}`}>
-        {item.session_id ? '已探讨' : item.done ? '已完成' : '未探讨'}
       </span>
 
       <button
         type="button"
         className="ideas-workbench-source"
         aria-label={`打开来源：${sourceLabel}`}
+        title={sourceLabel}
         onClick={() => {
           if (item.source) onNavigateToSource?.(item.source)
         }}
         disabled={!item.source}
       >
         <Link2 aria-hidden="true" size={13} strokeWidth={1.8} />
-        <span>{sourceLabel}</span>
       </button>
 
       <button
         type="button"
         className="ideas-workbench-due"
         aria-label={`${item.due ? '修改截止日期' : '设置截止日期'}：${item.text}`}
+        title={ideaDueLabel(item)}
         onClick={openDatePicker}
       >
         <CalendarDays aria-hidden="true" size={13} strokeWidth={1.8} />
-        <span>{ideaDueLabel(item)}</span>
       </button>
 
       <button
         type="button"
-        className="ideas-workbench-icon-button ideas-workbench-discuss-button"
+        className={`ideas-workbench-icon-button ideas-workbench-discuss-button${item.session_id ? ' is-discussed' : ''}`}
         aria-label={item.session_id ? `继续探讨：${item.text}` : `开始探讨：${item.text}`}
         title={item.session_id ? t('hasDiscussion') : t('startDiscussion')}
         onClick={() =>
@@ -371,34 +435,6 @@ function IdeasRow({
       >
         <MessageSquare aria-hidden="true" size={14} strokeWidth={1.8} />
       </button>
-
-      <button
-        type="button"
-        className="ideas-workbench-icon-button ideas-workbench-more-button"
-        aria-label={`更多操作：${item.text}`}
-        onClick={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect()
-          onContextMenu({ x: rect.right - 180, y: rect.bottom + 4, item })
-        }}
-      >
-        <MoreHorizontal aria-hidden="true" size={15} strokeWidth={1.8} />
-      </button>
-
-      {showDatePicker && (
-        <div
-          className="ideas-workbench-date-popover"
-          style={{ left: datePickerPos.x, top: datePickerPos.y }}
-        >
-          <DatePicker
-            initialValue={item.due}
-            onSelect={(date) => {
-              void todoContext.setTodoDue(item.line_index, date, item.done_file)
-              setShowDatePicker(false)
-            }}
-            onClose={() => setShowDatePicker(false)}
-          />
-        </div>
-      )}
     </div>
   )
 }
@@ -407,10 +443,14 @@ function IdeasContextMenu({
   state,
   onClose,
   onOpenConversation,
+  onNavigateToSource,
+  onOpenDuePicker,
 }: {
   state: IdeasContextMenuState
   onClose: () => void
   onOpenConversation?: (opts: IdeaConversationRequest) => void
+  onNavigateToSource?: (filename: string) => void
+  onOpenDuePicker: (state: IdeasContextMenuState) => void
 }) {
   const todoContext = useTodoContext()
   const { t } = useTranslation()
@@ -431,11 +471,10 @@ function IdeasContextMenu({
   )
 
   return (
-    <div
-      className="ideas-workbench-menu"
-      role="menu"
-      style={{ left: state.x, top: state.y }}
-    >
+    <div className="ideas-workbench-menu" role="menu" style={{ left: state.x, top: state.y }}>
+      {menuItem(item.done ? '恢复' : '完成', () =>
+        todoContext.toggleTodo(item.line_index, !item.done, item.done_file),
+      )}
       {!item.done_file &&
         menuItem(t('exploreInDepth'), () =>
           onOpenConversation?.({
@@ -446,6 +485,9 @@ function IdeasContextMenu({
             doneFile: item.done_file,
           }),
         )}
+      {item.source && menuItem('打开来源', () => onNavigateToSource?.(item.source!))}
+      {!item.done_file &&
+        menuItem(item.due ? '修改截止日期' : '设置截止日期', () => onOpenDuePicker(state))}
       {menuItem(t('copyText'), () => navigator.clipboard.writeText(item.text))}
       {item.due &&
         menuItem(t('clearDueDate'), () =>
@@ -465,7 +507,11 @@ function IdeasContextMenu({
           todoContext.removeTodoPath(item.line_index, item.done_file),
         )}
       <div className="ideas-workbench-menu-divider" />
-      {menuItem(t('deleteTodo'), () => todoContext.deleteTodo(item.line_index, item.done_file), true)}
+      {menuItem(
+        t('deleteTodo'),
+        () => todoContext.deleteTodo(item.line_index, item.done_file),
+        true,
+      )}
     </div>
   )
 }

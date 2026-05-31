@@ -2,11 +2,26 @@
 /* Follows design spec: 克制沉静, neutrals with ink-cyan tint, single accent */
 
 .md-content {
+  width: 100%;
+  max-width: var(--journal-readable-max);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--item-text);
   word-break: break-word;
+}
+
+.md-content > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
+  max-width: var(--journal-prose-max);
+}
+
+.md-section > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
+  max-width: var(--journal-prose-max);
+}
+
+.md-content > :where(pre, table, img),
+.md-section > :where(pre, table, img) {
+  max-width: 100%;
 }
 
 /* Headings: hierarchy via size + weight, not color */
@@ -20,6 +35,10 @@
 }
 .md-content h1 {
   font-size: 1.25rem;
+}
+.md-content h1,
+.md-content h2 {
+  color: var(--journal-title-color);
 }
 .md-content h2 {
   font-size: 1.125rem;

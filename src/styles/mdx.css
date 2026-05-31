@@ -14,7 +14,8 @@
   --mdx-accent-soft: var(--record-highlight, #fbf3e5);
   --mdx-radius: 8px;
   --mdx-radius-sm: 6px;
-  max-width: min(100%, 880px);
+  width: 100%;
+  max-width: var(--journal-readable-max);
   text-wrap: pretty;
   hanging-punctuation: first;
 }
@@ -24,12 +25,21 @@
 .mdx-content :where(p, li) {
   text-wrap: pretty;
 }
-.mdx-content .mdx-chart,
-.mdx-content .mdx-mockup,
-.mdx-content .mdx-diagram-frame,
-.mdx-content .mdx-kanban,
-.mdx-content .mdx-table-wrap,
-.mdx-content .mdx-device-v2 {
+.mdx-content :where(
+  .mdx-chart,
+  .mdx-mockup,
+  .mdx-diagram-frame,
+  .mdx-kanban,
+  .mdx-table-wrap,
+  .mdx-device-v2,
+  .mdx-grid,
+  .mdx-split,
+  .mdx-stat-group,
+  .mdx-cards,
+  .mdx-media-card,
+  .mdx-image
+) {
+  width: 100%;
   max-width: 100%;
 }
 .mdx-content .mdx-loading {

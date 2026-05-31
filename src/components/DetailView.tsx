@@ -1143,10 +1143,10 @@ export const DetailView = React.memo(function DetailView({
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: isHtmlContent ? 0 : '26px 32px 40px',
+          padding: isHtmlContent ? 0 : 'var(--journal-detail-padding)',
           width: '100%',
-          maxWidth: isHtmlContent ? undefined : 'var(--detail-content-max)',
-          margin: isHtmlContent ? undefined : '0 auto',
+          boxSizing: isHtmlContent ? undefined : 'border-box',
+          margin: 0,
         }}
         onContextMenu={(e) => {
           e.preventDefault()

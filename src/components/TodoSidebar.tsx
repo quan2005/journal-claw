@@ -5,7 +5,7 @@ import { useTodoContext } from '../contexts/TodoContext'
 import { pickFolder } from '../lib/tauri'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
-function DatePicker({
+export function DatePicker({
   initialValue,
   onSelect,
   onClose,
@@ -240,7 +240,7 @@ function DatePicker({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function dueBadgeStyle(due: string): { color: string; background: string } {
+export function dueBadgeStyle(due: string): { color: string; background: string } {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const d = new Date(due + 'T00:00:00')
@@ -251,7 +251,7 @@ function dueBadgeStyle(due: string): { color: string; background: string } {
   return { color: 'var(--duration-text)', background: 'var(--item-hover-bg)' }
 }
 
-function formatDueShort(due: string): string {
+export function formatDueShort(due: string): string {
   const p = due.split('-')
   return `${p[1]}/${p[2]}`
 }

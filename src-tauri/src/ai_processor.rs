@@ -111,21 +111,125 @@ const SKILL_IDENTITY_PROFILING_PRODUCT: &str = include_str!(
     "../resources/workspace-template/.claude/skills/identity-profiling/assets/templates/product.md"
 );
 
-// ── Meeting Minutes skill template ─────────────
-const SKILL_MEETING_MINUTES_MD: &str =
-    include_str!("../resources/workspace-template/.claude/skills/meeting-minutes/SKILL.md");
-const SKILL_MEETING_MINUTES_ALIGNMENT: &str = include_str!(
-    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/alignment.md"
-);
-const SKILL_MEETING_MINUTES_ARGUMENTATION: &str = include_str!(
-    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/argumentation-chain.md"
-);
-const SKILL_MEETING_MINUTES_KNOWLEDGE: &str = include_str!(
-    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/knowledge-distillation.md"
-);
-const SKILL_MEETING_MINUTES_PROGRESS: &str = include_str!(
-    "../resources/workspace-template/.claude/skills/meeting-minutes/references/templates/progress-tracking.md"
-);
+// ── Journal skill template ─────────────────────
+const SKILL_JOURNAL_MD: &str =
+    include_str!("../resources/workspace-template/.claude/skills/journal/SKILL.md");
+const SKILL_JOURNAL_REFERENCE_FILES: &[(&str, &str)] = &[
+    (
+        "references/template-registry.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/template-registry.md"
+        ),
+    ),
+    (
+        "references/writing-rules.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/writing-rules.md"
+        ),
+    ),
+    (
+        "references/component-catalog.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/component-catalog.md"
+        ),
+    ),
+    (
+        "references/component-recipes.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/component-recipes.md"
+        ),
+    ),
+    (
+        "references/templates/meeting-collaboration.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/meeting-collaboration.md"
+        ),
+    ),
+    (
+        "references/templates/work-reports.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/work-reports.md"
+        ),
+    ),
+    (
+        "references/templates/project-docs.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/project-docs.md"
+        ),
+    ),
+    (
+        "references/templates/research-analysis.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/research-analysis.md"
+        ),
+    ),
+    (
+        "references/templates/learning-notes.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/learning-notes.md"
+        ),
+    ),
+    (
+        "references/templates/personal-journal.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/personal-journal.md"
+        ),
+    ),
+    (
+        "references/templates/technical-docs.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/technical-docs.md"
+        ),
+    ),
+    (
+        "references/templates/content-creation.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/content-creation.md"
+        ),
+    ),
+    (
+        "references/templates/hr-operations.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/templates/hr-operations.md"
+        ),
+    ),
+    (
+        "references/examples/meeting-decision.mdx",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/examples/meeting-decision.mdx"
+        ),
+    ),
+    (
+        "references/examples/weekly-report.mdx",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/examples/weekly-report.mdx"
+        ),
+    ),
+    (
+        "references/examples/prd-review.mdx",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/examples/prd-review.mdx"
+        ),
+    ),
+    (
+        "references/examples/deep-reading.mdx",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/examples/deep-reading.mdx"
+        ),
+    ),
+    (
+        "references/examples/incident-review.mdx",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/examples/incident-review.mdx"
+        ),
+    ),
+    (
+        "references/examples/personal-review.mdx",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/examples/personal-review.mdx"
+        ),
+    ),
+];
 
 // ── Visual Design Book skill template ──────────
 const SKILL_VISUAL_DESIGN_BOOK_MD: &str =
@@ -159,6 +263,26 @@ const SKILL_SELF_IMPROVEMENT_SELF_CHECK: &str = include_str!(
 );
 const LEARNINGS_TEMPLATE: &str =
     include_str!("../resources/workspace-template/.claude/learnings/LEARNINGS.md");
+
+fn write_embedded_skill_tree(skill_dir: &std::path::Path, skill_md: &str, files: &[(&str, &str)]) {
+    if let Err(e) = std::fs::create_dir_all(skill_dir) {
+        eprintln!(
+            "[ai_processor] warn: failed to create skill dir {}: {}",
+            skill_dir.display(),
+            e
+        );
+        return;
+    }
+
+    let _ = std::fs::write(skill_dir.join("SKILL.md"), skill_md);
+    for (relative_path, content) in files {
+        let target = skill_dir.join(relative_path);
+        if let Some(parent) = target.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(target, content);
+    }
+}
 
 /// 确保 workspace/.claude/ 已初始化。每次启动强制覆盖，保持与应用版本同步。
 pub fn ensure_workspace_dot_claude(workspace_path: &str) {
@@ -290,32 +414,18 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         );
     }
 
-    // ── Meeting Minutes skill template ─────────────
-    let mm_dir = dot_claude.join("skills").join("meeting-minutes");
-    let mm_templates = mm_dir.join("references").join("templates");
-    if let Err(e) = std::fs::create_dir_all(&mm_templates) {
-        eprintln!(
-            "[ai_processor] warn: failed to create skills/meeting-minutes/references/templates dir: {}",
-            e
-        );
-    } else {
-        let _ = std::fs::write(mm_dir.join("SKILL.md"), SKILL_MEETING_MINUTES_MD);
-        let _ = std::fs::write(
-            mm_templates.join("alignment.md"),
-            SKILL_MEETING_MINUTES_ALIGNMENT,
-        );
-        let _ = std::fs::write(
-            mm_templates.join("argumentation-chain.md"),
-            SKILL_MEETING_MINUTES_ARGUMENTATION,
-        );
-        let _ = std::fs::write(
-            mm_templates.join("knowledge-distillation.md"),
-            SKILL_MEETING_MINUTES_KNOWLEDGE,
-        );
-        let _ = std::fs::write(
-            mm_templates.join("progress-tracking.md"),
-            SKILL_MEETING_MINUTES_PROGRESS,
-        );
+    // ── Journal skill template ─────────────────────
+    let journal_dir = dot_claude.join("skills").join("journal");
+    write_embedded_skill_tree(
+        &journal_dir,
+        SKILL_JOURNAL_MD,
+        SKILL_JOURNAL_REFERENCE_FILES,
+    );
+
+    // Meeting minutes was merged into /journal in v2. Remove stale installed copies.
+    let old_meeting_dir = dot_claude.join("skills").join("meeting-minutes");
+    if old_meeting_dir.exists() {
+        let _ = std::fs::remove_dir_all(&old_meeting_dir);
     }
 
     // ── Lint skill template ────────────────────────
@@ -964,7 +1074,10 @@ mod tests {
             "journal skill should be installed"
         );
         assert!(
-            journal_dir.join("references").join("template-registry.md").exists(),
+            journal_dir
+                .join("references")
+                .join("template-registry.md")
+                .exists(),
             "journal registry should be installed"
         );
         assert!(

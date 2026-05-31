@@ -1,0 +1,14 @@
+---
+tags: [journal, incident]
+summary: 导入队列卡住的直接风险是用户无法确认处理进度，需要补齐事件链路和失败提示。
+sources: [2605/raw/incident.txt]
+---
+
+# 导入队列卡住复盘
+
+<IncidentTimeline
+  items={[
+    { time: '10:12', title: '导入开始', impact: '用户等待处理结果' },
+    { time: '10:23', title: '队列无更新', impact: '前端未收到 journal-updated' },
+  ]}
+/>

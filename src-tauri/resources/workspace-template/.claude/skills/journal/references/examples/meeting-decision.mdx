@@ -1,0 +1,19 @@
+---
+tags: [journal, meeting]
+summary: 团队决定先以方案 B 做两周试点，因为审计需求比短期实现成本更关键。
+sources: [2605/raw/product-review.txt]
+---
+
+# 产品权限评审
+
+<DecisionRecord
+  question="权限模型是否进入本轮迭代"
+  decision="采用方案 B 做两周试点"
+  owner="张三"
+  due="下周五"
+  options={[
+    { label: '方案 A', tradeoff: '实现快，但无法覆盖企业审计' },
+    { label: '方案 B', tradeoff: '实现更重，但能支撑审计需求' },
+  ]}
+  rationale="企业客户审计需求已经进入本季度目标，试点可以控制风险。"
+/>

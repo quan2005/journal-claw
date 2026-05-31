@@ -54,7 +54,7 @@
 
 | 值 | 对应场景 |
 |---|---|
-| `meeting` | 会议纪要整理（类型判断、模板选择、引用原则） |
+| `meeting` | 会议协作类笔记（类型判断、模板选择、引用原则） |
 | `identity` | 人物/产品档案（建档判断、维度填充、更新策略） |
 | `frontmatter` | YAML frontmatter 格式（tags、summary、sources） |
 | `summary` | 摘要质量（信息量、结论先行、长度） |

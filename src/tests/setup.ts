@@ -9,6 +9,7 @@ const highlightStore = new Map<string, unknown>()
 Object.defineProperty(globalThis, 'CSS', {
   value: {
     ...(globalThis.CSS ?? {}),
+    escape: (value: string) => value.replace(/"/g, '\\"'),
     highlights: {
       set: (key: string, value: unknown) => highlightStore.set(key, value),
       get: (key: string) => highlightStore.get(key),

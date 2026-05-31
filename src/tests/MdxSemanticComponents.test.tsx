@@ -111,7 +111,9 @@ describe('semantic MDX components', () => {
   it('renders references, transcript, and timestamp links', () => {
     render(
       <>
-        <ReferenceList sources={[{ path: '2605/raw/meeting.m4a', label: '会议录音', type: 'audio' }]} />
+        <ReferenceList
+          sources={[{ path: '2605/raw/meeting.m4a', label: '会议录音', type: 'audio' }]}
+        />
         <Transcript items={[{ speaker: '张三', time: '00:12', text: '这里需要先试点。' }]} />
         <TimestampLink src="2605/raw/meeting.m4a" time="00:12">
           跳到 00:12
@@ -126,7 +128,9 @@ describe('semantic MDX components', () => {
   })
 
   it('allows transcript details to expand and collapse', () => {
-    render(<Transcript items={[{ speaker: '张三', time: '00:12', text: '长转写内容' }]} collapsible />)
+    render(
+      <Transcript items={[{ speaker: '张三', time: '00:12', text: '长转写内容' }]} collapsible />,
+    )
     const details = screen.getByText('转写片段').closest('details')
     expect(details?.hasAttribute('open')).toBe(false)
     fireEvent.click(screen.getByText('转写片段'))

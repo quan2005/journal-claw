@@ -44,9 +44,7 @@ describe('mdxRuntime', () => {
   })
 
   it('rejects unsupported module output', () => {
-    expect(() => toRunnableFunctionBody('export const x = 1')).toThrow(
-      'unsupported module shape',
-    )
+    expect(() => toRunnableFunctionBody('export const x = 1')).toThrow('unsupported module shape')
   })
 })
 
@@ -73,5 +71,31 @@ describe('MdxRenderer', () => {
     await waitFor(() => {
       expect(screen.getByText(/MDX render failed/)).toBeTruthy()
     })
+  })
+
+  it('dispatches media seek events from timestamp links', async () => {
+    const compiledTimestamp = `import { jsx as _jsx } from "react/jsx-runtime";
+function _createMdxContent(props) {
+  const {TimestampLink} = props.components || {};
+  return _jsx(TimestampLink, {src: "2605/raw/meeting.m4a", time: "00:12", children: "jump"});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledTimestamp)
+    const handler = vi.fn()
+    window.addEventListener('mdx-media-seek', handler)
+
+    render(
+      <MdxRenderer content="<TimestampLink src='2605/raw/meeting.m4a' time='00:12'>jump</TimestampLink>" />,
+    )
+
+    await waitFor(() => screen.getByText('jump'))
+    screen.getByText('jump').click()
+
+    expect(handler).toHaveBeenCalled()
+    expect(handler.mock.calls[0][0].detail.seconds).toBe(12)
+    window.removeEventListener('mdx-media-seek', handler)
   })
 })

@@ -58,6 +58,13 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+function parseMediaTime(value: string): number {
+  if (/^\d+(\.\d+)?$/.test(value)) return Number(value)
+  const parts = value.split(':').map((part) => Number(part))
+  if (parts.some((part) => Number.isNaN(part))) return 0
+  return parts.reduce((total, part) => total * 60 + part, 0)
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function MdxRenderer({ content, entryPath }: Props) {
@@ -113,6 +120,26 @@ export function MdxRenderer({ content, entryPath }: Props) {
       const anchor = (e.target as HTMLElement).closest('a')
       if (!anchor) return
 
+      const mediaSrc = anchor.getAttribute('data-media-src')
+      const mediaTime = anchor.getAttribute('data-media-time')
+      if (mediaSrc && mediaTime) {
+        e.preventDefault()
+        const seconds = parseMediaTime(mediaTime)
+        const media = document.querySelector<HTMLMediaElement>(
+          `audio[src="${CSS.escape(mediaSrc)}"], video[src="${CSS.escape(mediaSrc)}"]`,
+        )
+        if (media) {
+          media.currentTime = seconds
+          void media.play().catch(() => undefined)
+        }
+        window.dispatchEvent(
+          new CustomEvent('mdx-media-seek', {
+            detail: { src: mediaSrc, time: mediaTime, seconds },
+          }),
+        )
+        return
+      }
+
       const mdLink = anchor.getAttribute('data-md-link')
       if (mdLink && entryPath) {
         e.preventDefault()
@@ -152,9 +179,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
   )
 
   const activeState: CompileState =
-    compileState.key === cacheKey
-      ? compileState
-      : { key: cacheKey, status: 'loading' }
+    compileState.key === cacheKey ? compileState : { key: cacheKey, status: 'loading' }
   const Content = activeState.component
 
   return (

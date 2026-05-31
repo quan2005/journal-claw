@@ -38,6 +38,10 @@ vi.mock('../lib/tauri', async () => {
   }
 })
 
+vi.mock('../lib/markdown', () => ({
+  renderMarkdown: vi.fn(() => null),
+}))
+
 const idea = (overrides: Partial<TodoItem>): TodoItem => ({
   text: '未命名想法',
   done: false,
@@ -154,5 +158,74 @@ describe('IdeasWorkbench shell', () => {
     })
 
     expect(mockState.todoContext.addTodo).toHaveBeenCalledWith('新的轻工作台想法')
+  })
+
+  it('edits idea text inline', async () => {
+    renderWithProviders(<IdeasWorkbench />)
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑：普通未完成想法' }))
+    fireEvent.change(screen.getByLabelText('编辑想法'), {
+      target: { value: '普通未完成想法更新版' },
+    })
+    await act(async () => {
+      fireEvent.keyDown(screen.getByLabelText('编辑想法'), { key: 'Enter' })
+    })
+
+    expect(mockState.todoContext.updateTodoText).toHaveBeenCalledWith(
+      3,
+      '普通未完成想法更新版',
+      false,
+    )
+  })
+
+  it('toggles completion from the row control', async () => {
+    renderWithProviders(<IdeasWorkbench />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '完成：普通未完成想法' }))
+    })
+
+    expect(mockState.todoContext.toggleTodo).toHaveBeenCalledWith(3, true, false)
+  })
+
+  it('opens source and discussion callbacks from row actions', () => {
+    const onNavigateToSource = vi.fn()
+    const onOpenConversation = vi.fn()
+    renderWithProviders(
+      <IdeasWorkbench
+        onNavigateToSource={onNavigateToSource}
+        onOpenConversation={onOpenConversation}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '打开来源：2605/31-设计记录.md' }))
+    expect(onNavigateToSource).toHaveBeenCalledWith('2605/31-设计记录.md')
+
+    fireEvent.click(screen.getByRole('button', { name: '继续探讨：已有会话的想法' }))
+    expect(onOpenConversation).toHaveBeenCalledWith({
+      mode: 'chat',
+      context: '已有会话的想法',
+      sessionId: 'session_1',
+      lineIndex: 1,
+      doneFile: false,
+    })
+  })
+})
+
+describe('DetailView ideas route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockState.todoContext.todos = ideas
+    mockState.todoContext.loading = false
+  })
+
+  it('renders IdeasWorkbench instead of the narrow sidebar list', async () => {
+    const { DetailView } = await import('../components/DetailView')
+
+    renderWithProviders(<DetailView type="ideas" />)
+
+    expect(screen.getByText('IDEAS')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '想法' })).toBeTruthy()
+    expect(screen.getByLabelText('想法处理状态统计')).toBeTruthy()
   })
 })

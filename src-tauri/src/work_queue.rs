@@ -190,13 +190,7 @@ async fn run_work_item(app: &AppHandle, item: &WorkItem) -> Result<String, Strin
 
     // Create conversation session — files are referenced in the user message,
     // NOT injected into the system prompt via context_files.
-    let sid = conversation::conversation_create(
-        app.clone(),
-        store.clone(),
-        None,
-        None,
-    )
-    .await?;
+    let sid = conversation::conversation_create(app.clone(), store.clone(), None, None).await?;
 
     // Update session_id in queue
     {

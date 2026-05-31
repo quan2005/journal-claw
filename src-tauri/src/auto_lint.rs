@@ -69,7 +69,8 @@ fn count_journal_entries(workspace: &str) -> u32 {
             if let Ok(files) = std::fs::read_dir(&dir) {
                 for f in files.flatten() {
                     let fname = f.file_name().to_string_lossy().to_string();
-                    if fname.ends_with(".md") || fname.ends_with(".html") || fname.ends_with(".htm") {
+                    if fname.ends_with(".md") || fname.ends_with(".html") || fname.ends_with(".htm")
+                    {
                         count += 1;
                     }
                 }

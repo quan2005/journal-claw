@@ -43,8 +43,14 @@ mod tests {
     #[test]
     fn parse_valid_frontmatter() {
         let content = "---\nname: ideate\ndescription: \"灵感探讨\"\n---\n\n# Content\n";
-        assert_eq!(parse_frontmatter_field(content, "name").as_deref(), Some("ideate"));
-        assert_eq!(parse_frontmatter_field(content, "description").as_deref(), Some("灵感探讨"));
+        assert_eq!(
+            parse_frontmatter_field(content, "name").as_deref(),
+            Some("ideate")
+        );
+        assert_eq!(
+            parse_frontmatter_field(content, "description").as_deref(),
+            Some("灵感探讨")
+        );
     }
 
     #[test]
@@ -55,12 +61,18 @@ mod tests {
     #[test]
     fn parse_unclosed_frontmatter() {
         let content = "---\nname: test-skill\ndescription: A skill\n\nBody without closing ---";
-        assert_eq!(parse_frontmatter_field(content, "name").as_deref(), Some("test-skill"));
+        assert_eq!(
+            parse_frontmatter_field(content, "name").as_deref(),
+            Some("test-skill")
+        );
     }
 
     #[test]
     fn parse_single_quoted_value() {
         let content = "---\nname: 'my skill'\n---\n";
-        assert_eq!(parse_frontmatter_field(content, "name").as_deref(), Some("my skill"));
+        assert_eq!(
+            parse_frontmatter_field(content, "name").as_deref(),
+            Some("my skill")
+        );
     }
 }

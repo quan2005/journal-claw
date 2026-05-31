@@ -2013,8 +2013,9 @@ async fn run_conversation_turn(
                 }
 
                 // Pre-allocate results slots (indexed by position in tool_calls)
-                let mut indexed_results: Vec<Option<(llm::types::ToolResult, Option<llm::types::ImageData>)>> =
-                    vec![None; tool_calls.len()];
+                let mut indexed_results: Vec<
+                    Option<(llm::types::ToolResult, Option<llm::types::ImageData>)>,
+                > = vec![None; tool_calls.len()];
 
                 // Execute non-task tools sequentially
                 for idx in &other_calls_idx {
@@ -2179,7 +2180,8 @@ async fn run_conversation_turn(
                                 data: serde_json::json!({
                                     "tool_use_id": id,
                                     "is_error": result.is_error,
-                                }).to_string(),
+                                })
+                                .to_string(),
                             },
                         );
                         indexed_results[idx] = Some((result, None));
@@ -2191,7 +2193,13 @@ async fn run_conversation_turn(
                 for (idx, slot) in indexed_results.into_iter().enumerate() {
                     let (id, name, input) = &tool_calls[idx];
                     let (result, image_data) = slot.unwrap_or_else(|| {
-                        (llm::types::ToolResult { output: "error: tool not executed".to_string(), is_error: true }, None)
+                        (
+                            llm::types::ToolResult {
+                                output: "error: tool not executed".to_string(),
+                                is_error: true,
+                            },
+                            None,
+                        )
                     });
 
                     // Loop detection

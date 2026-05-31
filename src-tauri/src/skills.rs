@@ -13,8 +13,8 @@ pub struct SkillInfo {
 
 fn parse_skill_frontmatter(content: &str) -> Option<(String, String)> {
     let name = crate::frontmatter::parse_frontmatter_field(content, "name")?;
-    let description = crate::frontmatter::parse_frontmatter_field(content, "description")
-        .unwrap_or_default();
+    let description =
+        crate::frontmatter::parse_frontmatter_field(content, "description").unwrap_or_default();
     Some((name, description))
 }
 
@@ -201,7 +201,11 @@ pub fn list_workspace_dir(
         let mtime_secs = entry
             .metadata()
             .and_then(|m| m.modified())
-            .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs())
+            .map(|t| {
+                t.duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs()
+            })
             .unwrap_or(0);
 
         entries.push(WorkspaceDirEntry {
@@ -233,12 +237,28 @@ pub fn workspace_duplicate_file(
     if !source.exists() {
         return Err("文件不存在".to_string());
     }
-    let stem = source.file_stem().unwrap_or_default().to_string_lossy().to_string();
-    let ext = source.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let stem = source
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let ext = source
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
     let parent = source.parent().unwrap();
     let mut i = 1;
     let dest = loop {
-        let name = format!("{} copy{}{}", stem, if i > 1 { format!(" {}", i) } else { String::new() }, ext);
+        let name = format!(
+            "{} copy{}{}",
+            stem,
+            if i > 1 {
+                format!(" {}", i)
+            } else {
+                String::new()
+            },
+            ext
+        );
         let candidate = parent.join(&name);
         if !candidate.exists() {
             break candidate;
@@ -246,7 +266,11 @@ pub fn workspace_duplicate_file(
         i += 1;
     };
     fs::copy(&source, &dest).map_err(|e| e.to_string())?;
-    let dest_rel = dest.strip_prefix(&workspace).unwrap_or(&dest).to_string_lossy().to_string();
+    let dest_rel = dest
+        .strip_prefix(&workspace)
+        .unwrap_or(&dest)
+        .to_string_lossy()
+        .to_string();
     Ok(dest_rel)
 }
 
@@ -268,7 +292,11 @@ pub fn workspace_rename_file(
         return Err("目标文件已存在".to_string());
     }
     fs::rename(&source, &dest).map_err(|e| e.to_string())?;
-    let dest_rel = dest.strip_prefix(&workspace).unwrap_or(&dest).to_string_lossy().to_string();
+    let dest_rel = dest
+        .strip_prefix(&workspace)
+        .unwrap_or(&dest)
+        .to_string_lossy()
+        .to_string();
     Ok(dest_rel)
 }
 
@@ -294,15 +322,16 @@ pub fn workspace_move_file(
         return Err("目标位置已存在同名文件".to_string());
     }
     fs::rename(&source, &dest).map_err(|e| e.to_string())?;
-    let dest_rel = dest.strip_prefix(&workspace).unwrap_or(&dest).to_string_lossy().to_string();
+    let dest_rel = dest
+        .strip_prefix(&workspace)
+        .unwrap_or(&dest)
+        .to_string_lossy()
+        .to_string();
     Ok(dest_rel)
 }
 
 #[tauri::command]
-pub fn workspace_delete_file(
-    app: tauri::AppHandle,
-    relative_path: String,
-) -> Result<(), String> {
+pub fn workspace_delete_file(app: tauri::AppHandle, relative_path: String) -> Result<(), String> {
     let config = crate::config::load_config(&app)?;
     let workspace = std::path::PathBuf::from(&config.workspace_path);
     let target = workspace.join(&relative_path);

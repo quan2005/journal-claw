@@ -560,7 +560,11 @@ fn workspace_has_any_entry(workspace: &str) -> bool {
         };
         for file in inner.flatten() {
             let fname = file.file_name().to_string_lossy().to_string();
-            if fname.ends_with(".md") || fname.ends_with(".html") || fname.ends_with(".htm") || fname.ends_with(".mdx") {
+            if fname.ends_with(".md")
+                || fname.ends_with(".html")
+                || fname.ends_with(".htm")
+                || fname.ends_with(".mdx")
+            {
                 return true;
             }
         }

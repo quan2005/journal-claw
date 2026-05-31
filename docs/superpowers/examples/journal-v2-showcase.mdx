@@ -1,0 +1,98 @@
+---
+tags: [journal, showcase]
+summary: Journal v2 showcase covers semantic components, source traceability, transcript seeking, and long evidence display.
+sources: [2605/raw/showcase.txt]
+---
+
+# Journal v2 Component Showcase
+
+<Subtitle>Semantic, read-only MDX components for high-quality notes.</Subtitle>
+
+<DecisionRecord
+  question="是否将会议 skill 合并进 journal"
+  decision="合并，journal 成为唯一笔记整理 skill"
+  owner="产品"
+  due="v2"
+  options={[
+    { label: '保留独立 meeting-minutes', tradeoff: '触发清晰，但模板会漂移' },
+    { label: '合并进 journal', tradeoff: '路由统一，但需要更好的 registry' },
+  ]}
+  rationale="所有笔记类型都应复用同一套模板和组件规则。"
+/>
+
+<ActionTable
+  items={[
+    {
+      action: '安装 journal references',
+      owner: 'Agent',
+      due: 'Task 2',
+      source: 'plan',
+      status: 'open',
+    },
+    {
+      action: '清理 meeting-minutes',
+      owner: 'Agent',
+      due: 'Task 5',
+      source: 'plan',
+      status: 'open',
+    },
+  ]}
+/>
+
+<RiskMatrix
+  risks={[
+    {
+      risk: 'AI 过度使用组件',
+      likelihood: 'medium',
+      impact: 'medium',
+      severity: 'P2',
+      mitigation: 'Markdown-first writing rules',
+    },
+    {
+      risk: '模板库过大',
+      likelihood: 'medium',
+      impact: 'high',
+      severity: 'P1',
+      mitigation: 'Progressive reference loading',
+    },
+  ]}
+/>
+
+<ReferenceList
+  sources={[
+    { path: '2605/raw/showcase.txt', label: 'Showcase raw material', type: 'text' },
+    { path: '2605/raw/meeting.m4a', label: 'Meeting audio', type: 'audio' },
+  ]}
+/>
+
+<Transcript
+  collapsible
+  items={[
+    {
+      speaker: '张三',
+      time: '00:12',
+      src: '2605/raw/meeting.m4a',
+      text: '先把模板体系和组件体系一起设计，不要再分散维护。',
+    },
+  ]}
+/>
+
+<ComparisonMatrix
+  columns={['优点', '风险']}
+  rows={[
+    { label: 'Template-first', values: ['AI 产出立刻稳定', '组件表达不足'] },
+    { label: 'Co-design', values: ['模板和组件互相约束', '实施范围更大'] },
+  ]}
+/>
+
+<RACI
+  rows={[
+    {
+      work: '模板 registry',
+      responsible: 'Agent',
+      accountable: '用户',
+      consulted: '现有 skill',
+      informed: '未来 UI',
+    },
+  ]}
+/>

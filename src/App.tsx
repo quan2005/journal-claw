@@ -5,6 +5,7 @@ import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 import { DetailView } from './components/DetailView'
 import { AutomationWorkbench } from './components/AutomationWorkbench'
+import type { IdeaConversationRequest } from './components/IdeasWorkbench'
 const SettingsPanel = lazy(() =>
   import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
 )
@@ -530,6 +531,45 @@ export default function App() {
     [openChatPanel],
   )
 
+  const handleOpenIdeaConversation = useCallback(
+    (opts: IdeaConversationRequest) => {
+      if (opts.sessionId) {
+        openChatPanel(opts.sessionId)
+      } else {
+        openChatPanel(undefined, opts.context)
+      }
+    },
+    [openChatPanel],
+  )
+
+  const handleNavigateToIdeaSource = useCallback(
+    (source: string) => {
+      const filename = source.split('/').pop() ?? source
+      const match = entriesRef.current.find(
+        (entry) =>
+          source === `${entry.year_month}/${entry.filename}` ||
+          source === entry.path ||
+          filename === entry.filename,
+      )
+
+      setView('journal')
+      setShowIdeas(false)
+
+      if (match) {
+        setSelectedEntry(match)
+        setTreeSelection({ type: 'journal', path: `${match.year_month}/${match.filename}` })
+        return
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('journal-entry-navigate', {
+          detail: { filename },
+        }),
+      )
+    },
+    [setSelectedEntry, setShowIdeas, setTreeSelection, setView],
+  )
+
   const handleCancelQueueItem = async (item: QueueItem) => {
     try {
       await cancelWorkItem(item.id)
@@ -853,6 +893,8 @@ export default function App() {
               onAddToTodo={handleAddToTodo}
               onProcess={handleProcessEntry}
               onVisualDesign={handleVisualDesign}
+              onOpenIdeaConversation={handleOpenIdeaConversation}
+              onNavigateToIdeaSource={handleNavigateToIdeaSource}
             />
           )}
         </div>

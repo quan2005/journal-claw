@@ -15,7 +15,7 @@ import { fileKindFromName, type FileKind } from '../lib/fileKind'
 import { parseCSV } from '../lib/parseCSV'
 import { EXT_TO_LANG } from '../lib/extToLang'
 import { Spinner } from './Spinner'
-import { TodoSidebar } from './TodoSidebar'
+import { IdeasWorkbench, type IdeaConversationRequest } from './IdeasWorkbench'
 import { FindBar } from './FindBar'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { createTranslator, detectLang } from '../lib/i18n'
@@ -47,6 +47,8 @@ export interface DetailViewProps {
   onAddToTodo?: (text: string, source: string) => void
   onProcess?: (entry: JournalEntry) => void
   onVisualDesign?: (entry: JournalEntry) => void
+  onOpenIdeaConversation?: (opts: IdeaConversationRequest) => void
+  onNavigateToIdeaSource?: (filename: string) => void
 }
 
 // ── Detail context menu ────────────────────────────────────────────────────────
@@ -290,6 +292,8 @@ export const DetailView = React.memo(function DetailView({
   onAddToTodo,
   onProcess,
   onVisualDesign,
+  onOpenIdeaConversation,
+  onNavigateToIdeaSource,
 }: DetailViewProps) {
   // ── State ──────────────────────────────────────────────────────────────
   const [content, setContent] = useState<string | null>(null)
@@ -504,24 +508,13 @@ export const DetailView = React.memo(function DetailView({
 
   const isIdeasMode = type === 'ideas'
 
-  // Ideas mode: render TodoSidebar in center area
+  // Ideas mode: render the center workbench.
   if (isIdeasMode) {
     return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--detail-bg)',
-          overflow: 'hidden',
-        }}
-      >
-        {/* TodoSidebar content */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <TodoSidebar />
-        </div>
-      </div>
+      <IdeasWorkbench
+        onOpenConversation={onOpenIdeaConversation}
+        onNavigateToSource={onNavigateToIdeaSource}
+      />
     )
   }
 

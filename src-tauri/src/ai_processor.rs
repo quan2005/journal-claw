@@ -946,6 +946,43 @@ mod tests {
         std::fs::remove_dir_all(&tmp).ok();
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn ensure_workspace_dot_claude_installs_journal_and_removes_meeting_minutes() {
+        let tmp = std::env::temp_dir().join("journal_dot_claude_skill_v2_test");
+        std::fs::create_dir_all(&tmp).unwrap();
+        let dot_claude = tmp.join(".claude");
+        let stale_meeting = dot_claude.join("skills").join("meeting-minutes");
+        std::fs::create_dir_all(&stale_meeting).unwrap();
+        std::fs::write(stale_meeting.join("SKILL.md"), "old meeting skill").unwrap();
+
+        ensure_workspace_dot_claude(tmp.to_str().unwrap());
+
+        let journal_dir = dot_claude.join("skills").join("journal");
+        assert!(
+            journal_dir.join("SKILL.md").exists(),
+            "journal skill should be installed"
+        );
+        assert!(
+            journal_dir.join("references").join("template-registry.md").exists(),
+            "journal registry should be installed"
+        );
+        assert!(
+            journal_dir
+                .join("references")
+                .join("templates")
+                .join("meeting-collaboration.md")
+                .exists(),
+            "meeting templates should live under journal references"
+        );
+        assert!(
+            !stale_meeting.exists(),
+            "old meeting-minutes skill should be removed during workspace initialization"
+        );
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
     #[test]
     fn prompt_label_truncates_at_20_chars() {
         let prompt = "帮我把今天所有的会议记录整理成日志条目，按重要程度排序";

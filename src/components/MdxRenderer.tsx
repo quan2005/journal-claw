@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useMemo, useState, Component, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  Component,
+  Suspense,
+  createElement,
+  type ElementType,
+  type ReactNode,
+} from 'react'
 import { compileMdx, getWorkspacePath, openFile } from '../lib/tauri'
 import { resolveRelativePath } from '../lib/markdownUtils'
 import { createMarkdownComponents } from '../lib/markdownComponents'
@@ -35,6 +45,61 @@ class MdxErrorBoundary extends Component<{ children: ReactNode; fallback: ReactN
     }
     return this.props.children
   }
+}
+
+class MdxComponentErrorBoundary extends Component<{ name: string; children: ReactNode }, State> {
+  state: State = { hasError: false }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="mdx-component-error" role="note">
+          <div className="mdx-component-error-title">{this.props.name} render failed</div>
+          {this.state.error?.message && (
+            <div className="mdx-component-error-message">{this.state.error.message}</div>
+          )}
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function mdxLoadingFallback() {
+  return <div className="mdx-loading" aria-busy="true" />
+}
+
+function isComponentLike(value: unknown): value is ElementType {
+  return (
+    typeof value === 'function' ||
+    (typeof value === 'object' && value !== null && '$$typeof' in value)
+  )
+}
+
+function wrapMdxComponents(components: Record<string, unknown>) {
+  const wrapped: Record<string, unknown> = {}
+
+  for (const [name, component] of Object.entries(components)) {
+    if (!isComponentLike(component)) {
+      wrapped[name] = component
+      continue
+    }
+
+    const ComponentType = component
+    const WrappedMdxComponent = (props: Record<string, unknown>) => (
+      <MdxComponentErrorBoundary name={name}>
+        <Suspense fallback={mdxLoadingFallback()}>{createElement(ComponentType, props)}</Suspense>
+      </MdxComponentErrorBoundary>
+    )
+    WrappedMdxComponent.displayName = `MdxComponentBoundary(${name})`
+    wrapped[name] = WrappedMdxComponent
+  }
+
+  return wrapped
 }
 
 // ── Compile cache ──────────────────────────────────────────────────────────
@@ -82,7 +147,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
   )
 
   const components = useMemo(
-    () => ({ ...markdownComponents, ...mdxComponents }),
+    () => wrapMdxComponents({ ...markdownComponents, ...mdxComponents }),
     [markdownComponents],
   )
 
@@ -205,14 +270,18 @@ export function MdxRenderer({ content, entryPath }: Props) {
   return (
     <div className="md-content mdx-content" onClick={handleClick}>
       <MdxErrorBoundary key={cacheKey} fallback={fallback}>
-        {activeState.status === 'loading' && <div className="mdx-loading" aria-busy="true" />}
+        {activeState.status === 'loading' && mdxLoadingFallback()}
         {activeState.status === 'error' && (
           <>
             <div className="mdx-error-banner">MDX compile failed: {activeState.error}</div>
             <pre className="mdx-fallback">{content}</pre>
           </>
         )}
-        {activeState.status === 'ready' && Content && <Content components={components} />}
+        {activeState.status === 'ready' && Content && (
+          <Suspense fallback={mdxLoadingFallback()}>
+            <Content components={components} />
+          </Suspense>
+        )}
       </MdxErrorBoundary>
     </div>
   )

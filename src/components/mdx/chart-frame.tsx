@@ -22,6 +22,11 @@ function useContainerWidth() {
     const el = ref.current
     if (!el) return
 
+    if (typeof ResizeObserver === 'undefined') {
+      setWidth(el.getBoundingClientRect().width || el.clientWidth || 640)
+      return
+    }
+
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setWidth(entry.contentRect.width)
@@ -34,11 +39,7 @@ function useContainerWidth() {
   return { ref, width }
 }
 
-function useChartLayout(
-  type: ChartType,
-  containerWidth: number,
-  _dataLength: number,
-): ChartLayout {
+function useChartLayout(type: ChartType, containerWidth: number, _dataLength: number): ChartLayout {
   const compact = containerWidth < 560
   const narrow = containerWidth < 420
 

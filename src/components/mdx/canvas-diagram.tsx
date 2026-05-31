@@ -44,16 +44,26 @@ function resolveTheme(): Theme {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark'
   return dark
     ? {
-        bg: '#101010', fg: '#e8e8e8', accent: '#c8933b',
-        accentBg: 'rgba(200,147,59,0.12)', grid: '#2c2c2e',
-        border: '#3a3a3c', text: '#a2a6ae',
-        edgeStroke: 'rgba(255,255,255,0.22)', labelBg: '#1c1c1e',
+        bg: '#101010',
+        fg: '#e8e8e8',
+        accent: '#c8933b',
+        accentBg: 'rgba(200,147,59,0.12)',
+        grid: '#2c2c2e',
+        border: '#3a3a3c',
+        text: '#a2a6ae',
+        edgeStroke: 'rgba(255,255,255,0.22)',
+        labelBg: '#1c1c1e',
       }
     : {
-        bg: '#fafaf8', fg: '#1c1c1e', accent: '#b8782a',
-        accentBg: '#fbf3e5', grid: '#e5e5e7',
-        border: '#d8dce0', text: '#6a7278',
-        edgeStroke: 'rgba(0,0,0,0.18)', labelBg: '#ffffff',
+        bg: '#fafaf8',
+        fg: '#1c1c1e',
+        accent: '#b8782a',
+        accentBg: '#fbf3e5',
+        grid: '#e5e5e7',
+        border: '#d8dce0',
+        text: '#6a7278',
+        edgeStroke: 'rgba(0,0,0,0.18)',
+        labelBg: '#ffffff',
       }
 }
 
@@ -77,7 +87,10 @@ interface LayoutNode {
   id: string
   label: string
   type: string
-  x: number; y: number; w: number; h: number
+  x: number
+  y: number
+  w: number
+  h: number
   layer: number
   visible: boolean
 }
@@ -88,7 +101,10 @@ interface LayoutEdge {
   label?: string
 }
 
-function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
+function computeLayout(
+  nodes: CanvasNode[],
+  edges: CanvasEdge[],
+): {
   layoutNodes: LayoutNode[]
   layoutEdges: LayoutEdge[]
   canvasW: number
@@ -100,7 +116,10 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
   // ── Layer assignment (BFS from roots) ──
   const inDegree = new Map<string, number>()
   const outEdges = new Map<string, string[]>()
-  for (const n of nodes) { inDegree.set(n.id, 0); outEdges.set(n.id, []) }
+  for (const n of nodes) {
+    inDegree.set(n.id, 0)
+    outEdges.set(n.id, [])
+  }
   for (const e of edges) {
     inDegree.set(e.to, (inDegree.get(e.to) || 0) + 1)
     outEdges.get(e.from)?.push(e.to)
@@ -109,17 +128,21 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
   const layer = new Map<string, number>()
   const queue: string[] = []
   for (const [id, deg] of inDegree) {
-    if (deg === 0) { layer.set(id, 0); queue.push(id) }
+    if (deg === 0) {
+      layer.set(id, 0)
+      queue.push(id)
+    }
   }
   if (queue.length === 0 && nodes.length > 0) {
-    layer.set(nodes[0].id, 0); queue.push(nodes[0].id)
+    layer.set(nodes[0].id, 0)
+    queue.push(nodes[0].id)
   }
 
   while (queue.length > 0) {
     const cur = queue.shift()!
     const curLayer = layer.get(cur)!
     for (const next of outEdges.get(cur) || []) {
-      const nextLayer = (layer.get(next) ?? -1)
+      const nextLayer = layer.get(next) ?? -1
       if (nextLayer < curLayer + 1) {
         layer.set(next, curLayer + 1)
         queue.push(next)
@@ -209,21 +232,30 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
       if (n.type === 'junction') {
         // Junction position will be set after visible nodes
         layoutNodes.push({
-          id: n.id, label: n.label, type: 'junction',
-          x: 0, y: 0, w: 8, h: 8,
-          layer: l, visible: false,
+          id: n.id,
+          label: n.label,
+          type: 'junction',
+          x: 0,
+          y: 0,
+          w: 8,
+          h: 8,
+          layer: l,
+          visible: false,
         })
         continue
       }
-      const startX = (rowW / 2) - ((nonJunction.length - 1) * (NODE_W + NODE_GAP_X)) / 2
+      const startX = rowW / 2 - ((nonJunction.length - 1) * (NODE_W + NODE_GAP_X)) / 2
       const isDiamond = n.type === 'decision'
       layoutNodes.push({
-        id: n.id, label: n.label, type: n.type || 'process',
+        id: n.id,
+        label: n.label,
+        type: n.type || 'process',
         x: startX + vi * (NODE_W + NODE_GAP_X),
         y: l * (NODE_H + LAYER_GAP),
         w: isDiamond ? DIAMOND_W : NODE_W,
         h: isDiamond ? DIAMOND_H : NODE_H,
-        layer: l, visible: true,
+        layer: l,
+        visible: true,
       })
       vi++
     }
@@ -250,7 +282,10 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
     return { layoutNodes, layoutEdges: [], canvasW: MIN_CANVAS_W, canvasH: MIN_CANVAS_H }
   }
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity
   for (const n of visibleNodes) {
     minX = Math.min(minX, n.x)
     minY = Math.min(minY, n.y)
@@ -295,13 +330,25 @@ function computeLayout(nodes: CanvasNode[], edges: CanvasEdge[]): {
 // Drawing
 // ═══════════════════════════════════════════════════════════════════════════
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
   ctx.beginPath()
-  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y)
-  ctx.arcTo(x + w, y, x + w, y + r, r); ctx.lineTo(x + w, y + h - r)
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r); ctx.lineTo(x + r, y + h)
-  ctx.arcTo(x, y + h, x, y + h - r, r); ctx.lineTo(x, y + r)
-  ctx.arcTo(x, y, x + r, y, r); ctx.closePath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r)
+  ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
 }
 
 function drawNode(ctx: CanvasRenderingContext2D, t: Theme, n: LayoutNode) {
@@ -317,36 +364,59 @@ function drawNode(ctx: CanvasRenderingContext2D, t: Theme, n: LayoutNode) {
   const { x, y, w, h } = n
 
   if (n.type === 'decision') {
-    const cx = x + w / 2, cy = y + h / 2
-    const dw = w, dh = h
+    const cx = x + w / 2,
+      cy = y + h / 2
+    const dw = w,
+      dh = h
     ctx.fillStyle = t.accentBg
     ctx.beginPath()
-    ctx.moveTo(cx, cy - dh / 2); ctx.lineTo(cx + dw / 2, cy)
-    ctx.lineTo(cx, cy + dh / 2); ctx.lineTo(cx - dw / 2, cy)
+    ctx.moveTo(cx, cy - dh / 2)
+    ctx.lineTo(cx + dw / 2, cy)
+    ctx.lineTo(cx, cy + dh / 2)
+    ctx.lineTo(cx - dw / 2, cy)
     ctx.closePath()
     ctx.fill()
-    ctx.strokeStyle = t.accent; ctx.lineWidth = 1.25; ctx.stroke()
+    ctx.strokeStyle = t.accent
+    ctx.lineWidth = 1.25
+    ctx.stroke()
     ctx.fillStyle = t.fg
-    ctx.font = '13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.font = '13px system-ui'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
     ctx.fillText(n.label, cx, cy)
   } else if (n.type === 'start' || n.type === 'output') {
     ctx.fillStyle = t.accent
-    roundRect(ctx, x, y, w, h, 8); ctx.fill()
+    roundRect(ctx, x, y, w, h, 8)
+    ctx.fill()
     ctx.fillStyle = '#fff'
-    ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.font = '600 13px system-ui'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
     ctx.fillText(n.label, x + w / 2, y + h / 2)
   } else {
     ctx.fillStyle = t.accentBg
-    roundRect(ctx, x, y, w, h, 8); ctx.fill()
-    ctx.strokeStyle = t.border; ctx.lineWidth = 1.25
-    roundRect(ctx, x, y, w, h, 8); ctx.stroke()
+    roundRect(ctx, x, y, w, h, 8)
+    ctx.fill()
+    ctx.strokeStyle = t.border
+    ctx.lineWidth = 1.25
+    roundRect(ctx, x, y, w, h, 8)
+    ctx.stroke()
     ctx.fillStyle = t.fg
-    ctx.font = '13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.font = '13px system-ui'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
     ctx.fillText(n.label, x + w / 2, y + h / 2)
   }
 }
 
-function drawArrow(ctx: CanvasRenderingContext2D, toX: number, toY: number, angle: number, size: number, color: string) {
+function drawArrow(
+  ctx: CanvasRenderingContext2D,
+  toX: number,
+  toY: number,
+  angle: number,
+  size: number,
+  color: string,
+) {
   ctx.fillStyle = color
   ctx.beginPath()
   ctx.moveTo(toX, toY)
@@ -418,13 +488,24 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
   const [panY, setPanY] = useState(0)
   const [scale, setScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
+  const [renderError, setRenderError] = useState<string | null>(null)
   const draggingRef = useRef(false)
   const dragRef = useRef({ startX: 0, startY: 0, panStartX: 0, panStartY: 0 })
-  const pinchRef = useRef({ startDist: 0, startScale: 1, midX: 0, midY: 0, panStartX: 0, panStartY: 0 })
+  const pinchRef = useRef({
+    startDist: 0,
+    startScale: 1,
+    midX: 0,
+    midY: 0,
+    panStartX: 0,
+    panStartY: 0,
+  })
 
   useEffect(() => {
     const observer = new MutationObserver(() => setTick((n) => n + 1))
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
     return () => observer.disconnect()
   }, [])
 
@@ -442,30 +523,45 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
     canvas.height = canvasH * dpr
     // CSS sizing handled by .mdx-diagram-body canvas { max-width: 100%; height: auto; }
 
-    const ctx = canvas.getContext('2d')!
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      setRenderError('Canvas 2D context is unavailable.')
+      return
+    }
+
+    setRenderError(null)
     ctx.save()
-    ctx.scale(dpr, dpr)
-    ctx.translate(panX, panY)
-    ctx.scale(scale, scale)
+    try {
+      ctx.scale(dpr, dpr)
+      ctx.translate(panX, panY)
+      ctx.scale(scale, scale)
 
-    const t = resolveTheme()
+      const t = resolveTheme()
 
-    // Background — extend beyond viewport to cover pan + zoom offset
-    const margin = 200 / scale
-    ctx.fillStyle = t.bg
-    ctx.fillRect(-panX / scale - margin, -panY / scale - margin, canvasW / scale + margin * 2, canvasH / scale + margin * 2)
+      // Background — extend beyond viewport to cover pan + zoom offset
+      const margin = 200 / scale
+      ctx.fillStyle = t.bg
+      ctx.fillRect(
+        -panX / scale - margin,
+        -panY / scale - margin,
+        canvasW / scale + margin * 2,
+        canvasH / scale + margin * 2,
+      )
 
-    // Edges
-    for (const edge of layoutEdges) {
-      drawEdge(ctx, t, edge)
+      // Edges
+      for (const edge of layoutEdges) {
+        drawEdge(ctx, t, edge)
+      }
+
+      // Nodes (on top)
+      for (const node of layoutNodes) {
+        drawNode(ctx, t, node)
+      }
+    } catch (error) {
+      setRenderError(error instanceof Error ? error.message : String(error))
+    } finally {
+      ctx.restore()
     }
-
-    // Nodes (on top)
-    for (const node of layoutNodes) {
-      drawNode(ctx, t, node)
-    }
-
-    ctx.restore()
   }, [layoutNodes, layoutEdges, canvasW, canvasH, panX, panY, scale])
 
   // ── Pan & Zoom handlers ──
@@ -476,16 +572,21 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
   }, [])
 
   // Mouse drag pan
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return
-    e.preventDefault()
-    setIsDragging(true)
-    draggingRef.current = true
-    dragRef.current = {
-      startX: e.clientX, startY: e.clientY,
-      panStartX: panX, panStartY: panY,
-    }
-  }, [panX, panY])
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 0) return
+      e.preventDefault()
+      setIsDragging(true)
+      draggingRef.current = true
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        panStartX: panX,
+        panStartY: panY,
+      }
+    },
+    [panX, panY],
+  )
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!draggingRef.current) return
@@ -501,64 +602,84 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
   }, [])
 
   // Wheel: Ctrl/Cmd = zoom-to-cursor. Normal scroll handled by overflow:auto.
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
-      const { left, top } = getCanvasPos()
-      const mx = e.clientX - left
-      const my = e.clientY - top
-      const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08
-      setScale((s) => {
-        const ns = Math.max(0.2, Math.min(4, s * factor))
-        setPanX((px) => mx - (mx - px) * (ns / s))
-        setPanY((py) => my - (my - py) * (ns / s))
-        return ns
-      })
-    }
-  }, [getCanvasPos])
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        const { left, top } = getCanvasPos()
+        const mx = e.clientX - left
+        const my = e.clientY - top
+        const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08
+        setScale((s) => {
+          const ns = Math.max(0.2, Math.min(4, s * factor))
+          setPanX((px) => mx - (mx - px) * (ns / s))
+          setPanY((py) => my - (my - py) * (ns / s))
+          return ns
+        })
+      }
+    },
+    [getCanvasPos],
+  )
 
   // Touch: single finger pan, two finger pinch zoom
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const t = e.touches[0]
-      dragRef.current = {
-        startX: t.clientX, startY: t.clientY,
-        panStartX: panX, panStartY: panY,
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 1) {
+        const t = e.touches[0]
+        dragRef.current = {
+          startX: t.clientX,
+          startY: t.clientY,
+          panStartX: panX,
+          panStartY: panY,
+        }
+        draggingRef.current = true
+        setIsDragging(true)
+      } else if (e.touches.length === 2) {
+        draggingRef.current = false
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+        const { left, top } = getCanvasPos()
+        const mx = (t1.clientX + t2.clientX) / 2 - left
+        const my = (t1.clientY + t2.clientY) / 2 - top
+        pinchRef.current = {
+          startDist: dist,
+          startScale: scale,
+          midX: mx,
+          midY: my,
+          panStartX: panX,
+          panStartY: panY,
+        }
       }
-      draggingRef.current = true
-      setIsDragging(true)
-    } else if (e.touches.length === 2) {
-      draggingRef.current = false
-      const t1 = e.touches[0]; const t2 = e.touches[1]
-      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
-      const { left, top } = getCanvasPos()
-      const mx = (t1.clientX + t2.clientX) / 2 - left
-      const my = (t1.clientY + t2.clientY) / 2 - top
-      pinchRef.current = { startDist: dist, startScale: scale, midX: mx, midY: my, panStartX: panX, panStartY: panY }
-    }
-  }, [panX, panY, scale, getCanvasPos])
+    },
+    [panX, panY, scale, getCanvasPos],
+  )
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
-    if (e.touches.length === 1 && draggingRef.current) {
-      const t = e.touches[0]
-      const dx = t.clientX - dragRef.current.startX
-      const dy = t.clientY - dragRef.current.startY
-      setPanX(dragRef.current.panStartX + dx)
-      setPanY(dragRef.current.panStartY + dy)
-    } else if (e.touches.length === 2) {
-      const t1 = e.touches[0]; const t2 = e.touches[1]
-      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
-      const { left, top } = getCanvasPos()
-      const mx = (t1.clientX + t2.clientX) / 2 - left
-      const my = (t1.clientY + t2.clientY) / 2 - top
-      const p = pinchRef.current
-      const ns = Math.max(0.2, Math.min(4, p.startScale * (dist / p.startDist)))
-      setScale(ns)
-      setPanX(mx - (mx - p.panStartX) * (ns / p.startScale))
-      setPanY(my - (my - p.panStartY) * (ns / p.startScale))
-    }
-  }, [getCanvasPos])
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      e.preventDefault()
+      if (e.touches.length === 1 && draggingRef.current) {
+        const t = e.touches[0]
+        const dx = t.clientX - dragRef.current.startX
+        const dy = t.clientY - dragRef.current.startY
+        setPanX(dragRef.current.panStartX + dx)
+        setPanY(dragRef.current.panStartY + dy)
+      } else if (e.touches.length === 2) {
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+        const { left, top } = getCanvasPos()
+        const mx = (t1.clientX + t2.clientX) / 2 - left
+        const my = (t1.clientY + t2.clientY) / 2 - top
+        const p = pinchRef.current
+        const ns = Math.max(0.2, Math.min(4, p.startScale * (dist / p.startDist)))
+        setScale(ns)
+        setPanX(mx - (mx - p.panStartX) * (ns / p.startScale))
+        setPanY(my - (my - p.panStartY) * (ns / p.startScale))
+      }
+    },
+    [getCanvasPos],
+  )
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false)
@@ -585,7 +706,16 @@ export function CanvasDiagram({ nodes, edges, caption }: Props) {
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
       >
-        <canvas ref={canvasRef} style={{ pointerEvents: 'none' }} />
+        {renderError && (
+          <div className="mdx-diagram-error">
+            <div className="mdx-diagram-error-title">Canvas render failed</div>
+            <div className="mdx-diagram-error-message">{renderError}</div>
+          </div>
+        )}
+        <canvas
+          ref={canvasRef}
+          style={{ pointerEvents: 'none', display: renderError ? 'none' : undefined }}
+        />
       </div>
       {caption && <div className="mdx-diagram-caption">{caption}</div>}
     </div>

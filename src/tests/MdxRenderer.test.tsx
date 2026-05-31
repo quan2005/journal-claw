@@ -132,4 +132,23 @@ export default MDXContent;`
     expect(handler.mock.calls[0][0].detail.text).toBe('关键结论')
     window.removeEventListener('mdx-copy', handler)
   })
+
+  it('renders lazy chart components from compiled MDX', async () => {
+    const compiledChart = `import { jsx as _jsx } from "react/jsx-runtime";
+function _createMdxContent(props) {
+  const {BarChart} = props.components || {};
+  return _jsx(BarChart, {title: "测试图表", data: [{label: "A", value: 1}]});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledChart)
+
+    render(<MdxRenderer content="<BarChart title='测试图表' data={[{label:'A', value:1}]} />" />)
+
+    await waitFor(() => {
+      expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
+    })
+  })
 })

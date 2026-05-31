@@ -61,6 +61,25 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+.mdx-component-error {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--status-danger, #b5312a) 28%, var(--mdx-border));
+  border-radius: var(--mdx-radius);
+  background: color-mix(in srgb, var(--status-danger, #b5312a) 6%, var(--mdx-surface));
+  color: var(--md-text, var(--item-text));
+}
+.mdx-component-error-title {
+  color: var(--status-danger, #b5312a);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+.mdx-component-error-message {
+  margin-top: var(--space-1);
+  color: var(--item-meta);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
 @keyframes mdx-loading-sweep {
   from {
     background-position: 120% 0;

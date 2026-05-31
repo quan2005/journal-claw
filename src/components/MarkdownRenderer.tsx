@@ -4,7 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
-import { resolveRelativePath } from '../lib/markdownUtils'
+import { resolveRelativePath, stripFrontmatter } from '../lib/markdownUtils'
 import { MdxRenderer } from './MdxRenderer'
 import hljs from 'highlight.js/lib/core'
 
@@ -357,7 +357,7 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
   )
 
   if (isMdx) {
-    return <MdxRenderer content={content} entryPath={entryPath} />
+    return <MdxRenderer content={stripFrontmatter(content)} entryPath={entryPath} />
   }
 
   if (isLarge) {

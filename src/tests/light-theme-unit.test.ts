@@ -200,3 +200,24 @@ describe('Dark theme surface contract', () => {
     expect(automationCss).not.toContain('var(--duration-text)')
   })
 })
+
+describe('Ideas workbench surface contract', () => {
+  it('defines ideas workbench classes and semantic tokens', () => {
+    expect(css).toContain('.ideas-workbench')
+    expect(css).toContain('--ideas-surface:')
+    expect(css).toContain('--ideas-text-muted:')
+    expect(css).toContain('.ideas-workbench-row')
+    expect(css).toContain('.ideas-workbench-stats')
+  })
+
+  it('keeps ideas workbench aligned with automation tokens instead of one-off palette colors', () => {
+    const start = css.indexOf('/* ── Ideas workbench')
+    const end = css.indexOf('/* ── Markdown body', start)
+    const ideasCss = css.slice(start, end)
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(ideasCss).toContain('var(--record-btn)')
+    expect(ideasCss).toContain('var(--detail-case-bg)')
+    expect(ideasCss).not.toContain('linear-gradient')
+    expect(ideasCss).not.toContain('box-shadow')
+  })
+})

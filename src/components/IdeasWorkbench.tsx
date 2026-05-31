@@ -356,7 +356,7 @@ function IdeasRow({
 
       <button
         type="button"
-        className="ideas-workbench-icon-button"
+        className="ideas-workbench-icon-button ideas-workbench-discuss-button"
         aria-label={item.session_id ? `继续探讨：${item.text}` : `开始探讨：${item.text}`}
         title={item.session_id ? t('hasDiscussion') : t('startDiscussion')}
         onClick={() =>
@@ -374,7 +374,7 @@ function IdeasRow({
 
       <button
         type="button"
-        className="ideas-workbench-icon-button"
+        className="ideas-workbench-icon-button ideas-workbench-more-button"
         aria-label={`更多操作：${item.text}`}
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect()

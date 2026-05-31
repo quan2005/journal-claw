@@ -42,6 +42,13 @@ vi.mock('../lib/markdown', () => ({
   renderMarkdown: vi.fn(() => null),
 }))
 
+Object.defineProperty(navigator, 'clipboard', {
+  value: {
+    writeText: vi.fn().mockResolvedValue(undefined),
+  },
+  configurable: true,
+})
+
 const idea = (overrides: Partial<TodoItem>): TodoItem => ({
   text: '未命名想法',
   done: false,
@@ -209,6 +216,39 @@ describe('IdeasWorkbench shell', () => {
       lineIndex: 1,
       doneFile: false,
     })
+  })
+
+  it('preserves right-click menu actions for copy, path, due clearing, and delete', async () => {
+    renderWithProviders(<IdeasWorkbench />)
+
+    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitem', { name: '复制文本' }))
+    })
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('有截止日期的想法')
+
+    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitem', { name: '清除截止日期' }))
+    })
+    expect(mockState.todoContext.setTodoDue).toHaveBeenCalledWith(2, null, false)
+
+    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitem', { name: '设置路径…' }))
+    })
+    expect(mockState.todoContext.setTodoPath).toHaveBeenCalledWith(
+      2,
+      '~/Documents/journal/projects',
+      false,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitem', { name: '删除' }))
+    })
+    expect(mockState.todoContext.deleteTodo).toHaveBeenCalledWith(2, false)
   })
 })
 

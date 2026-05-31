@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { CalendarDays, Check, Link2, MessageSquare, MoreHorizontal, Plus } from 'lucide-react'
 import { useTranslation } from '../contexts/I18nContext'
 import { useTodoContext } from '../contexts/TodoContext'
+import { pickFolder } from '../lib/tauri'
 import type { TodoItem } from '../types'
 import { DatePicker, formatDueShort } from './TodoSidebar'
 
@@ -13,6 +14,12 @@ export interface IdeaConversationRequest {
   sessionId: string | null
   lineIndex: number
   doneFile: boolean
+}
+
+interface IdeasContextMenuState {
+  x: number
+  y: number
+  item: TodoItem
 }
 
 export interface IdeasWorkbenchProps {
@@ -59,6 +66,18 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
   const [activeFilter, setActiveFilter] = useState<IdeasFilter>('all')
   const [drafting, setDrafting] = useState(false)
   const [draftText, setDraftText] = useState('')
+  const [contextMenu, setContextMenu] = useState<IdeasContextMenuState | null>(null)
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const close = () => setContextMenu(null)
+    window.addEventListener('click', close)
+    window.addEventListener('keydown', close)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('keydown', close)
+    }
+  }, [contextMenu])
 
   const stats = useMemo(() => getIdeaStats(todoContext.todos), [todoContext.todos])
   const visibleTodos = useMemo(
@@ -180,11 +199,20 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
                 index={index + 1}
                 onOpenConversation={onOpenConversation}
                 onNavigateToSource={onNavigateToSource}
+                onContextMenu={setContextMenu}
               />
             ))
           )}
         </div>
       </main>
+
+      {contextMenu && (
+        <IdeasContextMenu
+          state={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onOpenConversation={onOpenConversation}
+        />
+      )}
     </div>
   )
 }
@@ -209,11 +237,13 @@ function IdeasRow({
   index,
   onOpenConversation,
   onNavigateToSource,
+  onContextMenu,
 }: {
   item: TodoItem
   index: number
   onOpenConversation?: (opts: IdeaConversationRequest) => void
   onNavigateToSource?: (filename: string) => void
+  onContextMenu: (state: IdeasContextMenuState) => void
 }) {
   const todoContext = useTodoContext()
   const { t } = useTranslation()
@@ -247,6 +277,10 @@ function IdeasRow({
       className={`ideas-workbench-row${item.done ? ' is-done' : ''}`}
       role="row"
       aria-label={item.text}
+      onContextMenu={(event) => {
+        event.preventDefault()
+        onContextMenu({ x: event.clientX, y: event.clientY, item })
+      }}
     >
       <span className="ideas-workbench-index">{index}</span>
       <span className="ideas-workbench-complete-wrap">
@@ -342,6 +376,10 @@ function IdeasRow({
         type="button"
         className="ideas-workbench-icon-button"
         aria-label={`更多操作：${item.text}`}
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          onContextMenu({ x: rect.right - 180, y: rect.bottom + 4, item })
+        }}
       >
         <MoreHorizontal aria-hidden="true" size={15} strokeWidth={1.8} />
       </button>
@@ -361,6 +399,73 @@ function IdeasRow({
           />
         </div>
       )}
+    </div>
+  )
+}
+
+function IdeasContextMenu({
+  state,
+  onClose,
+  onOpenConversation,
+}: {
+  state: IdeasContextMenuState
+  onClose: () => void
+  onOpenConversation?: (opts: IdeaConversationRequest) => void
+}) {
+  const todoContext = useTodoContext()
+  const { t } = useTranslation()
+  const { item } = state
+
+  const menuItem = (label: string, onClick: () => void | Promise<void>, danger = false) => (
+    <button
+      type="button"
+      role="menuitem"
+      className={`ideas-workbench-menu-item${danger ? ' is-danger' : ''}`}
+      onClick={(event) => {
+        event.stopPropagation()
+        void Promise.resolve(onClick()).finally(onClose)
+      }}
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <div
+      className="ideas-workbench-menu"
+      role="menu"
+      style={{ left: state.x, top: state.y }}
+    >
+      {!item.done_file &&
+        menuItem(t('exploreInDepth'), () =>
+          onOpenConversation?.({
+            mode: 'chat',
+            context: item.text,
+            sessionId: item.session_id,
+            lineIndex: item.line_index,
+            doneFile: item.done_file,
+          }),
+        )}
+      {menuItem(t('copyText'), () => navigator.clipboard.writeText(item.text))}
+      {item.due &&
+        menuItem(t('clearDueDate'), () =>
+          todoContext.setTodoDue(item.line_index, null, item.done_file),
+        )}
+      {!item.done_file &&
+        menuItem(t('setPath'), async () => {
+          const picked = await pickFolder()
+          if (picked) {
+            const homePath = picked.replace(/^\/Users\/[^/]+/, '~')
+            await todoContext.setTodoPath(item.line_index, homePath, item.done_file)
+          }
+        })}
+      {!item.done_file &&
+        item.path &&
+        menuItem(t('removePath'), () =>
+          todoContext.removeTodoPath(item.line_index, item.done_file),
+        )}
+      <div className="ideas-workbench-menu-divider" />
+      {menuItem(t('deleteTodo'), () => todoContext.deleteTodo(item.line_index, item.done_file), true)}
     </div>
   )
 }

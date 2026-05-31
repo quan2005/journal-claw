@@ -60,7 +60,7 @@ export {
 } from './semantic'
 
 // Sources and transcripts
-export { SourceCard, ReferenceList, Transcript, TimestampLink } from './source'
+export { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from './source'
 
 // ── Component map ─────────────────────────────────────────
 
@@ -102,7 +102,7 @@ import {
   EvidenceCard,
   QuoteCard,
 } from './semantic'
-import { SourceCard, ReferenceList, Transcript, TimestampLink } from './source'
+import { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from './source'
 
 export const mdxComponents = {
   Split,
@@ -170,4 +170,5 @@ export const mdxComponents = {
   ReferenceList,
   Transcript,
   TimestampLink,
+  CopyButton,
 }

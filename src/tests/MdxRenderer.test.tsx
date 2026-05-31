@@ -10,6 +10,8 @@ vi.mock('../lib/tauri', () => ({
   openFile: vi.fn(),
 }))
 
+const writeClipboardText = vi.fn()
+
 const compiledParagraph = `import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 function _createMdxContent(props) {
   const _components = Object.assign({p: "p", strong: "strong"}, props.components);
@@ -51,6 +53,12 @@ describe('mdxRuntime', () => {
 describe('MdxRenderer', () => {
   beforeEach(() => {
     vi.mocked(compileMdx).mockReset()
+    writeClipboardText.mockReset()
+    writeClipboardText.mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeClipboardText },
+      configurable: true,
+    })
   })
 
   it('renders compiled MDX content', async () => {
@@ -97,5 +105,31 @@ export default MDXContent;`
     expect(handler).toHaveBeenCalled()
     expect(handler.mock.calls[0][0].detail.seconds).toBe(12)
     window.removeEventListener('mdx-media-seek', handler)
+  })
+
+  it('copies read-only MDX text affordances', async () => {
+    const compiledCopy = `import { jsx as _jsx } from "react/jsx-runtime";
+function _createMdxContent() {
+  return _jsx("button", {"data-copy-text": "关键结论", children: "复制"});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledCopy)
+    const handler = vi.fn()
+    window.addEventListener('mdx-copy', handler)
+
+    render(<MdxRenderer content="<button data-copy-text='关键结论'>复制</button>" />)
+
+    await waitFor(() => screen.getByText('复制'))
+    screen.getByText('复制').click()
+
+    await waitFor(() => {
+      expect(writeClipboardText).toHaveBeenCalledWith('关键结论')
+    })
+    expect(handler).toHaveBeenCalled()
+    expect(handler.mock.calls[0][0].detail.text).toBe('关键结论')
+    window.removeEventListener('mdx-copy', handler)
   })
 })

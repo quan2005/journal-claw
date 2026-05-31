@@ -117,7 +117,27 @@ export function MdxRenderer({ content, entryPath }: Props) {
 
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
-      const anchor = (e.target as HTMLElement).closest('a')
+      const target = e.target as HTMLElement
+      const copyControl = target.closest<HTMLElement>('[data-copy-text]')
+      if (copyControl) {
+        e.preventDefault()
+        const text = copyControl.getAttribute('data-copy-text') ?? ''
+        let copied = false
+        try {
+          await navigator.clipboard?.writeText(text)
+          copied = true
+        } catch {
+          copied = false
+        }
+        window.dispatchEvent(
+          new CustomEvent('mdx-copy', {
+            detail: { text, copied },
+          }),
+        )
+        return
+      }
+
+      const anchor = target.closest('a')
       if (!anchor) return
 
       const mediaSrc = anchor.getAttribute('data-media-src')

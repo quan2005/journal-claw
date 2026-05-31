@@ -46,9 +46,7 @@ Use `IncidentTimeline` plus `RiskMatrix`.
 
 ```mdx
 <IncidentTimeline
-  items={[
-    { time: '10:12', title: '告警触发', impact: '导入任务排队时间超过 10 分钟' },
-  ]}
+  items={[{ time: '10:12', title: '告警触发', impact: '导入任务排队时间超过 10 分钟' }]}
 />
 ```
 
@@ -63,4 +61,12 @@ Use `ReferenceList` near the end when a note relies on multiple sources.
     { path: '2605/raw/notes.txt', label: '粘贴文本', type: 'text' },
   ]}
 />
+```
+
+## Copyable Exact Text
+
+Use `CopyButton` only for exact snippets that the reader is likely to reuse, such as prompts, commands, or canonical wording. Never use it to mutate journal content.
+
+```mdx
+<CopyButton text="请基于这段会议素材整理决策、行动项和风险" label="复制整理提示" />
 ```

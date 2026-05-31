@@ -46,6 +46,22 @@ export function TimestampLink({
   )
 }
 
+export function CopyButton({
+  text,
+  label = '复制',
+  children,
+}: {
+  text: string
+  label?: string
+  children?: ReactNode
+}) {
+  return (
+    <button type="button" className="mdx-copy-button" data-copy-text={text}>
+      {children ?? label}
+    </button>
+  )
+}
+
 export interface TranscriptItem {
   speaker?: string
   time?: string

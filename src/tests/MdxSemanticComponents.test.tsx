@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import {
   ActionTable,
+  CopyButton,
   DecisionRecord,
   RiskMatrix,
   StatusBadge,
@@ -125,6 +126,13 @@ describe('semantic MDX components', () => {
     expect(screen.getByText('张三')).toBeTruthy()
     expect(screen.getByText('这里需要先试点。')).toBeTruthy()
     expect(screen.getByText('跳到 00:12')).toBeTruthy()
+  })
+
+  it('renders a copy affordance without editing note content', () => {
+    render(<CopyButton text="关键结论" label="复制结论" />)
+
+    const button = screen.getByRole('button', { name: '复制结论' })
+    expect(button.getAttribute('data-copy-text')).toBe('关键结论')
   })
 
   it('allows transcript details to expand and collapse', () => {

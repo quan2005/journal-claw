@@ -72,14 +72,14 @@ export function AutomationWorkbench({
         </div>
         <div className="automation-header-actions">
           <div className="automation-stats" aria-label="自动化统计">
-            <span aria-label={`${automation.counts.enabled} ACTIVE`}>
-              <strong>{automation.counts.enabled}</strong> ACTIVE
+            <span aria-label={`${automation.counts.enabled} 已启用`}>
+              <strong>{automation.counts.enabled}</strong> 已启用
             </span>
-            <span aria-label={`${pausedCount} PAUSED`}>
-              <strong>{pausedCount}</strong> PAUSED
+            <span aria-label={`${pausedCount} 已暂停`}>
+              <strong>{pausedCount}</strong> 已暂停
             </span>
-            <span aria-label={`${automation.templates.length} TEMPLATES`}>
-              <strong>{automation.templates.length}</strong> TEMPLATES
+            <span aria-label={`${automation.templates.length} 模板`}>
+              <strong>{automation.templates.length}</strong> 模板
             </span>
           </div>
           <button className="automation-button automation-button-primary" onClick={handleCreate}>

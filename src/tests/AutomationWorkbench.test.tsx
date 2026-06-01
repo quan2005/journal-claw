@@ -78,9 +78,12 @@ describe('AutomationWorkbench', () => {
 
     expect(screen.getByRole('heading', { name: '自动化' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '新建自动化' })).toBeTruthy()
-    expect(screen.getByLabelText('1 ACTIVE')).toBeTruthy()
-    expect(screen.getByLabelText('0 PAUSED')).toBeTruthy()
-    expect(screen.getByLabelText('2 TEMPLATES')).toBeTruthy()
+    expect(screen.getByLabelText('1 已启用')).toBeTruthy()
+    expect(screen.getByLabelText('0 已暂停')).toBeTruthy()
+    expect(screen.getByLabelText('2 模板')).toBeTruthy()
+    expect(screen.queryByText('ACTIVE')).toBeNull()
+    expect(screen.queryByText('PAUSED')).toBeNull()
+    expect(screen.queryByText('TEMPLATES')).toBeNull()
 
     expect(screen.getByRole('heading', { name: '你的自动化' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '自动化：每日总结，每天 08:00' })).toBeTruthy()

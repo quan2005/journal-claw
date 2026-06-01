@@ -23,6 +23,13 @@ interface ImageAtt {
 }
 import { TOOL_ICON_PATHS } from './ToolIcons'
 
+const CHAT_PANEL_HIGHLIGHT_RING =
+  'inset 0 0 0 1px color-mix(in srgb, var(--record-btn) 22%, transparent)'
+const CHAT_PANEL_DANGER_RING =
+  'inset 0 0 0 1px color-mix(in srgb, var(--status-danger) 22%, transparent)'
+const CHAT_PANEL_WARNING_RING =
+  'inset 0 0 0 1px color-mix(in srgb, var(--status-warning) 22%, transparent)'
+
 export interface ChatPanelProps {
   messages: ConversationMessage[]
   isStreaming: boolean
@@ -649,12 +656,15 @@ export function ChatPanel({
             border: dragOver
               ? '1.5px dashed var(--record-btn)'
               : focused
-                ? '0.5px solid var(--record-btn)'
-                : '0.5px solid var(--dialog-inset-border)',
+                ? '1px solid var(--record-btn)'
+                : '1px solid var(--dialog-inset-border)',
             borderRadius: 12,
             background: dragOver ? 'var(--item-hover-bg)' : 'var(--detail-case-bg)',
+            backgroundClip: 'padding-box',
+            boxShadow: focused || dragOver ? CHAT_PANEL_HIGHLIGHT_RING : 'none',
             padding: '8px 12px 4px',
-            transition: 'border-color 0.15s ease-out, background 0.15s ease-out',
+            transition:
+              'border-color 0.15s ease-out, background 0.15s ease-out, box-shadow 0.15s ease-out',
             overflow: 'hidden',
           }}
         >
@@ -1588,8 +1598,10 @@ function ErrorBlock({
       style={{
         maxWidth: '100%',
         borderRadius: 8,
-        border: `0.5px solid ${borderColor}`,
+        border: `1px solid ${borderColor}`,
         background: 'var(--dialog-inset-bg)',
+        backgroundClip: 'padding-box',
+        boxShadow: isAuth ? CHAT_PANEL_DANGER_RING : CHAT_PANEL_HIGHLIGHT_RING,
         padding: '8px 12px',
         fontSize: 'var(--text-xs)',
         color: 'var(--item-text)',
@@ -1809,8 +1821,10 @@ function LoopWarningBlock({ message }: { message: string }) {
       style={{
         maxWidth: '100%',
         borderRadius: 8,
-        border: '0.5px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
         background: 'var(--status-warning-bg)',
+        backgroundClip: 'padding-box',
+        boxShadow: CHAT_PANEL_WARNING_RING,
         padding: '8px 12px',
         fontSize: 'var(--text-xs)',
         color: 'var(--status-warning)',

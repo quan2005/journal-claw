@@ -228,11 +228,10 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
               </span>
             </div>
           ) : (
-            visibleTodos.map((item, index) => (
+            visibleTodos.map((item) => (
               <IdeasRow
                 key={`${item.done_file ? 'done' : 'todo'}-${item.line_index}`}
                 item={item}
-                index={index + 1}
                 onOpenConversation={onOpenConversation}
                 onNavigateToSource={onNavigateToSource}
                 onContextMenu={setContextMenu}
@@ -286,7 +285,6 @@ function IdeasLoadingRows() {
           <span />
           <span />
           <span />
-          <span />
         </div>
       ))}
     </>
@@ -295,14 +293,12 @@ function IdeasLoadingRows() {
 
 function IdeasRow({
   item,
-  index,
   onOpenConversation,
   onNavigateToSource,
   onContextMenu,
   onOpenDuePicker,
 }: {
   item: TodoItem
-  index: number
   onOpenConversation?: (opts: IdeaConversationRequest) => void
   onNavigateToSource?: (filename: string) => void
   onContextMenu: (state: IdeasContextMenuState) => void
@@ -345,7 +341,6 @@ function IdeasRow({
         onContextMenu({ x: event.clientX, y: event.clientY, item })
       }}
     >
-      <span className="ideas-workbench-index">{index}</span>
       <span className="ideas-workbench-complete-wrap">
         <button
           type="button"

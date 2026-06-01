@@ -37,6 +37,7 @@ export interface JournalEntry {
   created_time: string // "10:15" (from file birthtime)
   created_at_secs: number // birthtime Unix timestamp for stable same-day sorting
   mtime_secs: number // mtime Unix timestamp for change detection
+  mtime_ms?: number // mtime Unix timestamp in milliseconds for sub-second change detection
   materials: RawMaterial[]
 }
 

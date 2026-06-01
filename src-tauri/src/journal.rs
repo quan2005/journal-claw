@@ -22,6 +22,7 @@ pub struct JournalEntry {
     pub created_time: String, // "10:15" (from file birthtime, falls back to mtime)
     pub created_at_secs: i64, // birthtime Unix timestamp for stable same-day sorting
     pub mtime_secs: i64,      // mtime Unix timestamp for change detection
+    pub mtime_ms: i64,        // mtime Unix timestamp in milliseconds for sub-second changes
     pub materials: Vec<RawMaterial>,
     pub sources: Vec<String>,
 }
@@ -244,6 +245,10 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                         .map(|d| d.as_secs() as i64)
                         .unwrap_or(0);
+                    let mtime_ms = mtime
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_millis() as i64)
+                        .unwrap_or(0);
                     entries.push(JournalEntry {
                         filename,
                         path: path.to_string_lossy().to_string(),
@@ -255,6 +260,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
                         created_time: String::new(),
                         created_at_secs: mtime_secs,
                         mtime_secs,
+                        mtime_ms,
                         materials: vec![],
                         sources: vec![],
                     });
@@ -300,6 +306,10 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
+        let mtime_ms = mtime
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0);
 
         entries.push(JournalEntry {
             filename,
@@ -312,6 +322,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             created_time,
             created_at_secs,
             mtime_secs,
+            mtime_ms,
             materials: vec![],
             sources: fm.sources,
         });

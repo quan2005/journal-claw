@@ -11,6 +11,7 @@ import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../ty
 import type { WorkItem } from '../lib/tauri'
 
 const BATCH_SIZE = 3
+const JOURNAL_POLL_INTERVAL_MS = 3000
 
 /** Wrap a promise with a timeout — rejects if not settled within `ms`. */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -42,6 +43,29 @@ function workItemToQueueItem(w: WorkItem): QueueItem {
     logs: [],
     sessionId: w.session_id ?? undefined,
   }
+}
+
+function entryMtime(entry: JournalEntry): number {
+  return entry.mtime_ms ?? entry.mtime_secs
+}
+
+function sameEntryMetadata(a: JournalEntry, b: JournalEntry): boolean {
+  return (
+    a.path === b.path &&
+    entryMtime(a) === entryMtime(b) &&
+    a.title === b.title &&
+    a.summary === b.summary &&
+    a.filename === b.filename &&
+    JSON.stringify(a.tags) === JSON.stringify(b.tags) &&
+    JSON.stringify(a.sources) === JSON.stringify(b.sources)
+  )
+}
+
+function reconcileLoadedMonths(allMonths: string[], currentLoaded: string[]): string[] {
+  const keepLoaded = currentLoaded.filter((month) => allMonths.includes(month))
+  const neededRecent = allMonths.slice(0, BATCH_SIZE)
+  const merged = new Set([...neededRecent, ...keepLoaded])
+  return allMonths.filter((month) => merged.has(month))
 }
 
 export function useJournal() {
@@ -96,8 +120,17 @@ export function useJournal() {
           setEntries(results)
         }
       } else {
+        const nextLoaded = reconcileLoadedMonths(allMonths, currentLoaded)
+        if (
+          nextLoaded.length !== currentLoaded.length ||
+          nextLoaded.some((m, i) => m !== currentLoaded[i])
+        ) {
+          loadedMonthsRef.current = nextLoaded
+          setLoadedMonths(nextLoaded)
+        }
+
         const results: JournalEntry[] = []
-        for (const m of currentLoaded) {
+        for (const m of nextLoaded) {
           const batch = await withTimeout(
             listJournalEntriesByMonths([m]),
             8000,
@@ -114,8 +147,7 @@ export function useJournal() {
         setEntries((prev) => {
           if (prev.length !== results.length) return results
           for (let i = 0; i < prev.length; i++) {
-            if (prev[i].path !== results[i].path || prev[i].mtime_secs !== results[i].mtime_secs)
-              return results
+            if (!sameEntryMetadata(prev[i], results[i])) return results
           }
           return prev
         })
@@ -215,6 +247,9 @@ export function useJournal() {
   useEffect(() => {
     refresh()
     refreshWorkQueue()
+    const pollTimer = window.setInterval(() => {
+      refresh()
+    }, JOURNAL_POLL_INTERVAL_MS)
 
     // Work queue updates from Rust
     const unlistenWorkQueue = listen('work-queue-updated', () => {
@@ -408,6 +443,7 @@ export function useJournal() {
       unlistenAudioFailed.then((fn) => fn())
       unlistenPipelineFailed.then((fn) => fn())
       unlistenTranscriptionProgress.then((fn) => fn())
+      window.clearInterval(pollTimer)
       timers.forEach((t) => clearTimeout(t))
       timers.clear()
     }

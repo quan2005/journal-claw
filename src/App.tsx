@@ -44,6 +44,10 @@ import OnboardingView from './components/OnboardingView'
 const SOUL_PATH = '__soul__'
 const DIVIDER_WIDTH = 7
 
+function journalEntryMtime(entry: JournalEntry): number {
+  return entry.mtime_ms ?? entry.mtime_secs
+}
+
 export default function App() {
   const { t } = useTranslation()
   const {
@@ -231,7 +235,7 @@ export default function App() {
     setSelectedEntry((prev) => {
       if (!prev) return prev
       const updated = entries.find((e) => e.path === prev.path)
-      return updated && updated.mtime_secs !== prev.mtime_secs ? updated : prev
+      return updated && journalEntryMtime(updated) !== journalEntryMtime(prev) ? updated : prev
     })
   }, [entries, setSelectedEntry])
 

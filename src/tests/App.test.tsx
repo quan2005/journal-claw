@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, fireEvent, act } from '@testing-library/react'
+import { screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import App from '../App'
 import { UIProvider } from '../contexts/UIContext'
 import { TodoProvider } from '../contexts/TodoContext'
+import * as tauri from '../lib/tauri'
 
 function renderApp() {
   return renderWithProviders(
@@ -234,6 +235,35 @@ describe('App', () => {
     await act(async () => {})
     expect(screen.getByRole('button', { name: /设置/ })).toBeTruthy()
     expect(screen.queryByRole('dialog', { name: '设置' })).toBeNull()
+  })
+
+  it('loads topic files from the workspace topics directory', async () => {
+    vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
+      {
+        name: 'guide.mdx',
+        path: 'guide.mdx',
+        is_dir: false,
+        mtime_secs: 1,
+      },
+    ])
+
+    await act(async () => {
+      renderApp()
+    })
+
+    const topicFile = await screen.findByText('guide.mdx')
+
+    await act(async () => {
+      fireEvent.click(topicFile)
+    })
+
+    await waitFor(() => {
+      expect(
+        vi
+          .mocked(tauri.getJournalEntryContent)
+          .mock.calls.some(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+      ).toBe(true)
+    })
   })
 
   it('toggles settings view with Cmd+,', async () => {

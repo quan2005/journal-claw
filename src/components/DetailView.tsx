@@ -476,7 +476,9 @@ export const DetailView = React.memo(function DetailView({
   const isFileMode = type === 'topic-file'
 
   const fileKind: FileKind | null = file ? fileKindFromName(file.name) : null
-  const fileAbsolutePath = workspacePath && file ? `${workspacePath}/${file.path}` : ''
+  const topicRelativePath =
+    file && file.path.startsWith('topics/') ? file.path : file ? `topics/${file.path}` : ''
+  const fileAbsolutePath = workspacePath && file ? `${workspacePath}/${topicRelativePath}` : ''
 
   // Detect HTML journal entries — render as SandboxPreview, not markdown
   const isHtmlContent =

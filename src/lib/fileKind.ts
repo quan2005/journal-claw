@@ -24,6 +24,7 @@ export function fileKindFromName(filename: string): FileKind {
     case 'txt':
       return 'text'
     case 'md':
+    case 'mdx':
     case 'markdown':
       return 'markdown'
     case 'pdf':

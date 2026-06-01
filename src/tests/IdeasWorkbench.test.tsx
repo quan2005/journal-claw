@@ -313,6 +313,14 @@ describe('IdeasWorkbench shell', () => {
     expect(within(row).queryByText('2605/31-设计记录.md')).toBeNull()
   })
 
+  it('does not render visible ordinal numbers in idea rows', () => {
+    renderWithProviders(<IdeasWorkbench />)
+
+    const row = screen.getByRole('row', { name: '普通未完成想法' })
+
+    expect(row.querySelector('.ideas-workbench-index')).toBeNull()
+  })
+
   it('shows discussion state through the discussion icon style only', () => {
     renderWithProviders(<IdeasWorkbench />)
 

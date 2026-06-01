@@ -6,10 +6,12 @@ const GLOBALS_CSS_PATH = path.resolve(__dirname, '../styles/globals.css')
 const MARKDOWN_CSS_PATH = path.resolve(__dirname, '../styles/markdown.css')
 const MDX_CSS_PATH = path.resolve(__dirname, '../styles/mdx.css')
 const DETAIL_VIEW_PATH = path.resolve(__dirname, '../components/DetailView.tsx')
+const CHAT_PANEL_PATH = path.resolve(__dirname, '../components/ChatPanel.tsx')
 const css = fs.readFileSync(GLOBALS_CSS_PATH, 'utf-8')
 const markdownCss = fs.readFileSync(MARKDOWN_CSS_PATH, 'utf-8')
 const mdxCss = fs.readFileSync(MDX_CSS_PATH, 'utf-8')
 const detailViewSource = fs.readFileSync(DETAIL_VIEW_PATH, 'utf-8')
+const chatPanelSource = fs.readFileSync(CHAT_PANEL_PATH, 'utf-8')
 
 /** Parse all variable declarations from a CSS block string */
 function parseVarsFromBlock(block: string): Map<string, string> {
@@ -207,6 +209,17 @@ describe('Dark theme surface contract', () => {
   })
 })
 
+describe('Chat panel highlight contract', () => {
+  it('keeps rounded composer and warning highlights continuous', () => {
+    expect(chatPanelSource).toContain('CHAT_PANEL_HIGHLIGHT_RING')
+    expect(chatPanelSource).toContain('CHAT_PANEL_WARNING_RING')
+    expect(chatPanelSource).toContain("backgroundClip: 'padding-box'")
+    expect(chatPanelSource).toMatch(/focused\s*\?\s*'1px solid var\(--record-btn\)'/)
+    expect(chatPanelSource).not.toMatch(/focused\s*\?\s*'0\.5px solid var\(--record-btn\)'/)
+    expect(chatPanelSource).toContain('border: `1px solid ${borderColor}`')
+  })
+})
+
 describe('Journal content frame contract', () => {
   const rootMatch = css.match(/:root\s*\{([^}]+)\}/)
   const rootVars = rootMatch ? parseVarsFromBlock(rootMatch[1]) : new Map()
@@ -272,6 +285,26 @@ describe('Journal content frame contract', () => {
     expect(summaryRule).toContain('font-size: var(--journal-summary-size)')
     expect(mdHeadingRule).toContain('color: var(--journal-title-color)')
   })
+
+  it('uses one shared status bar contract for ideas and automation headers', () => {
+    const statsRule =
+      css.match(/\.automation-stats,\s*\.ideas-workbench-stats\s*\{[^}]*\}/)?.[0] ?? ''
+    const statItemRule =
+      css.match(
+        /\.automation-stats span,\s*\.ideas-workbench-stats span\s*\{[^}]*\}/,
+      )?.[0] ?? ''
+    const statValueRule =
+      css.match(
+        /\.automation-stats strong,\s*\.ideas-workbench-stats strong\s*\{[^}]*\}/,
+      )?.[0] ?? ''
+
+    expect(statsRule).toContain('width: min(100%, 676px)')
+    expect(statsRule).toContain('min-height: 50px')
+    expect(statsRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
+    expect(statItemRule).toContain('justify-content: center')
+    expect(statItemRule).toContain('padding: 0 20px')
+    expect(statValueRule).toContain('font-size: var(--text-md)')
+  })
 })
 
 describe('Ideas workbench surface contract', () => {
@@ -329,7 +362,7 @@ describe('Ideas workbench surface contract', () => {
         /\.ideas-workbench-row,\s*\.ideas-workbench-draft,\s*\.ideas-workbench-empty\s*\{[^}]*\}/,
       )?.[0] ?? ''
 
-    expect(rowRule).toContain('grid-template-columns: 28px 26px minmax(180px, 1fr) 28px 28px 32px')
+    expect(rowRule).toContain('grid-template-columns: 26px minmax(180px, 1fr) 28px 28px 32px')
     expect(rowRule).toContain('gap: 8px')
     expect(rowRule).toContain('padding: 8px 12px')
     expect(listRule).toContain('gap: 8px')

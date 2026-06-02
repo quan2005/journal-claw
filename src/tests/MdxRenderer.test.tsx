@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MdxRenderer } from '../components/MdxRenderer'
 import { createMdxComponent, toRunnableFunctionBody } from '../lib/mdxRuntime'
-import { compileMdx } from '../lib/tauri'
+import { compileMdx, openFile } from '../lib/tauri'
 
 vi.mock('../lib/tauri', () => ({
   compileMdx: vi.fn(),
@@ -53,6 +53,7 @@ describe('mdxRuntime', () => {
 describe('MdxRenderer', () => {
   beforeEach(() => {
     vi.mocked(compileMdx).mockReset()
+    vi.mocked(openFile).mockReset()
     writeClipboardText.mockReset()
     writeClipboardText.mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {
@@ -71,13 +72,14 @@ describe('MdxRenderer', () => {
     })
   })
 
-  it('shows an error for unknown components', async () => {
+  it('keeps unknown components localized instead of failing the whole document', async () => {
     vi.mocked(compileMdx).mockResolvedValue(compiledUnknown)
 
     render(<MdxRenderer content="<UnknownThing>test</UnknownThing>" />)
 
     await waitFor(() => {
-      expect(screen.getByText(/MDX render failed/)).toBeTruthy()
+      expect(screen.getByText(/UnknownThing component is not available/)).toBeTruthy()
+      expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
     })
   })
 
@@ -150,5 +152,85 @@ export default MDXContent;`
     await waitFor(() => {
       expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
     })
+  })
+
+  it('renders compiled dollar math through KaTeX components', async () => {
+    const compiledMath = `import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+function _createMdxContent(props) {
+  const _components = Object.assign({p: "p", code: "code", pre: "pre"}, props.components);
+  return _jsxs(_Fragment, {children: [
+    _jsxs(_components.p, {children: ["Inline ", _jsx(_components.code, {className: "language-math math-inline", children: "d_{model}"})]}),
+    _jsx(_components.pre, {children: _jsx(_components.code, {className: "language-math math-display", children: "PE_{pos}=\\\\sin(x)"})})
+  ]});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledMath)
+
+    const { container } = render(<MdxRenderer content="$d_{model}$" />)
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.katex').length).toBeGreaterThanOrEqual(2)
+      expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
+    })
+  })
+
+  it('renders generated latex delimiter components without a whole-document failure', async () => {
+    const compiledMathComponent = `import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+function _createMdxContent(props) {
+  const {InlineMath, BlockMath} = props.components || {};
+  return _jsxs(_Fragment, {children: [
+    _jsx(InlineMath, {math: "d_{model} = 512"}),
+    _jsx(BlockMath, {math: "\\\\text{Attention}(Q,K,V)"})
+  ]});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledMathComponent)
+
+    const { container } = render(<MdxRenderer content="\\(d_{model}\\)" />)
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.katex').length).toBeGreaterThanOrEqual(2)
+      expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
+    })
+  })
+
+  it('opens local file cards inside JournalClaw instead of the system app', async () => {
+    const compiledLocalFile = `import { jsx as _jsx } from "react/jsx-runtime";
+function _createMdxContent() {
+  return _jsx("a", {"data-filepath": "topics/mdx-support-manual/components/CanvasDiagram.mdx", children: "CanvasDiagram.mdx"});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledLocalFile)
+    const handler = vi.fn()
+    window.addEventListener('journal-file-open', handler)
+
+    render(
+      <MdxRenderer
+        content="<FileCard path='topics/mdx-support-manual/components/CanvasDiagram.mdx' />"
+        entryPath="/tmp/journal/topics/mdx-support-manual/components/CanvasDiagram.mdx"
+      />,
+    )
+
+    await waitFor(() => screen.getByText('CanvasDiagram.mdx'))
+    screen.getByText('CanvasDiagram.mdx').click()
+
+    await waitFor(() => {
+      expect(handler).toHaveBeenCalled()
+    })
+    expect(handler.mock.calls[0][0].detail).toMatchObject({
+      path: '/tmp/journal/topics/mdx-support-manual/components/CanvasDiagram.mdx',
+      name: 'CanvasDiagram.mdx',
+    })
+    expect(openFile).not.toHaveBeenCalled()
+    window.removeEventListener('journal-file-open', handler)
   })
 })

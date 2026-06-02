@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","work-reports"]
+summary: "当需要记录项目进展汇报，并梳理里程碑验收状态、最新进展、验收证据、关键路径变化时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 项目进展汇报
+
+<Section density="relaxed">
+  <Subtitle>项目进展不能只写百分比；必须写清里程碑是否真实完成、关键路径是否变化、依赖是否可控。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Fred Brooks 的项目里程碑视角：项目进展不能只写百分比；必须写清里程碑是否真实完成、关键路径是否变化、依赖是否可控。
+</Callout>
+
+<Callout type="note" title="结论">
+  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
+</Callout>
+
+<StatGroup>
+  <Stat label="完成项" value={"【数量】"} />
+  <Stat label="风险" value={"【数量】"} />
+  <Stat label="下阶段重点" value={"【数量】"} />
+</StatGroup>
+
+## 汇报内容
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "里程碑验收状态",
+        "【填写 里程碑验收状态】"
+    ],
+    [
+        "最新进展",
+        "【填写 最新进展】"
+    ],
+    [
+        "验收证据",
+        "【填写 验收证据】"
+    ],
+    [
+        "关键路径变化",
+        "【填写 关键路径变化】"
+    ],
+    [
+        "范围变化",
+        "【填写 范围变化】"
+    ],
+    [
+        "依赖",
+        "【填写 依赖】"
+    ],
+    [
+        "风险",
+        "【填写 风险】"
+    ],
+    [
+        "需要支持",
+        "【填写 需要支持】"
+    ]
+]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "项目进展汇报", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个里程碑必须有截止时间、状态和验收证据"
+    },
+    {
+        "text": "每个依赖必须有外部负责人和期望交付时间"
+    },
+    {
+        "text": "任何范围变化必须说明对时间、成本或质量的影响"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

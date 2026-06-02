@@ -1,0 +1,95 @@
+---
+tags: ["journal","mdx-manual","template","personal-journal"]
+summary: "当需要记录习惯跟踪，并梳理习惯、触发条件、进度、连续天数时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 习惯跟踪
+
+<Section density="relaxed">
+  <Subtitle>习惯记录不要只看意志力，要记录触发、摩擦、奖励、连续证据和下一次更小的调整。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  BJ Fogg + Wendy Wood 的习惯形成视角：习惯记录不要只看意志力，要记录触发、摩擦、奖励、连续证据和下一次更小的调整。
+</Callout>
+
+<StatGroup>
+  <Stat label="当前值" value={"【数值】"} />
+  <Stat label="目标值" value={"【数值】"} />
+  <Stat label="风险项" value={"【数量】"} />
+</StatGroup>
+
+## 进度记录
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "习惯",
+        "【填写 习惯】"
+    ],
+    [
+        "触发条件",
+        "【填写 触发条件】"
+    ],
+    [
+        "进度",
+        "【填写 进度】"
+    ],
+    [
+        "连续天数",
+        "【填写 连续天数】"
+    ],
+    [
+        "行为完成证据",
+        "【填写 行为完成证据】"
+    ],
+    [
+        "摩擦点",
+        "【填写 摩擦点】"
+    ],
+    [
+        "奖励/反馈",
+        "【填写 奖励/反馈】"
+    ],
+    [
+        "下一次更小动作",
+        "【填写 下一次更小动作】"
+    ]
+]}
+/>
+
+<Progress value={50} label="【当前进度】" />
+
+<RiskMatrix
+  risks={[
+    { risk: "【阻塞或摩擦】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步更小动作】", owner: "【负责人】", due: "【截止时间】", source: "习惯跟踪", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "记录触发条件而不是只写目标"
+    },
+    {
+        "text": "完成情况有日期、次数或截图等证据"
+    },
+    {
+        "text": "下一次动作比当前动作更容易启动"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

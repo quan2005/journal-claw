@@ -1,0 +1,90 @@
+---
+tags: ["journal","mdx-manual","template","learning-notes"]
+summary: "当需要记录费曼笔记，并梳理概念、禁用术语清单、小白解释、卡壳点时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 费曼笔记
+
+<Section density="relaxed">
+  <Subtitle>用于费曼笔记：用简单语言解释概念，暴露理解缺口，再修正表达。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Richard Feynman 的解释失败视角：费曼笔记的核心不是通俗化，而是用解释失败找到知识缺口。
+</Callout>
+
+## 理解验证
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "概念",
+        "【填写 概念】"
+    ],
+    [
+        "禁用术语清单",
+        "【填写 禁用术语清单】"
+    ],
+    [
+        "小白解释",
+        "【填写 小白解释】"
+    ],
+    [
+        "卡壳点",
+        "【填写 卡壳点】"
+    ],
+    [
+        "类比",
+        "【填写 类比】"
+    ],
+    [
+        "新例子",
+        "【填写 新例子】"
+    ],
+    [
+        "修正版解释",
+        "【填写 修正版解释】"
+    ],
+    [
+        "复讲对象/日期",
+        "【填写 复讲对象/日期】"
+    ]
+]}
+/>
+
+<ComparisonMatrix
+  columns={["原解释/尝试", "问题或反例", "修正版", "迁移场景"]}
+  rows={[
+    { label: "【轮次 1】", values: ["【原解释或尝试】", "【卡壳点】", "【修正版】", "【新例子或迁移题】"] },
+  ]}
+/>
+
+<EvidenceCard title="来源或题目证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="理解缺口与修正">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<Checklist
+  items={[
+    {
+        "text": "小白解释中如果出现术语，必须紧跟一句不用术语的解释"
+    },
+    {
+        "text": "必须写一个来自原材料之外的新例子"
+    },
+    {
+        "text": "必须记录卡壳点是否已被修正版解释解决"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

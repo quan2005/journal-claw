@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import type mermaidType from 'mermaid'
 
 interface Props {
-  chart: string
+  chart?: string
   caption?: string
+  children?: ReactNode
 }
 
 function detectMermaidType(chart: string): string {
@@ -25,6 +27,21 @@ function dedent(str: string): string {
     .reduce((min, l) => Math.min(min, l.match(/^ */)?.[0].length ?? 0), Infinity)
   if (minIndent === Infinity || minIndent === 0) return str
   return lines.map((l) => l.slice(minIndent)).join('\n')
+}
+
+function childrenToText(children: ReactNode): string {
+  if (children === null || children === undefined || typeof children === 'boolean') return ''
+  if (typeof children === 'string' || typeof children === 'number') return String(children)
+  if (Array.isArray(children)) return children.map(childrenToText).join('')
+  return ''
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 let mermaidModule: typeof mermaidType | null = null
@@ -124,16 +141,20 @@ async function getMermaid(isDark: boolean, type: string) {
   return mermaidModule
 }
 
-export function Mermaid({ chart, caption }: Props) {
+export function Mermaid({ chart, caption, children }: Props) {
+  const source = chart ?? childrenToText(children)
   const containerRef = useRef<HTMLDivElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
-  const diagramType = useMemo(() => detectMermaidType(chart), [chart])
-  const normalizedChart = useMemo(() => dedent(chart), [chart])
+  const diagramType = useMemo(() => detectMermaidType(source), [source])
+  const normalizedChart = useMemo(() => dedent(source), [source])
   const [themeTick, setThemeTick] = useState(0)
 
   useEffect(() => {
     const observer = new MutationObserver(() => setThemeTick((n) => n + 1))
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
     return () => observer.disconnect()
   }, [])
 
@@ -156,11 +177,14 @@ export function Mermaid({ chart, caption }: Props) {
         if (cancelled) return
 
         const id = `mermaid-${Math.random().toString(36).slice(2, 8)}`
-        el.innerHTML = `<pre class="mermaid" id="${id}">${normalizedChart}</pre>`
+        el.innerHTML = `<pre class="mermaid" id="${id}">${escapeHtml(normalizedChart)}</pre>`
 
         await mermaid.run({ nodes: [el.querySelector(`#${id}`)!] })
 
-        if (cancelled) { el.innerHTML = ''; return }
+        if (cancelled) {
+          el.innerHTML = ''
+          return
+        }
         err.innerHTML = ''
       } catch (e) {
         if (cancelled) return
@@ -171,17 +195,37 @@ export function Mermaid({ chart, caption }: Props) {
               <div class="mdx-diagram-error-message">${e instanceof Error ? e.message : String(e)}</div>
               <details class="mdx-diagram-error-source">
                 <summary>View Mermaid source</summary>
-                <pre>${normalizedChart.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                <pre>${escapeHtml(normalizedChart)}</pre>
               </details>
             </div>`
       }
     }
 
     render()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [normalizedChart, diagramType, themeTick])
 
-  const typeClass = diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : diagramType === 'flowchart' ? ' mdx-diagram-frame--flowchart' : ''
+  const typeClass =
+    diagramType === 'gantt'
+      ? ' mdx-diagram-frame--gantt'
+      : diagramType === 'flowchart'
+        ? ' mdx-diagram-frame--flowchart'
+        : ''
+
+  if (!normalizedChart.trim()) {
+    return (
+      <div className={`mdx-diagram-frame${typeClass}`}>
+        <div className="mdx-diagram-body">
+          <div className="mdx-diagram-error">
+            <div className="mdx-diagram-error-title">Diagram render failed</div>
+            <div className="mdx-diagram-error-message">Mermaid chart source is empty.</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`mdx-diagram-frame${typeClass}`}>

@@ -1,0 +1,96 @@
+---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "当需要记录支持工单，并梳理问题/影响范围/严重级别、SLA/响应状态、环境/步骤/预期/实际、处理时间线时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 支持工单
+
+<Section density="relaxed">
+  <Subtitle>工单的核心是可复现、可分级、可交接、可验证关闭，并且客户沟通不能断线。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  ITIL 支持运营负责人的可交接工单视角：工单的核心是可复现、可分级、可交接、可验证关闭，并且客户沟通不能断线。
+</Callout>
+
+## 工单处理
+
+<Flow>
+  <StatusBadge status="【open / blocked / resolved】" tone="warning" />
+  <StatusBadge status="【SLA 状态】" tone="neutral" />
+</Flow>
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "问题/影响范围/严重级别",
+        "【填写 问题/影响范围/严重级别】"
+    ],
+    [
+        "SLA/响应状态",
+        "【填写 SLA/响应状态】"
+    ],
+    [
+        "环境/步骤/预期/实际",
+        "【填写 环境/步骤/预期/实际】"
+    ],
+    [
+        "处理时间线",
+        "【填写 处理时间线】"
+    ],
+    [
+        "解决方案与验证结果",
+        "【填写 解决方案与验证结果】"
+    ],
+    [
+        "交接负责人",
+        "【填写 交接负责人】"
+    ],
+    [
+        "客户沟通记录与后续",
+        "【填写 客户沟通记录与后续】"
+    ]
+]}
+/>
+
+<IncidentTimeline
+  items={[
+    { time: "【时间】", title: "【处理节点】", impact: "【影响或客户状态】" },
+  ]}
+/>
+
+<EvidenceCard title="截图、日志或复现证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="解决方案与验证">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<ActionTable
+  items={[
+    { action: "【交接、回访或补验证】", owner: "【负责人】", due: "【截止时间】", source: "支持工单", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "工单包含严重级别、当前状态、SLA 负责人和下一次响应时间"
+    },
+    {
+        "text": "复现信息足够让接手人复查"
+    },
+    {
+        "text": "关闭或交接时写清验证结果、客户通知状态、下一步负责人和截止时间"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

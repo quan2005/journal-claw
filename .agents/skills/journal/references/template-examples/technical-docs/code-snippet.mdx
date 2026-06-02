@@ -1,0 +1,89 @@
+---
+tags: ["journal","mdx-manual","template","technical-docs"]
+summary: "当需要记录代码片段说明，并梳理解决的具体问题、最小可运行代码、依赖版本与导入方式、输入示例时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 代码片段说明
+
+<Section density="relaxed">
+  <Subtitle>代码片段要最小、完整、可运行，并说明边界；否则只是未来会过期的摘抄。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Kent Beck 的小例子视角：代码片段要最小、完整、可运行，并说明边界；否则只是未来会过期的摘抄。
+</Callout>
+
+<Callout type="warning" title="结论">
+  【写清问题、根因或方案结论；同时保留未覆盖风险。】
+</Callout>
+
+## 可复用片段
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "解决的具体问题",
+        "【填写 解决的具体问题】"
+    ],
+    [
+        "最小可运行代码",
+        "【填写 最小可运行代码】"
+    ],
+    [
+        "依赖版本与导入方式",
+        "【填写 依赖版本与导入方式】"
+    ],
+    [
+        "输入示例",
+        "【填写 输入示例】"
+    ],
+    [
+        "预期输出",
+        "【填写 预期输出】"
+    ],
+    [
+        "测试方式",
+        "【填写 测试方式】"
+    ],
+    [
+        "边界/前置条件/反例",
+        "【填写 边界/前置条件/反例】"
+    ],
+    [
+        "真实项目文件路径",
+        "【填写 真实项目文件路径】"
+    ]
+]}
+/>
+
+```ts
+// 【最小可运行代码：包含必要 import、输入示例和预期输出】
+```
+
+<CopyButton text="【可复制命令或核心片段】" label="复制片段" />
+
+<Callout type="warning" title="边界">
+  【写清不适用场景、依赖版本、容易误用的前置条件。】
+</Callout>
+
+<Checklist
+  items={[
+    {
+        "text": "代码片段包含必要 import、依赖版本、输入示例和预期输出"
+    },
+    {
+        "text": "明确写出至少一个不适用场景或容易误用的边界"
+    },
+    {
+        "text": "相关文件路径、包版本或来源链接存在"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

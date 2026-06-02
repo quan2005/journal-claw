@@ -1,0 +1,91 @@
+---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "当需要记录KPI 跟踪，并梳理指标定义/口径、当前值与数据源、目标/阈值、趋势与状态时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# KPI 跟踪
+
+<Section density="relaxed">
+  <Subtitle>KPI 模板要形成控制回路：定义指标、看趋势、解释偏差、指定负责人、安排下一次复盘。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  运营指标管理专家的控制回路视角：KPI 模板要形成控制回路：定义指标、看趋势、解释偏差、指定负责人、安排下一次复盘。
+</Callout>
+
+<StatGroup>
+  <Stat label="当前值" value={"【数值】"} />
+  <Stat label="目标值" value={"【数值】"} />
+  <Stat label="风险项" value={"【数量】"} />
+</StatGroup>
+
+## 指标控制回路
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "指标定义/口径",
+        "【填写 指标定义/口径】"
+    ],
+    [
+        "当前值与数据源",
+        "【填写 当前值与数据源】"
+    ],
+    [
+        "目标/阈值",
+        "【填写 目标/阈值】"
+    ],
+    [
+        "趋势与状态",
+        "【填写 趋势与状态】"
+    ],
+    [
+        "偏差解释/驱动因素",
+        "【填写 偏差解释/驱动因素】"
+    ],
+    [
+        "调整动作",
+        "【填写 调整动作】"
+    ],
+    [
+        "复盘 cadence 与指标负责人",
+        "【填写 复盘 cadence 与指标负责人】"
+    ]
+]}
+/>
+
+<Progress value={50} label="【目标达成度】" />
+
+<ActionTable
+  items={[
+    { action: "【指标调整动作】", owner: "【负责人】", due: "【截止时间】", source: "KPI 跟踪", status: "open" },
+  ]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【偏离目标风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个 KPI 都有口径、数据源、负责人和目标阈值"
+    },
+    {
+        "text": "每个 off-target 指标都有偏差解释、调整动作和截止时间"
+    },
+    {
+        "text": "记录中包含上次状态、本次状态变化和下一次复盘日期"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

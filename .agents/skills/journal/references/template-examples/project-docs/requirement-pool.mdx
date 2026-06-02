@@ -1,0 +1,101 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录需求池，并梳理需求ID、来源证据、可验收需求陈述、优先级时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 需求池
+
+<Section density="relaxed">
+  <Subtitle>需求池是 triage 系统，重点是来源、优先级理由、状态和冲突处理。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Karl Wiegers 的需求工程视角：需求池是 triage 系统，重点是来源、优先级理由、状态和冲突处理。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 可验收结构
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "需求ID",
+        "【填写 需求ID】"
+    ],
+    [
+        "来源证据",
+        "【填写 来源证据】"
+    ],
+    [
+        "可验收需求陈述",
+        "【填写 可验收需求陈述】"
+    ],
+    [
+        "优先级",
+        "【填写 优先级】"
+    ],
+    [
+        "优先级理由",
+        "【填写 优先级理由】"
+    ],
+    [
+        "状态",
+        "【填写 状态】"
+    ],
+    [
+        "冲突/依赖",
+        "【填写 冲突/依赖】"
+    ],
+    [
+        "下一步处理动作",
+        "【填写 下一步处理动作】"
+    ]
+]}
+/>
+
+<Checklist
+  items={[
+    { text: "【验收条件或入口标准】" },
+    { text: "【边界或不适用条件】" },
+    { text: "【来源或证据已补齐】" },
+  ]}
+/>
+
+<EvidenceCard title="需求/测试证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="处理判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<ActionTable
+  items={[
+    { action: "【补证据、拆分、测试或确认】", owner: "【负责人】", due: "【截止时间】", source: "需求池", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每条需求必须有来源"
+    },
+    {
+        "text": "优先级必须有理由，不能只有 P0/P1"
+    },
+    {
+        "text": "重复或冲突需求必须标记合并、拆分或待决"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

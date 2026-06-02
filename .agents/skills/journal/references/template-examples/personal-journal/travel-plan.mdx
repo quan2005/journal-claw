@@ -1,0 +1,93 @@
+---
+tags: ["journal","mdx-manual","template","personal-journal"]
+summary: "当需要记录旅行计划，并梳理出行目的、日期与地点、行程动线、交通时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 旅行计划
+
+<Section density="relaxed">
+  <Subtitle>旅行计划的核心不是景点清单，而是目的、约束、动线、预算、备用方案和待确认事项。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Rick Steves + Gary Klein 的旅行预演视角：旅行计划的核心不是景点清单，而是目的、约束、动线、预算、备用方案和待确认事项。
+</Callout>
+
+## 事实、责任与动线
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "出行目的",
+        "【填写 出行目的】"
+    ],
+    [
+        "日期与地点",
+        "【填写 日期与地点】"
+    ],
+    [
+        "行程动线",
+        "【填写 行程动线】"
+    ],
+    [
+        "交通",
+        "【填写 交通】"
+    ],
+    [
+        "住宿",
+        "【填写 住宿】"
+    ],
+    [
+        "预算",
+        "【填写 预算】"
+    ],
+    [
+        "关键约束",
+        "【填写 关键约束】"
+    ],
+    [
+        "备用方案",
+        "【填写 备用方案】"
+    ]
+]}
+/>
+
+<Timeline
+  items={[
+    { time: "【时间/日期】", title: "【关键事项】", desc: "【地点、责任或状态】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步小行动或跟进】", owner: "【负责人】", due: "【截止时间】", source: "旅行计划", status: "open" },
+  ]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【约束或待确认风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每一天都有地点、交通和住宿状态"
+    },
+    {
+        "text": "预算包含交通、住宿、餐饮和机动项"
+    },
+    {
+        "text": "每个高风险事项都有备用方案"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

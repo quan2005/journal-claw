@@ -1,0 +1,108 @@
+---
+tags: ["journal","mdx-manual","template","technical-docs"]
+summary: "当需要记录故障 RCA，并梳理事故摘要与当前状态、用户/数据/业务影响、时间线、发现方式时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 故障 RCA
+
+<Section density="relaxed">
+  <Subtitle>用于故障 RCA：记录影响、时间线、根因、修复、验证和预防措施。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  John Allspaw / Google SRE 的无责复盘视角：RCA 不是寻找单一罪魁祸首，而是重建系统如何允许事故发生，并把检测、缓解和预防动作落到可验证改进。
+</Callout>
+
+<Callout type="warning" title="结论">
+  【写清问题、根因或方案结论；同时保留未覆盖风险。】
+</Callout>
+
+## 事故时间线
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "事故摘要与当前状态",
+        "【填写 事故摘要与当前状态】"
+    ],
+    [
+        "用户/数据/业务影响",
+        "【填写 用户/数据/业务影响】"
+    ],
+    [
+        "时间线",
+        "【填写 时间线】"
+    ],
+    [
+        "发现方式",
+        "【填写 发现方式】"
+    ],
+    [
+        "根因",
+        "【填写 根因】"
+    ],
+    [
+        "促成因素",
+        "【填写 促成因素】"
+    ],
+    [
+        "为什么没有更早发现",
+        "【填写 为什么没有更早发现】"
+    ],
+    [
+        "预防动作",
+        "【填写 预防动作】"
+    ]
+]}
+/>
+
+<IncidentTimeline
+  items={[
+    { time: "【检测时间】", title: "检测到异常", impact: "【用户/业务影响】" },
+    { time: "【确认时间】", title: "确认范围", impact: "【影响范围】" },
+    { time: "【缓解时间】", title: "开始缓解", impact: "【剩余影响】" },
+    { time: "【恢复时间】", title: "恢复完成", impact: "【恢复标准】" },
+  ]}
+/>
+
+<EvidenceCard title="告警、日志、工单或用户反馈" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="根因与促成因素">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<RiskMatrix
+  risks={[
+    { risk: "【复发风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【预防动作】", owner: "【负责人】", due: "【截止时间】", source: "故障 RCA", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "时间线至少包含检测、确认、缓解、恢复四个节点"
+    },
+    {
+        "text": "根因和促成因素必须分开"
+    },
+    {
+        "text": "每个预防动作都有负责人、截止时间、验证方式和残余风险"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

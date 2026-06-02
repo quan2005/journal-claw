@@ -1,0 +1,110 @@
+---
+tags: ["journal","mdx-manual","template","technical-docs"]
+summary: "当需要记录技术设计，并梳理问题背景与触发原因、功能需求与非功能需求、明确不解决什么、已确定/待确认/废弃方案时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 技术设计
+
+<Section density="relaxed">
+  <Subtitle>技术设计不是一次性蓝图，而是把当前约束下的可逆选择、不可逆选择和演进路径写清楚。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Martin Fowler 的演进式架构视角：技术设计不是一次性蓝图，而是把当前约束下的可逆选择、不可逆选择和演进路径写清楚。
+</Callout>
+
+<Callout type="warning" title="结论">
+  【写清问题、根因或方案结论；同时保留未覆盖风险。】
+</Callout>
+
+## 技术选择与验证
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "问题背景与触发原因",
+        "【填写 问题背景与触发原因】"
+    ],
+    [
+        "功能需求与非功能需求",
+        "【填写 功能需求与非功能需求】"
+    ],
+    [
+        "明确不解决什么",
+        "【填写 明确不解决什么】"
+    ],
+    [
+        "已确定/待确认/废弃方案",
+        "【填写 已确定/待确认/废弃方案】"
+    ],
+    [
+        "核心设计选择",
+        "【填写 核心设计选择】"
+    ],
+    [
+        "验证计划",
+        "【填写 验证计划】"
+    ],
+    [
+        "回滚或降级路径",
+        "【填写 回滚或降级路径】"
+    ],
+    [
+        "未覆盖风险",
+        "【填写 未覆盖风险】"
+    ]
+]}
+/>
+
+<OptionMatrix
+  columns={["收益", "代价", "适用条件", "风险"]}
+  rows={[
+    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+  ]}
+/>
+
+<DecisionRecord
+  question="这份技术文档要固定什么结论？"
+  decision="【核心设计、提案或架构决策】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<Mermaid
+  chart={"flowchart LR\n  A[【输入/调用方】] --> B[【核心模块】]\n  B --> C[【输出/依赖】]"}
+  caption="【架构、数据流或迁移关系】"
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【技术、兼容或上线风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个关键设计选择都有证据来源、约束来源或业务需求来源"
+    },
+    {
+        "text": "验证计划包含可执行检查"
+    },
+    {
+        "text": "回滚路径写清触发条件、负责人和仍未覆盖的兼容性风险"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

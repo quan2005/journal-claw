@@ -14,6 +14,7 @@ import { resolveRelativePath } from '../lib/markdownUtils'
 import { createMarkdownComponents } from '../lib/markdownComponents'
 import { mdxComponents } from './mdx'
 import { createMdxComponent, type MdxRuntimeComponent } from '../lib/mdxRuntime'
+import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
 
 interface Props {
   content: string
@@ -78,6 +79,45 @@ function isComponentLike(value: unknown): value is ElementType {
     typeof value === 'function' ||
     (typeof value === 'object' && value !== null && '$$typeof' in value)
   )
+}
+
+const missingComponentCache = new Map<string, ElementType>()
+
+function isLikelyMdxComponentName(name: string): boolean {
+  return /^[A-Z]/.test(name)
+}
+
+function getMissingComponent(name: string): ElementType {
+  const cached = missingComponentCache.get(name)
+  if (cached) return cached
+
+  const MissingMdxComponent = ({ children }: { children?: ReactNode }) => (
+    <div className="mdx-component-error" role="note">
+      <div className="mdx-component-error-title">{name} component is not available</div>
+      {children && (
+        <div className="mdx-component-error-message">
+          This MDX block could not be rendered with the current component set.
+        </div>
+      )}
+    </div>
+  )
+  MissingMdxComponent.displayName = `MissingMdxComponent(${name})`
+  missingComponentCache.set(name, MissingMdxComponent)
+  return MissingMdxComponent
+}
+
+function withMissingComponentFallback(
+  components: Record<string, unknown>,
+): Record<string, unknown> {
+  return new Proxy(components, {
+    get(target, prop, receiver) {
+      if (typeof prop !== 'string') return Reflect.get(target, prop, receiver)
+      const value = Reflect.get(target, prop, receiver)
+      if (value !== undefined || prop in target || prop === 'wrapper') return value
+      if (isLikelyMdxComponentName(prop)) return getMissingComponent(prop)
+      return value
+    },
+  })
 }
 
 function wrapMdxComponents(components: Record<string, unknown>) {
@@ -147,7 +187,8 @@ export function MdxRenderer({ content, entryPath }: Props) {
   )
 
   const components = useMemo(
-    () => wrapMdxComponents({ ...markdownComponents, ...mdxComponents }),
+    () =>
+      withMissingComponentFallback(wrapMdxComponents({ ...markdownComponents, ...mdxComponents })),
     [markdownComponents],
   )
 
@@ -243,7 +284,8 @@ export function MdxRenderer({ content, entryPath }: Props) {
       if (filepath) {
         e.preventDefault()
         const ws = await getWorkspacePath()
-        openFile(`${ws}/${filepath}`)
+        const path = resolveWorkspaceFilePath(ws, filepath)
+        dispatchJournalFileOpen(path)
         return
       }
       const href = anchor.getAttribute('href')

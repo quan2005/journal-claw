@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import App from '../App'
@@ -218,6 +218,10 @@ beforeEach(() => {
   })
 })
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 describe('App', () => {
   it('renders without crashing', async () => {
     await act(async () => {
@@ -264,6 +268,220 @@ describe('App', () => {
           .mock.calls.some(([path]) => path === '/tmp/ws/topics/guide.mdx'),
       ).toBe(true)
     })
+  })
+
+  it('keeps an item selected when clicking it again', async () => {
+    vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
+      {
+        name: 'guide.mdx',
+        path: 'guide.mdx',
+        is_dir: false,
+        mtime_secs: 1,
+      },
+    ])
+    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+
+    await act(async () => {
+      renderApp()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const topicFile = await screen.findByText('guide.mdx')
+
+    await act(async () => {
+      fireEvent.click(topicFile)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByTestId('file-view-shell')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(topicFile)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByTestId('file-view-shell')).toBeTruthy()
+  })
+
+  it('restores the last selected topic file after remounting', async () => {
+    vi.mocked(tauri.listTopicsDir).mockResolvedValue([
+      {
+        name: 'guide.mdx',
+        path: 'guide.mdx',
+        is_dir: false,
+        mtime_secs: 1,
+      },
+    ])
+    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+
+    let app = renderApp()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      fireEvent.click(await screen.findByText('guide.mdx'))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByTestId('file-view-shell')).toBeTruthy()
+
+    app.unmount()
+    vi.mocked(tauri.getJournalEntryContent).mockClear()
+
+    app = renderApp()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByTestId('file-view-shell')).toBeTruthy()
+    expect(
+      vi
+        .mocked(tauri.getJournalEntryContent)
+        .mock.calls.some(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+    ).toBe(true)
+
+    app.unmount()
+  })
+
+  it('does not reload a selected topic file during an unchanged journal refresh', async () => {
+    vi.useFakeTimers()
+    vi.mocked(tauri.listAvailableMonths).mockImplementation(async () => ['2604'])
+    vi.mocked(tauri.listJournalEntriesByMonths).mockImplementation(async () => [
+      {
+        filename: '01-test.md',
+        path: '/ws/2604/01-test.md',
+        title: '测试条目',
+        summary: '测试摘要',
+        tags: ['test'],
+        sources: [],
+        year_month: '2604',
+        day: 1,
+        created_time: '10:00',
+        created_at_secs: 0,
+        mtime_secs: 0,
+        materials: [],
+      },
+    ])
+    vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
+      {
+        name: 'guide.mdx',
+        path: 'guide.mdx',
+        is_dir: false,
+        mtime_secs: 1,
+      },
+    ])
+    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+
+    await act(async () => {
+      renderApp()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('guide.mdx'))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(
+      vi
+        .mocked(tauri.getJournalEntryContent)
+        .mock.calls.filter(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+    ).toHaveLength(1)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(
+      vi
+        .mocked(tauri.getJournalEntryContent)
+        .mock.calls.filter(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+    ).toHaveLength(1)
+    vi.useRealTimers()
+  })
+
+  it('opens local file link events inside the detail view', async () => {
+    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('export const ok = true')
+
+    await act(async () => {
+      renderApp()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('journal-file-open', {
+          detail: {
+            path: '/tmp/ws/Projects/github/journal/src/components/mdx/index.ts',
+            name: 'index.ts',
+          },
+        }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(
+        vi
+          .mocked(tauri.getJournalEntryContent)
+          .mock.calls.some(
+            ([path]) => path === '/tmp/ws/Projects/github/journal/src/components/mdx/index.ts',
+          ),
+      ).toBe(true)
+    })
+    expect(tauri.openFile).not.toHaveBeenCalled()
+  })
+
+  it('keeps the current topic file detail when focusing a breadcrumb directory', async () => {
+    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+
+    await act(async () => {
+      renderApp()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('journal-file-open', {
+          detail: {
+            path: '可视化一切/Guide.md',
+            name: 'Guide.md',
+          },
+        }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const topicButton = await screen.findByRole('button', { name: '定位到专题 可视化一切' })
+    expect(screen.getByText('Guide.md')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(topicButton)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByText('Guide.md')).toBeTruthy()
+    expect(
+      vi
+        .mocked(tauri.getJournalEntryContent)
+        .mock.calls.filter(([path]) => path === '/tmp/ws/topics/可视化一切/Guide.md'),
+    ).toHaveLength(1)
   })
 
   it('toggles settings view with Cmd+,', async () => {

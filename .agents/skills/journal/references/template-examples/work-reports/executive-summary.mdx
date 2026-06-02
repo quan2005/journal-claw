@@ -1,0 +1,93 @@
+---
+tags: ["journal","mdx-manual","template","work-reports"]
+summary: "当需要记录管理层摘要，并梳理一句话答案、关键指标、财务/业务影响、风险时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 管理层摘要
+
+<Section density="relaxed">
+  <Subtitle>管理层摘要必须答案先行：结论、证据、风险、请求按决策顺序排列，低层细节只保留能影响判断的部分。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Barbara Minto 的金字塔原理视角：管理层摘要必须答案先行：结论、证据、风险、请求按决策顺序排列，低层细节只保留能影响判断的部分。
+</Callout>
+
+<Callout type="note" title="结论">
+  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
+</Callout>
+
+<StatGroup>
+  <Stat label="完成项" value={"【数量】"} />
+  <Stat label="风险" value={"【数量】"} />
+  <Stat label="下阶段重点" value={"【数量】"} />
+</StatGroup>
+
+## 汇报内容
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "一句话答案",
+        "【填写 一句话答案】"
+    ],
+    [
+        "关键指标",
+        "【填写 关键指标】"
+    ],
+    [
+        "财务/业务影响",
+        "【填写 财务/业务影响】"
+    ],
+    [
+        "风险",
+        "【填写 风险】"
+    ],
+    [
+        "可选方案",
+        "【填写 可选方案】"
+    ],
+    [
+        "决策请求",
+        "【填写 决策请求】"
+    ],
+    [
+        "决策期限",
+        "【填写 决策期限】"
+    ]
+]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "管理层摘要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "首个结论能独立回答管理层最关心的问题"
+    },
+    {
+        "text": "每个决策请求必须包含推荐项、备选项和截止时间"
+    },
+    {
+        "text": "正文不得出现无法支撑结论、风险或请求的细节"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

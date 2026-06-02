@@ -1,0 +1,101 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录测试计划，并梳理测试目标、测试范围、不测范围、风险模型时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 测试计划
+
+<Section density="relaxed">
+  <Subtitle>测试计划应说明要降低哪些风险、用什么环境和数据证明，而不是穷举用例。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Cem Kaner 的情境驱动测试视角：测试计划应说明要降低哪些风险、用什么环境和数据证明，而不是穷举用例。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 可验收结构
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "测试目标",
+        "【填写 测试目标】"
+    ],
+    [
+        "测试范围",
+        "【填写 测试范围】"
+    ],
+    [
+        "不测范围",
+        "【填写 不测范围】"
+    ],
+    [
+        "风险模型",
+        "【填写 风险模型】"
+    ],
+    [
+        "测试数据",
+        "【填写 测试数据】"
+    ],
+    [
+        "风险驱动用例",
+        "【填写 风险驱动用例】"
+    ],
+    [
+        "入口/退出标准",
+        "【填写 入口/退出标准】"
+    ],
+    [
+        "缺陷分级",
+        "【填写 缺陷分级】"
+    ]
+]}
+/>
+
+<Checklist
+  items={[
+    { text: "【验收条件或入口标准】" },
+    { text: "【边界或不适用条件】" },
+    { text: "【来源或证据已补齐】" },
+  ]}
+/>
+
+<EvidenceCard title="需求/测试证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="处理判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<ActionTable
+  items={[
+    { action: "【补证据、拆分、测试或确认】", owner: "【负责人】", due: "【截止时间】", source: "测试计划", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个测试用例必须映射到需求或风险"
+    },
+    {
+        "text": "环境和测试数据必须可复现"
+    },
+    {
+        "text": "通过/失败标准必须避免主观词"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

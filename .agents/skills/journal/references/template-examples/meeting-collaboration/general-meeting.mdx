@@ -1,0 +1,91 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录通用会议纪要，并梳理会议目标、本次产出类型、议题推进表、关键证据时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 通用会议纪要
+
+<Section density="relaxed">
+  <Subtitle>通用会议不是转写汇总，而是把信息同步、决策、未决问题和承诺分桶，让读者立刻知道会议产出了什么。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Andy Grove 的高产出会议视角：通用会议不是转写汇总，而是把信息同步、决策、未决问题和承诺分桶，让读者立刻知道会议产出了什么。
+</Callout>
+
+## 会议主线
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "会议目标",
+        "【填写 会议目标】"
+    ],
+    [
+        "本次产出类型",
+        "【填写 本次产出类型】"
+    ],
+    [
+        "议题推进表",
+        "【填写 议题推进表】"
+    ],
+    [
+        "关键证据",
+        "【填写 关键证据】"
+    ],
+    [
+        "已确认结论",
+        "【填写 已确认结论】"
+    ],
+    [
+        "未决问题",
+        "【填写 未决问题】"
+    ],
+    [
+        "待确认信息",
+        "【填写 待确认信息】"
+    ],
+    [
+        "行动项",
+        "【填写 行动项】"
+    ]
+]}
+/>
+
+<DecisionList
+  decisions={[
+    {
+      question: "【本次会议最重要的问题】",
+      decision: "【已达成一致或暂定结论】",
+      rationale: "【保留分歧、证据和未解决问题。】",
+    },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【行动项】", owner: "【负责人】", due: "【截止时间】", source: "通用会议纪要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "第一屏能看到会议目标和本次产出类型"
+    },
+    {
+        "text": "每个议题都有结论、未决或后续动作之一"
+    },
+    {
+        "text": "每个行动项都有负责人、截止时间、状态和来源议题"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

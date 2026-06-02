@@ -7,6 +7,7 @@ import { normalizeNestedFences } from '../lib/markdownStream'
 import { resolveRelativePath, stripFrontmatter } from '../lib/markdownUtils'
 import { MdxRenderer } from './MdxRenderer'
 import hljs from 'highlight.js/lib/core'
+import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
 
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -343,7 +344,8 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
       if (filepath) {
         e.preventDefault()
         const ws = await getWorkspacePath()
-        openFile(`${ws}/${filepath}`)
+        const path = resolveWorkspaceFilePath(ws, filepath)
+        dispatchJournalFileOpen(path)
         return
       }
       const href = anchor.getAttribute('href')

@@ -1,0 +1,110 @@
+---
+tags: ["journal","mdx-manual","template","technical-docs"]
+summary: "当需要记录RFC，并梳理问题陈述与成功标准、提案概要、替代方案与拒绝理由、决策状态时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# RFC
+
+<Section density="relaxed">
+  <Subtitle>RFC 的价值在于把争议、替代方案、兼容性和迁移代价写成可审议的决策记录，而不是提前包装成最终答案。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  IETF RFC 的 durable agreement 视角：RFC 的价值在于把争议、替代方案、兼容性和迁移代价写成可审议的决策记录，而不是提前包装成最终答案。
+</Callout>
+
+<Callout type="warning" title="结论">
+  【写清问题、根因或方案结论；同时保留未覆盖风险。】
+</Callout>
+
+## 技术选择与验证
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "问题陈述与成功标准",
+        "【填写 问题陈述与成功标准】"
+    ],
+    [
+        "提案概要",
+        "【填写 提案概要】"
+    ],
+    [
+        "替代方案与拒绝理由",
+        "【填写 替代方案与拒绝理由】"
+    ],
+    [
+        "决策状态",
+        "【填写 决策状态】"
+    ],
+    [
+        "兼容性契约",
+        "【填写 兼容性契约】"
+    ],
+    [
+        "迁移/灰度/回滚",
+        "【填写 迁移/灰度/回滚】"
+    ],
+    [
+        "开放问题",
+        "【填写 开放问题】"
+    ],
+    [
+        "审议记录",
+        "【填写 审议记录】"
+    ]
+]}
+/>
+
+<OptionMatrix
+  columns={["收益", "代价", "适用条件", "风险"]}
+  rows={[
+    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+  ]}
+/>
+
+<DecisionRecord
+  question="这份技术文档要固定什么结论？"
+  decision="【核心设计、提案或架构决策】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<Mermaid
+  chart={"flowchart LR\n  A[【输入/调用方】] --> B[【核心模块】]\n  B --> C[【输出/依赖】]"}
+  caption="【架构、数据流或迁移关系】"
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【技术、兼容或上线风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "至少列出 2 个替代方案并说明为什么不选"
+    },
+    {
+        "text": "兼容性章节明确列出受影响 API、数据、配置、依赖方或运行环境"
+    },
+    {
+        "text": "开放问题必须标注负责人、决策截止时间和阻塞影响"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

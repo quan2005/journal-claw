@@ -1,0 +1,104 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录里程碑计划，并梳理目标、可验收里程碑、交付物、负责人时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 里程碑计划
+
+<Section density="relaxed">
+  <Subtitle>里程碑计划要暴露瓶颈、依赖和缓冲，而不只是日期清单。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Eliyahu Goldratt 的约束理论视角：里程碑计划要暴露瓶颈、依赖和缓冲，而不只是日期清单。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 目标、边界与执行节奏
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "目标",
+        "【填写 目标】"
+    ],
+    [
+        "可验收里程碑",
+        "【填写 可验收里程碑】"
+    ],
+    [
+        "交付物",
+        "【填写 交付物】"
+    ],
+    [
+        "负责人",
+        "【填写 负责人】"
+    ],
+    [
+        "关键链/阻塞点",
+        "【填写 关键链/阻塞点】"
+    ],
+    [
+        "依赖",
+        "【填写 依赖】"
+    ],
+    [
+        "缓冲",
+        "【填写 缓冲】"
+    ],
+    [
+        "决策门",
+        "【填写 决策门】"
+    ]
+]}
+/>
+
+<MilestoneTimeline
+  items={[
+    { time: "【阶段 1】", title: "【里程碑】", desc: "【交付物与验收】" },
+    { time: "【阶段 2】", title: "【里程碑】", desc: "【交付物与验收】" },
+  ]}
+/>
+
+<RACI
+  rows={[
+    { work: "【关键事项】", responsible: "【R】", accountable: "【A】", consulted: "【C】", informed: "【I】" },
+  ]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【项目风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步行动】", owner: "【负责人】", due: "【截止时间】", source: "里程碑计划", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个里程碑必须有交付物和验收标准"
+    },
+    {
+        "text": "依赖必须早于对应里程碑列出"
+    },
+    {
+        "text": "关键瓶颈必须有负责人和缓冲方案"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

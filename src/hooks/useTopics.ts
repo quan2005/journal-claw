@@ -1,12 +1,52 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { listen } from '@tauri-apps/api/event'
 import { listTopicsDir, type TopicEntry } from '../lib/tauri'
 
-const TOPICS_REFRESH_INTERVAL_MS = 3000
+const TOPICS_REFRESH_DEBOUNCE_MS = 250
+const TOPIC_EXPANDED_DIRS_STORAGE_KEY = 'journal_topics_expanded_dirs_v1'
 
 interface DirState {
   entries: TopicEntry[]
   expanded: boolean
   loading: boolean
+}
+
+function loadExpandedTopicDirs(): string[] {
+  try {
+    const raw = localStorage.getItem(TOPIC_EXPANDED_DIRS_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((path): path is string => typeof path === 'string' && path.length > 0)
+  } catch {
+    return []
+  }
+}
+
+function saveExpandedTopicDirs(dirs: Map<string, DirState>) {
+  try {
+    const expanded = [...dirs.entries()]
+      .filter(([path, state]) => path.length > 0 && state.expanded)
+      .map(([path]) => path)
+      .sort()
+    localStorage.setItem(TOPIC_EXPANDED_DIRS_STORAGE_KEY, JSON.stringify(expanded))
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
+function topicEntriesEqual(a: TopicEntry[], b: TopicEntry[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((entry, index) => {
+    const other = b[index]
+    return (
+      other !== undefined &&
+      entry.name === other.name &&
+      entry.path === other.path &&
+      entry.is_dir === other.is_dir &&
+      entry.created_secs === other.created_secs &&
+      entry.mtime_secs === other.mtime_secs
+    )
+  })
 }
 
 export function useTopics() {
@@ -22,7 +62,26 @@ export function useTopics() {
     setLoading(true)
     try {
       const entries = await listTopicsDir('')
-      setDirs(new Map([['', { entries, expanded: true, loading: false }]]))
+      const next = new Map<string, DirState>([['', { entries, expanded: true, loading: false }]])
+      const expandedDirs = loadExpandedTopicDirs()
+      const loadedDirs = await Promise.all(
+        expandedDirs.map(async (path) => {
+          try {
+            return [path, await listTopicsDir(path)] as const
+          } catch (e) {
+            console.error('[useTopics] restore expanded dir failed:', e)
+            return null
+          }
+        }),
+      )
+
+      for (const loaded of loadedDirs) {
+        if (!loaded) continue
+        const [path, childEntries] = loaded
+        next.set(path, { entries: childEntries, expanded: true, loading: false })
+      }
+
+      setDirs(next)
     } catch (e) {
       console.error('[useTopics] load failed:', e)
     } finally {
@@ -39,71 +98,110 @@ export function useTopics() {
         paths.map(async (path) => [path, await listTopicsDir(path)] as const),
       )
 
-      setDirs((prev) => {
-        const next = new Map(prev)
-        for (const [path, entries] of loaded) {
-          const existing = next.get(path)
-          next.set(path, {
-            entries,
-            expanded: existing?.expanded ?? path === '',
-            loading: false,
-          })
+      const latest = dirsRef.current
+      let next: Map<string, DirState> | null = null
+      for (const [path, entries] of loaded) {
+        const existing = latest.get(path)
+        const nextState = {
+          entries,
+          expanded: existing?.expanded ?? path === '',
+          loading: false,
         }
-        return next
-      })
+        if (
+          existing &&
+          existing.expanded === nextState.expanded &&
+          existing.loading === nextState.loading &&
+          topicEntriesEqual(existing.entries, nextState.entries)
+        ) {
+          continue
+        }
+        if (!next) {
+          next = new Map(latest)
+        }
+        next.set(path, nextState)
+      }
+
+      if (next) {
+        setDirs(next)
+      }
     } catch (e) {
       console.error('[useTopics] refresh failed:', e)
     }
   }, [])
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      void refreshLoadedDirs()
-    }, TOPICS_REFRESH_INTERVAL_MS)
-    const onFocus = () => {
-      void refreshLoadedDirs()
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    let refreshTimer: number | undefined
+
+    const scheduleRefresh = () => {
+      if (refreshTimer !== undefined) {
+        window.clearTimeout(refreshTimer)
+      }
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = undefined
+        void refreshLoadedDirs()
+      }, TOPICS_REFRESH_DEBOUNCE_MS)
     }
 
-    window.addEventListener('focus', onFocus)
+    void listen('topics-updated', scheduleRefresh).then((cleanup) => {
+      if (disposed) {
+        cleanup()
+      } else {
+        unlisten = cleanup
+      }
+    })
+
     return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('focus', onFocus)
+      disposed = true
+      if (refreshTimer !== undefined) {
+        window.clearTimeout(refreshTimer)
+      }
+      unlisten?.()
     }
   }, [refreshLoadedDirs])
 
-  const toggleDir = useCallback(async (path: string) => {
-    const current = dirs.get(path)
-    if (current) {
-      // Already loaded — just toggle expansion
-      setDirs(prev => {
-        const next = new Map(prev)
-        next.set(path, { ...current, expanded: !current.expanded })
-        return next
-      })
-    } else {
-      // Not loaded yet — fetch and expand
-      setDirs(prev => {
-        const next = new Map(prev)
-        next.set(path, { entries: [], expanded: true, loading: true })
-        return next
-      })
-      try {
-        const entries = await listTopicsDir(path)
-        setDirs(prev => {
+  const toggleDir = useCallback(
+    async (path: string) => {
+      const current = dirs.get(path)
+      if (current) {
+        // Already loaded — just toggle expansion
+        setDirs((prev) => {
           const next = new Map(prev)
-          next.set(path, { entries, expanded: true, loading: false })
+          const existing = prev.get(path) ?? current
+          next.set(path, { ...existing, expanded: !existing.expanded })
+          saveExpandedTopicDirs(next)
           return next
         })
-      } catch (e) {
-        console.error('[useTopics] toggleDir failed:', e)
-        setDirs(prev => {
+      } else {
+        // Not loaded yet — fetch and expand
+        setDirs((prev) => {
           const next = new Map(prev)
-          next.set(path, { entries: [], expanded: false, loading: false })
+          next.set(path, { entries: [], expanded: true, loading: true })
+          saveExpandedTopicDirs(next)
           return next
         })
+        try {
+          const entries = await listTopicsDir(path)
+          setDirs((prev) => {
+            const next = new Map(prev)
+            next.set(path, { entries, expanded: true, loading: false })
+            saveExpandedTopicDirs(next)
+            return next
+          })
+        } catch (e) {
+          console.error('[useTopics] toggleDir failed:', e)
+          setDirs((prev) => {
+            const next = new Map(prev)
+            next.set(path, { entries: [], expanded: false, loading: false })
+            saveExpandedTopicDirs(next)
+            return next
+          })
+        }
       }
-    }
-  }, [dirs])
+    },
+    [dirs],
+  )
 
   return { dirs, loading, load, toggleDir }
 }

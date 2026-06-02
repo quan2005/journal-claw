@@ -1,0 +1,85 @@
+---
+tags: ["journal","mdx-manual","template","learning-notes"]
+summary: "当需要记录闪卡，并梳理问题、标准答案、提示、干扰项/易错点时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 闪卡
+
+<Section density="relaxed">
+  <Subtitle>闪卡不是笔记摘要，而是一次主动回忆测试；问题必须能被明确判对或判错。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Piotr Wozniak 的间隔重复视角：闪卡不是笔记摘要，而是一次主动回忆测试；问题必须能被明确判对或判错。
+</Callout>
+
+## 主动回忆卡
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "问题",
+        "【填写 问题】"
+    ],
+    [
+        "标准答案",
+        "【填写 标准答案】"
+    ],
+    [
+        "提示",
+        "【填写 提示】"
+    ],
+    [
+        "干扰项/易错点",
+        "【填写 干扰项/易错点】"
+    ],
+    [
+        "评分标准",
+        "【填写 评分标准】"
+    ],
+    [
+        "掌握程度",
+        "【填写 掌握程度】"
+    ],
+    [
+        "下次复习时间",
+        "【填写 下次复习时间】"
+    ],
+    [
+        "来源链接",
+        "【填写 来源链接】"
+    ]
+]}
+/>
+
+<RatingBar score={3} max={5} label="掌握程度" />
+
+<Checklist
+  items={[
+    { text: "【下次复习时间】" },
+    { text: "【易错点】" },
+    { text: "【迁移情境题】" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每张卡只问一个问题，答案必须能明确判对、部分对或错"
+    },
+    {
+        "text": "至少一张卡要把概念放入新情境"
+    },
+    {
+        "text": "必须记录掌握程度和下次复习时间"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

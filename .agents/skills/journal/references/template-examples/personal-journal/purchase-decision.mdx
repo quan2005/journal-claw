@@ -1,0 +1,101 @@
+---
+tags: ["journal","mdx-manual","template","personal-journal"]
+summary: "当需要记录购买决策，并梳理真实需求、不可妥协条件、替代方案、总拥有成本时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 购买决策
+
+<Section density="relaxed">
+  <Subtitle>购买决策要先写真实需求和不可妥协条件，再比较总成本、证据、取舍和复盘触发。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Wirecutter 评测方法 + 行为决策偏差视角：购买决策要先写真实需求和不可妥协条件，再比较总成本、证据、取舍和复盘触发。
+</Callout>
+
+## 决策记录
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "真实需求",
+        "【填写 真实需求】"
+    ],
+    [
+        "不可妥协条件",
+        "【填写 不可妥协条件】"
+    ],
+    [
+        "替代方案",
+        "【填写 替代方案】"
+    ],
+    [
+        "总拥有成本",
+        "【填写 总拥有成本】"
+    ],
+    [
+        "使用频率假设",
+        "【填写 使用频率假设】"
+    ],
+    [
+        "不买的代价",
+        "【填写 不买的代价】"
+    ],
+    [
+        "取舍",
+        "【填写 取舍】"
+    ],
+    [
+        "复盘日期",
+        "【填写 复盘日期】"
+    ]
+]}
+/>
+
+<OptionMatrix
+  columns={["收益", "代价", "适用条件", "风险"]}
+  rows={[
+    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+  ]}
+/>
+
+<DecisionRecord
+  question="这次要做什么个人决策？"
+  decision="【最终选择或暂缓】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【关键假设失败风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "先写不买或延迟购买的选项"
+    },
+    {
+        "text": "比较总拥有成本而不仅是标价"
+    },
+    {
+        "text": "每个候选项至少有一条来源证据"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

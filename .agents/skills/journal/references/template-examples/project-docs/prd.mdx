@@ -1,0 +1,101 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录产品需求文档，并梳理目标用户、核心场景/JTBD、用户问题、非目标场景时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 产品需求文档
+
+<Section density="relaxed">
+  <Subtitle>用于产品需求文档：写清用户、场景、需求、验收标准和开放问题。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Marty Cagan 的产品发现视角：PRD 应把用户问题、产品行为、风险和成功指标分开，而不是堆功能清单。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 可验收结构
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "目标用户",
+        "【填写 目标用户】"
+    ],
+    [
+        "核心场景/JTBD",
+        "【填写 核心场景/JTBD】"
+    ],
+    [
+        "用户问题",
+        "【填写 用户问题】"
+    ],
+    [
+        "非目标场景",
+        "【填写 非目标场景】"
+    ],
+    [
+        "可测试需求",
+        "【填写 可测试需求】"
+    ],
+    [
+        "验收标准",
+        "【填写 验收标准】"
+    ],
+    [
+        "成功指标",
+        "【填写 成功指标】"
+    ],
+    [
+        "开放问题",
+        "【填写 开放问题】"
+    ]
+]}
+/>
+
+<Checklist
+  items={[
+    { text: "【验收条件或入口标准】" },
+    { text: "【边界或不适用条件】" },
+    { text: "【来源或证据已补齐】" },
+  ]}
+/>
+
+<EvidenceCard title="需求/测试证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="处理判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<ActionTable
+  items={[
+    { action: "【补证据、拆分、测试或确认】", owner: "【负责人】", due: "【截止时间】", source: "产品需求文档", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每条需求必须对应用户问题或场景"
+    },
+    {
+        "text": "每条验收标准必须可测试"
+    },
+    {
+        "text": "成功指标必须写基线或目标值"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

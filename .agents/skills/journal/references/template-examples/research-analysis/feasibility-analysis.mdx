@@ -1,0 +1,87 @@
+---
+tags: ["journal","mdx-manual","template","research-analysis"]
+summary: "当需要记录可行性分析，并梳理约束、价值假设、技术假设、商业/成本假设时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/research-analysis.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 可行性分析
+
+<Section density="relaxed">
+  <Subtitle>可行性模板不能只问能不能做；要写清约束、最小可行验证和失败条件。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Marty Cagan + Bent Flyvbjerg 的可行性视角：可行性模板不能只问能不能做；要写清约束、最小可行验证和失败条件。
+</Callout>
+
+<Callout type="note" title="研究问题">
+  【写清这次研究要回答的问题，以及本页结论适用的范围。】
+</Callout>
+
+## 研究记录
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "约束",
+        "【填写 约束】"
+    ],
+    [
+        "价值假设",
+        "【填写 价值假设】"
+    ],
+    [
+        "技术假设",
+        "【填写 技术假设】"
+    ],
+    [
+        "商业/成本假设",
+        "【填写 商业/成本假设】"
+    ],
+    [
+        "可行性判断",
+        "【填写 可行性判断】"
+    ],
+    [
+        "所需验证",
+        "【填写 所需验证】"
+    ],
+    [
+        "风险",
+        "【填写 风险】"
+    ],
+    [
+        "决策",
+        "【填写 决策】"
+    ]
+]}
+/>
+
+<EvidenceCard title="关键证据" source="【来源】">
+  【保留样本、数字、原文或观察事实；不要把推测写成证据。】
+</EvidenceCard>
+
+<InsightCard title="洞察">
+  【从证据推出判断，并说明限制条件。】
+</InsightCard>
+
+<Checklist
+  items={[
+    {
+        "text": "可行性判断必须绑定具体约束"
+    },
+    {
+        "text": "每个高风险假设必须标注证据状态"
+    },
+    {
+        "text": "下一步验证必须包含最小实验、负责人和停止条件"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

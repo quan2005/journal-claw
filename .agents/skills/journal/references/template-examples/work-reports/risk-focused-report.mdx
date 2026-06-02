@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","work-reports"]
+summary: "当需要记录风险专项汇报，并梳理风险、概率、影响半径、严重度时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 风险专项汇报
+
+<Section density="relaxed">
+  <Subtitle>风险专项汇报要区分概率、暴露、触发信号和残余风险，不能只列风险名称。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Nassim Nicholas Taleb 的尾部风险视角：风险专项汇报要区分概率、暴露、触发信号和残余风险，不能只列风险名称。
+</Callout>
+
+<Callout type="note" title="结论">
+  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
+</Callout>
+
+<StatGroup>
+  <Stat label="完成项" value={"【数量】"} />
+  <Stat label="风险" value={"【数量】"} />
+  <Stat label="下阶段重点" value={"【数量】"} />
+</StatGroup>
+
+## 汇报内容
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "风险",
+        "【填写 风险】"
+    ],
+    [
+        "概率",
+        "【填写 概率】"
+    ],
+    [
+        "影响半径",
+        "【填写 影响半径】"
+    ],
+    [
+        "严重度",
+        "【填写 严重度】"
+    ],
+    [
+        "触发信号",
+        "【填写 触发信号】"
+    ],
+    [
+        "应对",
+        "【填写 应对】"
+    ],
+    [
+        "残余风险",
+        "【填写 残余风险】"
+    ],
+    [
+        "升级阈值",
+        "【填写 升级阈值】"
+    ]
+]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "风险专项汇报", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个风险必须包含概率、影响、严重度和应对"
+    },
+    {
+        "text": "所有高严重度风险必须有负责人和截止时间"
+    },
+    {
+        "text": "每个风险必须写明触发信号或升级阈值"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -1,0 +1,95 @@
+---
+tags: ["journal","mdx-manual","template","personal-journal"]
+summary: "当需要记录个人目标 OKR，并梳理目标、关键结果、领先指标、当前证据时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 个人目标 OKR
+
+<Section density="relaxed">
+  <Subtitle>个人 OKR 要把愿望变成可观察进度：目标、关键结果、领先指标、风险和下一步动作必须连起来。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  John Doerr + Locke & Latham 的个人目标视角：个人 OKR 要把愿望变成可观察进度：目标、关键结果、领先指标、风险和下一步动作必须连起来。
+</Callout>
+
+<StatGroup>
+  <Stat label="当前值" value={"【数值】"} />
+  <Stat label="目标值" value={"【数值】"} />
+  <Stat label="风险项" value={"【数量】"} />
+</StatGroup>
+
+## 进度记录
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "目标",
+        "【填写 目标】"
+    ],
+    [
+        "关键结果",
+        "【填写 关键结果】"
+    ],
+    [
+        "领先指标",
+        "【填写 领先指标】"
+    ],
+    [
+        "当前证据",
+        "【填写 当前证据】"
+    ],
+    [
+        "信心依据",
+        "【填写 信心依据】"
+    ],
+    [
+        "反目标",
+        "【填写 反目标】"
+    ],
+    [
+        "下一步行动",
+        "【填写 下一步行动】"
+    ],
+    [
+        "下次检查日期",
+        "【填写 下次检查日期】"
+    ]
+]}
+/>
+
+<Progress value={50} label="【当前进度】" />
+
+<RiskMatrix
+  risks={[
+    { risk: "【阻塞或摩擦】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步更小动作】", owner: "【负责人】", due: "【截止时间】", source: "个人目标 OKR", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个 KR 都有可度量当前值"
+    },
+    {
+        "text": "信心分数后面有事实依据"
+    },
+    {
+        "text": "下一步行动能直接推动某个 KR"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

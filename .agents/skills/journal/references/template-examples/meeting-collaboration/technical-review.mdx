@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录技术评审纪要，并梳理现状架构、设计约束、方案/取舍、不可逆点时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 技术评审纪要
+
+<Section density="relaxed">
+  <Subtitle>用于技术评审：记录约束、方案取舍、迁移风险、未决问题和验证方式。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Martin Fowler 的架构取舍视角：技术评审要像轻量 ADR：记录约束、方案力场、迁移风险、验证方法和回滚条件。
+</Callout>
+
+## 问题与背景
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "现状架构",
+        "【填写 现状架构】"
+    ],
+    [
+        "设计约束",
+        "【填写 设计约束】"
+    ],
+    [
+        "方案/取舍",
+        "【填写 方案/取舍】"
+    ],
+    [
+        "不可逆点",
+        "【填写 不可逆点】"
+    ],
+    [
+        "性能/安全/维护性影响",
+        "【填写 性能/安全/维护性影响】"
+    ],
+    [
+        "迁移与回滚风险",
+        "【填写 迁移与回滚风险】"
+    ],
+    [
+        "验证命令/指标",
+        "【填写 验证命令/指标】"
+    ],
+    [
+        "回滚条件",
+        "【填写 回滚条件】"
+    ]
+]}
+/>
+
+## 方案与取舍
+
+<DecisionRecord
+  question="【这次评审要决定什么】"
+  decision="【最终选择或暂定方向】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+## 行动项
+
+<ActionTable
+  items={[
+    { action: "【补充证据或验证】", owner: "【负责人】", due: "【截止时间】", source: "技术评审纪要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "至少两个方案有明确取舍，不能只写最终方案"
+    },
+    {
+        "text": "最终决策有验证命令、指标或回滚条件"
+    },
+    {
+        "text": "迁移风险写到生产影响层面，而不是只写有风险"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

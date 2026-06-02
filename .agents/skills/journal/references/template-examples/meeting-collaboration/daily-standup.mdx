@@ -1,0 +1,93 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录每日站会记录，并梳理迭代目标、成员、昨日承诺完成情况、今日最小推进时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 每日站会记录
+
+<Section density="relaxed">
+  <Subtitle>用于站会：每个人只记录状态变化、阻塞和今天最重要的行动。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Jeff Sutherland 的 Scrum 检视与调整视角：站会不是状态汇报会，而是围绕迭代目标检查承诺、暴露阻塞、调整当天最小推进。
+</Callout>
+
+<StatGroup>
+  <Stat label="正常推进" value={"【数量】"} />
+  <Stat label="存在阻塞" value={"【数量】"} />
+  <Stat label="需要协助" value={"【数量】"} />
+</StatGroup>
+
+## 进展与阻塞
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "迭代目标",
+        "【填写 迭代目标】"
+    ],
+    [
+        "成员",
+        "【填写 成员】"
+    ],
+    [
+        "昨日承诺完成情况",
+        "【填写 昨日承诺完成情况】"
+    ],
+    [
+        "今日最小推进",
+        "【填写 今日最小推进】"
+    ],
+    [
+        "阻塞/决策请求",
+        "【填写 阻塞/决策请求】"
+    ],
+    [
+        "需要协助人",
+        "【填写 需要协助人】"
+    ],
+    [
+        "状态变化",
+        "【填写 状态变化】"
+    ],
+    [
+        "升级项",
+        "【填写 升级项】"
+    ]
+]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【阻塞或风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【处理方式】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "每日站会记录", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个人都有昨日、今日、阻塞三项；没有变化也写无变化/无阻塞"
+    },
+    {
+        "text": "每个阻塞都有需要协助的人或待决策对象"
+    },
+    {
+        "text": "今日计划写成可交付结果，不能只写继续开发或继续沟通"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

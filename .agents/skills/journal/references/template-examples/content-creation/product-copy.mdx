@@ -1,0 +1,109 @@
+---
+tags: ["journal","mdx-manual","template","content-creation"]
+summary: "当需要记录产品文案，并梳理用户任务、痛点、承诺、差异化时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 产品文案
+
+<Section density="relaxed">
+  <Subtitle>产品文案要把用户痛点、承诺、差异化和证明压缩成可选择的语言，不是把功能翻译成形容词。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  产品营销负责人的转化文案视角：产品文案要把用户痛点、承诺、差异化和证明压缩成可选择的语言，不是把功能翻译成形容词。
+</Callout>
+
+<Callout type="note" title="核心信息">
+  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
+</Callout>
+
+## 文案版本
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "用户任务",
+        "【填写 用户任务】"
+    ],
+    [
+        "痛点",
+        "【填写 痛点】"
+    ],
+    [
+        "承诺",
+        "【填写 承诺】"
+    ],
+    [
+        "差异化",
+        "【填写 差异化】"
+    ],
+    [
+        "反对意见",
+        "【填写 反对意见】"
+    ],
+    [
+        "证明资产",
+        "【填写 证明资产】"
+    ],
+    [
+        "文案版本",
+        "【填写 文案版本】"
+    ],
+    [
+        "转化目标",
+        "【填写 转化目标】"
+    ]
+]}
+/>
+
+<OptionMatrix
+  columns={["收益", "代价", "适用条件", "风险"]}
+  rows={[
+    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+  ]}
+/>
+
+<EvidenceCard title="证明资产" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="文案选择理由">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<DecisionRecord
+  question="选择哪个文案版本？"
+  decision="【最终 headline / CTA / positioning】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<CopyButton text="【最终批准的 headline / CTA / short blurb】" label="复制最终文案" />
+
+<Checklist
+  items={[
+    {
+        "text": "首屏文案同时说明受众、痛点、承诺和下一步动作"
+    },
+    {
+        "text": "每个价值主张绑定证明资产"
+    },
+    {
+        "text": "发布前确认 CTA、价格/版本信息、法律限制、链接和埋点名称"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

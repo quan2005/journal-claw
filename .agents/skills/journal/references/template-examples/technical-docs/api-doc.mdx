@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","technical-docs"]
+summary: "当需要记录API 文档，并梳理方法与路径、认证方式与权限范围、参数表、请求示例时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# API 文档
+
+<Section density="relaxed">
+  <Subtitle>API 文档的核心不是解释实现，而是让调用方在不知道内部代码的情况下稳定集成、处理错误并安全升级。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Stripe API Docs 的契约优先视角：API 文档的核心不是解释实现，而是让调用方在不知道内部代码的情况下稳定集成、处理错误并安全升级。
+</Callout>
+
+<Callout type="warning" title="结论">
+  【写清问题、根因或方案结论；同时保留未覆盖风险。】
+</Callout>
+
+## API 契约
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "方法与路径",
+        "【填写 方法与路径】"
+    ],
+    [
+        "认证方式与权限范围",
+        "【填写 认证方式与权限范围】"
+    ],
+    [
+        "参数表",
+        "【填写 参数表】"
+    ],
+    [
+        "请求示例",
+        "【填写 请求示例】"
+    ],
+    [
+        "响应示例",
+        "【填写 响应示例】"
+    ],
+    [
+        "错误与恢复",
+        "【填写 错误与恢复】"
+    ],
+    [
+        "限流与重试策略",
+        "【填写 限流与重试策略】"
+    ],
+    [
+        "版本/弃用/兼容承诺",
+        "【填写 版本/弃用/兼容承诺】"
+    ]
+]}
+/>
+
+<Table
+  headers={["位置", "参数", "类型", "必填", "约束"]}
+  rows={[
+    ["path", "【参数名】", "【类型】", "【是/否】", "【约束】"],
+    ["query", "【参数名】", "【类型】", "【是/否】", "【约束】"],
+    ["body", "【字段名】", "【类型】", "【是/否】", "【约束】"],
+  ]}
+/>
+
+<CopyButton text="curl -X GET '【endpoint】' -H 'Authorization: Bearer 【token】'" label="复制请求示例" />
+
+<Table
+  headers={["错误码", "原因", "是否可重试", "调用方动作"]}
+  rows={[
+    ["【HTTP/status】", "【错误原因】", "【是/否】", "【恢复动作】"],
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "请求示例和响应示例能直接复制运行"
+    },
+    {
+        "text": "每个错误码都写明状态、原因、是否可重试和调用方动作"
+    },
+    {
+        "text": "兼容性章节写清新增字段、废弃字段、破坏性变更和旧客户端风险"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录设计评审纪要，并梳理设计目标、用户任务、截图/版本链接、反馈主题时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 设计评审纪要
+
+<Section density="relaxed">
+  <Subtitle>用于设计评审：记录目标、反馈主题、互斥意见、组合方案和下一轮修改。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Don Norman 的以用户任务为中心的设计评审视角：设计反馈不能停留在审美偏好，必须绑定用户任务、可用性证据、互斥意见和下一轮验证。
+</Callout>
+
+## 问题与背景
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "设计目标",
+        "【填写 设计目标】"
+    ],
+    [
+        "用户任务",
+        "【填写 用户任务】"
+    ],
+    [
+        "截图/版本链接",
+        "【填写 截图/版本链接】"
+    ],
+    [
+        "反馈主题",
+        "【填写 反馈主题】"
+    ],
+    [
+        "互斥意见及用户影响",
+        "【填写 互斥意见及用户影响】"
+    ],
+    [
+        "合并方案",
+        "【填写 合并方案】"
+    ],
+    [
+        "待验证体验假设",
+        "【填写 待验证体验假设】"
+    ],
+    [
+        "下一轮验证方式",
+        "【填写 下一轮验证方式】"
+    ]
+]}
+/>
+
+## 方案与取舍
+
+<DecisionRecord
+  question="【这次评审要决定什么】"
+  decision="【最终选择或暂定方向】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+## 行动项
+
+<ActionTable
+  items={[
+    { action: "【补充证据或验证】", owner: "【负责人】", due: "【截止时间】", source: "设计评审纪要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每条反馈都能对应设计目标或用户任务"
+    },
+    {
+        "text": "互斥意见必须写清取舍理由和最终处理"
+    },
+    {
+        "text": "下一轮修改有负责人、截止时间和验证信号"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -1,0 +1,91 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录事故/项目复盘会，并梳理复盘类型、预期结果、实际发生、关键时间线时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 事故/项目复盘会
+
+<Section density="relaxed">
+  <Subtitle>事故/项目混合复盘要先选复盘类型，再对比预期与实际，解释差距，并把修复动作拆成防复发或可复用两类。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Gary Klein 的 After Action Review 视角：事故/项目混合复盘要先选复盘类型，再对比预期与实际，解释差距，并把修复动作拆成防复发或可复用两类。
+</Callout>
+
+## 会议主线
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "复盘类型",
+        "【填写 复盘类型】"
+    ],
+    [
+        "预期结果",
+        "【填写 预期结果】"
+    ],
+    [
+        "实际发生",
+        "【填写 实际发生】"
+    ],
+    [
+        "关键时间线",
+        "【填写 关键时间线】"
+    ],
+    [
+        "影响范围",
+        "【填写 影响范围】"
+    ],
+    [
+        "差距解释",
+        "【填写 差距解释】"
+    ],
+    [
+        "防复发/复用动作",
+        "【填写 防复发/复用动作】"
+    ],
+    [
+        "验证方式",
+        "【填写 验证方式】"
+    ]
+]}
+/>
+
+<DecisionList
+  decisions={[
+    {
+      question: "【本次会议最重要的问题】",
+      decision: "【已达成一致或暂定结论】",
+      rationale: "【保留分歧、证据和未解决问题。】",
+    },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【行动项】", owner: "【负责人】", due: "【截止时间】", source: "事故/项目复盘会", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "页面明确选择项目复盘或事故复盘，不能两套语言混用"
+    },
+    {
+        "text": "预期与实际的差距能被记录员直接读出"
+    },
+    {
+        "text": "每个修复动作都写清是防复发、复用还是补证据"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

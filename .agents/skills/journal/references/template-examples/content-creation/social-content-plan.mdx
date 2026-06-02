@@ -1,0 +1,102 @@
+---
+tags: ["journal","mdx-manual","template","content-creation"]
+summary: "当需要记录社媒内容计划，并梳理受众细分、平台、hook 角度、核心主张时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 社媒内容计划
+
+<Section density="relaxed">
+  <Subtitle>社媒内容计划要把同一主张拆成平台化实验，并保留复用路径和复盘日期。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  增长内容负责人的分发实验视角：社媒内容计划要把同一主张拆成平台化实验，并保留复用路径和复盘日期。
+</Callout>
+
+<Callout type="note" title="核心信息">
+  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
+</Callout>
+
+## 分发实验
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "受众细分",
+        "【填写 受众细分】"
+    ],
+    [
+        "平台",
+        "【填写 平台】"
+    ],
+    [
+        "hook 角度",
+        "【填写 hook 角度】"
+    ],
+    [
+        "核心主张",
+        "【填写 核心主张】"
+    ],
+    [
+        "内容格式",
+        "【填写 内容格式】"
+    ],
+    [
+        "平台适配",
+        "【填写 平台适配】"
+    ],
+    [
+        "复用路径",
+        "【填写 复用路径】"
+    ],
+    [
+        "复盘日期",
+        "【填写 复盘日期】"
+    ]
+]}
+/>
+
+<Kanban
+  columns={[
+    { title: "Draft", items: [{ text: "【草稿内容】", tags: ["draft"] }] },
+    { title: "Scheduled", items: [{ text: "【排期内容】", tags: ["scheduled"] }] },
+    { title: "Published", items: [{ text: "【已发布内容】", tags: ["published"] }] },
+    { title: "Measured", items: [{ text: "【复盘内容】", tags: ["metric"] }] },
+  ]}
+/>
+
+<OptionMatrix
+  columns={["收益", "代价", "适用条件", "风险"]}
+  rows={[
+    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【发布、复用或复盘动作】", owner: "【负责人】", due: "【截止时间】", source: "社媒内容计划", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每条内容写清目标受众、平台、hook 和读者下一步"
+    },
+    {
+        "text": "每个核心主张有证据、案例、截图、链接或公开来源"
+    },
+    {
+        "text": "发布前确认平台限制、链接、图片比例、排期时区和衡量指标"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

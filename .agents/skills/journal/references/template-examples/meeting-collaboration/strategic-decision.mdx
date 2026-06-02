@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录战略决策纪要，并梳理诊断、指导方针选项、非目标、资源配置时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 战略决策纪要
+
+<Section density="relaxed">
+  <Subtitle>用于战略决策：突出资源分配、机会成本、决策稳定性和隐藏风险。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Richard Rumelt 的好战略视角：战略决策页要写诊断、指导方针和一致行动，尤其要暴露机会成本、资源配置和重审触发条件。
+</Callout>
+
+## 问题与背景
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "诊断",
+        "【填写 诊断】"
+    ],
+    [
+        "指导方针选项",
+        "【填写 指导方针选项】"
+    ],
+    [
+        "非目标",
+        "【填写 非目标】"
+    ],
+    [
+        "资源配置",
+        "【填写 资源配置】"
+    ],
+    [
+        "机会成本",
+        "【填写 机会成本】"
+    ],
+    [
+        "关键假设",
+        "【填写 关键假设】"
+    ],
+    [
+        "风险信号",
+        "【填写 风险信号】"
+    ],
+    [
+        "一致行动",
+        "【填写 一致行动】"
+    ]
+]}
+/>
+
+## 方案与取舍
+
+<DecisionRecord
+  question="【这次评审要决定什么】"
+  decision="【最终选择或暂定方向】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+## 行动项
+
+<ActionTable
+  items={[
+    { action: "【补充证据或验证】", owner: "【负责人】", due: "【截止时间】", source: "战略决策纪要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "决策回答了诊断中的核心问题，不只是写期望结果"
+    },
+    {
+        "text": "资源投入和机会成本至少有定性说明；能量化的必须量化"
+    },
+    {
+        "text": "写明触发重审的条件或信号"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

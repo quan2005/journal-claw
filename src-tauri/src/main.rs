@@ -1,4 +1,9 @@
 mod ai_processor;
+mod audio_files;
+mod audio_pipeline;
+#[allow(dead_code)]
+mod audio_process;
+mod auto_lint;
 mod automation;
 mod automation_commands;
 mod automation_runner;
@@ -6,11 +11,6 @@ mod automation_schedule;
 mod automation_store;
 mod automation_templates;
 mod automation_types;
-mod audio_files;
-mod audio_pipeline;
-#[allow(dead_code)]
-mod audio_process;
-mod auto_lint;
 mod config;
 mod conversation;
 mod feishu_bridge;
@@ -94,6 +94,7 @@ fn main() {
             tokio::sync::Notify::new(),
         )))
         .manage(automation::AutomationRuntime::default())
+        .manage(topics::TopicsWatcherState::default())
         .manage(feishu_bridge::BridgeStatusState(std::sync::Mutex::new(
             config::FeishuStatus {
                 state: "idle".to_string(),
@@ -109,6 +110,9 @@ fn main() {
                 // ── Initialize workspace .claude/ on startup ──
                 if let Ok(cfg) = config::load_config(app.handle()) {
                     ai_processor::ensure_workspace_dot_claude(&cfg.workspace_path);
+                }
+                if let Err(e) = topics::restart_topics_watcher(app.handle().clone()) {
+                    eprintln!("[topics] failed to start watcher: {}", e);
                 }
                 let _ = automation::ensure_legacy_lint_routine(app.handle());
 

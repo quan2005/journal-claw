@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录需求评审纪要，并梳理用户问题/业务背景、用户场景、可验收行为、变更点与影响时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 需求评审纪要
+
+<Section density="relaxed">
+  <Subtitle>用于需求评审：把背景、验收标准、变更点、争议和结论放在同一页。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Marty Cagan 的产品发现视角：需求评审不是功能清单确认，而是把用户问题、证据、验收行为、范围变更和风险假设放到同一页。
+</Callout>
+
+## 问题与背景
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "用户问题/业务背景",
+        "【填写 用户问题/业务背景】"
+    ],
+    [
+        "用户场景",
+        "【填写 用户场景】"
+    ],
+    [
+        "可验收行为",
+        "【填写 可验收行为】"
+    ],
+    [
+        "变更点与影响",
+        "【填写 变更点与影响】"
+    ],
+    [
+        "争议/取舍",
+        "【填写 争议/取舍】"
+    ],
+    [
+        "非目标",
+        "【填写 非目标】"
+    ],
+    [
+        "成功指标",
+        "【填写 成功指标】"
+    ],
+    [
+        "待验证假设",
+        "【填写 待验证假设】"
+    ]
+]}
+/>
+
+## 方案与取舍
+
+<DecisionRecord
+  question="【这次评审要决定什么】"
+  decision="【最终选择或暂定方向】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+## 行动项
+
+<ActionTable
+  items={[
+    { action: "【补充证据或验证】", owner: "【负责人】", due: "【截止时间】", source: "需求评审纪要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每条通过的需求都有可测试的验收标准"
+    },
+    {
+        "text": "每个变更点都写清对范围、时间或风险的影响"
+    },
+    {
+        "text": "每个争议要么有结论，要么有验证负责人和截止时间"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import {
   ActionTable,
   CopyButton,
@@ -10,6 +10,10 @@ import {
   ComparisonMatrix,
   InsightCard,
   EvidenceCard,
+  InlineMath,
+  BlockMath,
+  Mermaid,
+  Table,
 } from '../components/mdx'
 import { ReferenceList, Transcript, TimestampLink } from '../components/mdx'
 
@@ -133,6 +137,90 @@ describe('semantic MDX components', () => {
 
     const button = screen.getByRole('button', { name: '复制结论' })
     expect(button.getAttribute('data-copy-text')).toBe('关键结论')
+  })
+
+  it('renders table headers as the first and only header row', () => {
+    const { container } = render(
+      <Table
+        headers={['Prop', 'Type', '说明']}
+        rows={[['meeting-collaboration', '会议协作', '15']]}
+      />,
+    )
+
+    const thead = container.querySelector('thead')
+    const tbody = container.querySelector('tbody')
+
+    expect(thead?.querySelectorAll('tr')).toHaveLength(1)
+    expect(within(thead as HTMLElement).getAllByRole('columnheader')).toHaveLength(3)
+    expect(tbody?.querySelectorAll('th')).toHaveLength(0)
+    expect(container.querySelector('thead')?.textContent).toBe('PropType说明')
+  })
+
+  it('omits the header section when a table has no headers', () => {
+    const { container } = render(
+      <Table headers={[]} rows={[['meeting-collaboration', '会议协作', '15']]} />,
+    )
+
+    expect(container.querySelector('thead')).toBeNull()
+    expect(screen.getByText('meeting-collaboration')).toBeTruthy()
+  })
+
+  it('accepts generated table columns with object rows', () => {
+    render(
+      <Table
+        columns={[
+          { key: 'model', title: '模型' },
+          { key: 'bleu', title: 'BLEU' },
+        ]}
+        rows={[
+          { model: 'Transformer (base)', bleu: '27.3' },
+          { model: 'Transformer (big)', bleu: '28.4' },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('模型')).toBeTruthy()
+    expect(screen.getByText('Transformer (big)')).toBeTruthy()
+    expect(screen.getByText('28.4')).toBeTruthy()
+  })
+
+  it('keeps empty mermaid diagrams as local component errors', () => {
+    render(<Mermaid />)
+
+    expect(screen.getByText('Diagram render failed')).toBeTruthy()
+    expect(screen.getByText('Mermaid chart source is empty.')).toBeTruthy()
+  })
+
+  it('accepts mermaid source as children', () => {
+    const { container } = render(
+      <Mermaid>{`
+graph TD
+  A --> B
+`}</Mermaid>,
+    )
+
+    expect(container.querySelector('.mdx-diagram-frame')).toBeTruthy()
+    expect(screen.queryByText('Mermaid chart source is empty.')).toBeFalsy()
+  })
+
+  it('renders inline and block math with KaTeX', () => {
+    const { container } = render(
+      <>
+        <InlineMath math="d_{model}" />
+        <BlockMath math="PE_{pos}=\\sin(x)" />
+      </>,
+    )
+
+    expect(container.querySelectorAll('.katex').length).toBeGreaterThanOrEqual(2)
+    expect(container.querySelector('.mdx-math--inline')).toBeTruthy()
+    expect(container.querySelector('.mdx-math--block')).toBeTruthy()
+  })
+
+  it('keeps invalid math formulas as local fallbacks', () => {
+    render(<BlockMath math="\\frac{" />)
+
+    expect(screen.getByText('Formula render failed')).toBeTruthy()
+    expect(screen.getAllByText(/frac/).length).toBeGreaterThan(0)
   })
 
   it('allows transcript details to expand and collapse', () => {

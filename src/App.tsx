@@ -34,6 +34,7 @@ import {
   completeOnboarding,
 } from './lib/tauri'
 import { fileKindFromName } from './lib/fileKind'
+import { fileBasename, type JournalFileOpenDetail } from './lib/fileNavigation'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import { useTranslation } from './contexts/I18nContext'
 import { RightPanel } from './components/RightPanel'
@@ -193,6 +194,7 @@ export default function App() {
   const [isRightPanelDragging, setIsRightPanelDragging] = useState(false)
   const rightPanelDragStartX = useRef(0)
   const rightPanelDragStartWidth = useRef(0)
+  const [topicFocusSelection, setTopicFocusSelection] = useState<TreeSelection | null>(null)
 
   const onRightPanelDividerMouseDown = (e: React.MouseEvent) => {
     setIsRightPanelDragging(true)
@@ -254,6 +256,25 @@ export default function App() {
     window.addEventListener('journal-entry-navigate', handler)
     return () => window.removeEventListener('journal-entry-navigate', handler)
   }, [setSelectedEntry])
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { path, name } = (e as CustomEvent<JournalFileOpenDetail>).detail ?? {}
+      if (!path) return
+
+      setView('journal')
+      setShowIdeas(false)
+      setSelectedEntry(null)
+      setTopicFocusSelection(null)
+      setTreeSelection({
+        type: 'topic-file',
+        path,
+        name: name || fileBasename(path),
+      })
+    }
+    window.addEventListener('journal-file-open', handler)
+    return () => window.removeEventListener('journal-file-open', handler)
+  }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
   // Open settings from Rust menu (Cmd+,) or keyboard shortcut
   useEffect(() => {
@@ -477,6 +498,7 @@ export default function App() {
     (sel: TreeSelection) => {
       setView('journal')
       setShowIdeas(false)
+      setTopicFocusSelection(null)
       setTreeSelection(sel)
     },
     [setShowIdeas, setTreeSelection, setView],
@@ -484,12 +506,14 @@ export default function App() {
 
   const handleSelectIdeas = useCallback(() => {
     setView('journal')
+    setTopicFocusSelection(null)
     setShowIdeas((prev) => !prev)
   }, [setShowIdeas, setView])
 
   const handleSelectAutomation = useCallback(() => {
     setShowIdeas(false)
     setSelectedEntry(null)
+    setTopicFocusSelection(null)
     setTreeSelection({ type: 'automation', path: '__automation__' })
     setView('automation')
   }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
@@ -743,9 +767,10 @@ export default function App() {
           }}
         >
           <TreeSidebar
-            selected={treeSelection}
+            selected={topicFocusSelection ?? treeSelection}
             onSelect={handleTreeSelect}
             onDeselect={() => {
+              setTopicFocusSelection(null)
               setTreeSelection(null)
               setSelectedEntry(null)
             }}
@@ -884,10 +909,11 @@ export default function App() {
               file={
                 treeSelection?.type === 'topic-file'
                   ? {
-                      name: treeSelection.path.split('/').pop() ?? '',
+                      name: treeSelection.name ?? treeSelection.path.split('/').pop() ?? '',
                       path: treeSelection.path,
                       is_dir: false,
-                      mtime_secs: 0,
+                      created_secs: treeSelection.created_secs,
+                      mtime_secs: treeSelection.mtime_secs ?? 0,
                     }
                   : undefined
               }
@@ -899,6 +925,24 @@ export default function App() {
               onVisualDesign={handleVisualDesign}
               onOpenIdeaConversation={handleOpenIdeaConversation}
               onNavigateToIdeaSource={handleNavigateToIdeaSource}
+              onNavigateToTopicPath={(path, isFile) => {
+                const nextSelection: TreeSelection = {
+                  type: isFile ? 'topic-file' : 'topic',
+                  path,
+                  name: path.split('/').pop() ?? path,
+                  created_secs:
+                    treeSelection?.path === path ? treeSelection.created_secs : undefined,
+                  mtime_secs: treeSelection?.path === path ? treeSelection.mtime_secs : undefined,
+                }
+                setView('journal')
+                setShowIdeas(false)
+                if (isFile) {
+                  setTopicFocusSelection(null)
+                  setTreeSelection(nextSelection)
+                } else {
+                  setTopicFocusSelection(nextSelection)
+                }
+              }}
             />
           )}
         </div>

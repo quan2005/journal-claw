@@ -1,0 +1,100 @@
+---
+tags: ["journal","mdx-manual","template","technical-docs"]
+summary: "当需要记录调试记录，并梳理可观察症状、环境、证据：日志/trace/metric/截图/命令输出、复现步骤与复现率时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 调试记录
+
+<Section density="relaxed">
+  <Subtitle>用于调试记录：保留现象、假设、验证命令、结果、根因和后续防复发动作。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Charity Majors 的可观测性调试视角：调试记录要保存证据链，而不是只保存最终修复；未来读者需要复盘每个假设为何成立或被排除。
+</Callout>
+
+<Callout type="warning" title="结论">
+  【写清问题、根因或方案结论；同时保留未覆盖风险。】
+</Callout>
+
+## 证据链
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "可观察症状",
+        "【填写 可观察症状】"
+    ],
+    [
+        "环境",
+        "【填写 环境】"
+    ],
+    [
+        "证据：日志/trace/metric/截图/命令输出",
+        "【填写 证据：日志/trace/metric/截图/命令输出】"
+    ],
+    [
+        "复现步骤与复现率",
+        "【填写 复现步骤与复现率】"
+    ],
+    [
+        "假设",
+        "【填写 假设】"
+    ],
+    [
+        "已排除假设",
+        "【填写 已排除假设】"
+    ],
+    [
+        "根因",
+        "【填写 根因】"
+    ],
+    [
+        "回归测试或监控告警",
+        "【填写 回归测试或监控告警】"
+    ]
+]}
+/>
+
+<EvidenceCard title="关键日志 / trace / metric" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="根因判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<Table
+  headers={["假设", "验证实验", "结果", "状态"]}
+  rows={[
+    ["【假设 1】", "【命令、日志或复现步骤】", "【结果】", "confirmed / ruled out / pending"],
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【补测试、补监控或清理动作】", owner: "【负责人】", due: "【截止时间】", source: "调试记录", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "根因结论必须能回指至少一条证据或实验结果"
+    },
+    {
+        "text": "每个假设都标明 confirmed、ruled out 或 pending"
+    },
+    {
+        "text": "修复后必须写明验证命令、回归测试名称或监控指标"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

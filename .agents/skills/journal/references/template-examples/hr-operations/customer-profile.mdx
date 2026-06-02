@@ -1,0 +1,96 @@
+---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "当需要记录客户画像，并梳理客户背景/干系人地图、使用情况与健康信号、期望业务结果、已确认价值时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 客户画像
+
+<Section density="relaxed">
+  <Subtitle>客户画像应暴露客户想达成的业务结果、当前健康度、关键干系人、价值缺口和下一次推进动作。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  企业客户经营专家的健康度视角：客户画像应暴露客户想达成的业务结果、当前健康度、关键干系人、价值缺口和下一次推进动作。
+</Callout>
+
+## 客户健康与成功计划
+
+<Flow>
+  <StatusBadge status="【生命周期/健康状态】" tone="warning" />
+  <StatusBadge status="【目标状态】" tone="success" />
+</Flow>
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "客户背景/干系人地图",
+        "【填写 客户背景/干系人地图】"
+    ],
+    [
+        "使用情况与健康信号",
+        "【填写 使用情况与健康信号】"
+    ],
+    [
+        "期望业务结果",
+        "【填写 期望业务结果】"
+    ],
+    [
+        "已确认价值",
+        "【填写 已确认价值】"
+    ],
+    [
+        "阻塞与异议",
+        "【填写 阻塞与异议】"
+    ],
+    [
+        "续费/扩展风险",
+        "【填写 续费/扩展风险】"
+    ],
+    [
+        "成功计划下一步",
+        "【填写 成功计划下一步】"
+    ]
+]}
+/>
+
+<EvidenceCard title="客户反馈或使用证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="价值、风险与机会判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<RiskMatrix
+  risks={[
+    { risk: "【续费、扩展或采用风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步成功计划】", owner: "【负责人】", due: "【截止时间】", source: "客户画像", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "客户健康状态必须有使用数据、客户反馈或会议证据支撑"
+    },
+    {
+        "text": "每个风险都有影响、缓解动作、负责人和截止时间"
+    },
+    {
+        "text": "下一步明确客户侧干系人、我方负责人、目标结果和状态"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -30,6 +30,9 @@ export { BarChart, LineChart, PieChart, RadarChart } from './charts'
 // Mermaid (lazy)
 export { Mermaid } from './mermaid'
 
+// Math
+export { InlineMath, BlockMath } from './math'
+
 // Canvas Diagram
 export { CanvasDiagram } from './canvas-diagram'
 
@@ -83,6 +86,7 @@ import { Cards, Card, Options, Option, Kanban, Checklist, Counter, RatingBar, St
 import { AudioCard, VideoCard, ImageViewer, FileCard } from './media'
 import { BarChart, LineChart, PieChart, RadarChart } from './charts'
 import { Mermaid } from './mermaid'
+import { InlineMath, BlockMath } from './math'
 import { CanvasDiagram } from './canvas-diagram'
 import { Section, Subtitle, Label, Divider } from './typography'
 import { Phone } from './device-mockups'
@@ -143,6 +147,8 @@ export const mdxComponents = {
   PieChart,
   RadarChart,
   Mermaid,
+  InlineMath,
+  BlockMath,
   CanvasDiagram,
   Section,
   Subtitle,

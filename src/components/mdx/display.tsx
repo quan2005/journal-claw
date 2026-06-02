@@ -1,15 +1,27 @@
+import { isValidElement, type ReactNode } from 'react'
+
 // ── ProsCons ────────────────────────────────────────────
 
-export function ProsCons({ children }: { children: React.ReactNode }) {
+export function ProsCons({ children }: { children: ReactNode }) {
   return <div className="mdx-pros-cons">{children}</div>
 }
 
-export function Pros({ children }: { children: React.ReactNode }) {
-  return <div className="mdx-pros"><h4>Pros</h4><ul>{children}</ul></div>
+export function Pros({ children }: { children: ReactNode }) {
+  return (
+    <div className="mdx-pros">
+      <h4>Pros</h4>
+      <ul>{children}</ul>
+    </div>
+  )
 }
 
-export function Cons({ children }: { children: React.ReactNode }) {
-  return <div className="mdx-cons"><h4>Cons</h4><ul>{children}</ul></div>
+export function Cons({ children }: { children: ReactNode }) {
+  return (
+    <div className="mdx-cons">
+      <h4>Cons</h4>
+      <ul>{children}</ul>
+    </div>
+  )
 }
 
 // ── Stat ────────────────────────────────────────────────
@@ -41,28 +53,107 @@ export function Stat({
   )
 }
 
-export function StatGroup({ children }: { children: React.ReactNode }) {
+export function StatGroup({ children }: { children: ReactNode }) {
   return <div className="mdx-stat-group">{children}</div>
 }
 
 // ── Table ───────────────────────────────────────────────
 
-export function Table({
-  headers,
-  rows,
-}: {
-  headers: string[]
-  rows: string[][]
-}) {
+type TableColumn =
+  | string
+  | {
+      key: string
+      title?: ReactNode
+      label?: ReactNode
+      header?: ReactNode
+    }
+
+type TableRow = unknown[] | Record<string, unknown>
+
+interface TableProps {
+  headers?: ReactNode[]
+  columns?: TableColumn[]
+  rows?: TableRow[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function renderable(value: unknown): ReactNode {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string' || typeof value === 'number') return value
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (Array.isArray(value))
+    return value.map((item, index) => <span key={index}>{renderable(item)}</span>)
+  if (isValidElement(value)) return value
+  if (isRecord(value)) return JSON.stringify(value)
+  return String(value)
+}
+
+function tableColumnKey(column: TableColumn): string {
+  return typeof column === 'string' ? column : column.key
+}
+
+function tableColumnHeader(column: TableColumn): ReactNode {
+  if (typeof column === 'string') return column
+  return column.title ?? column.label ?? column.header ?? column.key
+}
+
+function deriveObjectKeys(rows: TableRow[] = []): string[] {
+  const firstObjectRow = rows.find(isRecord)
+  return firstObjectRow ? Object.keys(firstObjectRow) : []
+}
+
+function normalizeTable({ headers, columns, rows = [] }: TableProps) {
+  const columnKeys = columns?.map(tableColumnKey) ?? deriveObjectKeys(rows)
+  const normalizedHeaders = headers ?? columns?.map(tableColumnHeader) ?? columnKeys
+  const normalizedRows = rows.map((row) => {
+    if (Array.isArray(row)) return row.map(renderable)
+    if (columnKeys.length > 0) return columnKeys.map((key) => renderable(row[key]))
+    return Object.values(row).map(renderable)
+  })
+
+  return { headers: normalizedHeaders.map(renderable), rows: normalizedRows }
+}
+
+function hasHeaderValue(header: ReactNode): boolean {
+  if (header === null || header === undefined) return false
+  if (typeof header === 'string') return header.trim().length > 0
+  return true
+}
+
+export function Table(props: TableProps) {
+  const { headers, rows } = normalizeTable(props)
+  const hasHeaders = headers.some(hasHeaderValue)
+
+  if (rows.length === 0) {
+    return (
+      <div className="mdx-component-error" role="note">
+        <div className="mdx-component-error-title">Table has no rows</div>
+      </div>
+    )
+  }
+
   return (
     <div className="mdx-table-wrap">
-      <table className="mdx-table">
-        <thead>
-          <tr>{headers.map((h, i) => <th key={i}>{h}</th>)}</tr>
-        </thead>
+      <table className={`mdx-table ${hasHeaders ? 'mdx-table--has-header' : 'mdx-table--plain'}`}>
+        {hasHeaders && (
+          <thead>
+            <tr>
+              {headers.map((h, i) => (
+                <th key={i}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+        )}
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri}>{row.map((cell, ci) => <td key={ci}>{cell}</td>)}</tr>
+            <tr key={ri}>
+              {row.map((cell, ci) => (
+                <td key={ci}>{cell}</td>
+              ))}
+            </tr>
           ))}
         </tbody>
       </table>
@@ -72,11 +163,7 @@ export function Table({
 
 // ── Timeline ────────────────────────────────────────────
 
-export function Timeline({
-  items,
-}: {
-  items: { time: string; title: string; desc?: string }[]
-}) {
+export function Timeline({ items }: { items: { time: string; title: string; desc?: string }[] }) {
   return (
     <div className="mdx-timeline">
       {items.map((item, i) => (
@@ -95,7 +182,11 @@ export function Timeline({
 export function TagList({ tags }: { tags: string[] }) {
   return (
     <div className="mdx-tag-list">
-      {tags.map((tag, i) => <span key={i} className="mdx-tag">{tag}</span>)}
+      {tags.map((tag, i) => (
+        <span key={i} className="mdx-tag">
+          {tag}
+        </span>
+      ))}
     </div>
   )
 }
@@ -106,7 +197,11 @@ export function Progress({ value, label }: { value: number; label?: string }) {
   const pct = Math.max(0, Math.min(100, value))
   return (
     <div className="mdx-progress">
-      {label && <div className="mdx-progress-label">{label} &mdash; {pct}%</div>}
+      {label && (
+        <div className="mdx-progress-label">
+          {label} &mdash; {pct}%
+        </div>
+      )}
       <div className="mdx-progress-bar">
         <div className="mdx-progress-fill" style={{ width: `${pct}%` }} />
       </div>
@@ -124,13 +219,7 @@ const initials = (name: string): string =>
     .join('')
     .toUpperCase()
 
-export function Avatar({
-  name,
-  size,
-}: {
-  name: string
-  size?: 'sm' | 'md' | 'lg'
-}) {
+export function Avatar({ name, size }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
   return (
     <span className={`mdx-avatar${size && size !== 'md' ? ` mdx-avatar--${size}` : ''}`}>
       {initials(name)}
@@ -138,6 +227,6 @@ export function Avatar({
   )
 }
 
-export function AvatarGroup({ children }: { children: React.ReactNode }) {
+export function AvatarGroup({ children }: { children: ReactNode }) {
   return <div className="mdx-avatar-group">{children}</div>
 }

@@ -1,0 +1,89 @@
+---
+tags: ["journal","mdx-manual","template","work-reports"]
+summary: "当需要记录日报，并梳理已完成且可验证的产出、关键事实/数据、未完成原因、阻塞时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 日报
+
+<Section density="relaxed">
+  <Subtitle>日报不是流水账，而是把今日承诺闭环、未闭环原因和明日最小行动放进同一个可信系统。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  David Allen 的 GTD 视角：日报不是流水账，而是把今日承诺闭环、未闭环原因和明日最小行动放进同一个可信系统。
+</Callout>
+
+<Callout type="note" title="结论">
+  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
+</Callout>
+
+<StatGroup>
+  <Stat label="完成项" value={"【数量】"} />
+  <Stat label="风险" value={"【数量】"} />
+  <Stat label="下阶段重点" value={"【数量】"} />
+</StatGroup>
+
+## 汇报内容
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "已完成且可验证的产出",
+        "【填写 已完成且可验证的产出】"
+    ],
+    [
+        "关键事实/数据",
+        "【填写 关键事实/数据】"
+    ],
+    [
+        "未完成原因",
+        "【填写 未完成原因】"
+    ],
+    [
+        "阻塞",
+        "【填写 阻塞】"
+    ],
+    [
+        "明日 Top 3",
+        "【填写 明日 Top 3】"
+    ],
+    [
+        "需要支持",
+        "【填写 需要支持】"
+    ]
+]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "日报", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每条完成项必须有证据、数量、链接或明确交付物"
+    },
+    {
+        "text": "每个阻塞必须写明需要谁在何时提供什么支持"
+    },
+    {
+        "text": "明日计划不得超过 3 条，且每条都能在 1 个工作日内验证"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -775,6 +775,12 @@ pub fn set_workspace_path(app: AppHandle, path: String) -> Result<(), String> {
     config.workspace_path = path.clone();
     save_config(&app, &config)?;
     crate::ai_processor::ensure_workspace_dot_claude(&path);
+    if let Err(e) = crate::topics::restart_topics_watcher(app.clone()) {
+        eprintln!(
+            "[topics] failed to restart watcher after workspace change: {}",
+            e
+        );
+    }
     Ok(())
 }
 

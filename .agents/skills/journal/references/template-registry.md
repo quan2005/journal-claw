@@ -2,6 +2,11 @@
 
 Use this registry before loading a family template. Pick one primary family and one subtype.
 
+After classification, load the matching concrete example when it exists:
+`template-examples/{family}/{subtype}.mdx`.
+
+Use example pages as structural references only. Replace their frontmatter, source paths, placeholders, and sample wording with the actual material.
+
 | Family | Subtypes | Recognition signals | Reference |
 |---|---|---|---|
 | meeting-collaboration | general-meeting, decision-review, progress-sync, interview-1on1, retrospective, incident-review, brainstorm, training-share | multiple speakers, agenda, discussion, disagreement, decisions, action items, meeting transcript | `templates/meeting-collaboration.md` |

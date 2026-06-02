@@ -1,5 +1,7 @@
 // src/components/TopicTree.tsx
 import { type TopicEntry } from '../lib/tauri'
+import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
+import { FileTypeIcon } from './FileTypeIcon'
 
 interface TopicTreeProps {
   entries: TopicEntry[]
@@ -45,6 +47,7 @@ export function TopicTree({
     const isLoading = childState?.loading ?? false
     const isSelected = entry.path === selectedPath
     const rowIndent = 8 + indent * 16
+    const iconKind = isDir ? 'folder' : fileTypeIconKindFromName(entry.name)
 
     return (
       <div key={entry.path}>
@@ -100,37 +103,7 @@ export function TopicTree({
             <span style={{ width: 10, flexShrink: 0 }} />
           )}
 
-          {/* Folder or File icon */}
-          {isDir ? (
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ flexShrink: 0, opacity: 0.5 }}
-            >
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-          ) : (
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ flexShrink: 0, opacity: 0.5 }}
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-          )}
+          <FileTypeIcon kind={iconKind} selected={isSelected} />
 
           {/* Name */}
           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>

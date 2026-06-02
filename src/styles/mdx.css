@@ -25,20 +25,22 @@
 .mdx-content :where(p, li) {
   text-wrap: pretty;
 }
-.mdx-content :where(
-  .mdx-chart,
-  .mdx-mockup,
-  .mdx-diagram-frame,
-  .mdx-kanban,
-  .mdx-table-wrap,
-  .mdx-device-v2,
-  .mdx-grid,
-  .mdx-split,
-  .mdx-stat-group,
-  .mdx-cards,
-  .mdx-media-card,
-  .mdx-image
-) {
+.mdx-content
+  :where(
+    .mdx-chart,
+    .mdx-mockup,
+    .mdx-diagram-frame,
+    .mdx-math--block,
+    .mdx-kanban,
+    .mdx-table-wrap,
+    .mdx-device-v2,
+    .mdx-grid,
+    .mdx-split,
+    .mdx-stat-group,
+    .mdx-cards,
+    .mdx-media-card,
+    .mdx-image
+  ) {
   width: 100%;
   max-width: 100%;
 }
@@ -86,6 +88,62 @@
 }
 .mdx-component-error-message {
   margin-top: var(--space-1);
+  color: var(--item-meta);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+.mdx-math {
+  color: var(--md-text, var(--item-text));
+}
+.mdx-math--inline {
+  display: inline;
+  font-size: 1em;
+}
+.mdx-math--block {
+  display: block;
+  margin: var(--space-4) 0;
+  padding: var(--space-2) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.mdx-math--block .katex-display {
+  margin: 0;
+}
+.mdx-math .katex {
+  color: inherit;
+  font-size: 1.02em;
+}
+.mdx-math-fallback {
+  border: 1px solid color-mix(in srgb, var(--status-danger, #b5312a) 24%, var(--mdx-border));
+  background: color-mix(in srgb, var(--status-danger, #b5312a) 5%, var(--mdx-surface));
+  color: var(--md-text, var(--item-text));
+}
+.mdx-math-fallback--inline {
+  display: inline;
+  padding: 0 0.25em;
+  border-radius: var(--mdx-radius-sm);
+  color: var(--status-danger, #b5312a);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+.mdx-math-fallback--block {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--mdx-radius);
+}
+.mdx-math-fallback-title {
+  color: var(--status-danger, #b5312a);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+.mdx-math-fallback--block code {
+  display: block;
+  margin-top: var(--space-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mdx-math-fallback-message {
+  margin-top: var(--space-2);
   color: var(--item-meta);
   font-size: var(--text-xs);
   overflow-wrap: anywhere;
@@ -447,33 +505,67 @@
 .mdx-table-wrap {
   overflow-x: auto;
   margin: var(--space-5) 0;
-  border: 1px solid var(--mdx-border);
   border-radius: var(--mdx-radius);
 }
 .mdx-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--text-sm);
   min-width: 520px;
+  overflow: hidden;
+  border-radius: var(--mdx-radius);
+}
+.mdx-table th,
+.mdx-table td {
+  border: 0;
+  border-bottom: 1px solid var(--mdx-border);
+}
+.mdx-table thead th,
+.mdx-table--plain tbody tr:first-child td {
+  border-top: 1px solid var(--mdx-border);
+}
+.mdx-table th:first-child,
+.mdx-table td:first-child {
+  border-left: 1px solid var(--mdx-border);
+}
+.mdx-table th:last-child,
+.mdx-table td:last-child {
+  border-right: 1px solid var(--mdx-border);
+}
+.mdx-table th + th,
+.mdx-table td + td {
+  border-left: 1px solid var(--mdx-border);
 }
 .mdx-table th {
   text-align: left;
   font-weight: var(--font-semibold);
-  color: var(--text-secondary, #6a7278);
+  color: var(--item-meta, #6a7278);
   padding: var(--space-3) var(--space-4);
-  border: 0;
-  border-bottom: 1px solid var(--mdx-border);
   background: var(--mdx-surface-muted);
+}
+.mdx-table--has-header thead th:first-child,
+.mdx-table--plain tbody tr:first-child td:first-child {
+  border-top-left-radius: var(--mdx-radius);
+}
+.mdx-table--has-header thead th:last-child,
+.mdx-table--plain tbody tr:first-child td:last-child {
+  border-top-right-radius: var(--mdx-radius);
+}
+.mdx-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--mdx-radius);
+}
+.mdx-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--mdx-radius);
 }
 .mdx-table td {
   padding: var(--space-3) var(--space-4);
-  border: 0;
-  border-bottom: 1px solid var(--mdx-border);
   color: var(--md-text);
   line-height: 1.55;
+  background: color-mix(in srgb, var(--mdx-surface) 72%, transparent);
 }
-.mdx-table tbody tr:last-child td {
-  border-bottom: 0;
+.mdx-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--mdx-surface-muted) 76%, transparent);
 }
 
 /* Timeline */

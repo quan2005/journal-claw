@@ -1,0 +1,90 @@
+---
+tags: ["journal","mdx-manual","template","learning-notes"]
+summary: "当需要记录解题记录，并梳理问题重述、已知/未知、约束条件、尝试记录时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 解题记录
+
+<Section density="relaxed">
+  <Subtitle>解题笔记要保留失败尝试，因为迁移能力来自看见路径选择和错因。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  George Polya 的解题四步法视角：解题笔记要保留失败尝试，因为迁移能力来自看见路径选择和错因。
+</Callout>
+
+## 理解验证
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "问题重述",
+        "【填写 问题重述】"
+    ],
+    [
+        "已知/未知",
+        "【填写 已知/未知】"
+    ],
+    [
+        "约束条件",
+        "【填写 约束条件】"
+    ],
+    [
+        "尝试记录",
+        "【填写 尝试记录】"
+    ],
+    [
+        "最终解法",
+        "【填写 最终解法】"
+    ],
+    [
+        "检验方式",
+        "【填写 检验方式】"
+    ],
+    [
+        "错因与规律",
+        "【填写 错因与规律】"
+    ],
+    [
+        "类似题迁移",
+        "【填写 类似题迁移】"
+    ]
+]}
+/>
+
+<ComparisonMatrix
+  columns={["原解释/尝试", "问题或反例", "修正版", "迁移场景"]}
+  rows={[
+    { label: "【轮次 1】", values: ["【原解释或尝试】", "【卡壳点】", "【修正版】", "【新例子或迁移题】"] },
+  ]}
+/>
+
+<EvidenceCard title="来源或题目证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="理解缺口与修正">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<Checklist
+  items={[
+    {
+        "text": "必须先重述问题，并列出已知、未知和约束，才能写解法"
+    },
+    {
+        "text": "必须写至少一个类似题或工作中的同构问题"
+    },
+    {
+        "text": "必须记录错误尝试及错因"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

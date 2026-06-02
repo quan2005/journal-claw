@@ -12,7 +12,7 @@ description: "统一笔记整理 skill。用户提交录音、粘贴文本、文
 | reads | `yyMM/raw/*`, existing `yyMM/*.mdx`, `identity/*.md`, `todos.md` when relevant |
 | writes | `yyMM/*.mdx`; `identity/*.md` only after loading `/identity-profiling` |
 | format | Markdown-first `.mdx` with YAML frontmatter |
-| references | load only the registry and the relevant family/template/component files |
+| references | load only the registry and the relevant family/template/example/component files |
 
 ## Required Flow
 
@@ -20,10 +20,17 @@ description: "统一笔记整理 skill。用户提交录音、粘贴文本、文
 2. Read `references/template-registry.md`.
 3. Classify exactly one primary family and one subtype. If uncertain, choose the closest family and mark uncertainty in the note.
 4. Load the relevant `references/templates/{family}.md`.
-5. Load `references/writing-rules.md` for source, quote, summary, uncertainty, and append rules.
-6. Load `references/component-recipes.md` only when semantic components improve clarity.
-7. Create or append a `.mdx` entry. On append, merge `sources` and update `summary`.
-8. Load `/identity-profiling` before creating or editing identity files.
+5. When available, load only the matching `references/template-examples/{family}/{subtype}.mdx` as the concrete structure reference.
+6. Load `references/writing-rules.md` for source, quote, summary, uncertainty, and append rules.
+7. Load `references/component-recipes.md` only when semantic components improve clarity.
+8. Create or append a `.mdx` entry. On append, merge `sources` and update `summary`.
+9. Load `/identity-profiling` before creating or editing identity files.
+
+Template example rule:
+
+- Use `template-examples` as ready-to-use structure, fields, components, expert calibration, and quality checks.
+- Do not copy the example frontmatter literally. Replace `tags`, `summary`, and `sources` with the actual note metadata.
+- Load only the exact `{family}/{subtype}.mdx` example unless comparing neighboring subtypes is necessary.
 
 ## Families
 

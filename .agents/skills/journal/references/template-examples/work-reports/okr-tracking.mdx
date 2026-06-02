@@ -1,0 +1,93 @@
+---
+tags: ["journal","mdx-manual","template","work-reports"]
+summary: "当需要记录OKR 跟踪，并梳理目标结果、KR 基线/当前/目标、当前进度、信心依据时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# OKR 跟踪
+
+<Section density="relaxed">
+  <Subtitle>用于 OKR 跟踪：记录目标状态、KR 进度、信心、阻塞和调整动作。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  John Doerr 的 OKR 视角：OKR 跟踪不是任务进度表，而是用可量化 KR、信心指数和调整动作判断目标是否仍可达成。
+</Callout>
+
+<Callout type="note" title="结论">
+  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
+</Callout>
+
+<StatGroup>
+  <Stat label="完成项" value={"【数量】"} />
+  <Stat label="风险" value={"【数量】"} />
+  <Stat label="下阶段重点" value={"【数量】"} />
+</StatGroup>
+
+## 汇报内容
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "目标结果",
+        "【填写 目标结果】"
+    ],
+    [
+        "KR 基线/当前/目标",
+        "【填写 KR 基线/当前/目标】"
+    ],
+    [
+        "当前进度",
+        "【填写 当前进度】"
+    ],
+    [
+        "信心依据",
+        "【填写 信心依据】"
+    ],
+    [
+        "阻塞",
+        "【填写 阻塞】"
+    ],
+    [
+        "KR 调整请求",
+        "【填写 KR 调整请求】"
+    ],
+    [
+        "下一步行动",
+        "【填写 下一步行动】"
+    ]
+]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "OKR 跟踪", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个 KR 必须有可量化目标和当前值"
+    },
+    {
+        "text": "信心指数必须写明依据，不能只有高/中/低"
+    },
+    {
+        "text": "每条下一步行动必须绑定到一个具体 KR"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

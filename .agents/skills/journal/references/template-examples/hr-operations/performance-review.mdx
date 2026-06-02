@@ -1,0 +1,102 @@
+---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "当需要记录绩效评估记录，并梳理目标/KR 与权重、结果证据与行为例子、差距/影响/根因、校准状态时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 绩效评估记录
+
+<Section density="relaxed">
+  <Subtitle>绩效不是评价人格，而是把目标结果、行为证据、业务影响、反馈协议和成长承诺分开记录。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  绩效校准与管理教练视角：绩效不是评价人格，而是把目标结果、行为证据、业务影响、反馈协议和成长承诺分开记录。
+</Callout>
+
+## 证据与判断
+
+<Flow>
+  <StatusBadge status="【当前阶段/校准状态】" tone="warning" />
+  <StatusBadge status="【目标状态】" tone="success" />
+</Flow>
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "目标/KR 与权重",
+        "【填写 目标/KR 与权重】"
+    ],
+    [
+        "结果证据与行为例子",
+        "【填写 结果证据与行为例子】"
+    ],
+    [
+        "差距/影响/根因",
+        "【填写 差距/影响/根因】"
+    ],
+    [
+        "校准状态",
+        "【填写 校准状态】"
+    ],
+    [
+        "反馈负责人",
+        "【填写 反馈负责人】"
+    ],
+    [
+        "成长计划里程碑",
+        "【填写 成长计划里程碑】"
+    ],
+    [
+        "下次 review 日期",
+        "【填写 下次 review 日期】"
+    ]
+]}
+/>
+
+<EvidenceCard title="行为证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="评估判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<DecisionRecord
+  question="这次记录需要形成什么判断？"
+  decision="【hire / no-hire / hold 或绩效结论】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<ActionTable
+  items={[
+    { action: "【背调、补面、反馈或成长动作】", owner: "【负责人】", due: "【截止时间】", source: "绩效评估记录", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个评价或评级都有对应目标、证据日期和影响说明"
+    },
+    {
+        "text": "每个差距都有具体行为例子、改进动作和支持人"
+    },
+    {
+        "text": "成长计划至少包含负责人、截止时间、状态和下次检查日期"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

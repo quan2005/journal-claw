@@ -1,0 +1,92 @@
+---
+tags: ["journal","mdx-manual","template","learning-notes"]
+summary: "当需要记录文献矩阵，并梳理主题维度、论文/年份、研究问题、方法/样本时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 文献矩阵
+
+<Section density="relaxed">
+  <Subtitle>文献矩阵的目标是发现共识、冲突和缺口，而不是把多篇论文笔记拼成表格。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Webster & Watson 的概念中心文献综述视角：文献矩阵的目标是发现共识、冲突和缺口，而不是把多篇论文笔记拼成表格。
+</Callout>
+
+## 文献矩阵
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "主题维度",
+        "【填写 主题维度】"
+    ],
+    [
+        "论文/年份",
+        "【填写 论文/年份】"
+    ],
+    [
+        "研究问题",
+        "【填写 研究问题】"
+    ],
+    [
+        "方法/样本",
+        "【填写 方法/样本】"
+    ],
+    [
+        "发现",
+        "【填写 发现】"
+    ],
+    [
+        "限制",
+        "【填写 限制】"
+    ],
+    [
+        "共识",
+        "【填写 共识】"
+    ],
+    [
+        "冲突/研究缺口",
+        "【填写 冲突/研究缺口】"
+    ]
+]}
+/>
+
+<ComparisonMatrix
+  columns={["研究问题", "方法/样本", "发现", "限制", "可复用点"]}
+  rows={[
+    { label: "【论文 A】", values: ["【问题】", "【方法】", "【发现】", "【限制】", "【复用点】"] },
+    { label: "【论文 B】", values: ["【问题】", "【方法】", "【发现】", "【限制】", "【复用点】"] },
+    { label: "【论文 C】", values: ["【问题】", "【方法】", "【发现】", "【限制】", "【复用点】"] },
+  ]}
+/>
+
+<EvidenceCard title="关键论文证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="共识、冲突与研究缺口">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<Checklist
+  items={[
+    {
+        "text": "矩阵至少包含 3 篇文献，并按同一组列比较"
+    },
+    {
+        "text": "必须产出至少一个可复用框架、方法、指标或研究假设"
+    },
+    {
+        "text": "必须写出下一轮阅读顺序以及每篇要补的缺口"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

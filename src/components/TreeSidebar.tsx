@@ -32,6 +32,66 @@ interface TreeSidebarProps {
 
 // ── SectionHeader ──────────────────────────────────────────────────────────────
 
+const TOP_LEVEL_LEADING_SLOT_WIDTH = 9
+const COLLAPSED_SECTIONS_STORAGE_KEY = 'journal_tree_sidebar_collapsed_v1'
+
+const TREE_SECTION_HEADER_CSS = `
+  .tree-section-header:hover .tree-section-collapse-button,
+  .tree-section-header:focus-within .tree-section-collapse-button {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateX(0) !important;
+  }
+
+  .tree-section-collapse-button:hover {
+    background: var(--item-hover-bg) !important;
+    color: var(--item-text) !important;
+  }
+
+  .tree-section-collapse-button:focus-visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateX(0) !important;
+    outline: 1px solid color-mix(in srgb, var(--record-btn) 60%, transparent);
+    outline-offset: 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tree-section-collapse-button,
+    .tree-section-collapse-icon {
+      transition: none !important;
+    }
+  }
+`
+
+let _sectionHeaderCssInjected = false
+function injectTreeSectionHeaderCss() {
+  if (_sectionHeaderCssInjected) return
+  _sectionHeaderCssInjected = true
+  const style = document.createElement('style')
+  style.textContent = TREE_SECTION_HEADER_CSS
+  document.head.appendChild(style)
+}
+
+function loadCollapsedSections(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_SECTIONS_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(parsed)) return new Set()
+    return new Set(parsed.filter((key): key is string => typeof key === 'string'))
+  } catch {
+    return new Set()
+  }
+}
+
+function saveCollapsedSections(collapsed: Set<string>) {
+  try {
+    localStorage.setItem(COLLAPSED_SECTIONS_STORAGE_KEY, JSON.stringify([...collapsed].sort()))
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
 function SectionHeader({
   collapsed,
   onToggle,
@@ -45,15 +105,19 @@ function SectionHeader({
   count?: number | string
   icon: React.ReactNode
 }) {
+  injectTreeSectionHeaderCss()
+
   return (
     <div
+      className="tree-section-header"
       onClick={onToggle}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '14px 6px 7px',
+        gap: 0,
+        padding: '14px 6px 7px 0',
         cursor: 'pointer',
+        userSelect: 'none' as const,
         position: 'sticky' as const,
         top: 0,
         zIndex: 1,
@@ -61,34 +125,21 @@ function SectionHeader({
         boxShadow: '0 1px 0 color-mix(in srgb, var(--divider) 42%, transparent)',
       }}
     >
-      {/* Chevron */}
+      {/* Alignment slot: keeps the section row restrained without reserving the full old chevron space. */}
+      <span style={{ width: TOP_LEVEL_LEADING_SLOT_WIDTH, flexShrink: 0 }} />
+
+      {/* Icon */}
       <span
         style={{
-          width: 12,
-          height: 12,
+          width: 13,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          transition: 'transform 0.15s ease-out',
-          transform: collapsed ? 'rotate(-90deg)' : 'none',
-          color: 'var(--duration-text)',
+          color: 'var(--item-meta)',
+          opacity: 0.78,
         }}
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          width="12"
-          height="12"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </span>
-
-      {/* Icon */}
-      <span style={{ display: 'flex', alignItems: 'center', color: 'var(--item-meta)' }}>
         {icon}
       </span>
 
@@ -99,10 +150,70 @@ function SectionHeader({
           fontWeight: 600,
           color: 'var(--item-meta)',
           letterSpacing: '0.02em',
+          marginLeft: 6,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}
       >
         {label}
       </span>
+
+      {/* Collapse button */}
+      <button
+        type="button"
+        className="tree-section-collapse-button"
+        aria-label={`${collapsed ? '展开' : '折叠'}${label}`}
+        aria-expanded={!collapsed}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggle()
+        }}
+        style={{
+          width: 22,
+          height: 22,
+          marginLeft: 4,
+          padding: 0,
+          border: 'none',
+          borderRadius: 4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          cursor: 'pointer',
+          color: 'var(--duration-text)',
+          background: 'transparent',
+          opacity: 0,
+          pointerEvents: 'none' as const,
+          transform: 'translateX(3px)',
+          transition:
+            'opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out), color 0.15s var(--ease-out), background-color 0.15s var(--ease-out)',
+        }}
+      >
+        <span
+          className="tree-section-collapse-icon"
+          style={{
+            width: 12,
+            height: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.15s ease-out',
+            transform: collapsed ? 'rotate(-90deg)' : 'none',
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            width="12"
+            height="12"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
 
       {/* Count */}
       {count !== undefined && (
@@ -111,6 +222,8 @@ function SectionHeader({
             fontSize: '0.6875rem',
             fontWeight: 400,
             color: 'var(--duration-text)',
+            marginLeft: 'auto',
+            textAlign: 'right' as const,
           }}
         >
           {count}
@@ -175,7 +288,7 @@ function ClockIcon() {
   )
 }
 
-function FolderIcon() {
+function TopicIcon() {
   return (
     <svg
       width="13"
@@ -187,7 +300,10 @@ function FolderIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      <path d="M6 3h11a2 2 0 0 1 2 2v16H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      <path d="M8 3v18" />
+      <path d="M11 8h5" />
+      <path d="M11 12h5" />
     </svg>
   )
 }
@@ -213,7 +329,7 @@ export function TreeSidebar({
   automationSelected,
   onSelectAutomation,
 }: TreeSidebarProps) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsedSections)
   const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
   const { items: pinnedItems, pin, unpin, refresh: refreshPinned } = usePinned()
   const { dirs, loading: topicsLoading, load: loadTopics, toggleDir } = useTopics()
@@ -234,6 +350,7 @@ export function TreeSidebar({
       } else {
         next.add(key)
       }
+      saveCollapsedSections(next)
       return next
     })
   }, [])
@@ -245,12 +362,11 @@ export function TreeSidebar({
   const handleSelect = useCallback(
     (sel: TreeSelection) => {
       if (selected && selected.type === sel.type && selected.path === sel.path) {
-        onDeselect()
-      } else {
-        onSelect(sel)
+        return
       }
+      onSelect(sel)
     },
-    [selected, onSelect, onDeselect],
+    [selected, onSelect],
   )
 
   const isSelected = useCallback(
@@ -364,7 +480,7 @@ export function TreeSidebar({
     >
       {/* ════════════════════════════════════════════════════════════════════
           Ideas Entry (想法) — permanent, non-collapsible
-          Matches SectionHeader layout: indicator(12) + gap(6) + icon(13) + gap(6) + label
+          Matches SectionHeader layout: leading slot + icon(13) + label margin.
           ════════════════════════════════════════════════════════════════════ */}
       <div
         onClick={onSelectIdeas}
@@ -381,8 +497,8 @@ export function TreeSidebar({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          padding: '10px 6px',
+          gap: 0,
+          padding: '10px 0',
           margin: '4px 0 6px',
           cursor: 'pointer',
           userSelect: 'none' as const,
@@ -391,11 +507,11 @@ export function TreeSidebar({
           transition: 'background-color 0.15s var(--ease-out)',
         }}
       >
-        {/* Indicator slot — 12px wide, same as section chevron slot.
+        {/* Indicator slot — same width as section leading slot.
             Contains a 3px bar that grows to 16px when selected. */}
         <span
           style={{
-            width: 12,
+            width: TOP_LEVEL_LEADING_SLOT_WIDTH,
             height: 12,
             display: 'flex',
             alignItems: 'center',
@@ -449,6 +565,7 @@ export function TreeSidebar({
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
             color: ideasSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+            marginLeft: 6,
             transition: 'color 0.15s var(--ease-out)',
           }}
         >
@@ -487,8 +604,8 @@ export function TreeSidebar({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          padding: '10px 6px',
+          gap: 0,
+          padding: '10px 0',
           margin: '0 0 6px',
           cursor: 'pointer',
           userSelect: 'none' as const,
@@ -499,7 +616,7 @@ export function TreeSidebar({
       >
         <span
           style={{
-            width: 12,
+            width: TOP_LEVEL_LEADING_SLOT_WIDTH,
             height: 12,
             display: 'flex',
             alignItems: 'center',
@@ -549,6 +666,7 @@ export function TreeSidebar({
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
             color: automationSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+            marginLeft: 6,
             transition: 'color 0.15s var(--ease-out)',
           }}
         >
@@ -743,7 +861,7 @@ export function TreeSidebar({
           collapsed={isCollapsed('topics')}
           onToggle={() => toggleSection('topics')}
           label="专题"
-          icon={<FolderIcon />}
+          icon={<TopicIcon />}
         />
         {!isCollapsed('topics') && (
           <>
@@ -771,6 +889,9 @@ export function TreeSidebar({
                   handleSelect({
                     type: entry.is_dir ? 'topic' : 'topic-file',
                     path: entry.path,
+                    name: entry.name,
+                    created_secs: entry.created_secs,
+                    mtime_secs: entry.mtime_secs,
                   })
                 }
                 onAt={(path) => onAtRef(path)}

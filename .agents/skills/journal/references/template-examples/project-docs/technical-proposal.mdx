@@ -1,0 +1,111 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录技术方案，并梳理问题、不可变约束、方案选项、架构草图/数据流时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 技术方案
+
+<Section density="relaxed">
+  <Subtitle>技术方案应记录约束下的选择、备选项、后果、上线与回滚，不是架构说明散文。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Michael Nygard 的 ADR 视角：技术方案应记录约束下的选择、备选项、后果、上线与回滚，不是架构说明散文。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 目标、约束与方案
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "问题",
+        "【填写 问题】"
+    ],
+    [
+        "不可变约束",
+        "【填写 不可变约束】"
+    ],
+    [
+        "方案选项",
+        "【填写 方案选项】"
+    ],
+    [
+        "架构草图/数据流",
+        "【填写 架构草图/数据流】"
+    ],
+    [
+        "决策状态",
+        "【填写 决策状态】"
+    ],
+    [
+        "后果/权衡",
+        "【填写 后果/权衡】"
+    ],
+    [
+        "验证计划",
+        "【填写 验证计划】"
+    ],
+    [
+        "回滚方案",
+        "【填写 回滚方案】"
+    ]
+]}
+/>
+
+<OptionMatrix
+  columns={["收益", "代价", "适用条件", "风险"]}
+  rows={[
+    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+  ]}
+/>
+
+<DecisionRecord
+  question="这份技术方案最终建议什么？"
+  decision="【推荐方案与决策状态】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【上线、迁移或回滚风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【补充验证或推进上线】", owner: "【负责人】", due: "【截止时间】", source: "技术方案", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "至少两个方案必须写出取舍"
+    },
+    {
+        "text": "最终决策必须有负责人和状态"
+    },
+    {
+        "text": "上线计划必须同时写验证方式和回滚触发条件"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

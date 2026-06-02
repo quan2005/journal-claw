@@ -1,0 +1,106 @@
+---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "当需要记录招聘面试记录，并梳理岗位/级别/胜任力模型、候选人背景与约束、面试阶段状态、面试问题与能力维度时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 招聘面试记录
+
+<Section density="relaxed">
+  <Subtitle>用于面试记录：记录候选人背景、证据、风险、判断和后续动作。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  结构化招聘专家的胜任力证据视角：面试记录的价值不是印象总结，而是把岗位胜任力、行为证据、录用风险和后续验证动作绑在一起。
+</Callout>
+
+## 证据与判断
+
+<Flow>
+  <StatusBadge status="【当前阶段/校准状态】" tone="warning" />
+  <StatusBadge status="【目标状态】" tone="success" />
+</Flow>
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "岗位/级别/胜任力模型",
+        "【填写 岗位/级别/胜任力模型】"
+    ],
+    [
+        "候选人背景与约束",
+        "【填写 候选人背景与约束】"
+    ],
+    [
+        "面试阶段状态",
+        "【填写 面试阶段状态】"
+    ],
+    [
+        "面试问题与能力维度",
+        "【填写 面试问题与能力维度】"
+    ],
+    [
+        "STAR 证据",
+        "【填写 STAR 证据】"
+    ],
+    [
+        "录用风险与验证计划",
+        "【填写 录用风险与验证计划】"
+    ],
+    [
+        "决策负责人",
+        "【填写 决策负责人】"
+    ],
+    [
+        "跟进截止时间",
+        "【填写 跟进截止时间】"
+    ]
+]}
+/>
+
+<EvidenceCard title="行为证据" source="【来源】">
+  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
+</EvidenceCard>
+
+<InsightCard title="评估判断">
+  【从证据推出判断，并写清限制、假设或下一步验证。】
+</InsightCard>
+
+<DecisionRecord
+  question="这次记录需要形成什么判断？"
+  decision="【hire / no-hire / hold 或绩效结论】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+<ActionTable
+  items={[
+    { action: "【背调、补面、反馈或成长动作】", owner: "【负责人】", due: "【截止时间】", source: "招聘面试记录", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个能力判断至少有一条可追溯证据或明确写为假设"
+    },
+    {
+        "text": "最终决策包含负责人、决定日期、下一步动作和截止时间"
+    },
+    {
+        "text": "每个录用风险都有验证动作、责任人和状态"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

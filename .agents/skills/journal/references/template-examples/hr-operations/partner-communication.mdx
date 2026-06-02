@@ -1,0 +1,94 @@
+---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "当需要记录合作伙伴沟通记录，并梳理共同目标/衡量方式、双方资源承诺、双方分工/RACI、依赖与决策权时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 合作伙伴沟通记录
+
+<Section density="relaxed">
+  <Subtitle>合作沟通要把共同目标、双方承诺、资源依赖、未决请求和升级路径固定下来，避免只留下寒暄纪要。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  战略合作运营专家的承诺闭环视角：合作沟通要把共同目标、双方承诺、资源依赖、未决请求和升级路径固定下来，避免只留下寒暄纪要。
+</Callout>
+
+<Flow>
+  <StatusBadge status="【当前状态】" tone="warning" />
+  <StatusBadge status="【目标状态】" tone="success" />
+</Flow>
+
+## 运营记录
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "共同目标/衡量方式",
+        "【填写 共同目标/衡量方式】"
+    ],
+    [
+        "双方资源承诺",
+        "【填写 双方资源承诺】"
+    ],
+    [
+        "双方分工/RACI",
+        "【填写 双方分工/RACI】"
+    ],
+    [
+        "依赖与决策权",
+        "【填写 依赖与决策权】"
+    ],
+    [
+        "未决请求",
+        "【填写 未决请求】"
+    ],
+    [
+        "风险与升级路径",
+        "【填写 风险与升级路径】"
+    ],
+    [
+        "下一次同步时间",
+        "【填写 下一次同步时间】"
+    ]
+]}
+/>
+
+<RACI
+  rows={[
+    { work: "【关键事项】", responsible: "【我方负责人】", accountable: "【决策人】", consulted: "【对方/协作方】", informed: "【需同步对象】" },
+  ]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【合作或运营风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "合作伙伴沟通记录", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "每个合作承诺都标明我方负责人、对方负责人、截止时间和状态"
+    },
+    {
+        "text": "每个未决请求都有决策人、所需材料和目标决定日期"
+    },
+    {
+        "text": "每个合作风险都有依赖方、升级路径和下一步动作"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

@@ -1,13 +1,17 @@
 export type FileKind =
   | 'audio'
+  | 'video'
   | 'text'
   | 'markdown'
   | 'pdf'
   | 'docx'
+  | 'spreadsheet'
+  | 'presentation'
   | 'image'
   | 'html'
   | 'code'
   | 'csv'
+  | 'archive'
   | 'other'
 
 /** Classify a file by its extension (mirrors Rust material_kind) */
@@ -21,6 +25,13 @@ export function fileKindFromName(filename: string): FileKind {
     case 'ogg':
     case 'flac':
       return 'audio'
+    case 'mp4':
+    case 'mov':
+    case 'm4v':
+    case 'avi':
+    case 'mkv':
+    case 'webm':
+      return 'video'
     case 'txt':
       return 'text'
     case 'md':
@@ -32,6 +43,14 @@ export function fileKindFromName(filename: string): FileKind {
     case 'docx':
     case 'doc':
       return 'docx'
+    case 'xlsx':
+    case 'xls':
+    case 'numbers':
+      return 'spreadsheet'
+    case 'pptx':
+    case 'ppt':
+    case 'key':
+      return 'presentation'
     case 'png':
     case 'jpg':
     case 'jpeg':
@@ -45,6 +64,12 @@ export function fileKindFromName(filename: string): FileKind {
       return 'html'
     case 'csv':
       return 'csv'
+    case 'zip':
+    case 'rar':
+    case '7z':
+    case 'tar':
+    case 'gz':
+      return 'archive'
     case 'ts':
     case 'tsx':
     case 'js':

@@ -240,7 +240,7 @@ describe('Journal content frame contract', () => {
     const mdProseRule = markdownCss.match(/\.md-content > :where\([^)]*\)\s*\{[^}]*\}/)?.[0] ?? ''
     const mdxContentRule = mdxCss.match(/\.mdx-content\s*\{[^}]*\}/)?.[0] ?? ''
     const mdxWideRule =
-      mdxCss.match(/\.mdx-content :where\(\s*\.mdx-chart[\s\S]*?\)\s*\{[^}]*\}/)?.[0] ?? ''
+      mdxCss.match(/\.mdx-content\s+:where\(\s*\.mdx-chart[\s\S]*?\)\s*\{[^}]*\}/)?.[0] ?? ''
     const mdBodyRule = css.match(/\.md-body\s*\{[^}]*\}/)?.[0] ?? ''
 
     expect(mdContentRule).toContain('width: 100%')
@@ -249,7 +249,9 @@ describe('Journal content frame contract', () => {
     expect(mdxContentRule).toContain('max-width: var(--journal-readable-max)')
     expect(mdxWideRule).toContain('max-width: 100%')
     expect(mdBodyRule).toContain('max-width: var(--journal-readable-max)')
-    expect(detailViewSource).toContain("padding: isHtmlContent ? 0 : 'var(--journal-detail-padding)'")
+    expect(detailViewSource).toContain(
+      "padding: isHtmlContent ? 0 : 'var(--journal-detail-padding)'",
+    )
     expect(detailViewSource).not.toContain('journal-readable-shell-max')
     expect(detailViewSource).toContain("boxSizing: isHtmlContent ? undefined : 'border-box'")
   })
@@ -290,13 +292,10 @@ describe('Journal content frame contract', () => {
     const statsRule =
       css.match(/\.automation-stats,\s*\.ideas-workbench-stats\s*\{[^}]*\}/)?.[0] ?? ''
     const statItemRule =
-      css.match(
-        /\.automation-stats span,\s*\.ideas-workbench-stats span\s*\{[^}]*\}/,
-      )?.[0] ?? ''
+      css.match(/\.automation-stats span,\s*\.ideas-workbench-stats span\s*\{[^}]*\}/)?.[0] ?? ''
     const statValueRule =
-      css.match(
-        /\.automation-stats strong,\s*\.ideas-workbench-stats strong\s*\{[^}]*\}/,
-      )?.[0] ?? ''
+      css.match(/\.automation-stats strong,\s*\.ideas-workbench-stats strong\s*\{[^}]*\}/)?.[0] ??
+      ''
 
     expect(statsRule).toContain('width: min(100%, 676px)')
     expect(statsRule).toContain('min-height: 50px')
@@ -304,6 +303,22 @@ describe('Journal content frame contract', () => {
     expect(statItemRule).toContain('justify-content: center')
     expect(statItemRule).toContain('padding: 0 20px')
     expect(statValueRule).toContain('font-size: var(--text-md)')
+  })
+})
+
+describe('MDX table rendering contract', () => {
+  it('keeps the header as the first visible table band', () => {
+    const tableWrapRule = mdxCss.match(/\.mdx-table-wrap\s*\{[^}]*\}/)?.[0] ?? ''
+    const tableRule = mdxCss.match(/\.mdx-table\s*\{[^}]*\}/)?.[0] ?? ''
+
+    expect(tableWrapRule).not.toContain('border:')
+    expect(mdxCss).not.toContain('.mdx-table-wrap::after')
+    expect(tableRule).toContain('border-spacing: 0')
+    expect(mdxCss).toContain('.mdx-table thead th')
+    expect(mdxCss).toContain('border-top: 1px solid var(--mdx-border)')
+    expect(mdxCss).toContain('.mdx-table--plain tbody tr:first-child td')
+    expect(mdxCss).toContain('.mdx-table th + th')
+    expect(mdxCss).toContain('.mdx-table tbody tr:hover td')
   })
 })
 

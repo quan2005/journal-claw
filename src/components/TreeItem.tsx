@@ -3,6 +3,8 @@ import type { JournalEntry, IdentityEntry } from '../types'
 import type { TopicEntry } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
 import { useTextOverflow } from '../hooks/useTextOverflow'
+import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
+import { FileTypeIcon } from './FileTypeIcon'
 
 // ── Hover CSS for action buttons ───────────────────────────────────────────────
 // Inline styles can't express :hover, so we inject a minimal <style> once.
@@ -91,15 +93,18 @@ function ItemBlock({
   itemType,
   identity,
   entry,
+  topicEntry,
   isToday,
+  isSelected,
 }: {
   itemType: TreeItemProps['itemType']
   identity?: IdentityEntry
   entry?: JournalEntry
+  topicEntry?: TopicEntry
   isToday?: boolean
+  isSelected: boolean
 }) {
-  // Topic file: SVG document icon
-  if (itemType === 'topic-file') {
+  if (itemType === 'topic-file' && topicEntry) {
     return (
       <div
         style={{
@@ -111,22 +116,7 @@ function ItemBlock({
           justifyContent: 'center',
         }}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--item-meta)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <polyline points="10 9 9 9 8 9" />
-        </svg>
+        <FileTypeIcon kind={fileTypeIconKindFromName(topicEntry.name)} selected={isSelected} />
       </div>
     )
   }
@@ -289,7 +279,14 @@ export function TreeItem({
         }}
       >
         {/* Block (identity initial / journal date / topic icon) */}
-        <ItemBlock itemType={itemType} identity={identity} entry={entry} isToday={isToday} />
+        <ItemBlock
+          itemType={itemType}
+          identity={identity}
+          entry={entry}
+          topicEntry={topicEntry}
+          isToday={isToday}
+          isSelected={isSelected}
+        />
 
         {/* Name / Title — shrinks only after tags are hidden */}
         <div

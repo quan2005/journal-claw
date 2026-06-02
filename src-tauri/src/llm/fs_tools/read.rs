@@ -33,9 +33,72 @@ fn compress_image(raw: &[u8]) -> (String, Vec<u8>) {
 pub fn definition() -> ToolDefinition {
     ToolDefinition {
         name: "read".to_string(),
-        description: "Read file contents within the workspace. Supports text files (auto-paginates at ~10K tokens) and image files (returns as base64 for vision).".to_string(),
+        description: "Read file contents within the workspace. Supports text files and PDF text extraction (auto-paginates at ~10K tokens), plus image files (returns as base64 for vision).".to_string(),
         input_schema: json!({"type":"object","properties":{"path":{"type":"string","description":"Relative path to the file within the workspace"},"offset":{"type":"integer","description":"Character offset to start reading from (for pagination). Default: 0"},"limit":{"type":"integer","description":"Maximum characters to return. Default: 30000 (~10K tokens)"}},"required":["path"]}),
     }
+}
+
+fn format_text_page(content: &str, input: &serde_json::Value) -> String {
+    let total_chars = content.chars().count();
+    let offset_chars = input.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+    let limit = input
+        .get("limit")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as usize)
+        .unwrap_or(MAX_READ_CHARS);
+    if offset_chars >= total_chars {
+        return format!("(end of file — {} total characters)", total_chars);
+    }
+    // Convert char offset to byte offset safely.
+    let offset = content
+        .char_indices()
+        .nth(offset_chars)
+        .map(|(i, _)| i)
+        .unwrap_or(content.len());
+    let slice = &content[offset..];
+    let slice_chars = slice.chars().count();
+    // Convert char limit to byte position.
+    let end_byte = if limit >= slice_chars {
+        slice.len()
+    } else {
+        slice
+            .char_indices()
+            .nth(limit)
+            .map(|(i, _)| i)
+            .unwrap_or(slice.len())
+    };
+    let end = if end_byte < slice.len() {
+        slice[..end_byte]
+            .rfind('\n')
+            .map(|p| p + 1)
+            .unwrap_or(end_byte)
+    } else {
+        end_byte
+    };
+    let page = &slice[..end];
+    let page_chars = page.chars().count();
+    let has_more = offset_chars + page_chars < total_chars;
+    let before_offset = &content[..offset];
+    let start_line = before_offset.chars().filter(|&c| c == '\n').count() + 1;
+    let mut output = String::new();
+    for (i, line) in page.lines().enumerate() {
+        output.push_str(&format!("{:>4}\t{}\n", start_line + i, line));
+    }
+    if has_more {
+        let next_offset = offset_chars + page_chars;
+        output.push_str(&format!(
+            "\n[truncated — showing {}/{} chars. Use offset={} to continue]",
+            page_chars, total_chars, next_offset
+        ));
+    }
+    output
+}
+
+async fn extract_pdf_text(abs_path: std::path::PathBuf) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || pdf_extract::extract_text(&abs_path))
+        .await
+        .map_err(|e| format!("PDF extraction task failed: {}", e))?
+        .map_err(|e| format!("failed to extract PDF text: {}", e))
 }
 
 pub async fn execute(
@@ -79,10 +142,40 @@ pub async fn execute(
     const IMAGE_EXTS: &[&str] = &[
         "png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff", "tif", "ico", "svg",
     ];
-    let is_image = abs_path
+    let ext = abs_path
         .extension()
         .and_then(|e| e.to_str())
-        .map(|e| IMAGE_EXTS.contains(&e.to_lowercase().as_str()))
+        .map(|e| e.to_lowercase());
+    if ext.as_deref() == Some("pdf") {
+        let content = match extract_pdf_text(abs_path.clone()).await {
+            Ok(c) => c,
+            Err(e) => {
+                return (
+                    ToolResult {
+                        output: format!("error: {}", e),
+                        is_error: true,
+                    },
+                    None,
+                )
+            }
+        };
+        let mut output = format!("[PDF: {} - extracted text]\n", path);
+        if content.trim().is_empty() {
+            output.push_str("(no extractable text found)");
+        } else {
+            output.push_str(&format_text_page(&content, input));
+        }
+        return (
+            ToolResult {
+                output,
+                is_error: false,
+            },
+            None,
+        );
+    }
+    let is_image = ext
+        .as_deref()
+        .map(|e| IMAGE_EXTS.contains(&e))
         .unwrap_or(false);
     if is_image {
         let raw = match tokio::fs::read(&abs_path).await {
@@ -97,11 +190,7 @@ pub async fn execute(
                 )
             }
         };
-        let ext = abs_path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("png");
-        if ext.eq_ignore_ascii_case("svg") {
+        if ext.as_deref() == Some("svg") {
             return (
                 ToolResult {
                     output: format!("[SVG image: {}]\n{}", path, String::from_utf8_lossy(&raw)),
@@ -137,67 +226,9 @@ pub async fn execute(
             )
         }
     };
-    let total_chars = content.chars().count();
-    let offset_chars = input.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-    let limit = input
-        .get("limit")
-        .and_then(|v| v.as_u64())
-        .map(|v| v as usize)
-        .unwrap_or(MAX_READ_CHARS);
-    if offset_chars >= total_chars {
-        return (
-            ToolResult {
-                output: format!("(end of file — {} total characters)", total_chars),
-                is_error: false,
-            },
-            None,
-        );
-    }
-    // Convert char offset to byte offset safely
-    let offset = content
-        .char_indices()
-        .nth(offset_chars)
-        .map(|(i, _)| i)
-        .unwrap_or(content.len());
-    let slice = &content[offset..];
-    let slice_chars = slice.chars().count();
-    // Convert char limit to byte position
-    let end_byte = if limit >= slice_chars {
-        slice.len()
-    } else {
-        slice
-            .char_indices()
-            .nth(limit)
-            .map(|(i, _)| i)
-            .unwrap_or(slice.len())
-    };
-    let end = if end_byte < slice.len() {
-        slice[..end_byte]
-            .rfind('\n')
-            .map(|p| p + 1)
-            .unwrap_or(end_byte)
-    } else {
-        end_byte
-    };
-    let page = &slice[..end];
-    let page_chars = page.chars().count();
-    let has_more = offset_chars + page_chars < total_chars;
-    let before_offset = &content[..offset];
-    let start_line = before_offset.chars().filter(|&c| c == '\n').count() + 1;
-    let mut output = String::new();
-    for (i, line) in page.lines().enumerate() {
-        output.push_str(&format!("{:>4}\t{}\n", start_line + i, line));
-    }
-    if has_more {
-        let next_offset = offset_chars + page_chars;
-        output.push_str(&format!(
-            "\n[truncated — showing {}/{} chars. Use offset={} to continue]",
-            page_chars, total_chars, next_offset
-        ));
-    }
     (
         ToolResult {
-            output,
+            output: format_text_page(&content, input),
             is_error: false,
         },
         None,
@@ -289,5 +320,64 @@ mod tests {
         assert!(!r.is_error);
         assert!(img.is_none());
         assert!(r.output.contains("SVG"));
+    }
+
+    #[tokio::test]
+    async fn read_pdf_extracts_text() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("report.pdf"),
+            minimal_pdf_with_text("Hello from PDF read tool"),
+        )
+        .unwrap();
+        let (r, img) = execute(
+            &serde_json::json!({"path":"report.pdf"}),
+            dir.path().to_str().unwrap(),
+        )
+        .await;
+        assert!(!r.is_error, "{}", r.output);
+        assert!(img.is_none());
+        assert!(r.output.contains("[PDF: report.pdf"));
+        assert!(r.output.contains("Hello from PDF read tool"));
+        assert!(!r.output.contains("%PDF"));
+    }
+
+    fn minimal_pdf_with_text(text: &str) -> Vec<u8> {
+        let escaped = text
+            .replace('\\', "\\\\")
+            .replace('(', "\\(")
+            .replace(')', "\\)");
+        let stream = format!("BT\n/F1 24 Tf\n72 720 Td\n({}) Tj\nET\n", escaped);
+        let objects = [
+            "<< /Type /Catalog /Pages 2 0 R >>".to_string(),
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_string(),
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>".to_string(),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_string(),
+            format!("<< /Length {} >>\nstream\n{}endstream", stream.len(), stream),
+        ];
+
+        let mut pdf = Vec::from(&b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"[..]);
+        let mut offsets = vec![0usize];
+        for (index, object) in objects.iter().enumerate() {
+            offsets.push(pdf.len());
+            pdf.extend_from_slice(format!("{} 0 obj\n{}\nendobj\n", index + 1, object).as_bytes());
+        }
+
+        let xref_offset = pdf.len();
+        pdf.extend_from_slice(
+            format!("xref\n0 {}\n0000000000 65535 f \n", offsets.len()).as_bytes(),
+        );
+        for offset in offsets.iter().skip(1) {
+            pdf.extend_from_slice(format!("{:010} 00000 n \n", offset).as_bytes());
+        }
+        pdf.extend_from_slice(
+            format!(
+                "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{}\n%%EOF\n",
+                offsets.len(),
+                xref_offset
+            )
+            .as_bytes(),
+        );
+        pdf
     }
 }

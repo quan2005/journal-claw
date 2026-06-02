@@ -306,6 +306,9 @@ export type TreeNodeType =
 export interface TreeSelection {
   type: TreeNodeType
   path: string
+  name?: string
+  created_secs?: number
+  mtime_secs?: number
 }
 
 /** 置顶条目（持久化在 workspace settings.json） */

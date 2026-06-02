@@ -4,11 +4,14 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
   type Dispatch,
   type SetStateAction,
 } from 'react'
 import type { JournalEntry, TreeSelection } from '../types'
+
+type AppView = 'journal' | 'settings' | 'automation'
 
 // ── Persistent layout dimensions ──
 const loadDim = (key: string, fallback: number): number => {
@@ -28,9 +31,70 @@ const saveDim = (key: string, v: number) => {
   }
 }
 
-// ── Types ─────────────────────────────────────────────
+// ── Persistent tree selection ──
 
-type AppView = 'journal' | 'settings' | 'automation'
+const TREE_SELECTION_STORAGE_KEY = 'journal_tree_selection_v1'
+
+const treeSelectionTypes = new Set([
+  'pinned-section',
+  'identity',
+  'journal',
+  'journal-month',
+  'topic',
+  'topic-file',
+  'ideas',
+  'automation',
+])
+
+interface StoredTreeSelectionState {
+  view: AppView
+  treeSelection: TreeSelection | null
+  showIdeas: boolean
+}
+
+function isTreeSelection(value: unknown): value is TreeSelection {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<TreeSelection>
+  return (
+    typeof candidate.type === 'string' &&
+    treeSelectionTypes.has(candidate.type) &&
+    typeof candidate.path === 'string'
+  )
+}
+
+function loadTreeSelectionState(): StoredTreeSelectionState {
+  try {
+    const raw = localStorage.getItem(TREE_SELECTION_STORAGE_KEY)
+    if (!raw) {
+      return { view: 'journal', treeSelection: null, showIdeas: false }
+    }
+
+    const parsed = JSON.parse(raw) as Partial<StoredTreeSelectionState>
+    const treeSelection = isTreeSelection(parsed.treeSelection) ? parsed.treeSelection : null
+    const view =
+      parsed.view === 'automation' || treeSelection?.type === 'automation'
+        ? 'automation'
+        : 'journal'
+
+    return {
+      view,
+      treeSelection,
+      showIdeas: parsed.showIdeas === true,
+    }
+  } catch {
+    return { view: 'journal', treeSelection: null, showIdeas: false }
+  }
+}
+
+function saveTreeSelectionState(state: StoredTreeSelectionState) {
+  try {
+    localStorage.setItem(TREE_SELECTION_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
+// ── Types ─────────────────────────────────────────────
 
 interface UIContextValue {
   view: AppView
@@ -70,13 +134,16 @@ interface UIContextValue {
 const UIContext = createContext<UIContextValue>(null!)
 
 export function UIProvider({ children }: { children: ReactNode }) {
-  const [view, setView] = useState<AppView>('journal')
+  const [initialTreeState] = useState(loadTreeSelectionState)
+  const [view, setView] = useState<AppView>(initialTreeState.view)
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(
     undefined,
   )
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(null)
-  const [showIdeas, setShowIdeas] = useState(false)
+  const [treeSelection, setTreeSelection] = useState<TreeSelection | null>(
+    initialTreeState.treeSelection,
+  )
+  const [showIdeas, setShowIdeas] = useState(initialTreeState.showIdeas)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim('journal_base_width', 320))
@@ -95,6 +162,14 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setRightPanelWidthState(w)
     saveDim('journal_right_panel_width', w)
   }, [])
+
+  useEffect(() => {
+    saveTreeSelectionState({
+      view: view === 'automation' ? 'automation' : 'journal',
+      treeSelection,
+      showIdeas,
+    })
+  }, [view, treeSelection, showIdeas])
 
   const deselect = useCallback(() => {
     setSelectedEntry(null)

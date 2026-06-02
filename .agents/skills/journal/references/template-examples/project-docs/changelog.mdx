@@ -1,0 +1,93 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录变更日志，并梳理版本、发布日期、新增、变更时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 变更日志
+
+<Section density="relaxed">
+  <Subtitle>变更日志是面向读者的影响账本，不是 commit log。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Olivier Lacan 的 Keep a Changelog 视角：变更日志是面向读者的影响账本，不是 commit log。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 变更账本
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "版本",
+        "【填写 版本】"
+    ],
+    [
+        "发布日期",
+        "【填写 发布日期】"
+    ],
+    [
+        "新增",
+        "【填写 新增】"
+    ],
+    [
+        "变更",
+        "【填写 变更】"
+    ],
+    [
+        "修复",
+        "【填写 修复】"
+    ],
+    [
+        "Breaking changes",
+        "【填写 Breaking changes】"
+    ],
+    [
+        "用户/系统影响",
+        "【填写 用户/系统影响】"
+    ],
+    [
+        "迁移/兼容性",
+        "【填写 迁移/兼容性】"
+    ]
+]}
+/>
+
+<Table
+  headers={["类型", "变更", "影响对象", "迁移/兼容性", "来源"]}
+  rows={[
+    ["Added", "【新增内容】", "【影响对象】", "【是否需要迁移】", "【PR/issue/source】"],
+    ["Changed", "【变更内容】", "【影响对象】", "【兼容性影响】", "【PR/issue/source】"],
+    ["Fixed", "【修复内容】", "【影响对象】", "【验证方式】", "【PR/issue/source】"],
+    ["Breaking", "【破坏性变更】", "【影响对象】", "【迁移动作】", "【PR/issue/source】"],
+  ]}
+/>
+
+<Callout type="warning" title="Breaking changes">
+  【写清用户或系统需要采取的迁移动作；没有破坏性变更时写“无”。】
+</Callout>
+
+<Checklist
+  items={[
+    {
+        "text": "条目必须按新增、变更、修复、破坏性变更分组"
+    },
+    {
+        "text": "破坏性变更必须写迁移动作"
+    },
+    {
+        "text": "每条重要变更必须有来源或 issue/PR 编号"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

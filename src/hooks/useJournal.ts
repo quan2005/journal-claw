@@ -49,6 +49,10 @@ function entryMtime(entry: JournalEntry): number {
   return entry.mtime_ms ?? entry.mtime_secs
 }
 
+function sameStringList(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index])
+}
+
 function sameEntryMetadata(a: JournalEntry, b: JournalEntry): boolean {
   return (
     a.path === b.path &&
@@ -94,7 +98,7 @@ export function useJournal() {
     try {
       const allMonths = await withTimeout(listAvailableMonths(), 5000, 'listAvailableMonths')
       availableMonthsRef.current = allMonths
-      setAvailableMonths(allMonths)
+      setAvailableMonths((prev) => (sameStringList(prev, allMonths) ? prev : allMonths))
 
       const currentLoaded = loadedMonthsRef.current
       if (currentLoaded.length === 0) {

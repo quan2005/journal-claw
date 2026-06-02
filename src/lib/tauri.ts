@@ -614,6 +614,7 @@ export interface WorkspaceDirEntry {
   name: string
   is_dir: boolean
   path: string
+  created_secs?: number
   mtime_secs: number
 }
 export const listWorkspaceDir = (relativePath: string): Promise<WorkspaceDirEntry[]> =>
@@ -637,6 +638,7 @@ export interface TopicEntry {
   name: string
   is_dir: boolean
   path: string // workspace-relative
+  created_secs?: number
   mtime_secs: number
 }
 

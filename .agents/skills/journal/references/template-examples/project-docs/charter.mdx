@@ -1,0 +1,104 @@
+---
+tags: ["journal","mdx-manual","template","project-docs"]
+summary: "当需要记录项目章程，并梳理授权目标、Sponsor/批准人、授权边界、预算/资源上限时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 项目章程
+
+<Section density="relaxed">
+  <Subtitle>项目章程的核心是授权：谁批准、给多少资源、谁有权改变范围与优先级。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Harold Kerzner 的项目治理视角：项目章程的核心是授权：谁批准、给多少资源、谁有权改变范围与优先级。
+</Callout>
+
+<Callout type="note" title="项目结论">
+  【写清项目目标、当前边界、最重要的验收口径。】
+</Callout>
+
+## 目标、边界与执行节奏
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "授权目标",
+        "【填写 授权目标】"
+    ],
+    [
+        "Sponsor/批准人",
+        "【填写 Sponsor/批准人】"
+    ],
+    [
+        "授权边界",
+        "【填写 授权边界】"
+    ],
+    [
+        "预算/资源上限",
+        "【填写 预算/资源上限】"
+    ],
+    [
+        "决策权",
+        "【填写 决策权】"
+    ],
+    [
+        "升级路径",
+        "【填写 升级路径】"
+    ],
+    [
+        "里程碑",
+        "【填写 里程碑】"
+    ],
+    [
+        "治理风险",
+        "【填写 治理风险】"
+    ]
+]}
+/>
+
+<MilestoneTimeline
+  items={[
+    { time: "【阶段 1】", title: "【里程碑】", desc: "【交付物与验收】" },
+    { time: "【阶段 2】", title: "【里程碑】", desc: "【交付物与验收】" },
+  ]}
+/>
+
+<RACI
+  rows={[
+    { work: "【关键事项】", responsible: "【R】", accountable: "【A】", consulted: "【C】", informed: "【I】" },
+  ]}
+/>
+
+<RiskMatrix
+  risks={[
+    { risk: "【项目风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+  ]}
+/>
+
+<ActionTable
+  items={[
+    { action: "【下一步行动】", owner: "【负责人】", due: "【截止时间】", source: "项目章程", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "Sponsor 和批准人不能为空"
+    },
+    {
+        "text": "范围、预算、时间任一变更的决策人必须明确"
+    },
+    {
+        "text": "预算或资源上限未知时必须标记为待确认"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

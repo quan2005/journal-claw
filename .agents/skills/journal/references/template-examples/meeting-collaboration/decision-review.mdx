@@ -1,0 +1,97 @@
+---
+tags: ["journal","mdx-manual","template","meeting-collaboration"]
+summary: "当需要记录决策评审纪要，并梳理决策问题、不同立场、关键假设、关键证据时使用。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+---
+
+# 决策评审纪要
+
+<Section density="relaxed">
+  <Subtitle>用于记录存在取舍的评审会：保留问题、不同立场、关键证据、转折点和最终决策。</Subtitle>
+
+<Callout type="tip" title="专业校准">
+  Annie Duke 的决策质量视角：好决策记录要把结果好坏和决策质量分开，保留选项、关键假设、反证、转折点和复盘条件。
+</Callout>
+
+## 问题与背景
+
+<Table
+  headers={["记录项", "内容"]}
+  rows={[
+    [
+        "决策问题",
+        "【填写 决策问题】"
+    ],
+    [
+        "不同立场",
+        "【填写 不同立场】"
+    ],
+    [
+        "关键假设",
+        "【填写 关键假设】"
+    ],
+    [
+        "关键证据",
+        "【填写 关键证据】"
+    ],
+    [
+        "反证或弃用理由",
+        "【填写 反证或弃用理由】"
+    ],
+    [
+        "不可逆程度",
+        "【填写 不可逆程度】"
+    ],
+    [
+        "稳定性/重审条件",
+        "【填写 稳定性/重审条件】"
+    ],
+    [
+        "复盘时间",
+        "【填写 复盘时间】"
+    ]
+]}
+/>
+
+## 方案与取舍
+
+<DecisionRecord
+  question="【这次评审要决定什么】"
+  decision="【最终选择或暂定方向】"
+  owner="【负责人】"
+  due="【复核时间】"
+  options={[
+    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
+    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
+  ]}
+  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+/>
+
+## 行动项
+
+<ActionTable
+  items={[
+    { action: "【补充证据或验证】", owner: "【负责人】", due: "【截止时间】", source: "决策评审纪要", status: "open" },
+  ]}
+/>
+
+<Checklist
+  items={[
+    {
+        "text": "至少有两个选项；只有一个选项时写明其他选项为何被排除"
+    },
+    {
+        "text": "决策理由写出关键证据和转折点，不能只写大家同意"
+    },
+    {
+        "text": "重审条件、复盘时间或验证行动至少存在一个"
+    }
+]}
+/>
+</Section>
+
+<ReferenceList
+  sources={[
+    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  ]}
+/>

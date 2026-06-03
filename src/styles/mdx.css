@@ -28,7 +28,8 @@
 .mdx-content
   :where(
     .mdx-chart,
-    .mdx-mockup,
+    .mdx-html-preview,
+    .mdx-mac-preview,
     .mdx-diagram-frame,
     .mdx-math--block,
     .mdx-kanban,
@@ -91,6 +92,24 @@
   color: var(--item-meta);
   font-size: var(--text-xs);
   overflow-wrap: anywhere;
+}
+.mdx-component-error-code {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--status-danger, #b5312a) 22%, var(--mdx-border));
+  border-radius: var(--mdx-radius-sm);
+  background: color-mix(in srgb, var(--status-danger, #b5312a) 8%, var(--md-pre-bg, #111315));
+  color: var(--md-pre-text, var(--item-text));
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mdx-component-error-code code {
+  font: inherit;
+  color: inherit;
 }
 .mdx-math {
   color: var(--md-text, var(--item-text));
@@ -327,8 +346,14 @@
   }
 }
 
-/* Mockup — macOS-style window frame */
-.mdx-mockup {
+/* HtmlPreview — sandboxed HTML without a device shell */
+.mdx-html-preview {
+  width: 100%;
+  margin: var(--space-6) 0;
+}
+
+/* MacPreview — macOS-style window frame */
+.mdx-mac-preview {
   border: 1px solid var(--mdx-border);
   border-radius: var(--mdx-radius);
   overflow: hidden;
@@ -338,7 +363,7 @@
     0 1px 3px rgba(0, 0, 0, 0.04),
     0 14px 40px rgba(0, 0, 0, 0.06);
 }
-.mdx-mockup-header {
+.mdx-mac-preview-header {
   display: flex;
   align-items: center;
   height: 38px;
@@ -350,30 +375,30 @@
 }
 
 /* Traffic light dots */
-.mdx-mockup-dots {
+.mdx-mac-preview-dots {
   display: flex;
   align-items: center;
   gap: 7px;
   flex-shrink: 0;
   z-index: 1;
 }
-.mdx-mockup-dot {
+.mdx-mac-preview-dot {
   width: 11px;
   height: 11px;
   border-radius: 50%;
   opacity: 0.55;
 }
-.mdx-mockup-dot--red {
+.mdx-mac-preview-dot--red {
   background: #ff5f57;
 }
-.mdx-mockup-dot--yellow {
+.mdx-mac-preview-dot--yellow {
   background: #ffbd2e;
 }
-.mdx-mockup-dot--green {
+.mdx-mac-preview-dot--green {
   background: #27ca40;
 }
 
-.mdx-mockup-header-title {
+.mdx-mac-preview-header-title {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -387,28 +412,28 @@
   pointer-events: none;
 }
 
-.mdx-mockup-body {
+.mdx-mac-preview-body {
   padding: var(--space-5) var(--space-4);
   background: var(--bg);
 }
 
 /* Dark mode adjustments */
-[data-theme='dark'] .mdx-mockup {
+[data-theme='dark'] .mdx-mac-preview {
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.3),
     0 14px 40px rgba(0, 0, 0, 0.36);
 }
-[data-theme='dark'] .mdx-mockup-dot {
+[data-theme='dark'] .mdx-mac-preview-dot {
   opacity: 0.6;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .mdx-mockup {
+  :root:not([data-theme='light']) .mdx-mac-preview {
     box-shadow:
       0 1px 3px rgba(0, 0, 0, 0.3),
       0 14px 40px rgba(0, 0, 0, 0.36);
   }
-  :root:not([data-theme='light']) .mdx-mockup-dot {
+  :root:not([data-theme='light']) .mdx-mac-preview-dot {
     opacity: 0.6;
   }
 }
@@ -1100,7 +1125,7 @@
   opacity: 0.5;
 }
 
-/* ── Diagram Frame (Mermaid + CanvasDiagram) ── */
+/* ── Diagram Frame (Mermaid) ── */
 
 .mdx-diagram-frame {
   border: 1px solid var(--mdx-border);
@@ -1144,6 +1169,15 @@
 }
 
 /* Mermaid SVG base */
+.mdx-mermaid-svg pre.mermaid {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  overflow: visible;
+}
+
 .mdx-mermaid-svg svg {
   display: block;
   max-width: 100%;
@@ -1275,7 +1309,7 @@
   word-break: break-word;
 }
 
-/* ── Device Mockups v2 ── */
+/* ── PhonePreview ── */
 
 .mdx-device-v2 {
   --device-width: 320px;
@@ -1456,18 +1490,6 @@
 .device-content-v2 .mdx-cards {
   grid-template-columns: 1fr;
   gap: 8px;
-}
-
-/* ── Device Showcase (dual phone layout) ── */
-
-.mdx-device-showcase {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: clamp(40px, 8vw, 96px);
-  align-items: start;
-  justify-items: center;
-  padding: 24px 0 8px;
-  margin: var(--space-6) 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

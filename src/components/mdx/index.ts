@@ -1,5 +1,5 @@
 // Layout
-export { Split, Columns, Column, Mockup, Placeholder, DeviceShowcase } from './layout'
+export { Split, Columns, Column, MacPreview, Placeholder } from './layout'
 
 // Display
 export { ProsCons, Pros, Cons, Stat, StatGroup } from './display'
@@ -33,14 +33,12 @@ export { Mermaid } from './mermaid'
 // Math
 export { InlineMath, BlockMath } from './math'
 
-// Canvas Diagram
-export { CanvasDiagram } from './canvas-diagram'
-
 // Typography
 export { Section, Subtitle, Label, Divider } from './typography'
 
-// Device mockups
-export { Phone, useDeviceDensity } from './device-mockups'
+// Preview
+export { HtmlPreview } from './html-preview'
+export { PhonePreview, useDeviceDensity } from './device-mockups'
 
 // Grid & Flow
 export { Grid, Col, Flow } from './grid'
@@ -67,7 +65,7 @@ export { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from
 
 // ── Component map ─────────────────────────────────────────
 
-import { Split, Columns, Column, Mockup, Placeholder, DeviceShowcase } from './layout'
+import { Split, Columns, Column, MacPreview, Placeholder } from './layout'
 import {
   ProsCons,
   Pros,
@@ -87,9 +85,9 @@ import { AudioCard, VideoCard, ImageViewer, FileCard } from './media'
 import { BarChart, LineChart, PieChart, RadarChart } from './charts'
 import { Mermaid } from './mermaid'
 import { InlineMath, BlockMath } from './math'
-import { CanvasDiagram } from './canvas-diagram'
 import { Section, Subtitle, Label, Divider } from './typography'
-import { Phone } from './device-mockups'
+import { HtmlPreview } from './html-preview'
+import { PhonePreview } from './device-mockups'
 import { Grid, Col, Flow } from './grid'
 import {
   ActionTable,
@@ -112,7 +110,7 @@ export const mdxComponents = {
   Split,
   Columns,
   Column,
-  Mockup,
+  MacPreview,
   Placeholder,
   ProsCons,
   Pros,
@@ -149,13 +147,12 @@ export const mdxComponents = {
   Mermaid,
   InlineMath,
   BlockMath,
-  CanvasDiagram,
   Section,
   Subtitle,
   Label,
   Divider,
-  Phone,
-  DeviceShowcase,
+  HtmlPreview,
+  PhonePreview,
   Grid,
   Col,
   Flow,

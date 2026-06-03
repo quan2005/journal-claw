@@ -14,10 +14,10 @@ export function useDeviceDensity(): Density {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Phone — Pure CSS iPhone 15 Pro mockup
+// PhonePreview — Pure CSS iPhone 15 Pro shell
 // ═══════════════════════════════════════════════════════════════════════════
 
-export interface PhoneProps {
+export interface PhonePreviewProps {
   src?: string
   alt?: string
   children?: ReactNode
@@ -40,7 +40,7 @@ const sizeMap: Record<string, string> = {
   auto: '100%',
 }
 
-export function Phone({
+export function PhonePreview({
   src,
   alt,
   children,
@@ -51,7 +51,7 @@ export function Phone({
   showSpeaker = true,
   fit = 'contain',
   className,
-}: PhoneProps) {
+}: PhonePreviewProps) {
   const deviceWidth = sizeMap[size]
 
   return (

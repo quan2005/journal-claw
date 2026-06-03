@@ -445,6 +445,50 @@ describe('App', () => {
     expect(tauri.openFile).not.toHaveBeenCalled()
   })
 
+  it('returns to the previous journal entry after opening a local file link', async () => {
+    vi.mocked(tauri.getJournalEntryContent).mockImplementation((path: string) => {
+      if (path.endsWith('Guide.md')) return Promise.resolve('# Linked Guide')
+      return Promise.resolve('# Original Article')
+    })
+
+    await act(async () => {
+      renderApp()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      fireEvent.click(await screen.findByText('测试条目'))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(await screen.findByText('Original Article')).toBeTruthy()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('journal-file-open', {
+          detail: {
+            path: 'References/Guide.md',
+            name: 'Guide.md',
+          },
+        }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(await screen.findByText('Linked Guide')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: '返回 测试条目' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(await screen.findByText('Original Article')).toBeTruthy()
+  })
+
   it('keeps the current topic file detail when focusing a breadcrumb directory', async () => {
     vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
 

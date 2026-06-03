@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import {
   ActionTable,
   CopyButton,
@@ -16,6 +16,29 @@ import {
   Table,
 } from '../components/mdx'
 import { ReferenceList, Transcript, TimestampLink } from '../components/mdx'
+
+vi.mock('../components/mdx/mermaidRuntime', async () => {
+  const actual =
+    await vi.importActual<typeof import('../components/mdx/mermaidRuntime')>(
+      '../components/mdx/mermaidRuntime',
+    )
+
+  return {
+    ...actual,
+    renderMermaidToElement: vi.fn(
+      async ({ element, source }: { element: HTMLElement; source: string }) => {
+        const normalizedSource = actual.normalizeMermaidSource(source)
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        svg.textContent = normalizedSource
+        element.replaceChildren(svg)
+        return {
+          diagramType: actual.detectMermaidType(normalizedSource),
+          source: normalizedSource,
+        }
+      },
+    ),
+  }
+})
 
 describe('semantic MDX components', () => {
   it('renders actions with owner, due date, source, and status', () => {
@@ -201,6 +224,165 @@ graph TD
 
     expect(container.querySelector('.mdx-diagram-frame')).toBeTruthy()
     expect(screen.queryByText('Mermaid chart source is empty.')).toBeFalsy()
+  })
+
+  it('renders generated transformer flowcharts instead of showing diagram failure', async () => {
+    const chart = `graph TD
+    subgraph Encoder["Encoder (N=6层)"]
+        direction TB
+        E_IN["Input Embedding"] --> E_PE["+ Positional Encoding"]
+        E_PE --> E1["Layer 1"]
+        E1 --> E2["Layer 2"]
+        E2 --> E3["..."]
+        E3 --> E6["Layer 6"]
+    end
+
+    subgraph Decoder["Decoder (N=6层)"]
+        direction TB
+        D_IN["Output Embedding"] --> D_PE["+ Positional Encoding"]
+        D_PE --> D1["Layer 1"]
+        D1 --> D2["Layer 2"]
+        D2 --> D3["..."]
+        D3 --> D6["Layer 6"]
+    end
+
+    subgraph LayerEnc["每个 Encoder Layer"]
+        direction TB
+        SA["Multi-Head Self-Attention"]
+        SA --> ADD1["Add & Norm"]
+        ADD1 --> FFN["Feed Forward"]
+        FFN --> ADD2["Add & Norm"]
+    end
+
+    subgraph LayerDec["每个 Decoder Layer"]
+        direction TB
+        MSA["Masked Multi-Head Self-Attention"]
+        MSA --> A1["Add & Norm"]
+        A1 --> CROSS["Encoder-Decoder Attention"]
+        CROSS --> A2["Add & Norm"]
+        A2 --> FFN2["Feed Forward"]
+        FFN2 --> A3["Add & Norm"]
+    end
+
+    E6 --> CROSS
+    D6 --> Linear["Linear"]
+    Linear --> Softmax["Softmax → Output"]`
+
+    const { container } = render(<Mermaid>{chart}</Mermaid>)
+
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Diagram render failed')).toBeFalsy()
+        expect(container.querySelector('.mdx-mermaid-svg svg')).toBeTruthy()
+      },
+      { timeout: 3000 },
+    )
+  })
+
+  it('unwraps fenced mermaid source before rendering', async () => {
+    const { container } = render(
+      <Mermaid
+        chart={`\`\`\`mermaid
+flowchart TD
+  A[输入] --> B[输出]
+\`\`\``}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Diagram render failed')).toBeFalsy()
+      expect(container.querySelector('.mdx-mermaid-svg svg')).toBeTruthy()
+    })
+  })
+
+  it('normalizes escaped newline mermaid source before rendering', async () => {
+    const { container } = render(<Mermaid chart={'flowchart TD\\n  A[输入] --> B[输出]'} />)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Diagram render failed')).toBeFalsy()
+      expect(container.querySelector('.mdx-mermaid-svg svg')).toBeTruthy()
+    })
+  })
+
+  it('renders generated flowcharts with html line breaks and edge labels', async () => {
+    const chart = `flowchart TB
+    User["👤 用户<br/>1-4 句提示"] --> Planner
+    Planner["📋 Planner（规划者）<br/>扩展为完整产品规格"] --> Spec["📄 产品规格"]
+    Spec --> Contract
+    Contract["🤝 Sprint Contract<br/>Generator ↔ Evaluator 谈判"] --> Gen
+    Gen["🔧 Generator（构建者）<br/>逐 sprint 构建"] --> Eval
+    Eval["🔍 Evaluator（评估者）<br/>四维标准 + Bug 清单打分"] -->|"任一维度低于阈值 → sprint 失败<br/>详细反馈"| Gen`
+
+    const { container } = render(<Mermaid>{chart}</Mermaid>)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Diagram render failed')).toBeFalsy()
+      expect(container.querySelector('.mdx-mermaid-svg svg')).toBeTruthy()
+    })
+  })
+
+  it('preserves mermaid line boundaries when mdx turns br tags into react elements', async () => {
+    const { container } = render(
+      <Mermaid>
+        {`flowchart TB
+User["👤 用户`}
+        <br />
+        {`1-4 句提示"] --> Planner
+Planner["📋 Planner（规划者）`}
+        <br />
+        {`扩展为完整产品规格`}
+        <br />
+        {`16 features, 10 sprints"] --> Spec["📄 产品规格"]
+Spec --> Contract
+subgraph Loop["🔄 逐 Sprint 迭代"]
+Contract["🤝 Sprint Contract`}
+        <br />
+        {`Generator ↔ Evaluator 谈判`}
+        <br />
+        {`'什么叫做完' 达成一致"] --> Gen
+Gen["🔧 Generator（构建者）`}
+        <br />
+        {`逐 sprint 构建`}
+        <br />
+        {`自评后交接"] --> Eval
+Eval["🔍 Evaluator（评估者）`}
+        <br />
+        {`Playwright 实际操作应用`}
+        <br />
+        {`四维标准 + Bug 清单打分"] -->|"任一维度低于阈值 → sprint 失败`}
+        <br />
+        {`详细反馈"| Gen
+Eval -->|"全部通过"| Done["✅ Sprint 完成"]
+end
+Done --> Final["🎯 最终产物`}
+        <br />
+        {`完整全栈应用"]`}
+      </Mermaid>,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Diagram render failed')).toBeFalsy()
+      expect(container.querySelector('.mdx-mermaid-svg svg')).toBeTruthy()
+    })
+  })
+
+  it('repairs adjacent mermaid statements that mdx whitespace normalization joined together', async () => {
+    const chart = `flowchart TB
+User["👤 用户1-4 句提示"] --> Planner
+Planner["📋 Planner（规划者）扩展为完整产品规格16 features, 10 sprints"] --> Spec["📄 产品规格"]
+Spec --> Contractsubgraph Loop["🔄 逐 Sprint 迭代"]
+Contract["🤝 Sprint ContractGenerator ↔ Evaluator 谈判'什么叫做完' 达成一致"] --> Gen
+Gen["🔧 Generator（构建者）逐 sprint 构建自评后交接"] --> Eval
+Eval["🔍 Evaluator（评估者）Playwright 实际操作应用四维标准 + Bug 清单打分"] -->|"任一维度低于阈值 → sprint 失败详细反馈"| Gen
+Eval -->|"全部通过"| Done["✅ Sprint 完成"]
+endDone --> Final["🎯 最终产物完整全栈应用"]`
+
+    const { container } = render(<Mermaid chart={chart} />)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Diagram render failed')).toBeFalsy()
+      expect(container.querySelector('.mdx-mermaid-svg svg')).toBeTruthy()
+    })
   })
 
   it('renders inline and block math with KaTeX', () => {

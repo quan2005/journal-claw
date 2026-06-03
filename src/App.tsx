@@ -45,8 +45,29 @@ import OnboardingView from './components/OnboardingView'
 const SOUL_PATH = '__soul__'
 const DIVIDER_WIDTH = 7
 
+interface DetailReturnTarget {
+  selection: TreeSelection
+  entry?: JournalEntry
+}
+
 function journalEntryMtime(entry: JournalEntry): number {
   return entry.mtime_ms ?? entry.mtime_secs
+}
+
+function journalEntryTreeSelection(entry: JournalEntry): TreeSelection {
+  return {
+    type: 'journal',
+    path: `${entry.year_month}/${entry.filename}`,
+    name: entry.title,
+  }
+}
+
+function treeSelectionLabel(selection: TreeSelection, entry?: JournalEntry): string {
+  return entry?.title || selection.name || fileBasename(selection.path)
+}
+
+function sameTreeSelection(a: TreeSelection | null | undefined, b: TreeSelection): boolean {
+  return a?.type === b.type && a.path === b.path
 }
 
 export default function App() {
@@ -118,6 +139,7 @@ export default function App() {
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
   const entriesRef = useRef(entries)
+  const [detailReturnTarget, setDetailReturnTarget] = useState<DetailReturnTarget | null>(null)
 
   // Check AI engine availability on mount
   useEffect(() => {
@@ -242,6 +264,37 @@ export default function App() {
   }, [entries, setSelectedEntry])
 
   // Navigate to a journal entry via .md link click
+  const currentDetailReturnTarget = useCallback((): DetailReturnTarget | null => {
+    if (view !== 'journal' || showIdeas) return null
+
+    if (treeSelection?.type === 'topic-file' || treeSelection?.type === 'identity') {
+      return { selection: treeSelection }
+    }
+
+    const journalEntry =
+      treeSelection?.type === 'journal'
+        ? entriesRef.current.find(
+            (entry) => `${entry.year_month}/${entry.filename}` === treeSelection.path,
+          ) || selectedEntry
+        : selectedEntry
+
+    return journalEntry
+      ? {
+          selection: journalEntryTreeSelection(journalEntry),
+          entry: journalEntry,
+        }
+      : null
+  }, [selectedEntry, showIdeas, treeSelection, view])
+
+  const rememberReturnTarget = useCallback(
+    (nextSelection: TreeSelection) => {
+      const currentTarget = currentDetailReturnTarget()
+      if (sameTreeSelection(currentTarget?.selection, nextSelection)) return
+      setDetailReturnTarget((prev) => prev ?? currentTarget)
+    },
+    [currentDetailReturnTarget],
+  )
+
   useEffect(() => {
     const handler = (e: Event) => {
       const { path: targetPath, filename: targetFilename } = (e as CustomEvent).detail ?? {}
@@ -251,30 +304,41 @@ export default function App() {
       if (!match && targetFilename) {
         match = current.find((entry) => entry.filename === targetFilename)
       }
-      if (match) setSelectedEntry(match)
+      if (match) {
+        const nextSelection = journalEntryTreeSelection(match)
+        rememberReturnTarget(nextSelection)
+        setView('journal')
+        setShowIdeas(false)
+        setTopicFocusSelection(null)
+        setSelectedEntry(match)
+        setTreeSelection(nextSelection)
+      }
     }
     window.addEventListener('journal-entry-navigate', handler)
     return () => window.removeEventListener('journal-entry-navigate', handler)
-  }, [setSelectedEntry])
+  }, [rememberReturnTarget, setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
   useEffect(() => {
     const handler = (e: Event) => {
       const { path, name } = (e as CustomEvent<JournalFileOpenDetail>).detail ?? {}
       if (!path) return
 
+      const nextSelection: TreeSelection = {
+        type: 'topic-file',
+        path,
+        name: name || fileBasename(path),
+      }
+
+      rememberReturnTarget(nextSelection)
       setView('journal')
       setShowIdeas(false)
       setSelectedEntry(null)
       setTopicFocusSelection(null)
-      setTreeSelection({
-        type: 'topic-file',
-        path,
-        name: name || fileBasename(path),
-      })
+      setTreeSelection(nextSelection)
     }
     window.addEventListener('journal-file-open', handler)
     return () => window.removeEventListener('journal-file-open', handler)
-  }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
+  }, [rememberReturnTarget, setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
   // Open settings from Rust menu (Cmd+,) or keyboard shortcut
   useEffect(() => {
@@ -491,11 +555,13 @@ export default function App() {
   }, [handleDropFiles, setIsDragOver])
 
   const handleDeselect = useCallback(() => {
+    setDetailReturnTarget(null)
     deselect()
   }, [deselect])
 
   const handleTreeSelect = useCallback(
     (sel: TreeSelection) => {
+      setDetailReturnTarget(null)
       setView('journal')
       setShowIdeas(false)
       setTopicFocusSelection(null)
@@ -505,12 +571,14 @@ export default function App() {
   )
 
   const handleSelectIdeas = useCallback(() => {
+    setDetailReturnTarget(null)
     setView('journal')
     setTopicFocusSelection(null)
     setShowIdeas((prev) => !prev)
   }, [setShowIdeas, setView])
 
   const handleSelectAutomation = useCallback(() => {
+    setDetailReturnTarget(null)
     setShowIdeas(false)
     setSelectedEntry(null)
     setTopicFocusSelection(null)
@@ -527,6 +595,7 @@ export default function App() {
     setRightPanelOpen(true)
   }, [setRightPanelOpen])
   const handleSelectSample = useCallback(() => {
+    setDetailReturnTarget(null)
     createSampleEntry()
       .then(async () => {
         await refresh()
@@ -559,6 +628,29 @@ export default function App() {
     [openChatPanel],
   )
 
+  const handleReturnToPreviousDetail = useCallback(() => {
+    if (!detailReturnTarget) return
+
+    setView('journal')
+    setShowIdeas(false)
+    setTopicFocusSelection(null)
+    setTreeSelection(detailReturnTarget.selection)
+
+    if (detailReturnTarget.selection.type === 'journal') {
+      const entry =
+        detailReturnTarget.entry ??
+        entriesRef.current.find(
+          (candidate) =>
+            `${candidate.year_month}/${candidate.filename}` === detailReturnTarget.selection.path,
+        )
+      setSelectedEntry(entry ?? null)
+    } else {
+      setSelectedEntry(null)
+    }
+
+    setDetailReturnTarget(null)
+  }, [detailReturnTarget, setSelectedEntry, setShowIdeas, setTreeSelection, setView])
+
   const handleOpenIdeaConversation = useCallback(
     (opts: IdeaConversationRequest) => {
       if (opts.sessionId) {
@@ -572,6 +664,7 @@ export default function App() {
 
   const handleNavigateToIdeaSource = useCallback(
     (source: string) => {
+      setDetailReturnTarget(null)
       const filename = source.split('/').pop() ?? source
       const match = entriesRef.current.find(
         (entry) =>
@@ -770,6 +863,7 @@ export default function App() {
             selected={topicFocusSelection ?? treeSelection}
             onSelect={handleTreeSelect}
             onDeselect={() => {
+              setDetailReturnTarget(null)
               setTopicFocusSelection(null)
               setTreeSelection(null)
               setSelectedEntry(null)
@@ -925,6 +1019,12 @@ export default function App() {
               onVisualDesign={handleVisualDesign}
               onOpenIdeaConversation={handleOpenIdeaConversation}
               onNavigateToIdeaSource={handleNavigateToIdeaSource}
+              returnTargetLabel={
+                detailReturnTarget
+                  ? treeSelectionLabel(detailReturnTarget.selection, detailReturnTarget.entry)
+                  : undefined
+              }
+              onReturnToPrevious={detailReturnTarget ? handleReturnToPreviousDetail : undefined}
               onNavigateToTopicPath={(path, isFile) => {
                 const nextSelection: TreeSelection = {
                   type: isFile ? 'topic-file' : 'topic',
@@ -937,6 +1037,7 @@ export default function App() {
                 setView('journal')
                 setShowIdeas(false)
                 if (isFile) {
+                  setDetailReturnTarget(null)
                   setTopicFocusSelection(null)
                   setTreeSelection(nextSelection)
                 } else {

@@ -21,7 +21,7 @@ import { convertFileSrc } from '@tauri-apps/api/core'
 import { createTranslator, detectLang } from '../lib/i18n'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { SandboxPreview } from './SandboxPreview'
-import { Check, Code2, Copy, Eye, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowLeft, Check, Code2, Copy, Eye, Maximize2, Minimize2 } from 'lucide-react'
 import { isAbsoluteFilePath } from '../lib/fileNavigation'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -267,11 +267,53 @@ function parseFilePreviewMetadata(content: string): FilePreviewMetadataData | nu
   return { summary: summary || undefined, tags, sources }
 }
 
+function ReturnButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`返回 ${label}`}
+      title={`返回 ${label}`}
+      onClick={onClick}
+      style={{
+        height: 28,
+        maxWidth: 180,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        flexShrink: 0,
+        padding: '0 9px',
+        borderRadius: 6,
+        border: '1px solid var(--divider)',
+        background: 'transparent',
+        color: 'var(--item-meta)',
+        fontSize: 'var(--text-xs)',
+        fontFamily: 'var(--font-body)',
+        fontWeight: 'var(--font-medium)',
+        cursor: 'pointer',
+      }}
+    >
+      <ArrowLeft size={13} />
+      <span
+        style={{
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        返回
+      </span>
+    </button>
+  )
+}
+
 function FileViewShell({
   rootLabel,
   file,
   displayPath,
   copyPath,
+  returnTargetLabel,
+  onReturnToPrevious,
   fullscreen,
   viewMode,
   onViewModeChange,
@@ -284,6 +326,8 @@ function FileViewShell({
   file: WorkspaceDirEntry
   displayPath?: string
   copyPath?: string
+  returnTargetLabel?: string
+  onReturnToPrevious?: () => void
   fullscreen: boolean
   viewMode: FileViewMode
   onViewModeChange: (mode: FileViewMode) => void
@@ -364,80 +408,94 @@ function FileViewShell({
           flexShrink: 0,
         }}
       >
-        <nav
-          aria-label={`${rootLabel}路径`}
+        <div
           style={{
             minWidth: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            color: 'var(--item-meta)',
-            fontSize: 'var(--text-sm)',
+            gap: 10,
+            flex: 1,
           }}
         >
-          <span style={{ flexShrink: 0, color: 'var(--duration-text)' }}>{rootLabel}</span>
-          {segments.map((segment) => (
-            <React.Fragment key={segment.path}>
-              <span aria-hidden="true" style={{ color: 'var(--duration-text)', opacity: 0.7 }}>
-                /
-              </span>
-              <button
-                type="button"
-                aria-label={
-                  segment.isFile
-                    ? `定位到${rootLabel}文件 ${segment.label}`
-                    : `定位到${rootLabel} ${segment.label}`
-                }
-                onClick={() => onNavigateToPath?.(segment.path, segment.isFile)}
-                style={{
-                  minWidth: 0,
-                  maxWidth: segment.isFile ? 220 : 180,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  padding: '2px 3px',
-                  border: 'none',
-                  borderRadius: 4,
-                  background: 'transparent',
-                  color: segment.isFile ? 'var(--item-text)' : 'var(--item-meta)',
-                  fontSize: 'inherit',
-                  fontFamily: 'var(--font-body)',
-                  fontWeight: segment.isFile ? 'var(--font-semibold)' : 'var(--font-medium)',
-                  cursor: 'pointer',
-                }}
-              >
-                {segment.label}
-              </button>
-            </React.Fragment>
-          ))}
-          <button
-            type="button"
-            aria-label={pathCopied ? `已复制路径 ${pathToCopy}` : `复制路径 ${pathToCopy}`}
-            data-copied={pathCopied ? 'true' : 'false'}
-            title={pathCopied ? '已复制' : '复制路径'}
-            onClick={handleCopyPath}
+          {onReturnToPrevious && returnTargetLabel && (
+            <ReturnButton label={returnTargetLabel} onClick={onReturnToPrevious} />
+          )}
+
+          <nav
+            aria-label={`${rootLabel}路径`}
             style={{
-              width: 22,
-              height: 22,
-              display: 'inline-flex',
+              minWidth: 0,
+              display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              marginLeft: 1,
-              border: 'none',
-              borderRadius: 5,
-              background: pathCopied ? 'var(--segment-active-bg)' : 'transparent',
-              color: pathCopied ? 'var(--segment-active-text)' : 'var(--duration-text)',
-              opacity: pathCopied ? 1 : 0.72,
-              transform: pathCopied ? 'scale(1.08)' : 'scale(1)',
-              transition:
-                'color 0.16s var(--ease-out), background 0.16s var(--ease-out), opacity 0.16s var(--ease-out), transform 0.16s var(--ease-out)',
-              cursor: 'pointer',
+              gap: 6,
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-sm)',
             }}
           >
-            {pathCopied ? <Check size={12} /> : <Copy size={12} />}
-          </button>
-        </nav>
+            <span style={{ flexShrink: 0, color: 'var(--duration-text)' }}>{rootLabel}</span>
+            {segments.map((segment) => (
+              <React.Fragment key={segment.path}>
+                <span aria-hidden="true" style={{ color: 'var(--duration-text)', opacity: 0.7 }}>
+                  /
+                </span>
+                <button
+                  type="button"
+                  aria-label={
+                    segment.isFile
+                      ? `定位到${rootLabel}文件 ${segment.label}`
+                      : `定位到${rootLabel} ${segment.label}`
+                  }
+                  onClick={() => onNavigateToPath?.(segment.path, segment.isFile)}
+                  style={{
+                    minWidth: 0,
+                    maxWidth: segment.isFile ? 220 : 180,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    padding: '2px 3px',
+                    border: 'none',
+                    borderRadius: 4,
+                    background: 'transparent',
+                    color: segment.isFile ? 'var(--item-text)' : 'var(--item-meta)',
+                    fontSize: 'inherit',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: segment.isFile ? 'var(--font-semibold)' : 'var(--font-medium)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {segment.label}
+                </button>
+              </React.Fragment>
+            ))}
+            <button
+              type="button"
+              aria-label={pathCopied ? `已复制路径 ${pathToCopy}` : `复制路径 ${pathToCopy}`}
+              data-copied={pathCopied ? 'true' : 'false'}
+              title={pathCopied ? '已复制' : '复制路径'}
+              onClick={handleCopyPath}
+              style={{
+                width: 22,
+                height: 22,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginLeft: 1,
+                border: 'none',
+                borderRadius: 5,
+                background: pathCopied ? 'var(--segment-active-bg)' : 'transparent',
+                color: pathCopied ? 'var(--segment-active-text)' : 'var(--duration-text)',
+                opacity: pathCopied ? 1 : 0.72,
+                transform: pathCopied ? 'scale(1.08)' : 'scale(1)',
+                transition:
+                  'color 0.16s var(--ease-out), background 0.16s var(--ease-out), opacity 0.16s var(--ease-out), transform 0.16s var(--ease-out)',
+                cursor: 'pointer',
+              }}
+            >
+              {pathCopied ? <Check size={12} /> : <Copy size={12} />}
+            </button>
+          </nav>
+        </div>
 
         <div
           style={{
@@ -729,6 +787,8 @@ export interface DetailViewProps {
   onOpenIdeaConversation?: (opts: IdeaConversationRequest) => void
   onNavigateToIdeaSource?: (filename: string) => void
   onNavigateToTopicPath?: (path: string, isFile: boolean) => void
+  returnTargetLabel?: string
+  onReturnToPrevious?: () => void
 }
 
 // ── Detail context menu ────────────────────────────────────────────────────────
@@ -975,6 +1035,8 @@ export const DetailView = React.memo(function DetailView({
   onOpenIdeaConversation,
   onNavigateToIdeaSource,
   onNavigateToTopicPath,
+  returnTargetLabel,
+  onReturnToPrevious,
 }: DetailViewProps) {
   // ── State ──────────────────────────────────────────────────────────────
   const [content, setContent] = useState<string | null>(null)
@@ -1464,6 +1526,8 @@ export const DetailView = React.memo(function DetailView({
         file={file}
         displayPath={topicFileDisplayPath(workspacePath, file.path)}
         copyPath={topicFileCopyPath(workspacePath, file.path)}
+        returnTargetLabel={returnTargetLabel}
+        onReturnToPrevious={onReturnToPrevious}
         fullscreen={fileFullscreen}
         viewMode={fileViewMode}
         onViewModeChange={setFileViewMode}
@@ -1797,6 +1861,8 @@ export const DetailView = React.memo(function DetailView({
         file={journalHtmlFile}
         fullscreen={fileFullscreen}
         viewMode={fileViewMode}
+        returnTargetLabel={returnTargetLabel}
+        onReturnToPrevious={onReturnToPrevious}
         onViewModeChange={setFileViewMode}
         onToggleFullscreen={() => setFileFullscreen((value) => !value)}
         onNavigateToPath={(path, isFile) => {
@@ -1867,22 +1933,35 @@ export const DetailView = React.memo(function DetailView({
           borderBottom: '0.5px solid var(--divider)',
         }}
       >
-        <span
+        <div
           style={{
-            fontSize: 'var(--text-base)',
-            fontWeight: 'var(--font-semibold)',
-            color: 'var(--item-text)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
             minWidth: 0,
+            flex: 1,
             marginRight: 12,
           }}
         >
-          {isJournalMode && entry ? entry.title : ''}
-          {isIdentityMode && identity ? identity.name : ''}
-          {isFileMode && file ? file.name : ''}
-        </span>
+          {onReturnToPrevious && returnTargetLabel && (
+            <ReturnButton label={returnTargetLabel} onClick={onReturnToPrevious} />
+          )}
+          <span
+            style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--font-semibold)',
+              color: 'var(--item-text)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              minWidth: 0,
+            }}
+          >
+            {isJournalMode && entry ? entry.title : ''}
+            {isIdentityMode && identity ? identity.name : ''}
+            {isFileMode && file ? file.name : ''}
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {isSoul && (
             <button

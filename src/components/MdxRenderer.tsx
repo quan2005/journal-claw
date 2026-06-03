@@ -33,6 +33,8 @@ interface CompileState {
   error?: string
 }
 
+type MdxComponentSourceMap = Map<string, string>
+
 class MdxErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, State> {
   state: State = { hasError: false }
 
@@ -48,7 +50,32 @@ class MdxErrorBoundary extends Component<{ children: ReactNode; fallback: ReactN
   }
 }
 
-class MdxComponentErrorBoundary extends Component<{ name: string; children: ReactNode }, State> {
+function ComponentFailureFallback({
+  title,
+  message,
+  source,
+}: {
+  title: string
+  message?: string
+  source?: string
+}) {
+  return (
+    <div className="mdx-component-error" role="note">
+      <div className="mdx-component-error-title">{title}</div>
+      {message && <div className="mdx-component-error-message">{message}</div>}
+      {source && (
+        <pre className="mdx-component-error-code">
+          <code>{source}</code>
+        </pre>
+      )}
+    </div>
+  )
+}
+
+class MdxComponentErrorBoundary extends Component<
+  { name: string; source?: string; children: ReactNode },
+  State
+> {
   state: State = { hasError: false }
 
   static getDerivedStateFromError(error: Error): State {
@@ -58,12 +85,11 @@ class MdxComponentErrorBoundary extends Component<{ name: string; children: Reac
   render() {
     if (this.state.hasError) {
       return (
-        <div className="mdx-component-error" role="note">
-          <div className="mdx-component-error-title">{this.props.name} render failed</div>
-          {this.state.error?.message && (
-            <div className="mdx-component-error-message">{this.state.error.message}</div>
-          )}
-        </div>
+        <ComponentFailureFallback
+          title={`${this.props.name} render failed`}
+          message={this.state.error?.message}
+          source={this.props.source ?? fallbackComponentSource(this.props.name)}
+        />
       )
     }
     return this.props.children
@@ -87,40 +113,50 @@ function isLikelyMdxComponentName(name: string): boolean {
   return /^[A-Z]/.test(name)
 }
 
-function getMissingComponent(name: string): ElementType {
-  const cached = missingComponentCache.get(name)
+function fallbackComponentSource(name: string): string {
+  return `<${name} />`
+}
+
+function getMissingComponent(name: string, source?: string): ElementType {
+  const cacheKey = `${name}\0${source ?? ''}`
+  const cached = missingComponentCache.get(cacheKey)
   if (cached) return cached
 
   const MissingMdxComponent = ({ children }: { children?: ReactNode }) => (
-    <div className="mdx-component-error" role="note">
-      <div className="mdx-component-error-title">{name} component is not available</div>
-      {children && (
-        <div className="mdx-component-error-message">
-          This MDX block could not be rendered with the current component set.
-        </div>
-      )}
-    </div>
+    <ComponentFailureFallback
+      title={`${name} component is not available`}
+      message={
+        children
+          ? 'This MDX block could not be rendered with the current component set.'
+          : undefined
+      }
+      source={source ?? fallbackComponentSource(name)}
+    />
   )
   MissingMdxComponent.displayName = `MissingMdxComponent(${name})`
-  missingComponentCache.set(name, MissingMdxComponent)
+  missingComponentCache.set(cacheKey, MissingMdxComponent)
   return MissingMdxComponent
 }
 
 function withMissingComponentFallback(
   components: Record<string, unknown>,
+  componentSources: MdxComponentSourceMap,
 ): Record<string, unknown> {
   return new Proxy(components, {
     get(target, prop, receiver) {
       if (typeof prop !== 'string') return Reflect.get(target, prop, receiver)
       const value = Reflect.get(target, prop, receiver)
       if (value !== undefined || prop in target || prop === 'wrapper') return value
-      if (isLikelyMdxComponentName(prop)) return getMissingComponent(prop)
+      if (isLikelyMdxComponentName(prop)) return getMissingComponent(prop, componentSources.get(prop))
       return value
     },
   })
 }
 
-function wrapMdxComponents(components: Record<string, unknown>) {
+function wrapMdxComponents(
+  components: Record<string, unknown>,
+  componentSources: MdxComponentSourceMap,
+) {
   const wrapped: Record<string, unknown> = {}
 
   for (const [name, component] of Object.entries(components)) {
@@ -131,7 +167,7 @@ function wrapMdxComponents(components: Record<string, unknown>) {
 
     const ComponentType = component
     const WrappedMdxComponent = (props: Record<string, unknown>) => (
-      <MdxComponentErrorBoundary name={name}>
+      <MdxComponentErrorBoundary name={name} source={componentSources.get(name)}>
         <Suspense fallback={mdxLoadingFallback()}>{createElement(ComponentType, props)}</Suspense>
       </MdxComponentErrorBoundary>
     )
@@ -140,6 +176,100 @@ function wrapMdxComponents(components: Record<string, unknown>) {
   }
 
   return wrapped
+}
+
+function findOpeningTagEnd(source: string, start: number): number {
+  let quote: '"' | "'" | '`' | null = null
+  let braceDepth = 0
+
+  for (let i = start; i < source.length; i += 1) {
+    const char = source[i]
+    const prev = source[i - 1]
+
+    if (quote) {
+      if (char === quote && prev !== '\\') quote = null
+      continue
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+
+    if (char === '{') {
+      braceDepth += 1
+      continue
+    }
+
+    if (char === '}') {
+      braceDepth = Math.max(0, braceDepth - 1)
+      continue
+    }
+
+    if (char === '>' && braceDepth === 0) return i
+  }
+
+  return -1
+}
+
+function isSelfClosingTag(tagSource: string): boolean {
+  return /\/\s*>$/.test(tagSource)
+}
+
+function findComponentBlockEnd(source: string, name: string, openingEnd: number): number {
+  const openingSource = source.slice(0, openingEnd + 1)
+  if (isSelfClosingTag(openingSource)) return openingEnd + 1
+
+  let index = openingEnd + 1
+  let depth = 1
+  const openNeedle = `<${name}`
+  const closeNeedle = `</${name}`
+
+  while (index < source.length) {
+    const nextOpen = source.indexOf(openNeedle, index)
+    const nextClose = source.indexOf(closeNeedle, index)
+
+    if (nextClose === -1) return openingEnd + 1
+
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      const nestedEnd = findOpeningTagEnd(source, nextOpen)
+      if (nestedEnd === -1) return openingEnd + 1
+      if (!isSelfClosingTag(source.slice(nextOpen, nestedEnd + 1))) depth += 1
+      index = nestedEnd + 1
+      continue
+    }
+
+    const closeEnd = source.indexOf('>', nextClose)
+    if (closeEnd === -1) return openingEnd + 1
+    depth -= 1
+    if (depth === 0) return closeEnd + 1
+    index = closeEnd + 1
+  }
+
+  return openingEnd + 1
+}
+
+function extractMdxComponentSources(source: string): MdxComponentSourceMap {
+  const sources: MdxComponentSourceMap = new Map()
+  const componentOpen = /<([A-Z][A-Za-z0-9_]*)\b/g
+  let match: RegExpExecArray | null
+
+  while ((match = componentOpen.exec(source))) {
+    const [token, name] = match
+    const start = match.index
+    if (source[start + 1] === '/') continue
+
+    const openingEnd = findOpeningTagEnd(source, start)
+    if (openingEnd === -1) continue
+
+    const end = findComponentBlockEnd(source, name, openingEnd)
+    const snippet = source.slice(start, end).trim()
+    if (snippet && !sources.has(name)) sources.set(name, snippet)
+
+    componentOpen.lastIndex = Math.max(start + token.length, end)
+  }
+
+  return sources
 }
 
 // ── Compile cache ──────────────────────────────────────────────────────────
@@ -186,10 +316,15 @@ export function MdxRenderer({ content, entryPath }: Props) {
     [entryPath],
   )
 
+  const componentSources = useMemo(() => extractMdxComponentSources(content), [content])
+
   const components = useMemo(
     () =>
-      withMissingComponentFallback(wrapMdxComponents({ ...markdownComponents, ...mdxComponents })),
-    [markdownComponents],
+      withMissingComponentFallback(
+        wrapMdxComponents({ ...markdownComponents, ...mdxComponents }, componentSources),
+        componentSources,
+      ),
+    [componentSources, markdownComponents],
   )
 
   useEffect(() => {

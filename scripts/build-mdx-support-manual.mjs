@@ -178,17 +178,17 @@ const componentSpecs = [
 </Columns>`,
   },
   {
-    name: 'Mockup',
-    group: 'Layout',
+    name: 'MacPreview',
+    group: 'Preview',
     source: 'src/components/mdx/layout.tsx',
-    desc: '带窗口标题栏的预览框，适合展示界面草图或格式样例。',
+    desc: 'macOS 窗口壳预览，适合展示桌面端界面草图或格式样例。',
     props: [
       ['title', 'string', '可选；标题栏文本。'],
       ['children', 'ReactNode', '预览内容。'],
     ],
-    example: `<Mockup title="输出预览">
+    example: `<MacPreview title="输出预览">
   <Checklist items={[{ text: "结论先行", checked: true }, { text: "来源可追溯" }]} />
-</Mockup>`,
+</MacPreview>`,
   },
   {
     name: 'Placeholder',
@@ -197,18 +197,6 @@ const componentSpecs = [
     desc: '显式标记待补内容，不伪造信息。',
     props: [['children', 'ReactNode', '占位说明。']],
     example: `<Placeholder>待补：用户访谈原文和样本数量。</Placeholder>`,
-  },
-  {
-    name: 'DeviceShowcase',
-    group: 'Layout',
-    source: 'src/components/mdx/layout.tsx',
-    desc: '设备 mockup 的外层展示区域。',
-    props: [['children', 'ReactNode', '一个或多个设备。']],
-    example: `<DeviceShowcase>
-  <Phone size="sm">
-    <div style={{ padding: 18 }}>移动端阅读态</div>
-  </Phone>
-</DeviceShowcase>`,
   },
   {
     name: 'Grid',
@@ -661,43 +649,40 @@ const componentSpecs = [
 />`,
   },
   {
-    name: 'CanvasDiagram',
-    group: 'Diagrams',
-    source: 'src/components/mdx/canvas-diagram.tsx',
-    desc: '内置 Canvas 流程图，支持拖拽与缩放。',
+    name: 'HtmlPreview',
+    group: 'Preview',
+    source: 'src/components/mdx/html-preview.tsx',
+    desc: '裸 HTML 预览，使用 sandbox iframe 隔离运行 HTML fragment 或 document，并内置 Journal preview preset 与 Tabler Icons webfont：语义 HTML 默认可读，常用类如 card/grid/stack/badge/callout/kpi 可直接使用，图标可直接写 <i class="ti ti-clock" aria-hidden="true"></i>。',
     props: [
-      ['nodes', 'CanvasNode[]', '节点。'],
-      ['edges', 'CanvasEdge[]', '边。'],
-      ['caption', 'string', '说明。'],
+      ['src', 'string', '可选；workspace 相对路径或绝对路径。'],
+      ['html', 'string', '可选；直接传入 HTML 字符串。'],
+      ['height', 'number | string', '预览高度，默认 420。'],
+      ['title', 'string', 'iframe 标题。'],
     ],
-    example: `<CanvasDiagram
-  nodes={[
-    { id: "a", label: "开始", type: "start" },
-    { id: "b", label: "判断", type: "decision" },
-    { id: "c", label: "输出", type: "output" },
-  ]}
-  edges={[{ from: "a", to: "b" }, { from: "b", to: "c", label: "通过" }]}
-  caption="可交互 Canvas 示例"
+    example: `<HtmlPreview
+  src="2606/raw/note_component_library.html"
+  height={520}
+  title="笔记组件分类体系"
 />`,
   },
   {
-    name: 'Phone',
-    group: 'Device',
+    name: 'PhonePreview',
+    group: 'Preview',
     source: 'src/components/mdx/device-mockups.tsx',
-    desc: 'CSS 手机设备框。',
+    desc: '手机壳预览，适合展示移动端截图或手机阅读态内容。',
     props: [
       ['src', 'string', '可选截图。'],
       ['children', 'ReactNode', '屏幕内容。'],
       ['size', '"sm" | "md" | "lg" | "auto"', '尺寸。'],
       ['density', 'string', '内容密度。'],
     ],
-    example: `<Phone size="sm" density="compact">
+    example: `<PhonePreview size="sm" density="compact">
   <div style={{ padding: 18 }}>
     <Label>JournalClaw</Label>
     <h3>移动端阅读预览</h3>
     <p>用于展示内容在设备内的状态。</p>
   </div>
-</Phone>`,
+</PhonePreview>`,
   },
   {
     name: 'ActionTable',
@@ -864,7 +849,7 @@ const componentSpecs = [
       ['children', 'ReactNode', '证据内容。'],
     ],
     example: `<EvidenceCard title="截图证据" source="用户反馈截图">
-  组件页只显示代码块，没有真实 CanvasDiagram 渲染。
+  组件页只显示代码块，没有真实组件渲染。
 </EvidenceCard>`,
   },
   {
@@ -3435,7 +3420,7 @@ function writeRootPages(templateFiles) {
     { path: "topics/mdx-support-manual/01-runtime-and-syntax.mdx", label: "运行时与语法", type: "file" },
     { path: "topics/mdx-support-manual/04-template-registry.mdx", label: "模板注册表", type: "file" },
     { path: "topics/mdx-support-manual/05-component-selection.mdx", label: "组件选择", type: "file" },
-    { path: "topics/mdx-support-manual/components/CanvasDiagram.mdx", label: "CanvasDiagram 示例", type: "file" },
+    { path: "topics/mdx-support-manual/components/HtmlPreview.mdx", label: "HtmlPreview 示例", type: "file" },
   ]}
 />
 
@@ -3464,18 +3449,8 @@ ${propsTable([
 
 <Subtitle>MDX 文件先去掉 frontmatter，再由 Rust mdxjs 编译，最后在 React 中用白名单组件渲染。</Subtitle>
 
-<CanvasDiagram
-  nodes={[
-    { id: "file", label: ".mdx 文件", type: "input" },
-    { id: "rust", label: "compile_mdx", type: "process" },
-    { id: "runtime", label: "createMdxComponent", type: "process" },
-    { id: "react", label: "React 渲染", type: "output" },
-  ]}
-  edges={[
-    { from: "file", to: "rust" },
-    { from: "rust", to: "runtime" },
-    { from: "runtime", to: "react" },
-  ]}
+<Mermaid
+  chart={"flowchart LR\\n  File[.mdx 文件] --> Rust[compile_mdx]\\n  Rust --> Runtime[createMdxComponent]\\n  Runtime --> React[React 渲染]"}
   caption="JournalClaw MDX 渲染链路"
 />
 

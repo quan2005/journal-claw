@@ -79,6 +79,56 @@ describe('MdxRenderer', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/UnknownThing component is not available/)).toBeTruthy()
+      expect(screen.getByText('<UnknownThing>test</UnknownThing>')).toBeTruthy()
+      expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
+    })
+  })
+
+  it('localizes removed showcase components and shows their source code', async () => {
+    const compiledRemovedComponents = `import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+function _missingMdxReference(id) {
+  throw new Error("Expected component \`" + id + "\` to be defined");
+}
+function _createMdxContent(props) {
+  const _components = Object.assign({p: "p"}, props.components);
+  const {CanvasDiagram, DeviceShowcase, Phone} = props.components || {};
+  if (!CanvasDiagram) _missingMdxReference("CanvasDiagram");
+  if (!DeviceShowcase) _missingMdxReference("DeviceShowcase");
+  if (!Phone) _missingMdxReference("Phone");
+  return _jsxs(_Fragment, {children: [
+    _jsx(_components.p, {children: "before"}),
+    _jsx(CanvasDiagram, {caption: "旧图示"}),
+    _jsx(DeviceShowcase, {children: _jsx(Phone, {size: "sm", children: "old phone"})}),
+    _jsx(_components.p, {children: "after"})
+  ]});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledRemovedComponents)
+
+    render(
+      <MdxRenderer
+        content={`before
+
+<CanvasDiagram caption="旧图示" />
+
+<DeviceShowcase>
+  <Phone size="sm">old phone</Phone>
+</DeviceShowcase>
+
+after`}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('before')).toBeTruthy()
+      expect(screen.getByText('after')).toBeTruthy()
+      expect(screen.getByText(/CanvasDiagram component is not available/)).toBeTruthy()
+      expect(screen.getByText(/DeviceShowcase component is not available/)).toBeTruthy()
+      expect(screen.getByText('<CanvasDiagram caption="旧图示" />')).toBeTruthy()
+      expect(screen.getByText(/<DeviceShowcase>/)).toBeTruthy()
       expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
     })
   })
@@ -203,7 +253,7 @@ export default MDXContent;`
   it('opens local file cards inside JournalClaw instead of the system app', async () => {
     const compiledLocalFile = `import { jsx as _jsx } from "react/jsx-runtime";
 function _createMdxContent() {
-  return _jsx("a", {"data-filepath": "topics/mdx-support-manual/components/CanvasDiagram.mdx", children: "CanvasDiagram.mdx"});
+  return _jsx("a", {"data-filepath": "topics/mdx-support-manual/components/HtmlPreview.mdx", children: "HtmlPreview.mdx"});
 }
 function MDXContent(props = {}) {
   return _createMdxContent(props);
@@ -215,20 +265,20 @@ export default MDXContent;`
 
     render(
       <MdxRenderer
-        content="<FileCard path='topics/mdx-support-manual/components/CanvasDiagram.mdx' />"
-        entryPath="/tmp/journal/topics/mdx-support-manual/components/CanvasDiagram.mdx"
+        content="<FileCard path='topics/mdx-support-manual/components/HtmlPreview.mdx' />"
+        entryPath="/tmp/journal/topics/mdx-support-manual/components/HtmlPreview.mdx"
       />,
     )
 
-    await waitFor(() => screen.getByText('CanvasDiagram.mdx'))
-    screen.getByText('CanvasDiagram.mdx').click()
+    await waitFor(() => screen.getByText('HtmlPreview.mdx'))
+    screen.getByText('HtmlPreview.mdx').click()
 
     await waitFor(() => {
       expect(handler).toHaveBeenCalled()
     })
     expect(handler.mock.calls[0][0].detail).toMatchObject({
-      path: '/tmp/journal/topics/mdx-support-manual/components/CanvasDiagram.mdx',
-      name: 'CanvasDiagram.mdx',
+      path: '/tmp/journal/topics/mdx-support-manual/components/HtmlPreview.mdx',
+      name: 'HtmlPreview.mdx',
     })
     expect(openFile).not.toHaveBeenCalled()
     window.removeEventListener('journal-file-open', handler)

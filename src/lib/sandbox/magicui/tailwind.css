@@ -1,4 +1,4 @@
-/* Magic UI Tailwind utilities — no preflight reset (don't override neat.style) */
+/* Magic UI Tailwind utilities: no preflight reset, so Journal preview preset stays in control. */
 @import "tailwindcss/utilities";
 
 /* Scan Magic UI components for used classes */

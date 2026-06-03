@@ -179,11 +179,17 @@ export function PieChartImpl({
       style={{
         display: 'flex',
         flexDirection: layout.compact ? 'column' : 'row',
-        alignItems: 'center',
+        alignItems: layout.compact ? 'stretch' : 'center',
         gap: layout.compact ? 16 : 32,
       }}
     >
-      <div style={{ flex: layout.compact ? 'none' : '0 0 55%', minWidth: 0 }}>
+      <div
+        style={{
+          flex: layout.compact ? 'none' : '0 0 55%',
+          width: layout.compact ? '100%' : undefined,
+          minWidth: 0,
+        }}
+      >
         <ResponsiveContainer width="100%" height={layout.height}>
           <RechartsPie margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
             <Pie

@@ -10,26 +10,22 @@ export function Column({ children }: { children: React.ReactNode }) {
   return <div>{children}</div>
 }
 
-export function Mockup({ title, children }: { title?: string; children: React.ReactNode }) {
+export function MacPreview({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="mdx-mockup">
-      <div className="mdx-mockup-header">
-        <span className="mdx-mockup-dots">
-          <span className="mdx-mockup-dot mdx-mockup-dot--red" />
-          <span className="mdx-mockup-dot mdx-mockup-dot--yellow" />
-          <span className="mdx-mockup-dot mdx-mockup-dot--green" />
+    <div className="mdx-mac-preview">
+      <div className="mdx-mac-preview-header">
+        <span className="mdx-mac-preview-dots">
+          <span className="mdx-mac-preview-dot mdx-mac-preview-dot--red" />
+          <span className="mdx-mac-preview-dot mdx-mac-preview-dot--yellow" />
+          <span className="mdx-mac-preview-dot mdx-mac-preview-dot--green" />
         </span>
-        {title && <span className="mdx-mockup-header-title">{title}</span>}
+        {title && <span className="mdx-mac-preview-header-title">{title}</span>}
       </div>
-      <div className="mdx-mockup-body">{children}</div>
+      <div className="mdx-mac-preview-body">{children}</div>
     </div>
   )
 }
 
 export function Placeholder({ children }: { children: React.ReactNode }) {
   return <div className="mdx-placeholder">{children}</div>
-}
-
-export function DeviceShowcase({ children }: { children: React.ReactNode }) {
-  return <div className="mdx-device-showcase">{children}</div>
 }

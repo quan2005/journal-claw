@@ -98,9 +98,9 @@ if(!styleEl){
 }
 function applyTheme(){
   if(isDark){
-    styleEl.textContent=':root{color-scheme:dark;--bg:#0f0f0f;--text:#e8e8e8;--text-secondary:#a2a6ae;--accent:#c8933b;--border:#2a2a2e;--font-body:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace}body{background:var(--bg);color:var(--text);font-family:var(--font-body)}'
+    styleEl.textContent=':root{color-scheme:dark;--bg:#0f0f0f;--text:#e8e8e8;--text-secondary:#a2a6ae;--text-tertiary:#727780;--accent:#c8933b;--border:#2a2a2e;--font-body:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace;--color-background-primary:#1c1c1e;--color-background-success:#123326;--color-text-primary:var(--text);--color-text-secondary:var(--text-secondary);--color-text-tertiary:var(--text-tertiary);--color-text-success:#95d5b2;--color-border-tertiary:var(--border);--color-border-success:#2f7d5c;--border-radius-lg:8px;--border-radius-md:6px}body{background:var(--bg);color:var(--text);font-family:var(--font-body)}'
   }else{
-    styleEl.textContent=':root{color-scheme:light;--bg:#f5f6f7;--text:#1c1c1e;--text-secondary:#6a7278;--accent:#b8782a;--border:#d8dce0;--font-body:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace}body{background:var(--bg);color:var(--text);font-family:var(--font-body)}'
+    styleEl.textContent=':root{color-scheme:light;--bg:#f5f6f7;--text:#1c1c1e;--text-secondary:#6a7278;--text-tertiary:#a0a8ad;--accent:#b8782a;--border:#d8dce0;--font-body:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace;--color-background-primary:#ffffff;--color-background-success:#edf7f0;--color-text-primary:var(--text);--color-text-secondary:var(--text-secondary);--color-text-tertiary:var(--text-tertiary);--color-text-success:#24734e;--color-border-tertiary:var(--border);--color-border-success:#b7dbc4;--border-radius-lg:8px;--border-radius-md:6px}body{background:var(--bg);color:var(--text);font-family:var(--font-body)}'
   }
 }
 applyTheme();

@@ -78,6 +78,7 @@ describe('MdxRenderer lazy MDX components', () => {
       expect(screen.getByText('after')).toBeTruthy()
     })
     expect(screen.getByText(/BrokenBlock render failed/)).toBeTruthy()
+    expect(screen.getByText('<BrokenBlock />')).toBeTruthy()
     expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
   })
 })

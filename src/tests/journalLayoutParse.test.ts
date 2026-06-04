@@ -55,7 +55,7 @@ inside code
 title: Missing close`)
 
     expect(result.containsLayout).toBe(true)
-    expect(result.segments.at(-1)).toMatchObject({
+    expect(result.segments[result.segments.length - 1]).toMatchObject({
       kind: 'error',
       issue: {
         kind: 'syntax',

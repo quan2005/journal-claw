@@ -23,13 +23,7 @@ export function QuoteBlock({ block }: { block: JournalBlock }) {
   )
 }
 
-export function ImageTextBlock({
-  block,
-  entryPath,
-}: {
-  block: JournalBlock
-  entryPath?: string
-}) {
+export function ImageTextBlock({ block, entryPath }: { block: JournalBlock; entryPath?: string }) {
   const data = fields(block)
   const variant = block.attrs.variant === 'reverse' ? ' journal-block-image-text-reverse' : ''
   return (

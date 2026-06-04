@@ -1,0 +1,65 @@
+---
+summary: Journal layout directives phase 1 visual fixture
+tags: [journal-layout, mdx, directives]
+---
+
+# Journal Layout Directives Phase 1
+
+:::hero
+eyebrow: Journal Layout
+title: Structure before style
+subtitle: Layout directives give Markdown and MDX the same calm document rhythm without JSX.
+:::
+
+:::callout tip[Use directives for repeatable structure]
+The block syntax is compact enough for AI-generated notes and readable enough for hand-authored notes.
+:::
+
+:::metrics[Key Results]
+Module catalog | 43 modules | Full registry from day one
+Phase 1 renderers | 10 blocks | High-frequency reading modules first
+Default path | unchanged | Plain Markdown keeps the current renderer
+:::
+
+:::cards[Reading map]
+Opening | Hero and card blocks establish the point of view | private knowledge base | accent
+Evidence | Quote and image-text blocks keep proof close to claims | restrained | default
+Action | FAQ and steps reduce scanning cost | ready to use | default
+:::
+
+:::steps[Implementation sequence]
+Catalog | Register all modules and aliases | shared source of truth
+Parser | Split Markdown into ordinary content and blocks | ignores code fences
+Renderer | Use one block component layer for md and mdx | local errors
+:::
+
+:::timeline[Milestones]
+Phase 1 | Shared engine and first 10 blocks | current work
+Phase 2 | Opening, judgment, evidence, infographic expansion | next planned slice
+Phase 3 | Conversion, brand, enhanced modules | full catalog coverage
+:::
+
+:::verdict
+status: Recommendation
+title: Ship Phase 1 behind syntax detection
+summary: Documents without directives should stay on the current render paths; directive documents opt into mixed segment rendering.
+confidence: High
+:::
+
+:::quote
+text: The module system should make documents prettier while staying native to JournalClaw.
+source: Layout directive design
+:::
+
+:::image-text
+image: ../../images/screenshot-20260330-205220.png
+title: Image and text stay inspectable
+text: Evidence modules should help readers inspect the actual artifact, not hide it behind decorative effects.
+alt: Journal screenshot
+:::
+
+:::faq[Operational questions]
+Does plain Markdown change? | No. Files without directives keep the existing render path.
+Can MDX still use JSX? | Yes. Directives are transformed before MDX compilation, then existing MDX components remain registered.
+Can a broken block break the page? | No. The failing block renders a local error and the rest of the document remains readable.
+:::

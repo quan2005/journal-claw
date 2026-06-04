@@ -148,7 +148,8 @@ function withMissingComponentFallback(
       if (typeof prop !== 'string') return Reflect.get(target, prop, receiver)
       const value = Reflect.get(target, prop, receiver)
       if (value !== undefined || prop in target || prop === 'wrapper') return value
-      if (isLikelyMdxComponentName(prop)) return getMissingComponent(prop, componentSources.get(prop))
+      if (isLikelyMdxComponentName(prop))
+        return getMissingComponent(prop, componentSources.get(prop))
       return value
     },
   })

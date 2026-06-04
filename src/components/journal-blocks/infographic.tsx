@@ -41,7 +41,10 @@ export function StepsBlock({ block }: { block: JournalBlock }) {
 
 export function TimelineBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-timeline" aria-label={block.title ?? 'Timeline'}>
+    <section
+      className="journal-block journal-block-timeline"
+      aria-label={block.title ?? 'Timeline'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       {rows(block).map(([time, title, description], index) => (
         <div key={`${time}-${title}-${index}`} className="journal-block-timeline-item">

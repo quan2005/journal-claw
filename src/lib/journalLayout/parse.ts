@@ -226,7 +226,10 @@ export function parseRawJournalLayout(source: string): RawLayoutParseResult {
       break
     }
 
-    const bodyRaw = lines.slice(i + 1, closeIndex).join('\n').trim()
+    const bodyRaw = lines
+      .slice(i + 1, closeIndex)
+      .join('\n')
+      .trim()
     const sourceText = lines.slice(i, closeIndex + 1).join('\n')
     segments.push({
       kind: 'raw_block',
@@ -247,9 +250,7 @@ export function parseRawJournalLayout(source: string): RawLayoutParseResult {
   if (!containsLayout) {
     return {
       containsLayout: false,
-      segments: [
-        makeMarkdown(source, source ? 1 : 0, source ? source.split('\n').length : 0),
-      ],
+      segments: [makeMarkdown(source, source ? 1 : 0, source ? source.split('\n').length : 0)],
     }
   }
 

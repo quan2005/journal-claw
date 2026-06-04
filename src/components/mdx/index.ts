@@ -65,6 +65,7 @@ export { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from
 
 // ── Component map ─────────────────────────────────────────
 
+import { createElement } from 'react'
 import { Split, Columns, Column, MacPreview, Placeholder } from './layout'
 import {
   ProsCons,
@@ -105,8 +106,23 @@ import {
   QuoteCard,
 } from './semantic'
 import { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from './source'
+import { BlockError } from '../journal-blocks/BlockError'
+import { JournalBlockRenderer } from '../journal-blocks/JournalBlockRenderer'
+import type { JournalBlock as JournalBlockData, LayoutIssue } from '../../lib/journalLayout'
+
+export { JournalBlockRenderer }
+
+function JournalBlock({ block }: { block: JournalBlockData }) {
+  return createElement(JournalBlockRenderer, { block })
+}
+
+function JournalBlockError({ issue }: { issue: LayoutIssue }) {
+  return createElement(BlockError, { issue })
+}
 
 export const mdxComponents = {
+  JournalBlock,
+  JournalBlockError,
   Split,
   Columns,
   Column,

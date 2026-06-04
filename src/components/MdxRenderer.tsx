@@ -12,6 +12,7 @@ import {
 import { compileMdx, getWorkspacePath, openFile } from '../lib/tauri'
 import { resolveRelativePath } from '../lib/markdownUtils'
 import { createMarkdownComponents } from '../lib/markdownComponents'
+import { transformMdxDirectives } from '../lib/journalLayout'
 import { mdxComponents } from './mdx'
 import { createMdxComponent, type MdxRuntimeComponent } from '../lib/mdxRuntime'
 import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
@@ -303,7 +304,8 @@ function parseMediaTime(value: string): number {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function MdxRenderer({ content, entryPath }: Props) {
-  const cacheKey = `${entryPath ?? ''}\0${content}`
+  const transformedContent = useMemo(() => transformMdxDirectives(content), [content])
+  const cacheKey = `${entryPath ?? ''}\0${transformedContent}`
   const [compileState, setCompileState] = useState<CompileState>(() => {
     const cached = getCachedComponent(cacheKey)
     return cached
@@ -316,7 +318,10 @@ export function MdxRenderer({ content, entryPath }: Props) {
     [entryPath],
   )
 
-  const componentSources = useMemo(() => extractMdxComponentSources(content), [content])
+  const componentSources = useMemo(
+    () => extractMdxComponentSources(transformedContent),
+    [transformedContent],
+  )
 
   const components = useMemo(
     () =>
@@ -337,7 +342,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
     }
 
     setCompileState({ key: cacheKey, status: 'loading' })
-    compileMdx(content, entryPath)
+    compileMdx(transformedContent, entryPath)
       .then((compiled) => createMdxComponent(compiled))
       .then((component) => {
         setCachedComponent(cacheKey, component)
@@ -354,7 +359,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
     return () => {
       cancelled = true
     }
-  }, [cacheKey, content, entryPath])
+  }, [cacheKey, transformedContent, entryPath])
 
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {

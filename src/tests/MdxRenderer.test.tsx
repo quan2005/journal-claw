@@ -283,4 +283,52 @@ export default MDXContent;`
     expect(openFile).not.toHaveBeenCalled()
     window.removeEventListener('journal-file-open', handler)
   })
+
+  it('transforms layout directives before compiling MDX', async () => {
+    vi.mocked(compileMdx).mockResolvedValue(compiledParagraph)
+
+    render(
+      <MdxRenderer
+        content={`Before
+
+:::callout tip[MDX Tip]
+Use the same directive syntax.
+:::
+
+After`}
+        entryPath="/tmp/journal/2606/04-layout.mdx"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(compileMdx).toHaveBeenCalled()
+    })
+
+    const compiledSource = vi.mocked(compileMdx).mock.calls[0][0]
+    expect(compiledSource).toContain('Before')
+    expect(compiledSource).toContain('<JournalBlock block={')
+    expect(compiledSource).toContain('"name":"callout"')
+    expect(compiledSource).toContain('"title":"MDX Tip"')
+    expect(compiledSource).toContain('After')
+  })
+
+  it('transforms invalid layout directives into local MDX error components', async () => {
+    vi.mocked(compileMdx).mockResolvedValue(compiledParagraph)
+
+    render(
+      <MdxRenderer
+        content={`:::metrics
+Only label | one value
+:::`}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(compileMdx).toHaveBeenCalled()
+    })
+
+    const compiledSource = vi.mocked(compileMdx).mock.calls[0][0]
+    expect(compiledSource).toContain('<JournalBlockError issue={')
+    expect(compiledSource).toContain('metrics row 1 expected at least 3 columns, got 2.')
+  })
 })

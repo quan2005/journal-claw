@@ -1,20 +1,5 @@
 import type { LayoutModuleSpec } from './types'
 
-export const IMPLEMENTED_LAYOUT_MODULES = [
-  'callout',
-  'hero',
-  'cards',
-  'metrics',
-  'steps',
-  'timeline',
-  'verdict',
-  'quote',
-  'image-text',
-  'faq',
-] as const
-
-const implemented = new Set<string>(IMPLEMENTED_LAYOUT_MODULES)
-
 const specs = [
   {
     name: 'hero',
@@ -396,6 +381,10 @@ const specs = [
     description: 'Changelog entries.',
   },
 ] satisfies Array<Omit<LayoutModuleSpec, 'implemented'>>
+
+export const IMPLEMENTED_LAYOUT_MODULES = specs.map((spec) => spec.name)
+
+const implemented = new Set<string>(IMPLEMENTED_LAYOUT_MODULES)
 
 export const JOURNAL_LAYOUT_MODULES: readonly LayoutModuleSpec[] = specs.map((spec) => ({
   ...spec,

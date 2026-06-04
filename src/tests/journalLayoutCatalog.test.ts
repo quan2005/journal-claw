@@ -12,19 +12,9 @@ describe('journal layout catalog', () => {
     expect(new Set(JOURNAL_LAYOUT_MODULES.map((spec) => spec.name)).size).toBe(43)
   })
 
-  it('marks exactly the phase 1 renderer modules as implemented', () => {
-    expect(IMPLEMENTED_LAYOUT_MODULES).toEqual([
-      'callout',
-      'hero',
-      'cards',
-      'metrics',
-      'steps',
-      'timeline',
-      'verdict',
-      'quote',
-      'image-text',
-      'faq',
-    ])
+  it('marks every registered layout module as implemented', () => {
+    expect(IMPLEMENTED_LAYOUT_MODULES).toHaveLength(43)
+    expect(IMPLEMENTED_LAYOUT_MODULES).toEqual(JOURNAL_LAYOUT_MODULES.map((spec) => spec.name))
   })
 
   it('resolves aliases without changing canonical names', () => {
@@ -41,7 +31,7 @@ describe('journal layout catalog', () => {
     })
     expect(getLayoutModuleSpec('resource-list')).toMatchObject({
       bodyFormat: 'json_array',
-      implemented: false,
+      implemented: true,
     })
   })
 })

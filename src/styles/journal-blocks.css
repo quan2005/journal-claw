@@ -89,7 +89,11 @@
 .journal-layout-card p,
 .journal-block-step p,
 .journal-block-timeline-item p,
-.journal-block-image-text p {
+.journal-block-image-text p,
+.journal-block-row p,
+.journal-block-pair p,
+.journal-block-bridge p,
+.journal-block-person-card p {
   margin-top: var(--space-2);
   color: var(--item-meta);
   font-size: var(--text-sm);
@@ -118,7 +122,8 @@
 }
 
 .journal-block-step,
-.journal-block-timeline-item {
+.journal-block-timeline-item,
+.journal-block-row {
   display: grid;
   grid-template-columns: 54px minmax(0, 1fr);
   gap: var(--space-4);
@@ -127,7 +132,8 @@
 }
 
 .journal-block-step-index,
-.journal-block-timeline-item time {
+.journal-block-timeline-item time,
+.journal-block-row-marker {
   color: var(--record-btn);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -203,6 +209,228 @@
   margin-top: var(--space-2);
   color: var(--item-meta);
   line-height: 1.65;
+}
+
+.journal-block-part,
+.journal-block-label-title,
+.journal-block-infographic,
+.journal-block-cta,
+.journal-block-summary,
+.journal-block-subscribe,
+.journal-block-question {
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+}
+
+.journal-block-part h2,
+.journal-block-label-title h2,
+.journal-block-infographic h2,
+.journal-block-cta h2,
+.journal-block-summary h2,
+.journal-block-subscribe h2,
+.journal-block-question h2 {
+  color: var(--journal-title-color);
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  line-height: 1.3;
+}
+
+.journal-block-part p,
+.journal-block-label-title p,
+.journal-block-infographic p,
+.journal-block-cta p,
+.journal-block-summary p,
+.journal-block-subscribe p,
+.journal-block-question p,
+.journal-block-notice p {
+  margin-top: var(--space-2);
+  color: var(--item-meta);
+  line-height: 1.7;
+}
+
+.journal-block-infographic-value {
+  color: var(--record-btn);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  line-height: 1;
+}
+
+.journal-block-table-grid {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.journal-block-table-grid-3 .journal-block-table-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.journal-block-table-row {
+  display: grid;
+  grid-template-columns: inherit;
+  border-bottom: 1px solid var(--divider);
+}
+
+.journal-block-table-row:last-child {
+  border-bottom: 0;
+}
+
+.journal-block-table-row > * {
+  min-width: 0;
+  padding: var(--space-3);
+  border-right: 1px solid var(--divider);
+  color: var(--item-meta);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.journal-block-table-row > :last-child {
+  border-right: 0;
+}
+
+.journal-block-table-row strong {
+  color: var(--journal-title-color);
+  font-weight: var(--font-semibold);
+}
+
+.journal-block-table-header {
+  background: color-mix(in srgb, var(--bg-secondary) 76%, var(--bg) 24%);
+}
+
+.journal-block-pair,
+.journal-block-bridge,
+.journal-block-person-card,
+.journal-block-definition,
+.journal-block-quote-card,
+.journal-block-tweet,
+.journal-block-notice {
+  padding: var(--space-4);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-secondary) 86%, var(--bg) 14%);
+}
+
+.journal-block-pair,
+.journal-block-bridge {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.journal-block-bridge-arrow {
+  display: none;
+}
+
+.journal-block-bridge-why {
+  grid-column: 1 / -1;
+  color: var(--item-meta);
+  font-size: var(--text-sm);
+}
+
+.journal-block-image-compare-grid,
+.journal-block-image-steps,
+.journal-block-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.journal-block-image-compare figure,
+.journal-block-image-step,
+.journal-block-image-annotate {
+  padding: var(--space-3);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+}
+
+.journal-block-image-compare img,
+.journal-block-image-step img,
+.journal-block-image-annotate img {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.journal-block-image-compare figcaption {
+  margin-top: var(--space-2);
+  color: var(--item-meta);
+  font-size: var(--text-xs);
+}
+
+.journal-block-image-step {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.45fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.journal-block-plain-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.journal-block-plain-list li {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--md-text);
+  font-size: var(--text-sm);
+}
+
+.journal-block-chip,
+.journal-block-resource {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 var(--space-2) var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  color: var(--md-text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.journal-block-chip small,
+.journal-block-resource span {
+  color: var(--item-meta);
+  font-size: var(--text-xs);
+}
+
+.journal-block-person-card {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.journal-block-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--record-highlight);
+  color: var(--record-btn);
+  font-weight: var(--font-semibold);
+}
+
+.journal-block-definition h3,
+.journal-block-person-card h3,
+.journal-block-quote-card blockquote,
+.journal-block-tweet p {
+  color: var(--journal-title-color);
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+}
+
+.journal-block-definition p {
+  margin-top: var(--space-2);
+  color: var(--item-meta);
+  line-height: 1.6;
 }
 
 .journal-block-callout {

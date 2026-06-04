@@ -58,3 +58,31 @@ export function TimelineBlock({ block }: { block: JournalBlock }) {
     </section>
   )
 }
+
+export function CompareBlock({ block }: { block: JournalBlock }) {
+  return (
+    <section className="journal-block journal-block-table" aria-label={block.title ?? 'Compare'}>
+      {block.title && <div className="journal-block-section-title">{block.title}</div>}
+      <div className="journal-block-table-grid journal-block-table-grid-3">
+        {rows(block).map(([item, left, right], index) => (
+          <div key={`${item}-${index}`} className="journal-block-table-row">
+            <strong>{item}</strong>
+            <span>{left}</span>
+            <span>{right}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export function InfographicBlock({ block }: { block: JournalBlock }) {
+  const fields = block.body.format === 'fields' ? block.body.fields : {}
+  return (
+    <section className="journal-block journal-block-infographic">
+      {fields.value && <div className="journal-block-infographic-value">{fields.value}</div>}
+      <h2>{fields.title}</h2>
+      {fields.summary && <p>{fields.summary}</p>}
+    </section>
+  )
+}

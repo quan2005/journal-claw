@@ -13,6 +13,18 @@ function resolveImage(src: string, entryPath?: string): string {
   return convertFileSrc(src.startsWith('/') ? src : resolveRelativePath(entryDir, src))
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function stringValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return ''
+}
+
 export function QuoteBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
@@ -33,6 +45,90 @@ export function ImageTextBlock({ block, entryPath }: { block: JournalBlock; entr
         {data.title && <h3>{data.title}</h3>}
         {data.text && <p>{data.text}</p>}
       </div>
+    </section>
+  )
+}
+
+export function ImageCompareBlock({
+  block,
+  entryPath,
+}: {
+  block: JournalBlock
+  entryPath?: string
+}) {
+  const data = fields(block)
+  return (
+    <section className="journal-block journal-block-image-compare">
+      {data.title && <div className="journal-block-section-title">{data.title}</div>}
+      <div className="journal-block-image-compare-grid">
+        <figure>
+          <img
+            src={resolveImage(data.before, entryPath)}
+            alt={data.title ? `${data.title} before` : 'Before'}
+          />
+          <figcaption>Before</figcaption>
+        </figure>
+        <figure>
+          <img
+            src={resolveImage(data.after, entryPath)}
+            alt={data.title ? `${data.title} after` : 'After'}
+          />
+          <figcaption>After</figcaption>
+        </figure>
+      </div>
+      {data.caption && <p>{data.caption}</p>}
+    </section>
+  )
+}
+
+export function ImageAnnotateBlock({
+  block,
+  entryPath,
+}: {
+  block: JournalBlock
+  entryPath?: string
+}) {
+  const data = block.body.format === 'json_object' ? block.body.value : {}
+  const notes = Array.isArray(data.notes) ? data.notes : []
+  return (
+    <section className="journal-block journal-block-image-annotate">
+      {stringValue(data.title) && (
+        <div className="journal-block-section-title">{stringValue(data.title)}</div>
+      )}
+      {stringValue(data.image) && (
+        <img src={resolveImage(stringValue(data.image), entryPath)} alt={stringValue(data.title)} />
+      )}
+      <ul className="journal-block-plain-list">
+        {notes.map((note, index) => (
+          <li key={index}>{stringValue(note) || JSON.stringify(note)}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+export function ImageStepsBlock({ block, entryPath }: { block: JournalBlock; entryPath?: string }) {
+  const items = block.body.format === 'json_array' ? block.body.value : []
+  return (
+    <section className="journal-block journal-block-image-steps">
+      {items.map((item, index) => {
+        const data = asRecord(item)
+        return (
+          <article key={index} className="journal-block-image-step">
+            {stringValue(data.image) && (
+              <img
+                src={resolveImage(stringValue(data.image), entryPath)}
+                alt={stringValue(data.title)}
+              />
+            )}
+            <div>
+              <div className="journal-block-row-marker">{String(index + 1).padStart(2, '0')}</div>
+              <h3>{stringValue(data.title)}</h3>
+              {stringValue(data.text) && <p>{stringValue(data.text)}</p>}
+            </div>
+          </article>
+        )
+      })}
     </section>
   )
 }

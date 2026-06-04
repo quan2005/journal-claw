@@ -1,10 +1,12 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { JournalLayoutMarkdownRenderer } from '../components/journal-blocks/JournalLayoutMarkdownRenderer'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
 import { MdxRenderer } from '../components/MdxRenderer'
 import { createMarkdownComponents, type MarkdownComponentsOptions } from './markdownComponents'
 import { stripFrontmatter } from './markdownUtils'
+import { parseJournalLayout } from './journalLayout'
 
 export { stripFrontmatter, resolveRelativePath } from './markdownUtils'
 export { createMarkdownComponents } from './markdownComponents'
@@ -30,12 +32,28 @@ export function renderMarkdown(
   const cleaned = stripFrontmatter(content)
   const isLarge = content.length > LARGE_FILE_THRESHOLD
   const isMdx = absolutePath?.endsWith('.mdx')
+  const layoutParse = !isMdx && cleaned.includes(':::') ? parseJournalLayout(cleaned) : null
+  const hasLayoutSegments =
+    layoutParse?.containsLayout &&
+    layoutParse.segments.some((segment) => segment.kind === 'block' || segment.kind === 'error')
 
   // Route .mdx files to runtime MDX compiler (frontmatter stripped, MDX handles the rest)
   if (isMdx) {
     return (
       <div className="md-body">
         <MdxRenderer content={cleaned} entryPath={absolutePath} />
+      </div>
+    )
+  }
+
+  if (hasLayoutSegments && layoutParse) {
+    return (
+      <div className="md-body">
+        <JournalLayoutMarkdownRenderer
+          parseResult={layoutParse}
+          entryPath={absolutePath}
+          {...(options?.imgResolver ? { imgResolver: options.imgResolver } : {})}
+        />
       </div>
     )
   }

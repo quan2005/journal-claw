@@ -241,6 +241,57 @@ describe('App', () => {
     expect(screen.queryByRole('dialog', { name: '设置' })).toBeNull()
   })
 
+  it('places sidebar collapse controls on the panel dividers', async () => {
+    await act(async () => {
+      renderApp()
+    })
+    await act(async () => {})
+
+    const titleBar = document.querySelector('[data-tauri-drag-region]')
+    const leftToggle = screen.getByRole('button', { name: '折叠左侧栏' })
+    const rightToggle = screen.getByRole('button', { name: '折叠右侧栏 (⌘T)' })
+    const leftPanel = document.querySelector('[data-sidebar-panel="left"]') as HTMLElement
+    const rightPanel = document.querySelector('[data-sidebar-panel="right"]') as HTMLElement
+
+    expect(leftToggle.closest('[data-sidebar-divider="left"]')).toBeTruthy()
+    expect(rightToggle.closest('[data-sidebar-divider="right"]')).toBeTruthy()
+    expect(titleBar?.contains(rightToggle)).toBe(false)
+    expect(leftToggle.style.top).toBe('var(--panel-toggle-top)')
+    expect(rightToggle.style.top).toBe('var(--panel-toggle-top)')
+    expect(leftToggle.getAttribute('style')).toContain(
+      '--panel-toggle-top: clamp(88px, 12vh, 120px)',
+    )
+    expect(rightToggle.getAttribute('style')).toContain(
+      '--panel-toggle-top: clamp(88px, 12vh, 120px)',
+    )
+    expect(leftToggle.style.transform).toBe('translate(-50%, -50%)')
+    expect(rightToggle.style.transform).toBe('translate(-50%, -50%)')
+    expect(leftToggle.querySelector('svg')?.classList.contains('lucide-chevron-left')).toBe(true)
+    expect(rightToggle.querySelector('svg')?.classList.contains('lucide-chevron-right')).toBe(true)
+    expect(leftPanel.style.transition).toContain('width 220ms')
+    expect(rightPanel.style.transition).toContain('width 220ms')
+
+    await act(async () => {
+      fireEvent.click(leftToggle)
+    })
+
+    expect(leftPanel.style.width).toBe('0px')
+    expect(leftPanel.style.opacity).toBe('0')
+    expect(leftPanel.getAttribute('aria-hidden')).toBe('true')
+
+    await act(async () => {
+      fireEvent.click(rightToggle)
+    })
+
+    expect(rightPanel.style.width).toBe('0px')
+    expect(rightPanel.style.opacity).toBe('0')
+    expect(rightPanel.getAttribute('aria-hidden')).toBe('true')
+    const rightExpandToggle = screen.getByRole('button', { name: '展开右侧栏 (⌘T)' })
+    expect(rightExpandToggle.querySelector('svg')?.classList.contains('lucide-chevron-left')).toBe(
+      true,
+    )
+  })
+
   it('loads topic files from the workspace topics directory', async () => {
     vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
       {

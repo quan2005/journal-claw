@@ -9,8 +9,6 @@ interface TitleBarProps {
   isProcessing: boolean
   processingFilename?: string
   view: 'journal' | 'settings'
-  sidebarOpen: boolean
-  onToggleSidebar: () => void
   onOpenChat?: () => void
 }
 
@@ -20,8 +18,6 @@ export function TitleBar({
   isProcessing,
   processingFilename,
   view,
-  sidebarOpen,
-  onToggleSidebar,
   onOpenChat,
 }: TitleBarProps) {
   const { t } = useTranslation()
@@ -65,45 +61,9 @@ export function TitleBar({
         )}
       </div>
 
-      {/* Right: theme toggle + sidebar toggle */}
+      {/* Right: theme toggle */}
       <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8 }}>
         {view !== 'settings' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
-        {view !== 'settings' && (
-          <button
-            onClick={onToggleSidebar}
-            title={t('sidebarToggle')}
-            aria-label={t('sidebarToggle')}
-            style={{
-              background: sidebarOpen ? 'rgba(200,147,58,0.12)' : 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: sidebarOpen ? 'var(--record-btn)' : 'var(--item-meta)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              height: 24,
-              padding: 0,
-              borderRadius: 4,
-              lineHeight: 1,
-              opacity: sidebarOpen ? 1 : 0.6,
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M9 3v18" />
-            </svg>
-          </button>
-        )}
       </div>
     </div>
   )

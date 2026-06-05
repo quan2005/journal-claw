@@ -198,6 +198,81 @@ fn collect_assistant_text(messages: &[Message]) -> String {
         .unwrap_or_default()
 }
 
+fn failed_turn_messages(
+    mut partial_messages: Vec<Message>,
+    fallback_messages: &[Message],
+    error_message: &str,
+) -> Vec<Message> {
+    if partial_messages.is_empty() {
+        partial_messages = fallback_messages.to_vec();
+    }
+
+    patch_terminal_tool_use_with_error(&mut partial_messages, "error: run failed");
+
+    let failure_text = failure_notice_text(error_message);
+    let already_recorded = partial_messages.last().is_some_and(|message| {
+        message.role == Role::Assistant
+            && message.content.iter().any(
+                |block| matches!(block, ContentBlock::Text { text } if text.trim() == failure_text),
+            )
+    });
+    if !already_recorded {
+        partial_messages.push(Message {
+            role: Role::Assistant,
+            content: vec![ContentBlock::Text { text: failure_text }],
+        });
+    }
+
+    partial_messages
+}
+
+fn failure_notice_text(error_message: &str) -> String {
+    let trimmed = error_message.trim();
+    if trimmed.is_empty() {
+        "运行失败。".to_string()
+    } else {
+        format!("运行失败：{}", trimmed)
+    }
+}
+
+fn patch_terminal_tool_use_with_error(messages: &mut Vec<Message>, content: &str) {
+    let Some(last) = messages.last() else {
+        return;
+    };
+    if last.role != Role::Assistant {
+        return;
+    }
+
+    let pending_tool_ids: Vec<String> = last
+        .content
+        .iter()
+        .filter_map(|block| {
+            if let ContentBlock::ToolUse { id, .. } = block {
+                Some(id.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    if pending_tool_ids.is_empty() {
+        return;
+    }
+
+    let error_results = pending_tool_ids
+        .into_iter()
+        .map(|tool_use_id| ContentBlock::ToolResult {
+            tool_use_id,
+            content: content.to_string(),
+            is_error: true,
+            image: None,
+        })
+        .collect();
+    messages.push(Message {
+        role: Role::User,
+        content: error_results,
+    });
+}
+
 fn extract_unattended_tool_trace(messages: &[Message]) -> UnattendedToolTrace {
     let mut files_read = BTreeSet::new();
     let mut warnings = BTreeSet::new();
@@ -252,7 +327,10 @@ fn extract_unattended_tool_trace(messages: &[Message]) -> UnattendedToolTrace {
 }
 
 fn add_trace_path(paths: &mut BTreeSet<String>, value: Option<&serde_json::Value>) {
-    if let Some(path) = value.and_then(|v| v.as_str()).and_then(normalize_trace_path) {
+    if let Some(path) = value
+        .and_then(|v| v.as_str())
+        .and_then(normalize_trace_path)
+    {
         paths.insert(path);
     }
 }
@@ -774,39 +852,8 @@ pub async fn conversation_send(
             old_cancel.cancel();
         }
 
-        // Patch incomplete tool_use: if the last message is an assistant with
-        // tool_use blocks but no following tool_result, insert error results
-        // so the API doesn't reject the conversation.
-        if let Some(last) = session.messages.last() {
-            if last.role == Role::Assistant {
-                let pending_tool_ids: Vec<String> = last
-                    .content
-                    .iter()
-                    .filter_map(|b| {
-                        if let ContentBlock::ToolUse { id, .. } = b {
-                            Some(id.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                if !pending_tool_ids.is_empty() {
-                    let error_results: Vec<ContentBlock> = pending_tool_ids
-                        .into_iter()
-                        .map(|id| ContentBlock::ToolResult {
-                            tool_use_id: id,
-                            content: "error: operation cancelled".to_string(),
-                            is_error: true,
-                            image: None,
-                        })
-                        .collect();
-                    session.messages.push(Message {
-                        role: Role::User,
-                        content: error_results,
-                    });
-                }
-            }
-        }
+        // Patch incomplete tool_use so the API doesn't reject the conversation.
+        patch_terminal_tool_use_with_error(&mut session.messages, "error: operation cancelled");
 
         // Append user message (text + optional images)
         let mut user_content: Vec<ContentBlock> = Vec::new();
@@ -1028,7 +1075,11 @@ pub async fn conversation_send(
                             }
                             session.total_input_tokens += ti;
                             session.total_output_tokens += to;
-                            session.messages = partial_messages;
+                            session.messages = failed_turn_messages(
+                                partial_messages,
+                                &session.messages,
+                                &e.to_string(),
+                            );
                             session.cancel = None;
                             save_session_to_disk(&session.workspace, &sid, session);
                             serde_json::json!({
@@ -1132,6 +1183,7 @@ pub async fn run_unattended_agent_session(
     }
 
     let engine = create_engine(&cfg);
+    let initial_messages = messages.clone();
     let result = run_conversation_turn(
         engine.as_ref(),
         &workspace,
@@ -1206,8 +1258,10 @@ pub async fn run_unattended_agent_session(
         }
         Err((err, partial_messages, input_tokens, output_tokens)) => {
             let error_data = err.error_info().to_string();
-            let assistant_text = collect_assistant_text(&partial_messages);
-            let trace = extract_unattended_tool_trace(&partial_messages);
+            let failed_messages =
+                failed_turn_messages(partial_messages, &initial_messages, &err.to_string());
+            let assistant_text = collect_assistant_text(&failed_messages);
+            let trace = extract_unattended_tool_trace(&failed_messages);
             let _ = app.emit(
                 "conversation-stream",
                 ConversationStreamPayload {
@@ -1230,7 +1284,7 @@ pub async fn run_unattended_agent_session(
                     if let Some(started) = session.turn_started_at.take() {
                         session.elapsed_secs += started.elapsed().as_secs_f64();
                     }
-                    session.messages = partial_messages;
+                    session.messages = failed_messages;
                     session.cancel = None;
                     session.total_input_tokens = input_tokens;
                     session.total_output_tokens = output_tokens;
@@ -1523,7 +1577,11 @@ async fn conversation_continue(
                             }
                             session.total_input_tokens += ti;
                             session.total_output_tokens += to;
-                            session.messages = partial_messages;
+                            session.messages = failed_turn_messages(
+                                partial_messages,
+                                &session.messages,
+                                &e.to_string(),
+                            );
                             session.cancel = None;
                             save_session_to_disk(&session.workspace, &sid, session);
                             serde_json::json!({
@@ -2461,5 +2519,51 @@ mod tests {
         assert!(trace
             .warnings
             .contains(&"untracked task access".to_string()));
+    }
+
+    #[test]
+    fn failed_turn_messages_keep_prompt_and_error_when_partial_history_is_empty() {
+        let fallback = vec![Message {
+            role: Role::User,
+            content: vec![ContentBlock::Text {
+                text: "整理今天的日志".to_string(),
+            }],
+        }];
+
+        let messages = failed_turn_messages(Vec::new(), &fallback, "API 错误: quota exceeded");
+        let display = messages_to_display(&messages);
+
+        assert_eq!(display.len(), 2);
+        assert_eq!(display[0].role, "user");
+        assert_eq!(display[0].content, "整理今天的日志");
+        assert_eq!(display[1].role, "assistant");
+        assert!(display[1].content.contains("运行失败"));
+        assert!(display[1].content.contains("quota exceeded"));
+    }
+
+    #[test]
+    fn failed_turn_messages_append_error_to_partial_history() {
+        let partial = vec![
+            Message {
+                role: Role::User,
+                content: vec![ContentBlock::Text {
+                    text: "生成周报".to_string(),
+                }],
+            },
+            Message {
+                role: Role::Assistant,
+                content: vec![ContentBlock::Text {
+                    text: "我先读取最近日志。".to_string(),
+                }],
+            },
+        ];
+
+        let messages = failed_turn_messages(partial, &[], "网络错误: connection reset");
+        let display = messages_to_display(&messages);
+
+        assert_eq!(display.len(), 3);
+        assert_eq!(display[1].content, "我先读取最近日志。");
+        assert!(display[2].content.contains("运行失败"));
+        assert!(display[2].content.contains("connection reset"));
     }
 }

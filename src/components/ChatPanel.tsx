@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import type { ConversationMessage, MessageBlock, WebSearchResultItem, Attachment } from '../types'
 import type { SessionStats } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
@@ -45,6 +45,7 @@ export interface ChatPanelProps {
   onEditAndResend: (index: number, text: string) => void
   onRemovePendingItem: (index: number) => string | undefined
   onContinue: () => void
+  historyControl?: ReactNode
 }
 
 export function ChatPanel({
@@ -61,6 +62,7 @@ export function ChatPanel({
   onEditAndResend,
   onRemovePendingItem,
   onContinue,
+  historyControl,
 }: ChatPanelProps) {
   const { t } = useTranslation()
   const { showToast } = useToast()
@@ -663,6 +665,8 @@ export function ChatPanel({
         onDrop={handleDrop}
         style={{ padding: '8px 24px 12px', flexShrink: 0, position: 'relative' }}
       >
+        {historyControl}
+
         {slashOpen && (
           <SlashCommandMenu
             query={slashQuery}

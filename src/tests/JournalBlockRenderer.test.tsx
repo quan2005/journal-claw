@@ -57,6 +57,51 @@ describe('JournalBlockRenderer', () => {
     expect(screen.getByText('Keep prose calm and precise.')).toBeTruthy()
   })
 
+  it('renders card description br tokens as line breaks', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'cards',
+          body: {
+            format: 'rows',
+            rows: [
+              [
+                'M1 模型接入网关',
+                '开源起步（LiteLLM/Portkey）<br><br>1.1 统一API·协议适配 [ · ] P1<br/>1.2 多模型路由 [ · ] P1',
+              ],
+            ],
+          },
+        })}
+      />,
+    )
+
+    expect(container.querySelectorAll('.journal-layout-card p br').length).toBe(3)
+    expect(container.textContent).not.toContain('<br>')
+    expect(screen.getByText(/1.2 多模型路由/)).toBeTruthy()
+  })
+
+  it('marks long part titles as compact for adaptive typography', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'part',
+          body: {
+            format: 'fields',
+            fields: {
+              title:
+                '模块一 · 模型服务 — 全公司走大模型的统一入口，屏蔽底层差异，保证稳定、可路由、模型中立',
+              subtitle: '下周一，二要给戴翔交名单，这里把人和事对一遍。',
+            },
+          },
+        })}
+      />,
+    )
+
+    const title = container.querySelector('.journal-block-part h2')
+    expect(title?.classList.contains('journal-block-part-title')).toBe(true)
+    expect(title?.classList.contains('journal-block-part-title-compact')).toBe(true)
+  })
+
   it('renders json object blocks with a dedicated renderer', () => {
     render(
       <JournalBlockRenderer
@@ -407,6 +452,76 @@ describe('JournalBlockRenderer', () => {
     expect(container.querySelector('.journal-block-series-row h3')?.textContent).toBe(
       'Layout Directives Demo',
     )
+  })
+
+  it('renders people as compact name cards instead of full-width rows', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'people',
+          title: '核心成员',
+          body: {
+            format: 'rows',
+            rows: [
+              ['谢振家', '技术A角', '模型接入 40% + 稳定性监控 30%'],
+              ['柏宇', '技术B角', 'Token 统计 50% + 模型接入 50%'],
+            ],
+          },
+        })}
+      />,
+    )
+
+    expect(container.querySelector('.journal-block-people')).toBeTruthy()
+    expect(container.querySelector('.journal-block-people-grid')).toBeTruthy()
+    expect(container.querySelectorAll('.journal-block-person-card')).toHaveLength(2)
+    expect(container.querySelector('.journal-block-person-initial')?.textContent).toBe('谢')
+    expect(container.querySelector('.journal-block-person-name')?.textContent).toBe('谢振家')
+    expect(container.querySelector('.journal-block-person-role')?.textContent).toBe('技术A角')
+    expect(container.querySelector('.journal-block-person-note')?.textContent).toContain(
+      '稳定性监控',
+    )
+    expect(container.querySelector('.journal-layout-card')).toBeFalsy()
+    expect(container.querySelector('.journal-block-card-grid')).toBeFalsy()
+    expect(container.querySelector('.journal-block-person-row')).toBeFalsy()
+  })
+
+  it('splits two-column people rows into role and responsibility text', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'people',
+          body: {
+            format: 'rows',
+            rows: [['柏宇', '技术B角 · Token 统计 50% + 模型接入 50%']],
+          },
+        })}
+      />,
+    )
+
+    expect(container.querySelector('.journal-block-person-role')?.textContent).toBe('技术B角')
+    expect(container.querySelector('.journal-block-person-note')?.textContent).toBe(
+      'Token 统计 50% + 模型接入 50%',
+    )
+  })
+
+  it('marks people cards without notes as header-only for vertical centering', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'people',
+          body: {
+            format: 'rows',
+            rows: [['柏宇', '技术B角']],
+          },
+        })}
+      />,
+    )
+
+    expect(
+      container
+        .querySelector('.journal-block-person-card')
+        ?.classList.contains('journal-block-person-card--header-only'),
+    ).toBe(true)
   })
 
   it('renders resource lists as file cards with readable path metadata', () => {

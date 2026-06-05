@@ -58,8 +58,11 @@ export const zh: Strings = {
   processingNamed: '{name} · 整理中',
   aiReady: '谨迹待命中',
 
-  // TitleBar
-  sidebarToggle: '侧边栏 (⌘T)',
+  // Panel dividers
+  collapseLeftSidebar: '折叠左侧栏',
+  expandLeftSidebar: '展开左侧栏',
+  collapseRightSidebar: '折叠右侧栏 (⌘T)',
+  expandRightSidebar: '展开右侧栏 (⌘T)',
 
   // Context menus (journal + identity)
   referenceEntry: '引用',

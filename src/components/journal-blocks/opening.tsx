@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { JournalBlock } from '../../lib/journalLayout'
 
 function fields(block: JournalBlock): Record<string, string> {
@@ -6,6 +7,38 @@ function fields(block: JournalBlock): Record<string, string> {
 
 function rows(block: JournalBlock): string[][] {
   return block.body.format === 'rows' ? block.body.rows : []
+}
+
+function textLength(value?: string): number {
+  return Array.from(value?.trim() ?? '').length
+}
+
+function partTitleClassName(title?: string): string {
+  const length = textLength(title)
+  const density =
+    length >= 42
+      ? 'journal-block-part-title-compact'
+      : length >= 28
+        ? 'journal-block-part-title-dense'
+        : ''
+
+  return ['journal-block-part-title', density].filter(Boolean).join(' ')
+}
+
+function TextWithBreaks({ value }: { value: string }) {
+  const parts = value.split(/<br\s*\/?>/gi)
+  if (parts.length === 1) return <>{value}</>
+
+  return (
+    <>
+      {parts.map((part, index) => (
+        <Fragment key={index}>
+          {index > 0 && <br />}
+          {part}
+        </Fragment>
+      ))}
+    </>
+  )
 }
 
 export function HeroBlock({ block }: { block: JournalBlock }) {
@@ -34,8 +67,16 @@ export function CardsBlock({ block }: { block: JournalBlock }) {
             className={`journal-layout-card ${variant === 'accent' ? 'journal-layout-card-accent' : ''}`}
           >
             <h3>{title}</h3>
-            {description && <p>{description}</p>}
-            {meta && <div className="journal-block-meta">{meta}</div>}
+            {description && (
+              <p>
+                <TextWithBreaks value={description} />
+              </p>
+            )}
+            {meta && (
+              <div className="journal-block-meta">
+                <TextWithBreaks value={meta} />
+              </div>
+            )}
           </article>
         ))}
       </div>
@@ -70,7 +111,7 @@ export function PartBlock({ block }: { block: JournalBlock }) {
   return (
     <section className="journal-block journal-block-prose journal-block-part">
       {data.label && <div className="journal-block-kicker">{data.label}</div>}
-      <h2>{data.title}</h2>
+      <h2 className={partTitleClassName(data.title)}>{data.title}</h2>
       {data.subtitle && <p>{data.subtitle}</p>}
     </section>
   )

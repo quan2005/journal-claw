@@ -56,8 +56,11 @@ export const en = {
   processingNamed: '{name} · Processing',
   aiReady: 'JournalClaw ready',
 
-  // TitleBar
-  sidebarToggle: 'Toggle Sidebar (⌘T)',
+  // Panel dividers
+  collapseLeftSidebar: 'Collapse left sidebar',
+  expandLeftSidebar: 'Expand left sidebar',
+  collapseRightSidebar: 'Collapse right sidebar (⌘T)',
+  expandRightSidebar: 'Expand right sidebar (⌘T)',
 
   // Context menus (journal + identity)
   referenceEntry: 'Reference',

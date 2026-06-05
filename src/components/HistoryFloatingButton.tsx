@@ -130,12 +130,13 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
   return (
     <div
       className="history-float-container"
+      title={!hovered ? t('history') : undefined}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{
         position: 'absolute',
-        top: 12,
-        left: 12,
+        bottom: '100%',
+        left: 24,
         zIndex: 20,
         width: hovered ? panelWidth : btnSize,
         height: hovered ? 'auto' : btnSize,
@@ -158,13 +159,20 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
     >
       {/* Collapsed state: clock icon button */}
       {!hovered && (
-        <div
+        <button
+          type="button"
+          aria-label={t('history')}
           style={{
             width: btnSize,
             height: btnSize,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: 'grid',
+            placeItems: 'center',
+            lineHeight: 0,
+            padding: 0,
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--item-meta)',
+            cursor: 'pointer',
           }}
         >
           <svg
@@ -176,12 +184,12 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ color: 'var(--item-meta)', opacity: 0.75 }}
+            style={{ display: 'block', opacity: 0.75 }}
           >
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-        </div>
+        </button>
       )}
 
       {/* Expanded panel */}

@@ -43,6 +43,15 @@ const TREE_SECTION_HEADER_CSS = `
     transform: translateX(0) !important;
   }
 
+  .tree-section-header:hover .tree-section-label,
+  .tree-section-header:focus-within .tree-section-label,
+  .tree-month-header:hover .tree-month-label,
+  .tree-month-header:hover .tree-month-collapse-icon,
+  .tree-month-header:focus-visible .tree-month-collapse-icon,
+  .tree-month-header:focus-visible .tree-month-label {
+    color: var(--item-text) !important;
+  }
+
   .tree-section-collapse-button:hover {
     background: var(--item-hover-bg) !important;
     color: var(--item-text) !important;
@@ -58,7 +67,8 @@ const TREE_SECTION_HEADER_CSS = `
 
   @media (prefers-reduced-motion: reduce) {
     .tree-section-collapse-button,
-    .tree-section-collapse-icon {
+    .tree-section-collapse-icon,
+    .tree-month-collapse-icon {
       transition: none !important;
     }
   }
@@ -145,6 +155,7 @@ function SectionHeader({
 
       {/* Label */}
       <span
+        className="tree-section-label"
         style={{
           fontSize: '0.75rem',
           fontWeight: 600,
@@ -795,34 +806,39 @@ export function TreeSidebar({
           <>
             {monthGroups.map(([yearMonth, monthEntries]) => (
               <div key={yearMonth}>
-                <MonthDivider label={yearMonth} />
-                {monthEntries.map((entry) => (
-                  <TreeItem
-                    key={entry.path}
-                    itemType="journal"
-                    entry={entry}
-                    isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
-                    isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
-                    onClick={() =>
-                      handleSelect({
-                        type: 'journal',
-                        path: `${entry.year_month}/${entry.filename}`,
-                      })
-                    }
-                    onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
-                    onMore={(x, y) =>
-                      handleMore(
-                        'journal',
-                        entry.title,
-                        `${entry.year_month}/${entry.filename}`,
-                        false,
-                        x,
-                        y,
-                        entry.path,
-                      )
-                    }
-                  />
-                ))}
+                <MonthDivider
+                  label={yearMonth}
+                  collapsed={isCollapsed(`journal-month:${yearMonth}`)}
+                  onToggle={() => toggleSection(`journal-month:${yearMonth}`)}
+                />
+                {!isCollapsed(`journal-month:${yearMonth}`) &&
+                  monthEntries.map((entry) => (
+                    <TreeItem
+                      key={entry.path}
+                      itemType="journal"
+                      entry={entry}
+                      isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
+                      isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
+                      onClick={() =>
+                        handleSelect({
+                          type: 'journal',
+                          path: `${entry.year_month}/${entry.filename}`,
+                        })
+                      }
+                      onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
+                      onMore={(x, y) =>
+                        handleMore(
+                          'journal',
+                          entry.title,
+                          `${entry.year_month}/${entry.filename}`,
+                          false,
+                          x,
+                          y,
+                          entry.path,
+                        )
+                      }
+                    />
+                  ))}
               </div>
             ))}
             {hasMore && (

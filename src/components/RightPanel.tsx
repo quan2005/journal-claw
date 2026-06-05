@@ -1,18 +1,13 @@
 import { type ReactNode } from 'react'
-import { HistoryFloatingButton } from './HistoryFloatingButton'
 
 interface RightPanelProps {
   chatContent: ReactNode
   chatInputBar?: ReactNode
-  activeSessionId?: string | null
-  onHistorySelect?: (id: string) => void
 }
 
 export function RightPanel({
   chatContent,
   chatInputBar,
-  activeSessionId,
-  onHistorySelect,
 }: RightPanelProps) {
   return (
     <div
@@ -30,15 +25,8 @@ export function RightPanel({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
         }}
       >
-        {onHistorySelect && (
-          <HistoryFloatingButton
-            activeSessionId={activeSessionId ?? null}
-            onSelect={onHistorySelect}
-          />
-        )}
         {chatContent}
       </div>
       {chatInputBar}

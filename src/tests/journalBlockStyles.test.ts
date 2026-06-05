@@ -32,6 +32,38 @@ describe('journal block visual contracts', () => {
     expect(rule('.journal-block-wide')).toContain('max-width: 100%')
   })
 
+  it('keeps section title text on adaptive readable lines', () => {
+    expect(rule('.journal-block-part')).toContain('max-inline-size: 100%')
+    expect(rule('.journal-block-part h2')).toContain(
+      'max-inline-size: 100%',
+    )
+    expect(rule('.journal-block-part h2')).toContain(
+      'font-size: var(--journal-block-part-title-size, var(--text-xl))',
+    )
+    expect(rule('.journal-block-part h2')).toContain(
+      'line-height: var(--journal-block-part-title-line-height, 1.3)',
+    )
+    expect(rule('.journal-block-part h2')).toContain('text-wrap: wrap')
+    expect(rule('.journal-block-part h2')).not.toContain('text-wrap: balance')
+    expect(rule('.journal-block-part h2')).toContain('overflow-wrap: anywhere')
+    expect(rule('.journal-block-part-title-dense')).toContain(
+      '--journal-block-part-title-size: var(--text-lg)',
+    )
+    expect(rule('.journal-block-part-title-compact')).toContain(
+      '--journal-block-part-title-size: var(--text-lg)',
+    )
+    expect(rule('.journal-block-part-title-compact')).toContain(
+      '--journal-block-part-title-line-height: 1.38',
+    )
+    expect(rule('.journal-block-part-title-dense')).not.toContain(
+      '--journal-block-part-title-max',
+    )
+    expect(rule('.journal-block-part-title-compact')).not.toContain(
+      '--journal-block-part-title-max',
+    )
+    expect(rule('.journal-block-part p')).toContain('max-inline-size: 58ch')
+  })
+
   it('centers metric summaries as a dashboard band', () => {
     expect(rule('.journal-block-metric')).toContain('text-align: center')
     expect(rule('.journal-block-metric-grid')).toContain('align-items: stretch')
@@ -99,6 +131,89 @@ describe('journal block visual contracts', () => {
     )
     expect(rule('.journal-block-resource-card')).toContain('border-left')
     expect(rule('.journal-block-resource-kind')).toContain('font-size: 11px')
+  })
+
+  it('styles people as compact name cards distinct from module cards', () => {
+    expect(css).not.toContain('.journal-block-person-card p')
+    expect(css).not.toContain('.journal-block-person-card h3')
+    expect(rule('.journal-block-people')).toContain('padding: var(--space-2) 0')
+    expect(rule('.journal-block-people-grid')).toContain('display: grid')
+    expect(rule('.journal-block-people-grid')).toContain(
+      'grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
+    )
+    expect(rule('.journal-block-people-grid')).not.toContain('repeat(auto-fill')
+    expect(rule('@container (min-width: 1440px)')).toContain(
+      'grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+    )
+    expect(rule('.journal-block-people-grid')).toContain('justify-content: start')
+    expect(rule('.journal-block-people')).toContain('container-type: inline-size')
+    expect(rule('.journal-block-person-card')).toContain('grid-template-columns: 28px')
+    expect(rule('.journal-block-person-card')).toContain('grid-template-rows: minmax(24px, auto) auto')
+    expect(rule('.journal-block-person-card')).toContain('grid-template-areas')
+    expect(rule('.journal-block-person-card')).toContain('inline-size: 100%')
+    expect(rule('.journal-block-person-card')).not.toContain('max-inline-size')
+    expect(rule('.journal-block-person-card')).toContain('background: transparent')
+    expect(rule('.journal-block-person-card')).toContain('border-radius: 8px')
+    expect(rule('.journal-block-person-card')).toContain('min-block-size: 72px')
+    expect(rule('.journal-block-person-card')).toContain('padding: 10px')
+    expect(rule('.journal-block-person-card')).toContain('box-shadow: inset 0 1px 0')
+    expect(rule('.journal-block-person-card--header-only')).toContain(
+      'align-content: center',
+    )
+    expect(rule('.journal-block-person-card--header-only')).toContain(
+      'grid-template-rows: minmax(24px, auto)',
+    )
+    expect(rule('.journal-block-person-card--header-only')).toContain(
+      "'avatar heading'",
+    )
+    expect(rule('.journal-block .journal-block-person-initial')).toContain('grid-area: avatar')
+    expect(rule('.journal-block .journal-block-person-initial')).toContain('align-self: center')
+    expect(rule('.journal-block .journal-block-person-initial')).toContain('width: 24px')
+    expect(rule('.journal-block .journal-block-person-initial')).toContain('height: 24px')
+    expect(rule('.journal-block .journal-block-person-initial')).toContain(
+      'font-size: var(--text-xs)',
+    )
+    expect(rule('.journal-block .journal-block-person-initial')).toContain(
+      'background: transparent',
+    )
+    expect(rule('.journal-block .journal-block-person-heading')).toContain('grid-area: heading')
+    expect(rule('.journal-block .journal-block-person-heading')).toContain('align-items: center')
+    expect(rule('.journal-block .journal-block-person-heading')).toContain('min-block-size: 24px')
+    expect(rule('.journal-block .journal-block-person-heading')).toContain('gap: var(--space-1)')
+    expect(rule('.journal-block .journal-block-person-initial')).toContain('border-radius: 50%')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('display: inline-flex')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('align-items: center')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('height: 24px')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('line-height: 24px')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('margin: 0')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('font-size: var(--text-sm)')
+    expect(rule('.journal-block .journal-block-person-role')).toContain(
+      'font-family: var(--font-mono)',
+    )
+    expect(rule('.journal-block .journal-block-person-role')).toContain('height: 20px')
+    expect(rule('.journal-block .journal-block-person-role')).toContain('line-height: 18px')
+    expect(rule('.journal-block .journal-block-person-role')).toContain('align-self: center')
+    expect(rule('.journal-block .journal-block-person-role')).toContain('max-inline-size: 100%')
+    expect(rule('.journal-block .journal-block-person-role')).toContain('text-overflow: ellipsis')
+    expect(rule('.journal-block .journal-block-person-role')).toContain('font-size: 10px')
+    expect(rule('.journal-block .journal-block-person-note')).toContain('grid-area: note')
+    expect(rule('.journal-block .journal-block-person-note')).toContain('grid-column: 1 / -1')
+    expect(rule('.journal-block .journal-block-person-note')).toContain('margin: 0')
+    expect(rule('.journal-block .journal-block-person-note')).toContain('overflow-wrap: anywhere')
+    expect(rule('.journal-block .journal-block-person-note')).toContain(
+      'font-size: var(--text-xs)',
+    )
+    expect(rule('.journal-block .journal-block-person-note')).toContain('line-height: 1.55')
+    expect(rule('@container (max-width: 520px)')).toContain(
+      'grid-template-columns: minmax(0, 1fr)',
+    )
+  })
+
+  it('scopes people text rules above markdown prose defaults', () => {
+    expect(rule('.journal-block .journal-block-person-name')).toContain('line-height: 24px')
+    expect(rule('.journal-block .journal-block-person-name')).toContain('margin: 0')
+    expect(rule('.journal-block .journal-block-person-note')).toContain('margin: 0')
+    expect(rule('.journal-block .journal-block-person-note')).toContain('font-size: var(--text-xs)')
   })
 
   it('reduces date emphasis in timeline and changelog', () => {

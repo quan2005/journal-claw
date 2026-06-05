@@ -11,6 +11,8 @@ import { FileTypeIcon } from './FileTypeIcon'
 // The class names match the component's className props below.
 const TREE_ITEM_CSS = `
   .tree-item-row:hover .tree-item-actions {
+    width: 48px !important;
+    margin-left: 0 !important;
     opacity: 1 !important;
     pointer-events: auto !important;
     transform: translateX(0) !important;
@@ -350,12 +352,14 @@ export function TreeItem({
               alignItems: 'center',
               gap: 2,
               flexShrink: 0,
-              width: 48,
+              width: 0,
+              marginLeft: -8,
               overflow: 'hidden',
               opacity: 0,
               pointerEvents: 'none' as const,
               transform: 'translateX(4px)',
-              transition: 'opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out)',
+              transition:
+                'width 0.15s var(--ease-out), margin-left 0.15s var(--ease-out), opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out)',
             }}
           >
             {onAt && (

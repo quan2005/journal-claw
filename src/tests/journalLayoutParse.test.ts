@@ -105,4 +105,29 @@ title: Broken
       },
     })
   })
+
+  it('preserves malformed directive source and keeps following markdown local', () => {
+    const result = parseRawJournalLayout(`Before
+
+:::hero[bad title
+title: Broken
+subtitle: Keep this visible in the local error
+:::
+
+After`)
+
+    expect(result.segments).toHaveLength(3)
+    expect(result.segments[0]).toMatchObject({ kind: 'markdown', value: 'Before\n' })
+    expect(result.segments[1]).toMatchObject({
+      kind: 'error',
+      issue: {
+        kind: 'syntax',
+        message: 'Directive opening line is malformed.',
+        source:
+          ':::hero[bad title\ntitle: Broken\nsubtitle: Keep this visible in the local error\n:::',
+        sourceRange: { startLine: 3, endLine: 6 },
+      },
+    })
+    expect(result.segments[2]).toMatchObject({ kind: 'markdown', value: '\nAfter' })
+  })
 })

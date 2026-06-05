@@ -227,6 +227,7 @@ describe('Journal content frame contract', () => {
   it('defines shared readable, workbench, and title tokens', () => {
     expect(rootVars.get('--journal-prose-max')).toBe('100%')
     expect(rootVars.get('--journal-readable-max')).toBe('100%')
+    expect(rootVars.get('--journal-content-max')).toBe('var(--journal-readable-max)')
     expect(rootVars.get('--journal-workbench-max')).toBe('1120px')
     expect(rootVars.get('--journal-page-gutter')).toBe('min(56px, 5vw)')
     expect(rootVars.get('--journal-title-size')).toBe('48px')

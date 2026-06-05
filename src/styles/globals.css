@@ -144,6 +144,7 @@
   /* Journal page frame */
   --journal-prose-max: 100%;
   --journal-readable-max: 100%;
+  --journal-content-max: var(--journal-readable-max);
   --journal-workbench-max: 1120px;
   --journal-page-gutter: min(56px, 5vw);
   --journal-page-top: 44px;

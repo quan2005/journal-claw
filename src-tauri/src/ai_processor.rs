@@ -140,6 +140,12 @@ const SKILL_JOURNAL_REFERENCE_FILES: &[(&str, &str)] = &[
         ),
     ),
     (
+        "references/layout-directives.md",
+        include_str!(
+            "../resources/workspace-template/.claude/skills/journal/references/layout-directives.md"
+        ),
+    ),
+    (
         "references/templates/meeting-collaboration.md",
         include_str!(
             "../resources/workspace-template/.claude/skills/journal/references/templates/meeting-collaboration.md"
@@ -988,6 +994,16 @@ mod tests {
     }
 
     #[test]
+    fn embedded_workspace_prompts_prefer_journal_layout_directives() {
+        assert!(WORKSPACE_CLAUDE_MD.contains("所有日志默认输出为 `.mdx`"));
+        assert!(WORKSPACE_CLAUDE_MD.contains("Markdown first"));
+        assert!(WORKSPACE_CLAUDE_MD.contains("layout directives before JSX"));
+        assert!(WORKSPACE_CLAUDE_MD.contains("references/layout-directives.md"));
+        assert!(WORKSPACE_USER_CLAUDE_MD.contains("/journal"));
+        assert!(WORKSPACE_USER_CLAUDE_MD.contains("layout directives"));
+    }
+
+    #[test]
     fn cancel_with_no_task_is_noop() {
         let state = CurrentTask(std::sync::Mutex::new(None));
         // Should not panic when nothing is running
@@ -1079,6 +1095,13 @@ mod tests {
                 .join("template-registry.md")
                 .exists(),
             "journal registry should be installed"
+        );
+        assert!(
+            journal_dir
+                .join("references")
+                .join("layout-directives.md")
+                .exists(),
+            "layout directive guide should be installed"
         );
         assert!(
             journal_dir

@@ -2,15 +2,21 @@
 
 ## Existing Generic Components
 
-| Group              | Components                                                                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Typography         | `Section`, `Subtitle`, `Label`, `Divider`                                                                                                                     |
-| Layout             | `Split`, `Columns`, `Column`, `Grid`, `Col`, `Flow`, `Stack`                                                                                                  |
-| Display            | `Stat`, `StatGroup`, `Table`, `Timeline`, `TagList`, `Progress`, `Avatar`, `AvatarGroup`                                                                      |
-| Lists and cards    | `Cards`, `Card`, `Options`, `Option`, `Kanban`, `Checklist`, `Counter`, `RatingBar`                                                                           |
-| Context            | `Callout`, `Quote`, `RelatedEntry`, `RelatedIdentity`                                                                                                         |
-| Media and diagrams | `AudioCard`, `VideoCard`, `ImageViewer`, `FileCard`, `BarChart`, `LineChart`, `PieChart`, `RadarChart`, `Mermaid` |
-| Preview and devices | `HtmlPreview`, `PhonePreview`, `MacPreview` |
+| Group               | Components                                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Typography          | `Section`, `Subtitle`, `Label`, `Divider`                                                                         |
+| Layout              | `Split`, `Columns`, `Column`, `Grid`, `Col`, `Flow`, `Stack`                                                      |
+| Display             | `Stat`, `StatGroup`, `Table`, `Timeline`, `TagList`, `Progress`, `Avatar`, `AvatarGroup`                          |
+| Lists and cards     | `Cards`, `Card`, `Options`, `Option`, `Kanban`, `Checklist`, `Counter`, `RatingBar`                               |
+| Context             | `Callout`, `Quote`, `RelatedEntry`, `RelatedIdentity`                                                             |
+| Media and diagrams  | `AudioCard`, `VideoCard`, `ImageViewer`, `FileCard`, `BarChart`, `LineChart`, `PieChart`, `RadarChart`, `Mermaid` |
+| Preview and devices | `HtmlPreview`, `PhonePreview`, `MacPreview`                                                                       |
+
+## Journal Layout Directives
+
+Use `references/layout-directives.md` for non-JSX layout blocks such as `hero`, `metrics`, `verdict`, `timeline`, `quote`, `faq`, `summary`, and `callout`.
+
+Directive blocks work in both `.md` and `.mdx`; they are the preferred first choice for document rhythm, section emphasis, structured comparisons, and end summaries. Use JSX components only when a semantic component such as `DecisionRecord`, `ActionTable`, `RiskMatrix`, `ReferenceList`, `Transcript`, or a chart carries information the directive catalog cannot express.
 
 ## Preview HTML Style Preset
 
@@ -20,17 +26,17 @@ Tabler Icons webfont is preloaded in the sandbox. Use the standard public class 
 
 Use preset classes only when structure needs help:
 
-| Pattern | Classes |
-|---|---|
-| vertical rhythm | `stack`, `j-stack`, `section`, `j-section`, `compact` |
-| horizontal grouping | `cluster`, `j-cluster`, `toolbar`, `j-toolbar` |
-| responsive layout | `grid`, `j-grid`, `two-col`, `j-two-col`, `split` |
-| framed content | `card`, `j-card`, `surface`, `j-surface`, `raised` |
-| compact labels | `badge`, `j-badge`, `tag`, `success`, `warning`, `danger` |
-| emphasized notes | `callout`, `j-callout`, `info`, `success` |
-| metrics | `kpi`, `j-kpi`, `kpi-item`, `kpi-value`, `kpi-label` |
-| sequence | `timeline`, `timeline-item`, `flow`, `flow-node`, `flow-arrow` |
-| utilities | `muted`, `center`, `full-bleed`, `sr-only` |
+| Pattern             | Classes                                                        |
+| ------------------- | -------------------------------------------------------------- |
+| vertical rhythm     | `stack`, `j-stack`, `section`, `j-section`, `compact`          |
+| horizontal grouping | `cluster`, `j-cluster`, `toolbar`, `j-toolbar`                 |
+| responsive layout   | `grid`, `j-grid`, `two-col`, `j-two-col`, `split`              |
+| framed content      | `card`, `j-card`, `surface`, `j-surface`, `raised`             |
+| compact labels      | `badge`, `j-badge`, `tag`, `success`, `warning`, `danger`      |
+| emphasized notes    | `callout`, `j-callout`, `info`, `success`                      |
+| metrics             | `kpi`, `j-kpi`, `kpi-item`, `kpi-value`, `kpi-label`           |
+| sequence            | `timeline`, `timeline-item`, `flow`, `flow-node`, `flow-arrow` |
+| utilities           | `muted`, `center`, `full-bleed`, `sr-only`                     |
 
 Rules for AI-generated HTML:
 

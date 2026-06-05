@@ -204,7 +204,14 @@ export function parseRawJournalLayout(source: string): RawLayoutParseResult {
 
     if ('kind' in parsed) {
       const endIndex = closeIndex >= 0 ? closeIndex : i
-      segments.push({ kind: 'error', issue: parsed })
+      segments.push({
+        kind: 'error',
+        issue: {
+          ...parsed,
+          source: lines.slice(i, endIndex + 1).join('\n'),
+          sourceRange: { startLine, endLine: lineNumberAt(endIndex) },
+        },
+      })
       i = endIndex + 1
       markdownStart = i
       continue

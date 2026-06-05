@@ -7,7 +7,7 @@ import { Spinner } from './Spinner'
 import { SandboxPreview } from './SandboxPreview'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { useSmoothStream } from '../hooks/useSmoothStream'
-import { openFile } from '../lib/tauri'
+import { importTextTemp, openFile } from '../lib/tauri'
 import { FileAttachments } from './FileAttachments'
 import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
@@ -29,6 +29,7 @@ const CHAT_PANEL_DANGER_RING =
   'inset 0 0 0 1px color-mix(in srgb, var(--status-danger) 22%, transparent)'
 const CHAT_PANEL_WARNING_RING =
   'inset 0 0 0 1px color-mix(in srgb, var(--status-warning) 22%, transparent)'
+const LONG_TEXT_ATTACHMENT_THRESHOLD = 300
 
 export interface ChatPanelProps {
   messages: ConversationMessage[]
@@ -193,7 +194,7 @@ export function ChatPanel({
 
   const handleSend = useCallback(() => {
     const text = inputValue.trim()
-    if (!text && imageAttachments.length === 0) return
+    if (!text && attachments.length === 0 && imageAttachments.length === 0) return
     const fileRefs = attachments.map((a) => `@${a.path}`).join('\n')
     const parts = [fileRefs, text].filter(Boolean)
     const payload = parts.join('\n\n')
@@ -334,6 +335,34 @@ export function ChatPanel({
           }
         }
       }
+
+      const rawText =
+        e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || ''
+      if (rawText.length > LONG_TEXT_ATTACHMENT_THRESHOLD) {
+        e.preventDefault()
+        const importPastedText = () =>
+          importTextTemp(rawText)
+            .then((result) => addFiles([result.path]))
+            .catch((err) => {
+              console.error('[paste-import]', err)
+              showToast('warning', t('submitFailed'))
+            })
+
+        clipboard
+          .readFiles()
+          .then((files) => {
+            if (files && files.length > 0) {
+              addFiles(files)
+            } else {
+              importPastedText()
+            }
+          })
+          .catch(() => {
+            importPastedText()
+          })
+        return
+      }
+
       clipboard
         .readFiles()
         .then((files) => {
@@ -344,8 +373,11 @@ export function ChatPanel({
         })
         .catch(() => {})
     },
-    [addFiles],
+    [addFiles, showToast, t],
   )
+
+  const canSend =
+    inputValue.trim().length > 0 || attachments.length > 0 || imageAttachments.length > 0
 
   return (
     <>
@@ -866,20 +898,17 @@ export function ChatPanel({
               {/* Send button */}
               <button
                 onClick={handleSend}
-                disabled={!inputValue.trim() && imageAttachments.length === 0}
+                disabled={!canSend}
                 style={{
                   background: 'none',
                   border: 'none',
-                  cursor: inputValue.trim() || imageAttachments.length > 0 ? 'pointer' : 'default',
+                  cursor: canSend ? 'pointer' : 'default',
                   padding: 4,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity: inputValue.trim() || imageAttachments.length > 0 ? 1 : 0.3,
-                  color:
-                    inputValue.trim() || imageAttachments.length > 0
-                      ? 'var(--record-btn)'
-                      : 'var(--item-meta)',
+                  opacity: canSend ? 1 : 0.3,
+                  color: canSend ? 'var(--record-btn)' : 'var(--item-meta)',
                   transition: 'opacity 200ms ease-out, color 150ms ease-out',
                 }}
               >

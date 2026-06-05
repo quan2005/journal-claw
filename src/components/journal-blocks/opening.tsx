@@ -11,7 +11,7 @@ function rows(block: JournalBlock): string[][] {
 export function HeroBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-hero">
+    <section className="journal-block journal-block-prose journal-block-hero">
       {data.eyebrow && <div className="journal-block-kicker">{data.eyebrow}</div>}
       <h1>{data.title}</h1>
       {data.subtitle && <p>{data.subtitle}</p>}
@@ -22,7 +22,10 @@ export function HeroBlock({ block }: { block: JournalBlock }) {
 
 export function CardsBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-cards" aria-label={block.title ?? 'Cards'}>
+    <section
+      className="journal-block journal-block-content journal-block-cards"
+      aria-label={block.title ?? 'Cards'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       <div className="journal-block-card-grid">
         {rows(block).map(([title, description, meta, variant], index) => (
@@ -42,11 +45,16 @@ export function CardsBlock({ block }: { block: JournalBlock }) {
 
 export function TocBlock({ block }: { block: JournalBlock }) {
   return (
-    <nav className="journal-block journal-block-toc" aria-label={block.title ?? 'Contents'}>
+    <nav
+      className="journal-block journal-block-content journal-block-toc"
+      aria-label={block.title ?? 'Contents'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       {rows(block).map(([label, title, description], index) => (
-        <div key={`${label}-${title}-${index}`} className="journal-block-row">
-          <span className="journal-block-row-marker">{label}</span>
+        <div key={`${label}-${title}-${index}`} className="journal-block-row journal-block-toc-row">
+          <span className="journal-block-marker journal-block-row-marker" aria-hidden="true">
+            {label}
+          </span>
           <div>
             <h3>{title}</h3>
             {description && <p>{description}</p>}
@@ -60,7 +68,7 @@ export function TocBlock({ block }: { block: JournalBlock }) {
 export function PartBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-part">
+    <section className="journal-block journal-block-prose journal-block-part">
       {data.label && <div className="journal-block-kicker">{data.label}</div>}
       <h2>{data.title}</h2>
       {data.subtitle && <p>{data.subtitle}</p>}
@@ -71,7 +79,7 @@ export function PartBlock({ block }: { block: JournalBlock }) {
 export function LabelTitleBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-label-title">
+    <section className="journal-block journal-block-prose journal-block-label-title">
       {data.label && <div className="journal-block-kicker">{data.label}</div>}
       <h2>{data.title}</h2>
       {data.subtitle && <p>{data.subtitle}</p>}

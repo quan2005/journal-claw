@@ -27,7 +27,9 @@
 ## Component Restraint
 
 - Markdown headings, lists, and tables should carry most structure.
-- Use 1-3 components for ordinary notes.
+- Use layout directives before JSX when the need is visual rhythm, scan hierarchy, comparison, timeline, steps, verdict, quote, resource list, notice, or final summary.
+- Use JSX components only for specialized semantic objects that directives cannot express.
+- Use 2-5 directive blocks for ordinary structured notes when stronger visual hierarchy is useful.
 - Complex reports may use more components when each one carries clear information.
 - Do not use components for decoration.
 

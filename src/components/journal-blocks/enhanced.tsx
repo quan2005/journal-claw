@@ -1,4 +1,5 @@
 import type { JournalBlock } from '../../lib/journalLayout'
+import type { CSSProperties } from 'react'
 
 const labels: Record<string, string> = {
   note: 'Note',
@@ -37,10 +38,40 @@ function stringValue(value: unknown): string {
   return ''
 }
 
+function resourceKind(url: string): string {
+  const cleanUrl = url.split(/[?#]/)[0] ?? url
+  const extension = cleanUrl.match(/\.([A-Za-z0-9]+)$/)?.[1]?.toUpperCase()
+  if (extension === 'MDX') return 'MDX'
+  if (extension === 'MD') return 'MD'
+  if (extension) return extension.slice(0, 4)
+  if (/^https?:\/\//i.test(url)) return 'WEB'
+  return 'FILE'
+}
+
+function compactResourcePath(url: string): string {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const parsed = new URL(url)
+      return `${parsed.hostname}${parsed.pathname}`.replace(/\/$/, '')
+    } catch {
+      return url
+    }
+  }
+
+  const parts = url.split('/').filter(Boolean)
+  if (parts.length <= 2) return url
+  return `.../${parts.slice(-2).join('/')}`
+}
+
+function isLocalResource(url: string): boolean {
+  return Boolean(url) && !/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)
+}
+
 export function DefinitionBlock({ block }: { block: JournalBlock }) {
   const data = block.body.format === 'json_object' ? block.body.value : {}
   return (
-    <section className="journal-block journal-block-definition">
+    <section className="journal-block journal-block-prose journal-block-definition">
       <h3>{stringValue(data.term)}</h3>
       <p>{stringValue(data.description)}</p>
     </section>
@@ -50,7 +81,7 @@ export function DefinitionBlock({ block }: { block: JournalBlock }) {
 export function QuoteCardBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-quote-card">
+    <section className="journal-block journal-block-prose journal-block-quote-card">
       <blockquote>{data.quote}</blockquote>
       {data.source && <div className="journal-block-meta">{data.source}</div>}
     </section>
@@ -60,7 +91,7 @@ export function QuoteCardBlock({ block }: { block: JournalBlock }) {
 export function TweetBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-tweet">
+    <section className="journal-block journal-block-prose journal-block-tweet">
       <p>{data.text}</p>
       {data.author && <div className="journal-block-meta">{data.author}</div>}
     </section>
@@ -70,7 +101,7 @@ export function TweetBlock({ block }: { block: JournalBlock }) {
 export function StatRowBlock({ block }: { block: JournalBlock }) {
   const items = block.body.format === 'json_array' ? block.body.value : []
   return (
-    <section className="journal-block journal-block-stat-row">
+    <section className="journal-block journal-block-content journal-block-stat-row">
       {items.map((item, index) => {
         const data = asRecord(item)
         return (
@@ -87,7 +118,7 @@ export function StatRowBlock({ block }: { block: JournalBlock }) {
 export function QuestionBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-question">
+    <section className="journal-block journal-block-prose journal-block-question">
       <div className="journal-block-kicker">Question</div>
       <h2>{data.text}</h2>
       {data.context && <p>{data.context}</p>}
@@ -98,15 +129,28 @@ export function QuestionBlock({ block }: { block: JournalBlock }) {
 export function ResourceListBlock({ block }: { block: JournalBlock }) {
   const items = block.body.format === 'json_array' ? block.body.value : []
   return (
-    <section className="journal-block journal-block-resources">
+    <section className="journal-block journal-block-content journal-block-resources">
       {items.map((item, index) => {
         const data = asRecord(item)
         const title = stringValue(data.title)
         const url = stringValue(data.url)
+        const local = isLocalResource(url)
         return (
-          <a key={`${title}-${index}`} className="journal-block-resource" href={url || undefined}>
-            <strong>{title}</strong>
-            {url && <span>{url}</span>}
+          <a
+            key={`${title}-${index}`}
+            className="journal-block-resource journal-block-resource-card"
+            href={url || undefined}
+            data-filepath={local ? url : undefined}
+          >
+            <span className="journal-block-resource-main">
+              <strong className="journal-block-resource-title">{title}</strong>
+              {url && (
+                <span className="journal-block-resource-path" title={url}>
+                  {compactResourcePath(url)}
+                </span>
+              )}
+            </span>
+            {url && <span className="journal-block-resource-kind">{resourceKind(url)}</span>}
           </a>
         )
       })}
@@ -118,31 +162,56 @@ export function ComparisonTableBlock({ block }: { block: JournalBlock }) {
   const data = block.body.format === 'json_object' ? block.body.value : {}
   const columns = Array.isArray(data.columns) ? data.columns.map(stringValue) : []
   const rows = Array.isArray(data.rows) ? data.rows : []
+  const templateColumns = `minmax(116px, 0.8fr) repeat(${Math.max(
+    1,
+    columns.length,
+  )}, minmax(0, 1fr))`
+  const tableMinWidth = `max(100%, ${Math.max(560, 116 + columns.length * 108)}px)`
+
   return (
     <section
-      className="journal-block journal-block-table"
+      className="journal-block journal-block-wide journal-block-table"
       aria-label={block.title ?? 'Comparison table'}
     >
       <div
         className="journal-block-table-grid"
-        style={{
-          gridTemplateColumns: `repeat(${Math.max(1, columns.length + 1)}, minmax(0, 1fr))`,
-        }}
+        role="table"
+        style={
+          {
+            '--journal-block-table-columns': templateColumns,
+            '--journal-block-table-min-width': tableMinWidth,
+          } as CSSProperties
+        }
       >
-        <div className="journal-block-table-row journal-block-table-header">
-          <strong>Item</strong>
+        <div className="journal-block-table-row journal-block-table-header" role="row">
+          <strong
+            className="journal-block-table-cell journal-block-table-cell-header"
+            role="columnheader"
+          >
+            Item
+          </strong>
           {columns.map((column) => (
-            <strong key={column}>{column}</strong>
+            <strong
+              key={column}
+              className="journal-block-table-cell journal-block-table-cell-header"
+              role="columnheader"
+            >
+              {column}
+            </strong>
           ))}
         </div>
         {rows.map((item, index) => {
           const row = asRecord(item)
           const values = Array.isArray(row.values) ? row.values.map(stringValue) : []
           return (
-            <div key={index} className="journal-block-table-row">
-              <strong>{stringValue(row.label)}</strong>
+            <div key={index} className="journal-block-table-row" role="row">
+              <strong className="journal-block-table-cell" role="rowheader">
+                {stringValue(row.label)}
+              </strong>
               {columns.map((_, valueIndex) => (
-                <span key={valueIndex}>{values[valueIndex]}</span>
+                <span key={valueIndex} className="journal-block-table-cell" role="cell">
+                  {values[valueIndex]}
+                </span>
               ))}
             </div>
           )
@@ -155,12 +224,17 @@ export function ComparisonTableBlock({ block }: { block: JournalBlock }) {
 export function ChangelogBlock({ block }: { block: JournalBlock }) {
   const items = block.body.format === 'json_array' ? block.body.value : []
   return (
-    <section className="journal-block journal-block-changelog">
+    <section className="journal-block journal-block-content journal-block-changelog">
       {items.map((item, index) => {
         const data = asRecord(item)
         return (
-          <article key={index} className="journal-block-row">
-            <span className="journal-block-row-marker">{stringValue(data.date)}</span>
+          <article key={index} className="journal-block-row journal-block-changelog-row">
+            <span
+              className="journal-block-marker journal-block-row-marker journal-block-changelog-date"
+              aria-hidden="true"
+            >
+              {stringValue(data.date)}
+            </span>
             <div>
               <h3>{stringValue(data.title)}</h3>
               {stringValue(data.note) && <p>{stringValue(data.note)}</p>}

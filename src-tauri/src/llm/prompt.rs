@@ -2,11 +2,12 @@ use std::path::PathBuf;
 /// Build the full system prompt for the built-in AI engine.
 ///
 /// Concatenates:
-/// 1. Embedded CLAUDE.md (agent instructions from workspace template)
-/// 2. User's workspace/CLAUDE.md (personal secretary instructions)
-/// 3. Recent entry summaries (via recent-summaries script)
-/// 4. Available skills list
-/// 5. identity/README.md (user's own profile)
+/// 0. Environment context
+/// 1. Journal document format contract
+/// 2. Embedded CLAUDE.md (platform contract from workspace template)
+/// 3. User's workspace/CLAUDE.md (personal secretary instructions)
+/// 4. Runtime memory (recent summaries + identity/README.md)
+/// 5. Available skills hint
 pub async fn build_system_prompt(
     workspace_path: &str,
     workspace_claude_md: &str,
@@ -24,10 +25,13 @@ pub async fn build_system_prompt(
     );
     parts.push(env_info);
 
-    // 1. Agent instructions (embedded at compile time in ai_processor.rs, passed in here)
+    // 1. App-wide document rendering preference
+    parts.push(journal_document_format_contract());
+
+    // 2. Agent instructions (embedded at compile time in ai_processor.rs, passed in here)
     parts.push(workspace_claude_md.to_string());
 
-    // 2. User's workspace/CLAUDE.md
+    // 3. User's workspace/CLAUDE.md
     let user_md = PathBuf::from(workspace_path).join("CLAUDE.md");
     if let Ok(content) = tokio::fs::read_to_string(&user_md).await {
         if !content.trim().is_empty() {
@@ -35,32 +39,70 @@ pub async fn build_system_prompt(
         }
     }
 
-    // 3. Recent summaries (run the script)
-    if let Some(output) =
-        run_workspace_script(workspace_path, "recent-summaries", &["-n", "15"]).await
-    {
-        if !output.trim().is_empty() {
-            parts.push(format!("\n## 近期条目摘要\n\n{}", output));
-        }
-    }
-
-    // 4. Available skills — details are in the load_skill tool definition
-    let skills = scan_skills(workspace_path, global_skills_enabled).await;
-    if !skills.is_empty() {
-        parts.push("\n## 可用 Skills\n\n当用户提到 /skill-name 或你判断需要某个 skill 时，调用 load_skill 工具加载其规则。".to_string());
-    }
-
-    // 5. identity/README.md
+    // 4. Runtime memory
+    let recent_summaries =
+        run_workspace_script(workspace_path, "recent-summaries", &["-n", "15"]).await;
     let identity_readme = PathBuf::from(workspace_path)
         .join("identity")
         .join("README.md");
-    if let Ok(content) = tokio::fs::read_to_string(&identity_readme).await {
-        if !content.trim().is_empty() {
-            parts.push(format!("\n## 用户档案\n\n{}", content));
-        }
+    let identity_profile = tokio::fs::read_to_string(&identity_readme).await.ok();
+    if let Some(memory) = format_runtime_memory(recent_summaries, identity_profile) {
+        parts.push(memory);
+    }
+
+    // 5. Available skills — details are in the load_skill tool definition
+    let skills = scan_skills(workspace_path, global_skills_enabled).await;
+    if !skills.is_empty() {
+        parts.push(available_skills_hint());
     }
 
     parts.join("\n\n")
+}
+
+fn journal_document_format_contract() -> String {
+    r#"## 文档输出格式优先级
+
+当任务是整理日志、会议纪要、研究材料、技术记录、手册、专题页或其他可沉淀文档时，优先输出 JournalClaw 可渲染的 `.mdx` 文档，而不是只输出普通说明文字。
+
+结构选择顺序：
+
+1. Markdown first: 普通段落、标题、列表、表格、代码块先用标准 Markdown，保持可读、可回溯。
+2. Layout directives second: 需要稳定视觉层级、对比、时间线、步骤、判断、引用、资源列表或结尾总结时，优先使用 `references/layout-directives.md` 的 directive blocks。
+3. MDX JSX last: 只有当 directive catalog 无法表达更强语义对象时，才使用 MDX JSX 组件，例如决策记录、行动表、风险矩阵、可追溯来源、转写、图表或可复制原文片段。
+
+写日志或整理素材前应加载 `/journal`。选择 JSX 组件前，先读取 `references/layout-directives.md`；只有确认 layout directives 无法表达目标结构时，再读取 `references/component-recipes.md`。普通条目通常使用 2-5 个承载信息的 directive blocks；不要为了装饰使用 directive 或 JSX。"#
+        .to_string()
+}
+
+fn non_empty_trimmed(content: Option<String>) -> Option<String> {
+    content
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+fn format_runtime_memory(
+    recent_summaries: Option<String>,
+    identity_profile: Option<String>,
+) -> Option<String> {
+    let mut memory_parts = Vec::new();
+
+    if let Some(content) = non_empty_trimmed(recent_summaries) {
+        memory_parts.push(format!("### 近期条目摘要\n\n{}", content));
+    }
+    if let Some(content) = non_empty_trimmed(identity_profile) {
+        memory_parts.push(format!("### 用户档案\n\n{}", content));
+    }
+
+    if memory_parts.is_empty() {
+        None
+    } else {
+        Some(format!("## 运行时记忆\n\n{}", memory_parts.join("\n\n")))
+    }
+}
+
+fn available_skills_hint() -> String {
+    "## 可用 Skills\n\n当用户提到 /skill-name 或你判断需要某个 skill 时，调用 load_skill 工具加载其规则。"
+        .to_string()
 }
 
 /// Run a script from workspace/.claude/scripts/ and return stdout.
@@ -171,5 +213,107 @@ mod tests {
     #[test]
     fn parse_skill_description_no_frontmatter() {
         assert_eq!(parse_skill_description("# Just a heading"), None);
+    }
+
+    #[test]
+    fn runtime_memory_groups_recent_summaries_and_profile() {
+        let memory = format_runtime_memory(
+            Some("最近创建了 MDX 支持手册。".to_string()),
+            Some("用户关注知识库长期维护。".to_string()),
+        )
+        .expect("memory should be present");
+
+        assert!(memory.starts_with("## 运行时记忆"));
+        assert!(memory.contains("### 近期条目摘要\n\n最近创建了 MDX 支持手册。"));
+        assert!(memory.contains("### 用户档案\n\n用户关注知识库长期维护。"));
+        assert!(memory.find("### 近期条目摘要").unwrap() < memory.find("### 用户档案").unwrap());
+    }
+
+    #[test]
+    fn runtime_memory_omits_empty_parts() {
+        let memory = format_runtime_memory(Some("  ".to_string()), Some("用户档案".to_string()))
+            .expect("profile should keep memory present");
+
+        assert!(!memory.contains("近期条目摘要"));
+        assert!(memory.contains("### 用户档案\n\n用户档案"));
+    }
+
+    #[test]
+    fn runtime_memory_omits_empty_section() {
+        assert!(format_runtime_memory(Some("  ".to_string()), None).is_none());
+        assert!(format_runtime_memory(None, Some("\n".to_string())).is_none());
+    }
+
+    #[tokio::test]
+    async fn build_system_prompt_prioritizes_journal_layout_directives() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let workspace = tmp.path();
+
+        let prompt = build_system_prompt(
+            workspace.to_str().expect("workspace path"),
+            "## 平台契约",
+            false,
+        )
+        .await;
+
+        let contract_idx = prompt
+            .find("## 文档输出格式优先级")
+            .expect("format contract");
+        let platform_idx = prompt.find("## 平台契约").expect("platform contract");
+        assert!(contract_idx < platform_idx);
+        assert!(prompt.contains("优先输出 JournalClaw 可渲染的 `.mdx` 文档"));
+        assert!(prompt.contains("Markdown first"));
+        assert!(prompt.contains("Layout directives second"));
+        assert!(prompt.contains("MDX JSX last"));
+        assert!(prompt.contains("references/layout-directives.md"));
+        assert!(prompt.contains("references/component-recipes.md"));
+    }
+
+    #[tokio::test]
+    async fn build_system_prompt_groups_runtime_memory_before_skills() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let workspace = tmp.path();
+        let dot_claude = workspace.join(".claude");
+        let scripts = dot_claude.join("scripts");
+        let skill_dir = dot_claude.join("skills").join("journal");
+        let identity_dir = workspace.join("identity");
+
+        std::fs::create_dir_all(&scripts).expect("scripts");
+        std::fs::create_dir_all(&skill_dir).expect("skill dir");
+        std::fs::create_dir_all(&identity_dir).expect("identity dir");
+        std::fs::write(workspace.join("CLAUDE.md"), "用户默认指令").expect("user claude");
+        std::fs::write(
+            scripts.join("recent-summaries"),
+            "#!/usr/bin/env bash\nprintf '最近摘要'",
+        )
+        .expect("recent script");
+        std::fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: journal\ndescription: 统一笔记整理 skill\n---\n\n# Journal",
+        )
+        .expect("skill");
+        std::fs::write(identity_dir.join("README.md"), "用户档案内容").expect("identity");
+
+        let prompt = build_system_prompt(
+            workspace.to_str().expect("workspace path"),
+            "## 平台契约",
+            false,
+        )
+        .await;
+
+        let platform_idx = prompt.find("## 平台契约").expect("platform");
+        let user_idx = prompt.find("## 用户指令\n\n用户默认指令").expect("user");
+        let memory_idx = prompt.find("## 运行时记忆").expect("memory");
+        let recent_idx = prompt.find("### 近期条目摘要\n\n最近摘要").expect("recent");
+        let profile_idx = prompt
+            .find("### 用户档案\n\n用户档案内容")
+            .expect("profile");
+        let skills_idx = prompt.find("## 可用 Skills").expect("skills");
+
+        assert!(platform_idx < user_idx);
+        assert!(user_idx < memory_idx);
+        assert!(memory_idx < recent_idx);
+        assert!(recent_idx < profile_idx);
+        assert!(profile_idx < skills_idx);
     }
 }

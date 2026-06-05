@@ -6,7 +6,10 @@ function rows(block: JournalBlock): string[][] {
 
 export function MetricsBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-metrics" aria-label={block.title ?? 'Metrics'}>
+    <section
+      className="journal-block journal-block-content journal-block-metrics"
+      aria-label={block.title ?? 'Metrics'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       <div className="journal-block-metric-grid">
         {rows(block).map(([label, value, description], index) => (
@@ -23,11 +26,16 @@ export function MetricsBlock({ block }: { block: JournalBlock }) {
 
 export function StepsBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-steps" aria-label={block.title ?? 'Steps'}>
+    <section
+      className="journal-block journal-block-content journal-block-steps"
+      aria-label={block.title ?? 'Steps'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       {rows(block).map(([title, description, meta], index) => (
         <div key={`${title}-${index}`} className="journal-block-step">
-          <div className="journal-block-step-index">{String(index + 1).padStart(2, '0')}</div>
+          <div className="journal-block-marker journal-block-step-index" aria-hidden="true">
+            {String(index + 1).padStart(2, '0')}
+          </div>
           <div>
             <h3>{title}</h3>
             {description && <p>{description}</p>}
@@ -40,36 +48,57 @@ export function StepsBlock({ block }: { block: JournalBlock }) {
 }
 
 export function TimelineBlock({ block }: { block: JournalBlock }) {
+  const items = rows(block)
   return (
     <section
-      className="journal-block journal-block-timeline"
+      className="journal-block journal-block-content journal-block-timeline"
       aria-label={block.title ?? 'Timeline'}
     >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
-      {rows(block).map(([time, title, description], index) => (
-        <div key={`${time}-${title}-${index}`} className="journal-block-timeline-item">
-          <time>{time}</time>
-          <div>
-            <h3>{title}</h3>
-            {description && <p>{description}</p>}
+      <div className="journal-block-timeline-track">
+        <div className="journal-block-timeline-axis" aria-hidden="true" />
+        {items.map(([time, title, description], index) => (
+          <div
+            key={`${time}-${title}-${index}`}
+            className={`journal-block-timeline-item ${
+              index === 0 ? 'journal-block-timeline-item-active' : ''
+            }`}
+          >
+            <div className="journal-block-timeline-node" aria-hidden="true" />
+            <time className="journal-block-timeline-date">{time}</time>
+            <div>
+              <h3>{title}</h3>
+              {description && <p>{description}</p>}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </section>
   )
 }
 
 export function CompareBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-table" aria-label={block.title ?? 'Compare'}>
+    <section
+      className="journal-block journal-block-wide journal-block-compare"
+      aria-label={block.title ?? 'Compare'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
-      <div className="journal-block-table-grid journal-block-table-grid-3">
+      <div className="journal-block-compare-list">
         {rows(block).map(([item, left, right], index) => (
-          <div key={`${item}-${index}`} className="journal-block-table-row">
-            <strong>{item}</strong>
-            <span>{left}</span>
-            <span>{right}</span>
-          </div>
+          <article key={`${item}-${index}`} className="journal-block-compare-row">
+            <div className="journal-block-compare-side journal-block-compare-side-left">
+              <div className="journal-block-kicker">{item}</div>
+              <p>{left}</p>
+            </div>
+            <div className="journal-block-compare-vs" aria-hidden="true">
+              VS
+            </div>
+            <div className="journal-block-compare-side journal-block-compare-side-right">
+              <div className="journal-block-kicker">Recommended</div>
+              <p>{right}</p>
+            </div>
+          </article>
         ))}
       </div>
     </section>

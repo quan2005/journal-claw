@@ -10,7 +10,7 @@
 ### technical-design
 
 Fields: context, requirements, constraints, architecture, data flow, tradeoffs, rollout, risks.
-Recommended components: `DecisionRecord`, `RiskMatrix`, `Mermaid`, `CanvasDiagram`.
+Recommended components: `DecisionRecord`, `RiskMatrix`, `Mermaid`, `HtmlPreview`.
 Use when: designing implementation.
 Avoid when: the note is a meeting about the design; use meeting-collaboration unless a standalone doc is requested.
 

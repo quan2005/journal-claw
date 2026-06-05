@@ -13,7 +13,11 @@ function getTextNodes(root: Node): Text[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   let node: Text | null
   while ((node = walker.nextNode() as Text | null)) {
-    if (node.textContent && node.textContent.length > 0) nodes.push(node)
+    if (!node.textContent || node.textContent.length === 0) continue
+    if (node.parentElement?.closest('[aria-hidden="true"], [data-find-ignore="true"], [hidden]')) {
+      continue
+    }
+    nodes.push(node)
   }
   return nodes
 }

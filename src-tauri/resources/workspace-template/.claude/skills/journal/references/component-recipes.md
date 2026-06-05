@@ -1,5 +1,9 @@
 # Component Recipes
 
+## Layout Before JSX
+
+Before choosing JSX components, check `layout-directives.md`. Use directives for hero openings, metric summaries, timelines, steps, verdicts, quotes, FAQ, resource lists, notices, and final summaries. JSX components are for richer semantic structures such as decision records, action tables, risks, source traceability, transcripts, charts, and copyable exact text.
+
 ## Decision Review
 
 Use:

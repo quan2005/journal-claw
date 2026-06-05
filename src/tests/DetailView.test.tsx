@@ -26,9 +26,14 @@ sources: ["../../Projects/github/journal/.agents/skills/journal/references/templ
   return {
     ...actual,
     getWorkspacePath: vi.fn().mockResolvedValue('/Users/yanwu/Documents/journal'),
-    getJournalEntryContent: vi.fn((path: string) =>
-      Promise.resolve(path.match(/\.mdx?$/) ? topicMarkdownContent : '<main><h1>Deck</h1></main>'),
-    ),
+    getJournalEntryContent: vi.fn((path: string) => {
+      if (path.match(/\.tsx?$/)) {
+        return Promise.resolve('const answer: number = 42\nconsole.log(answer)')
+      }
+      return Promise.resolve(
+        path.match(/\.mdx?$/) ? topicMarkdownContent : '<main><h1>Deck</h1></main>',
+      )
+    }),
     getIdentityContent: vi.fn().mockResolvedValue(''),
     getWorkspacePrompt: vi.fn().mockResolvedValue(''),
     resetWorkspacePrompt: vi.fn().mockResolvedValue(''),
@@ -117,6 +122,76 @@ describe('DetailView topic file rendering', () => {
 
     expect(screen.getByTestId('file-view-shell').getAttribute('data-fullscreen')).toBe('true')
     expect(screen.getByRole('button', { name: '退出全屏' })).toBeTruthy()
+  })
+
+  it('supports Cmd+F search inside source view content', async () => {
+    renderWithProviders(
+      <DetailView
+        type="topic-file"
+        file={{
+          name: 'Deck.html',
+          path: '可视化一切/Deck.html',
+          is_dir: false,
+          created_secs: 1_714_435_200,
+          mtime_secs: 1_714_521_600,
+        }}
+      />,
+    )
+
+    expect(await screen.findByTestId('sandbox-preview')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '源码' }))
+    })
+
+    expect(screen.getByTestId('source-view')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'f', metaKey: true })
+    })
+
+    const searchInput = screen.getByPlaceholderText('搜索…')
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'Deck' } })
+    })
+
+    expect(screen.getByText('1/1')).toBeTruthy()
+  })
+
+  it('renders source code files with syntax highlighting and Cmd+F search', async () => {
+    renderWithProviders(
+      <DetailView
+        type="topic-file"
+        file={{
+          name: 'Snippet.ts',
+          path: '可视化一切/Snippet.ts',
+          is_dir: false,
+          created_secs: 1_714_435_200,
+          mtime_secs: 1_714_521_600,
+        }}
+      />,
+    )
+
+    const sourceView = await screen.findByTestId('source-view')
+    expect(sourceView.querySelector('.hljs-keyword')?.textContent).toBe('const')
+    expect(sourceView.querySelector('.hljs-number')?.textContent).toBe('42')
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'f', metaKey: true })
+    })
+
+    const searchInput = screen.getByPlaceholderText('搜索…')
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'answer' } })
+    })
+
+    expect(screen.getByText('1/2')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: '1' } })
+    })
+
+    expect(screen.getByText('0/0')).toBeTruthy()
   })
 
   it('copies the workspace-relative topic file path and shows success feedback', async () => {

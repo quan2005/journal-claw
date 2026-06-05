@@ -11,12 +11,14 @@ function rows(block: JournalBlock): string[][] {
 export function AuthorCardBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-person-card">
-      <div className="journal-block-avatar">{data.name?.slice(0, 1).toUpperCase()}</div>
-      <div>
-        <h3>{data.name}</h3>
-        {data.role && <div className="journal-block-meta">{data.role}</div>}
-        {data.bio && <p>{data.bio}</p>}
+    <section className="journal-block journal-block-prose journal-block-author-card">
+      <div className="journal-block-author-mark" aria-hidden="true">
+        {data.name?.slice(0, 1).toUpperCase()}
+      </div>
+      <div className="journal-block-author-body">
+        <h3 className="journal-block-author-name">{data.name}</h3>
+        {data.role && <div className="journal-block-author-role">{data.role}</div>}
+        {data.bio && <p className="journal-block-author-bio">{data.bio}</p>}
       </div>
     </section>
   )
@@ -25,7 +27,7 @@ export function AuthorCardBlock({ block }: { block: JournalBlock }) {
 export function SubscribeBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-subscribe">
+    <section className="journal-block journal-block-prose journal-block-subscribe">
       <h2>{data.title}</h2>
       {data.description && <p>{data.description}</p>}
     </section>
@@ -34,7 +36,10 @@ export function SubscribeBlock({ block }: { block: JournalBlock }) {
 
 export function PeopleBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-row-cards" aria-label={block.title ?? 'People'}>
+    <section
+      className="journal-block journal-block-content journal-block-row-cards"
+      aria-label={block.title ?? 'People'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       <div className="journal-block-card-grid">
         {rows(block).map(([name, role, note], index) => (
@@ -51,11 +56,16 @@ export function PeopleBlock({ block }: { block: JournalBlock }) {
 
 export function SeriesBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-series" aria-label={block.title ?? 'Series'}>
+    <section
+      className="journal-block journal-block-content journal-block-series"
+      aria-label={block.title ?? 'Series'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       {rows(block).map(([title, status, path], index) => (
-        <div key={`${title}-${index}`} className="journal-block-row">
-          <span className="journal-block-row-marker">{String(index + 1).padStart(2, '0')}</span>
+        <div key={`${title}-${index}`} className="journal-block-row journal-block-series-row">
+          <span className="journal-block-marker journal-block-row-marker" aria-hidden="true">
+            {String(index + 1).padStart(2, '0')}
+          </span>
           <div>
             <h3>{title}</h3>
             <p>{[status, path].filter(Boolean).join(' · ')}</p>

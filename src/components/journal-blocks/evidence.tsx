@@ -28,7 +28,7 @@ function stringValue(value: unknown): string {
 export function QuoteBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <blockquote className="journal-block journal-block-quote">
+    <blockquote className="journal-block journal-block-prose journal-block-quote">
       <p>{data.text}</p>
       {data.source && <cite>{data.url ? <a href={data.url}>{data.source}</a> : data.source}</cite>}
     </blockquote>
@@ -39,7 +39,7 @@ export function ImageTextBlock({ block, entryPath }: { block: JournalBlock; entr
   const data = fields(block)
   const variant = block.attrs.variant === 'reverse' ? ' journal-block-image-text-reverse' : ''
   return (
-    <section className={`journal-block journal-block-image-text${variant}`}>
+    <section className={`journal-block journal-block-content journal-block-image-text${variant}`}>
       <img src={resolveImage(data.image, entryPath)} alt={data.alt ?? data.title ?? ''} />
       <div>
         {data.title && <h3>{data.title}</h3>}
@@ -58,7 +58,7 @@ export function ImageCompareBlock({
 }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-image-compare">
+    <section className="journal-block journal-block-wide journal-block-image-compare">
       {data.title && <div className="journal-block-section-title">{data.title}</div>}
       <div className="journal-block-image-compare-grid">
         <figure>
@@ -68,6 +68,9 @@ export function ImageCompareBlock({
           />
           <figcaption>Before</figcaption>
         </figure>
+        <div className="journal-block-image-compare-vs" aria-hidden="true">
+          VS
+        </div>
         <figure>
           <img
             src={resolveImage(data.after, entryPath)}
@@ -91,7 +94,7 @@ export function ImageAnnotateBlock({
   const data = block.body.format === 'json_object' ? block.body.value : {}
   const notes = Array.isArray(data.notes) ? data.notes : []
   return (
-    <section className="journal-block journal-block-image-annotate">
+    <section className="journal-block journal-block-content journal-block-image-annotate">
       {stringValue(data.title) && (
         <div className="journal-block-section-title">{stringValue(data.title)}</div>
       )}
@@ -100,7 +103,12 @@ export function ImageAnnotateBlock({
       )}
       <ul className="journal-block-plain-list">
         {notes.map((note, index) => (
-          <li key={index}>{stringValue(note) || JSON.stringify(note)}</li>
+          <li key={index}>
+            <span className="journal-block-marker journal-block-row-marker" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <span>{stringValue(note) || JSON.stringify(note)}</span>
+          </li>
         ))}
       </ul>
     </section>
@@ -110,7 +118,7 @@ export function ImageAnnotateBlock({
 export function ImageStepsBlock({ block, entryPath }: { block: JournalBlock; entryPath?: string }) {
   const items = block.body.format === 'json_array' ? block.body.value : []
   return (
-    <section className="journal-block journal-block-image-steps">
+    <section className="journal-block journal-block-content journal-block-image-steps">
       {items.map((item, index) => {
         const data = asRecord(item)
         return (
@@ -122,7 +130,9 @@ export function ImageStepsBlock({ block, entryPath }: { block: JournalBlock; ent
               />
             )}
             <div>
-              <div className="journal-block-row-marker">{String(index + 1).padStart(2, '0')}</div>
+              <div className="journal-block-marker journal-block-row-marker" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </div>
               <h3>{stringValue(data.title)}</h3>
               {stringValue(data.text) && <p>{stringValue(data.text)}</p>}
             </div>

@@ -6,6 +6,14 @@ Object.defineProperty(navigator, 'language', {
 
 // jsdom does not implement the CSS Custom Highlight API used by FindBar/DetailView.
 const highlightStore = new Map<string, unknown>()
+class MockHighlight {
+  ranges: unknown[]
+
+  constructor(...ranges: unknown[]) {
+    this.ranges = ranges
+  }
+}
+
 Object.defineProperty(globalThis, 'CSS', {
   value: {
     ...(globalThis.CSS ?? {}),
@@ -19,6 +27,27 @@ Object.defineProperty(globalThis, 'CSS', {
   },
   configurable: true,
 })
+Object.defineProperty(globalThis, 'Highlight', {
+  value: MockHighlight,
+  configurable: true,
+})
+
+if (!Range.prototype.getBoundingClientRect) {
+  Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+    value: () => ({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      toJSON: () => ({}),
+    }),
+    configurable: true,
+  })
+}
 
 let tauriEventId = 1
 Object.defineProperty(window, '__TAURI_EVENT_PLUGIN_INTERNALS__', {

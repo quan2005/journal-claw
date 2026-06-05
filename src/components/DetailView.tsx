@@ -320,6 +320,7 @@ function FileViewShell({
   onToggleFullscreen,
   onNavigateToPath,
   showViewToggle = true,
+  findBar,
   children,
 }: {
   rootLabel: string
@@ -334,6 +335,7 @@ function FileViewShell({
   onToggleFullscreen: () => void
   onNavigateToPath?: (path: string, isFile: boolean) => void
   showViewToggle?: boolean
+  findBar?: React.ReactNode
   children: React.ReactNode
 }) {
   const visiblePath = displayPath ?? file.path
@@ -395,6 +397,7 @@ function FileViewShell({
         zIndex: fullscreen ? 9000 : undefined,
       }}
     >
+      {findBar}
       <div
         style={{
           minHeight: 48,
@@ -575,7 +578,15 @@ function FileViewShell({
   )
 }
 
-function SourceView({ content, language }: { content: string; language: string }) {
+function SourceView({
+  content,
+  language,
+  containerRef,
+}: {
+  content: string
+  language: string
+  containerRef?: React.RefObject<HTMLDivElement | null>
+}) {
   const lines = useMemo(() => content.split('\n'), [content])
   const highlightedLines = useMemo(
     () => lines.map((line) => highlightSourceLine(line, language)),
@@ -584,6 +595,7 @@ function SourceView({ content, language }: { content: string; language: string }
 
   return (
     <div
+      ref={containerRef}
       data-testid="source-view"
       data-wrap="true"
       className="hljs"
@@ -1063,6 +1075,9 @@ export const DetailView = React.memo(function DetailView({
   useEffect(() => {
     setFileViewMode('preview')
     setFileFullscreen(false)
+    setShowFind(false)
+    CSS.highlights?.delete('search-result')
+    CSS.highlights?.delete('search-current')
   }, [entry?.path, topicFilePath])
 
   // ── Content loading ─────────────────────────────────────────────────────
@@ -1231,6 +1246,14 @@ export const DetailView = React.memo(function DetailView({
 
   const fileKind: FileKind | null = file ? fileKindFromName(file.name) : null
   const fileAbsolutePath = file ? topicFileAbsolutePath(workspacePath, file.path) : ''
+
+  const closeFindBar = () => {
+    CSS.highlights?.delete('search-result')
+    CSS.highlights?.delete('search-current')
+    setShowFind(false)
+  }
+
+  const sourceFindBar = showFind ? <FindBar containerRef={bodyRef} onClose={closeFindBar} /> : null
 
   // Detect HTML journal entries — render as SandboxPreview, not markdown
   const isHtmlContent =
@@ -1520,7 +1543,11 @@ export const DetailView = React.memo(function DetailView({
 
   // ── File non-text rendering (image, pdf, html via iframe) ───────────────
   if (isFileMode && file) {
-    const renderTopicFileShell = (children: React.ReactNode, showViewToggle = true) => (
+    const renderTopicFileShell = (
+      children: React.ReactNode,
+      showViewToggle = true,
+      showSourceFind = false,
+    ) => (
       <FileViewShell
         rootLabel="专题"
         file={file}
@@ -1534,6 +1561,7 @@ export const DetailView = React.memo(function DetailView({
         onToggleFullscreen={() => setFileFullscreen((value) => !value)}
         onNavigateToPath={onNavigateToTopicPath}
         showViewToggle={showViewToggle}
+        findBar={showSourceFind ? sourceFindBar : null}
       >
         {children}
       </FileViewShell>
@@ -1634,9 +1662,11 @@ export const DetailView = React.memo(function DetailView({
               {markdownNode}
             </FilePreviewPane>
           ) : (
-            <SourceView content={content} language="markdown" />
+            <SourceView content={content} language="markdown" containerRef={bodyRef} />
           )}
         </>,
+        true,
+        fileViewMode === 'code',
       )
     }
 
@@ -1647,9 +1677,11 @@ export const DetailView = React.memo(function DetailView({
           {fileViewMode === 'preview' ? (
             <SandboxPreview html={content} title={file.name} />
           ) : (
-            <SourceView content={content} language="html" />
+            <SourceView content={content} language="html" containerRef={bodyRef} />
           )}
         </>,
+        true,
+        fileViewMode === 'code',
       )
     }
 
@@ -1719,9 +1751,11 @@ export const DetailView = React.memo(function DetailView({
               </pre>
             </div>
           ) : (
-            <SourceView content={content} language="text" />
+            <SourceView content={content} language="text" containerRef={bodyRef} />
           )}
         </>,
+        true,
+        fileViewMode === 'code',
       )
     }
 
@@ -1729,7 +1763,11 @@ export const DetailView = React.memo(function DetailView({
     if (fileKind === 'code' && content !== null) {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
       const lang = EXT_TO_LANG[ext]
-      return renderTopicFileShell(<SourceView content={content} language={lang ?? ext} />, false)
+      return renderTopicFileShell(
+        <SourceView content={content} language={lang ?? ext} containerRef={bodyRef} />,
+        false,
+        true,
+      )
     }
 
     // CSV
@@ -1824,9 +1862,11 @@ export const DetailView = React.memo(function DetailView({
               </div>
             </div>
           ) : (
-            <SourceView content={content} language="csv" />
+            <SourceView content={content} language="csv" containerRef={bodyRef} />
           )}
         </>,
+        true,
+        fileViewMode === 'code',
       )
     }
 
@@ -1875,11 +1915,12 @@ export const DetailView = React.memo(function DetailView({
             }),
           )
         }}
+        findBar={fileViewMode === 'code' ? sourceFindBar : null}
       >
         {fileViewMode === 'preview' ? (
           <SandboxPreview html={content} title={entry.title} />
         ) : (
-          <SourceView content={content} language="html" />
+          <SourceView content={content} language="html" containerRef={bodyRef} />
         )}
       </FileViewShell>
     )
@@ -1911,16 +1952,7 @@ export const DetailView = React.memo(function DetailView({
         overflow: 'hidden',
       }}
     >
-      {showFind && (
-        <FindBar
-          containerRef={bodyRef}
-          onClose={() => {
-            CSS.highlights?.delete('search-result')
-            CSS.highlights?.delete('search-current')
-            setShowFind(false)
-          }}
-        />
-      )}
+      {showFind && <FindBar containerRef={bodyRef} onClose={closeFindBar} />}
 
       {/* Toolbar */}
       <div

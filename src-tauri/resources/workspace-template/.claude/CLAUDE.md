@@ -17,6 +17,7 @@
     README.md          ← 用户本人
     {region}-{name}.md ← 其他人物
     product-{name}.md  ← 产品
+  topics/              ← 专题、手册、长期主题沉淀
   .claude/             ← 你的配置与脚本；启动时覆盖，不要修改
 ```
 
@@ -25,9 +26,7 @@
 - `raw/` 目录只读，不修改、不移动、不重命名原始素材。
 - `.claude/` 目录不要修改。
 - 修改 `identity/` 下任何档案前，必须先加载 `/identity-profiling`。
-- 不要手工编辑人物档案 frontmatter 中的 speaker_id；声纹绑定必须使用脚本。
 - 追加日志时，必须合并新旧 `sources` 并去重。
-- 无法识别身份的人物或 speaker_id，不要强行建档。
 
 ## Skill 触发规则
 
@@ -51,18 +50,13 @@
 5. **维护档案**（仅在需要时）：
    - 操作人物/产品档案前，必须加载 `/identity-profiling`。
    - 已有档案优先更新，不重复创建。
-   - 声纹绑定用脚本，不要手改 frontmatter：
-     - 新建+有声纹：`identity-create "region" "name" --speaker-id ID --summary "…"`
-     - 新建+无声纹：`identity-create "region" "name" --summary "…"`
-     - 已有+新声纹：`identity-link ID identity/file.md`
-   - 无法识别身份的 speaker_id 不建档、不绑定、不猜测。
    - 产品只在使用户工作长期相关且反复出现时才建档。
 
 ## 日志格式
 
 文件命名：`yyMM/DD-title.mdx`，标题具体不泛化。
 
-所有日志使用 MDX 格式（Markdown + JSX 组件）。元数据用 YAML frontmatter：
+所有日志默认输出为 `.mdx`（Markdown + layout directives + 少量 JSX 组件）。元数据用 YAML frontmatter：
 
 ```yaml
 ---
@@ -87,32 +81,22 @@ sources: [2604/raw/file.m4a]
 
 ## 日志排版
 
-使用 Markdown 语法和 MDX 内置组件排版。标准 Markdown（标题、列表、表格、代码块等）负责结构，MDX 组件负责需要视觉强化的信息呈现。
+使用 Markdown 语法、Journal layout directives 和少量 MDX 内置组件排版。标准 Markdown（标题、列表、表格、代码块等）负责基础结构，layout directives 负责稳定视觉层级，MDX JSX 组件只负责 directives 无法表达的复杂语义对象。
 
-**原则**：一条日志 1-3 个 MDX 组件。能用纯 Markdown 表达的就不要用组件。
+**优先级**：
+
+1. Markdown first：普通段落、标题、列表、表格、代码块先用标准 Markdown。
+2. layout directives before JSX：需要对比、时间线、步骤、判断、引用、资源列表、结尾总结或强阅读入口时，先读取 `/journal` 的 `references/layout-directives.md` 并使用 directive blocks。
+3. MDX JSX last：只有当 `references/layout-directives.md` 无法表达决策记录、行动表、风险矩阵、转写、图表、可复制片段等强语义对象时，再读取 `references/component-recipes.md` 并使用 JSX。
+
+普通条目通常使用 2-5 个承载信息的 directive blocks；不要为了装饰使用 directive 或 JSX。
 
 ## MDX 组件
 
-写 `.mdx` 日志时使用 MDX 内置组件。完整组件目录和详细用法见 `/journal` skill。
-
-### 快速索引
-
-| 分类 | 组件 |
-|---|---|
-| 排版 | `Section` `Subtitle` `Label` `Divider` |
-| 布局 | `Split` `Columns` `Column` `Mockup` `Placeholder` `DeviceShowcase` |
-| 展示 | `Stat` `StatGroup` `Table` `Timeline` `TagList` `Progress` `Avatar` `AvatarGroup` `ProsCons` `Pros` `Cons` |
-| 提示 | `Callout` `Quote` `RelatedEntry` `RelatedIdentity` |
-| 卡片 | `Cards` `Card` `Options` `Option` `Kanban` `Checklist` `Counter` `RatingBar` `Stack` |
-| 媒体 | `AudioCard` `VideoCard` `ImageViewer` `FileCard` |
-| 图表 | `BarChart` `LineChart` `PieChart` `RadarChart` |
-| 图示 | `Mermaid` `CanvasDiagram` |
-| 设备 | `Phone` |
-| 栅格 | `Grid` `Col` `Flow` |
+写 `.mdx` 日志时可以使用 MDX 内置组件。完整组件目录、组件边界和详细用法以 `/journal` skill 的 `references/component-catalog.md` 和 `references/component-recipes.md` 为准。
 
 ### 核心原则
 
-1. 一条日志 1-3 个组件，纯 Markdown 优先
+1. 一条日志通常 0-3 个 JSX 组件，纯 Markdown 和 layout directives 优先
 2. 图表数据必须真实，不可捏造
 3. Callout: `info`=背景, `warning`=风险, `tip`=建议, `note`=旁注
-4. Mermaid vs CanvasDiagram：标准流程图/Gantt/时序图用 Mermaid；自定义关系图用 CanvasDiagram

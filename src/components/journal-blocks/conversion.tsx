@@ -8,9 +8,33 @@ function rows(block: JournalBlock): string[][] {
   return block.body.format === 'rows' ? block.body.rows : []
 }
 
+function ChecklistMarkIcon() {
+  return (
+    <svg
+      className="journal-block-check-icon"
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path className="journal-block-check-icon-check" d="M9 11l3 3L22 4" />
+      <path
+        className="journal-block-check-icon-box"
+        d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+      />
+    </svg>
+  )
+}
+
 export function FaqBlock({ block }: { block: JournalBlock }) {
   return (
-    <section className="journal-block journal-block-faq" aria-label={block.title ?? 'FAQ'}>
+    <section
+      className="journal-block journal-block-prose journal-block-faq"
+      aria-label={block.title ?? 'FAQ'}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       {rows(block).map(([question, answer], index) => (
         <details key={`${question}-${index}`} className="journal-block-faq-item">
@@ -25,7 +49,7 @@ export function FaqBlock({ block }: { block: JournalBlock }) {
 export function CtaBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-cta">
+    <section className="journal-block journal-block-prose journal-block-cta">
       <h2>{data.title}</h2>
       {data.description && <p>{data.description}</p>}
       {data.action && <div className="journal-block-meta">{data.action}</div>}
@@ -36,17 +60,26 @@ export function CtaBlock({ block }: { block: JournalBlock }) {
 export function ChecklistBlock({ block }: { block: JournalBlock }) {
   return (
     <section
-      className="journal-block journal-block-checklist"
+      className="journal-block journal-block-prose journal-block-checklist"
       aria-label={block.title ?? 'Checklist'}
     >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
-      <ul className="journal-block-plain-list">
-        {rows(block).map(([item, state], index) => (
-          <li key={`${item}-${index}`} data-state={state}>
-            <span>{state === 'done' || state === 'checked' ? '✓' : '○'}</span>
-            {item}
-          </li>
-        ))}
+      <ul className="journal-block-checklist-list">
+        {rows(block).map(([item, state = 'todo'], index) => {
+          const normalizedState = state === 'checked' ? 'done' : state
+          return (
+            <li
+              key={`${item}-${index}`}
+              className="journal-block-checklist-item"
+              data-state={normalizedState}
+            >
+              <span className="journal-block-check-marker" aria-hidden="true">
+                <ChecklistMarkIcon />
+              </span>
+              <span className="journal-block-checklist-text">{item}</span>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
@@ -59,7 +92,7 @@ export function CasesBlock({ block }: { block: JournalBlock }) {
 export function SummaryBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <section className="journal-block journal-block-summary">
+    <section className="journal-block journal-block-prose journal-block-summary">
       <h2>{data.title}</h2>
       {data.body && <p>{data.body}</p>}
     </section>
@@ -69,7 +102,7 @@ export function SummaryBlock({ block }: { block: JournalBlock }) {
 export function NoticeBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   return (
-    <aside className="journal-block journal-block-notice">
+    <aside className="journal-block journal-block-prose journal-block-notice">
       <div className="journal-block-callout-title">{data.title ?? block.title ?? 'Notice'}</div>
       <p>{data.text}</p>
     </aside>
@@ -95,7 +128,7 @@ export function ToolboxBlock({ block }: { block: JournalBlock }) {
 function RowsCardBlock({ block, ariaLabel }: { block: JournalBlock; ariaLabel: string }) {
   return (
     <section
-      className="journal-block journal-block-row-cards"
+      className="journal-block journal-block-content journal-block-row-cards"
       aria-label={block.title ?? ariaLabel}
     >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
@@ -115,7 +148,10 @@ function RowsCardBlock({ block, ariaLabel }: { block: JournalBlock; ariaLabel: s
 
 function RowsChipBlock({ block, ariaLabel }: { block: JournalBlock; ariaLabel: string }) {
   return (
-    <section className="journal-block journal-block-chips" aria-label={block.title ?? ariaLabel}>
+    <section
+      className="journal-block journal-block-content journal-block-chips"
+      aria-label={block.title ?? ariaLabel}
+    >
       {block.title && <div className="journal-block-section-title">{block.title}</div>}
       {rows(block).map(([name, meta], index) => (
         <span key={`${name}-${index}`} className="journal-block-chip">

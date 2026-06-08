@@ -258,6 +258,108 @@ describe('DetailView topic file rendering', () => {
     expectSourceViewToContain('<main><h1>Deck</h1></main>')
   })
 
+  it('renders markdown journal entries with preview/source controls, source search, and source copy', async () => {
+    renderWithProviders(
+      <DetailView
+        type="journal"
+        entry={{
+          filename: '12-Guide.md',
+          path: '/Users/yanwu/Documents/journal/2605/12-Guide.md',
+          title: 'Guide',
+          summary: '预览摘要',
+          tags: ['journal'],
+          sources: [],
+          year_month: '2605',
+          day: 12,
+          created_time: '10:00',
+          created_at_secs: 1_714_435_200,
+          mtime_secs: 1_714_521_600,
+          materials: [],
+        }}
+      />,
+    )
+
+    expect(await screen.findByText('Guide')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '预览' }).getAttribute('aria-pressed')).toBe('true')
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '源码' }))
+    })
+
+    expect(screen.getByRole('button', { name: '源码' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByText('预览摘要')).toBeNull()
+    expectSourceViewToContain('summary: "HR 与运营 / customer-profile 模板的独立使用说明。"')
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'f', metaKey: true })
+    })
+
+    const searchInput = screen.getByPlaceholderText('搜索…')
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'customer-profile' } })
+    })
+
+    expect(screen.getByText('1/3')).toBeTruthy()
+
+    const copySourceButton = screen.getByRole('button', { name: '复制源码' })
+    expect(copySourceButton.getAttribute('data-copied')).toBe('false')
+
+    await act(async () => {
+      fireEvent.click(copySourceButton)
+    })
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('# customer-profile'),
+    )
+    expect(copySourceButton.getAttribute('data-copied')).toBe('true')
+    expect(copySourceButton.getAttribute('aria-label')).toBe('已复制源码')
+  })
+
+  it('renders identity entries with preview/source controls and raw markdown source', async () => {
+    const { getIdentityContent } = await import('../lib/tauri')
+    vi.mocked(getIdentityContent).mockResolvedValue('# 张三\n\n- 会议主持人\n- customer-profile')
+
+    renderWithProviders(
+      <DetailView
+        type="identity"
+        identity={{
+          name: '张三',
+          region: '广州',
+          path: '/Users/yanwu/Documents/journal/identities/张三.md',
+          filename: '张三.md',
+          summary: '产品负责人',
+          tags: ['person'],
+          speaker_id: 'spk-1',
+          mtime_secs: 1_714_521_600,
+        }}
+      />,
+    )
+
+    expect(await screen.findByText('张三')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '预览' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('产品负责人')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '源码' }))
+    })
+
+    expect(screen.getByRole('button', { name: '源码' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByText('产品负责人')).toBeNull()
+    expectSourceViewToContain('- customer-profile')
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'f', metaKey: true })
+    })
+
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText('搜索…'), {
+        target: { value: 'customer-profile' },
+      })
+    })
+
+    expect(screen.getByText('1/1')).toBeTruthy()
+  })
+
   it('renders mdx topic files with the same preview/code file controls', async () => {
     renderWithProviders(
       <DetailView

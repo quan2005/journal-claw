@@ -587,11 +587,34 @@ function SourceView({
   language: string
   containerRef?: React.RefObject<HTMLDivElement | null>
 }) {
+  const [sourceCopied, setSourceCopied] = useState(false)
+  const copyTimerRef = useRef<number | null>(null)
   const lines = useMemo(() => content.split('\n'), [content])
   const highlightedLines = useMemo(
     () => lines.map((line) => highlightSourceLine(line, language)),
     [language, lines],
   )
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current)
+      }
+    },
+    [],
+  )
+
+  const handleCopySource = () => {
+    void navigator.clipboard?.writeText(content)
+    setSourceCopied(true)
+    if (copyTimerRef.current !== null) {
+      window.clearTimeout(copyTimerRef.current)
+    }
+    copyTimerRef.current = window.setTimeout(() => {
+      setSourceCopied(false)
+      copyTimerRef.current = null
+    }, 1200)
+  }
 
   return (
     <div
@@ -612,6 +635,47 @@ function SourceView({
         fontFamily: 'var(--font-mono, monospace)',
       }}
     >
+      <div
+        data-find-ignore="true"
+        style={{
+          position: 'sticky',
+          top: 10,
+          zIndex: 5,
+          height: 0,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          paddingRight: 16,
+          pointerEvents: 'none',
+        }}
+      >
+        <button
+          type="button"
+          aria-label={sourceCopied ? '已复制源码' : '复制源码'}
+          data-copied={sourceCopied ? 'true' : 'false'}
+          title={sourceCopied ? '已复制源码' : '复制源码'}
+          onClick={handleCopySource}
+          style={{
+            width: 28,
+            height: 28,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 6,
+            border: '1px solid var(--divider)',
+            background: sourceCopied ? 'var(--segment-active-bg)' : 'var(--detail-bg)',
+            color: sourceCopied ? 'var(--segment-active-text)' : 'var(--item-meta)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+            opacity: sourceCopied ? 1 : 0.82,
+            transform: sourceCopied ? 'scale(1.06)' : 'scale(1)',
+            transition:
+              'color 0.16s var(--ease-out), background 0.16s var(--ease-out), opacity 0.16s var(--ease-out), transform 0.16s var(--ease-out)',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+          }}
+        >
+          {sourceCopied ? <Check size={13} /> : <Copy size={13} />}
+        </button>
+      </div>
       {highlightedLines.map((html, index) => (
         <div
           key={index}
@@ -1078,7 +1142,7 @@ export const DetailView = React.memo(function DetailView({
     setShowFind(false)
     CSS.highlights?.delete('search-result')
     CSS.highlights?.delete('search-current')
-  }, [entry?.path, topicFilePath])
+  }, [entry?.path, identity?.path, topicFilePath])
 
   // ── Content loading ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -1253,11 +1317,13 @@ export const DetailView = React.memo(function DetailView({
     setShowFind(false)
   }
 
-  const sourceFindBar = showFind ? <FindBar containerRef={bodyRef} onClose={closeFindBar} /> : null
-
   // Detect HTML journal entries — render as SandboxPreview, not markdown
   const isHtmlContent =
     (isJournalMode && entry?.filename.match(/\.html?$/i)) || (isFileMode && fileKind === 'html')
+  const isStandardDetailSourceMode =
+    (isJournalMode || isIdentityMode) && !isHtmlContent && fileViewMode === 'code'
+
+  const sourceFindBar = showFind ? <FindBar containerRef={bodyRef} onClose={closeFindBar} /> : null
 
   // Markdown node for read mode
   const markdownNode = useMemo(() => {
@@ -1940,6 +2006,22 @@ export const DetailView = React.memo(function DetailView({
     transition: 'color 0.15s, background 0.15s, opacity 0.15s',
   }
 
+  const detailToggleButtonStyle = (active: boolean): React.CSSProperties => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    height: 28,
+    padding: '0 9px',
+    borderRadius: 6,
+    border: active ? '1px solid var(--divider-active)' : '1px solid transparent',
+    background: active ? 'var(--segment-active-bg)' : 'transparent',
+    color: active ? 'var(--segment-active-text)' : 'var(--item-meta)',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-body)',
+    fontWeight: active ? 'var(--font-semibold)' : 'var(--font-medium)',
+    cursor: 'pointer',
+  })
+
   return (
     <div
       style={{
@@ -1995,6 +2077,41 @@ export const DetailView = React.memo(function DetailView({
           </span>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {(isJournalMode || isIdentityMode) && (
+            <div
+              role="group"
+              aria-label="详情显示方式"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                padding: 2,
+                borderRadius: 8,
+                background: 'var(--segment-bg)',
+                border: '1px solid var(--divider)',
+              }}
+            >
+              <button
+                type="button"
+                aria-pressed={fileViewMode === 'preview'}
+                onClick={() => setFileViewMode('preview')}
+                style={detailToggleButtonStyle(fileViewMode === 'preview')}
+              >
+                <Eye size={13} />
+                预览
+              </button>
+              <button
+                type="button"
+                aria-pressed={fileViewMode === 'code'}
+                onClick={() => setFileViewMode('code')}
+                style={detailToggleButtonStyle(fileViewMode === 'code')}
+              >
+                <Code2 size={13} />
+                源码
+              </button>
+            </div>
+          )}
+
           {isSoul && (
             <button
               onClick={() => {
@@ -2052,13 +2169,14 @@ export const DetailView = React.memo(function DetailView({
 
       {/* Read mode */}
       <div
-        ref={bodyRef}
+        ref={isStandardDetailSourceMode ? undefined : bodyRef}
         style={{
           flex: 1,
-          overflowY: 'auto',
-          padding: isHtmlContent ? 0 : 'var(--journal-detail-padding)',
+          overflowY: isStandardDetailSourceMode ? 'hidden' : 'auto',
+          padding:
+            isHtmlContent || isStandardDetailSourceMode ? 0 : 'var(--journal-detail-padding)',
           width: '100%',
-          boxSizing: isHtmlContent ? undefined : 'border-box',
+          boxSizing: isHtmlContent || isStandardDetailSourceMode ? undefined : 'border-box',
           margin: 0,
         }}
         onContextMenu={(e) => {
@@ -2067,7 +2185,7 @@ export const DetailView = React.memo(function DetailView({
         }}
       >
         {/* Header: summary + tags + sources (journal) */}
-        {isJournalMode && entry && !isHtmlContent && (
+        {isJournalMode && entry && !isHtmlContent && !isStandardDetailSourceMode && (
           <div
             style={{
               marginBottom: 20,
@@ -2198,7 +2316,7 @@ export const DetailView = React.memo(function DetailView({
         )}
 
         {/* Header: summary + tags + speaker (identity) */}
-        {isIdentityMode && identity && (
+        {isIdentityMode && identity && !isStandardDetailSourceMode && (
           <div
             style={{
               marginBottom: 20,
@@ -2280,7 +2398,9 @@ export const DetailView = React.memo(function DetailView({
         )}
 
         {/* Body content */}
-        {isHtmlContent && content !== null ? (
+        {isStandardDetailSourceMode && content !== null ? (
+          <SourceView content={content} language="markdown" containerRef={bodyRef} />
+        ) : isHtmlContent && content !== null ? (
           <SandboxPreview html={content} title={entry?.title ?? file?.name} />
         ) : content === null && !loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>

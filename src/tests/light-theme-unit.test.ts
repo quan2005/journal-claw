@@ -251,10 +251,12 @@ describe('Journal content frame contract', () => {
     expect(mdxWideRule).toContain('max-width: 100%')
     expect(mdBodyRule).toContain('max-width: var(--journal-readable-max)')
     expect(detailViewSource).toContain(
-      "padding: isHtmlContent ? 0 : 'var(--journal-detail-padding)'",
+      "isHtmlContent || isStandardDetailSourceMode ? 0 : 'var(--journal-detail-padding)'",
     )
     expect(detailViewSource).not.toContain('journal-readable-shell-max')
-    expect(detailViewSource).toContain("boxSizing: isHtmlContent ? undefined : 'border-box'")
+    expect(detailViewSource).toContain(
+      "isHtmlContent || isStandardDetailSourceMode ? undefined : 'border-box'",
+    )
   })
 
   it('aligns ideas and automation workbenches to the shared workbench frame', () => {

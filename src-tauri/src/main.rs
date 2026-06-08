@@ -23,6 +23,7 @@ mod mdx;
 mod onboarding;
 mod permissions;
 mod platform;
+mod protocol;
 mod skills;
 mod speaker_profiles;
 mod todos;

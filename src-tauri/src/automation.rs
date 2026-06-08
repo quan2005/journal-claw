@@ -210,8 +210,8 @@ async fn run_due_routines(app: AppHandle) {
             if !marked {
                 continue;
             }
-            let _ = run_marked_routine(app_for_run, routine_id, AutomationRunTrigger::Scheduled)
-                .await;
+            let _ =
+                run_marked_routine(app_for_run, routine_id, AutomationRunTrigger::Scheduled).await;
         }
     }
 }
@@ -377,11 +377,7 @@ fn next_wait_duration(app: &AppHandle) -> Result<std::time::Duration, String> {
     let routines = AutomationStore::for_workspace(&workspace).list_routines()?;
     let in_flight = {
         let runtime = app.state::<AutomationRuntime>();
-        let snapshot = runtime
-            .in_flight
-            .lock()
-            .map_err(|e| e.to_string())?
-            .clone();
+        let snapshot = runtime.in_flight.lock().map_err(|e| e.to_string())?.clone();
         snapshot
     };
     next_wait_duration_for_routines_with_in_flight(
@@ -669,15 +665,13 @@ mod tests {
         current.title = "edited title".to_string();
         store.upsert_routine(current).unwrap();
 
-        update_routine_last_run(&store, "routine_1", summary("2026-05-30T08:30:00+08:00"))
-            .unwrap();
+        update_routine_last_run(&store, "routine_1", summary("2026-05-30T08:30:00+08:00")).unwrap();
         let updated = store.get_routine("routine_1").unwrap();
         assert_eq!(updated.title, "edited title");
         assert_eq!(updated.last_run.as_ref().unwrap().id, "run_1");
 
         store.delete_routine("routine_1").unwrap();
-        update_routine_last_run(&store, "routine_1", summary("2026-05-30T09:30:00+08:00"))
-            .unwrap();
+        update_routine_last_run(&store, "routine_1", summary("2026-05-30T09:30:00+08:00")).unwrap();
         assert!(store.list_routines().unwrap().is_empty());
     }
 
@@ -692,8 +686,7 @@ mod tests {
             .upsert_run(run("routine_1", AutomationRunStatus::Running))
             .unwrap();
 
-        let reconciled =
-            mark_running_runs_failed(&store, "2026-05-30T09:00:00+08:00").unwrap();
+        let reconciled = mark_running_runs_failed(&store, "2026-05-30T09:00:00+08:00").unwrap();
 
         assert_eq!(reconciled.len(), 1);
         assert_eq!(reconciled[0].status, AutomationRunStatus::Failed);
@@ -772,6 +765,9 @@ mod tests {
                 timezone: "Asia/Hong_Kong".to_string(),
             }
         );
-        assert_eq!(legacy_lint_schedule("unknown", "03:00", fallback.clone()), fallback);
+        assert_eq!(
+            legacy_lint_schedule("unknown", "03:00", fallback.clone()),
+            fallback
+        );
     }
 }

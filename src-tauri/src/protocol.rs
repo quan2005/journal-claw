@@ -89,10 +89,7 @@ pub enum ConversationEvent {
         usage: TokenUsage,
     },
     #[serde(rename_all = "camelCase")]
-    Failed {
-        session_id: String,
-        error: AppError,
-    },
+    Failed { session_id: String, error: AppError },
     #[serde(rename_all = "camelCase")]
     TurnFinished {
         session_id: String,

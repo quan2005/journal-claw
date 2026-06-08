@@ -68,10 +68,8 @@ mod tests {
 
     #[test]
     fn ensure_internal_dirs_creates_only_sessions_and_jobs() {
-        let root = std::env::temp_dir().join(format!(
-            "journal-workspace-layout-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("journal-workspace-layout-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let layout = WorkspaceLayout::new(root.clone());
 

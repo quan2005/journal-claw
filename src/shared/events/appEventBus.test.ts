@@ -37,13 +37,17 @@ describe('subscribeAppEvents', () => {
     const subscription = subscribeAppEvents(onEvent)
     await subscription.ready
 
-    handler?.({ payload: { type: 'bad' } })
-    handler?.({
-      payload: {
-        v: 1,
-        type: 'workspace.changed',
-        data: { reason: 'files_changed', paths: ['2606/08-note.md'] },
-      },
+    const dispatch = (payload: unknown) => {
+      const currentHandler = handler as ((event: { payload: unknown }) => void) | null
+      if (!currentHandler) throw new Error('expected app-event handler to be registered')
+      currentHandler({ payload })
+    }
+
+    dispatch({ type: 'bad' })
+    dispatch({
+      v: 1,
+      type: 'workspace.changed',
+      data: { reason: 'files_changed', paths: ['2606/08-note.md'] },
     })
 
     expect(onEvent).toHaveBeenCalledOnce()

@@ -31,6 +31,7 @@ mod topics;
 mod transcription;
 mod work_queue;
 mod workspace;
+mod workspace_layout;
 mod workspace_settings;
 
 use std::sync::{

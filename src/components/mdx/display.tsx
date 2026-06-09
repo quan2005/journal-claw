@@ -6,24 +6,6 @@ export function ProsCons({ children }: { children: ReactNode }) {
   return <div className="mdx-pros-cons">{children}</div>
 }
 
-export function Pros({ children }: { children: ReactNode }) {
-  return (
-    <div className="mdx-pros">
-      <h4>Pros</h4>
-      <ul>{children}</ul>
-    </div>
-  )
-}
-
-export function Cons({ children }: { children: ReactNode }) {
-  return (
-    <div className="mdx-cons">
-      <h4>Cons</h4>
-      <ul>{children}</ul>
-    </div>
-  )
-}
-
 // ── Stat ────────────────────────────────────────────────
 
 export function Stat({
@@ -189,44 +171,4 @@ export function TagList({ tags }: { tags: string[] }) {
       ))}
     </div>
   )
-}
-
-// ── Progress ────────────────────────────────────────────
-
-export function Progress({ value, label }: { value: number; label?: string }) {
-  const pct = Math.max(0, Math.min(100, value))
-  return (
-    <div className="mdx-progress">
-      {label && (
-        <div className="mdx-progress-label">
-          {label} &mdash; {pct}%
-        </div>
-      )}
-      <div className="mdx-progress-bar">
-        <div className="mdx-progress-fill" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
-}
-
-// ── Avatar ──────────────────────────────────────────────
-
-const initials = (name: string): string =>
-  name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-
-export function Avatar({ name, size }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
-  return (
-    <span className={`mdx-avatar${size && size !== 'md' ? ` mdx-avatar--${size}` : ''}`}>
-      {initials(name)}
-    </span>
-  )
-}
-
-export function AvatarGroup({ children }: { children: ReactNode }) {
-  return <div className="mdx-avatar-group">{children}</div>
 }

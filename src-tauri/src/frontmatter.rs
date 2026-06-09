@@ -36,6 +36,18 @@ fn trim_field_value(val: &str) -> String {
     val.trim().trim_matches('"').trim_matches('\'').to_string()
 }
 
+/// Parse the `source_digest` field from YAML frontmatter.
+/// Returns the hex digest string if present.
+pub fn parse_source_digest(content: &str) -> Option<String> {
+    parse_frontmatter_field(content, "source_digest")
+}
+
+/// Check if a journal entry's source_digest matches the given digest.
+/// Returns true if the entry has a matching digest (meaning re-processing would be redundant).
+pub fn entry_has_digest(content: &str, digest: &str) -> bool {
+    parse_source_digest(content).as_deref() == Some(digest)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -74,5 +86,29 @@ mod tests {
             parse_frontmatter_field(content, "name").as_deref(),
             Some("my skill")
         );
+    }
+
+    #[test]
+    fn parse_source_digest_present() {
+        let content = "---\nsummary: test\nsource_digest: abc123\n---\n\n# Title\n";
+        assert_eq!(parse_source_digest(content).as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn parse_source_digest_absent() {
+        let content = "---\nsummary: test\n---\n\n# Title\n";
+        assert_eq!(parse_source_digest(content), None);
+    }
+
+    #[test]
+    fn entry_has_digest_match() {
+        let content = "---\nsource_digest: abc123\n---\n\n# Title\n";
+        assert!(entry_has_digest(content, "abc123"));
+    }
+
+    #[test]
+    fn entry_has_digest_mismatch() {
+        let content = "---\nsource_digest: abc123\n---\n\n# Title\n";
+        assert!(!entry_has_digest(content, "def456"));
     }
 }

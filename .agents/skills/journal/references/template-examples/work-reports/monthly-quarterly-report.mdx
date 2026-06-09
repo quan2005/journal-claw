@@ -1,93 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","work-reports"]
-summary: "当需要记录月度/季度汇报，并梳理汇报周期、比较基线、目标、关键指标时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录月度/季度汇报，并梳理汇报周期、比较基线、目标、关键指标时使用。'
+tags: [journal, template, work-reports, monthly-quarterly-report]
+sources: []
 ---
 
 # 月度/季度汇报
 
-<Section density="relaxed">
-  <Subtitle>通用周期汇报要先固定比较口径，再按月度或季度选择粒度，避免同一模板生成不可比较的叙述。</Subtitle>
+> 适用：用于整理月度/季度汇报；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Ram Charan 的执行节奏视角：通用周期汇报要先固定比较口径，再按月度或季度选择粒度，避免同一模板生成不可比较的叙述。
-</Callout>
+<Verdict
+  title="【填写本周期管理判断；未知时写“待确认”，不要推断】"
+  summary="【填写最重要的结果、变化和风险；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
+/>
 
-<Callout type="note" title="结论">
-  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
-</Callout>
-
-<StatGroup>
-  <Stat label="完成项" value={"【数量】"} />
-  <Stat label="风险" value={"【数量】"} />
-  <Stat label="下阶段重点" value={"【数量】"} />
-</StatGroup>
-
-## 汇报内容
+<Metrics
+  heading="关键指标"
+  items={[
+    {
+      label: '关键指标',
+      value: '【当前值】',
+      description: '【填写变化原因；未知时写“待确认”，不要推断】',
+    },
+  ]}
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['风险或请求', '影响', '负责人', '下一步']}
   rows={[
     [
-        "汇报周期",
-        "【填写 汇报周期】"
+      '【填写风险；未知时写“待确认”，不要推断】',
+      '【填写影响；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写下阶段重点；未知时写“待确认”，不要推断】',
     ],
-    [
-        "比较基线",
-        "【填写 比较基线】"
-    ],
-    [
-        "目标",
-        "【填写 目标】"
-    ],
-    [
-        "关键指标",
-        "【填写 关键指标】"
-    ],
-    [
-        "相对基线变化",
-        "【填写 相对基线变化】"
-    ],
-    [
-        "风险",
-        "【填写 风险】"
-    ],
-    [
-        "领导层请求",
-        "【填写 领导层请求】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "月度/季度汇报", status: "open" },
-  ]}
-/>
+## 记录提示
+
+### 汇报周期
+
+【填写汇报周期；未知时写“待确认”，不要推断】
+
+### 比较基线
+
+【填写比较基线；未知时写“待确认”，不要推断】
+
+### 目标
+
+【填写目标；未知时写“待确认”，不要推断】
+
+### 关键指标
+
+【填写关键指标；未知时写“待确认”，不要推断】
+
+### 相对基线变化
+
+【填写相对基线变化；未知时写“待确认”，不要推断】
+
+### 风险
+
+【填写风险；未知时写“待确认”，不要推断】
+
+### 领导层请求
+
+【填写领导层请求；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "页面必须明确是月度、季度或其他周期"
-    },
-    {
-        "text": "所有核心指标必须有当前值和比较基线"
-    },
-    {
-        "text": "每个领导层请求必须写明请求对象和决策期限"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '页面必须明确是月度、季度或其他周期', state: 'todo' },
+    { text: '所有核心指标必须有当前值和比较基线', state: 'todo' },
+    { text: '每个领导层请求必须写明请求对象和决策期限', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

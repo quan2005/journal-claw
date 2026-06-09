@@ -1,96 +1,69 @@
 ---
-tags: ["journal","mdx-manual","template","content-creation"]
-summary: "当需要记录采访记录，并梳理采访目标、采访对象、授权范围、转写片段时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录采访记录，并梳理采访目标、采访对象、授权范围、转写片段时使用。'
+tags: [journal, template, content-creation, interview-record]
+sources: []
 ---
 
 # 采访记录
 
-<Section density="relaxed">
-  <Subtitle>采访记录要保留原话的可追溯性，同时提炼可发布主题；不能把受访者没说过的话润色成结论。</Subtitle>
+> 适用：用于整理采访记录；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  深度采访编辑的可追溯原话视角：采访记录要保留原话的可追溯性，同时提炼可发布主题；不能把受访者没说过的话润色成结论。
-</Callout>
-
-<Callout type="note" title="核心信息">
-  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
-</Callout>
-
-## 采访材料
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "采访目标",
-        "【填写 采访目标】"
-    ],
-    [
-        "采访对象",
-        "【填写 采访对象】"
-    ],
-    [
-        "授权范围",
-        "【填写 授权范围】"
-    ],
-    [
-        "转写片段",
-        "【填写 转写片段】"
-    ],
-    [
-        "已核验引语",
-        "【填写 已核验引语】"
-    ],
-    [
-        "主题",
-        "【填写 主题】"
-    ],
-    [
-        "可发布摘录",
-        "【填写 可发布摘录】"
-    ],
-    [
-        "后续问题",
-        "【填写 后续问题】"
-    ]
-]}
+<Quote
+  text="【填写已核验引语；未知时写“待确认”，不要推断】"
+  author="【填写发言者；未知时写“待确认”，不要推断】"
+  context="【填写采访目标；未知时写“待确认”，不要推断】"
 />
 
-<Transcript
-  items={[
-    { speaker: "【受访者】", time: "【时间点】", text: "【原话片段】", src: "2605/raw/interview.m4a" },
-  ]}
-  title="关键转写片段"
+<InsightCard title="当前解释">【填写主题；未知时写“待确认”，不要推断】</InsightCard>
+
+<ReferenceList
+  sources={[{ path: '【替换为真实来源路径】', label: '【来源名称】', type: 'file' }]}
 />
 
-<QuoteCard quote="【已核验可发布引语。】" source="采访记录" />
+## 记录提示
 
-<EvidenceCard title="采访证据" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
+### 采访目标
 
-<InsightCard title="主题洞察">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
+【填写采访目标；未知时写“待确认”，不要推断】
+
+### 采访对象
+
+【填写采访对象；未知时写“待确认”，不要推断】
+
+### 授权范围
+
+【填写授权范围；未知时写“待确认”，不要推断】
+
+### 转写片段
+
+【填写转写片段；未知时写“待确认”，不要推断】
+
+### 已核验引语
+
+【填写已核验引语；未知时写“待确认”，不要推断】
+
+### 主题
+
+【填写主题；未知时写“待确认”，不要推断】
+
+### 可发布摘录
+
+【填写可发布摘录；未知时写“待确认”，不要推断】
+
+### 后续问题
+
+【填写后续问题；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每条可发布引语保留原文、来源位置和必要上下文"
-    },
-    {
-        "text": "主题洞察能追溯到转写片段"
-    },
-    {
-        "text": "发布前确认授权范围、匿名处理、敏感信息、事实核验和回访问题"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每条可发布引语保留原文、来源位置和必要上下文', state: 'todo' },
+    { text: '主题洞察能追溯到转写片段', state: 'todo' },
+    { text: '发布前确认授权范围、匿名处理、敏感信息、事实核验和回访问题', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

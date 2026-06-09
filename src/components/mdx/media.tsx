@@ -1,40 +1,5 @@
-import { FileText, Film, Volume2 } from 'lucide-react'
-
-export function AudioCard({ src, title }: { src: string; title?: string }) {
-  return (
-    <div className="mdx-media-card">
-      <div className="mdx-media-header">
-        <Volume2 className="mdx-media-icon" aria-hidden="true" size={14} strokeWidth={1.8} />
-        <span>{title ?? 'Audio'}</span>
-      </div>
-      <div className="mdx-media-body">
-        <audio controls src={src} />
-      </div>
-    </div>
-  )
-}
-
-export function VideoCard({
-  src,
-  title,
-  poster,
-}: {
-  src: string
-  title?: string
-  poster?: string
-}) {
-  return (
-    <div className="mdx-media-card">
-      <div className="mdx-media-header">
-        <Film className="mdx-media-icon" aria-hidden="true" size={14} strokeWidth={1.8} />
-        <span>{title ?? 'Video'}</span>
-      </div>
-      <div className="mdx-media-body">
-        <video controls src={src} poster={poster} />
-      </div>
-    </div>
-  )
-}
+import { FileText } from 'lucide-react'
+import { useMdxAsset } from './runtimeContext'
 
 export function ImageViewer({
   src,
@@ -47,9 +12,11 @@ export function ImageViewer({
   caption?: string
   width?: string
 }) {
+  const resolvedSrc = useMdxAsset(src)
+
   return (
     <figure className="mdx-image">
-      <img src={src} alt={alt} style={width ? { width } : undefined} />
+      <img src={resolvedSrc} alt={alt} style={width ? { width } : undefined} />
       {caption && <figcaption className="mdx-image-caption">{caption}</figcaption>}
     </figure>
   )

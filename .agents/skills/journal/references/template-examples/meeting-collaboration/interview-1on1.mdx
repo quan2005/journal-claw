@@ -1,87 +1,69 @@
 ---
-tags: ["journal","mdx-manual","template","meeting-collaboration"]
-summary: "当需要记录一对一访谈记录，并梳理访谈目标、对象背景/关系、明示需求、真实痛点时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录一对一访谈记录，并梳理访谈目标、对象背景/关系、明示需求、真实痛点时使用。'
+tags: [journal, template, meeting-collaboration, interview-1on1]
+sources: []
 ---
 
 # 一对一访谈记录
 
-<Section density="relaxed">
-  <Subtitle>一对一记录要保存对方的真实语境和心智模型，区分原话、事实信号、记录员判断和后续承诺。</Subtitle>
+> 适用：用于整理一对一访谈记录；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Edgar Schein 的过程咨询视角：一对一记录要保存对方的真实语境和心智模型，区分原话、事实信号、记录员判断和后续承诺。
-</Callout>
-
-## 对象与背景
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "访谈目标",
-        "【填写 访谈目标】"
-    ],
-    [
-        "对象背景/关系",
-        "【填写 对象背景/关系】"
-    ],
-    [
-        "明示需求",
-        "【填写 明示需求】"
-    ],
-    [
-        "真实痛点",
-        "【填写 真实痛点】"
-    ],
-    [
-        "关键原话",
-        "【填写 关键原话】"
-    ],
-    [
-        "信号与证据",
-        "【填写 信号与证据】"
-    ],
-    [
-        "记录员判断",
-        "【填写 记录员判断】"
-    ],
-    [
-        "跟进承诺",
-        "【填写 跟进承诺】"
-    ]
-]}
+<Quote
+  text="【填写关键原话；未知时写“待确认”，不要推断】"
+  author="【填写发言者；未知时写“待确认”，不要推断】"
+  context="【填写访谈目标；未知时写“待确认”，不要推断】"
 />
 
-<QuoteCard quote="【保留一句最能代表对方需求、顾虑或信号的原话。】" source="一对一访谈记录" />
+<InsightCard title="当前解释">【填写明示需求；未知时写“待确认”，不要推断】</InsightCard>
 
-<InsightCard title="记录员判断">
-  【从事实中提炼判断：对方真正关心什么、有哪些风险、下一步应该如何跟进。】
-</InsightCard>
-
-<ActionTable
-  items={[
-    { action: "【跟进行动】", owner: "【负责人】", due: "【截止时间】", source: "一对一访谈记录", status: "open" },
-  ]}
+<ReferenceList
+  sources={[{ path: '【替换为真实来源路径】', label: '【来源名称】', type: 'file' }]}
 />
+
+## 记录提示
+
+### 访谈目标
+
+【填写访谈目标；未知时写“待确认”，不要推断】
+
+### 对象背景/关系
+
+【填写对象背景/关系；未知时写“待确认”，不要推断】
+
+### 明示需求
+
+【填写明示需求；未知时写“待确认”，不要推断】
+
+### 真实痛点
+
+【填写真实痛点；未知时写“待确认”，不要推断】
+
+### 关键原话
+
+【填写关键原话；未知时写“待确认”，不要推断】
+
+### 信号与证据
+
+【填写信号与证据；未知时写“待确认”，不要推断】
+
+### 记录员判断
+
+【填写记录员判断；未知时写“待确认”，不要推断】
+
+### 跟进承诺
+
+【填写跟进承诺；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "至少有一条关键原话支撑后面的判断"
-    },
-    {
-        "text": "每条记录员判断都能回指到原话、事实或行为信号"
-    },
-    {
-        "text": "跟进行动写清负责人和截止时间；没有承诺则标为待确认"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '至少有一条关键原话支撑后面的判断', state: 'todo' },
+    { text: '每条记录员判断都能回指到原话、事实或行为信号', state: 'todo' },
+    { text: '跟进行动写清负责人和截止时间；没有承诺则标为待确认', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

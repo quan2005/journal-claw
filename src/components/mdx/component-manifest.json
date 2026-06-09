@@ -1,12 +1,11 @@
 [
   {
     "kind": "layout",
-    "directive": "hero",
-    "jsxName": "Hero",
+    "directive": "toc",
+    "jsxName": "Toc",
     "category": "opening",
     "public": true
   },
-  { "kind": "layout", "directive": "toc", "jsxName": "Toc", "category": "opening", "public": true },
   {
     "kind": "layout",
     "directive": "cards",
@@ -16,15 +15,8 @@
   },
   {
     "kind": "layout",
-    "directive": "part",
-    "jsxName": "Part",
-    "category": "opening",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "label-title",
-    "jsxName": "LabelTitle",
+    "directive": "hero",
+    "jsxName": "Hero",
     "category": "opening",
     "public": true
   },
@@ -32,13 +24,6 @@
     "kind": "layout",
     "directive": "metrics",
     "jsxName": "Metrics",
-    "category": "infographic",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "compare",
-    "jsxName": "Compare",
     "category": "infographic",
     "public": true
   },
@@ -58,22 +43,8 @@
   },
   {
     "kind": "layout",
-    "directive": "infographic",
-    "jsxName": "Infographic",
-    "category": "infographic",
-    "public": true
-  },
-  {
-    "kind": "layout",
     "directive": "verdict",
     "jsxName": "Verdict",
-    "category": "judgment",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "audience-fit",
-    "jsxName": "AudienceFit",
     "category": "judgment",
     "public": true
   },
@@ -86,20 +57,6 @@
   },
   {
     "kind": "layout",
-    "directive": "manifesto",
-    "jsxName": "Manifesto",
-    "category": "judgment",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "bridge",
-    "jsxName": "Bridge",
-    "category": "judgment",
-    "public": true
-  },
-  {
-    "kind": "layout",
     "directive": "quote",
     "jsxName": "Quote",
     "category": "evidence",
@@ -107,22 +64,15 @@
   },
   {
     "kind": "layout",
+    "directive": "quote-card",
+    "jsxName": "QuoteCard",
+    "category": "evidence",
+    "public": true
+  },
+  {
+    "kind": "layout",
     "directive": "image-text",
     "jsxName": "ImageText",
-    "category": "evidence",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "image-compare",
-    "jsxName": "ImageCompare",
-    "category": "evidence",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "image-annotate",
-    "jsxName": "ImageAnnotate",
     "category": "evidence",
     "public": true
   },
@@ -170,34 +120,6 @@
   },
   {
     "kind": "layout",
-    "directive": "notice",
-    "jsxName": "Notice",
-    "category": "conversion",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "logos",
-    "jsxName": "Logos",
-    "category": "conversion",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "pricing",
-    "jsxName": "Pricing",
-    "category": "conversion",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "specs",
-    "jsxName": "Specs",
-    "category": "conversion",
-    "public": true
-  },
-  {
-    "kind": "layout",
     "directive": "toolbox",
     "jsxName": "Toolbox",
     "category": "conversion",
@@ -219,20 +141,6 @@
   },
   {
     "kind": "layout",
-    "directive": "people",
-    "jsxName": "People",
-    "category": "brand",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "series",
-    "jsxName": "Series",
-    "category": "brand",
-    "public": true
-  },
-  {
-    "kind": "layout",
     "directive": "callout",
     "jsxName": "Callout",
     "category": "enhanced",
@@ -242,34 +150,6 @@
     "kind": "layout",
     "directive": "definition",
     "jsxName": "Definition",
-    "category": "enhanced",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "quote-card",
-    "jsxName": "QuoteCard",
-    "category": "enhanced",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "tweet",
-    "jsxName": "Tweet",
-    "category": "enhanced",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "stat-row",
-    "jsxName": "StatRow",
-    "category": "enhanced",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "question",
-    "jsxName": "Question",
     "category": "enhanced",
     "public": true
   },
@@ -285,20 +165,6 @@
     "directive": "comparison-table",
     "jsxName": "ComparisonTable",
     "category": "enhanced",
-    "public": true
-  },
-  {
-    "kind": "layout",
-    "directive": "changelog",
-    "jsxName": "Changelog",
-    "category": "enhanced",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Split",
-    "category": "layout",
     "public": true
   },
   {
@@ -318,35 +184,7 @@
   {
     "kind": "specialized",
     "directive": null,
-    "jsxName": "MacPreview",
-    "category": "preview",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Placeholder",
-    "category": "layout",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
     "jsxName": "ProsCons",
-    "category": "display",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Pros",
-    "category": "display",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Cons",
     "category": "display",
     "public": true
   },
@@ -381,27 +219,6 @@
   {
     "kind": "specialized",
     "directive": null,
-    "jsxName": "Progress",
-    "category": "display",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Avatar",
-    "category": "display",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "AvatarGroup",
-    "category": "display",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
     "jsxName": "RelatedEntry",
     "category": "context",
     "public": true
@@ -418,20 +235,6 @@
     "directive": null,
     "jsxName": "Card",
     "category": "layout",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Options",
-    "category": "lists",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Option",
-    "category": "lists",
     "public": true
   },
   {
@@ -460,20 +263,6 @@
     "directive": null,
     "jsxName": "Stack",
     "category": "layout",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "AudioCard",
-    "category": "media",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "VideoCard",
-    "category": "media",
     "public": true
   },
   {
@@ -577,21 +366,7 @@
   {
     "kind": "specialized",
     "directive": null,
-    "jsxName": "PhonePreview",
-    "category": "preview",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
     "jsxName": "Grid",
-    "category": "layout",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Col",
     "category": "layout",
     "public": true
   },
@@ -605,28 +380,7 @@
   {
     "kind": "specialized",
     "directive": null,
-    "jsxName": "ActionTable",
-    "category": "semantic",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
     "jsxName": "DecisionRecord",
-    "category": "semantic",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "DecisionList",
-    "category": "semantic",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "RiskMatrix",
     "category": "semantic",
     "public": true
   },
@@ -647,13 +401,6 @@
   {
     "kind": "specialized",
     "directive": null,
-    "jsxName": "OptionMatrix",
-    "category": "semantic",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
     "jsxName": "RACI",
     "category": "semantic",
     "public": true
@@ -668,21 +415,7 @@
   {
     "kind": "specialized",
     "directive": null,
-    "jsxName": "IncidentTimeline",
-    "category": "semantic",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
     "jsxName": "InsightCard",
-    "category": "semantic",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "EvidenceCard",
     "category": "semantic",
     "public": true
   },
@@ -697,20 +430,6 @@
     "kind": "specialized",
     "directive": null,
     "jsxName": "ReferenceList",
-    "category": "sources",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "Transcript",
-    "category": "sources",
-    "public": true
-  },
-  {
-    "kind": "specialized",
-    "directive": null,
-    "jsxName": "TimestampLink",
     "category": "sources",
     "public": true
   },

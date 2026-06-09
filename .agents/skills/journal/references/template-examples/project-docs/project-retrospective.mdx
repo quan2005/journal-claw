@@ -1,105 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","project-docs"]
-summary: "当需要记录项目复盘，并梳理时间线/事实、预期 vs 实际、未达到预期、系统性原因时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录项目复盘，并梳理时间线/事实、预期 vs 实际、未达到预期、系统性原因时使用。'
+tags: [journal, template, project-docs, project-retrospective]
+sources: []
 ---
 
 # 项目复盘
 
-<Section density="relaxed">
-  <Subtitle>项目复盘要把事实、解释、系统性原因和后续实验分开，避免归咎个人。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  Norman Kerth 的项目复盘视角：项目复盘要把事实、解释、系统性原因和后续实验分开，避免归咎个人。
-</Callout>
-
-<Callout type="note" title="项目结论">
-  【写清项目目标、当前边界、最重要的验收口径。】
-</Callout>
-
-## 事实与复盘
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "时间线/事实",
-        "【填写 时间线/事实】"
-    ],
-    [
-        "预期 vs 实际",
-        "【填写 预期 vs 实际】"
-    ],
-    [
-        "未达到预期",
-        "【填写 未达到预期】"
-    ],
-    [
-        "系统性原因",
-        "【填写 系统性原因】"
-    ],
-    [
-        "可复用经验",
-        "【填写 可复用经验】"
-    ],
-    [
-        "修复实验",
-        "【填写 修复实验】"
-    ],
-    [
-        "复发风险",
-        "【填写 复发风险】"
-    ],
-    [
-        "跟进日期",
-        "【填写 跟进日期】"
-    ]
-]}
-/>
+> 适用：用于整理项目复盘；只写来源支持的事实，并显式保留未知项。
 
 <Timeline
+  heading="关键经过"
   items={[
-    { time: "【时间点】", title: "【关键事实】", desc: "【影响或证据】" },
+    {
+      time: '【时间】',
+      title: '【填写时间线/事实；未知时写“待确认”，不要推断】',
+      description: '【填写当时影响；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
-<EvidenceCard title="复盘事实证据" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
+<InsightCard title="机制性教训">【填写系统性原因；未知时写“待确认”，不要推断】</InsightCard>
 
-<InsightCard title="系统性原因与可复用经验">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
-
-<ActionTable
-  items={[
-    { action: "【下一轮修复实验或复用动作】", owner: "【负责人】", due: "【截止时间】", source: "项目复盘", status: "open" },
+<Table
+  headers={['改进项', '负责人', '截止', '验证方式']}
+  rows={[
+    [
+      '【填写修复实验；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写截止时间；未知时写“待确认”，不要推断】',
+      '【填写验证方式；未知时写“待确认”，不要推断】',
+    ],
   ]}
 />
 
-<RiskMatrix
-  risks={[
-    { risk: "【复发风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
+## 记录提示
+
+### 时间线/事实
+
+【填写时间线/事实；未知时写“待确认”，不要推断】
+
+### 预期 vs 实际
+
+【填写预期 vs 实际；未知时写“待确认”，不要推断】
+
+### 未达到预期
+
+【填写未达到预期；未知时写“待确认”，不要推断】
+
+### 系统性原因
+
+【填写系统性原因；未知时写“待确认”，不要推断】
+
+### 可复用经验
+
+【填写可复用经验；未知时写“待确认”，不要推断】
+
+### 修复实验
+
+【填写修复实验；未知时写“待确认”，不要推断】
+
+### 复发风险
+
+【填写复发风险；未知时写“待确认”，不要推断】
+
+### 跟进日期
+
+【填写跟进日期；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "关键判断必须连接事实或证据"
-    },
-    {
-        "text": "根因描述必须指向系统、流程或约束"
-    },
-    {
-        "text": "每个跟进行动必须有负责人、日期和成功信号"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '关键判断必须连接事实或证据', state: 'todo' },
+    { text: '根因描述必须指向系统、流程或约束', state: 'todo' },
+    { text: '每个跟进行动必须有负责人、日期和成功信号', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

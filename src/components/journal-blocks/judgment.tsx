@@ -21,26 +21,6 @@ function rows(block: JournalBlock): string[][] {
   return block.body.format === 'rows' ? block.body.rows : []
 }
 
-export function AudienceFitBlock({ block }: { block: JournalBlock }) {
-  return (
-    <section
-      className="journal-block journal-block-wide journal-block-table"
-      aria-label={block.title ?? 'Audience fit'}
-    >
-      {block.title && <div className="journal-block-section-title">{block.title}</div>}
-      <div className="journal-block-table-grid journal-block-table-grid-3">
-        {rows(block).map(([audience, fit, reason], index) => (
-          <div key={`${audience}-${index}`} className="journal-block-table-row">
-            <strong>{audience}</strong>
-            <span>{fit}</span>
-            <span>{reason}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 export function MythFactBlock({ block }: { block: JournalBlock }) {
   return (
     <section
@@ -75,49 +55,6 @@ export function MythFactBlock({ block }: { block: JournalBlock }) {
           </div>
         </article>
       ))}
-    </section>
-  )
-}
-
-export function ManifestoBlock({ block }: { block: JournalBlock }) {
-  return (
-    <section
-      className="journal-block journal-block-content journal-block-manifesto"
-      aria-label={block.title ?? 'Manifesto'}
-    >
-      {block.title && <div className="journal-block-section-title">{block.title}</div>}
-      {rows(block).map(([principle, detail], index) => (
-        <div
-          key={`${principle}-${index}`}
-          className="journal-block-row journal-block-manifesto-row"
-        >
-          <span className="journal-block-marker journal-block-row-marker" aria-hidden="true">
-            {String(index + 1).padStart(2, '0')}
-          </span>
-          <div>
-            <h3>{principle}</h3>
-            {detail && <p>{detail}</p>}
-          </div>
-        </div>
-      ))}
-    </section>
-  )
-}
-
-export function BridgeBlock({ block }: { block: JournalBlock }) {
-  const fields = block.body.format === 'fields' ? block.body.fields : {}
-  return (
-    <section className="journal-block journal-block-content journal-block-bridge">
-      <div className="journal-block-bridge-node">
-        <div className="journal-block-kicker">From</div>
-        <p>{fields.from}</p>
-      </div>
-      <div className="journal-block-bridge-arrow">→</div>
-      <div className="journal-block-bridge-node">
-        <div className="journal-block-kicker">To</div>
-        <p>{fields.to}</p>
-      </div>
-      {fields.why && <div className="journal-block-bridge-why">{fields.why}</div>}
     </section>
   )
 }

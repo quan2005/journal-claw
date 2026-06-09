@@ -1,88 +1,68 @@
 ---
-tags: ["journal","mdx-manual","template","learning-notes"]
-summary: "当需要记录论文笔记，并梳理阅读轮次、研究问题、方法与样本、主要发现时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录论文笔记，并梳理阅读轮次、研究问题、方法与样本、主要发现时使用。'
+tags: [journal, template, learning-notes, paper-note]
+sources: []
 ---
 
 # 论文笔记
 
-<Section density="relaxed">
-  <Subtitle>论文笔记的关键是读懂研究问题、方法可信度、结论边界和可复用部分。</Subtitle>
+> 适用：用于整理论文笔记；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  S. Keshav 的三遍论文阅读视角：论文笔记的关键是读懂研究问题、方法可信度、结论边界和可复用部分。
-</Callout>
-
-<QuoteCard quote="【摘录最关键的一句话或概念表述。】" source="【来源】" />
-
-## 学习记录
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "阅读轮次",
-        "【填写 阅读轮次】"
-    ],
-    [
-        "研究问题",
-        "【填写 研究问题】"
-    ],
-    [
-        "方法与样本",
-        "【填写 方法与样本】"
-    ],
-    [
-        "主要发现",
-        "【填写 主要发现】"
-    ],
-    [
-        "限制与威胁",
-        "【填写 限制与威胁】"
-    ],
-    [
-        "关键图表",
-        "【填写 关键图表】"
-    ],
-    [
-        "可复用方法/指标/数据",
-        "【填写 可复用方法/指标/数据】"
-    ],
-    [
-        "后续追踪论文",
-        "【填写 后续追踪论文】"
-    ]
-]}
+<Quote
+  text="【填写主要发现；未知时写“待确认”，不要推断】"
+  source="【填写阅读轮次；未知时写“待确认”，不要推断】"
 />
 
-<InsightCard title="我的理解">
-  【用自己的话解释；如果讲不清，写出卡住的地方。】
-</InsightCard>
-
-<Checklist
-  items={[
-    { text: "【需要复习的问题】" },
-    { text: "【可以迁移到工作的做法】" },
-  ]}
-/>
-
-<Checklist
-  items={[
-    {
-        "text": "必须用不超过 5 句话说明研究问题、方法、发现和限制"
-    },
-    {
-        "text": "至少写出一个可复用元素"
-    },
-    {
-        "text": "至少列出两个后续追踪问题或引用论文"
-    }
-]}
-/>
-</Section>
+<InsightCard title="我的理解">【填写研究问题；未知时写“待确认”，不要推断】</InsightCard>
 
 <ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  sources={[{ path: '【替换为真实来源路径】', label: '【学习来源】', type: 'file' }]}
+/>
+
+## 记录提示
+
+### 阅读轮次
+
+【填写阅读轮次；未知时写“待确认”，不要推断】
+
+### 研究问题
+
+【填写研究问题；未知时写“待确认”，不要推断】
+
+### 方法与样本
+
+【填写方法与样本；未知时写“待确认”，不要推断】
+
+### 主要发现
+
+【填写主要发现；未知时写“待确认”，不要推断】
+
+### 限制与威胁
+
+【填写限制与威胁；未知时写“待确认”，不要推断】
+
+### 关键图表
+
+【填写关键图表；未知时写“待确认”，不要推断】
+
+### 可复用方法/指标/数据
+
+【填写可复用方法/指标/数据；未知时写“待确认”，不要推断】
+
+### 后续追踪论文
+
+【填写后续追踪论文；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '必须用不超过 5 句话说明研究问题、方法、发现和限制', state: 'todo' },
+    { text: '至少写出一个可复用元素', state: 'todo' },
+    { text: '至少列出两个后续追踪问题或引用论文', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

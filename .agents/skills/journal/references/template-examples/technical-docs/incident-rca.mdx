@@ -1,108 +1,86 @@
 ---
-tags: ["journal","mdx-manual","template","technical-docs"]
-summary: "当需要记录故障 RCA，并梳理事故摘要与当前状态、用户/数据/业务影响、时间线、发现方式时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录故障 RCA，并梳理事故摘要与当前状态、用户/数据/业务影响、时间线、发现方式时使用。'
+tags: [journal, template, technical-docs, incident-rca]
+sources: []
 ---
 
 # 故障 RCA
 
-<Section density="relaxed">
-  <Subtitle>用于故障 RCA：记录影响、时间线、根因、修复、验证和预防措施。</Subtitle>
+> 适用：用于整理故障 RCA；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  John Allspaw / Google SRE 的无责复盘视角：RCA 不是寻找单一罪魁祸首，而是重建系统如何允许事故发生，并把检测、缓解和预防动作落到可验证改进。
-</Callout>
+<Verdict
+  title="【填写事故摘要与当前状态；未知时写“待确认”，不要推断】"
+  summary="【填写根因；未知时写“待确认”，不要推断】"
+  confidence="【已确认 / 初步判断】"
+  variant="danger"
+/>
 
-<Callout type="warning" title="结论">
-  【写清问题、根因或方案结论；同时保留未覆盖风险。】
-</Callout>
-
-## 事故时间线
+<Timeline
+  items={[
+    {
+      time: '【时间】',
+      title: '【填写时间线；未知时写“待确认”，不要推断】',
+      description: '【填写发现方式；未知时写“待确认”，不要推断】',
+    },
+  ]}
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['纠正措施', '负责人', '截止', '验证']}
   rows={[
     [
-        "事故摘要与当前状态",
-        "【填写 事故摘要与当前状态】"
+      '【填写预防动作；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写截止；未知时写“待确认”，不要推断】',
+      '【填写验证方式；未知时写“待确认”，不要推断】',
     ],
-    [
-        "用户/数据/业务影响",
-        "【填写 用户/数据/业务影响】"
-    ],
-    [
-        "时间线",
-        "【填写 时间线】"
-    ],
-    [
-        "发现方式",
-        "【填写 发现方式】"
-    ],
-    [
-        "根因",
-        "【填写 根因】"
-    ],
-    [
-        "促成因素",
-        "【填写 促成因素】"
-    ],
-    [
-        "为什么没有更早发现",
-        "【填写 为什么没有更早发现】"
-    ],
-    [
-        "预防动作",
-        "【填写 预防动作】"
-    ]
-]}
-/>
-
-<IncidentTimeline
-  items={[
-    { time: "【检测时间】", title: "检测到异常", impact: "【用户/业务影响】" },
-    { time: "【确认时间】", title: "确认范围", impact: "【影响范围】" },
-    { time: "【缓解时间】", title: "开始缓解", impact: "【剩余影响】" },
-    { time: "【恢复时间】", title: "恢复完成", impact: "【恢复标准】" },
   ]}
 />
 
-<EvidenceCard title="告警、日志、工单或用户反馈" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
+## 记录提示
 
-<InsightCard title="根因与促成因素">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
+### 事故摘要与当前状态
 
-<RiskMatrix
-  risks={[
-    { risk: "【复发风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
+【填写事故摘要与当前状态；未知时写“待确认”，不要推断】
 
-<ActionTable
-  items={[
-    { action: "【预防动作】", owner: "【负责人】", due: "【截止时间】", source: "故障 RCA", status: "open" },
-  ]}
-/>
+### 用户/数据/业务影响
+
+【填写用户/数据/业务影响；未知时写“待确认”，不要推断】
+
+### 时间线
+
+【填写时间线；未知时写“待确认”，不要推断】
+
+### 发现方式
+
+【填写发现方式；未知时写“待确认”，不要推断】
+
+### 根因
+
+【填写根因；未知时写“待确认”，不要推断】
+
+### 促成因素
+
+【填写促成因素；未知时写“待确认”，不要推断】
+
+### 为什么没有更早发现
+
+【填写为什么没有更早发现；未知时写“待确认”，不要推断】
+
+### 预防动作
+
+【填写预防动作；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "时间线至少包含检测、确认、缓解、恢复四个节点"
-    },
-    {
-        "text": "根因和促成因素必须分开"
-    },
-    {
-        "text": "每个预防动作都有负责人、截止时间、验证方式和残余风险"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '时间线至少包含检测、确认、缓解、恢复四个节点', state: 'todo' },
+    { text: '根因和促成因素必须分开', state: 'todo' },
+    { text: '每个预防动作都有负责人、截止时间、验证方式和残余风险', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

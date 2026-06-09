@@ -1,91 +1,88 @@
 ---
-tags: ["journal","mdx-manual","template","content-creation"]
-summary: "当需要记录演讲者备注，并梳理段落时间、讲法提示、转场句、强调语时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录演讲者备注，并梳理段落时间、讲法提示、转场句、强调语时使用。'
+tags: [journal, template, content-creation, speaker-notes]
+sources: []
 ---
 
 # 演讲者备注
 
-<Section density="relaxed">
-  <Subtitle>speaker notes 是现场执行脚本：讲什么、何时停顿、如何转场、哪里强调、如果超时怎么删，都要能直接上台使用。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  高管演讲稿教练的现场执行视角：speaker notes 是现场执行脚本：讲什么、何时停顿、如何转场、哪里强调、如果超时怎么删，都要能直接上台使用。
-</Callout>
-
-<Callout type="note" title="核心信息">
-  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
-</Callout>
-
-## 现场结构
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "段落时间",
-        "【填写 段落时间】"
-    ],
-    [
-        "讲法提示",
-        "【填写 讲法提示】"
-    ],
-    [
-        "转场句",
-        "【填写 转场句】"
-    ],
-    [
-        "强调语",
-        "【填写 强调语】"
-    ],
-    [
-        "听众互动",
-        "【填写 听众互动】"
-    ],
-    [
-        "删减备选",
-        "【填写 删减备选】"
-    ],
-    [
-        "彩排备注",
-        "【填写 彩排备注】"
-    ]
-]}
-/>
+> 适用：用于整理演讲者备注；只写来源支持的事实，并显式保留未知项。
 
 <Timeline
+  heading="叙事节奏"
   items={[
-    { time: "【分钟】", title: "【段落/幻灯片】", desc: "【信息、证据、转场或讲法提示】" },
+    {
+      time: '开场',
+      title: '【填写转场句；未知时写“待确认”，不要推断】',
+      description: '【填写预计用时；未知时写“待确认”，不要推断】',
+    },
+    {
+      time: '主体',
+      title: '【填写强调语；未知时写“待确认”，不要推断】',
+      description: '【填写转场；未知时写“待确认”，不要推断】',
+    },
+    {
+      time: '结尾',
+      title: '【填写彩排备注；未知时写“待确认”，不要推断】',
+      description: '【填写行动请求；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
-<QuoteCard quote="【需要准确说出的强调语或转场句。】" source="演讲者备注" />
+<Quote
+  text="【填写要准确说出的关键句；未知时写“待确认”，不要推断】"
+  source="【填写依据或出处；未知时写“待确认”，不要推断】"
+/>
 
 <Checklist
   items={[
-    { text: "【计时已演练】" },
-    { text: "【设备和素材已确认】" },
-    { text: "【收尾行动已确认】" },
+    { text: '总时长经过演练', state: 'todo' },
+    { text: '页面和讲者提示一致', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 段落时间
+
+【填写段落时间；未知时写“待确认”，不要推断】
+
+### 讲法提示
+
+【填写讲法提示；未知时写“待确认”，不要推断】
+
+### 转场句
+
+【填写转场句；未知时写“待确认”，不要推断】
+
+### 强调语
+
+【填写强调语；未知时写“待确认”，不要推断】
+
+### 听众互动
+
+【填写听众互动；未知时写“待确认”，不要推断】
+
+### 删减备选
+
+【填写删减备选；未知时写“待确认”，不要推断】
+
+### 彩排备注
+
+【填写彩排备注；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每段备注包含时间、讲法提示、转场句和强调语"
-    },
-    {
-        "text": "关键主张配有例子、数据、故事或现场演示提示"
-    },
-    {
-        "text": "发布前确认计时、删减备选、设备、读音、人名和结尾行动"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '总时长经过演练', state: 'todo' },
+    { text: '页面和讲者提示一致', state: 'todo' },
+    { text: '每段备注包含时间、讲法提示、转场句和强调语', state: 'todo' },
+    { text: '关键主张配有例子、数据、故事或现场演示提示', state: 'todo' },
+    { text: '发布前确认计时、删减备选、设备、读音、人名和结尾行动', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

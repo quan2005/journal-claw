@@ -1,87 +1,78 @@
 ---
-tags: ["journal","mdx-manual","template","research-analysis"]
-summary: "当需要记录风险评估，并梳理风险背景、风险清单、触发信号、概率时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/research-analysis.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录风险评估，并梳理风险背景、风险清单、触发信号、概率时使用。'
+tags: [journal, template, research-analysis, risk-assessment]
+sources: []
 ---
 
 # 风险评估
 
-<Section density="relaxed">
-  <Subtitle>风险模板要避免只打分；必须写清触发信号、暴露面、缓解动作和剩余风险。</Subtitle>
+> 适用：用于整理风险评估；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Nassim Taleb + Paul Slovic 的风险认知视角：风险模板要避免只打分；必须写清触发信号、暴露面、缓解动作和剩余风险。
-</Callout>
-
-<Callout type="note" title="研究问题">
-  【写清这次研究要回答的问题，以及本页结论适用的范围。】
-</Callout>
-
-## 研究记录
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "风险背景",
-        "【填写 风险背景】"
-    ],
-    [
-        "风险清单",
-        "【填写 风险清单】"
-    ],
-    [
-        "触发信号",
-        "【填写 触发信号】"
-    ],
-    [
-        "概率",
-        "【填写 概率】"
-    ],
-    [
-        "影响",
-        "【填写 影响】"
-    ],
-    [
-        "缓解措施",
-        "【填写 缓解措施】"
-    ],
-    [
-        "负责人",
-        "【填写 负责人】"
-    ],
-    [
-        "剩余风险/监控",
-        "【填写 剩余风险/监控】"
-    ]
-]}
+<Verdict
+  title="【填写总体风险判断；未知时写“待确认”，不要推断】"
+  summary="【填写最需要关注的暴露面；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
+  variant="warning"
 />
 
-<EvidenceCard title="关键证据" source="【来源】">
-  【保留样本、数字、原文或观察事实；不要把推测写成证据。】
-</EvidenceCard>
+<Table
+  headers={['风险', '概率', '影响', '监控信号', '应对', '负责人']}
+  rows={[
+    [
+      '【填写风险清单；未知时写“待确认”，不要推断】',
+      '【高 / 中 / 低】',
+      '【高 / 中 / 低】',
+      '【填写影响；未知时写“待确认”，不要推断】',
+      '【填写缓解措施；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+    ],
+  ]}
+/>
 
-<InsightCard title="洞察">
-  【从证据推出判断，并说明限制条件。】
-</InsightCard>
+## 记录提示
+
+### 风险背景
+
+【填写风险背景；未知时写“待确认”，不要推断】
+
+### 风险清单
+
+【填写风险清单；未知时写“待确认”，不要推断】
+
+### 触发信号
+
+【填写触发信号；未知时写“待确认”，不要推断】
+
+### 概率
+
+【填写概率；未知时写“待确认”，不要推断】
+
+### 影响
+
+【填写影响；未知时写“待确认”，不要推断】
+
+### 缓解措施
+
+【填写缓解措施；未知时写“待确认”，不要推断】
+
+### 负责人
+
+【填写负责人；未知时写“待确认”，不要推断】
+
+### 剩余风险/监控
+
+【填写剩余风险/监控；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个高等级风险必须有证据来源或明确标注为假设风险"
-    },
-    {
-        "text": "概率和影响必须说明判断依据"
-    },
-    {
-        "text": "下一步验证必须包含监控信号、阈值和触发后的负责人动作"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个高等级风险必须有证据来源或明确标注为假设风险', state: 'todo' },
+    { text: '概率和影响必须说明判断依据', state: 'todo' },
+    { text: '下一步验证必须包含监控信号、阈值和触发后的负责人动作', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

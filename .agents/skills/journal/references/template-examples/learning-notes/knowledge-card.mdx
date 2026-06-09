@@ -1,88 +1,80 @@
 ---
-tags: ["journal","mdx-manual","template","learning-notes"]
-summary: "当需要记录知识卡片，并梳理原子概念、一句话定义、正例、反例时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录知识卡片，并梳理原子概念、一句话定义、正例、反例时使用。'
+tags: [journal, template, learning-notes, knowledge-card]
+sources: []
 ---
 
 # 知识卡片
 
-<Section density="relaxed">
-  <Subtitle>知识卡不是资料片段，而是一个可被未来笔记引用的独立命题。</Subtitle>
+> 适用：用于整理知识卡片；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Andy Matuschak 的 Evergreen notes 视角：知识卡不是资料片段，而是一个可被未来笔记引用的独立命题。
-</Callout>
-
-<QuoteCard quote="【摘录最关键的一句话或概念表述。】" source="【来源】" />
-
-## 学习记录
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "原子概念",
-        "【填写 原子概念】"
-    ],
-    [
-        "一句话定义",
-        "【填写 一句话定义】"
-    ],
-    [
-        "正例",
-        "【填写 正例】"
-    ],
-    [
-        "反例",
-        "【填写 反例】"
-    ],
-    [
-        "适用边界",
-        "【填写 适用边界】"
-    ],
-    [
-        "易混概念",
-        "【填写 易混概念】"
-    ],
-    [
-        "使用条件",
-        "【填写 使用条件】"
-    ],
-    [
-        "相关笔记",
-        "【填写 相关笔记】"
-    ]
-]}
+<Definition
+  term="【填写原子概念；未知时写“待确认”，不要推断】"
+  description="【填写一句话定义；未知时写“待确认”，不要推断】"
 />
 
-<InsightCard title="我的理解">
-  【用自己的话解释；如果讲不清，写出卡住的地方。】
-</InsightCard>
-
-<Checklist
+<MythFact
   items={[
-    { text: "【需要复习的问题】" },
-    { text: "【可以迁移到工作的做法】" },
+    {
+      myth: '【填写常见误解；未知时写“待确认”，不要推断】',
+      fact: '【填写准确说法；未知时写“待确认”，不要推断】',
+      reason: '【填写适用边界；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
-<Checklist
+<Steps
+  heading="理解检查"
   items={[
-    {
-        "text": "一张卡只解释一个概念，并能用一句话定义"
-    },
-    {
-        "text": "至少写出一个使用条件和一个不该使用的边界"
-    },
-    {
-        "text": "必须链接至少一篇相关笔记或写明待建立链接主题"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { title: '【填写正例；未知时写“待确认”，不要推断】' },
+    { title: '【填写反例；未知时写“待确认”，不要推断】' },
   ]}
 />
+
+## 记录提示
+
+### 原子概念
+
+【填写原子概念；未知时写“待确认”，不要推断】
+
+### 一句话定义
+
+【填写一句话定义；未知时写“待确认”，不要推断】
+
+### 正例
+
+【填写正例；未知时写“待确认”，不要推断】
+
+### 反例
+
+【填写反例；未知时写“待确认”，不要推断】
+
+### 适用边界
+
+【填写适用边界；未知时写“待确认”，不要推断】
+
+### 易混概念
+
+【填写易混概念；未知时写“待确认”，不要推断】
+
+### 使用条件
+
+【填写使用条件；未知时写“待确认”，不要推断】
+
+### 相关笔记
+
+【填写相关笔记；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '一张卡只解释一个概念，并能用一句话定义', state: 'todo' },
+    { text: '至少写出一个使用条件和一个不该使用的边界', state: 'todo' },
+    { text: '必须链接至少一篇相关笔记或写明待建立链接主题', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

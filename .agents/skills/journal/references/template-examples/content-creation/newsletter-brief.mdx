@@ -1,101 +1,85 @@
 ---
-tags: ["journal","mdx-manual","template","content-creation"]
-summary: "当需要记录Newsletter 简报，并梳理读者细分、编辑承诺、固定栏目、主条目时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录Newsletter 简报，并梳理读者细分、编辑承诺、固定栏目、主条目时使用。'
+tags: [journal, template, content-creation, newsletter-brief]
+sources: []
 ---
 
 # Newsletter 简报
 
-<Section density="relaxed">
-  <Subtitle>简报要建立读者信任：稳定栏目、清晰筛选标准、少而准的摘要、可点击的下一步，比信息量更重要。</Subtitle>
+> 适用：用于整理Newsletter 简报；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Newsletter 主编的读者信任视角：简报要建立读者信任：稳定栏目、清晰筛选标准、少而准的摘要、可点击的下一步，比信息量更重要。
-</Callout>
+<InsightCard title="中心命题">【填写编辑承诺；未知时写“待确认”，不要推断】</InsightCard>
 
-<Callout type="note" title="核心信息">
-  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
-</Callout>
-
-## 内容结构
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "读者细分",
-        "【填写 读者细分】"
-    ],
-    [
-        "编辑承诺",
-        "【填写 编辑承诺】"
-    ],
-    [
-        "固定栏目",
-        "【填写 固定栏目】"
-    ],
-    [
-        "主条目",
-        "【填写 主条目】"
-    ],
-    [
-        "为什么重要",
-        "【填写 为什么重要】"
-    ],
-    [
-        "链接与来源",
-        "【填写 链接与来源】"
-    ],
-    [
-        "订阅读者行动",
-        "【填写 订阅读者行动】"
-    ],
-    [
-        "主题行",
-        "【填写 主题行】"
-    ]
-]}
-/>
-
-<EvidenceCard title="事实或来源证据" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
-
-<InsightCard title="核心信息">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
-
-<Cards>
-  <Card title="标题" description="【标题候选】" />
-  <Card title="导语" description="【开场导语】" />
-  <Card title="行动" description="【读者下一步】" />
-</Cards>
-
-<Checklist
+<Toc
+  heading="文章结构"
   items={[
-    { text: "事实有来源", checked: false },
-    { text: "主张和证据分开", checked: false },
-    { text: "发布前检查链接、日期、引用和语气", checked: false },
+    {
+      label: '01',
+      title: '【填写第一部分；未知时写“待确认”，不要推断】',
+      description: '【填写该部分承担的论证任务；未知时写“待确认”，不要推断】',
+    },
+    {
+      label: '02',
+      title: '【填写第二部分；未知时写“待确认”，不要推断】',
+      description: '【填写证据或例子；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
 <Checklist
+  heading="发布前"
   items={[
-    {
-        "text": "每个栏目说明读者是谁、这条信息为什么值得进入本期"
-    },
-    {
-        "text": "每个链接有摘要、来源和读者下一步"
-    },
-    {
-        "text": "发布前确认主题行、预览文本、链接、UTM、退订页和发送时间"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '关键结论有来源', state: 'todo' },
+    { text: '无法验证的数字已删除或标注', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 读者细分
+
+【填写读者细分；未知时写“待确认”，不要推断】
+
+### 编辑承诺
+
+【填写编辑承诺；未知时写“待确认”，不要推断】
+
+### 固定栏目
+
+【填写固定栏目；未知时写“待确认”，不要推断】
+
+### 主条目
+
+【填写主条目；未知时写“待确认”，不要推断】
+
+### 为什么重要
+
+【填写为什么重要；未知时写“待确认”，不要推断】
+
+### 链接与来源
+
+【填写链接与来源；未知时写“待确认”，不要推断】
+
+### 订阅读者行动
+
+【填写订阅读者行动；未知时写“待确认”，不要推断】
+
+### 主题行
+
+【填写主题行；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '关键结论有来源', state: 'todo' },
+    { text: '无法验证的数字已删除或标注', state: 'todo' },
+    { text: '每个栏目说明读者是谁、这条信息为什么值得进入本期', state: 'todo' },
+    { text: '每个链接有摘要、来源和读者下一步', state: 'todo' },
+    { text: '发布前确认主题行、预览文本、链接、UTM、退订页和发送时间', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

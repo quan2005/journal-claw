@@ -22,10 +22,6 @@ export function CalloutBlock({ block }: { block: JournalBlock }) {
   )
 }
 
-function fields(block: JournalBlock): Record<string, string> {
-  return block.body.format === 'fields' ? block.body.fields : {}
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -74,54 +70,6 @@ export function DefinitionBlock({ block }: { block: JournalBlock }) {
     <section className="journal-block journal-block-prose journal-block-definition">
       <h3>{stringValue(data.term)}</h3>
       <p>{stringValue(data.description)}</p>
-    </section>
-  )
-}
-
-export function QuoteCardBlock({ block }: { block: JournalBlock }) {
-  const data = fields(block)
-  return (
-    <section className="journal-block journal-block-prose journal-block-quote-card">
-      <blockquote>{data.quote}</blockquote>
-      {data.source && <div className="journal-block-meta">{data.source}</div>}
-    </section>
-  )
-}
-
-export function TweetBlock({ block }: { block: JournalBlock }) {
-  const data = fields(block)
-  return (
-    <section className="journal-block journal-block-prose journal-block-tweet">
-      <p>{data.text}</p>
-      {data.author && <div className="journal-block-meta">{data.author}</div>}
-    </section>
-  )
-}
-
-export function StatRowBlock({ block }: { block: JournalBlock }) {
-  const items = block.body.format === 'json_array' ? block.body.value : []
-  return (
-    <section className="journal-block journal-block-content journal-block-stat-row">
-      {items.map((item, index) => {
-        const data = asRecord(item)
-        return (
-          <div key={index} className="journal-block-metric">
-            <div className="journal-block-metric-value">{stringValue(data.value)}</div>
-            <div className="journal-block-metric-label">{stringValue(data.label)}</div>
-          </div>
-        )
-      })}
-    </section>
-  )
-}
-
-export function QuestionBlock({ block }: { block: JournalBlock }) {
-  const data = fields(block)
-  return (
-    <section className="journal-block journal-block-prose journal-block-question">
-      <div className="journal-block-kicker">Question</div>
-      <h2>{data.text}</h2>
-      {data.context && <p>{data.context}</p>}
     </section>
   )
 }
@@ -217,31 +165,6 @@ export function ComparisonTableBlock({ block }: { block: JournalBlock }) {
           )
         })}
       </div>
-    </section>
-  )
-}
-
-export function ChangelogBlock({ block }: { block: JournalBlock }) {
-  const items = block.body.format === 'json_array' ? block.body.value : []
-  return (
-    <section className="journal-block journal-block-content journal-block-changelog">
-      {items.map((item, index) => {
-        const data = asRecord(item)
-        return (
-          <article key={index} className="journal-block-row journal-block-changelog-row">
-            <span
-              className="journal-block-marker journal-block-row-marker journal-block-changelog-date"
-              aria-hidden="true"
-            >
-              {stringValue(data.date)}
-            </span>
-            <div>
-              <h3>{stringValue(data.title)}</h3>
-              {stringValue(data.note) && <p>{stringValue(data.note)}</p>}
-            </div>
-          </article>
-        )
-      })}
     </section>
   )
 }

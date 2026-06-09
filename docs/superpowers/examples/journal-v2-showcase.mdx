@@ -1,100 +1,62 @@
 ---
-tags: [journal, showcase]
-summary: Journal v2 showcase covers semantic components, source traceability, transcript seeking, and long evidence display.
-sources: [2605/raw/showcase.txt]
+tags: [journal, showcase, mdx]
+summary: 组件收敛项目已完成运行时边界和内容模板重写，下一步是统一手册生成与全量编译验证。
+sources:
+  [
+    src/components/mdx/component-manifest.json,
+    .agents/skills/journal/references/component-catalog.md,
+    .agents/skills/journal/references/template-examples,
+  ]
 ---
 
-# Journal v2 Component Showcase
+# MDX 组件收敛进展
 
-<Subtitle>Semantic, read-only MDX components for high-quality notes.</Subtitle>
+<Subtitle>一篇用于验证语义组件组合的真实项目日志。</Subtitle>
+
+<StatGroup>
+  <Stat label="公共组件" value={61} />
+  <Stat label="模板示例" value={104} />
+  <Stat label="家族指南" value={9} />
+</StatGroup>
 
 <DecisionRecord
-  question="是否将会议 skill 合并进 journal"
-  decision="合并，journal 成为唯一笔记整理 skill"
-  owner="产品"
-  due="v2"
+  question="如何避免文档、示例和运行时再次漂移"
+  decision="manifest 作为组件白名单，skill 示例作为 subtype 正文源"
   options={[
-    { label: '保留独立 meeting-minutes', tradeoff: '触发清晰，但模板会漂移' },
-    { label: '合并进 journal', tradeoff: '路由统一，但需要更好的 registry' },
+    { label: '继续在生成器内嵌正文', tradeoff: '生成方便，但会形成第二份内容源' },
+    { label: '生成器读取 skill 示例', tradeoff: '路径契约更严格，但内容只有一份' },
   ]}
-  rationale="所有笔记类型都应复用同一套模板和组件规则。"
+  rationale="运行时、文档和生成输出必须能由自动校验串起来。"
 />
 
-<ActionTable
+<MilestoneTimeline
   items={[
-    {
-      action: '安装 journal references',
-      owner: 'Agent',
-      due: 'Task 2',
-      source: 'plan',
-      status: 'open',
-    },
-    {
-      action: '清理 meeting-minutes',
-      owner: 'Agent',
-      due: 'Task 5',
-      source: 'plan',
-      status: 'open',
-    },
+    { time: 'M1', title: '运行时收敛', desc: '未知组件局部降级，StatGroup 恢复。' },
+    { time: 'M2', title: '内容重写', desc: '目录、recipes、9 个指南和 104 个示例更新。' },
+    { time: 'M3', title: '生成与验证', desc: '手册、MDX 编译和真实渲染检查。' },
   ]}
 />
 
-<RiskMatrix
-  risks={[
-    {
-      risk: 'AI 过度使用组件',
-      likelihood: 'medium',
-      impact: 'medium',
-      severity: 'P2',
-      mitigation: 'Markdown-first writing rules',
-    },
-    {
-      risk: '模板库过大',
-      likelihood: 'medium',
-      impact: 'high',
-      severity: 'P1',
-      mitigation: 'Progressive reference loading',
-    },
+<Table
+  headers={['风险', '状态', '应对']}
+  rows={[
+    ['生成器仍含旧正文', 'open', '改为读取 template-examples'],
+    ['全组件 demo 仍含退休标签', 'doing', '按 61 项 manifest 重写'],
+    ['CSS 真实链路未巡检', 'open', '通过 Journal 详情渲染验证'],
   ]}
 />
 
 <ReferenceList
   sources={[
-    { path: '2605/raw/showcase.txt', label: 'Showcase raw material', type: 'text' },
-    { path: '2605/raw/meeting.m4a', label: 'Meeting audio', type: 'audio' },
-  ]}
-/>
-
-<Transcript
-  collapsible
-  items={[
     {
-      speaker: '张三',
-      time: '00:12',
-      src: '2605/raw/meeting.m4a',
-      text: '先把模板体系和组件体系一起设计，不要再分散维护。',
+      path: 'src/components/mdx/component-manifest.json',
+      label: '公共组件清单',
+      type: 'file',
     },
-  ]}
-/>
-
-<CopyButton text="请基于这段会议素材整理决策、行动项和风险" label="复制整理提示" />
-
-<ComparisonMatrix
-  columns={['优点', '风险']}
-  rows={[
-    { label: 'Template-first', values: ['AI 产出立刻稳定', '组件表达不足'] },
-    { label: 'Co-design', values: ['模板和组件互相约束', '实施范围更大'] },
-  ]}
-/>
-
-<RACI
-  rows={[
     {
-      work: '模板 registry',
-      responsible: 'Agent',
-      accountable: '用户',
-      consulted: '现有 skill',
-      informed: '未来 UI',
+      path: '.agents/skills/journal/references/component-catalog.md',
+      label: '组件使用目录',
+      type: 'file',
     },
   ]}
 />

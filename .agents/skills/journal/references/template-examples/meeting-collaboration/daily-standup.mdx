@@ -1,93 +1,77 @@
 ---
-tags: ["journal","mdx-manual","template","meeting-collaboration"]
-summary: "当需要记录每日站会记录，并梳理迭代目标、成员、昨日承诺完成情况、今日最小推进时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录每日站会记录，并梳理迭代目标、成员、昨日承诺完成情况、今日最小推进时使用。'
+tags: [journal, template, meeting-collaboration, daily-standup]
+sources: []
 ---
 
 # 每日站会记录
 
-<Section density="relaxed">
-  <Subtitle>用于站会：每个人只记录状态变化、阻塞和今天最重要的行动。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  Jeff Sutherland 的 Scrum 检视与调整视角：站会不是状态汇报会，而是围绕迭代目标检查承诺、暴露阻塞、调整当天最小推进。
-</Callout>
+> 适用：用于整理每日站会记录；只写来源支持的事实，并显式保留未知项。
 
 <StatGroup>
-  <Stat label="正常推进" value={"【数量】"} />
-  <Stat label="存在阻塞" value={"【数量】"} />
-  <Stat label="需要协助" value={"【数量】"} />
+  <Stat label="完成项" value="待填" />
+  <Stat label="进行中" value="待填" />
+  <Stat label="阻塞" value="待填" />
 </StatGroup>
 
-## 进展与阻塞
-
 <Table
-  headers={["记录项", "内容"]}
+  headers={['事项', '状态变化', '阻塞', '负责人']}
   rows={[
     [
-        "迭代目标",
-        "【填写 迭代目标】"
+      '【填写迭代目标；未知时写“待确认”，不要推断】',
+      '【填写本次变化；未知时写“待确认”，不要推断】',
+      '【填写昨日承诺完成情况；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
     ],
-    [
-        "成员",
-        "【填写 成员】"
-    ],
-    [
-        "昨日承诺完成情况",
-        "【填写 昨日承诺完成情况】"
-    ],
-    [
-        "今日最小推进",
-        "【填写 今日最小推进】"
-    ],
-    [
-        "阻塞/决策请求",
-        "【填写 阻塞/决策请求】"
-    ],
-    [
-        "需要协助人",
-        "【填写 需要协助人】"
-    ],
-    [
-        "状态变化",
-        "【填写 状态变化】"
-    ],
-    [
-        "升级项",
-        "【填写 升级项】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【阻塞或风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【处理方式】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "每日站会记录", status: "open" },
-  ]}
-/>
+<Steps heading="下一步" items={[{ title: '【填写今日最小推进；未知时写“待确认”，不要推断】' }]} />
+
+## 记录提示
+
+### 迭代目标
+
+【填写迭代目标；未知时写“待确认”，不要推断】
+
+### 成员
+
+【填写成员；未知时写“待确认”，不要推断】
+
+### 昨日承诺完成情况
+
+【填写昨日承诺完成情况；未知时写“待确认”，不要推断】
+
+### 今日最小推进
+
+【填写今日最小推进；未知时写“待确认”，不要推断】
+
+### 阻塞/决策请求
+
+【填写阻塞/决策请求；未知时写“待确认”，不要推断】
+
+### 需要协助人
+
+【填写需要协助人；未知时写“待确认”，不要推断】
+
+### 状态变化
+
+【填写状态变化；未知时写“待确认”，不要推断】
+
+### 升级项
+
+【填写升级项；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个人都有昨日、今日、阻塞三项；没有变化也写无变化/无阻塞"
-    },
-    {
-        "text": "每个阻塞都有需要协助的人或待决策对象"
-    },
-    {
-        "text": "今日计划写成可交付结果，不能只写继续开发或继续沟通"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个人都有昨日、今日、阻塞三项；没有变化也写无变化/无阻塞', state: 'todo' },
+    { text: '每个阻塞都有需要协助的人或待决策对象', state: 'todo' },
+    { text: '今日计划写成可交付结果，不能只写继续开发或继续沟通', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

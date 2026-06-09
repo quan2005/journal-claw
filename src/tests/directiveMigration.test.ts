@@ -34,7 +34,7 @@ describe('directive migration orchestration', () => {
     mockRead.mockImplementation(async (path: string) =>
       path.endsWith('09-note.md')
         ? ':::quote\ntext: 可迁移\n:::'
-        : ':::hero\nsubtitle: 缺少标题\n:::',
+        : ':::verdict\nsummary: 缺少标题\n:::',
     )
     mockCompile.mockResolvedValue('compiled')
     mockApply.mockResolvedValue({

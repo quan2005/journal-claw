@@ -1,102 +1,79 @@
 ---
-tags: ["journal","mdx-manual","template","technical-docs"]
-summary: "当需要记录迁移指南，并梳理迁移前状态、迁移后状态、分阶段步骤、兼容窗口和受影响方时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录迁移指南，并梳理迁移前状态、迁移后状态、分阶段步骤、兼容窗口和受影响方时使用。'
+tags: [journal, template, technical-docs, migration-guide]
+sources: []
 ---
 
 # 迁移指南
 
-<Section density="relaxed">
-  <Subtitle>迁移指南的重点是控制风险：读者必须知道迁移前后差异、兼容窗口、验证点和如何撤回。</Subtitle>
+> 适用：用于整理迁移指南；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Kelsey Hightower 的生产迁移视角：迁移指南的重点是控制风险：读者必须知道迁移前后差异、兼容窗口、验证点和如何撤回。
+<Callout tone="warning" title="执行边界">
+  【填写迁移后状态；未知时写“待确认”，不要推断】
 </Callout>
 
-<Callout type="warning" title="结论">
-  【写清问题、根因或方案结论；同时保留未覆盖风险。】
-</Callout>
-
-## 执行步骤
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "迁移前状态",
-        "【填写 迁移前状态】"
-    ],
-    [
-        "迁移后状态",
-        "【填写 迁移后状态】"
-    ],
-    [
-        "分阶段步骤",
-        "【填写 分阶段步骤】"
-    ],
-    [
-        "兼容窗口和受影响方",
-        "【填写 兼容窗口和受影响方】"
-    ],
-    [
-        "数据备份/校验/恢复",
-        "【填写 数据备份/校验/恢复】"
-    ],
-    [
-        "切换/灰度/冻结窗口",
-        "【填写 切换/灰度/冻结窗口】"
-    ],
-    [
-        "回滚或前滚策略",
-        "【填写 回滚或前滚策略】"
-    ],
-    [
-        "验证",
-        "【填写 验证】"
-    ]
-]}
-/>
-
-<Checklist
+<Steps
+  heading="执行步骤"
   items={[
-    { text: "【部署/迁移前检查】" },
-    { text: "【执行中检查】" },
-    { text: "【完成后验证】" },
-    { text: "【回滚后验证】" },
-  ]}
-/>
-
-<CopyButton text="【精确命令或脚本】" label="复制命令" />
-
-<RiskMatrix
-  risks={[
-    { risk: "【执行、数据或兼容风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
-
-<ActionTable
-  items={[
-    { action: "【人工确认、回滚或补验证】", owner: "【负责人】", due: "【截止时间】", source: "迁移指南", status: "open" },
+    { title: '【填写兼容窗口和受影响方；未知时写“待确认”，不要推断】' },
+    { title: '【填写数据备份/校验/恢复；未知时写“待确认”，不要推断】' },
+    { title: '【填写回滚或前滚策略；未知时写“待确认”，不要推断】' },
   ]}
 />
 
 <Checklist
   items={[
-    {
-        "text": "迁移前后差异能对照检查"
-    },
-    {
-        "text": "每个阶段都有验证命令、预期结果和失败处理方式"
-    },
-    {
-        "text": "回滚策略说明哪些变化可回滚、哪些只能前滚，以及数据安全风险"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '前置条件满足', state: 'todo' },
+    { text: '回滚路径可执行', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 迁移前状态
+
+【填写迁移前状态；未知时写“待确认”，不要推断】
+
+### 迁移后状态
+
+【填写迁移后状态；未知时写“待确认”，不要推断】
+
+### 分阶段步骤
+
+【填写分阶段步骤；未知时写“待确认”，不要推断】
+
+### 兼容窗口和受影响方
+
+【填写兼容窗口和受影响方；未知时写“待确认”，不要推断】
+
+### 数据备份/校验/恢复
+
+【填写数据备份/校验/恢复；未知时写“待确认”，不要推断】
+
+### 切换/灰度/冻结窗口
+
+【填写切换/灰度/冻结窗口；未知时写“待确认”，不要推断】
+
+### 回滚或前滚策略
+
+【填写回滚或前滚策略；未知时写“待确认”，不要推断】
+
+### 验证
+
+【填写验证；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '前置条件满足', state: 'todo' },
+    { text: '回滚路径可执行', state: 'todo' },
+    { text: '迁移前后差异能对照检查', state: 'todo' },
+    { text: '每个阶段都有验证命令、预期结果和失败处理方式', state: 'todo' },
+    { text: '回滚策略说明哪些变化可回滚、哪些只能前滚，以及数据安全风险', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

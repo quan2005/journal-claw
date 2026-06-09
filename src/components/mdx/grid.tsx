@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Grid + Col — 12-column classic grid
+// Grid — 12-column classic grid
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface GridProps {
@@ -30,33 +30,6 @@ export function Grid({ children, className, cols = 12, gap = 16, rowGap, stackBe
               ['--mdx-grid-stack']: `@media (max-width: ${stackBelow}px) { grid-template-columns: 1fr; }`,
             }
           : {}),
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-export interface ColProps {
-  children?: ReactNode
-  className?: string
-  /** Columns to span (default: fill remaining space) */
-  span?: number | 'auto' | 'fill'
-  /** Offset from left in columns */
-  offset?: number
-}
-
-export function Col({ children, className, span, offset }: ColProps) {
-  return (
-    <div
-      className={`mdx-col ${className ?? ''}`}
-      style={{
-        ...(span != null && span !== 'fill'
-          ? { gridColumn: `span ${span}` }
-          : span === 'fill'
-            ? { gridColumn: '1 / -1' }
-            : {}),
-        ...(offset ? { marginInlineStart: `${(offset / 12) * 100}%` } : {}),
       }}
     >
       {children}

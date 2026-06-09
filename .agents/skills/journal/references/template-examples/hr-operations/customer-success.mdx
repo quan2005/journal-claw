@@ -1,96 +1,74 @@
 ---
-tags: ["journal","mdx-manual","template","hr-operations"]
-summary: "当需要记录客户成功记录，并梳理生命周期阶段、健康状态/风险等级、使用情况与采用率、已交付价值/业务结果时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录客户成功记录，并梳理生命周期阶段、健康状态/风险等级、使用情况与采用率、已交付价值/业务结果时使用。'
+tags: [journal, template, hr-operations, customer-success]
+sources: []
 ---
 
 # 客户成功记录
 
-<Section density="relaxed">
-  <Subtitle>客户成功记录必须连接生命周期阶段、健康信号、价值实现、续费/扩展机会和下一步成功计划。</Subtitle>
+> 适用：用于整理客户成功记录；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  客户成功负责人的生命周期视角：客户成功记录必须连接生命周期阶段、健康信号、价值实现、续费/扩展机会和下一步成功计划。
-</Callout>
-
-## 客户健康与成功计划
-
-<Flow>
-  <StatusBadge status="【生命周期/健康状态】" tone="warning" />
-  <StatusBadge status="【目标状态】" tone="success" />
-</Flow>
+<Summary
+  title="【填写客户当前状态；未知时写“待确认”，不要推断】"
+  body="【填写健康状态/风险等级；未知时写“待确认”，不要推断】"
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['需求或目标', '已交付价值', '风险']}
   rows={[
     [
-        "生命周期阶段",
-        "【填写 生命周期阶段】"
+      '【填写已交付价值/业务结果；未知时写“待确认”，不要推断】',
+      '【填写续费/扩展信号；未知时写“待确认”，不要推断】',
+      '【填写干系人负责人；未知时写“待确认”，不要推断】',
     ],
-    [
-        "健康状态/风险等级",
-        "【填写 健康状态/风险等级】"
-    ],
-    [
-        "使用情况与采用率",
-        "【填写 使用情况与采用率】"
-    ],
-    [
-        "已交付价值/业务结果",
-        "【填写 已交付价值/业务结果】"
-    ],
-    [
-        "续费/扩展信号",
-        "【填写 续费/扩展信号】"
-    ],
-    [
-        "干系人负责人",
-        "【填写 干系人负责人】"
-    ],
-    [
-        "下一步成功计划",
-        "【填写 下一步成功计划】"
-    ]
-]}
-/>
-
-<EvidenceCard title="客户反馈或使用证据" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
-
-<InsightCard title="价值、风险与机会判断">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
-
-<RiskMatrix
-  risks={[
-    { risk: "【续费、扩展或采用风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步成功计划】", owner: "【负责人】", due: "【截止时间】", source: "客户成功记录", status: "open" },
-  ]}
+<Steps
+  heading="下一次跟进"
+  items={[{ title: '【填写下一步成功计划；未知时写“待确认”，不要推断】' }]}
 />
+
+## 记录提示
+
+### 生命周期阶段
+
+【填写生命周期阶段；未知时写“待确认”，不要推断】
+
+### 健康状态/风险等级
+
+【填写健康状态/风险等级；未知时写“待确认”，不要推断】
+
+### 使用情况与采用率
+
+【填写使用情况与采用率；未知时写“待确认”，不要推断】
+
+### 已交付价值/业务结果
+
+【填写已交付价值/业务结果；未知时写“待确认”，不要推断】
+
+### 续费/扩展信号
+
+【填写续费/扩展信号；未知时写“待确认”，不要推断】
+
+### 干系人负责人
+
+【填写干系人负责人；未知时写“待确认”，不要推断】
+
+### 下一步成功计划
+
+【填写下一步成功计划；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "健康状态必须由使用数据、客户反馈或价值交付证据支持"
-    },
-    {
-        "text": "续费/扩展信号写清来源干系人、金额或范围假设、风险状态"
-    },
-    {
-        "text": "下一步同时包含 CSM 负责人、客户侧负责人、截止时间和期望结果"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '健康状态必须由使用数据、客户反馈或价值交付证据支持', state: 'todo' },
+    { text: '续费/扩展信号写清来源干系人、金额或范围假设、风险状态', state: 'todo' },
+    { text: '下一步同时包含 CSM 负责人、客户侧负责人、截止时间和期望结果', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

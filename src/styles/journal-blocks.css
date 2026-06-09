@@ -170,6 +170,83 @@
   justify-content: flex-start;
 }
 
+/* ── Hero (editorial) ──────────────────────────────────── */
+
+.journal-block-hero {
+  position: relative;
+  padding: 8px 0 24px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.journal-block-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 160px;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--record-btn) 72%, transparent), transparent);
+}
+
+.journal-block-hero h1,
+.journal-block-hero p,
+.journal-block-hero div {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.journal-block-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: var(--item-meta);
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+}
+
+.journal-block-hero-kicker::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--record-btn);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--record-btn) 46%, transparent);
+}
+
+.journal-block-hero-title {
+  max-width: 920px;
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1.08;
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  color: var(--item-text);
+}
+
+.journal-block-hero-lead {
+  max-width: 820px;
+  margin-top: 24px;
+  color: var(--item-meta);
+  font-size: 17px;
+  line-height: 1.9;
+  letter-spacing: 0.005em;
+}
+
+.journal-block-hero .journal-block-hero-meta {
+  margin-top: 16px;
+  color: var(--item-meta);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  opacity: 0.6;
+}
+
 .journal-block-manifesto-row {
   grid-template-columns: 48px minmax(0, 1fr);
   gap: var(--space-3);
@@ -280,6 +357,141 @@
   color: var(--item-meta);
   font-size: var(--text-xs);
   line-height: 1.55;
+}
+
+/* ── QuoteCard ─────────────────────────────────────────── */
+
+.journal-block-quote-card {
+  position: relative;
+  padding-left: calc(var(--space-4) + 3px);
+}
+
+.journal-block-quote-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--record-btn);
+}
+
+.journal-block-quote-card-body {
+  margin: 0;
+  padding: 0;
+  border: 0 none;
+  border-left: 0 none;
+  background: transparent;
+}
+
+.journal-block-quote-card .journal-block-quote-card-body {
+  border-left: none;
+}
+
+.journal-block-quote-card-text {
+  margin: 0;
+  color: var(--item-text);
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  line-height: 1.8;
+}
+
+.journal-block-quote-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: var(--space-3);
+}
+
+.journal-block-quote-card-dash {
+  display: block;
+  width: 16px;
+  height: 1px;
+  background: var(--item-meta);
+}
+
+.journal-block-quote-card-author {
+  font-size: var(--text-sm);
+  font-style: normal;
+  font-weight: var(--font-medium);
+  color: var(--item-meta);
+}
+
+.journal-block-quote-card-source {
+  font-size: var(--text-xs);
+  color: var(--item-meta);
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* Minimal variant */
+.journal-block-quote-card-minimal {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--space-4) 0 var(--space-4) var(--space-5);
+}
+
+.journal-block-quote-card-minimal::before {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--divider);
+}
+
+.journal-block-quote-card-minimal .journal-block-quote-card-text {
+  font-size: var(--text-sm);
+  font-weight: var(--font-regular, 400);
+  line-height: 1.75;
+  color: var(--item-meta);
+}
+
+/* Large variant */
+.journal-block-quote-card-large {
+  padding: var(--space-6) var(--space-5);
+  text-align: center;
+  background: color-mix(in srgb, var(--record-btn) 8%, var(--bg));
+  border-color: transparent;
+}
+
+.journal-block-quote-card-large::before {
+  display: none;
+}
+
+.journal-block-quote-card-large .journal-block-quote-card-text {
+  font-size: var(--text-lg, 18px);
+  font-weight: var(--font-semibold);
+  line-height: 1.7;
+  color: var(--journal-title-color);
+  letter-spacing: -0.01em;
+}
+
+.journal-block-quote-card-large .journal-block-quote-card-footer {
+  justify-content: center;
+}
+
+/* Inline variant */
+.journal-block-quote-card-inline {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--space-3) 0 var(--space-3) var(--space-5);
+}
+
+.journal-block-quote-card-inline::before {
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  opacity: 0.6;
+}
+
+.journal-block-quote-card-inline .journal-block-quote-card-text {
+  font-style: italic;
+  font-weight: var(--font-regular, 400);
+  line-height: 1.75;
+  color: var(--item-meta);
 }
 
 .journal-block-image-text {

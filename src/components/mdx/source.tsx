@@ -30,22 +30,6 @@ export function ReferenceList({ sources }: { sources: ReferenceSource[] }) {
   )
 }
 
-export function TimestampLink({
-  src,
-  time,
-  children,
-}: {
-  src: string
-  time: string | number
-  children?: ReactNode
-}) {
-  return (
-    <a className="mdx-timestamp-link" data-media-src={src} data-media-time={time}>
-      {children ?? String(time)}
-    </a>
-  )
-}
-
 export function CopyButton({
   text,
   label = '复制',
@@ -59,58 +43,5 @@ export function CopyButton({
     <button type="button" className="mdx-copy-button" data-copy-text={text}>
       {children ?? label}
     </button>
-  )
-}
-
-export interface TranscriptItem {
-  speaker?: string
-  time?: string
-  text: string
-  src?: string
-}
-
-export function Transcript({
-  items,
-  collapsible = false,
-  title = '转写片段',
-}: {
-  items: TranscriptItem[]
-  collapsible?: boolean
-  title?: string
-}) {
-  const body = (
-    <div className="mdx-transcript-body">
-      {items.map((item, index) => (
-        <div key={`${item.time ?? index}-${item.speaker ?? ''}`} className="mdx-transcript-item">
-          <div className="mdx-transcript-meta">
-            {item.speaker && <span>{item.speaker}</span>}
-            {item.time && item.src ? (
-              <TimestampLink src={item.src} time={item.time}>
-                {item.time}
-              </TimestampLink>
-            ) : item.time ? (
-              <span>{item.time}</span>
-            ) : null}
-          </div>
-          <p>{item.text}</p>
-        </div>
-      ))}
-    </div>
-  )
-
-  if (collapsible) {
-    return (
-      <details className="mdx-transcript mdx-specialized-prose">
-        <summary>{title}</summary>
-        {body}
-      </details>
-    )
-  }
-
-  return (
-    <section className="mdx-transcript mdx-specialized-prose">
-      <div className="mdx-transcript-title">{title}</div>
-      {body}
-    </section>
   )
 }

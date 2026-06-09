@@ -1,21 +1,21 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import {
-  ActionTable,
   CopyButton,
   DecisionRecord,
-  RiskMatrix,
   StatusBadge,
   RACI,
   ComparisonMatrix,
+  MilestoneTimeline,
   InsightCard,
-  EvidenceCard,
   InlineMath,
   BlockMath,
   Mermaid,
+  Stat,
+  StatGroup,
   Table,
+  ReferenceList,
 } from '../components/mdx'
-import { ReferenceList, Transcript, TimestampLink } from '../components/mdx'
 
 vi.mock('../components/mdx/mermaidRuntime', async () => {
   const actual = await vi.importActual<typeof import('../components/mdx/mermaidRuntime')>(
@@ -40,12 +40,26 @@ vi.mock('../components/mdx/mermaidRuntime', async () => {
 })
 
 describe('semantic MDX components', () => {
-  it('renders actions with owner, due date, source, and status', () => {
+  it('renders compact metric groups from Stat children', () => {
+    const { container } = render(
+      <StatGroup>
+        <Stat label="完成项" value={12} />
+        <Stat label="风险" value={3} trend="down" />
+      </StatGroup>,
+    )
+
+    expect(container.querySelector('.mdx-stat-group')).toBeTruthy()
+    expect(screen.getByText('完成项')).toBeTruthy()
+    expect(screen.getByText('12')).toBeTruthy()
+    expect(screen.getByText('风险')).toBeTruthy()
+    expect(screen.getByText('3')).toBeTruthy()
+  })
+
+  it('renders generated action rows with the retained table primitive', () => {
     render(
-      <ActionTable
-        items={[
-          { action: '补齐权限说明', owner: '张三', due: '周三', source: '评审会', status: 'open' },
-        ]}
+      <Table
+        headers={['行动', '负责人', '截止', '来源', '状态']}
+        rows={[['补齐权限说明', '张三', '周三', '评审会', 'open']]}
       />,
     )
 
@@ -76,14 +90,13 @@ describe('semantic MDX components', () => {
     expect(screen.getByText('企业客户审计需求优先。')).toBeTruthy()
   })
 
-  it('renders risk matrix and status badge', () => {
+  it('renders status badges and risk rows without a dedicated risk matrix component', () => {
     render(
       <>
         <StatusBadge status="blocked" />
-        <RiskMatrix
-          risks={[
-            { risk: '上线延期', likelihood: 'medium', impact: 'high', mitigation: '缩小首版范围' },
-          ]}
+        <Table
+          headers={['风险', '概率', '影响', '应对']}
+          rows={[['上线延期', 'medium', 'high', '缩小首版范围']]}
         />
       </>,
     )
@@ -93,7 +106,7 @@ describe('semantic MDX components', () => {
     expect(screen.getByText('缩小首版范围')).toBeTruthy()
   })
 
-  it('renders RACI and comparison matrices', () => {
+  it('renders RACI, milestone timelines, and comparison matrices', () => {
     render(
       <>
         <RACI
@@ -114,44 +127,30 @@ describe('semantic MDX components', () => {
             { label: '方案 B', values: ['中', '低'] },
           ]}
         />
+        <MilestoneTimeline items={[{ time: 'M1', title: '发布审批', desc: '确认灰度计划' }]} />
       </>,
     )
 
-    expect(screen.getByText('发布审批')).toBeTruthy()
+    expect(screen.getAllByText('发布审批')).toHaveLength(2)
     expect(screen.getByText('方案 B')).toBeTruthy()
+    expect(screen.getByText('确认灰度计划')).toBeTruthy()
   })
 
-  it('renders insight and evidence cards', () => {
-    render(
-      <>
-        <InsightCard title="导入进度需要更明确">用户关注处理是否卡住。</InsightCard>
-        <EvidenceCard title="访谈证据" source="用户访谈 03">
-          3 位用户提到导入反馈不足。
-        </EvidenceCard>
-      </>,
-    )
+  it('renders insight cards for interpretation', () => {
+    render(<InsightCard title="导入进度需要更明确">用户关注处理是否卡住。</InsightCard>)
 
     expect(screen.getByText('导入进度需要更明确')).toBeTruthy()
-    expect(screen.getByText('用户访谈 03')).toBeTruthy()
+    expect(screen.getByText('用户关注处理是否卡住。')).toBeTruthy()
   })
 
-  it('renders references, transcript, and timestamp links', () => {
+  it('renders reference lists for source traceability', () => {
     render(
-      <>
-        <ReferenceList
-          sources={[{ path: '2605/raw/meeting.m4a', label: '会议录音', type: 'audio' }]}
-        />
-        <Transcript items={[{ speaker: '张三', time: '00:12', text: '这里需要先试点。' }]} />
-        <TimestampLink src="2605/raw/meeting.m4a" time="00:12">
-          跳到 00:12
-        </TimestampLink>
-      </>,
+      <ReferenceList
+        sources={[{ path: '2605/raw/meeting.m4a', label: '会议录音', type: 'audio' }]}
+      />,
     )
 
     expect(screen.getByText('会议录音')).toBeTruthy()
-    expect(screen.getByText('张三')).toBeTruthy()
-    expect(screen.getByText('这里需要先试点。')).toBeTruthy()
-    expect(screen.getByText('跳到 00:12')).toBeTruthy()
   })
 
   it('renders a copy affordance without editing note content', () => {
@@ -402,15 +401,5 @@ endDone --> Final["🎯 最终产物完整全栈应用"]`
 
     expect(screen.getByText('Formula render failed')).toBeTruthy()
     expect(screen.getAllByText(/frac/).length).toBeGreaterThan(0)
-  })
-
-  it('allows transcript details to expand and collapse', () => {
-    render(
-      <Transcript items={[{ speaker: '张三', time: '00:12', text: '长转写内容' }]} collapsible />,
-    )
-    const details = screen.getByText('转写片段').closest('details')
-    expect(details?.hasAttribute('open')).toBe(false)
-    fireEvent.click(screen.getByText('转写片段'))
-    expect(details?.hasAttribute('open')).toBe(true)
   })
 })

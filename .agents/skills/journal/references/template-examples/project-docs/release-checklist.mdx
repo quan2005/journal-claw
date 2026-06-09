@@ -1,108 +1,76 @@
 ---
-tags: ["journal","mdx-manual","template","project-docs"]
-summary: "当需要记录发布检查清单，并梳理发布窗口、前置条件、发布检查项、灰度/回滚开关时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录发布检查清单，并梳理发布窗口、前置条件、发布检查项、灰度/回滚开关时使用。'
+tags: [journal, template, project-docs, release-checklist]
+sources: []
 ---
 
 # 发布检查清单
 
-<Section density="relaxed">
-  <Subtitle>发布检查清单要证明发布可控、反馈可见、回滚可执行。</Subtitle>
+> 适用：用于整理发布检查清单；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Gene Kim 的发布安全视角：发布检查清单要证明发布可控、反馈可见、回滚可执行。
-</Callout>
-
-<Callout type="note" title="项目结论">
-  【写清项目目标、当前边界、最重要的验收口径。】
-</Callout>
-
-## 发布状态
-
-<StatusBadge status="【ready / blocked / done】" tone="warning" />
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "发布窗口",
-        "【填写 发布窗口】"
-    ],
-    [
-        "前置条件",
-        "【填写 前置条件】"
-    ],
-    [
-        "发布检查项",
-        "【填写 发布检查项】"
-    ],
-    [
-        "灰度/回滚开关",
-        "【填写 灰度/回滚开关】"
-    ],
-    [
-        "监控信号",
-        "【填写 监控信号】"
-    ],
-    [
-        "沟通对象",
-        "【填写 沟通对象】"
-    ],
-    [
-        "Go/No-Go 决策",
-        "【填写 Go/No-Go 决策】"
-    ],
-    [
-        "回滚步骤",
-        "【填写 回滚步骤】"
-    ]
-]}
-/>
-
-<Checklist
+<Steps
+  heading="执行顺序"
   items={[
-    { text: "【前置条件已确认】" },
-    { text: "【灰度/回滚开关已确认】" },
-    { text: "【监控信号已确认】" },
-    { text: "【沟通对象已确认】" },
-  ]}
-/>
-
-<DecisionRecord
-  question="是否 Go / No-Go？"
-  decision="【Go / No-Go / 延后】"
-  owner="【负责人】"
-  due="【复核时间】"
-  options={[
-    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
-    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
-  ]}
-  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【发布风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+    { title: '【填写发布检查项；未知时写“待确认”，不要推断】' },
+    { title: '【填写监控信号；未知时写“待确认”，不要推断】' },
+    { title: '【填写沟通对象；未知时写“待确认”，不要推断】' },
   ]}
 />
 
 <Checklist
+  heading="质量门"
   items={[
-    {
-        "text": "每个检查项必须有负责人和状态"
-    },
-    {
-        "text": "回滚必须写触发条件和具体步骤"
-    },
-    {
-        "text": "沟通计划必须写对象、内容和时间"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '关键路径已验证', state: 'todo' },
+    { text: '回滚条件明确', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 发布窗口
+
+【填写发布窗口；未知时写“待确认”，不要推断】
+
+### 前置条件
+
+【填写前置条件；未知时写“待确认”，不要推断】
+
+### 发布检查项
+
+【填写发布检查项；未知时写“待确认”，不要推断】
+
+### 灰度/回滚开关
+
+【填写灰度/回滚开关；未知时写“待确认”，不要推断】
+
+### 监控信号
+
+【填写监控信号；未知时写“待确认”，不要推断】
+
+### 沟通对象
+
+【填写沟通对象；未知时写“待确认”，不要推断】
+
+### Go/No-Go 决策
+
+【填写Go/No-Go 决策；未知时写“待确认”，不要推断】
+
+### 回滚步骤
+
+【填写回滚步骤；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '关键路径已验证', state: 'todo' },
+    { text: '回滚条件明确', state: 'todo' },
+    { text: '每个检查项必须有负责人和状态', state: 'todo' },
+    { text: '回滚必须写触发条件和具体步骤', state: 'todo' },
+    { text: '沟通计划必须写对象、内容和时间', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

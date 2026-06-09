@@ -1,93 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","project-docs"]
-summary: "当需要记录变更日志，并梳理版本、发布日期、新增、变更时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录变更日志，并梳理版本、发布日期、新增、变更时使用。'
+tags: [journal, template, project-docs, changelog]
+sources: []
 ---
 
 # 变更日志
 
-<Section density="relaxed">
-  <Subtitle>变更日志是面向读者的影响账本，不是 commit log。</Subtitle>
+> 适用：用于整理变更日志；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Olivier Lacan 的 Keep a Changelog 视角：变更日志是面向读者的影响账本，不是 commit log。
-</Callout>
-
-<Callout type="note" title="项目结论">
-  【写清项目目标、当前边界、最重要的验收口径。】
-</Callout>
-
-## 变更账本
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "版本",
-        "【填写 版本】"
-    ],
-    [
-        "发布日期",
-        "【填写 发布日期】"
-    ],
-    [
-        "新增",
-        "【填写 新增】"
-    ],
-    [
-        "变更",
-        "【填写 变更】"
-    ],
-    [
-        "修复",
-        "【填写 修复】"
-    ],
-    [
-        "Breaking changes",
-        "【填写 Breaking changes】"
-    ],
-    [
-        "用户/系统影响",
-        "【填写 用户/系统影响】"
-    ],
-    [
-        "迁移/兼容性",
-        "【填写 迁移/兼容性】"
-    ]
-]}
+<Summary
+  title="【填写版本；未知时写“待确认”，不要推断】"
+  body="【填写本次最重要的变化；未知时写“待确认”，不要推断】"
 />
 
 <Table
-  headers={["类型", "变更", "影响对象", "迁移/兼容性", "来源"]}
+  headers={['变化', '影响对象', '兼容性或迁移动作']}
   rows={[
-    ["Added", "【新增内容】", "【影响对象】", "【是否需要迁移】", "【PR/issue/source】"],
-    ["Changed", "【变更内容】", "【影响对象】", "【兼容性影响】", "【PR/issue/source】"],
-    ["Fixed", "【修复内容】", "【影响对象】", "【验证方式】", "【PR/issue/source】"],
-    ["Breaking", "【破坏性变更】", "【影响对象】", "【迁移动作】", "【PR/issue/source】"],
+    [
+      '【填写发布日期；未知时写“待确认”，不要推断】',
+      '【填写影响对象；未知时写“待确认”，不要推断】',
+      '【填写修复；未知时写“待确认”，不要推断】',
+    ],
   ]}
 />
-
-<Callout type="warning" title="Breaking changes">
-  【写清用户或系统需要采取的迁移动作；没有破坏性变更时写“无”。】
-</Callout>
 
 <Checklist
   items={[
-    {
-        "text": "条目必须按新增、变更、修复、破坏性变更分组"
-    },
-    {
-        "text": "破坏性变更必须写迁移动作"
-    },
-    {
-        "text": "每条重要变更必须有来源或 issue/PR 编号"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '升级说明已验证', state: 'todo' },
+    { text: '受影响方已通知', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 版本
+
+【填写版本；未知时写“待确认”，不要推断】
+
+### 发布日期
+
+【填写发布日期；未知时写“待确认”，不要推断】
+
+### 新增
+
+【填写新增；未知时写“待确认”，不要推断】
+
+### 变更
+
+【填写变更；未知时写“待确认”，不要推断】
+
+### 修复
+
+【填写修复；未知时写“待确认”，不要推断】
+
+### Breaking changes
+
+【填写Breaking changes；未知时写“待确认”，不要推断】
+
+### 用户/系统影响
+
+【填写用户/系统影响；未知时写“待确认”，不要推断】
+
+### 迁移/兼容性
+
+【填写迁移/兼容性；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '升级说明已验证', state: 'todo' },
+    { text: '受影响方已通知', state: 'todo' },
+    { text: '条目必须按新增、变更、修复、破坏性变更分组', state: 'todo' },
+    { text: '破坏性变更必须写迁移动作', state: 'todo' },
+    { text: '每条重要变更必须有来源或 issue/PR 编号', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

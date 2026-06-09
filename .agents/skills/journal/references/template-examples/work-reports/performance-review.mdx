@@ -1,97 +1,72 @@
 ---
-tags: ["journal","mdx-manual","template","work-reports"]
-summary: "当需要记录绩效复盘，并梳理周期、角色期待、目标、行为证据时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录绩效复盘，并梳理周期、角色期待、目标、行为证据时使用。'
+tags: [journal, template, work-reports, performance-review]
+sources: []
 ---
 
 # 绩效复盘
 
-<Section density="relaxed">
-  <Subtitle>绩效复盘要把事实证据、业务影响、行为模式和成长动作分开，避免空泛评价。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  Kim Scott 的 Radical Candor 视角：绩效复盘要把事实证据、业务影响、行为模式和成长动作分开，避免空泛评价。
-</Callout>
-
-<Callout type="note" title="结论">
-  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
-</Callout>
-
-<StatGroup>
-  <Stat label="完成项" value={"【数量】"} />
-  <Stat label="风险" value={"【数量】"} />
-  <Stat label="下阶段重点" value={"【数量】"} />
-</StatGroup>
-
-## 汇报内容
+> 适用：用于整理绩效复盘；只写来源支持的事实，并显式保留未知项。
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['目标或职责', '行为证据', '影响']}
   rows={[
     [
-        "周期",
-        "【填写 周期】"
+      '【填写角色期待；未知时写“待确认”，不要推断】',
+      '【填写目标；未知时写“待确认”，不要推断】',
+      '【填写行为证据；未知时写“待确认”，不要推断】',
     ],
-    [
-        "角色期待",
-        "【填写 角色期待】"
-    ],
-    [
-        "目标",
-        "【填写 目标】"
-    ],
-    [
-        "行为证据",
-        "【填写 行为证据】"
-    ],
-    [
-        "业务影响",
-        "【填写 业务影响】"
-    ],
-    [
-        "成长点",
-        "【填写 成长点】"
-    ],
-    [
-        "反馈",
-        "【填写 反馈】"
-    ],
-    [
-        "成长动作与支持",
-        "【填写 成长动作与支持】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "绩效复盘", status: "open" },
-  ]}
-/>
+<InsightCard title="优势与成长点">【填写业务影响；未知时写“待确认”，不要推断】</InsightCard>
+
+<Steps heading="发展计划" items={[{ title: '【填写成长点；未知时写“待确认”，不要推断】' }]} />
+
+## 记录提示
+
+### 周期
+
+【填写周期；未知时写“待确认”，不要推断】
+
+### 角色期待
+
+【填写角色期待；未知时写“待确认”，不要推断】
+
+### 目标
+
+【填写目标；未知时写“待确认”，不要推断】
+
+### 行为证据
+
+【填写行为证据；未知时写“待确认”，不要推断】
+
+### 业务影响
+
+【填写业务影响；未知时写“待确认”，不要推断】
+
+### 成长点
+
+【填写成长点；未知时写“待确认”，不要推断】
+
+### 反馈
+
+【填写反馈；未知时写“待确认”，不要推断】
+
+### 成长动作与支持
+
+【填写成长动作与支持；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每条绩效判断必须对应至少一条行为证据"
-    },
-    {
-        "text": "每个影响必须写清影响对象、范围或指标"
-    },
-    {
-        "text": "每条成长动作必须有负责人、截止时间和验证方式"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每条绩效判断必须对应至少一条行为证据', state: 'todo' },
+    { text: '每个影响必须写清影响对象、范围或指标', state: 'todo' },
+    { text: '每条成长动作必须有负责人、截止时间和验证方式', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

@@ -1,102 +1,88 @@
 ---
-tags: ["journal","mdx-manual","template","content-creation"]
-summary: "当需要记录社媒内容计划，并梳理受众细分、平台、hook 角度、核心主张时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录社媒内容计划，并梳理受众细分、平台、hook 角度、核心主张时使用。'
+tags: [journal, template, content-creation, social-plan]
+sources: []
 ---
 
 # 社媒内容计划
 
-<Section density="relaxed">
-  <Subtitle>社媒计划不是排期表，而是同一主张在不同平台的分发实验：hook、格式、受众细分、复用路径和衡量口径要一起设计。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  增长内容负责人的分发实验视角：社媒计划不是排期表，而是同一主张在不同平台的分发实验：hook、格式、受众细分、复用路径和衡量口径要一起设计。
-</Callout>
-
-<Callout type="note" title="核心信息">
-  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
-</Callout>
-
-## 分发实验
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "受众细分",
-        "【填写 受众细分】"
-    ],
-    [
-        "平台",
-        "【填写 平台】"
-    ],
-    [
-        "hook 角度",
-        "【填写 hook 角度】"
-    ],
-    [
-        "核心主张",
-        "【填写 核心主张】"
-    ],
-    [
-        "内容格式",
-        "【填写 内容格式】"
-    ],
-    [
-        "平台适配",
-        "【填写 平台适配】"
-    ],
-    [
-        "复用路径",
-        "【填写 复用路径】"
-    ],
-    [
-        "成功指标",
-        "【填写 成功指标】"
-    ]
-]}
-/>
+> 适用：用于整理社媒内容计划；只写来源支持的事实，并显式保留未知项。
 
 <Kanban
   columns={[
-    { title: "Draft", items: [{ text: "【草稿内容】", tags: ["draft"] }] },
-    { title: "Scheduled", items: [{ text: "【排期内容】", tags: ["scheduled"] }] },
-    { title: "Published", items: [{ text: "【已发布内容】", tags: ["published"] }] },
-    { title: "Measured", items: [{ text: "【复盘内容】", tags: ["metric"] }] },
+    { title: '待制作', items: [{ text: '【填写hook 角度；未知时写“待确认”，不要推断】' }] },
+    { title: '制作中', items: [] },
+    { title: '已发布', items: [] },
   ]}
 />
 
-<OptionMatrix
-  columns={["收益", "代价", "适用条件", "风险"]}
+<Table
+  headers={['内容', '平台', '发布时间', '负责人']}
   rows={[
-    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
-    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    [
+      '【填写核心主张；未知时写“待确认”，不要推断】',
+      '【填写平台；未知时写“待确认”，不要推断】',
+      '【填写内容格式；未知时写“待确认”，不要推断】',
+      '【填写平台适配；未知时写“待确认”，不要推断】',
+    ],
   ]}
 />
 
-<ActionTable
+<Metrics
+  heading="衡量"
   items={[
-    { action: "【发布、复用或复盘动作】", owner: "【负责人】", due: "【截止时间】", source: "社媒内容计划", status: "open" },
+    {
+      label: '复用路径',
+      value: '【目标值】',
+      description: '【填写观察窗口；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
+
+## 记录提示
+
+### 受众细分
+
+【填写受众细分；未知时写“待确认”，不要推断】
+
+### 平台
+
+【填写平台；未知时写“待确认”，不要推断】
+
+### hook 角度
+
+【填写hook 角度；未知时写“待确认”，不要推断】
+
+### 核心主张
+
+【填写核心主张；未知时写“待确认”，不要推断】
+
+### 内容格式
+
+【填写内容格式；未知时写“待确认”，不要推断】
+
+### 平台适配
+
+【填写平台适配；未知时写“待确认”，不要推断】
+
+### 复用路径
+
+【填写复用路径；未知时写“待确认”，不要推断】
+
+### 成功指标
+
+【填写成功指标；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每条内容写清目标受众、平台、hook 和读者下一步"
-    },
-    {
-        "text": "每个核心主张有证据、案例、截图、链接或公开来源"
-    },
-    {
-        "text": "发布前确认平台限制、链接、图片比例、排期时区和衡量指标"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每条内容写清目标受众、平台、hook 和读者下一步', state: 'todo' },
+    { text: '每个核心主张有证据、案例、截图、链接或公开来源', state: 'todo' },
+    { text: '发布前确认平台限制、链接、图片比例、排期时区和衡量指标', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

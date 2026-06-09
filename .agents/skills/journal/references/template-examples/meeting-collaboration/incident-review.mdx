@@ -1,91 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","meeting-collaboration"]
-summary: "当需要记录事故复盘纪要，并梳理触发时间、检测时间、缓解时间、恢复时间时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录事故复盘纪要，并梳理触发时间、检测时间、缓解时间、恢复时间时使用。'
+tags: [journal, template, meeting-collaboration, incident-review]
+sources: []
 ---
 
 # 事故复盘纪要
 
-<Section density="relaxed">
-  <Subtitle>事故复盘要把人为错误当作分析起点，而不是根因；记录系统条件、检测、缓解、恢复和防复发验证。</Subtitle>
+> 适用：用于整理事故复盘纪要；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Sidney Dekker 与 John Allspaw 的无责事故复盘视角：事故复盘要把人为错误当作分析起点，而不是根因；记录系统条件、检测、缓解、恢复和防复发验证。
-</Callout>
-
-## 会议主线
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "触发时间",
-        "【填写 触发时间】"
-    ],
-    [
-        "检测时间",
-        "【填写 检测时间】"
-    ],
-    [
-        "缓解时间",
-        "【填写 缓解时间】"
-    ],
-    [
-        "恢复时间",
-        "【填写 恢复时间】"
-    ],
-    [
-        "用户/业务影响",
-        "【填写 用户/业务影响】"
-    ],
-    [
-        "促成因素/系统条件",
-        "【填写 促成因素/系统条件】"
-    ],
-    [
-        "未确认事实",
-        "【填写 未确认事实】"
-    ],
-    [
-        "防复发验证",
-        "【填写 防复发验证】"
-    ]
-]}
-/>
-
-<DecisionList
-  decisions={[
+<Timeline
+  heading="关键经过"
+  items={[
     {
-      question: "【本次会议最重要的问题】",
-      decision: "【已达成一致或暂定结论】",
-      rationale: "【保留分歧、证据和未解决问题。】",
+      time: '【时间】',
+      title: '【填写关键事件；未知时写“待确认”，不要推断】',
+      description: '【填写用户/业务影响；未知时写“待确认”，不要推断】',
     },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【行动项】", owner: "【负责人】", due: "【截止时间】", source: "事故复盘纪要", status: "open" },
+<InsightCard title="机制性教训">【填写教训；未知时写“待确认”，不要推断】</InsightCard>
+
+<Table
+  headers={['改进项', '负责人', '截止', '验证方式']}
+  rows={[
+    [
+      '【填写防复发验证；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写截止时间；未知时写“待确认”，不要推断】',
+      '【填写防复发验证；未知时写“待确认”，不要推断】',
+    ],
   ]}
 />
+
+## 记录提示
+
+### 触发时间
+
+【填写触发时间；未知时写“待确认”，不要推断】
+
+### 检测时间
+
+【填写检测时间；未知时写“待确认”，不要推断】
+
+### 缓解时间
+
+【填写缓解时间；未知时写“待确认”，不要推断】
+
+### 恢复时间
+
+【填写恢复时间；未知时写“待确认”，不要推断】
+
+### 用户/业务影响
+
+【填写用户/业务影响；未知时写“待确认”，不要推断】
+
+### 促成因素/系统条件
+
+【填写促成因素/系统条件；未知时写“待确认”，不要推断】
+
+### 未确认事实
+
+【填写未确认事实；未知时写“待确认”，不要推断】
+
+### 防复发验证
+
+【填写防复发验证；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "时间线至少包含触发、检测、缓解、恢复四类节点中的已知项"
-    },
-    {
-        "text": "原因不能只写某个人做错；必须写系统、流程或信息条件"
-    },
-    {
-        "text": "每个防复发动作都有验证方式和负责人"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '时间线至少包含触发、检测、缓解、恢复四类节点中的已知项', state: 'todo' },
+    { text: '原因不能只写某个人做错；必须写系统、流程或信息条件', state: 'todo' },
+    { text: '每个防复发动作都有验证方式和负责人', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

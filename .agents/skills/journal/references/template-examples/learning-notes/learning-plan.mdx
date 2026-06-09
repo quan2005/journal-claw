@@ -1,85 +1,79 @@
 ---
-tags: ["journal","mdx-manual","template","learning-notes"]
-summary: "当需要记录学习计划，并梳理当前水平、目标行为、资源队列、刻意练习任务时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录学习计划，并梳理当前水平、目标行为、资源队列、刻意练习任务时使用。'
+tags: [journal, template, learning-notes, learning-plan]
+sources: []
 ---
 
 # 学习计划
 
-<Section density="relaxed">
-  <Subtitle>学习计划不是资源清单；它必须定义目标行为、练习任务、反馈来源和复盘节奏。</Subtitle>
+> 适用：用于整理学习计划；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Anders Ericsson 的刻意练习视角：学习计划不是资源清单；它必须定义目标行为、练习任务、反馈来源和复盘节奏。
-</Callout>
-
-<RatingBar score={3} max={5} label="当前掌握度" />
-
-## 训练计划
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "当前水平",
-        "【填写 当前水平】"
-    ],
-    [
-        "目标行为",
-        "【填写 目标行为】"
-    ],
-    [
-        "资源队列",
-        "【填写 资源队列】"
-    ],
-    [
-        "刻意练习任务",
-        "【填写 刻意练习任务】"
-    ],
-    [
-        "训练排期",
-        "【填写 训练排期】"
-    ],
-    [
-        "反馈来源",
-        "【填写 反馈来源】"
-    ],
-    [
-        "进度指标",
-        "【填写 进度指标】"
-    ],
-    [
-        "复盘节奏",
-        "【填写 复盘节奏】"
-    ]
-]}
-/>
-
-<Progress value={40} label="【总体进度】" />
-
-<ActionTable
+<MilestoneTimeline
   items={[
-    { action: "【刻意练习任务】", owner: "【负责人】", due: "【截止时间】", source: "学习计划", status: "open" },
+    {
+      time: '阶段 1',
+      title: '【填写刻意练习任务；未知时写“待确认”，不要推断】',
+      desc: '【填写训练排期；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
+
+<Toolbox
+  items={[
+    {
+      tool: '【填写资源队列；未知时写“待确认”，不要推断】',
+      use: '【填写具体用途；未知时写“待确认”，不要推断】',
+    },
+  ]}
+/>
+
+<Checklist items={[{ text: '阶段成果可以独立解释或演示', state: 'todo' }]} />
+
+## 记录提示
+
+### 当前水平
+
+【填写当前水平；未知时写“待确认”，不要推断】
+
+### 目标行为
+
+【填写目标行为；未知时写“待确认”，不要推断】
+
+### 资源队列
+
+【填写资源队列；未知时写“待确认”，不要推断】
+
+### 刻意练习任务
+
+【填写刻意练习任务；未知时写“待确认”，不要推断】
+
+### 训练排期
+
+【填写训练排期；未知时写“待确认”，不要推断】
+
+### 反馈来源
+
+【填写反馈来源；未知时写“待确认”，不要推断】
+
+### 进度指标
+
+【填写进度指标；未知时写“待确认”，不要推断】
+
+### 复盘节奏
+
+【填写复盘节奏；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "目标必须写成可观察行为"
-    },
-    {
-        "text": "每个资源至少绑定一个练习任务或输出物"
-    },
-    {
-        "text": "必须设置复盘频率和进度指标，至少包含本周检查点"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '阶段成果可以独立解释或演示', state: 'todo' },
+    { text: '目标必须写成可观察行为', state: 'todo' },
+    { text: '每个资源至少绑定一个练习任务或输出物', state: 'todo' },
+    { text: '必须设置复盘频率和进度指标，至少包含本周检查点', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

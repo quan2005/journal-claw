@@ -4,14 +4,14 @@ import { renderWithProviders } from './setup'
 import { ChatPanel } from '../components/ChatPanel'
 
 const mocks = vi.hoisted(() => ({
-  importTextTemp: vi.fn(),
+  importText: vi.fn(),
   openFile: vi.fn(),
   readFiles: vi.fn(),
   open: vi.fn(),
 }))
 
 vi.mock('../lib/tauri', () => ({
-  importTextTemp: mocks.importTextTemp,
+  importText: mocks.importText,
   openFile: mocks.openFile,
 }))
 
@@ -49,14 +49,14 @@ describe('ChatPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.readFiles.mockResolvedValue([])
-    mocks.importTextTemp.mockResolvedValue({
-      path: '/tmp/paste-20260605-120000.txt',
-      filename: 'paste-20260605-120000.txt',
-      year_month: '',
+    mocks.importText.mockResolvedValue({
+      path: '/workspace/2606/raw/05-paste-20260605-120000.txt',
+      filename: '05-paste-20260605-120000.txt',
+      year_month: '2606',
     })
   })
 
-  it('turns pasted long text into a temp file attachment and sends it by path', async () => {
+  it('saves pasted long text to raw and sends the imported attachment path', async () => {
     const onSend = vi.fn()
     renderChatPanel({ onSend })
 
@@ -73,12 +73,15 @@ describe('ChatPanel', () => {
     fireEvent(textarea, pasteEvent)
 
     expect(pasteEvent.defaultPrevented).toBe(true)
-    await waitFor(() => expect(mocks.importTextTemp).toHaveBeenCalledWith(longText))
-    expect(await screen.findByText('paste-20260605-120000.txt')).toBeTruthy()
+    await waitFor(() => expect(mocks.importText).toHaveBeenCalledWith(longText))
+    expect(await screen.findByText('05-paste-20260605-120000.txt')).toBeTruthy()
     expect((textarea as HTMLTextAreaElement).value).toBe('')
 
     fireEvent.keyDown(textarea, { key: 'Enter' })
 
-    expect(onSend).toHaveBeenCalledWith('@/tmp/paste-20260605-120000.txt', undefined)
+    expect(onSend).toHaveBeenCalledWith(
+      '@/workspace/2606/raw/05-paste-20260605-120000.txt',
+      undefined,
+    )
   })
 })

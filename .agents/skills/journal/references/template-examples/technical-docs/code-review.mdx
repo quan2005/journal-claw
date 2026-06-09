@@ -1,98 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","technical-docs"]
-summary: "当需要记录代码评审记录，并梳理变更文件与职责、发现、严重度、证据时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录代码评审记录，并梳理变更文件与职责、发现、严重度、证据时使用。'
+tags: [journal, template, technical-docs, code-review]
+sources: []
 ---
 
 # 代码评审记录
 
-<Section density="relaxed">
-  <Subtitle>代码评审记录应优先保存行为风险、接口契约和必须修改项，而不是逐行复述代码。</Subtitle>
+> 适用：用于整理代码评审记录；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Michaela Greiler 的有效代码评审视角：代码评审记录应优先保存行为风险、接口契约和必须修改项，而不是逐行复述代码。
+<Callout tone="warning" title="阻塞问题">
+  【填写最高严重度发现；没有时写“无”；未知时写“待确认”，不要推断】
 </Callout>
 
-<Callout type="warning" title="结论">
-  【写清问题、根因或方案结论；同时保留未覆盖风险。】
-</Callout>
-
-## 评审发现
-
 <Table
-  headers={["记录项", "内容"]}
+  headers={['严重度', '文件或范围', '发现', '建议']}
   rows={[
     [
-        "变更文件与职责",
-        "【填写 变更文件与职责】"
+      'P1',
+      '【填写变更文件与职责；未知时写“待确认”，不要推断】',
+      '【填写严重度；未知时写“待确认”，不要推断】',
+      '【填写修复建议；未知时写“待确认”，不要推断】',
     ],
-    [
-        "发现",
-        "【填写 发现】"
-    ],
-    [
-        "严重度",
-        "【填写 严重度】"
-    ],
-    [
-        "证据",
-        "【填写 证据】"
-    ],
-    [
-        "行为变化与回归风险",
-        "【填写 行为变化与回归风险】"
-    ],
-    [
-        "必改项",
-        "【填写 必改项】"
-    ],
-    [
-        "已有/缺失测试",
-        "【填写 已有/缺失测试】"
-    ],
-    [
-        "兼容性影响",
-        "【填写 兼容性影响】"
-    ]
-]}
-/>
-
-<Table
-  headers={["发现", "严重度", "证据", "必改项", "验证"]}
-  rows={[
-    ["【发现】", "high / medium / low", "【文件、函数、测试或行为证据】", "【必须修改什么】", "【验证命令或测试】"],
-  ]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【行为变化或回归风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
-
-<ActionTable
-  items={[
-    { action: "【必要修复或补验证】", owner: "【负责人】", due: "【截止时间】", source: "代码评审记录", status: "open" },
   ]}
 />
 
 <Checklist
   items={[
-    {
-        "text": "每条发现都指向具体文件、函数、测试、日志或用户行为风险"
-    },
-    {
-        "text": "高/中风险项必须写明缺失测试或需要补的验证命令"
-    },
-    {
-        "text": "兼容性检查明确覆盖旧数据、旧配置、旧调用方或跨平台行为"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '行为回归有测试覆盖', state: 'todo' },
+    { text: '剩余风险已说明', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 变更文件与职责
+
+【填写变更文件与职责；未知时写“待确认”，不要推断】
+
+### 发现
+
+【填写发现；未知时写“待确认”，不要推断】
+
+### 严重度
+
+【填写严重度；未知时写“待确认”，不要推断】
+
+### 证据
+
+【填写证据；未知时写“待确认”，不要推断】
+
+### 行为变化与回归风险
+
+【填写行为变化与回归风险；未知时写“待确认”，不要推断】
+
+### 必改项
+
+【填写必改项；未知时写“待确认”，不要推断】
+
+### 已有/缺失测试
+
+【填写已有/缺失测试；未知时写“待确认”，不要推断】
+
+### 兼容性影响
+
+【填写兼容性影响；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '行为回归有测试覆盖', state: 'todo' },
+    { text: '剩余风险已说明', state: 'todo' },
+    { text: '每条发现都指向具体文件、函数、测试、日志或用户行为风险', state: 'todo' },
+    { text: '高/中风险项必须写明缺失测试或需要补的验证命令', state: 'todo' },
+    { text: '兼容性检查明确覆盖旧数据、旧配置、旧调用方或跨平台行为', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

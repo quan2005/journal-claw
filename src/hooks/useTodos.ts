@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listen } from '@tauri-apps/api/event'
 import {
   listTodos,
   addTodo as addTodoIpc,
@@ -11,6 +10,7 @@ import {
   removeTodoPath as removeTodoPathIpc,
   setTodoSessionId as setTodoSessionIdIpc,
 } from '../lib/tauri'
+import { useEventSync } from './useEventSync'
 import type { TodoItem } from '../types'
 
 export function useTodos() {
@@ -30,13 +30,12 @@ export function useTodos() {
 
   useEffect(() => {
     refresh()
-
-    const unlistenTodos = listen('todos-updated', () => refresh())
-
-    return () => {
-      unlistenTodos.then((fn) => fn())
-    }
   }, [refresh])
+
+  // Use event sync instead of raw event listener
+  useEventSync(['todos-updated'], () => {
+    refresh()
+  })
 
   const addTodo = useCallback(
     async (text: string, due?: string, source?: string, path?: string) => {

@@ -6,8 +6,8 @@ import {
   Card,
   Checklist,
   Definition,
-  Hero,
   ImageText,
+  Toc,
   Timeline,
 } from '../components/mdx'
 import { MdxRuntimeProvider } from '../components/mdx/context'
@@ -17,13 +17,16 @@ vi.mock('@tauri-apps/api/core', () => ({
 }))
 
 describe('canonical MDX layout components', () => {
-  it('renders field props through the directive-quality hero renderer', () => {
+  it('renders table-of-contents props through the directive-quality renderer', () => {
     const { container } = render(
-      <Hero eyebrow="研究结论" title="效果优先" subtitle="效率不是首要矛盾" meta="3 位用户" />,
+      <Toc
+        heading="阅读路径"
+        items={[{ label: '01', title: '核心判断', description: '先读结论' }]}
+      />,
     )
 
-    expect(container.querySelector('.journal-block-hero')).toBeTruthy()
-    expect(screen.getByRole('heading', { name: '效果优先' })).toBeTruthy()
+    expect(container.querySelector('.journal-block-toc')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '核心判断' })).toBeTruthy()
   })
 
   it('preserves legacy nested cards, timeline desc, callout children, and checklist checked props', () => {

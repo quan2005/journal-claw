@@ -1,104 +1,90 @@
 ---
-tags: ["journal","mdx-manual","template","project-docs"]
-summary: "当需要记录项目计划，并梳理预期结果、范围内、范围外、成功指标时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录项目计划，并梳理预期结果、范围内、范围外、成功指标时使用。'
+tags: [journal, template, project-docs, project-plan]
+sources: []
 ---
 
 # 项目计划
 
-<Section density="relaxed">
-  <Subtitle>用于项目启动计划：明确目标、范围、角色、里程碑、风险和验收标准。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  Andy Grove 的高产出管理视角：项目计划不是愿望列表，而是目标、边界、节奏、责任人与前置风险构成的执行系统。
-</Callout>
-
-<Callout type="note" title="项目结论">
-  【写清项目目标、当前边界、最重要的验收口径。】
-</Callout>
-
-## 目标、边界与执行节奏
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "预期结果",
-        "【填写 预期结果】"
-    ],
-    [
-        "范围内",
-        "【填写 范围内】"
-    ],
-    [
-        "范围外",
-        "【填写 范围外】"
-    ],
-    [
-        "成功指标",
-        "【填写 成功指标】"
-    ],
-    [
-        "项目节奏/检查点",
-        "【填写 项目节奏/检查点】"
-    ],
-    [
-        "关键依赖",
-        "【填写 关键依赖】"
-    ],
-    [
-        "验收口径",
-        "【填写 验收口径】"
-    ],
-    [
-        "下一步行动/负责人/截止时间",
-        "【填写 下一步行动/负责人/截止时间】"
-    ]
-]}
-/>
+> 适用：用于整理项目计划；只写来源支持的事实，并显式保留未知项。
 
 <MilestoneTimeline
   items={[
-    { time: "【阶段 1】", title: "【里程碑】", desc: "【交付物与验收】" },
-    { time: "【阶段 2】", title: "【里程碑】", desc: "【交付物与验收】" },
+    {
+      time: '【日期】',
+      title: '【填写成功指标；未知时写“待确认”，不要推断】',
+      desc: '【填写完成标准；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
 <RACI
   rows={[
-    { work: "【关键事项】", responsible: "【R】", accountable: "【A】", consulted: "【C】", informed: "【I】" },
+    {
+      work: '【填写关键事项；未知时写“待确认”，不要推断】',
+      responsible: '【R】',
+      accountable: '【A】',
+      consulted: '【C】',
+      informed: '【I】',
+    },
   ]}
 />
 
-<RiskMatrix
-  risks={[
-    { risk: "【项目风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
+<Table
+  headers={['范围或依赖', '边界', '风险']}
+  rows={[
+    [
+      '【填写范围内；未知时写“待确认”，不要推断】',
+      '【填写范围外；未知时写“待确认”，不要推断】',
+      '【填写验收口径；未知时写“待确认”，不要推断】',
+    ],
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步行动】", owner: "【负责人】", due: "【截止时间】", source: "项目计划", status: "open" },
-  ]}
-/>
+## 记录提示
+
+### 预期结果
+
+【填写预期结果；未知时写“待确认”，不要推断】
+
+### 范围内
+
+【填写范围内；未知时写“待确认”，不要推断】
+
+### 范围外
+
+【填写范围外；未知时写“待确认”，不要推断】
+
+### 成功指标
+
+【填写成功指标；未知时写“待确认”，不要推断】
+
+### 项目节奏/检查点
+
+【填写项目节奏/检查点；未知时写“待确认”，不要推断】
+
+### 关键依赖
+
+【填写关键依赖；未知时写“待确认”，不要推断】
+
+### 验收口径
+
+【填写验收口径；未知时写“待确认”，不要推断】
+
+### 下一步行动/负责人/截止时间
+
+【填写下一步行动/负责人/截止时间；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "范围必须同时写范围内和范围外"
-    },
-    {
-        "text": "每个里程碑必须有负责人和验收口径"
-    },
-    {
-        "text": "每个高风险项必须有缓解动作或负责人"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '范围必须同时写范围内和范围外', state: 'todo' },
+    { text: '每个里程碑必须有负责人和验收口径', state: 'todo' },
+    { text: '每个高风险项必须有缓解动作或负责人', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

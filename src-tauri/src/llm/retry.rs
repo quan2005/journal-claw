@@ -119,6 +119,76 @@ where
     })
 }
 
+// ── Processor-level retry ────────────────────────
+
+/// Tracks whether the AI processor has committed any side effects
+/// during the current processing attempt.
+#[derive(Debug, Clone, Default)]
+pub struct SideEffects {
+    pub file_written: bool,
+    pub event_emitted: bool,
+    pub feishu_replied: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RetryDecision {
+    Retry { delay: Duration, attempt: u32 },
+    Abort { reason: String },
+}
+
+pub struct ProcessorRetryPolicy {
+    pub max_attempts: u32,
+    pub initial_backoff: Duration,
+    pub max_backoff: Duration,
+}
+
+impl Default for ProcessorRetryPolicy {
+    fn default() -> Self {
+        Self {
+            max_attempts: 3,
+            initial_backoff: Duration::from_secs(2),
+            max_backoff: Duration::from_secs(30),
+        }
+    }
+}
+
+impl ProcessorRetryPolicy {
+    pub fn backoff_for_attempt(&self, attempt: u32) -> Duration {
+        let base = self.initial_backoff.as_secs().saturating_mul(
+            1u64.checked_shl(attempt.saturating_sub(1)).unwrap_or(u64::MAX),
+        );
+        Duration::from_secs(base.min(self.max_backoff.as_secs()))
+    }
+}
+
+/// Pure function: decide whether to retry a failed processing attempt.
+pub fn decide_retry(
+    error_code: &crate::errors::AiErrorCode,
+    attempt: u32,
+    side_effects: &SideEffects,
+    policy: &ProcessorRetryPolicy,
+) -> RetryDecision {
+    if side_effects.file_written || side_effects.feishu_replied {
+        return RetryDecision::Abort {
+            reason: "side effects already committed".to_string(),
+        };
+    }
+    if !error_code.retryable() {
+        return RetryDecision::Abort {
+            reason: "non-retryable error".to_string(),
+        };
+    }
+    if attempt >= policy.max_attempts {
+        return RetryDecision::Abort {
+            reason: format!("max attempts ({}) reached", policy.max_attempts),
+        };
+    }
+    RetryDecision::Retry {
+        delay: policy.backoff_for_attempt(attempt + 1),
+        attempt: attempt + 1,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -287,5 +357,65 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(attempt.load(Ordering::SeqCst), 1);
+    }
+
+    // ── Processor-level retry tests ────────────────────────
+
+    #[test]
+    fn retry_retryable_error_no_side_effects() {
+        let policy = ProcessorRetryPolicy::default();
+        let side_effects = SideEffects::default();
+        let decision = decide_retry(&crate::errors::AiErrorCode::NetworkTimeout, 0, &side_effects, &policy);
+        assert!(matches!(decision, RetryDecision::Retry { attempt: 1, .. }));
+    }
+
+    #[test]
+    fn abort_when_file_written() {
+        let policy = ProcessorRetryPolicy::default();
+        let side_effects = SideEffects { file_written: true, ..Default::default() };
+        let decision = decide_retry(&crate::errors::AiErrorCode::NetworkTimeout, 0, &side_effects, &policy);
+        assert!(matches!(decision, RetryDecision::Abort { .. }));
+    }
+
+    #[test]
+    fn abort_when_feishu_replied() {
+        let policy = ProcessorRetryPolicy::default();
+        let side_effects = SideEffects { feishu_replied: true, ..Default::default() };
+        let decision = decide_retry(&crate::errors::AiErrorCode::NetworkTimeout, 0, &side_effects, &policy);
+        assert!(matches!(decision, RetryDecision::Abort { .. }));
+    }
+
+    #[test]
+    fn abort_non_retryable_error() {
+        let policy = ProcessorRetryPolicy::default();
+        let side_effects = SideEffects::default();
+        let decision = decide_retry(&crate::errors::AiErrorCode::AuthFailed, 0, &side_effects, &policy);
+        assert!(matches!(decision, RetryDecision::Abort { .. }));
+    }
+
+    #[test]
+    fn abort_max_attempts_exhausted() {
+        let policy = ProcessorRetryPolicy { max_attempts: 2, ..Default::default() };
+        let side_effects = SideEffects::default();
+        let decision = decide_retry(&crate::errors::AiErrorCode::NetworkTimeout, 2, &side_effects, &policy);
+        assert!(matches!(decision, RetryDecision::Abort { .. }));
+    }
+
+    #[test]
+    fn processor_backoff_increases() {
+        let policy = ProcessorRetryPolicy::default();
+        let b1 = policy.backoff_for_attempt(1);
+        let b2 = policy.backoff_for_attempt(2);
+        let b3 = policy.backoff_for_attempt(3);
+        assert!(b1 < b2);
+        assert!(b2 < b3);
+    }
+
+    #[test]
+    fn event_emitted_alone_does_not_block_retry() {
+        let policy = ProcessorRetryPolicy::default();
+        let side_effects = SideEffects { event_emitted: true, ..Default::default() };
+        let decision = decide_retry(&crate::errors::AiErrorCode::RateLimited, 0, &side_effects, &policy);
+        assert!(matches!(decision, RetryDecision::Retry { .. }));
     }
 }

@@ -1,4 +1,4 @@
-import { fieldsBlock, LayoutBlock, rowsBlock } from './blockFactory'
+import { LayoutBlock, rowsBlock } from './blockFactory'
 
 export interface MetricItem {
   label: string
@@ -20,28 +20,6 @@ export function Metrics({
       block={rowsBlock('metrics', items, ['label', 'value', 'description'], {
         title: heading ?? title,
       })}
-    />
-  )
-}
-
-export interface CompareItem {
-  item: string
-  left: string
-  right: string
-}
-
-export function Compare({
-  heading,
-  title,
-  items,
-}: {
-  heading?: string
-  title?: string
-  items: CompareItem[]
-}) {
-  return (
-    <LayoutBlock
-      block={rowsBlock('compare', items, ['item', 'left', 'right'], { title: heading ?? title })}
     />
   )
 }
@@ -94,16 +72,4 @@ export function Timeline({
       })}
     />
   )
-}
-
-export function Infographic({
-  title,
-  summary,
-  value,
-}: {
-  title: string
-  summary?: string
-  value?: string | number
-}) {
-  return <LayoutBlock block={fieldsBlock('infographic', { title, summary, value })} />
 }

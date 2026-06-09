@@ -1,97 +1,75 @@
 ---
-tags: ["journal","mdx-manual","template","hr-operations"]
-summary: "当需要记录SOP，并梳理目的与成功标准、适用边界/不适用边界、触发条件、RACI时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录SOP，并梳理目的与成功标准、适用边界/不适用边界、触发条件、RACI时使用。'
+tags: [journal, template, hr-operations, sop]
+sources: []
 ---
 
 # SOP
 
-<Section density="relaxed">
-  <Subtitle>用于 SOP：明确触发条件、步骤、责任人、异常处理和验收标准。</Subtitle>
+> 适用：用于整理SOP；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  流程卓越与检查清单专家视角：可执行 SOP 必须把触发条件、输入输出、步骤责任、异常路径和验收标准写清，而不是写成说明文。
+<Callout tone="warning" title="执行边界">
+  【填写适用边界/不适用边界；未知时写“待确认”，不要推断】
 </Callout>
 
-## 流程与责任
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "目的与成功标准",
-        "【填写 目的与成功标准】"
-    ],
-    [
-        "适用边界/不适用边界",
-        "【填写 适用边界/不适用边界】"
-    ],
-    [
-        "触发条件",
-        "【填写 触发条件】"
-    ],
-    [
-        "RACI",
-        "【填写 RACI】"
-    ],
-    [
-        "步骤：输入/动作/输出/责任人",
-        "【填写 步骤：输入/动作/输出/责任人】"
-    ],
-    [
-        "异常处理与升级路径",
-        "【填写 异常处理与升级路径】"
-    ],
-    [
-        "版本负责人和复审周期",
-        "【填写 版本负责人和复审周期】"
-    ]
-]}
-/>
-
-<MilestoneTimeline
+<Steps
+  heading="执行步骤"
   items={[
-    { time: "【时间点】", title: "【关键步骤/里程碑】", desc: "【负责人、输入、输出、验收】" },
-  ]}
-/>
-
-<RACI
-  rows={[
-    { work: "【关键事项】", responsible: "【R】", accountable: "【A】", consulted: "【C】", informed: "【I】" },
+    { title: '【填写RACI；未知时写“待确认”，不要推断】' },
+    { title: '【填写步骤：输入/动作/输出/责任人；未知时写“待确认”，不要推断】' },
+    { title: '【填写版本负责人和复审周期；未知时写“待确认”，不要推断】' },
   ]}
 />
 
 <Checklist
   items={[
-    { text: "【触发条件已明确】" },
-    { text: "【异常路径已明确】" },
-    { text: "【验收标准已明确】" },
+    { text: '前置条件满足', state: 'todo' },
+    { text: '回滚路径可执行', state: 'todo' },
   ]}
 />
 
-<RiskMatrix
-  risks={[
-    { risk: "【现场、流程或异常风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
+## 记录提示
+
+### 目的与成功标准
+
+【填写目的与成功标准；未知时写“待确认”，不要推断】
+
+### 适用边界/不适用边界
+
+【填写适用边界/不适用边界；未知时写“待确认”，不要推断】
+
+### 触发条件
+
+【填写触发条件；未知时写“待确认”，不要推断】
+
+### RACI
+
+【填写RACI；未知时写“待确认”，不要推断】
+
+### 步骤：输入/动作/输出/责任人
+
+【填写步骤：输入/动作/输出/责任人；未知时写“待确认”，不要推断】
+
+### 异常处理与升级路径
+
+【填写异常处理与升级路径；未知时写“待确认”，不要推断】
+
+### 版本负责人和复审周期
+
+【填写版本负责人和复审周期；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个步骤都有输入、动作、输出、责任人和完成校验"
-    },
-    {
-        "text": "每个异常场景都有升级负责人、SLA 或处理时限"
-    },
-    {
-        "text": "修订历史写清版本、修改人、日期、状态和下次复审时间"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '前置条件满足', state: 'todo' },
+    { text: '回滚路径可执行', state: 'todo' },
+    { text: '每个步骤都有输入、动作、输出、责任人和完成校验', state: 'todo' },
+    { text: '每个异常场景都有升级负责人、SLA 或处理时限', state: 'todo' },
+    { text: '修订历史写清版本、修改人、日期、状态和下次复审时间', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

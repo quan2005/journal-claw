@@ -7,7 +7,7 @@ import { Spinner } from './Spinner'
 import { SandboxPreview } from './SandboxPreview'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { useSmoothStream } from '../hooks/useSmoothStream'
-import { importTextTemp, openFile } from '../lib/tauri'
+import { importText, openFile } from '../lib/tauri'
 import { FileAttachments } from './FileAttachments'
 import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
@@ -343,7 +343,7 @@ export function ChatPanel({
       if (rawText.length > LONG_TEXT_ATTACHMENT_THRESHOLD) {
         e.preventDefault()
         const importPastedText = () =>
-          importTextTemp(rawText)
+          importText(rawText)
             .then((result) => addFiles([result.path]))
             .catch((err) => {
               console.error('[paste-import]', err)

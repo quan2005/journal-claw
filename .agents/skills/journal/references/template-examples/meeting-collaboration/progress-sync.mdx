@@ -1,93 +1,77 @@
 ---
-tags: ["journal","mdx-manual","template","meeting-collaboration"]
-summary: "当需要记录进展同步纪要，并梳理轨道/负责人、上次承诺 vs 当前状态、状态变化、当前约束时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录进展同步纪要，并梳理轨道/负责人、上次承诺 vs 当前状态、状态变化、当前约束时使用。'
+tags: [journal, template, meeting-collaboration, progress-sync]
+sources: []
 ---
 
 # 进展同步纪要
 
-<Section density="relaxed">
-  <Subtitle>用于多人同步进展：突出状态变化、阻塞、风险和下一步计划。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  Eliyahu Goldratt 的约束理论视角：进展同步的核心不是逐人报功劳，而是找出限制吞吐的约束，并明确下一次同步前可以验证的解除动作。
-</Callout>
+> 适用：用于整理进展同步纪要；只写来源支持的事实，并显式保留未知项。
 
 <StatGroup>
-  <Stat label="正常推进" value={"【数量】"} />
-  <Stat label="存在阻塞" value={"【数量】"} />
-  <Stat label="需要协助" value={"【数量】"} />
+  <Stat label="完成项" value="待填" />
+  <Stat label="进行中" value="待填" />
+  <Stat label="阻塞" value="待填" />
 </StatGroup>
 
-## 进展与阻塞
-
 <Table
-  headers={["记录项", "内容"]}
+  headers={['事项', '状态变化', '阻塞', '负责人']}
   rows={[
     [
-        "轨道/负责人",
-        "【填写 轨道/负责人】"
+      '【填写轨道/负责人；未知时写“待确认”，不要推断】',
+      '【填写本次变化；未知时写“待确认”，不要推断】',
+      '【填写状态变化；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
     ],
-    [
-        "上次承诺 vs 当前状态",
-        "【填写 上次承诺 vs 当前状态】"
-    ],
-    [
-        "状态变化",
-        "【填写 状态变化】"
-    ],
-    [
-        "当前约束",
-        "【填写 当前约束】"
-    ],
-    [
-        "需要协助",
-        "【填写 需要协助】"
-    ],
-    [
-        "下次可验证结果",
-        "【填写 下次可验证结果】"
-    ],
-    [
-        "风险/阻塞板",
-        "【填写 风险/阻塞板】"
-    ],
-    [
-        "行动项",
-        "【填写 行动项】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【阻塞或风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【处理方式】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "进展同步纪要", status: "open" },
-  ]}
-/>
+<Steps heading="下一步" items={[{ title: '【填写当前约束；未知时写“待确认”，不要推断】' }]} />
+
+## 记录提示
+
+### 轨道/负责人
+
+【填写轨道/负责人；未知时写“待确认”，不要推断】
+
+### 上次承诺 vs 当前状态
+
+【填写上次承诺 vs 当前状态；未知时写“待确认”，不要推断】
+
+### 状态变化
+
+【填写状态变化；未知时写“待确认”，不要推断】
+
+### 当前约束
+
+【填写当前约束；未知时写“待确认”，不要推断】
+
+### 需要协助
+
+【填写需要协助；未知时写“待确认”，不要推断】
+
+### 下次可验证结果
+
+【填写下次可验证结果；未知时写“待确认”，不要推断】
+
+### 风险/阻塞板
+
+【填写风险/阻塞板；未知时写“待确认”，不要推断】
+
+### 行动项
+
+【填写行动项；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个轨道都有相对上次同步的状态变化"
-    },
-    {
-        "text": "每个阻塞都写清影响、解除负责人和截止时间"
-    },
-    {
-        "text": "下一步计划是可验证结果，不能只写继续推进"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个轨道都有相对上次同步的状态变化', state: 'todo' },
+    { text: '每个阻塞都写清影响、解除负责人和截止时间', state: 'todo' },
+    { text: '下一步计划是可验证结果，不能只写继续推进', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

@@ -1,4 +1,4 @@
-import { fieldsBlock, LayoutBlock, arrayBlock, objectBlock } from './blockFactory'
+import { arrayBlock, fieldsBlock, LayoutBlock } from './blockFactory'
 
 export function Quote({
   text,
@@ -14,6 +14,24 @@ export function Quote({
   url?: string
 }) {
   return <LayoutBlock block={fieldsBlock('quote', { text, author, context, source, url })} />
+}
+
+export function QuoteCard({
+  text,
+  author,
+  source,
+  variant = 'default',
+}: {
+  text: string
+  author?: string
+  source?: string
+  variant?: 'default' | 'minimal' | 'large' | 'inline'
+}) {
+  return (
+    <LayoutBlock
+      block={fieldsBlock('quote-card', { text, author, source }, { attrs: { variant } })}
+    />
+  )
 }
 
 export function ImageText({
@@ -34,32 +52,6 @@ export function ImageText({
       block={fieldsBlock('image-text', { image, title, text, alt }, { attrs: { variant } })}
     />
   )
-}
-
-export function ImageCompare({
-  before,
-  after,
-  title,
-  caption,
-}: {
-  before: string
-  after: string
-  title?: string
-  caption?: string
-}) {
-  return <LayoutBlock block={fieldsBlock('image-compare', { before, after, title, caption })} />
-}
-
-export function ImageAnnotate({
-  image,
-  title,
-  notes = [],
-}: {
-  image: string
-  title?: string
-  notes?: unknown[]
-}) {
-  return <LayoutBlock block={objectBlock('image-annotate', { image, title, notes })} />
 }
 
 export interface ImageStepItem {

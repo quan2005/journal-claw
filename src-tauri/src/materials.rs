@@ -136,10 +136,11 @@ pub fn import_text(app: AppHandle, text: String) -> Result<ImportResult, String>
     let day = now.day();
     let filename = format!("{:02}-paste-{}.txt", day, ts);
     let dest = raw.join(&filename);
+    let rel_path = format!("{}/raw/{}", ym, filename);
     write_paste_text(&dest, &text)?;
     Ok(ImportResult {
         filename,
-        path: dest.to_string_lossy().to_string(),
+        path: rel_path,
         year_month: ym,
     })
 }

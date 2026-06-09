@@ -143,7 +143,15 @@ function withMissingComponentFallback(
   components: Record<string, unknown>,
   componentSources: MdxComponentSourceMap,
 ): Record<string, unknown> {
-  return new Proxy(components, {
+  const registeredComponents = { ...components }
+
+  for (const [name, source] of componentSources) {
+    if (!(name in registeredComponents)) {
+      registeredComponents[name] = getMissingComponent(name, source)
+    }
+  }
+
+  return new Proxy(registeredComponents, {
     get(target, prop, receiver) {
       if (typeof prop !== 'string') return Reflect.get(target, prop, receiver)
       const value = Reflect.get(target, prop, receiver)
@@ -268,7 +276,7 @@ function extractMdxComponentSources(source: string): MdxComponentSourceMap {
     const snippet = source.slice(start, end).trim()
     if (snippet && !sources.has(name)) sources.set(name, snippet)
 
-    componentOpen.lastIndex = Math.max(start + token.length, end)
+    componentOpen.lastIndex = start + token.length
   }
 
   return sources

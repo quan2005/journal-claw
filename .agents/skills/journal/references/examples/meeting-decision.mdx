@@ -1,19 +1,30 @@
 ---
-tags: [journal, meeting]
-summary: 团队决定先以方案 B 做两周试点，因为审计需求比短期实现成本更关键。
-sources: [2605/raw/product-review.txt]
+tags: [journal, meeting, example]
+summary: 组件清单收敛到 61 项，并恢复高频的 StatGroup、Stat 和 Steps。
+sources:
+  [
+    src/components/mdx/component-manifest.json,
+    docs/superpowers/specs/2026-06-09-journal-mdx-examples-rewrite-design.md,
+  ]
 ---
 
-# 产品权限评审
+# MDX 组件范围确认
 
 <DecisionRecord
-  question="权限模型是否进入本轮迭代"
-  decision="采用方案 B 做两周试点"
-  owner="张三"
-  due="下周五"
+  question="文章组件应保留多大的公共 API"
+  decision="保留 61 个公共组件，并恢复 StatGroup"
   options={[
-    { label: '方案 A', tradeoff: '实现快，但无法覆盖企业审计' },
-    { label: '方案 B', tradeoff: '实现更重，但能支撑审计需求' },
+    { label: '继续维护所有历史组件', tradeoff: '兼容面大，但文档与渲染逻辑持续漂移' },
+    { label: '收敛到文章高频组件', tradeoff: '需要迁移旧示例，但长期维护边界清晰' },
   ]}
-  rationale="企业客户审计需求已经进入本季度目标，试点可以控制风险。"
+  rationale="设备框架、媒体嵌入、营销组件和低频语义变体不属于管理分析、技术讲解和文章排版主线。"
+/>
+
+<Table
+  headers={['行动', '完成条件']}
+  rows={[
+    ['重写 104 个 subtype 示例', '只使用 manifest 中的组件'],
+    ['重写全组件 demo', '61 个组件各出现至少一次'],
+    ['改造手册生成器', '直接读取 skill 示例'],
+  ]}
 />

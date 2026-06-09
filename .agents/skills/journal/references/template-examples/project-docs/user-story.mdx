@@ -1,101 +1,76 @@
 ---
-tags: ["journal","mdx-manual","template","project-docs"]
-summary: "当需要记录用户故事，并梳理用户角色、触发情境、前置条件、待完成任务时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录用户故事，并梳理用户角色、触发情境、前置条件、待完成任务时使用。'
+tags: [journal, template, project-docs, user-story]
+sources: []
 ---
 
 # 用户故事
 
-<Section density="relaxed">
-  <Subtitle>用于用户故事：聚焦用户、场景、需求、价值和验收条件。</Subtitle>
+> 适用：用于整理用户故事；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Jeff Patton 的用户故事地图视角：用户故事要落在旅程和验收示例里，否则只是格式化口号。
-</Callout>
-
-<Callout type="note" title="项目结论">
-  【写清项目目标、当前边界、最重要的验收口径。】
-</Callout>
-
-## 可验收结构
+<DecisionRecord
+  question="【填写本次需要确定的需求边界；未知时写“待确认”，不要推断】"
+  decision="【填写当前边界；未知时写“待确认”，不要推断】"
+  rationale="【填写用户证据和取舍；未知时写“待确认”，不要推断】"
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['场景', '需求', '优先级', '验收标准', '来源']}
   rows={[
     [
-        "用户角色",
-        "【填写 用户角色】"
+      '【填写触发情境；未知时写“待确认”，不要推断】',
+      '【填写待完成任务；未知时写“待确认”，不要推断】',
+      '【P0 / P1 / P2】',
+      '【填写主流程；未知时写“待确认”，不要推断】',
+      '【填写例外/边界；未知时写“待确认”，不要推断】',
     ],
-    [
-        "触发情境",
-        "【填写 触发情境】"
-    ],
-    [
-        "前置条件",
-        "【填写 前置条件】"
-    ],
-    [
-        "待完成任务",
-        "【填写 待完成任务】"
-    ],
-    [
-        "用户价值/业务价值",
-        "【填写 用户价值/业务价值】"
-    ],
-    [
-        "主流程",
-        "【填写 主流程】"
-    ],
-    [
-        "例外/边界",
-        "【填写 例外/边界】"
-    ],
-    [
-        "验收示例",
-        "【填写 验收示例】"
-    ]
-]}
+  ]}
 />
+
+## 记录提示
+
+### 用户角色
+
+【填写用户角色；未知时写“待确认”，不要推断】
+
+### 触发情境
+
+【填写触发情境；未知时写“待确认”，不要推断】
+
+### 前置条件
+
+【填写前置条件；未知时写“待确认”，不要推断】
+
+### 待完成任务
+
+【填写待完成任务；未知时写“待确认”，不要推断】
+
+### 用户价值/业务价值
+
+【填写用户价值/业务价值；未知时写“待确认”，不要推断】
+
+### 主流程
+
+【填写主流程；未知时写“待确认”，不要推断】
+
+### 例外/边界
+
+【填写例外/边界；未知时写“待确认”，不要推断】
+
+### 验收示例
+
+【填写验收示例；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    { text: "【验收条件或入口标准】" },
-    { text: "【边界或不适用条件】" },
-    { text: "【来源或证据已补齐】" },
+    { text: '每条故事只能服务一个明确用户角色', state: 'todo' },
+    { text: '验收条件必须包含 Given/When/Then 或等价可测描述', state: 'todo' },
+    { text: '故事必须写清用户价值，不只写系统动作', state: 'todo' },
   ]}
 />
 
-<EvidenceCard title="需求/测试证据" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
+## 来源
 
-<InsightCard title="处理判断">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
-
-<ActionTable
-  items={[
-    { action: "【补证据、拆分、测试或确认】", owner: "【负责人】", due: "【截止时间】", source: "用户故事", status: "open" },
-  ]}
-/>
-
-<Checklist
-  items={[
-    {
-        "text": "每条故事只能服务一个明确用户角色"
-    },
-    {
-        "text": "验收条件必须包含 Given/When/Then 或等价可测描述"
-    },
-    {
-        "text": "故事必须写清用户价值，不只写系统动作"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
-  ]}
-/>
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

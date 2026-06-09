@@ -44,30 +44,6 @@ export function Stack({ children, gap = 4 }: { children: React.ReactNode; gap?: 
   )
 }
 
-export function Options({ children }: { children: React.ReactNode }) {
-  return <div className="mdx-options">{children}</div>
-}
-
-export function Option({
-  letter,
-  title,
-  description,
-}: {
-  letter: string
-  title: string
-  description?: string
-}) {
-  return (
-    <div className="mdx-option">
-      <div className="mdx-option-letter">{letter}</div>
-      <div className="mdx-option-content">
-        <h4>{title}</h4>
-        {description && <p>{description}</p>}
-      </div>
-    </div>
-  )
-}
-
 // ── Kanban ──────────────────────────────────────────────
 
 export function Kanban({

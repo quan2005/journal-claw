@@ -108,6 +108,7 @@ async fn run_audio_pipeline(
                     material_path: material_path.to_string_lossy().to_string(),
                     status: "failed".to_string(),
                     error: Some(error),
+                    structured_error: None,
                 },
             );
         }

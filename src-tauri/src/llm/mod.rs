@@ -75,3 +75,34 @@ pub fn create_engine_for_provider(
         _ => Box::new(create_anthropic_engine(api_key, base_url, model)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn factory_creates_anthropic_engine() {
+        let _engine = create_engine_for_provider(
+            "key",
+            "https://api.anthropic.com",
+            "claude-sonnet-4-20250514",
+            "anthropic",
+        );
+    }
+
+    #[test]
+    fn factory_creates_openai_compat_engine() {
+        let _engine =
+            create_engine_for_provider("key", "https://api.example.com", "model", "openai");
+    }
+
+    #[test]
+    fn factory_unknown_protocol_defaults_to_anthropic() {
+        let _engine = create_engine_for_provider(
+            "key",
+            "https://api.example.com",
+            "model",
+            "volcengine",
+        );
+    }
+}

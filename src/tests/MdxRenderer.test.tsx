@@ -23,20 +23,6 @@ function MDXContent(props = {}) {
 }
 export default MDXContent;`
 
-const compiledUnknown = `import { jsx as _jsx } from "react/jsx-runtime";
-function _missingMdxReference(id) {
-  throw new Error("Expected component \`" + id + "\` to be defined");
-}
-function _createMdxContent(props) {
-  const {UnknownThing} = props.components || {};
-  if (!UnknownThing) _missingMdxReference("UnknownThing");
-  return _jsx(UnknownThing, {children: "test"});
-}
-function MDXContent(props = {}) {
-  return _createMdxContent(props);
-}
-export default MDXContent;`
-
 describe('mdxRuntime', () => {
   it('turns mdxjs output into a callable component', () => {
     const Component = createMdxComponent(compiledParagraph)
@@ -73,11 +59,38 @@ describe('MdxRenderer', () => {
   })
 
   it('keeps unknown components localized instead of failing the whole document', async () => {
-    vi.mocked(compileMdx).mockResolvedValue(compiledUnknown)
+    const compiledUnknownAmongMarkdown = `import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+function _missingMdxReference(id) {
+  throw new Error("Expected component \`" + id + "\` to be defined");
+}
+function _createMdxContent(props) {
+  const _components = Object.assign({p: "p"}, props.components), {UnknownThing} = _components;
+  if (!UnknownThing) _missingMdxReference("UnknownThing");
+  return _jsxs(_Fragment, {children: [
+    _jsx(_components.p, {children: "before"}),
+    _jsx(UnknownThing, {children: "test"}),
+    _jsx(_components.p, {children: "after"})
+  ]});
+}
+function MDXContent(props = {}) {
+  return _createMdxContent(props);
+}
+export default MDXContent;`
+    vi.mocked(compileMdx).mockResolvedValue(compiledUnknownAmongMarkdown)
 
-    render(<MdxRenderer content="<UnknownThing>test</UnknownThing>" />)
+    render(
+      <MdxRenderer
+        content={`before
+
+<UnknownThing>test</UnknownThing>
+
+after`}
+      />,
+    )
 
     await waitFor(() => {
+      expect(screen.getByText('before')).toBeTruthy()
+      expect(screen.getByText('after')).toBeTruthy()
       expect(screen.getByText(/UnknownThing component is not available/)).toBeTruthy()
       expect(screen.getByText('<UnknownThing>test</UnknownThing>')).toBeTruthy()
       expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
@@ -91,7 +104,7 @@ function _missingMdxReference(id) {
 }
 function _createMdxContent(props) {
   const _components = Object.assign({p: "p"}, props.components);
-  const {CanvasDiagram, DeviceShowcase, Phone} = props.components || {};
+  const {CanvasDiagram, DeviceShowcase, Phone} = _components;
   if (!CanvasDiagram) _missingMdxReference("CanvasDiagram");
   if (!DeviceShowcase) _missingMdxReference("DeviceShowcase");
   if (!Phone) _missingMdxReference("Phone");
@@ -131,32 +144,6 @@ after`}
       expect(screen.getByText(/<DeviceShowcase>/)).toBeTruthy()
       expect(screen.queryByText(/MDX render failed/)).toBeFalsy()
     })
-  })
-
-  it('dispatches media seek events from timestamp links', async () => {
-    const compiledTimestamp = `import { jsx as _jsx } from "react/jsx-runtime";
-function _createMdxContent(props) {
-  const {TimestampLink} = props.components || {};
-  return _jsx(TimestampLink, {src: "2605/raw/meeting.m4a", time: "00:12", children: "jump"});
-}
-function MDXContent(props = {}) {
-  return _createMdxContent(props);
-}
-export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledTimestamp)
-    const handler = vi.fn()
-    window.addEventListener('mdx-media-seek', handler)
-
-    render(
-      <MdxRenderer content="<TimestampLink src='2605/raw/meeting.m4a' time='00:12'>jump</TimestampLink>" />,
-    )
-
-    await waitFor(() => screen.getByText('jump'))
-    screen.getByText('jump').click()
-
-    expect(handler).toHaveBeenCalled()
-    expect(handler.mock.calls[0][0].detail.seconds).toBe(12)
-    window.removeEventListener('mdx-media-seek', handler)
   })
 
   it('copies read-only MDX text affordances', async () => {

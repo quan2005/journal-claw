@@ -1,103 +1,78 @@
 ---
-tags: ["journal","mdx-manual","template","project-docs"]
-summary: "当需要记录路线图，并梳理产品目标、主题/机会、现在、下一阶段时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/project-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录路线图，并梳理产品目标、主题/机会、现在、下一阶段时使用。'
+tags: [journal, template, project-docs, roadmap]
+sources: []
 ---
 
 # 路线图
 
-<Section density="relaxed">
-  <Subtitle>路线图传达意图和不确定性，Now/Next/Later 必须连接 outcome、证据和依赖。</Subtitle>
+> 适用：用于整理路线图；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Bruce McCarthy 的产品路线图视角：路线图传达意图和不确定性，Now/Next/Later 必须连接 outcome、证据和依赖。
-</Callout>
-
-<Callout type="note" title="项目结论">
-  【写清项目目标、当前边界、最重要的验收口径。】
-</Callout>
-
-## 路线图
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "产品目标",
-        "【填写 产品目标】"
-    ],
-    [
-        "主题/机会",
-        "【填写 主题/机会】"
-    ],
-    [
-        "现在",
-        "【填写 现在】"
-    ],
-    [
-        "下一阶段",
-        "【填写 下一阶段】"
-    ],
-    [
-        "以后",
-        "【填写 以后】"
-    ],
-    [
-        "假设",
-        "【填写 假设】"
-    ],
-    [
-        "决策门槛",
-        "【填写 决策门槛】"
-    ],
-    [
-        "不做事项",
-        "【填写 不做事项】"
-    ]
-]}
-/>
-
-<Kanban
-  columns={[
-    { title: "Now", items: [{ text: "【当前承诺事项：结果目标 + owner】", tags: ["committed"] }] },
-    { title: "Next", items: [{ text: "【待验证事项：假设 + 决策门槛】", tags: ["validation"] }] },
-    { title: "Later", items: [{ text: "【暂缓事项：不确定性或依赖】", tags: ["uncertain"] }] },
-  ]}
-/>
-
-<DecisionList
-  decisions={[
+<MilestoneTimeline
+  items={[
     {
-      question: "【这轮路线图做了什么取舍】",
-      decision: "【保留 / 推迟 / 放弃的方向】",
-      rationale: "【证据、依赖和不做事项。】",
+      time: 'Now',
+      title: '【填写当前阶段；未知时写“待确认”，不要推断】',
+      desc: '【填写成功信号；未知时写“待确认”，不要推断】',
+    },
+    {
+      time: 'Next',
+      title: '【填写下一阶段；未知时写“待确认”，不要推断】',
+      desc: '【填写关键依赖；未知时写“待确认”，不要推断】',
     },
   ]}
 />
 
-<RiskMatrix
-  risks={[
-    { risk: "【路线图风险/假设风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
+<Verdict
+  title="【填写路线可行性判断；未知时写“待确认”，不要推断】"
+  summary="【填写最大依赖和风险；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
 />
+
+## 记录提示
+
+### 产品目标
+
+【填写产品目标；未知时写“待确认”，不要推断】
+
+### 主题/机会
+
+【填写主题/机会；未知时写“待确认”，不要推断】
+
+### 现在
+
+【填写现在；未知时写“待确认”，不要推断】
+
+### 下一阶段
+
+【填写下一阶段；未知时写“待确认”，不要推断】
+
+### 以后
+
+【填写以后；未知时写“待确认”，不要推断】
+
+### 假设
+
+【填写假设；未知时写“待确认”，不要推断】
+
+### 决策门槛
+
+【填写决策门槛；未知时写“待确认”，不要推断】
+
+### 不做事项
+
+【填写不做事项；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个路线图事项必须写结果目标"
-    },
-    {
-        "text": "Next/Later 必须体现不确定性或待验证条件"
-    },
-    {
-        "text": "关键依赖和不做事项必须可见"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个路线图事项必须写结果目标', state: 'todo' },
+    { text: 'Next/Later 必须体现不确定性或待验证条件', state: 'todo' },
+    { text: '关键依赖和不做事项必须可见', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

@@ -353,3 +353,17 @@ export interface PinnedItem {
   path: string // workspace-relative path, e.g. "2605/25-xxx.md" or "identities/张三.md"
   order: number
 }
+
+// ── Event Log (catch-up mechanism) ──────────────────────
+export interface DomainEvent {
+  seq: number
+  timestamp_ms: number
+  kind:
+    | 'journal-updated'
+    | 'todos-updated'
+    | 'identity-updated'
+    | 'speakers-updated'
+    | 'ai-processing'
+    | 'recording-processed'
+  payload: unknown
+}

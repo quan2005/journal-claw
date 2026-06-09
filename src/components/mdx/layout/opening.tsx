@@ -1,25 +1,5 @@
 import { Children, isValidElement, type ReactNode } from 'react'
-import { fieldsBlock, LayoutBlock, rowsBlock } from './blockFactory'
-
-export function Hero({
-  eyebrow,
-  title,
-  subtitle,
-  meta,
-  variant = 'default',
-}: {
-  eyebrow?: string
-  title: string
-  subtitle?: string
-  meta?: string
-  variant?: 'default' | 'quiet' | 'accent'
-}) {
-  return (
-    <LayoutBlock
-      block={fieldsBlock('hero', { eyebrow, title, subtitle, meta }, { attrs: { variant } })}
-    />
-  )
-}
+import { LayoutBlock, objectBlock, rowsBlock } from './blockFactory'
 
 export interface TocItem {
   label: string
@@ -85,26 +65,29 @@ export function Cards({
   )
 }
 
-export function Part({
-  label,
+export function Hero({
+  eyebrow,
+  kicker,
   title,
   subtitle,
+  lead,
+  meta,
 }: {
-  label?: string
+  eyebrow?: string
+  kicker?: string
   title: string
   subtitle?: string
+  lead?: string
+  meta?: string
 }) {
-  return <LayoutBlock block={fieldsBlock('part', { label, title, subtitle })} />
-}
-
-export function LabelTitle({
-  label,
-  title,
-  subtitle,
-}: {
-  label?: string
-  title: string
-  subtitle?: string
-}) {
-  return <LayoutBlock block={fieldsBlock('label-title', { label, title, subtitle })} />
+  return (
+    <LayoutBlock
+      block={objectBlock('hero', {
+        eyebrow: eyebrow ?? kicker,
+        title,
+        subtitle: subtitle ?? lead,
+        meta,
+      })}
+    />
+  )
 }

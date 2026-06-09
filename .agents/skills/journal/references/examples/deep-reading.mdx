@@ -1,11 +1,27 @@
 ---
-tags: [journal, learning]
-summary: 可见性和反馈是降低工具感的关键，谨迹的模板组件也应服务阅读确认而不是装饰。
-sources: [2605/raw/design-reading.txt]
+tags: [journal, learning, example]
+summary: 组件只有在降低理解成本时才值得使用，普通论述仍应保持 Markdown 优先。
+sources:
+  [
+    .agents/skills/journal/references/component-catalog.md,
+    .agents/skills/journal/references/component-recipes.md,
+  ]
 ---
 
-# 《设计心理学》阅读摘记
+# 组件设计原则阅读摘记
 
-<InsightCard title="反馈比功能说明更重要">
-  用户需要知道系统正在做什么、做到了哪一步，以及结果是否可信。
+<Quote text="Use Markdown first." source=".agents/skills/journal/references/component-recipes.md" />
+
+## 我的理解
+
+组件的价值不是让页面看起来更丰富，而是稳定表达反复出现、容易产生歧义的信息结构。普通段落、列表和简单表格不需要再包一层 JSX。
+
+<InsightCard title="应用">
+  新增组件前，先验证 `Table`、`Callout`、`Quote`、`Timeline` 或 Markdown 是否已经足够。
 </InsightCard>
+
+## 复习问题
+
+- 这个组件减少了哪一种真实阅读成本？
+- 它是否只是给现有 Markdown 换了视觉外壳？
+- 删除它后，信息语义是否仍然完整？

@@ -3,22 +3,22 @@ import { parseJournalLayout } from '../lib/journalLayout'
 
 describe('parseJournalLayout validation', () => {
   it('validates fields bodies', () => {
-    const result = parseJournalLayout(`:::hero
-eyebrow: Deep note
+    const result = parseJournalLayout(`:::verdict
+status: Deep note
 title: Structure before style
-subtitle: Blocks define reading rhythm
+summary: Blocks define reading rhythm
 :::`)
 
     expect(result.segments[0]).toMatchObject({
       kind: 'block',
       block: {
-        name: 'hero',
+        name: 'verdict',
         body: {
           format: 'fields',
           fields: {
-            eyebrow: 'Deep note',
+            status: 'Deep note',
             title: 'Structure before style',
-            subtitle: 'Blocks define reading rhythm',
+            summary: 'Blocks define reading rhythm',
           },
         },
       },
@@ -48,15 +48,15 @@ title: 三件事
   })
 
   it('reports missing required fields locally', () => {
-    const result = parseJournalLayout(`:::hero
-subtitle: Missing title
+    const result = parseJournalLayout(`:::verdict
+summary: Missing title
 :::`)
 
     expect(result.segments[0]).toMatchObject({
       kind: 'error',
       issue: {
         kind: 'schema',
-        message: 'hero is missing required field "title".',
+        message: 'verdict is missing required field "title".',
       },
     })
   })

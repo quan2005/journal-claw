@@ -1,28 +1,18 @@
 import { Fragment } from 'react'
 import type { JournalBlock } from '../../lib/journalLayout'
 
-function fields(block: JournalBlock): Record<string, string> {
-  return block.body.format === 'fields' ? block.body.fields : {}
-}
-
 function rows(block: JournalBlock): string[][] {
   return block.body.format === 'rows' ? block.body.rows : []
 }
 
-function textLength(value?: string): number {
-  return Array.from(value?.trim() ?? '').length
+function jsonObject(block: JournalBlock): Record<string, unknown> {
+  return block.body.format === 'json_object' ? block.body.value : {}
 }
 
-function partTitleClassName(title?: string): string {
-  const length = textLength(title)
-  const density =
-    length >= 42
-      ? 'journal-block-part-title-compact'
-      : length >= 28
-        ? 'journal-block-part-title-dense'
-        : ''
-
-  return ['journal-block-part-title', density].filter(Boolean).join(' ')
+function stringValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return ''
 }
 
 function TextWithBreaks({ value }: { value: string }) {
@@ -38,18 +28,6 @@ function TextWithBreaks({ value }: { value: string }) {
         </Fragment>
       ))}
     </>
-  )
-}
-
-export function HeroBlock({ block }: { block: JournalBlock }) {
-  const data = fields(block)
-  return (
-    <section className="journal-block journal-block-prose journal-block-hero">
-      {data.eyebrow && <div className="journal-block-kicker">{data.eyebrow}</div>}
-      <h1>{data.title}</h1>
-      {data.subtitle && <p>{data.subtitle}</p>}
-      {data.meta && <div className="journal-block-meta">{data.meta}</div>}
-    </section>
   )
 }
 
@@ -106,24 +84,23 @@ export function TocBlock({ block }: { block: JournalBlock }) {
   )
 }
 
-export function PartBlock({ block }: { block: JournalBlock }) {
-  const data = fields(block)
-  return (
-    <section className="journal-block journal-block-prose journal-block-part">
-      {data.label && <div className="journal-block-kicker">{data.label}</div>}
-      <h2 className={partTitleClassName(data.title)}>{data.title}</h2>
-      {data.subtitle && <p>{data.subtitle}</p>}
-    </section>
-  )
-}
+export function HeroBlock({ block }: { block: JournalBlock }) {
+  const data = jsonObject(block)
+  const title = stringValue(data.title)
+  const kicker = stringValue(data.eyebrow) || stringValue(data.kicker)
+  const lead = stringValue(data.subtitle) || stringValue(data.lead)
+  const meta = stringValue(data.meta)
 
-export function LabelTitleBlock({ block }: { block: JournalBlock }) {
-  const data = fields(block)
   return (
-    <section className="journal-block journal-block-prose journal-block-label-title">
-      {data.label && <div className="journal-block-kicker">{data.label}</div>}
-      <h2>{data.title}</h2>
-      {data.subtitle && <p>{data.subtitle}</p>}
+    <section className="journal-block journal-block-hero">
+      {kicker && (
+        <div className="journal-block-hero-kicker">{kicker}</div>
+      )}
+      <h1 className="journal-block-hero-title">
+        <TextWithBreaks value={title} />
+      </h1>
+      {lead && <p className="journal-block-hero-lead">{lead}</p>}
+      {meta && <p className="journal-block-hero-meta">{meta}</p>}
     </section>
   )
 }

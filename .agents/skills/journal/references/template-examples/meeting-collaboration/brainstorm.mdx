@@ -1,69 +1,60 @@
 ---
-tags: ["journal","mdx-manual","template","meeting-collaboration"]
-summary: "当讨论处于发散状态，需要整理背景问题、观点逻辑关系、共识和下一步实验时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/meeting-collaboration.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当讨论处于发散状态，需要整理背景问题、观点逻辑关系、共识和下一步实验时使用。'
+tags: [journal, template, meeting-collaboration, brainstorm]
+sources: []
 ---
 
 # 头脑风暴记录
 
-<Section density="relaxed">
-  <Subtitle>把发散讨论整理成可执行共识：先写背景问题，再整理观点、推理关系、共识和下一步实验。</Subtitle>
+> 适用：用于整理头脑风暴记录；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  IDEO / Tom Kelley 的创意收敛视角：头脑风暴的价值不是点子数量，而是记录点子之间的互补、互斥、并列、组合和依赖关系，再收敛为可验证行动。
-</Callout>
-
-## 背景问题
-
-<Callout type="note" title="要解决的问题">
-  【写清楚这次头脑风暴的触发背景、当前卡点、目标和边界。例：模板页太像说明书，读者希望打开后直接拿到可用框架。】
-</Callout>
-
-## 观点与逻辑
-
-<Table
-  headers={["观点", "主张", "推理过程", "关系", "当前处理"]}
-  rows={[
-    ["观点 A", "【主张是什么】", "【为什么成立；依赖哪些事实或假设】", "并列 / 互补 / 互斥 / 组合 / 依赖", "保留 / 组合 / 放弃 / 待验证"],
-    ["观点 B", "【主张是什么】", "【与观点 A 的关系；解决同一问题还是不同问题】", "并列 / 互补 / 互斥 / 组合 / 依赖", "保留 / 组合 / 放弃 / 待验证"],
-    ["观点 C", "【主张是什么】", "【收益、风险、适用条件】", "并列 / 互补 / 互斥 / 组合 / 依赖", "保留 / 组合 / 放弃 / 待验证"],
-  ]}
-/>
-
-## 共识
-
-<DecisionRecord
-  question="这轮讨论最后收敛到什么方向？"
-  decision="【写最终共识：吸收了哪些观点，排除了哪些观点，哪些仍需验证。】"
-  rationale="【写共识成立的逻辑：例如 A 和 B 是互补关系，可以组合；C 与目标互斥，暂不采用。】"
-/>
-
-## 下一步实验
-
-<ActionTable
+<Cards
+  heading="想法主题"
   items={[
-    { action: "【实验 1：要验证什么】", owner: "【负责人】", due: "【截止时间】", source: "头脑风暴", status: "open" },
-    { action: "【实验 2：要验证什么】", owner: "【负责人】", due: "【截止时间】", source: "头脑风暴", status: "open" },
+    { title: '主题 A', description: '【填写想法与依据；未知时写“待确认”，不要推断】' },
+    { title: '主题 B', description: '【填写想法与依据；未知时写“待确认”，不要推断】' },
   ]}
 />
+
+<ComparisonMatrix
+  columns={['用户价值', '验证成本', '主要风险']}
+  rows={[{ label: '候选方向', values: ['【待评估】', '【待评估】', '【待评估】'] }]}
+/>
+
+<Steps heading="最小实验" items={[{ title: '【填写下一步实验；未知时写“待确认”，不要推断】' }]} />
+
+## 记录提示
+
+### 问题边界
+
+【填写问题边界；未知时写“待确认”，不要推断】
+
+### 想法主题
+
+【填写想法主题；未知时写“待确认”，不要推断】
+
+### 筛选标准
+
+【填写筛选标准；未知时写“待确认”，不要推断】
+
+### 入选方向
+
+【填写入选方向；未知时写“待确认”，不要推断】
+
+### 实验
+
+【填写实验；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "背景问题同时写清触发背景、目标和边界"
-    },
-    {
-        "text": "每个观点都有推理过程，并标注互补、互斥、并列、组合或依赖之一"
-    },
-    {
-        "text": "共识写清吸收了哪些观点、排除了哪些观点、哪些进入行动项"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '背景问题同时写清触发背景、目标和边界', state: 'todo' },
+    { text: '每个观点都有推理过程，并标注互补、互斥、并列、组合或依赖之一', state: 'todo' },
+    { text: '共识写清吸收了哪些观点、排除了哪些观点、哪些进入行动项', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

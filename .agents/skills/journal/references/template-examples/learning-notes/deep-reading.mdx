@@ -1,88 +1,68 @@
 ---
-tags: ["journal","mdx-manual","template","learning-notes"]
-summary: "当需要记录深度阅读笔记，并梳理核心命题、论证链、关键证据、隐含假设时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录深度阅读笔记，并梳理核心命题、论证链、关键证据、隐含假设时使用。'
+tags: [journal, template, learning-notes, deep-reading]
+sources: []
 ---
 
 # 深度阅读笔记
 
-<Section density="relaxed">
-  <Subtitle>用于深度阅读：先复述核心论点，再写证据、理解、疑问和复习点。</Subtitle>
+> 适用：用于整理深度阅读笔记；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Mortimer Adler 的分析阅读视角：深度阅读不是摘录更多，而是能复述作者的问题、论证链和自己可迁移的判断。
-</Callout>
-
-<QuoteCard quote="【摘录最关键的一句话或概念表述。】" source="【来源】" />
-
-## 学习记录
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "核心命题",
-        "【填写 核心命题】"
-    ],
-    [
-        "论证链",
-        "【填写 论证链】"
-    ],
-    [
-        "关键证据",
-        "【填写 关键证据】"
-    ],
-    [
-        "隐含假设",
-        "【填写 隐含假设】"
-    ],
-    [
-        "反向复述",
-        "【填写 反向复述】"
-    ],
-    [
-        "我的批判",
-        "【填写 我的批判】"
-    ],
-    [
-        "可迁移工作场景",
-        "【填写 可迁移工作场景】"
-    ],
-    [
-        "复习问题",
-        "【填写 复习问题】"
-    ]
-]}
+<Quote
+  text="【填写隐含假设；未知时写“待确认”，不要推断】"
+  source="【填写核心命题；未知时写“待确认”，不要推断】"
 />
 
-<InsightCard title="我的理解">
-  【用自己的话解释；如果讲不清，写出卡住的地方。】
-</InsightCard>
-
-<Checklist
-  items={[
-    { text: "【需要复习的问题】" },
-    { text: "【可以迁移到工作的做法】" },
-  ]}
-/>
-
-<Checklist
-  items={[
-    {
-        "text": "必须有一段不引用原文的反向复述"
-    },
-    {
-        "text": "至少写出一个本周可试用的动作或判断标准"
-    },
-    {
-        "text": "复习问题至少包含一个针对论证漏洞或假设的问题"
-    }
-]}
-/>
-</Section>
+<InsightCard title="我的理解">【填写论证链；未知时写“待确认”，不要推断】</InsightCard>
 
 <ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  sources={[{ path: '【替换为真实来源路径】', label: '【学习来源】', type: 'file' }]}
+/>
+
+## 记录提示
+
+### 核心命题
+
+【填写核心命题；未知时写“待确认”，不要推断】
+
+### 论证链
+
+【填写论证链；未知时写“待确认”，不要推断】
+
+### 关键证据
+
+【填写关键证据；未知时写“待确认”，不要推断】
+
+### 隐含假设
+
+【填写隐含假设；未知时写“待确认”，不要推断】
+
+### 反向复述
+
+【填写反向复述；未知时写“待确认”，不要推断】
+
+### 我的批判
+
+【填写我的批判；未知时写“待确认”，不要推断】
+
+### 可迁移工作场景
+
+【填写可迁移工作场景；未知时写“待确认”，不要推断】
+
+### 复习问题
+
+【填写复习问题；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '必须有一段不引用原文的反向复述', state: 'todo' },
+    { text: '至少写出一个本周可试用的动作或判断标准', state: 'todo' },
+    { text: '复习问题至少包含一个针对论证漏洞或假设的问题', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

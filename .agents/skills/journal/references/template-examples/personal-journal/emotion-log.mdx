@@ -1,84 +1,70 @@
 ---
-tags: ["journal","mdx-manual","template","personal-journal"]
-summary: "当需要记录情绪记录，并梳理事实触发、身体信号、情绪标签、强度 1-5时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录情绪记录，并梳理事实触发、身体信号、情绪标签、强度 1-5时使用。'
+tags: [journal, template, personal-journal, emotion-log]
+sources: []
 ---
 
 # 情绪记录
 
-<Section density="relaxed">
-  <Subtitle>情绪记录不是分析自己，而是给状态贴上更精确的标签，并记录触发、身体信号、解释和可做动作。</Subtitle>
+> 适用：用于整理情绪记录；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Lisa Feldman Barrett + James Gross 的情绪标注视角：情绪记录不是分析自己，而是给状态贴上更精确的标签，并记录触发、身体信号、解释和可做动作。
-</Callout>
-
-<RatingBar score={3} max={5} label="强度" />
-
-## 情绪记录
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "事实触发",
-        "【填写 事实触发】"
-    ],
-    [
-        "身体信号",
-        "【填写 身体信号】"
-    ],
-    [
-        "情绪标签",
-        "【填写 情绪标签】"
-    ],
-    [
-        "强度 1-5",
-        "【填写 强度 1-5】"
-    ],
-    [
-        "我当时的解释",
-        "【填写 我当时的解释】"
-    ],
-    [
-        "当下可做动作",
-        "【填写 当下可做动作】"
-    ],
-    [
-        "后续观察时间",
-        "【填写 后续观察时间】"
-    ]
-]}
-/>
-
-<Callout type="note" title="事实、身体信号、解释分开">
-  【先写触发事件和身体信号，再写情绪标签和当时解释；不要做人格判断或诊断。】
-</Callout>
-
-<Checklist
+<Timeline
   items={[
-    { text: "【后续观察时间】" },
-    { text: "【当下可做的小动作】" },
+    {
+      time: '事件',
+      title: '【填写触发事件；未知时写“待确认”，不要推断】',
+      description: '【填写身体信号；未知时写“待确认”，不要推断】',
+    },
+    {
+      time: '反应',
+      title: '【填写情绪；未知时写“待确认”，不要推断】',
+      description: '【填写想法；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
+<InsightCard title="一种可能的解释">
+  【填写解释；不要把推测写成事实；未知时写“待确认”，不要推断】
+</InsightCard>
+
+<Checklist items={[{ text: '【填写小行动；未知时写“待确认”，不要推断】', state: 'todo' }]} />
+
+## 记录提示
+
+### 触发事件
+
+【填写触发事件；未知时写“待确认”，不要推断】
+
+### 身体信号
+
+【填写身体信号；未知时写“待确认”，不要推断】
+
+### 情绪
+
+【填写情绪；未知时写“待确认”，不要推断】
+
+### 想法
+
+【填写想法；未知时写“待确认”，不要推断】
+
+### 需要
+
+【填写需要；未知时写“待确认”，不要推断】
+
+### 小行动
+
+【填写小行动；未知时写“待确认”，不要推断】
+
+## 质量检查
+
 <Checklist
   items={[
-    {
-        "text": "写的是具体触发事件而不是笼统原因"
-    },
-    {
-        "text": "身体信号和情绪标签是两个独立字段"
-    },
-    {
-        "text": "不出现诊断、人格判断或治疗建议"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '写的是具体触发事件而不是笼统原因', state: 'todo' },
+    { text: '身体信号和情绪标签是两个独立字段', state: 'todo' },
+    { text: '不出现诊断、人格判断或治疗建议', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

@@ -1,0 +1,25 @@
+pub fn command_names() -> Vec<&'static str> {
+    vec![
+        "get_api_key",
+        "set_api_key",
+        "open_settings",
+        "get_workspace_path",
+        "set_workspace_path",
+        "get_engine_config",
+        "set_engine_config",
+        "get_app_version",
+        "get_platform_capabilities",
+        "get_asr_config",
+        "set_asr_config",
+        "get_apple_stt_variant",
+        "get_whisperkit_models_dir",
+        "check_whisperkit_model_downloaded",
+        "check_whisperkit_cli_installed",
+        "install_whisperkit_cli",
+        "download_whisperkit_model",
+        "list_models",
+        "get_feishu_config",
+        "set_feishu_config",
+        "get_feishu_status",
+    ]
+}

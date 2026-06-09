@@ -1,84 +1,56 @@
 ---
-tags: ["journal","mdx-manual","template","personal-journal"]
-summary: "当需要记录晚间日志，并梳理三个事实、事件、感受、我给事件的解释时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录晚间日志，并梳理三个事实、事件、感受、我给事件的解释时使用。'
+tags: [journal, template, personal-journal, evening-journal]
+sources: []
 ---
 
 # 晚间日志
 
-<Section density="relaxed">
-  <Subtitle>晚间记录要避免只被最后一件事支配，先列事实，再写感受和解释，最后完成收尾。</Subtitle>
+> 适用：用于整理晚间日志；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Donald Schon + Kahneman 的晚间复盘视角：晚间记录要避免只被最后一件事支配，先列事实，再写感受和解释，最后完成收尾。
-</Callout>
-
-<RatingBar score={3} max={5} label="【状态评分】" />
-
-## 记录内容
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "三个事实",
-        "【填写 三个事实】"
-    ],
-    [
-        "事件",
-        "【填写 事件】"
-    ],
-    [
-        "感受",
-        "【填写 感受】"
-    ],
-    [
-        "我给事件的解释",
-        "【填写 我给事件的解释】"
-    ],
-    [
-        "今日收尾动作",
-        "【填写 今日收尾动作】"
-    ],
-    [
-        "未关闭事项",
-        "【填写 未关闭事项】"
-    ],
-    [
-        "明日一件事",
-        "【填写 明日一件事】"
-    ]
-]}
+<Summary
+  title="【填写今天的主线；未知时写“待确认”，不要推断】"
+  body="【填写发生了什么；未知时写“待确认”，不要推断】"
 />
 
-<Callout type="note" title="事实、感受、解释分开">
-  【把事件、感受和判断分开写；不要急着评价自己。】
+<Callout tone="note" title="值得记住">
+  【填写重要想法；未知时写“待确认”，不要推断】
 </Callout>
+
+<Checklist items={[{ text: '【填写下一步；未知时写“待确认”，不要推断】', state: 'todo' }]} />
+
+## 记录提示
+
+### 发生了什么
+
+【填写发生了什么；未知时写“待确认”，不要推断】
+
+### 当时的感受
+
+【填写当时的感受；未知时写“待确认”，不要推断】
+
+### 重要想法
+
+【填写重要想法；未知时写“待确认”，不要推断】
+
+### 意义
+
+【填写意义；未知时写“待确认”，不要推断】
+
+### 下一步
+
+【填写下一步；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    { text: "【下一步小行动】" },
-    { text: "【需要复盘的观察】" },
+    { text: '至少记录两个非最后时段发生的事实', state: 'todo' },
+    { text: '明确区分事实、感受、解释', state: 'todo' },
+    { text: '把明日行动压缩为一件事', state: 'todo' },
   ]}
 />
 
-<Checklist
-  items={[
-    {
-        "text": "至少记录两个非最后时段发生的事实"
-    },
-    {
-        "text": "明确区分事实、感受、解释"
-    },
-    {
-        "text": "把明日行动压缩为一件事"
-    }
-]}
-/>
-</Section>
+## 来源
 
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
-  ]}
-/>
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

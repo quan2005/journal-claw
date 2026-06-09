@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { HtmlPreview, MacPreview, PhonePreview, mdxComponents } from '../components/mdx'
+import { HtmlPreview, ImageViewer, mdxComponents } from '../components/mdx'
 import { getJournalEntryContent } from '../lib/tauri'
+
+vi.mock('@tauri-apps/api/core', () => ({
+  convertFileSrc: (path: string) => `asset://${path}`,
+}))
 
 vi.mock('../components/SandboxPreview', () => ({
   SandboxPreview: ({
@@ -25,11 +29,11 @@ vi.mock('../lib/tauri', () => ({
 }))
 
 describe('MDX preview components', () => {
-  it('exposes the three official Preview components only', () => {
+  it('exposes HtmlPreview as the only official Preview component', () => {
     expect(mdxComponents.HtmlPreview).toBe(HtmlPreview)
-    expect(mdxComponents.PhonePreview).toBe(PhonePreview)
-    expect(mdxComponents.MacPreview).toBe(MacPreview)
 
+    expect(mdxComponents).not.toHaveProperty('PhonePreview')
+    expect(mdxComponents).not.toHaveProperty('MacPreview')
     expect(mdxComponents).not.toHaveProperty('Phone')
     expect(mdxComponents).not.toHaveProperty('Mockup')
     expect(mdxComponents).not.toHaveProperty('DeviceShowcase')
@@ -48,6 +52,14 @@ describe('MDX preview components', () => {
     expect(screen.getByText(/Inline HTML/)).toBeTruthy()
   })
 
+  it('resolves absolute local image paths through the Tauri asset protocol', () => {
+    render(<ImageViewer src="/tmp/journal/raw/demo.png" alt="demo" />)
+
+    expect(screen.getByRole('img', { name: 'demo' }).getAttribute('src')).toBe(
+      'asset:///tmp/journal/raw/demo.png',
+    )
+  })
+
   it('loads workspace-relative HTML sources before rendering the sandbox preview', async () => {
     render(<HtmlPreview src="2606/raw/note_component_library.html" height={420} />)
 
@@ -60,18 +72,5 @@ describe('MDX preview components', () => {
     expect(getJournalEntryContent).toHaveBeenCalledWith(
       '/tmp/journal/2606/raw/note_component_library.html',
     )
-  })
-
-  it('renders phone and mac preview shells with distinct classes', () => {
-    const { container } = render(
-      <>
-        <PhonePreview size="sm">Mobile content</PhonePreview>
-        <MacPreview title="Desktop content">Desktop content</MacPreview>
-      </>,
-    )
-
-    expect(container.querySelector('.mdx-device-v2')).toBeTruthy()
-    expect(container.querySelector('.mdx-mac-preview')).toBeTruthy()
-    expect(screen.getAllByText('Desktop content')).toHaveLength(2)
   })
 })

@@ -10,26 +10,26 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 function block(overrides: Partial<JournalBlock>): JournalBlock {
   return {
-    name: 'hero',
+    name: 'verdict',
     attrs: {},
     body: { format: 'fields', fields: { title: 'Directive design' } },
-    source: ':::hero\ntitle: Directive design\n:::',
+    source: ':::verdict\ntitle: Directive design\n:::',
     sourceRange: { startLine: 1, endLine: 3 },
     ...overrides,
   }
 }
 
 describe('JournalBlockRenderer', () => {
-  it('renders implemented hero blocks', () => {
+  it('renders implemented verdict blocks', () => {
     render(
       <JournalBlockRenderer
         block={block({
           body: {
             format: 'fields',
             fields: {
-              eyebrow: 'Journal Layout',
+              status: 'Journal Layout',
               title: 'Structure before style',
-              subtitle: 'Modules define reading rhythm',
+              summary: 'Modules define reading rhythm',
             },
           },
         })}
@@ -132,28 +132,6 @@ describe('JournalBlockRenderer', () => {
     expect(screen.getByText(/1.2 多模型路由/)).toBeTruthy()
   })
 
-  it('marks long part titles as compact for adaptive typography', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'part',
-          body: {
-            format: 'fields',
-            fields: {
-              title:
-                '模块一 · 模型服务 — 全公司走大模型的统一入口，屏蔽底层差异，保证稳定、可路由、模型中立',
-              subtitle: '下周一，二要给戴翔交名单，这里把人和事对一遍。',
-            },
-          },
-        })}
-      />,
-    )
-
-    const title = container.querySelector('.journal-block-part h2')
-    expect(title?.classList.contains('journal-block-part-title')).toBe(true)
-    expect(title?.classList.contains('journal-block-part-title-compact')).toBe(true)
-  })
-
   it('renders json object blocks with a dedicated renderer', () => {
     render(
       <JournalBlockRenderer
@@ -198,7 +176,7 @@ describe('JournalBlockRenderer', () => {
           title: 'Steps',
           body: {
             format: 'rows',
-            rows: [['Choose module', 'Decide what the paragraph is doing', 'hero / timeline']],
+            rows: [['Choose module', 'Decide what the paragraph is doing', 'timeline / checklist']],
           },
         })}
       />,
@@ -218,8 +196,8 @@ describe('JournalBlockRenderer', () => {
           body: {
             format: 'rows',
             rows: [
-              ['01', 'Opening', 'hero, toc, cards'],
-              ['02', 'Infographic', 'metrics, compare, timeline'],
+              ['01', 'Opening', 'toc, cards'],
+              ['02', 'Infographic', 'metrics, timeline'],
             ],
           },
         })}
@@ -234,34 +212,7 @@ describe('JournalBlockRenderer', () => {
     ).toBe(true)
   })
 
-  it('renders compare rows with a VS rail instead of a plain table', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'compare',
-          title: 'Compare',
-          body: {
-            format: 'rows',
-            rows: [
-              ['Formatting', 'Manual cleanup every time', 'One directive renders consistently'],
-            ],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-compare')).toBeTruthy()
-    expect(container.querySelector('.journal-block-table-grid')).toBeFalsy()
-    expect(container.querySelector('.journal-block-compare-vs')?.textContent).toBe('VS')
-    expect(container.querySelector('.journal-block-compare-side-left')?.textContent).toContain(
-      'Manual cleanup',
-    )
-    expect(container.querySelector('.journal-block-compare-side-right')?.textContent).toContain(
-      'One directive',
-    )
-  })
-
-  it('renders myth-fact with explicit contrast markers', () => {
+  it('renders myth-fact as a continuous contrast list', () => {
     const { container } = render(
       <JournalBlockRenderer
         block={block({
@@ -269,17 +220,23 @@ describe('JournalBlockRenderer', () => {
           title: 'Myth fact',
           body: {
             format: 'rows',
-            rows: [['Directive is decoration', 'Directive is structure', 'It stabilizes output.']],
+            rows: [
+              ['Directive is decoration', 'Directive is structure', 'It stabilizes AI output.'],
+              [
+                'Every note needs a hero',
+                'Article notes stay quiet',
+                'Short notes keep prose first.',
+              ],
+            ],
           },
         })}
       />,
     )
 
-    const mythSide = container.querySelector('.journal-block-myth')
-    expect(mythSide?.children[0]?.classList.contains('journal-block-myth-mark')).toBe(true)
-    expect(mythSide?.children[1]?.classList.contains('journal-block-myth-fact-copy')).toBe(true)
-    expect(container.querySelector('.journal-block-myth-mark')?.textContent).toBe('×')
-    expect(container.querySelector('.journal-block-fact-mark')?.textContent).toBe('✓')
+    expect(container.querySelector('.journal-block-myth-fact')).toBeTruthy()
+    expect(container.querySelectorAll('.journal-block-myth-fact-row')).toHaveLength(2)
+    expect(container.querySelector('.journal-block-pair')).toBeFalsy()
+    expect(container.querySelectorAll('.journal-block-fact-mark')).toHaveLength(2)
     expect(container.querySelector('.journal-block-fact-reason')?.textContent).toContain(
       'stabilizes',
     )
@@ -306,117 +263,7 @@ describe('JournalBlockRenderer', () => {
     expect(container.querySelectorAll('.journal-block-timeline-node')).toHaveLength(2)
     expect(container.querySelector('.journal-block-timeline-axis')).toBeTruthy()
     expect(container.querySelectorAll('.journal-block-timeline-date')).toHaveLength(2)
-  })
-
-  it('renders manifesto rows with a left-aligned list rhythm', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'manifesto',
-          title: 'Manifesto',
-          body: {
-            format: 'rows',
-            rows: [
-              ['Markdown first', 'Let paragraphs and lists carry the base structure'],
-              ['Directives second', 'Use stable blocks for scanning'],
-            ],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelectorAll('.journal-block-manifesto-row')).toHaveLength(2)
-    expect(
-      container
-        .querySelector('.journal-block-manifesto-row .journal-block-row-marker')
-        ?.classList.contains('journal-block-marker'),
-    ).toBe(true)
-    expect(container.querySelector('.journal-block-manifesto-row h3')?.textContent).toBe(
-      'Markdown first',
-    )
-  })
-
-  it('keeps timeline body content as the only visible timeline labels', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'timeline',
-          title: 'Timeline',
-          body: {
-            format: 'rows',
-            rows: [
-              ['2026-06-04', 'Build path', 'Parser and renderer share catalog'],
-              ['2026-06-05', 'Verify path', 'All modules render locally'],
-            ],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-timeline-nav')).toBeFalsy()
     expect(container.querySelector('.journal-block-timeline-item-active')).toBeTruthy()
-    expect(container.querySelector('.journal-block-timeline-track')?.textContent).toContain(
-      '2026-06-04',
-    )
-    expect(container.querySelector('.journal-block-timeline-track')?.textContent).toContain(
-      'Build path',
-    )
-  })
-
-  it('renders bridge as a transition module with a visible direction cue', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'bridge',
-          body: {
-            format: 'fields',
-            fields: {
-              from: 'AI 直接输出复杂 JSX',
-              to: 'AI 输出 catalog-backed directives',
-              why: '前者要求模型理解组件 props；后者只要求模型选择模块和 body format。',
-            },
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-bridge-node')?.textContent).toContain(
-      'AI 直接输出复杂 JSX',
-    )
-    expect(container.querySelector('.journal-block-bridge-arrow')?.textContent).toBe('→')
-    expect(container.querySelector('.journal-block-bridge-why')?.textContent).toContain(
-      'body format',
-    )
-  })
-
-  it('renders myth-fact as a continuous contrast list', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'myth-fact',
-          title: 'Myth fact',
-          body: {
-            format: 'rows',
-            rows: [
-              ['Directive is decoration', 'Directive is structure', 'It stabilizes AI output.'],
-              [
-                'Every page needs hero',
-                'Only strong judgments need hero',
-                'Short notes stay quiet.',
-              ],
-            ],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-myth-fact')).toBeTruthy()
-    expect(container.querySelectorAll('.journal-block-myth-fact-row')).toHaveLength(2)
-    expect(container.querySelector('.journal-block-pair')).toBeFalsy()
-    expect(container.querySelectorAll('.journal-block-fact-mark')).toHaveLength(2)
-    expect(container.querySelector('.journal-block-fact-reason')?.textContent).toContain(
-      'stabilizes',
-    )
   })
 
   it('renders checklist items with fixed marker controls', () => {
@@ -478,104 +325,6 @@ describe('JournalBlockRenderer', () => {
     expect(container.querySelector('.journal-block-avatar')).toBeFalsy()
   })
 
-  it('renders series rows with the compact left-aligned list rhythm', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'series',
-          title: 'Series',
-          body: {
-            format: 'rows',
-            rows: [
-              ['Layout Directives Demo', 'current', 'topics/demo/00-index.mdx'],
-              ['Syntax Reference', 'reference', 'topics/demo/99-syntax-reference.mdx'],
-            ],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelectorAll('.journal-block-series-row')).toHaveLength(2)
-    expect(
-      container
-        .querySelector('.journal-block-series-row .journal-block-row-marker')
-        ?.classList.contains('journal-block-marker'),
-    ).toBe(true)
-    expect(container.querySelector('.journal-block-series-row h3')?.textContent).toBe(
-      'Layout Directives Demo',
-    )
-  })
-
-  it('renders people as compact name cards instead of full-width rows', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'people',
-          title: '核心成员',
-          body: {
-            format: 'rows',
-            rows: [
-              ['谢振家', '技术A角', '模型接入 40% + 稳定性监控 30%'],
-              ['柏宇', '技术B角', 'Token 统计 50% + 模型接入 50%'],
-            ],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-people')).toBeTruthy()
-    expect(container.querySelector('.journal-block-people-grid')).toBeTruthy()
-    expect(container.querySelectorAll('.journal-block-person-card')).toHaveLength(2)
-    expect(container.querySelector('.journal-block-person-initial')?.textContent).toBe('谢')
-    expect(container.querySelector('.journal-block-person-name')?.textContent).toBe('谢振家')
-    expect(container.querySelector('.journal-block-person-role')?.textContent).toBe('技术A角')
-    expect(container.querySelector('.journal-block-person-note')?.textContent).toContain(
-      '稳定性监控',
-    )
-    expect(container.querySelector('.journal-layout-card')).toBeFalsy()
-    expect(container.querySelector('.journal-block-card-grid')).toBeFalsy()
-    expect(container.querySelector('.journal-block-person-row')).toBeFalsy()
-  })
-
-  it('splits two-column people rows into role and responsibility text', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'people',
-          body: {
-            format: 'rows',
-            rows: [['柏宇', '技术B角 · Token 统计 50% + 模型接入 50%']],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-person-role')?.textContent).toBe('技术B角')
-    expect(container.querySelector('.journal-block-person-note')?.textContent).toBe(
-      'Token 统计 50% + 模型接入 50%',
-    )
-  })
-
-  it('marks people cards without notes as header-only for vertical centering', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'people',
-          body: {
-            format: 'rows',
-            rows: [['柏宇', '技术B角']],
-          },
-        })}
-      />,
-    )
-
-    expect(
-      container
-        .querySelector('.journal-block-person-card')
-        ?.classList.contains('journal-block-person-card--header-only'),
-    ).toBe(true)
-  })
-
   it('renders resource lists as file cards with readable path metadata', () => {
     const { container } = render(
       <JournalBlockRenderer
@@ -585,8 +334,8 @@ describe('JournalBlockRenderer', () => {
             format: 'json_array',
             value: [
               {
-                title: 'Layout Directives Guide',
-                url: '/Users/yanwu/Projects/github/journal/.agents/skills/journal/references/layout-directives.md',
+                title: 'Component Catalog',
+                url: '/Users/yanwu/Projects/github/journal/.agents/skills/journal/references/component-catalog.md',
               },
             ],
           },
@@ -596,41 +345,15 @@ describe('JournalBlockRenderer', () => {
 
     expect(container.querySelector('.journal-block-resource-card')).toBeTruthy()
     expect(container.querySelector('.journal-block-resource-title')?.textContent).toBe(
-      'Layout Directives Guide',
+      'Component Catalog',
     )
     expect(container.querySelector('.journal-block-resource-path')?.textContent).toContain(
-      'layout-directives.md',
+      'component-catalog.md',
     )
     expect(container.querySelector('.journal-block-resource-path')?.getAttribute('title')).toBe(
-      '/Users/yanwu/Projects/github/journal/.agents/skills/journal/references/layout-directives.md',
+      '/Users/yanwu/Projects/github/journal/.agents/skills/journal/references/component-catalog.md',
     )
     expect(container.querySelector('.journal-block-resource-kind')?.textContent).toBe('MD')
-  })
-
-  it('renders changelog dates as muted date markers', () => {
-    const { container } = render(
-      <JournalBlockRenderer
-        block={block({
-          name: 'changelog',
-          body: {
-            format: 'json_array',
-            value: [{ date: '2026-06-04', title: 'Added directives', note: 'All modules render' }],
-          },
-        })}
-      />,
-    )
-
-    expect(container.querySelector('.journal-block-changelog-date')?.textContent).toBe('2026-06-04')
-    expect(
-      container
-        .querySelector('.journal-block-changelog-date')
-        ?.classList.contains('journal-block-marker'),
-    ).toBe(true)
-    expect(
-      container
-        .querySelector('.journal-block-changelog-date')
-        ?.classList.contains('journal-block-row-marker'),
-    ).toBe(true)
   })
 
   it('renders comparison tables with explicit header and cell classes', () => {
@@ -661,15 +384,8 @@ describe('JournalBlockRenderer', () => {
     ).toMatch(/^max\(100%,/)
   })
 
-  it('renders every catalog module without falling back to coming soon', () => {
+  it('renders every retained catalog module without falling back to coming soon', () => {
     const samples = new Map<string, { title?: string; body: ParsedBlockBody; expected: string }>([
-      [
-        'hero',
-        {
-          body: { format: 'fields', fields: { title: 'Hero Title', subtitle: 'Hero Subtitle' } },
-          expected: 'Hero Title',
-        },
-      ],
       [
         'toc',
         { title: 'Contents', body: { format: 'rows', rows: [['01', 'Intro']] }, expected: 'Intro' },
@@ -683,33 +399,11 @@ describe('JournalBlockRenderer', () => {
         },
       ],
       [
-        'part',
-        {
-          body: { format: 'fields', fields: { label: 'Part 01', title: 'Opening Part' } },
-          expected: 'Opening Part',
-        },
-      ],
-      [
-        'label-title',
-        {
-          body: { format: 'fields', fields: { label: 'Label', title: 'Label Title' } },
-          expected: 'Label Title',
-        },
-      ],
-      [
         'metrics',
         {
           title: 'Metrics',
           body: { format: 'rows', rows: [['Speed', '2x', 'Faster']] },
           expected: '2x',
-        },
-      ],
-      [
-        'compare',
-        {
-          title: 'Compare',
-          body: { format: 'rows', rows: [['Path', 'Old', 'New']] },
-          expected: 'New',
         },
       ],
       [
@@ -729,25 +423,10 @@ describe('JournalBlockRenderer', () => {
         },
       ],
       [
-        'infographic',
-        {
-          body: { format: 'fields', fields: { title: 'Infographic', summary: 'One big idea' } },
-          expected: 'One big idea',
-        },
-      ],
-      [
         'verdict',
         {
           body: { format: 'fields', fields: { title: 'Ship it', summary: 'Ready' } },
           expected: 'Ship it',
-        },
-      ],
-      [
-        'audience-fit',
-        {
-          title: 'Audience',
-          body: { format: 'rows', rows: [['Designers', 'High', 'Need structure']] },
-          expected: 'Designers',
         },
       ],
       [
@@ -756,24 +435,6 @@ describe('JournalBlockRenderer', () => {
           title: 'Myths',
           body: { format: 'rows', rows: [['Hard to read', 'Actually structured']] },
           expected: 'Actually structured',
-        },
-      ],
-      [
-        'manifesto',
-        {
-          title: 'Manifesto',
-          body: { format: 'rows', rows: [['Clarity', 'Use structure']] },
-          expected: 'Clarity',
-        },
-      ],
-      [
-        'bridge',
-        {
-          body: {
-            format: 'fields',
-            fields: { from: 'Raw notes', to: 'Structured reading', why: 'Scan faster' },
-          },
-          expected: 'Structured reading',
         },
       ],
       [
@@ -791,26 +452,6 @@ describe('JournalBlockRenderer', () => {
             fields: { image: '/tmp/image.png', title: 'Image Text', text: 'Inspectable evidence' },
           },
           expected: 'Inspectable evidence',
-        },
-      ],
-      [
-        'image-compare',
-        {
-          body: {
-            format: 'fields',
-            fields: { before: '/tmp/a.png', after: '/tmp/b.png', title: 'Before After' },
-          },
-          expected: 'Before After',
-        },
-      ],
-      [
-        'image-annotate',
-        {
-          body: {
-            format: 'json_object',
-            value: { image: '/tmp/a.png', title: 'Annotated', notes: ['Point A'] },
-          },
-          expected: 'Point A',
         },
       ],
       [
@@ -865,37 +506,6 @@ describe('JournalBlockRenderer', () => {
         },
       ],
       [
-        'notice',
-        {
-          body: { format: 'fields', fields: { title: 'Notice', text: 'Read carefully' } },
-          expected: 'Read carefully',
-        },
-      ],
-      [
-        'logos',
-        {
-          title: 'Logos',
-          body: { format: 'rows', rows: [['OpenAI', 'Model']] },
-          expected: 'OpenAI',
-        },
-      ],
-      [
-        'pricing',
-        {
-          title: 'Pricing',
-          body: { format: 'rows', rows: [['Team', '$10', 'Monthly']] },
-          expected: '$10',
-        },
-      ],
-      [
-        'specs',
-        {
-          title: 'Specs',
-          body: { format: 'rows', rows: [['Latency', 'Fast', 'Measured']] },
-          expected: 'Latency',
-        },
-      ],
-      [
         'toolbox',
         {
           title: 'Toolbox',
@@ -924,22 +534,6 @@ describe('JournalBlockRenderer', () => {
         },
       ],
       [
-        'people',
-        {
-          title: 'People',
-          body: { format: 'rows', rows: [['Ada', 'Owner', 'Decision maker']] },
-          expected: 'Ada',
-        },
-      ],
-      [
-        'series',
-        {
-          title: 'Series',
-          body: { format: 'rows', rows: [['Part One', 'done', '01.md']] },
-          expected: 'Part One',
-        },
-      ],
-      [
         'callout',
         {
           title: 'Callout',
@@ -958,34 +552,6 @@ describe('JournalBlockRenderer', () => {
         },
       ],
       [
-        'quote-card',
-        {
-          body: { format: 'fields', fields: { quote: 'Make it quiet.', source: 'JournalClaw' } },
-          expected: 'Make it quiet.',
-        },
-      ],
-      [
-        'tweet',
-        {
-          body: { format: 'fields', fields: { text: 'Short public note', author: 'Yan' } },
-          expected: 'Short public note',
-        },
-      ],
-      [
-        'stat-row',
-        {
-          body: { format: 'json_array', value: [{ label: 'Coverage', value: '43' }] },
-          expected: 'Coverage',
-        },
-      ],
-      [
-        'question',
-        {
-          body: { format: 'fields', fields: { text: 'What changed?', context: 'Renderer path' } },
-          expected: 'What changed?',
-        },
-      ],
-      [
         'resource-list',
         {
           body: { format: 'json_array', value: [{ title: 'Docs', url: 'https://example.com' }] },
@@ -1000,16 +566,6 @@ describe('JournalBlockRenderer', () => {
             value: { columns: ['A', 'B'], rows: [{ label: 'Speed', values: ['Slow', 'Fast'] }] },
           },
           expected: 'Speed',
-        },
-      ],
-      [
-        'changelog',
-        {
-          body: {
-            format: 'json_array',
-            value: [{ date: '2026-06-04', title: 'Added directives', note: 'All modules render' }],
-          },
-          expected: 'Added directives',
         },
       ],
     ])

@@ -51,7 +51,7 @@ inside code
   it('returns a local syntax error for an unclosed directive', () => {
     const result = parseRawJournalLayout(`Intro
 
-:::hero
+:::verdict
 title: Missing close`)
 
     expect(result.containsLayout).toBe(true)
@@ -59,7 +59,7 @@ title: Missing close`)
       kind: 'error',
       issue: {
         kind: 'syntax',
-        blockName: 'hero',
+        blockName: 'verdict',
         message: 'Directive is not closed.',
         sourceRange: { startLine: 3, endLine: 4 },
       },
@@ -91,7 +91,7 @@ C`)
   })
 
   it('reports malformed opening lines as syntax errors', () => {
-    const result = parseRawJournalLayout(`:::hero[bad title
+    const result = parseRawJournalLayout(`:::verdict[bad title
 title: Broken
 :::`)
 
@@ -109,7 +109,7 @@ title: Broken
   it('preserves malformed directive source and keeps following markdown local', () => {
     const result = parseRawJournalLayout(`Before
 
-:::hero[bad title
+:::verdict[bad title
 title: Broken
 subtitle: Keep this visible in the local error
 :::
@@ -124,7 +124,7 @@ After`)
         kind: 'syntax',
         message: 'Directive opening line is malformed.',
         source:
-          ':::hero[bad title\ntitle: Broken\nsubtitle: Keep this visible in the local error\n:::',
+          ':::verdict[bad title\ntitle: Broken\nsubtitle: Keep this visible in the local error\n:::',
         sourceRange: { startLine: 3, endLine: 6 },
       },
     })

@@ -1,102 +1,79 @@
 ---
-tags: ["journal","mdx-manual","template","technical-docs"]
-summary: "当需要记录部署 Runbook，并梳理环境与前置条件、影响范围和冻结窗口、部署命令与参数、部署前验证时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/technical-docs.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录部署 Runbook，并梳理环境与前置条件、影响范围和冻结窗口、部署命令与参数、部署前验证时使用。'
+tags: [journal, template, technical-docs, deployment-runbook]
+sources: []
 ---
 
 # 部署 Runbook
 
-<Section density="relaxed">
-  <Subtitle>Runbook 要让值班人按步骤执行并判断是否继续、暂停或回滚；它不是部署过程的回忆录。</Subtitle>
+> 适用：用于整理部署 Runbook；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Google SRE Workbook 的运营就绪视角：Runbook 要让值班人按步骤执行并判断是否继续、暂停或回滚；它不是部署过程的回忆录。
+<Callout tone="warning" title="执行边界">
+  【填写影响范围和冻结窗口；未知时写“待确认”，不要推断】
 </Callout>
 
-<Callout type="warning" title="结论">
-  【写清问题、根因或方案结论；同时保留未覆盖风险。】
-</Callout>
-
-## 执行步骤
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "环境与前置条件",
-        "【填写 环境与前置条件】"
-    ],
-    [
-        "影响范围和冻结窗口",
-        "【填写 影响范围和冻结窗口】"
-    ],
-    [
-        "部署命令与参数",
-        "【填写 部署命令与参数】"
-    ],
-    [
-        "部署前验证",
-        "【填写 部署前验证】"
-    ],
-    [
-        "部署后验证",
-        "【填写 部署后验证】"
-    ],
-    [
-        "回滚步骤与触发条件",
-        "【填写 回滚步骤与触发条件】"
-    ],
-    [
-        "负责人和值班升级路径",
-        "【填写 负责人和值班升级路径】"
-    ],
-    [
-        "风险",
-        "【填写 风险】"
-    ]
-]}
-/>
-
-<Checklist
+<Steps
+  heading="执行步骤"
   items={[
-    { text: "【部署/迁移前检查】" },
-    { text: "【执行中检查】" },
-    { text: "【完成后验证】" },
-    { text: "【回滚后验证】" },
-  ]}
-/>
-
-<CopyButton text="【精确命令或脚本】" label="复制命令" />
-
-<RiskMatrix
-  risks={[
-    { risk: "【执行、数据或兼容风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
-
-<ActionTable
-  items={[
-    { action: "【人工确认、回滚或补验证】", owner: "【负责人】", due: "【截止时间】", source: "部署 Runbook", status: "open" },
+    { title: '【填写部署前验证；未知时写“待确认”，不要推断】' },
+    { title: '【填写部署后验证；未知时写“待确认”，不要推断】' },
+    { title: '【填写负责人和值班升级路径；未知时写“待确认”，不要推断】' },
   ]}
 />
 
 <Checklist
   items={[
-    {
-        "text": "每条命令都包含目标环境、必要变量、预期输出或成功判断"
-    },
-    {
-        "text": "验证步骤覆盖部署前、部署后和回滚后三个阶段"
-    },
-    {
-        "text": "回滚触发条件可观察"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '前置条件满足', state: 'todo' },
+    { text: '回滚路径可执行', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 环境与前置条件
+
+【填写环境与前置条件；未知时写“待确认”，不要推断】
+
+### 影响范围和冻结窗口
+
+【填写影响范围和冻结窗口；未知时写“待确认”，不要推断】
+
+### 部署命令与参数
+
+【填写部署命令与参数；未知时写“待确认”，不要推断】
+
+### 部署前验证
+
+【填写部署前验证；未知时写“待确认”，不要推断】
+
+### 部署后验证
+
+【填写部署后验证；未知时写“待确认”，不要推断】
+
+### 回滚步骤与触发条件
+
+【填写回滚步骤与触发条件；未知时写“待确认”，不要推断】
+
+### 负责人和值班升级路径
+
+【填写负责人和值班升级路径；未知时写“待确认”，不要推断】
+
+### 风险
+
+【填写风险；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '前置条件满足', state: 'todo' },
+    { text: '回滚路径可执行', state: 'todo' },
+    { text: '每条命令都包含目标环境、必要变量、预期输出或成功判断', state: 'todo' },
+    { text: '验证步骤覆盖部署前、部署后和回滚后三个阶段', state: 'todo' },
+    { text: '回滚触发条件可观察', state: 'todo' },
+  ]}
+/>
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

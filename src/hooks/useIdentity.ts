@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listen } from '@tauri-apps/api/event'
 import { listIdentities } from '../lib/tauri'
+import { useEventSync } from './useEventSync'
 import type { IdentityEntry } from '../types'
 
 export function useIdentity() {
@@ -20,17 +20,12 @@ export function useIdentity() {
 
   useEffect(() => {
     refresh()
-
-    // Refresh when speakers are updated after imported audio is processed
-    const unlistenSpeakers = listen('speakers-updated', () => refresh())
-    // Refresh when identity files change (merge, delete, create)
-    const unlistenIdentity = listen('identity-updated', () => refresh())
-
-    return () => {
-      unlistenSpeakers.then((fn) => fn())
-      unlistenIdentity.then((fn) => fn())
-    }
   }, [refresh])
+
+  // Use event sync instead of raw event listeners
+  useEventSync(['speakers-updated', 'identity-updated'], () => {
+    refresh()
+  })
 
   return { identities, loading, refresh }
 }

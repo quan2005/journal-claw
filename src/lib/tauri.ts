@@ -14,6 +14,7 @@ import type {
   LegacyDirectiveFile,
   ApplyDirectiveMigrationRequest,
   ApplyDirectiveMigrationResult,
+  DomainEvent,
 } from '../types'
 
 export type { CreateRoutineRequest, UpdateRoutineRequest } from '../types'
@@ -675,3 +676,7 @@ export const getPinnedItems = (): Promise<PinnedItem[]> => invoke<PinnedItem[]>(
 
 export const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
   invoke<void>('set_pinned_items', { items })
+
+// ── Event Log (catch-up mechanism) ──────────────────────────
+export const getEventsSince = (sinceSeq: number): Promise<DomainEvent[]> =>
+  invoke<DomainEvent[]>('get_events_since', { sinceSeq })

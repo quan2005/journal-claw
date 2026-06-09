@@ -1,92 +1,71 @@
 ---
-tags: ["journal","mdx-manual","template","learning-notes"]
-summary: "当需要记录文献矩阵，并梳理主题维度、论文/年份、研究问题、方法/样本时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录文献矩阵，并梳理主题维度、论文/年份、研究问题、方法/样本时使用。'
+tags: [journal, template, learning-notes, literature-matrix]
+sources: []
 ---
 
 # 文献矩阵
 
-<Section density="relaxed">
-  <Subtitle>文献矩阵的目标是发现共识、冲突和缺口，而不是把多篇论文笔记拼成表格。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  Webster & Watson 的概念中心文献综述视角：文献矩阵的目标是发现共识、冲突和缺口，而不是把多篇论文笔记拼成表格。
-</Callout>
-
-## 文献矩阵
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "主题维度",
-        "【填写 主题维度】"
-    ],
-    [
-        "论文/年份",
-        "【填写 论文/年份】"
-    ],
-    [
-        "研究问题",
-        "【填写 研究问题】"
-    ],
-    [
-        "方法/样本",
-        "【填写 方法/样本】"
-    ],
-    [
-        "发现",
-        "【填写 发现】"
-    ],
-    [
-        "限制",
-        "【填写 限制】"
-    ],
-    [
-        "共识",
-        "【填写 共识】"
-    ],
-    [
-        "冲突/研究缺口",
-        "【填写 冲突/研究缺口】"
-    ]
-]}
-/>
+> 适用：用于整理文献矩阵；只写来源支持的事实，并显式保留未知项。
 
 <ComparisonMatrix
-  columns={["研究问题", "方法/样本", "发现", "限制", "可复用点"]}
+  columns={['证据', '优势', '限制']}
   rows={[
-    { label: "【论文 A】", values: ["【问题】", "【方法】", "【发现】", "【限制】", "【复用点】"] },
-    { label: "【论文 B】", values: ["【问题】", "【方法】", "【发现】", "【限制】", "【复用点】"] },
-    { label: "【论文 C】", values: ["【问题】", "【方法】", "【发现】", "【限制】", "【复用点】"] },
+    { label: '对象 A', values: ['【待填】', '【待填】', '【待填】'] },
+    { label: '对象 B', values: ['【待填】', '【待填】', '【待填】'] },
   ]}
 />
 
-<EvidenceCard title="关键论文证据" source="【来源】">
-  【保留事实、数字、原话、日志、截图或链接；不要把推断写成证据。】
-</EvidenceCard>
+<Verdict
+  title="【填写限制；未知时写“待确认”，不要推断】"
+  summary="【填写适用条件与仍需验证的问题；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
+/>
 
-<InsightCard title="共识、冲突与研究缺口">
-  【从证据推出判断，并写清限制、假设或下一步验证。】
-</InsightCard>
+## 记录提示
+
+### 主题维度
+
+【填写主题维度；未知时写“待确认”，不要推断】
+
+### 论文/年份
+
+【填写论文/年份；未知时写“待确认”，不要推断】
+
+### 研究问题
+
+【填写研究问题；未知时写“待确认”，不要推断】
+
+### 方法/样本
+
+【填写方法/样本；未知时写“待确认”，不要推断】
+
+### 发现
+
+【填写发现；未知时写“待确认”，不要推断】
+
+### 限制
+
+【填写限制；未知时写“待确认”，不要推断】
+
+### 共识
+
+【填写共识；未知时写“待确认”，不要推断】
+
+### 冲突/研究缺口
+
+【填写冲突/研究缺口；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "矩阵至少包含 3 篇文献，并按同一组列比较"
-    },
-    {
-        "text": "必须产出至少一个可复用框架、方法、指标或研究假设"
-    },
-    {
-        "text": "必须写出下一轮阅读顺序以及每篇要补的缺口"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '矩阵至少包含 3 篇文献，并按同一组列比较', state: 'todo' },
+    { text: '必须产出至少一个可复用框架、方法、指标或研究假设', state: 'todo' },
+    { text: '必须写出下一轮阅读顺序以及每篇要补的缺口', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

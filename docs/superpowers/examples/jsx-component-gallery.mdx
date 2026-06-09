@@ -1,310 +1,94 @@
 ---
-tags: [journal, mdx, components]
-summary: 43 个 canonical JSX layout components 的真实渲染画廊。
+tags: [journal, mdx, components, smoke]
+summary: 按文章任务抽样展示当前 61 个公共 MDX 组件的视觉和组合方式。
+sources: [src/components/mdx/component-manifest.json]
 ---
 
-<Hero
-  eyebrow="Canonical JSX"
-  title="谨迹组件画廊"
-  subtitle="Markdown 负责阅读主线，typed JSX 负责稳定的结构化表达。"
-  meta="43 layout components · quiet / precise / information-first"
-/>
+# JSX Component Gallery
+
+<Subtitle>分类烟测页面；完整 61 组件覆盖见 jsx-all-components-demo.mdx。</Subtitle>
 
 <Toc
-  heading="画廊索引"
+  heading="分类"
   items={[
-    { label: '01', title: 'Opening', description: '入口与章节结构' },
-    { label: '02', title: 'Infographic', description: '指标、步骤与时间线' },
-    { label: '03', title: 'Judgment', description: '判断与转折' },
-    { label: '04', title: 'Evidence', description: '引用与图像证据' },
-    { label: '05', title: 'Conversion', description: '行动与结构化收束' },
-    { label: '06', title: 'Brand & Enhanced', description: '人物、资源与扩展结构' },
+    { label: '01', title: '结构与指标' },
+    { label: '02', title: '判断与证据' },
+    { label: '03', title: '管理与技术' },
   ]}
 />
 
-<Part label="01" title="Opening" subtitle="先建立阅读入口，再展开细节。" />
+## 结构与指标
 
 <Cards
-  heading="三条用户信号"
   items={[
-    { title: '效果优先', description: '工作流搭建不难，难的是把效果调好。', meta: '新用户' },
-    { title: '节点可观测', description: '需要知道偏差发生在哪个节点。', meta: '多轮对话' },
-    {
-      title: '自然语言生成',
-      description: '自动生成成型工作流，并允许手调细节。',
-      meta: '成长期用户',
-      variant: 'accent',
-    },
+    { title: '管理分析', description: '指标、风险、决策和责任。' },
+    { title: '技术讲解', description: '架构、步骤、验证和来源。' },
+    { title: '文章排版', description: '目录、摘要、引用和图片说明。' },
   ]}
 />
 
-<LabelTitle
-  label="研究主题"
-  title="从生成骨架走向可调的成型工作流"
-  subtitle="用户要的是结果质量与可诊断性。"
-/>
-
-<Part label="02" title="Infographic" />
-
-<Metrics
-  heading="样本概览"
-  items={[
-    { label: '访谈', value: 3, description: '覆盖新用户与成长期用户' },
-    { label: '强信号', value: 3, description: '效果、可观测性、自然语言生成' },
-    { label: '优先级', value: 'P0', description: '先解决结果质量' },
-  ]}
-/>
-
-<Compare
-  heading="体验转变"
-  items={[
-    { item: '搭建', left: '用户手工串节点', right: '自然语言生成完整工作流' },
-    { item: '调试', left: '靠猜测反复试', right: '逐节点查看输入与输出' },
-  ]}
-/>
+<StatGroup>
+  <Stat label="公共组件" value={61} />
+  <Stat label="Canonical layout" value={22} />
+  <Stat label="Subtype 示例" value={104} />
+</StatGroup>
 
 <Steps
-  heading="理想流程"
+  heading="作者顺序"
   items={[
-    { title: '描述目标', description: '用自然语言说明任务与约束。' },
-    { title: '生成工作流', description: '得到可运行的完整版本。' },
-    { title: '观察与微调', description: '定位节点并调整细节。' },
+    { title: '先写 Markdown 主线' },
+    { title: '识别需要稳定结构的信息' },
+    { title: '只加入最少组件' },
   ]}
 />
 
-<Timeline
-  heading="多轮对话偏差"
-  items={[
-    { time: '第 1 轮', title: '意图清晰', description: '结果符合预期。' },
-    { time: '第 3 轮', title: '开始偏离', description: '需要定位意图、召回或提示词节点。' },
-  ]}
-/>
-
-<Infographic
-  title="效果优先"
-  value="01"
-  summary="效率是可见成本，效果不稳定才是阻碍持续使用的核心风险。"
-/>
-
-<Part label="03" title="Judgment" />
+## 判断与证据
 
 <Verdict
-  title="优先建设节点级可观测性"
-  status="建议"
+  title="组件面已经收敛"
+  summary="设备框架、媒体嵌入、营销组件和低频语义变体不再进入文章运行时。"
   confidence="高"
-  summary="它同时降低调试成本，并为自动生成工作流提供质量闭环。"
+  status="accepted"
 />
 
-<AudienceFit
-  heading="用户适配"
-  items={[
-    { audience: '新用户', fit: '高', reason: '减少初次搭建与效果调试负担' },
-    { audience: '成熟用户', fit: '中高', reason: '保留细节手调能力' },
-  ]}
-/>
+<Quote text="Use Markdown first." source=".agents/skills/journal/references/component-recipes.md" />
 
-<MythFact
-  heading="常见误判"
-  items={[
-    {
-      myth: '用户最在意搭建效率',
-      fact: '用户更在意最终效果',
-      reason: '搭建时间可控，效果调试不可预测',
-    },
-  ]}
-/>
+<Callout tone="warning" title="边界">
+  未注册组件必须在生成前被校验器发现；运行时仍应把错误限制在局部。
+</Callout>
 
-<Manifesto
-  heading="产品原则"
-  items={[
-    { principle: '效果先于效率', detail: '先建立稳定结果，再压缩操作成本。' },
-    { principle: '生成必须可调', detail: '自动化不能夺走用户的控制权。' },
-  ]}
-/>
+## 管理与技术
 
-<Bridge from="黑盒式重试" to="逐节点诊断" why="让偏差从模糊感受变成可修复事实。" />
-
-<Part label="04" title="Evidence" />
-
-<Quote
-  text="最看重的是效果，不是效率。自己搭工作流花不了多少时间，但是效果好不好比较难调试。"
-  author="冯灿威"
-  context="新用户（<1 月）"
-/>
-
-<ImageText
-  image="../../../src/assets/wechat-qrcode.png"
-  title="证据截图"
-  text="图片与解释保持同一阅读上下文。"
-  alt="示例图片"
-/>
-
-<ImageCompare
-  before="../../../src/assets/wechat-qrcode.png"
-  after="../../../src/assets/wechat-qrcode.png"
-  title="前后对照"
-  caption="对照结构在宽屏并排，在窄屏自然堆叠。"
-/>
-
-<ImageAnnotate
-  image="../../../src/assets/wechat-qrcode.png"
-  title="标注说明"
-  notes={['第一处关键信号', '第二处验证线索']}
-/>
-
-<ImageSteps
-  items={[
-    { image: '../../../src/assets/wechat-qrcode.png', title: '查看', text: '确认原始状态。' },
-    { image: '../../../src/assets/wechat-qrcode.png', title: '调整', text: '记录变化与结果。' },
-  ]}
-/>
-
-<Part label="05" title="Conversion" />
-
-<Cta
-  title="把结果质量做成可观察、可调整的闭环"
-  description="让自然语言生成从演示能力变成稳定工作方式。"
-  action="下一步：定义节点级 trace schema"
-/>
-
-<Faq
-  heading="关键问题"
-  items={[
-    {
-      question: '为什么不是先做更快？',
-      answer: '因为用户已经能搭出来，真正的不确定性在结果质量。',
-    },
-  ]}
-/>
-
-<Checklist
-  heading="落地检查"
-  items={[{ text: '记录每个节点输入输出', state: 'done' }, { text: '支持从偏差节点重新运行' }]}
-/>
-
-<Cases
-  heading="用户案例"
-  items={[{ case: '多轮对话', result: '定位第 3 轮偏差', note: '区分意图、召回与提示词问题' }]}
-/>
-
-<Summary
-  title="核心结论"
-  body="用统一 JSX 组件表达结构；用节点级可观测性保障自动生成工作流的最终效果。"
-/>
-
-<Notice title="边界" text="组件用于承载信息，不用于装饰页面。" />
-
-<Logos
-  heading="相关系统"
-  items={[
-    { name: 'JournalClaw', meta: '阅读与沉淀' },
-    { name: 'ModelHub', meta: '模型能力' },
-  ]}
-/>
-
-<Pricing
-  heading="投入评估"
-  items={[
-    { plan: '基础闭环', price: 'P0', note: 'trace + rerun' },
-    { plan: '自动优化', price: 'P1', note: '基于评测反馈调整' },
-  ]}
-/>
-
-<Specs
-  heading="能力规格"
-  items={[
-    { name: '语法', value: 'MDX JSX', note: '单一作者语法' },
-    { name: '主题', value: 'Dark + Light', note: '同等质量' },
-  ]}
-/>
-
-<Toolbox
-  heading="工具箱"
-  items={[
-    {
-      tool: 'Component catalog',
-      use: '选择组件',
-      link: '.agents/skills/journal/references/component-catalog.md',
-    },
-  ]}
-/>
-
-<Part label="06" title="Brand & Enhanced" />
-
-<AuthorCard name="谨迹" role="私人知识秘书" bio="把碎片素材整理成可回溯、可沉浸阅读的长期记录。" />
-
-<Subscribe title="持续沉淀" description="把新的访谈证据追加到同一主题，而不是制造孤立页面。" />
-
-<People
-  heading="访谈对象"
-  items={[
-    { name: '冯灿威', role: '新用户', note: '效果优先' },
-    { name: '张荣立', role: '智能体用户', note: '节点级可观测性' },
-  ]}
-/>
-
-<Series
-  heading="相关记录"
-  items={[
-    {
-      title: '用户研究简报',
-      status: '当前',
-      path: '2606/08-文化团队用户调研-工作流痛点与产品需求.mdx',
-    },
-  ]}
-/>
-
-<Callout
-  heading="设计约束"
-  tone="tip"
-  content="克制、沉静、专业；不使用装饰性渐变、玻璃态或卡片套卡片。"
-/>
-
-<Definition
-  term="节点级可观测性"
-  description="能够检查工作流每个节点的输入、输出、耗时与偏差来源。"
-/>
-
-<QuoteCard
-  quote="能够像 vibe coding 一样，仅通过自然语言就能自动搭建成型工作流。"
-  source="何靖瑶"
-/>
-
-<Tweet text="生成不是终点，可观察、可调整、可验证才是工作流真正可用的条件。" author="研究摘要" />
-
-<StatRow
-  items={[
-    { label: 'Directive parity', value: '43/43' },
-    { label: 'Author syntax', value: 'JSX only' },
-  ]}
-/>
-
-<Question
-  text="如何让自动生成的工作流在第 3 轮之后仍然保持意图一致？"
-  context="需要把用户目标、节点 trace 与评测反馈连接起来。"
-/>
-
-<ResourceList
-  items={[
-    { title: 'Component catalog', url: '.agents/skills/journal/references/component-catalog.md' },
-    { title: 'Component recipes', url: '.agents/skills/journal/references/component-recipes.md' },
-  ]}
-/>
-
-<ComparisonTable
-  columns={['Directive', 'JSX']}
+<ComparisonMatrix
+  columns={['适合', '不适合']}
   rows={[
-    { label: '作者语法', values: ['退休', '唯一'] },
-    { label: '视觉实现', values: ['共享', '共享'] },
+    { label: 'StatGroup', values: ['紧凑数字快照', '带解释的指标'] },
+    { label: 'Metrics', values: ['带解释的指标', '单个状态标签'] },
+    { label: 'Steps', values: ['有顺序的过程', '历史事件'] },
   ]}
 />
 
-<Changelog
-  items={[
+<Mermaid
+  chart="flowchart LR
+    Manifest[Manifest] --> Catalog[Catalog]
+    Catalog --> Examples[Examples]
+    Examples --> Runtime[Runtime]"
+  caption="组件内容链路"
+/>
+
+<Flow>
+  <StatusBadge status="registry clean" tone="success" />
+  <StatusBadge status="examples rewritten" tone="success" />
+  <StatusBadge status="render check pending" tone="warning" />
+</Flow>
+
+<ReferenceList
+  sources={[
+    { path: 'src/components/mdx/component-manifest.json', label: 'Manifest', type: 'file' },
     {
-      date: '2026-06-09',
-      title: 'Canonical JSX parity',
-      note: '43 个 layout components 统一注册并复用同一渲染器。',
+      path: '.agents/skills/journal/references/component-catalog.md',
+      label: 'Component catalog',
+      type: 'file',
     },
   ]}
 />

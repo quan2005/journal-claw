@@ -544,6 +544,42 @@ fn push_js_string_literal(out: &mut String, value: &str) {
 #[cfg(test)]
 mod tests {
     use super::{compile_mdx_source, validate_mdx_document};
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    fn collect_mdx_files(root: &Path, files: &mut Vec<PathBuf>) {
+        if !root.exists() {
+            return;
+        }
+
+        for entry in fs::read_dir(root).expect("read MDX corpus directory") {
+            let path = entry.expect("read MDX corpus entry").path();
+            if path.is_dir() {
+                collect_mdx_files(&path, files);
+            } else if path.extension().and_then(|value| value.to_str()) == Some("mdx") {
+                files.push(path);
+            }
+        }
+    }
+
+    fn assert_mdx_corpus_compiles(files: Vec<PathBuf>) {
+        let mut errors = Vec::new();
+
+        for path in files {
+            let source = fs::read_to_string(&path).expect("read MDX file");
+            if let Err(error) =
+                validate_mdx_document(&source, Some(path.to_string_lossy().into_owned()))
+            {
+                errors.push(format!("{}\n{}", path.display(), error));
+            }
+        }
+
+        assert!(
+            errors.is_empty(),
+            "MDX corpus compilation failed:\n\n{}",
+            errors.join("\n\n")
+        );
+    }
 
     #[test]
     fn compiles_basic_mdx() {
@@ -701,5 +737,46 @@ mod tests {
             "{error}"
         );
         assert!(error.contains("Compiler error:"), "{error}");
+    }
+
+    #[test]
+    fn compiles_repository_mdx_examples() {
+        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("src-tauri has a repository parent");
+        let mut files = Vec::new();
+
+        collect_mdx_files(
+            &repo_root.join(".agents/skills/journal/references/template-examples"),
+            &mut files,
+        );
+        collect_mdx_files(
+            &repo_root.join(".agents/skills/journal/references/examples"),
+            &mut files,
+        );
+        for file in [
+            "docs/superpowers/examples/journal-v2-showcase.mdx",
+            "docs/superpowers/examples/jsx-component-gallery.mdx",
+            "docs/superpowers/examples/jsx-all-components-demo.mdx",
+        ] {
+            files.push(repo_root.join(file));
+        }
+
+        assert_eq!(files.len(), 113, "repository MDX corpus count drifted");
+        assert_mdx_corpus_compiles(files);
+    }
+
+    #[test]
+    fn compiles_generated_mdx_manual_when_present() {
+        let manual_root = Path::new("/Users/yanwu/Documents/journal/topics/mdx-support-manual");
+        if !manual_root.exists() {
+            eprintln!("generated MDX manual is absent; skipping local workspace corpus");
+            return;
+        }
+
+        let mut files = Vec::new();
+        collect_mdx_files(manual_root, &mut files);
+        assert_eq!(files.len(), 171, "generated MDX manual count drifted");
+        assert_mdx_corpus_compiles(files);
     }
 }

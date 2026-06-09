@@ -1,97 +1,86 @@
 ---
-tags: ["journal","mdx-manual","template","hr-operations"]
-summary: "当需要记录活动计划，并梳理活动目标与成功指标、run-of-show 时间线、DRI/RACI、预算负责人和上限时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/hr-operations.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录活动计划，并梳理活动目标与成功指标、run-of-show 时间线、DRI/RACI、预算负责人和上限时使用。'
+tags: [journal, template, hr-operations, event-plan]
+sources: []
 ---
 
 # 活动计划
 
-<Section density="relaxed">
-  <Subtitle>活动计划不是待办清单，而是成功指标、run-of-show、DRI、供应商交接和应急预案的现场控制系统。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  大型活动制作人的现场控制视角：活动计划不是待办清单，而是成功指标、run-of-show、DRI、供应商交接和应急预案的现场控制系统。
-</Callout>
-
-## 流程与责任
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "活动目标与成功指标",
-        "【填写 活动目标与成功指标】"
-    ],
-    [
-        "run-of-show 时间线",
-        "【填写 run-of-show 时间线】"
-    ],
-    [
-        "DRI/RACI",
-        "【填写 DRI/RACI】"
-    ],
-    [
-        "预算负责人和上限",
-        "【填写 预算负责人和上限】"
-    ],
-    [
-        "供应商/场地交接",
-        "【填写 供应商/场地交接】"
-    ],
-    [
-        "当日指挥链",
-        "【填写 当日指挥链】"
-    ],
-    [
-        "风险触发条件与应急方案",
-        "【填写 风险触发条件与应急方案】"
-    ]
-]}
-/>
+> 适用：用于整理活动计划；只写来源支持的事实，并显式保留未知项。
 
 <MilestoneTimeline
   items={[
-    { time: "【时间点】", title: "【关键步骤/里程碑】", desc: "【负责人、输入、输出、验收】" },
+    {
+      time: '【日期】',
+      title: '【填写DRI/RACI；未知时写“待确认”，不要推断】',
+      desc: '【填写完成标准；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
 <RACI
   rows={[
-    { work: "【关键事项】", responsible: "【R】", accountable: "【A】", consulted: "【C】", informed: "【I】" },
+    {
+      work: '【填写关键事项；未知时写“待确认”，不要推断】',
+      responsible: '【R】',
+      accountable: '【A】',
+      consulted: '【C】',
+      informed: '【I】',
+    },
   ]}
 />
+
+<Table
+  headers={['资源或风险', '影响', '跟进']}
+  rows={[
+    [
+      '【填写供应商/场地交接；未知时写“待确认”，不要推断】',
+      '【填写当日指挥链；未知时写“待确认”，不要推断】',
+      '【填写风险触发条件与应急方案；未知时写“待确认”，不要推断】',
+    ],
+  ]}
+/>
+
+## 记录提示
+
+### 活动目标与成功指标
+
+【填写活动目标与成功指标；未知时写“待确认”，不要推断】
+
+### run-of-show 时间线
+
+【填写run-of-show 时间线；未知时写“待确认”，不要推断】
+
+### DRI/RACI
+
+【填写DRI/RACI；未知时写“待确认”，不要推断】
+
+### 预算负责人和上限
+
+【填写预算负责人和上限；未知时写“待确认”，不要推断】
+
+### 供应商/场地交接
+
+【填写供应商/场地交接；未知时写“待确认”，不要推断】
+
+### 当日指挥链
+
+【填写当日指挥链；未知时写“待确认”，不要推断】
+
+### 风险触发条件与应急方案
+
+【填写风险触发条件与应急方案；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    { text: "【触发条件已明确】" },
-    { text: "【异常路径已明确】" },
-    { text: "【验收标准已明确】" },
+    { text: '每个关键里程碑都有 DRI、截止时间和当前状态', state: 'todo' },
+    { text: '每个高风险项都有触发条件、应对方案和现场负责人', state: 'todo' },
+    { text: '活动前交接包包含联系人、物料状态、场地/供应商确认和下一步', state: 'todo' },
   ]}
 />
 
-<RiskMatrix
-  risks={[
-    { risk: "【现场、流程或异常风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
+## 来源
 
-<Checklist
-  items={[
-    {
-        "text": "每个关键里程碑都有 DRI、截止时间和当前状态"
-    },
-    {
-        "text": "每个高风险项都有触发条件、应对方案和现场负责人"
-    },
-    {
-        "text": "活动前交接包包含联系人、物料状态、场地/供应商确认和下一步"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
-  ]}
-/>
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

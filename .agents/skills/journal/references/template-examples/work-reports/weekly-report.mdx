@@ -1,93 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","work-reports"]
-summary: "当需要记录周报，并梳理本周可验证成果、结果指标、前置指标、项目进展时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录周报，并梳理本周可验证成果、结果指标、前置指标、项目进展时使用。'
+tags: [journal, template, work-reports, weekly-report]
+sources: []
 ---
 
 # 周报
 
-<Section density="relaxed">
-  <Subtitle>用于周报：用结论先行总结成果、指标、风险和下周重点。</Subtitle>
+> 适用：用于整理周报；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Andy Grove 的高产出管理视角：周报要汇报产出和杠杆，不汇报忙碌；指标要同时体现结果指标和前置指标。
-</Callout>
+<Verdict
+  title="【填写本周期管理判断；未知时写“待确认”，不要推断】"
+  summary="【填写最重要的结果、变化和风险；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
+/>
 
-<Callout type="note" title="结论">
-  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
-</Callout>
-
-<StatGroup>
-  <Stat label="完成项" value={"【数量】"} />
-  <Stat label="风险" value={"【数量】"} />
-  <Stat label="下阶段重点" value={"【数量】"} />
-</StatGroup>
-
-## 汇报内容
+<Metrics
+  heading="关键指标"
+  items={[
+    {
+      label: '结果指标',
+      value: '【当前值】',
+      description: '【填写变化原因；未知时写“待确认”，不要推断】',
+    },
+  ]}
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['风险或请求', '影响', '负责人', '下一步']}
   rows={[
     [
-        "本周可验证成果",
-        "【填写 本周可验证成果】"
+      '【填写风险；未知时写“待确认”，不要推断】',
+      '【填写影响；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写下周杠杆动作；未知时写“待确认”，不要推断】',
     ],
-    [
-        "结果指标",
-        "【填写 结果指标】"
-    ],
-    [
-        "前置指标",
-        "【填写 前置指标】"
-    ],
-    [
-        "项目进展",
-        "【填写 项目进展】"
-    ],
-    [
-        "管理层需关注",
-        "【填写 管理层需关注】"
-    ],
-    [
-        "风险",
-        "【填写 风险】"
-    ],
-    [
-        "下周杠杆动作",
-        "【填写 下周杠杆动作】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "周报", status: "open" },
-  ]}
-/>
+## 记录提示
+
+### 本周可验证成果
+
+【填写本周可验证成果；未知时写“待确认”，不要推断】
+
+### 结果指标
+
+【填写结果指标；未知时写“待确认”，不要推断】
+
+### 前置指标
+
+【填写前置指标；未知时写“待确认”，不要推断】
+
+### 项目进展
+
+【填写项目进展；未知时写“待确认”，不要推断】
+
+### 管理层需关注
+
+【填写管理层需关注；未知时写“待确认”，不要推断】
+
+### 风险
+
+【填写风险；未知时写“待确认”，不要推断】
+
+### 下周杠杆动作
+
+【填写下周杠杆动作；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个指标必须包含本周值、上周值或目标值中的至少两项"
-    },
-    {
-        "text": "每个风险必须有应对、负责人和截止时间"
-    },
-    {
-        "text": "下周计划中的每条动作必须绑定一个成果、风险或指标"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个指标必须包含本周值、上周值或目标值中的至少两项', state: 'todo' },
+    { text: '每个风险必须有应对、负责人和截止时间', state: 'todo' },
+    { text: '下周计划中的每条动作必须绑定一个成果、风险或指标', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

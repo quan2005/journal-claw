@@ -1,12 +1,5 @@
 import type { ReactNode } from 'react'
-import {
-  arrayBlock,
-  fieldsBlock,
-  LayoutBlock,
-  nodeText,
-  objectBlock,
-  rowsBlock,
-} from './blockFactory'
+import { arrayBlock, LayoutBlock, nodeText, objectBlock, rowsBlock } from './blockFactory'
 
 export type CalloutTone = 'note' | 'tip' | 'info' | 'warning' | 'danger'
 
@@ -40,27 +33,6 @@ export function Definition({ term, description }: { term: string; description: s
   return <LayoutBlock block={objectBlock('definition', { term, description })} />
 }
 
-export function QuoteCard({ quote, source }: { quote: string; source?: string }) {
-  return <LayoutBlock block={fieldsBlock('quote-card', { quote, source })} />
-}
-
-export function Tweet({ text, author, url }: { text: string; author?: string; url?: string }) {
-  return <LayoutBlock block={fieldsBlock('tweet', { text, author, url })} />
-}
-
-export interface StatRowItem {
-  label: string
-  value: string | number
-}
-
-export function StatRow({ items }: { items: StatRowItem[] }) {
-  return <LayoutBlock block={arrayBlock('stat-row', items)} />
-}
-
-export function Question({ text, context }: { text: string; context?: string }) {
-  return <LayoutBlock block={fieldsBlock('question', { text, context })} />
-}
-
 export interface ResourceItem {
   title: string
   url: string
@@ -91,14 +63,4 @@ export function ComparisonTable({
       block={objectBlock('comparison-table', { columns, rows }, { title: heading ?? title })}
     />
   )
-}
-
-export interface ChangelogItem {
-  date: string
-  title: string
-  note?: string
-}
-
-export function Changelog({ items }: { items: ChangelogItem[] }) {
-  return <LayoutBlock block={arrayBlock('changelog', items)} />
 }

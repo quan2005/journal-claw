@@ -1,91 +1,88 @@
 ---
-tags: ["journal","mdx-manual","template","content-creation"]
-summary: "当需要记录演讲 PPT 大纲，并梳理听众状态变化、开场 hook、信念弧线、幻灯片信息时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/content-creation.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录演讲 PPT 大纲，并梳理听众状态变化、开场 hook、信念弧线、幻灯片信息时使用。'
+tags: [journal, template, content-creation, talk-ppt-outline]
+sources: []
 ---
 
 # 演讲 PPT 大纲
 
-<Section density="relaxed">
-  <Subtitle>PPT 大纲的核心不是页数，而是每页推动听众从一个状态迁移到下一个状态。</Subtitle>
-
-<Callout type="tip" title="专业校准">
-  TED 风格演讲教练的听众迁移视角：PPT 大纲的核心不是页数，而是每页推动听众从一个状态迁移到下一个状态。
-</Callout>
-
-<Callout type="note" title="核心信息">
-  【写清这份内容要让读者记住什么，以及读者为什么现在需要知道。】
-</Callout>
-
-## 现场结构
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "听众状态变化",
-        "【填写 听众状态变化】"
-    ],
-    [
-        "开场 hook",
-        "【填写 开场 hook】"
-    ],
-    [
-        "信念弧线",
-        "【填写 信念弧线】"
-    ],
-    [
-        "幻灯片信息",
-        "【填写 幻灯片信息】"
-    ],
-    [
-        "证据时刻",
-        "【填写 证据时刻】"
-    ],
-    [
-        "视觉提示",
-        "【填写 视觉提示】"
-    ],
-    [
-        "时间预算",
-        "【填写 时间预算】"
-    ]
-]}
-/>
+> 适用：用于整理演讲 PPT 大纲；只写来源支持的事实，并显式保留未知项。
 
 <Timeline
+  heading="叙事节奏"
   items={[
-    { time: "【分钟】", title: "【段落/幻灯片】", desc: "【信息、证据、转场或讲法提示】" },
+    {
+      time: '开场',
+      title: '【填写信念弧线；未知时写“待确认”，不要推断】',
+      description: '【填写预计用时；未知时写“待确认”，不要推断】',
+    },
+    {
+      time: '主体',
+      title: '【填写幻灯片信息；未知时写“待确认”，不要推断】',
+      description: '【填写转场；未知时写“待确认”，不要推断】',
+    },
+    {
+      time: '结尾',
+      title: '【填写时间预算；未知时写“待确认”，不要推断】',
+      description: '【填写行动请求；未知时写“待确认”，不要推断】',
+    },
   ]}
 />
 
-<QuoteCard quote="【需要准确说出的强调语或转场句。】" source="演讲 PPT 大纲" />
+<Quote
+  text="【填写要准确说出的关键句；未知时写“待确认”，不要推断】"
+  source="【填写依据或出处；未知时写“待确认”，不要推断】"
+/>
 
 <Checklist
   items={[
-    { text: "【计时已演练】" },
-    { text: "【设备和素材已确认】" },
-    { text: "【收尾行动已确认】" },
+    { text: '总时长经过演练', state: 'todo' },
+    { text: '页面和讲者提示一致', state: 'todo' },
   ]}
 />
+
+## 记录提示
+
+### 听众状态变化
+
+【填写听众状态变化；未知时写“待确认”，不要推断】
+
+### 开场 hook
+
+【填写开场 hook；未知时写“待确认”，不要推断】
+
+### 信念弧线
+
+【填写信念弧线；未知时写“待确认”，不要推断】
+
+### 幻灯片信息
+
+【填写幻灯片信息；未知时写“待确认”，不要推断】
+
+### 证据时刻
+
+【填写证据时刻；未知时写“待确认”，不要推断】
+
+### 视觉提示
+
+【填写视觉提示；未知时写“待确认”，不要推断】
+
+### 时间预算
+
+【填写时间预算；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每页都标出信息、证据和听众状态变化"
-    },
-    {
-        "text": "每个核心观点对应一个例子、数据、故事或演示证据"
-    },
-    {
-        "text": "发布前确认总时长、转场句、视觉素材和设备需求"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '总时长经过演练', state: 'todo' },
+    { text: '页面和讲者提示一致', state: 'todo' },
+    { text: '每页都标出信息、证据和听众状态变化', state: 'todo' },
+    { text: '每个核心观点对应一个例子、数据、故事或演示证据', state: 'todo' },
+    { text: '发布前确认总时长、转场句、视觉素材和设备需求', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

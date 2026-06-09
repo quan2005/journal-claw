@@ -1,93 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","work-reports"]
-summary: "当需要记录月报，并梳理目标与贡献、关键指标、资源投入、重大变化时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录月报，并梳理目标与贡献、关键指标、资源投入、重大变化时使用。'
+tags: [journal, template, work-reports, monthly-report]
+sources: []
 ---
 
 # 月报
 
-<Section density="relaxed">
-  <Subtitle>月报应回答本月对目标贡献了什么、资源是否用在正确事项上、下月该停止或加码什么。</Subtitle>
+> 适用：用于整理月报；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Peter Drucker 的目标管理视角：月报应回答本月对目标贡献了什么、资源是否用在正确事项上、下月该停止或加码什么。
-</Callout>
+<Verdict
+  title="【填写本周期管理判断；未知时写“待确认”，不要推断】"
+  summary="【填写最重要的结果、变化和风险；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
+/>
 
-<Callout type="note" title="结论">
-  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
-</Callout>
-
-<StatGroup>
-  <Stat label="完成项" value={"【数量】"} />
-  <Stat label="风险" value={"【数量】"} />
-  <Stat label="下阶段重点" value={"【数量】"} />
-</StatGroup>
-
-## 汇报内容
+<Metrics
+  heading="关键指标"
+  items={[
+    {
+      label: '关键指标',
+      value: '【当前值】',
+      description: '【填写变化原因；未知时写“待确认”，不要推断】',
+    },
+  ]}
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['风险或请求', '影响', '负责人', '下一步']}
   rows={[
     [
-        "目标与贡献",
-        "【填写 目标与贡献】"
+      '【填写风险；未知时写“待确认”，不要推断】',
+      '【填写影响；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写下阶段重点；未知时写“待确认”，不要推断】',
     ],
-    [
-        "关键指标",
-        "【填写 关键指标】"
-    ],
-    [
-        "资源投入",
-        "【填写 资源投入】"
-    ],
-    [
-        "重大变化",
-        "【填写 重大变化】"
-    ],
-    [
-        "停止/加码/保持",
-        "【填写 停止/加码/保持】"
-    ],
-    [
-        "风险",
-        "【填写 风险】"
-    ],
-    [
-        "需要决策",
-        "【填写 需要决策】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "月报", status: "open" },
-  ]}
-/>
+## 记录提示
+
+### 目标与贡献
+
+【填写目标与贡献；未知时写“待确认”，不要推断】
+
+### 关键指标
+
+【填写关键指标；未知时写“待确认”，不要推断】
+
+### 资源投入
+
+【填写资源投入；未知时写“待确认”，不要推断】
+
+### 重大变化
+
+【填写重大变化；未知时写“待确认”，不要推断】
+
+### 停止/加码/保持
+
+【填写停止/加码/保持；未知时写“待确认”，不要推断】
+
+### 风险
+
+【填写风险；未知时写“待确认”，不要推断】
+
+### 需要决策
+
+【填写需要决策；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个关键指标必须有本月值和目标值"
-    },
-    {
-        "text": "每个重大变化必须注明发生时间和证据来源"
-    },
-    {
-        "text": "每个决策请求必须写清选项、推荐项和截止日期"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个关键指标必须有本月值和目标值', state: 'todo' },
+    { text: '每个重大变化必须注明发生时间和证据来源', state: 'todo' },
+    { text: '每个决策请求必须写清选项、推荐项和截止日期', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

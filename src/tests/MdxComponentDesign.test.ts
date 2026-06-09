@@ -17,13 +17,8 @@ describe('specialized MDX component design language', () => {
     expect(lastRule('.mdx-specialized-wide')).toContain('max-width: 100%')
   })
 
-  it('keeps decisions, semantic evidence, sources, and transcripts open instead of card-heavy', () => {
-    for (const selector of [
-      '.mdx-decision-record',
-      '.mdx-semantic-card',
-      '.mdx-source-card',
-      '.mdx-transcript',
-    ]) {
+  it('keeps decisions, insights, and sources open instead of card-heavy', () => {
+    for (const selector of ['.mdx-decision-record', '.mdx-semantic-card', '.mdx-source-card']) {
       const body = lastRule(selector)
       expect(body, selector).toContain('background: transparent')
       expect(body, selector).toContain('box-shadow: none')
@@ -36,9 +31,7 @@ describe('specialized MDX component design language', () => {
 
   it('removes decorative elevation while retaining framed tools', () => {
     expect(lastRule('.mdx-card--elevated')).toContain('box-shadow: none')
-    expect(lastRule('.mdx-mac-preview')).toContain('box-shadow: none')
     expect(lastRule('.mdx-chart')).toContain('border: 1px solid var(--mdx-border)')
-    expect(lastRule('.mdx-media-card')).toContain('border: 1px solid var(--mdx-border)')
   })
 
   it('keeps section rhythm and restrained radii explicit', () => {

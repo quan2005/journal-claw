@@ -1,14 +1,52 @@
 ---
-tags: [journal, incident]
-summary: 导入队列卡住的直接风险是用户无法确认处理进度，需要补齐事件链路和失败提示。
-sources: [2605/raw/incident.txt]
+tags: [journal, incident, example]
+summary: 未注册组件曾导致整篇 MDX 无法渲染，修复需要同时覆盖运行时降级与示例白名单校验。
+sources:
+  [
+    src/components/MdxRenderer.tsx,
+    src/components/mdx/component-manifest.json,
+    scripts/validate-journal-mdx-examples.mjs,
+  ]
 ---
 
-# 导入队列卡住复盘
+# 未注册组件导致整篇 MDX 不渲染
 
-<IncidentTimeline
+<Verdict
+  title="影响已隔离"
+  summary="未知组件现在只在局部显示错误，文档其余部分继续渲染；示例校验器负责阻止新漂移。"
+  confidence="高"
+  status="resolved"
+  variant="success"
+/>
+
+<Timeline
+  heading="问题链路"
   items={[
-    { time: '10:12', title: '导入开始', impact: '用户等待处理结果' },
-    { time: '10:23', title: '队列无更新', impact: '前端未收到 journal-updated' },
+    { time: '发现', title: '文档包含已删除组件', description: 'MDX 执行阶段找不到组件绑定。' },
+    { time: '定位', title: '异常发生在整篇执行边界', description: '一个未知标签会中断整份文档。' },
+    {
+      time: '修复',
+      title: '注册局部错误组件并增加扫描',
+      description: '运行时可降级，文档侧可提前失败。',
+    },
+  ]}
+/>
+
+<Table
+  headers={['预防项', '验证']}
+  rows={[
+    ['示例只使用 manifest 组件', 'node scripts/validate-journal-mdx-examples.mjs'],
+    ['未知组件不影响全文', 'MdxRenderer 回归测试'],
+  ]}
+/>
+
+<ReferenceList
+  sources={[
+    { path: 'src/components/MdxRenderer.tsx', label: 'MDX 运行时', type: 'file' },
+    {
+      path: 'scripts/validate-journal-mdx-examples.mjs',
+      label: '示例白名单校验器',
+      type: 'file',
+    },
   ]}
 />

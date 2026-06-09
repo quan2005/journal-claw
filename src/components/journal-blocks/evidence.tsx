@@ -50,6 +50,29 @@ export function QuoteBlock({ block }: { block: JournalBlock }) {
   )
 }
 
+export function QuoteCardBlock({ block }: { block: JournalBlock }) {
+  const data = fields(block)
+  const variant = (block.attrs.variant as string) || 'default'
+  const variantClass =
+    variant !== 'default' ? ` journal-block-quote-card-${variant}` : ''
+  const hasMeta = Boolean(data.author || data.source)
+
+  return (
+    <figure className={`journal-block journal-block-content journal-block-quote-card${variantClass}`}>
+      <blockquote className="journal-block-quote-card-body">
+        <p className="journal-block-quote-card-text">{data.text}</p>
+      </blockquote>
+      {hasMeta && (
+        <figcaption className="journal-block-quote-card-footer">
+          <span className="journal-block-quote-card-dash" aria-hidden="true" />
+          {data.author && <cite className="journal-block-quote-card-author">{data.author}</cite>}
+          {data.source && <span className="journal-block-quote-card-source">{data.source}</span>}
+        </figcaption>
+      )}
+    </figure>
+  )
+}
+
 export function ImageTextBlock({ block, entryPath }: { block: JournalBlock; entryPath?: string }) {
   const data = fields(block)
   const variant = block.attrs.variant === 'reverse' ? ' journal-block-image-text-reverse' : ''
@@ -60,72 +83,6 @@ export function ImageTextBlock({ block, entryPath }: { block: JournalBlock; entr
         {data.title && <h3>{data.title}</h3>}
         {data.text && <p>{data.text}</p>}
       </div>
-    </section>
-  )
-}
-
-export function ImageCompareBlock({
-  block,
-  entryPath,
-}: {
-  block: JournalBlock
-  entryPath?: string
-}) {
-  const data = fields(block)
-  return (
-    <section className="journal-block journal-block-wide journal-block-image-compare">
-      {data.title && <div className="journal-block-section-title">{data.title}</div>}
-      <div className="journal-block-image-compare-grid">
-        <figure>
-          <img
-            src={resolveImage(data.before, entryPath)}
-            alt={data.title ? `${data.title} before` : 'Before'}
-          />
-          <figcaption>Before</figcaption>
-        </figure>
-        <div className="journal-block-image-compare-vs" aria-hidden="true">
-          VS
-        </div>
-        <figure>
-          <img
-            src={resolveImage(data.after, entryPath)}
-            alt={data.title ? `${data.title} after` : 'After'}
-          />
-          <figcaption>After</figcaption>
-        </figure>
-      </div>
-      {data.caption && <p>{data.caption}</p>}
-    </section>
-  )
-}
-
-export function ImageAnnotateBlock({
-  block,
-  entryPath,
-}: {
-  block: JournalBlock
-  entryPath?: string
-}) {
-  const data = block.body.format === 'json_object' ? block.body.value : {}
-  const notes = Array.isArray(data.notes) ? data.notes : []
-  return (
-    <section className="journal-block journal-block-content journal-block-image-annotate">
-      {stringValue(data.title) && (
-        <div className="journal-block-section-title">{stringValue(data.title)}</div>
-      )}
-      {stringValue(data.image) && (
-        <img src={resolveImage(stringValue(data.image), entryPath)} alt={stringValue(data.title)} />
-      )}
-      <ul className="journal-block-plain-list">
-        {notes.map((note, index) => (
-          <li key={index}>
-            <span className="journal-block-marker journal-block-row-marker" aria-hidden="true">
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span>{stringValue(note) || JSON.stringify(note)}</span>
-          </li>
-        ))}
-      </ul>
     </section>
   )
 }

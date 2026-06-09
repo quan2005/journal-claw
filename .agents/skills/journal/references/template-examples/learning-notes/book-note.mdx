@@ -1,88 +1,68 @@
 ---
-tags: ["journal","mdx-manual","template","learning-notes"]
-summary: "当需要记录读书笔记，并梳理书籍信息、章节一句话、关键摘录、可复用概念时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/learning-notes.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录读书笔记，并梳理书籍信息、章节一句话、关键摘录、可复用概念时使用。'
+tags: [journal, template, learning-notes, book-note]
+sources: []
 ---
 
 # 读书笔记
 
-<Section density="relaxed">
-  <Subtitle>书摘要服务于未来调用，不服务于完整复述；每条笔记都要能回到行动、决策或表达。</Subtitle>
+> 适用：用于整理读书笔记；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Tiago Forte 的渐进式摘要视角：书摘要服务于未来调用，不服务于完整复述；每条笔记都要能回到行动、决策或表达。
-</Callout>
-
-<QuoteCard quote="【摘录最关键的一句话或概念表述。】" source="【来源】" />
-
-## 学习记录
-
-<Table
-  headers={["记录项", "内容"]}
-  rows={[
-    [
-        "书籍信息",
-        "【填写 书籍信息】"
-    ],
-    [
-        "章节一句话",
-        "【填写 章节一句话】"
-    ],
-    [
-        "关键摘录",
-        "【填写 关键摘录】"
-    ],
-    [
-        "可复用概念",
-        "【填写 可复用概念】"
-    ],
-    [
-        "二次压缩摘要",
-        "【填写 二次压缩摘要】"
-    ],
-    [
-        "未来调用场景",
-        "【填写 未来调用场景】"
-    ],
-    [
-        "个人应用实验",
-        "【填写 个人应用实验】"
-    ],
-    [
-        "重读触发条件",
-        "【填写 重读触发条件】"
-    ]
-]}
+<Quote
+  text="【填写可复用概念；未知时写“待确认”，不要推断】"
+  source="【填写书籍信息；未知时写“待确认”，不要推断】"
 />
 
-<InsightCard title="我的理解">
-  【用自己的话解释；如果讲不清，写出卡住的地方。】
-</InsightCard>
-
-<Checklist
-  items={[
-    { text: "【需要复习的问题】" },
-    { text: "【可以迁移到工作的做法】" },
-  ]}
-/>
-
-<Checklist
-  items={[
-    {
-        "text": "每章摘要必须用主张、理由和例子表达"
-    },
-    {
-        "text": "至少一条个人应用要转成带负责人和截止时间的行动"
-    },
-    {
-        "text": "必须写明下次重读触发条件"
-    }
-]}
-/>
-</Section>
+<InsightCard title="我的理解">【填写章节一句话；未知时写“待确认”，不要推断】</InsightCard>
 
 <ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+  sources={[{ path: '【替换为真实来源路径】', label: '【学习来源】', type: 'file' }]}
+/>
+
+## 记录提示
+
+### 书籍信息
+
+【填写书籍信息；未知时写“待确认”，不要推断】
+
+### 章节一句话
+
+【填写章节一句话；未知时写“待确认”，不要推断】
+
+### 关键摘录
+
+【填写关键摘录；未知时写“待确认”，不要推断】
+
+### 可复用概念
+
+【填写可复用概念；未知时写“待确认”，不要推断】
+
+### 二次压缩摘要
+
+【填写二次压缩摘要；未知时写“待确认”，不要推断】
+
+### 未来调用场景
+
+【填写未来调用场景；未知时写“待确认”，不要推断】
+
+### 个人应用实验
+
+【填写个人应用实验；未知时写“待确认”，不要推断】
+
+### 重读触发条件
+
+【填写重读触发条件；未知时写“待确认”，不要推断】
+
+## 质量检查
+
+<Checklist
+  items={[
+    { text: '每章摘要必须用主张、理由和例子表达', state: 'todo' },
+    { text: '至少一条个人应用要转成带负责人和截止时间的行动', state: 'todo' },
+    { text: '必须写明下次重读触发条件', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

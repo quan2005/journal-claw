@@ -64,8 +64,8 @@ body: 保留正文
   })
 
   it('does not partially rewrite a document with invalid directives', () => {
-    const source = `:::hero
-subtitle: 缺少标题
+    const source = `:::verdict
+summary: 缺少标题
 :::`
     const result = convertLegacyDirectivesToJsx(source)
 

@@ -1,93 +1,82 @@
 ---
-tags: ["journal","mdx-manual","template","work-reports"]
-summary: "当需要记录管理层摘要，并梳理一句话答案、关键指标、财务/业务影响、风险时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/work-reports.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录管理层摘要，并梳理一句话答案、关键指标、财务/业务影响、风险时使用。'
+tags: [journal, template, work-reports, executive-summary]
+sources: []
 ---
 
 # 管理层摘要
 
-<Section density="relaxed">
-  <Subtitle>管理层摘要必须答案先行：结论、证据、风险、请求按决策顺序排列，低层细节只保留能影响判断的部分。</Subtitle>
+> 适用：用于整理管理层摘要；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Barbara Minto 的金字塔原理视角：管理层摘要必须答案先行：结论、证据、风险、请求按决策顺序排列，低层细节只保留能影响判断的部分。
-</Callout>
+<Verdict
+  title="【填写本周期管理判断；未知时写“待确认”，不要推断】"
+  summary="【填写最重要的结果、变化和风险；未知时写“待确认”，不要推断】"
+  confidence="【高 / 中 / 低】"
+/>
 
-<Callout type="note" title="结论">
-  【一句话写清本周期状态：完成了什么、最大风险是什么、下一步最重要的动作是什么。】
-</Callout>
-
-<StatGroup>
-  <Stat label="完成项" value={"【数量】"} />
-  <Stat label="风险" value={"【数量】"} />
-  <Stat label="下阶段重点" value={"【数量】"} />
-</StatGroup>
-
-## 汇报内容
+<Metrics
+  heading="关键指标"
+  items={[
+    {
+      label: '关键指标',
+      value: '【当前值】',
+      description: '【填写变化原因；未知时写“待确认”，不要推断】',
+    },
+  ]}
+/>
 
 <Table
-  headers={["记录项", "内容"]}
+  headers={['风险或请求', '影响', '负责人', '下一步']}
   rows={[
     [
-        "一句话答案",
-        "【填写 一句话答案】"
+      '【填写风险；未知时写“待确认”，不要推断】',
+      '【填写影响；未知时写“待确认”，不要推断】',
+      '【填写负责人；未知时写“待确认”，不要推断】',
+      '【填写下阶段重点；未知时写“待确认”，不要推断】',
     ],
-    [
-        "关键指标",
-        "【填写 关键指标】"
-    ],
-    [
-        "财务/业务影响",
-        "【填写 财务/业务影响】"
-    ],
-    [
-        "风险",
-        "【填写 风险】"
-    ],
-    [
-        "可选方案",
-        "【填写 可选方案】"
-    ],
-    [
-        "决策请求",
-        "【填写 决策请求】"
-    ],
-    [
-        "决策期限",
-        "【填写 决策期限】"
-    ]
-]}
-/>
-
-<RiskMatrix
-  risks={[
-    { risk: "【风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对】" },
   ]}
 />
 
-<ActionTable
-  items={[
-    { action: "【下一步动作】", owner: "【负责人】", due: "【截止时间】", source: "管理层摘要", status: "open" },
-  ]}
-/>
+## 记录提示
+
+### 一句话答案
+
+【填写一句话答案；未知时写“待确认”，不要推断】
+
+### 关键指标
+
+【填写关键指标；未知时写“待确认”，不要推断】
+
+### 财务/业务影响
+
+【填写财务/业务影响；未知时写“待确认”，不要推断】
+
+### 风险
+
+【填写风险；未知时写“待确认”，不要推断】
+
+### 可选方案
+
+【填写可选方案；未知时写“待确认”，不要推断】
+
+### 决策请求
+
+【填写决策请求；未知时写“待确认”，不要推断】
+
+### 决策期限
+
+【填写决策期限；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "首个结论能独立回答管理层最关心的问题"
-    },
-    {
-        "text": "每个决策请求必须包含推荐项、备选项和截止时间"
-    },
-    {
-        "text": "正文不得出现无法支撑结论、风险或请求的细节"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '首个结论能独立回答管理层最关心的问题', state: 'todo' },
+    { text: '每个决策请求必须包含推荐项、备选项和截止时间', state: 'todo' },
+    { text: '正文不得出现无法支撑结论、风险或请求的细节', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

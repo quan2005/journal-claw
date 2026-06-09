@@ -20,30 +20,6 @@ export function Verdict({
   )
 }
 
-export interface AudienceFitItem {
-  audience: string
-  fit: string
-  reason?: string
-}
-
-export function AudienceFit({
-  heading,
-  title,
-  items,
-}: {
-  heading?: string
-  title?: string
-  items: AudienceFitItem[]
-}) {
-  return (
-    <LayoutBlock
-      block={rowsBlock('audience-fit', items, ['audience', 'fit', 'reason'], {
-        title: heading ?? title,
-      })}
-    />
-  )
-}
-
 export interface MythFactItem {
   myth: string
   fact: string
@@ -64,29 +40,4 @@ export function MythFact({
       block={rowsBlock('myth-fact', items, ['myth', 'fact', 'reason'], { title: heading ?? title })}
     />
   )
-}
-
-export interface ManifestoItem {
-  principle: string
-  detail?: string
-}
-
-export function Manifesto({
-  heading,
-  title,
-  items,
-}: {
-  heading?: string
-  title?: string
-  items: ManifestoItem[]
-}) {
-  return (
-    <LayoutBlock
-      block={rowsBlock('manifesto', items, ['principle', 'detail'], { title: heading ?? title })}
-    />
-  )
-}
-
-export function Bridge({ from, to, why }: { from: string; to: string; why?: string }) {
-  return <LayoutBlock block={fieldsBlock('bridge', { from, to, why })} />
 }

@@ -1,0 +1,479 @@
+---
+tags: [journal, mdx, components, demo]
+summary: 以一篇完整技术文章演示 JournalClaw 61 个公共 MDX 组件如何把原始素材变成可追溯、可执行的长期记录。
+sources:
+  [
+    src/components/mdx/component-manifest.json,
+    .agents/skills/journal/references/component-catalog.md,
+    .agents/skills/journal/references/component-recipes.md,
+  ]
+---
+
+# 从原始素材到长期记录
+
+<Subtitle>JournalClaw 的组件不是页面装饰，而是让结论、证据、过程和责任保持可读。</Subtitle>
+
+<Toc
+  heading="文章结构"
+  items={[
+    { label: '01', title: '建立阅读入口', description: '先说明问题、范围和结果。' },
+    { label: '02', title: '保留来源证据', description: '让读者能回到文件、图片和原话。' },
+    { label: '03', title: '形成解释与方法', description: '区分事实、判断、过程和边界。' },
+    { label: '04', title: '把工作变成闭环', description: '跟踪指标、决定、风险和责任。' },
+    { label: '05', title: '解释技术细节', description: '使用图表、公式、布局和 HTML 预览。' },
+    { label: '06', title: '收束与复用', description: '给出资源、检查和下一步。' },
+  ]}
+/>
+
+<Section density="relaxed">
+  <Label>01 · 阅读入口</Label>
+
+## 为什么先写主线
+
+原始材料通常按发生顺序堆积，读者真正需要的却是结果、变化和仍待处理的问题。第一步不是选择组件，而是用 Markdown 写清主线。
+
+<Summary
+  title="本文结论"
+  body="稳定日志需要四个可区分的层次：来源事实、作者解释、执行决定和后续验证。"
+/>
+
+<Cards heading="四个层次">
+  <Card title="来源事实" description="可以回到原始文件、原话或数据。" />
+  <Card title="作者解释" description="明确标记推断、限制和置信度。" />
+  <Card title="执行决定" description="保留选择、取舍、负责人和复查条件。" />
+  <Card title="后续验证" description="用检查项、指标或实验判断是否真的解决。" />
+</Cards>
+</Section>
+
+<Divider label="来源与证据" />
+
+<Section density="default">
+  <Label>02 · 来源证据</Label>
+
+## 每个结论都应能返回材料
+
+<SourceCard
+  path="src/components/mdx/component-manifest.json"
+  label="公共组件清单"
+  type="file"
+  note="本页覆盖范围的唯一白名单"
+/>
+
+<ReferenceList
+  sources={[
+    {
+      path: '.agents/skills/journal/references/component-catalog.md',
+      label: '组件使用目录',
+      type: 'file',
+    },
+    {
+      path: '.agents/skills/journal/references/component-recipes.md',
+      label: '组件组合 recipes',
+      type: 'file',
+    },
+  ]}
+/>
+
+<FileCard path="docs/superpowers/examples/jsx-all-components-demo.mdx" label="当前演示文档" />
+
+相关日志：
+
+<RelatedEntry path="2606/09-mdx-component-rewrite.mdx" label="MDX 组件重写记录" />
+
+相关项目：
+
+<RelatedIdentity path="identities/JournalClaw.md" label="JournalClaw" />
+
+<Quote
+  text="Use Markdown first."
+  source=".agents/skills/journal/references/component-recipes.md"
+  context="组件选择原则"
+/>
+
+<ImageViewer
+  src="../2604/raw/event-calendar-kanban/ref-ui.png"
+  alt="日志 workspace 内可用的图片资源"
+  caption="ImageViewer 用于展示可检查的原始图片。"
+  width="220px"
+/>
+
+<ImageText
+  image="../2604/raw/event-calendar-kanban/ref-ui.png"
+  title="图片必须带解释"
+  text="图片只提供视觉证据；正文仍需说明它与当前判断的关系。"
+  alt="图片与解释示例"
+/>
+
+<ImageSteps
+  items={[
+    {
+      image: '../2604/raw/event-calendar-kanban/ref-ui.png',
+      title: '确认原始状态',
+      text: '先检查图片实际包含什么。',
+    },
+    {
+      image: '../2604/raw/event-calendar-kanban/ref-ui.png',
+      title: '写出观察',
+      text: '只记录画面支持的事实。',
+    },
+  ]}
+/>
+</Section>
+
+<Divider label="解释与方法" />
+
+<Section density="default">
+  <Label>03 · 解释与方法</Label>
+
+<Definition
+  term="可追溯日志"
+  description="读者可以从结论返回来源，并看清解释、决定和验证过程的记录。"
+/>
+
+<MythFact
+  heading="常见误解"
+  items={[
+    {
+      myth: '组件越多，文档越专业',
+      fact: '结构越贴近读者任务，文档越容易使用',
+      reason: '装饰性组件会遮蔽事实、推断和责任之间的边界。',
+    },
+  ]}
+/>
+
+<Callout tone="warning" title="未知信息">
+  缺少来源、负责人、日期或数字时，应写“待确认”，不能用合理猜测填满模板。
+</Callout>
+
+<InsightCard title="解释">
+  组件白名单解决的是稳定渲染问题；Markdown 优先解决的是作者不被组件牵着走的问题。
+</InsightCard>
+
+<ProsCons>
+  <div>
+    <strong>适合使用组件</strong>
+    <ul>
+      <li>重复结构需要快速扫描。</li>
+      <li>语义边界需要长期稳定。</li>
+    </ul>
+  </div>
+  <div>
+    <strong>继续使用 Markdown</strong>
+    <ul>
+      <li>普通段落、列表和短表格。</li>
+      <li>尚未形成稳定结构的探索性内容。</li>
+    </ul>
+  </div>
+</ProsCons>
+
+<Steps
+  heading="整理步骤"
+  items={[
+    { title: '识别材料任务', description: '先判断是会议、研究、技术说明还是个人记录。' },
+    { title: '写出 Markdown 主线', description: '不看组件，先完成标题、结论和证据顺序。' },
+    { title: '加入最少组件', description: '只处理扫描、比较、时间线或来源导航。' },
+    { title: '验证真实渲染', description: '检查未知组件、宽度、层级和文件跳转。' },
+  ]}
+/>
+
+<Timeline
+  heading="一次整理的事件顺序"
+  items={[
+    { time: '09:00', title: '导入素材', description: '保存原始文件并记录来源。' },
+    { time: '09:03', title: '生成初稿', description: '提取主线、决定和未知项。' },
+    { time: '09:05', title: '人工复核', description: '检查证据、责任和组件边界。' },
+  ]}
+/>
+
+<Mermaid
+  chart={`flowchart LR
+    Raw[原始素材] --> Draft[Markdown 主线]
+    Draft --> Structure[最少组件]
+    Structure --> Validate[白名单与编译]
+    Validate --> Read[沉浸阅读]`}
+  caption="内容从输入到阅读的主要边界"
+/>
+</Section>
+
+<Divider label="管理闭环" />
+
+<Section density="default">
+  <Label>04 · 管理闭环</Label>
+
+<StatGroup>
+  <Stat label="公共组件" value={61} />
+  <Stat label="Subtype 示例" value={104} />
+  <Stat label="家族指南" value={9} />
+</StatGroup>
+
+<Metrics
+  heading="为什么这些数字重要"
+  items={[
+    { label: '61', value: '单一白名单', description: '目录、示例、运行时和 demo 使用同一集合。' },
+    { label: '104', value: '任务示例', description: '每个 subtype 有独立结构，不共用万能骨架。' },
+    { label: '9', value: '路由家族', description: '先判断任务，再选择具体 subtype。' },
+  ]}
+/>
+
+当前状态：
+
+<StatusBadge status="content rewritten" tone="success" />
+
+<Verdict
+  title="内容层可以进入生成与编译验证"
+  summary="清单、目录、recipes、家族指南和 subtype 示例已经统一到 61 个组件。"
+  confidence="高"
+  status="ready"
+  variant="success"
+/>
+
+<DecisionRecord
+  question="手册是否继续维护第二份 subtype 正文"
+  decision="不维护；生成器直接读取 skill 示例"
+  owner="Journal maintainer"
+  due="本轮"
+  options={[
+    { label: '内嵌生成器正文', tradeoff: '生成直接，但两份内容会再次漂移' },
+    { label: '读取 skill 示例', tradeoff: '路径契约更严格，但正文只有一份' },
+  ]}
+  rationale="模板内容应在 skill 中长期维护，手册只是可再生的呈现层。"
+/>
+
+<Table
+  headers={['风险', '信号', '应对', '负责人']}
+  rows={[
+    ['未知组件重新出现', '校验器报告标签不在 manifest', '阻止测试通过', '维护者'],
+    ['示例可以解析但无法编译', 'Rust mdxjs 返回文件路径和错误', '修复具体文档', '维护者'],
+    ['真实界面样式回退', '详情页出现溢出或层级冲突', '按真实 CSS cascade 修复', '维护者'],
+  ]}
+/>
+
+<ComparisonTable
+  heading="紧凑指标与叙事指标"
+  columns={['紧凑快照', '带解释的指标', '有序过程']}
+  rows={[
+    { label: '推荐组件', values: ['StatGroup + Stat', 'Metrics', 'Steps'] },
+    { label: '主要问题', values: ['现在是多少', '为什么重要', '先后如何执行'] },
+  ]}
+/>
+
+<ComparisonMatrix
+  columns={['读者问题', '优势', '边界']}
+  rows={[
+    { label: 'Table', values: ['逐行扫描', '通用稳定', '不直接记录决定理由'] },
+    { label: 'DecisionRecord', values: ['为什么这样选', '保留取舍', '不适合大量小决定'] },
+  ]}
+/>
+
+<RACI
+  rows={[
+    {
+      work: '维护 manifest',
+      responsible: 'Runtime owner',
+      accountable: 'Maintainer',
+      consulted: 'Tests',
+      informed: 'Authors',
+    },
+    {
+      work: '维护 subtype 示例',
+      responsible: 'Journal skill',
+      accountable: 'Maintainer',
+      consulted: 'Component catalog',
+      informed: 'Manual generator',
+    },
+  ]}
+/>
+
+<MilestoneTimeline
+  items={[
+    { time: 'M1', title: '运行时边界', desc: '未知组件局部降级，清单固定为 61 项。' },
+    { time: 'M2', title: '内容重写', desc: '104 个 subtype 示例与指南完成。' },
+    { time: 'M3', title: '生成与编译', desc: '手册复用 skill 示例，全部 MDX 通过。' },
+  ]}
+/>
+
+<Checklist
+  heading="关闭条件"
+  items={[
+    { text: '全组件 demo 覆盖 61 项', state: 'done' },
+    { text: '生成器不再内嵌 subtype 正文', state: 'todo' },
+    { text: '全部 owned 和 generated MDX 编译通过', state: 'todo' },
+  ]}
+/>
+
+<Cases
+  heading="边界案例"
+  items={[
+    { case: '一个未知组件', result: '只显示局部错误', note: '其余文档继续渲染。' },
+    { case: '示例引用退休组件', result: '测试失败', note: '错误包含文件和组件名。' },
+  ]}
+/>
+
+<Kanban
+  columns={[
+    { title: 'Done', items: [{ text: '组件清单与示例重写', tags: ['content'] }] },
+    { title: 'Doing', items: [{ text: '手册生成器改造', tags: ['generator'] }] },
+    { title: 'Next', items: [{ text: '真实渲染巡检', tags: ['ui'] }] },
+  ]}
+/>
+</Section>
+
+<Divider label="技术解释" />
+
+<Section density="default">
+  <Label>05 · 技术解释</Label>
+
+## 布局只服务比较和扫描
+
+<Columns cols={2}>
+  <Column>
+    <Callout tone="tip" title="Columns">
+      适合两到四个权重相近、内容较短的并列部分。
+    </Callout>
+  </Column>
+  <Column>
+    <Callout tone="note" title="Column">
+      窄窗口下不要放长段落，避免阅读列过窄。
+    </Callout>
+  </Column>
+</Columns>
+
+<Grid cols={3} gap={12}>
+  <Callout tone="note" title="Registry">
+    声明允许的名称。
+  </Callout>
+  <Callout tone="note" title="Validator">
+    发现内容漂移。
+  </Callout>
+  <Callout tone="note" title="Runtime">
+    限制错误影响范围。
+  </Callout>
+</Grid>
+
+<Flow gap={8}>
+  <StatusBadge status="manifest" tone="success" />
+  <StatusBadge status="examples" tone="success" />
+  <StatusBadge status="generated manual" tone="warning" />
+</Flow>
+
+<Stack gap={3}>
+  <Counter count={61} label="public components" />
+  <RatingBar score={4} max={5} label="当前验证完成度" />
+  <TagList tags={['MDX', 'journal', 'traceable', 'markdown-first']} />
+</Stack>
+
+## 图表用于解释数据形状
+
+<BarChart
+  title="各类内容数量"
+  data={[
+    { label: 'Components', value: 61 },
+    { label: 'Subtype examples', value: 104 },
+    { label: 'Family guides', value: 9 },
+  ]}
+/>
+
+<LineChart
+  title="迁移进度"
+  data={[
+    { label: 'Registry', value: 25 },
+    { label: 'Guides', value: 55 },
+    { label: 'Examples', value: 80 },
+    { label: 'Verification', value: 90 },
+  ]}
+/>
+
+<PieChart
+  title="写作方式"
+  data={[
+    { label: 'Markdown 主线', value: 75 },
+    { label: '结构化组件', value: 25 },
+  ]}
+/>
+
+<RadarChart
+  title="文档质量检查"
+  data={[
+    { label: '可追溯', value: 5 },
+    { label: '可扫描', value: 4 },
+    { label: '可执行', value: 4 },
+    { label: '克制', value: 5 },
+  ]}
+/>
+
+## 公式只在技术内容确实需要时出现
+
+组件覆盖率可以写成
+
+<InlineMath math="C = \\frac{n_{used}}{n_{public}}" />。
+
+<BlockMath math="C = \\frac{61}{61} = 1" />
+
+<HtmlPreview
+  title="最小 HTML 预览"
+  height={220}
+  html={"<main class='j-stack'><h1>Generated artifact</h1><p>HTML 预览运行在隔离 sandbox 中。</p><table><tr><th>Check</th><th>State</th></tr><tr><td>Source</td><td>Ready</td></tr></table></main>"}
+/>
+</Section>
+
+<Divider label="收束与复用" />
+
+<Section density="relaxed">
+  <Label>06 · 收束与复用</Label>
+
+<Toolbox
+  heading="维护工具"
+  items={[
+    {
+      tool: 'Component catalog',
+      use: '查询实际 props 和使用边界',
+      link: '.agents/skills/journal/references/component-catalog.md',
+    },
+    {
+      tool: 'Validator',
+      use: '发现未知 JSX、目录漂移和 demo 漏项',
+      link: 'scripts/validate-journal-mdx-examples.mjs',
+    },
+  ]}
+/>
+
+<ResourceList
+  items={[
+    { title: 'Component catalog', url: '.agents/skills/journal/references/component-catalog.md' },
+    { title: 'Component recipes', url: '.agents/skills/journal/references/component-recipes.md' },
+  ]}
+/>
+
+<Faq
+  heading="常见问题"
+  items={[
+    {
+      question: 'StatGroup 和 Metrics 如何选择？',
+      answer: '只需要紧凑数字时用 StatGroup；每项需要解释时用 Metrics。',
+    },
+    {
+      question: 'Steps 和 Timeline 如何选择？',
+      answer: '有执行顺序时用 Steps；记录历史事件时用 Timeline。',
+    },
+  ]}
+/>
+
+<CopyButton text="node scripts/validate-journal-mdx-examples.mjs" label="复制 MDX 校验命令" />
+
+<AuthorCard
+  name="JournalClaw Maintainers"
+  role="组件与内容边界维护"
+  bio="保持日志可追溯、可沉浸阅读，并避免组件面无序增长。"
+/>
+
+<Subscribe
+  title="继续维护一份内容源"
+  description="后续修改 subtype 示例时，只更新 journal skill；手册由生成器重新构建。"
+/>
+
+<Cta
+  title="进入最终验证"
+  description="运行白名单校验、MDX 编译、前端测试、构建和真实渲染巡检。"
+  action="验证全部内容"
+/>
+</Section>

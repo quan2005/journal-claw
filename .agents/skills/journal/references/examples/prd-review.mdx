@@ -1,15 +1,24 @@
 ---
-tags: [journal, product]
-summary: PDF 导入摘要需求成立，但首版验收必须把来源追踪作为硬约束。
-sources: [2605/raw/prd-review.txt]
+tags: [journal, product, example]
+summary: PDF 读取需要在 UTF-8 回退前进入专用提取分支，并保留可验证的错误信息。
+sources: [src-tauri/src/llm/fs_tools/read.rs]
 ---
 
-# PDF 导入摘要 PRD 记录
+# PDF 读取能力评审
 
 <DecisionRecord
-  question="PDF 导入摘要是否进入首版"
-  decision="进入首版，但必须保留来源追踪"
-  owner="产品"
-  due="本周"
-  rationale="用户需要快速浏览长文档，但无法追溯来源会降低信任。"
+  question="PDF 是否继续经过普通文本 UTF-8 读取"
+  decision="否；PDF 先进入专用文本提取分支"
+  rationale="二进制 PDF 直接按 UTF-8 解码会失败，且错误无法说明文档是否可提取。"
 />
+
+<Checklist
+  heading="验收条件"
+  items={[
+    { text: '文本型 PDF 可返回正文', state: 'done' },
+    { text: '扫描型 PDF 返回可读限制说明', state: 'todo' },
+    { text: '普通文本文件行为不回归', state: 'done' },
+  ]}
+/>
+
+<SourceCard path="src-tauri/src/llm/fs_tools/read.rs" label="文件读取实现" type="file" />

@@ -1,101 +1,74 @@
 ---
-tags: ["journal","mdx-manual","template","personal-journal"]
-summary: "当需要记录决策日志，并梳理决策问题、已知事实、选项、判断标准时使用。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md","../../Projects/github/journal/.agents/skills/journal/references/templates/personal-journal.md","../../Projects/github/journal/.agents/skills/journal/references/component-catalog.md","../../Projects/github/journal/.agents/skills/journal/references/component-recipes.md"]
+summary: '当需要记录决策日志，并梳理决策问题、已知事实、选项、判断标准时使用。'
+tags: [journal, template, personal-journal, decision-journal]
+sources: []
 ---
 
 # 决策日志
 
-<Section density="relaxed">
-  <Subtitle>用于个人决策：记录当时信息、判断、预期、风险和复盘时间。</Subtitle>
+> 适用：用于整理决策日志；只写来源支持的事实，并显式保留未知项。
 
-<Callout type="tip" title="专业校准">
-  Annie Duke + Tetlock 的决策日志视角：好决策日志要保留当时知道什么、不知道什么、各选项取舍和未来如何复盘，避免事后聪明。
-</Callout>
-
-## 决策记录
-
-<Table
-  headers={["记录项", "内容"]}
+<ComparisonMatrix
+  columns={['符合目标', '成本', '可逆性']}
   rows={[
-    [
-        "决策问题",
-        "【填写 决策问题】"
-    ],
-    [
-        "已知事实",
-        "【填写 已知事实】"
-    ],
-    [
-        "选项",
-        "【填写 选项】"
-    ],
-    [
-        "判断标准",
-        "【填写 判断标准】"
-    ],
-    [
-        "关键假设",
-        "【填写 关键假设】"
-    ],
-    [
-        "情绪/压力信号",
-        "【填写 情绪/压力信号】"
-    ],
-    [
-        "预期结果与概率",
-        "【填写 预期结果与概率】"
-    ],
-    [
-        "复盘触发条件",
-        "【填写 复盘触发条件】"
-    ]
-]}
-/>
-
-<OptionMatrix
-  columns={["收益", "代价", "适用条件", "风险"]}
-  rows={[
-    { label: "方案 A", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
-    { label: "方案 B", values: ["【收益】", "【代价】", "【适用条件】", "【风险】"] },
+    { label: '选项 A', values: ['【待评估】', '【待评估】', '【待评估】'] },
+    { label: '选项 B', values: ['【待评估】', '【待评估】', '【待评估】'] },
   ]}
 />
 
 <DecisionRecord
-  question="这次要做什么个人决策？"
-  decision="【最终选择或暂缓】"
-  owner="【负责人】"
-  due="【复核时间】"
-  options={[
-    { label: "方案 A", tradeoff: "【收益、代价、适用条件】" },
-    { label: "方案 B", tradeoff: "【收益、代价、适用条件】" },
-  ]}
-  rationale="【记录关键证据、转折点，以及为什么当前结论成立。】"
+  question="【填写决策问题；未知时写“待确认”，不要推断】"
+  decision="【填写当前选择；未知时写“待确认”，不要推断】"
+  due="【填写情绪/压力信号；未知时写“待确认”，不要推断】"
+  rationale="【填写判断标准；未知时写“待确认”，不要推断】"
 />
 
-<RiskMatrix
-  risks={[
-    { risk: "【关键假设失败风险】", likelihood: "【概率】", impact: "【影响】", severity: "【级别】", mitigation: "【应对/验证】" },
-  ]}
-/>
+复查记录：<RelatedEntry path="【未来真实日志路径】" label="【复查日志】" />
+
+## 记录提示
+
+### 决策问题
+
+【填写决策问题；未知时写“待确认”，不要推断】
+
+### 已知事实
+
+【填写已知事实；未知时写“待确认”，不要推断】
+
+### 选项
+
+【填写选项；未知时写“待确认”，不要推断】
+
+### 判断标准
+
+【填写判断标准；未知时写“待确认”，不要推断】
+
+### 关键假设
+
+【填写关键假设；未知时写“待确认”，不要推断】
+
+### 情绪/压力信号
+
+【填写情绪/压力信号；未知时写“待确认”，不要推断】
+
+### 预期结果与概率
+
+【填写预期结果与概率；未知时写“待确认”，不要推断】
+
+### 复盘触发条件
+
+【填写复盘触发条件；未知时写“待确认”，不要推断】
+
+## 质量检查
 
 <Checklist
   items={[
-    {
-        "text": "每个选项都有明确取舍"
-    },
-    {
-        "text": "至少写出一个可能推翻决策的假设"
-    },
-    {
-        "text": "有具体复盘日期或触发条件"
-    }
-]}
-/>
-</Section>
-
-<ReferenceList
-  sources={[
-    { path: "2605/raw/source.txt", label: "示例原始素材", type: "text" },
+    { text: '每个选项都有明确取舍', state: 'todo' },
+    { text: '至少写出一个可能推翻决策的假设', state: 'todo' },
+    { text: '有具体复盘日期或触发条件', state: 'todo' },
   ]}
 />
+
+## 来源
+
+把真实材料路径写入 frontmatter 的 `sources`。没有来源时保留空数组，不要创建看似真实的文件名。

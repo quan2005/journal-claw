@@ -2,7 +2,7 @@
 
 ## Goal
 
-Rebuild every Journal MDX usage guide and example around the current 60-component public registry, so generated notes, handbook pages, subtype templates, and the all-components demo use only supported components and demonstrate credible article structures.
+Rebuild every Journal MDX usage guide and example around the 61-component public registry, including the restored `StatGroup`, so generated notes, handbook pages, subtype templates, and the all-components demo use only supported components and demonstrate credible article structures.
 
 ## Scope
 
@@ -30,10 +30,12 @@ The rewrite must derive component availability from:
 3. the exported component TypeScript implementations
 4. `src/lib/journalLayout/catalog.ts` for canonical layout directives
 
-The current contract contains 60 public components:
+The target contract contains 61 public components:
 
 - 22 canonical layout components
-- 38 specialized or generic components
+- 39 specialized or generic components
+
+`Stat` and `Steps` remain public components. `StatGroup` is restored as a specialized display component before the documentation and examples are rewritten.
 
 Documentation and examples must not maintain an independent handwritten allowlist that can drift from the manifest.
 
@@ -55,6 +57,27 @@ Retired components are not replaced name-for-name. Each document is reconsidered
 - progress may become `Metrics`, `StatusBadge`, `MilestoneTimeline`, or plain prose
 - media transcripts become summarized excerpts plus source references
 - product-page and device-preview structures are removed rather than imitated
+
+### High-Frequency Components
+
+The rewrite treats these components as first-class article primitives:
+
+- `StatGroup` groups two to four compact `Stat` children when the reader needs a quick numeric snapshot
+- `Stat` renders one compact value, label, optional suffix, and optional trend
+- `Steps` renders an ordered procedure, workflow, method, or rollout sequence
+
+The restored API is:
+
+```mdx
+<StatGroup>
+  <Stat label="完成项" value={12} />
+  <Stat label="风险" value={3} />
+</StatGroup>
+```
+
+`StatGroup` accepts only `children` and provides layout. It does not duplicate `Metrics` headings, descriptions, or item-array API.
+
+Use `Metrics` when each metric needs an explanation or the group needs a heading. Use `StatGroup` when compactness is more important than narrative context. Use `Steps` for ordered actions, not chronology; chronological events continue to use `Timeline` or `MilestoneTimeline`.
 
 ### User-Task-Specific Structure
 
@@ -200,7 +223,7 @@ It must produce:
 
 Requirements:
 
-- all 60 public components appear at least once
+- all 61 public components appear at least once
 - every component uses valid current props
 - the document remains readable as one coherent article
 - layout and typography primitives support the article rather than dominate it
@@ -266,10 +289,10 @@ This rewrite does not silently rewrite user workspace notes outside the generate
 
 The work is complete when:
 
-1. all documentation describes only the current 60-component surface
+1. all documentation describes only the target 61-component surface
 2. all 104 subtype examples have distinct, task-appropriate structures
 3. the generator reads subtype examples from the skill reference tree
-4. the all-components demo covers all 60 components with valid props
+4. the all-components demo covers all 61 components with valid props
 5. no owned example contains a retired or unknown component
 6. all owned MDX compiles through the Journal MDX toolchain
 7. the generated handbook is refreshed successfully

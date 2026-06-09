@@ -7,11 +7,11 @@ import {
   enqueueWork as invokeEnqueueWork,
   dismissWorkItem as invokeDismissWork,
 } from '../lib/tauri'
+import { useEventSync } from './useEventSync'
 import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
 import type { WorkItem } from '../lib/tauri'
 
 const BATCH_SIZE = 3
-const JOURNAL_POLL_INTERVAL_MS = 3000
 
 /** Wrap a promise with a timeout — rejects if not settled within `ms`. */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -248,12 +248,15 @@ export function useJournal() {
 
   // ── Event listeners ────────────────────────────────────
 
+  // Event-driven journal refresh (replaces polling)
+  useEventSync(['journal-updated', 'work-queue-updated'], () => {
+    refresh()
+    refreshWorkQueue()
+  })
+
   useEffect(() => {
     refresh()
     refreshWorkQueue()
-    const pollTimer = window.setInterval(() => {
-      refresh()
-    }, JOURNAL_POLL_INTERVAL_MS)
 
     // Work queue updates from Rust
     const unlistenWorkQueue = listen('work-queue-updated', () => {
@@ -327,10 +330,6 @@ export function useJournal() {
           i.path === material_path ? { ...i, logs: [...(i.logs ?? []), message] } : i,
         ),
       )
-    })
-
-    const unlistenUpdated = listen<string>('journal-updated', () => {
-      refresh()
     })
 
     const unlistenAudioReady = listen<{
@@ -444,12 +443,10 @@ export function useJournal() {
       unlistenWorkQueue.then((fn) => fn())
       unlistenProcessing.then((fn) => fn())
       unlistenLog.then((fn) => fn())
-      unlistenUpdated.then((fn) => fn())
       unlistenAudioReady.then((fn) => fn())
       unlistenAudioFailed.then((fn) => fn())
       unlistenPipelineFailed.then((fn) => fn())
       unlistenTranscriptionProgress.then((fn) => fn())
-      window.clearInterval(pollTimer)
       timers.forEach((t) => clearTimeout(t))
       timers.clear()
     }

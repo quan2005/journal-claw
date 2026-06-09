@@ -3,6 +3,7 @@ mod audio_files;
 mod audio_pipeline;
 #[allow(dead_code)]
 mod audio_process;
+mod commands;
 mod auto_lint;
 mod automation;
 mod automation_commands;

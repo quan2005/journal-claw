@@ -581,60 +581,100 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
 
             let material_path = task.material_path.clone();
 
-            let current_task = app.state::<CurrentTask>();
-            let result = AssertUnwindSafe(process_material(
-                &app,
-                &task.material_path,
-                &task.year_month,
-                task.note.as_deref(),
-                task.prompt_text.as_deref(),
-                task.reply_ctx.clone(),
-                &current_task,
-            ))
-            .catch_unwind()
-            .await;
+            let retry_policy = crate::llm::retry::ProcessorRetryPolicy::default();
+            let mut attempt: u32 = 0;
 
-            match result {
-                Ok(Ok(())) => {
-                    eprintln!("[ai_queue] task completed: {}", material_path);
-                }
-                Ok(Err(e)) => {
-                    eprintln!("[ai_queue] task failed: {} → {}", material_path, e);
-                }
-                Err(panic_payload) => {
-                    let panic_msg = extract_panic_message(&panic_payload);
-                    eprintln!(
-                        "[ai_queue] PANIC in process_material for {}: {}",
-                        material_path, panic_msg
-                    );
+            loop {
+                let side_effects = crate::llm::retry::SideEffects::default();
+                let current_task = app.state::<CurrentTask>();
 
-                    cleanup_current_task_after_panic(&app);
+                let result = AssertUnwindSafe(process_material(
+                    &app,
+                    &task.material_path,
+                    &task.year_month,
+                    task.note.as_deref(),
+                    task.prompt_text.as_deref(),
+                    task.reply_ctx.clone(),
+                    &current_task,
+                ))
+                .catch_unwind()
+                .await;
 
-                    let error_msg = format!("内部错误 (panic): {}", panic_msg);
-                    let structured = AiProcessingError::new(
-                        crate::errors::AiErrorCode::InternalError,
-                        error_msg.clone(),
-                        0,
-                    );
-                    let _ = app.emit(
-                        "ai-processing",
-                        ProcessingUpdate {
-                            material_path: material_path.clone(),
-                            status: "failed".to_string(),
-                            error: Some(error_msg.clone()),
-                            structured_error: Some(structured),
-                        },
-                    );
-                    let _ = app.emit(
-                        "ai-log",
-                        AiLogLine {
-                            material_path: material_path.clone(),
-                            level: "error".to_string(),
-                            message: format!("处理器崩溃: {}", panic_msg),
-                        },
-                    );
+                match result {
+                    Ok(Ok(())) => {
+                        eprintln!("[ai_queue] task completed: {}", material_path);
+                        break;
+                    }
+                    Ok(Err(e)) => {
+                        let error_code = crate::errors::AiErrorCode::from_llm_error(&e);
+                        let decision = crate::llm::retry::decide_retry(&error_code, attempt, &side_effects, &retry_policy);
+                        match decision {
+                            crate::llm::retry::RetryDecision::Retry { delay, attempt: new_attempt } => {
+                                attempt = new_attempt;
+                                eprintln!(
+                                    "[ai_queue] retry {}/{} after {}ms: {}",
+                                    attempt, retry_policy.max_attempts, delay.as_millis(), e
+                                );
+                                let _ = app.emit(
+                                    "ai-processing",
+                                    ProcessingUpdate {
+                                        material_path: material_path.clone(),
+                                        status: "processing".to_string(),
+                                        error: None,
+                                        structured_error: Some(
+                                            crate::errors::AiProcessingError::new(
+                                                error_code,
+                                                format!("第 {}/{} 次重试...", attempt, retry_policy.max_attempts),
+                                                attempt,
+                                            ),
+                                        ),
+                                    },
+                                );
+                                tokio::time::sleep(delay).await;
+                                continue;
+                            }
+                            crate::llm::retry::RetryDecision::Abort { reason } => {
+                                eprintln!("[ai_queue] task failed ({}): {} → {}", reason, material_path, e);
+                                break;
+                            }
+                        }
+                    }
+                    Err(panic_payload) => {
+                        let panic_msg = extract_panic_message(&panic_payload);
+                        eprintln!(
+                            "[ai_queue] PANIC in process_material for {}: {}",
+                            material_path, panic_msg
+                        );
 
-                    eprintln!("[ai_queue] recovered from panic, continuing consumer loop");
+                        cleanup_current_task_after_panic(&app);
+
+                        let error_msg = format!("内部错误 (panic): {}", panic_msg);
+                        let structured = crate::errors::AiProcessingError::new(
+                            crate::errors::AiErrorCode::InternalError,
+                            error_msg.clone(),
+                            attempt,
+                        );
+                        let _ = app.emit(
+                            "ai-processing",
+                            ProcessingUpdate {
+                                material_path: material_path.clone(),
+                                status: "failed".to_string(),
+                                error: Some(error_msg.clone()),
+                                structured_error: Some(structured),
+                            },
+                        );
+                        let _ = app.emit(
+                            "ai-log",
+                            AiLogLine {
+                                material_path: material_path.clone(),
+                                level: "error".to_string(),
+                                message: format!("处理器崩溃: {}", panic_msg),
+                            },
+                        );
+
+                        eprintln!("[ai_queue] recovered from panic, continuing consumer loop");
+                        break;
+                    }
                 }
             }
         }

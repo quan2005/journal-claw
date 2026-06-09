@@ -1,4 +1,6 @@
 use crate::config;
+use crate::errors::AiProcessingError;
+use crate::event_log::{EventKind, EventLogState};
 use crate::llm;
 use futures::FutureExt;
 use serde::{Deserialize, Serialize};
@@ -12,7 +14,10 @@ use tokio::sync::mpsc;
 pub struct ProcessingUpdate {
     pub material_path: String,
     pub status: String, // "queued" | "processing" | "completed" | "failed"
-    pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>, // Legacy: plain string for backward compat
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structured_error: Option<AiProcessingError>,
 }
 
 pub struct QueueTask {
@@ -54,6 +59,7 @@ pub async fn enqueue_material(
             material_path: material_path.clone(),
             status: "queued".to_string(),
             error: None,
+            structured_error: None,
         },
     );
 
@@ -605,12 +611,18 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                     cleanup_current_task_after_panic(&app);
 
                     let error_msg = format!("内部错误 (panic): {}", panic_msg);
+                    let structured = AiProcessingError::new(
+                        crate::errors::AiErrorCode::InternalError,
+                        error_msg.clone(),
+                        0,
+                    );
                     let _ = app.emit(
                         "ai-processing",
                         ProcessingUpdate {
                             material_path: material_path.clone(),
                             status: "failed".to_string(),
                             error: Some(error_msg.clone()),
+                            structured_error: Some(structured),
                         },
                     );
                     let _ = app.emit(
@@ -640,12 +652,18 @@ pub async fn process_material(
     current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let cfg = config::load_config(app).inspect_err(|e| {
+        let structured = AiProcessingError::new(
+            crate::errors::AiErrorCode::InternalError,
+            e.clone(),
+            0,
+        );
         let _ = app.emit(
             "ai-processing",
             ProcessingUpdate {
                 material_path: material_path.to_string(),
                 status: "failed".to_string(),
                 error: Some(e.clone()),
+                structured_error: Some(structured),
             },
         );
     })?;
@@ -661,6 +679,7 @@ pub async fn process_material(
             material_path: material_path.to_string(),
             status: "processing".to_string(),
             error: None,
+            structured_error: None,
         },
     );
 
@@ -694,10 +713,50 @@ async fn process_material_builtin(
     let ym = year_month.to_string();
     let workspace = cfg.workspace_path.clone();
 
+    // Compute model display name (used for digest + engine name display)
+    let (api_key, base_url, active_model, protocol) = cfg.active_vendor_config();
+    let default_model = config::default_model_for_vendor(&cfg.active_provider);
+    let model_for_digest = if active_model.is_empty() {
+        &default_model
+    } else {
+        active_model
+    };
+
+    // ── Dedup check: compute source digest and skip if already processed ──
+    let source_digest = {
+        let material_bytes = std::fs::read(material_path)
+            .map_err(|e| format!("无法读取素材文件: {}", e))?;
+        crate::digest::compute_source_digest(&material_bytes, "v1", model_for_digest)
+    };
+
+    let month_dir = std::path::Path::new(&workspace).join(&ym);
+    if month_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&month_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().is_some_and(|ext| ext == "md") {
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        if crate::frontmatter::entry_has_digest(&content, &source_digest) {
+                            let _ = app.emit(
+                                "ai-processing",
+                                ProcessingUpdate {
+                                    material_path: mp.clone(),
+                                    status: "completed".to_string(),
+                                    error: Some("相同内容已处理，跳过重复处理".to_string()),
+                                    structured_error: None,
+                                },
+                            );
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Create engine based on active vendor
-    let (api_key, base_url, model, protocol) = cfg.active_vendor_config();
     let engine: Box<dyn llm::LlmEngine> =
-        llm::create_engine_for_provider(api_key, base_url, model, protocol);
+        llm::create_engine_for_provider(api_key, base_url, active_model, protocol);
     // TODO: Feishu multi-turn continuity — when reply_ctx.is_some(), load prior
     // conversation turns for this chat_id so the agent has session memory.
     // The old CLI path used --resume <feishu_session_id>; the builtin engine
@@ -729,13 +788,7 @@ async fn process_material_builtin(
     .await;
 
     // Emit startup log
-    let (_, _, active_model, _) = cfg.active_vendor_config();
-    let default_model = config::default_model_for_vendor(&cfg.active_provider);
-    let model_display = if active_model.is_empty() {
-        &default_model
-    } else {
-        active_model
-    };
+    let model_display = model_for_digest;
     let engine_name = format!("内置引擎 ({}/{})", cfg.active_provider, model_display);
     let _ = app.emit(
         "ai-log",
@@ -856,18 +909,79 @@ async fn process_material_builtin(
 
     match result {
         Ok(final_output) => {
+            // Inject source_digest into the generated entry's frontmatter.
+            // Find the most recently modified .md file in the month dir.
+            let month_dir = std::path::Path::new(&workspace).join(&ym);
+            if let Ok(entries) = std::fs::read_dir(&month_dir) {
+                let newest = entries
+                    .flatten()
+                    .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
+                    .filter(|e| {
+                        // Only consider files modified in the last 30 seconds
+                        e.metadata()
+                            .ok()
+                            .and_then(|m| m.modified().ok())
+                            .is_some_and(|t| {
+                                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs()
+                                    > std::time::SystemTime::now()
+                                        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                                        .unwrap_or_default()
+                                        .as_secs()
+                                        .saturating_sub(30)
+                            })
+                    })
+                    .max_by_key(|e| {
+                        e.metadata()
+                            .ok()
+                            .and_then(|m| m.modified().ok())
+                            .and_then(|t| {
+                                t.duration_since(std::time::SystemTime::UNIX_EPOCH).ok()
+                            })
+                            .unwrap_or_default()
+                    });
+
+                if let Some(entry) = newest {
+                    let path = entry.path();
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        if crate::frontmatter::parse_source_digest(&content).is_none() {
+                            if let Some(rest) = content.strip_prefix("---") {
+                                if let Some(end_idx) = rest.find("---") {
+                                    let injected = format!(
+                                        "---{}source_digest: {}\n---{}",
+                                        &rest[..end_idx],
+                                        source_digest,
+                                        &rest[end_idx + 3..]
+                                    );
+                                    let _ = std::fs::write(&path, injected);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             let _ = app.emit(
                 "ai-processing",
                 ProcessingUpdate {
                     material_path: mp.clone(),
                     status: "completed".to_string(),
                     error: None,
+                    structured_error: None,
                 },
             );
             let _ = app.emit("journal-updated", &ym);
+            // Record to event log for catch-up
+            if let Some(event_log) = app.try_state::<EventLogState>() {
+                event_log.0.record(EventKind::JournalUpdated, serde_json::json!(&ym));
+            }
             let todos_path = std::path::Path::new(&workspace).join("todos.md");
             if todos_path.exists() {
                 let _ = app.emit("todos-updated", ());
+                if let Some(event_log) = app.try_state::<EventLogState>() {
+                    event_log.0.record(EventKind::TodosUpdated, serde_json::json!(null));
+                }
             }
             if let Some(ctx) = reply_ctx {
                 let _ = app.emit(
@@ -882,12 +996,14 @@ async fn process_material_builtin(
         }
         Err(e) => {
             let err_msg = e.to_string();
+            let structured = AiProcessingError::from_llm_error_string(&err_msg, 0);
             let _ = app.emit(
                 "ai-processing",
                 ProcessingUpdate {
                     material_path: mp.clone(),
                     status: "failed".to_string(),
                     error: Some(err_msg.clone()),
+                    structured_error: Some(structured),
                 },
             );
             Err(err_msg)

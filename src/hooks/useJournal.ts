@@ -263,7 +263,7 @@ export function useJournal() {
 
     // Audio pipeline events (local items)
     const unlistenProcessing = listen<ProcessingUpdate>('ai-processing', (event) => {
-      const { material_path, status, error } = event.payload
+      const { material_path, status, error, structured_error } = event.payload
       console.log('[ai-processing]', status, material_path, error ?? '')
 
       if (status === 'queued') {
@@ -313,7 +313,9 @@ export function useJournal() {
         removalTimers.current.set(material_path, timer)
       } else if (status === 'failed') {
         setLocalItems((prev) =>
-          prev.map((i) => (i.path === material_path ? { ...i, status: 'failed', error } : i)),
+          prev.map((i) =>
+            i.path === material_path ? { ...i, status: 'failed', error, structured_error } : i,
+          ),
         )
       }
     })

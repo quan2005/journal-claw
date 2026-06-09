@@ -13,7 +13,10 @@ mod automation_templates;
 mod automation_types;
 mod config;
 mod conversation;
+mod digest;
 mod directive_migration;
+mod errors;
+mod event_log;
 mod feishu_bridge;
 mod frontmatter;
 mod identity;
@@ -104,6 +107,7 @@ fn main() {
                 error: None,
             },
         )))
+        .manage(event_log::EventLogState(event_log::EventLog::new()))
         .setup({
             let allow_exit = Arc::clone(&allow_exit);
             move |app| {
@@ -259,6 +263,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             audio_files::reveal_in_file_manager,
+            event_log::get_events_since,
             config::get_api_key,
             config::set_api_key,
             config::open_settings,

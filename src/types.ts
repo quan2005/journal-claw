@@ -62,6 +62,24 @@ export interface ProcessingUpdate {
   material_path: string
   status: 'queued' | 'processing' | 'completed' | 'failed'
   error?: string
+  structured_error?: AiProcessingError
+}
+
+export interface AiProcessingError {
+  code:
+    | 'rate_limited'
+    | 'auth_failed'
+    | 'network_timeout'
+    | 'model_unavailable'
+    | 'quota_exhausted'
+    | 'transcription_failed'
+    | 'invalid_material'
+    | 'llm_error'
+    | 'internal_error'
+  message: string
+  retryable: boolean
+  user_action: string | null
+  attempt: number
 }
 
 export interface AiLogLine {
@@ -118,6 +136,7 @@ export interface QueueItem {
   filename: string
   status: QueueItemStatus
   error?: string
+  structured_error?: AiProcessingError
   addedAt: number
   logs: string[]
   sessionId?: string // conversation session ID

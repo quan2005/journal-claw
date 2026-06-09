@@ -306,6 +306,20 @@ export function ProcessingQueue({
               }}
             >
               {item.filename}
+              {item.status === 'failed' && (item.structured_error || item.error) && (
+                <span
+                  style={{
+                    marginLeft: 6,
+                    opacity: 0.75,
+                    fontWeight: 'normal',
+                  }}
+                >
+                  —{' '}
+                  {item.structured_error?.user_action ||
+                    item.structured_error?.message ||
+                    item.error}
+                </span>
+              )}
             </span>
 
             {isConfirming ? (

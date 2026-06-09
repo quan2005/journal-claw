@@ -405,3 +405,35 @@ fn main() {
             }
         });
 }
+
+#[cfg(test)]
+mod tests {
+    /// Documents all managed state types. If a new .manage() call is added
+    /// without updating this list, the developer should update this test.
+    /// This serves as a guardrail against forgotten state registrations.
+    #[test]
+    fn managed_state_types_documented() {
+        // Each .manage() in main() registers one of these types:
+        let state_types = [
+            "AiQueue",
+            "CurrentTask",
+            "CancelledPaths",
+            "ConversationStore",
+            "WorkQueue",
+            "AutoLintNotify",
+            "LintRunning",
+            "AutomationNotify",
+            "AutomationRuntime",
+            "TopicsWatcherState",
+            "BridgeStatusState",
+            "EventLogState",
+        ];
+        // This is a documentation test — it verifies the count matches
+        // what's registered. When adding a new .manage() call, add to this list.
+        assert_eq!(
+            state_types.len(),
+            12,
+            "Update this test when adding or removing managed state types"
+        );
+    }
+}

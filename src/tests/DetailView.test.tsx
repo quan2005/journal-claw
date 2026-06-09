@@ -194,6 +194,39 @@ describe('DetailView topic file rendering', () => {
     expect(screen.getByText('0/0')).toBeTruthy()
   })
 
+  it('keeps source line numbers out of Cmd+A selection', async () => {
+    const { getJournalEntryContent } = await import('../lib/tauri')
+    vi.mocked(getJournalEntryContent).mockResolvedValueOnce('alpha\nbeta')
+
+    renderWithProviders(
+      <DetailView
+        type="topic-file"
+        file={{
+          name: 'Snippet.ts',
+          path: '可视化一切/Snippet.ts',
+          is_dir: false,
+          created_secs: 1_714_435_200,
+          mtime_secs: 1_714_521_600,
+        }}
+      />,
+    )
+
+    await screen.findByTestId('source-view')
+    const lineNumbers = screen.getAllByTestId('source-line-number')
+    expect(lineNumbers[0].getAttribute('data-line-number')).toBe('1')
+    expect(lineNumbers[1].getAttribute('data-line-number')).toBe('2')
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'a', metaKey: true })
+    })
+
+    const selectedText = window.getSelection()?.toString() ?? ''
+    expect(selectedText).toContain('alpha')
+    expect(selectedText).toContain('beta')
+    expect(selectedText).not.toContain('1alpha')
+    expect(selectedText).not.toContain('2beta')
+  })
+
   it('copies the workspace-relative topic file path and shows success feedback', async () => {
     renderWithProviders(
       <DetailView

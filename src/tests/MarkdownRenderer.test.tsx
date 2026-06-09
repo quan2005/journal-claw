@@ -3,10 +3,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
 
 vi.mock('../components/mdx/mermaidRuntime', async () => {
-  const actual =
-    await vi.importActual<typeof import('../components/mdx/mermaidRuntime')>(
-      '../components/mdx/mermaidRuntime',
-    )
+  const actual = await vi.importActual<typeof import('../components/mdx/mermaidRuntime')>(
+    '../components/mdx/mermaidRuntime',
+  )
 
   return {
     ...actual,

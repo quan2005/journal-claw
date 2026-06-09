@@ -57,6 +57,58 @@ describe('JournalBlockRenderer', () => {
     expect(screen.getByText('Keep prose calm and precise.')).toBeTruthy()
   })
 
+  it('renders inline markdown in summary body fields', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'summary',
+          body: {
+            format: 'fields',
+            fields: {
+              title: '三件事',
+              body: '一个信号：**自然语言生成工作流**仍是压倒性第一需求。',
+            },
+          },
+        })}
+      />,
+    )
+
+    const strong = container.querySelector('.journal-block-summary strong')
+    expect(strong?.textContent).toBe('自然语言生成工作流')
+    expect(container.textContent).toContain('一个信号：自然语言生成工作流仍是压倒性第一需求。')
+  })
+
+  it('renders quote evidence with author and context as a compact voice item', () => {
+    const { container } = render(
+      <JournalBlockRenderer
+        block={block({
+          name: 'quote',
+          body: {
+            format: 'fields',
+            fields: {
+              text: '最看重的是效果，不是效率。',
+              author: '冯灿威',
+              context: '新用户（<1 月），与其他用户「效率优先」的诉求形成对比',
+            },
+          },
+        })}
+      />,
+    )
+
+    const quote = container.querySelector('.journal-block-quote')
+    expect(quote?.tagName).toBe('FIGURE')
+    expect(quote?.classList.contains('journal-block-content')).toBe(true)
+    expect(container.querySelector('.journal-block-quote-mark')).toBeNull()
+    expect(container.querySelector('.journal-block-quote-body')?.tagName).toBe('BLOCKQUOTE')
+    expect(container.querySelector('.journal-block-quote-text')?.textContent).toBe(
+      '最看重的是效果，不是效率。',
+    )
+    expect(container.querySelector('.journal-block-quote-author')?.textContent).toContain('冯灿威')
+    expect(container.querySelector('.journal-block-quote-context')?.textContent).toContain(
+      '新用户（<1 月）',
+    )
+  })
+
   it('renders card description br tokens as line breaks', () => {
     const { container } = render(
       <JournalBlockRenderer

@@ -1,5 +1,5 @@
 use super::super::types::{ToolDefinition, ToolResult};
-use super::sandbox_resolve;
+use super::{sandbox_resolve, validate_mdx_after_write};
 use serde_json::json;
 
 pub fn definition() -> ToolDefinition {
@@ -138,10 +138,15 @@ pub async fn execute(input: &serde_json::Value, workspace: &str) -> ToolResult {
     };
 
     match tokio::fs::write(&abs_path, &new_content).await {
-        Ok(_) => ToolResult {
-            output: format!("replaced {} occurrence(s) in {}", count, path),
-            is_error: false,
-        },
+        Ok(_) => {
+            let success_output = format!("replaced {} occurrence(s) in {}", count, path);
+            validate_mdx_after_write(path, &new_content, success_output.clone()).unwrap_or(
+                ToolResult {
+                    output: success_output,
+                    is_error: false,
+                },
+            )
+        }
         Err(e) => ToolResult {
             output: format!("error: write failed: {}", e),
             is_error: true,
@@ -241,5 +246,56 @@ mod tests {
             std::fs::read_to_string(dir.path().join("f.txt")).unwrap(),
             "ABC"
         );
+    }
+
+    #[tokio::test]
+    async fn edit_validates_mdx_after_file_is_written() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("bad.mdx"),
+            "---\nsummary: ok\ntags: [journal]\n---\n\n# Good\n\n<Callout title=\"Note\">Body</Callout>",
+        )
+        .unwrap();
+        let input = serde_json::json!({
+            "path": "bad.mdx",
+            "old_string": "title=\"Note\"",
+            "new_string": "title=\"Missing close"
+        });
+
+        let result = execute(&input, dir.path().to_str().unwrap()).await;
+
+        assert!(result.is_error);
+        assert!(result.output.contains("MDX syntax check failed"));
+        assert!(result.output.contains("Please fix"));
+        assert!(result.output.contains("bad.mdx"));
+        assert!(result.output.contains("Line 8:"));
+        assert!(std::fs::read_to_string(dir.path().join("bad.mdx"))
+            .unwrap()
+            .contains("title=\"Missing close"));
+    }
+
+    #[tokio::test]
+    async fn edit_reports_multiple_mdx_syntax_issues() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("many-bad.mdx"),
+            "---\nsummary: ok\ntags: [journal]\n---\n\n# Good\n\n<Callout title=\"Note\">Body</Callout>",
+        )
+        .unwrap();
+        let input = serde_json::json!({
+            "path": "many-bad.mdx",
+            "old_string": "<Callout title=\"Note\">Body</Callout>",
+            "new_string": "<Callout title=\"Missing close>\n\n</Card>\n\n<Section>",
+            "literal": true
+        });
+
+        let result = execute(&input, dir.path().to_str().unwrap()).await;
+
+        assert!(result.is_error);
+        assert!(result.output.contains("MDX preflight found 3 issue(s):"));
+        assert!(result.output.contains("Line 8:"));
+        assert!(result.output.contains("Line 10:"));
+        assert!(result.output.contains("Line 12:"));
+        assert!(result.output.contains("Compiler error:"));
     }
 }

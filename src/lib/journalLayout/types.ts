@@ -14,6 +14,7 @@ export type LayoutAttrs = Record<string, LayoutPrimitive | LayoutPrimitive[]>
 
 export interface LayoutModuleSpec {
   name: string
+  jsxName: string
   category: LayoutCategory
   bodyFormat: LayoutBodyFormat
   renderer: string

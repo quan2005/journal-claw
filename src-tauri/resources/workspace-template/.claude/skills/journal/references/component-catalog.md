@@ -12,11 +12,32 @@
 | Media and diagrams  | `AudioCard`, `VideoCard`, `ImageViewer`, `FileCard`, `BarChart`, `LineChart`, `PieChart`, `RadarChart`, `Mermaid` |
 | Preview and devices | `HtmlPreview`, `PhonePreview`, `MacPreview`                                                                       |
 
-## Journal Layout Directives
+## Canonical Layout Components
 
-Use `references/layout-directives.md` for non-JSX layout blocks such as `hero`, `metrics`, `verdict`, `timeline`, `quote`, `faq`, `summary`, and `callout`.
+These typed JSX components are the only layout syntax. Use `heading` for an optional block heading and `items` for repeated rows.
 
-Directive blocks work in both `.md` and `.mdx`; they are the preferred first choice for document rhythm, section emphasis, structured comparisons, and end summaries. Use JSX components only when a semantic component such as `DecisionRecord`, `ActionTable`, `RiskMatrix`, `ReferenceList`, `Transcript`, or a chart carries information the directive catalog cannot express.
+| Group       | Components                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| Opening     | `Hero`, `Toc`, `Cards`, `Card`, `Part`, `LabelTitle`                                                                 |
+| Infographic | `Metrics`, `Compare`, `Steps`, `Timeline`, `Infographic`                                                             |
+| Judgment    | `Verdict`, `AudienceFit`, `MythFact`, `Manifesto`, `Bridge`                                                          |
+| Evidence    | `Quote`, `ImageText`, `ImageCompare`, `ImageAnnotate`, `ImageSteps`                                                  |
+| Conversion  | `Cta`, `Faq`, `Checklist`, `Cases`, `Summary`, `Notice`, `Logos`, `Pricing`, `Specs`, `Toolbox`                      |
+| Brand       | `AuthorCard`, `Subscribe`, `People`, `Series`                                                                        |
+| Enhanced    | `Callout`, `Definition`, `QuoteCard`, `Tweet`, `StatRow`, `Question`, `ResourceList`, `ComparisonTable`, `Changelog` |
+
+Examples:
+
+```mdx
+<Quote text="最看重的是效果，不是效率。" author="冯灿威" context="新用户（<1 月）" />
+
+<Timeline
+  heading="关键节点"
+  items={[{ time: '第 3 轮', title: '答非所问', description: '需要节点级定位' }]}
+/>
+
+<Checklist heading="后续动作" items={[{ text: '补充节点级可观测性', state: 'todo' }]} />
+```
 
 ## Preview HTML Style Preset
 

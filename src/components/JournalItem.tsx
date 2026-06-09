@@ -27,7 +27,12 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
       role="button"
       tabIndex={0}
       aria-selected={isSelected}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(entry) } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick(entry)
+        }
+      }}
       onClick={() => onClick(entry)}
       onContextMenu={(e) => {
         e.preventDefault()

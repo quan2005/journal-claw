@@ -67,10 +67,9 @@ fn journal_document_format_contract() -> String {
 结构选择顺序：
 
 1. Markdown first: 普通段落、标题、列表、表格、代码块先用标准 Markdown，保持可读、可回溯。
-2. Layout directives second: 需要稳定视觉层级、对比、时间线、步骤、判断、引用、资源列表或结尾总结时，优先使用 `references/layout-directives.md` 的 directive blocks。
-3. MDX JSX last: 只有当 directive catalog 无法表达更强语义对象时，才使用 MDX JSX 组件，例如决策记录、行动表、风险矩阵、可追溯来源、转写、图表或可复制原文片段。
+2. MDX JSX second: 需要稳定视觉层级、对比、时间线、步骤、判断、引用、资源列表、结尾总结或更强语义对象时，使用 typed MDX JSX components。
 
-写日志或整理素材前应加载 `/journal`。选择 JSX 组件前，先读取 `references/layout-directives.md`；只有确认 layout directives 无法表达目标结构时，再读取 `references/component-recipes.md`。普通条目通常使用 2-5 个承载信息的 directive blocks；不要为了装饰使用 directive 或 JSX。"#
+写日志或整理素材前应加载 `/journal`。需要组件时读取 `references/component-catalog.md` 和 `references/component-recipes.md`。普通条目通常使用 0-5 个承载信息的 JSX components；不要为了装饰使用组件。"#
         .to_string()
 }
 
@@ -245,7 +244,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn build_system_prompt_prioritizes_journal_layout_directives() {
+    async fn build_system_prompt_uses_jsx_as_the_only_component_syntax() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let workspace = tmp.path();
 
@@ -263,10 +262,10 @@ mod tests {
         assert!(contract_idx < platform_idx);
         assert!(prompt.contains("优先输出 JournalClaw 可渲染的 `.mdx` 文档"));
         assert!(prompt.contains("Markdown first"));
-        assert!(prompt.contains("Layout directives second"));
-        assert!(prompt.contains("MDX JSX last"));
-        assert!(prompt.contains("references/layout-directives.md"));
+        assert!(prompt.contains("MDX JSX second"));
         assert!(prompt.contains("references/component-recipes.md"));
+        assert!(!prompt.contains("references/layout-directives.md"));
+        assert!(!prompt.contains("Layout directives"));
     }
 
     #[tokio::test]

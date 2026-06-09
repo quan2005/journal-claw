@@ -5,10 +5,7 @@ interface RightPanelProps {
   chatInputBar?: ReactNode
 }
 
-export function RightPanel({
-  chatContent,
-  chatInputBar,
-}: RightPanelProps) {
+export function RightPanel({ chatContent, chatInputBar }: RightPanelProps) {
   return (
     <div
       style={{

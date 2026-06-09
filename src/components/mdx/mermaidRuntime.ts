@@ -31,15 +31,14 @@ function repairJoinedStatements(value: string): string {
   return value
     .replace(/\b((?:flowchart|graph)\s+(?:TB|TD|BT|LR|RL))(?=[A-Za-z_])/g, '$1\n')
     .replace(/\bendsubgraph\b/g, 'end\nsubgraph')
-    .replace(
-      /((?:-->|---|==>|-.->|--x|--o|--)\s*[A-Za-z_][\w-]*?)(subgraph\b)/g,
-      '$1\n$2',
-    )
+    .replace(/((?:-->|---|==>|-.->|--x|--o|--)\s*[A-Za-z_][\w-]*?)(subgraph\b)/g, '$1\n$2')
     .replace(/\bend(?=[A-Za-z_][\w-]*\s*(?:-->|---|==>|-.->|--x|--o|--))/g, 'end\n')
 }
 
 export function normalizeMermaidSource(source: string): string {
-  return repairJoinedStatements(unwrapFence(decodeHtmlEntities(source).replace(/\\r\\n|\\n|\\r/g, '\n')))
+  return repairJoinedStatements(
+    unwrapFence(decodeHtmlEntities(source).replace(/\\r\\n|\\n|\\r/g, '\n')),
+  )
     .replace(/^\uFEFF/, '')
     .trim()
 }

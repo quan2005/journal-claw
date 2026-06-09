@@ -36,7 +36,6 @@
 `/journal` 是唯一的笔记整理 skill，覆盖会议、汇报、项目、研究、学习、个人、技术、内容、人事运营等素材。写日志或整理素材前应加载，并按需读取其 `references/` 中的模板家族与组件规则。
 `/lint` 面向整个日志库的周期性整理（不是单条日志整理），检测矛盾、补充交叉引用、修复元数据。
 
-
 ## 核心流程
 
 每次收到素材，依次执行：
@@ -56,7 +55,7 @@
 
 文件命名：`yyMM/DD-title.mdx`，标题具体不泛化。
 
-所有日志默认输出为 `.mdx`（Markdown + layout directives + 少量 JSX 组件）。元数据用 YAML frontmatter：
+所有日志默认输出为 `.mdx`（Markdown + typed JSX components）。元数据用 YAML frontmatter：
 
 ```yaml
 ---
@@ -81,15 +80,14 @@ sources: [2604/raw/file.m4a]
 
 ## 日志排版
 
-使用 Markdown 语法、Journal layout directives 和少量 MDX 内置组件排版。标准 Markdown（标题、列表、表格、代码块等）负责基础结构，layout directives 负责稳定视觉层级，MDX JSX 组件只负责 directives 无法表达的复杂语义对象。
+使用 Markdown 语法和 MDX 内置组件排版。标准 Markdown（标题、列表、表格、代码块等）负责基础结构，typed JSX components 负责需要稳定视觉层级或强语义结构的内容。
 
 **优先级**：
 
 1. Markdown first：普通段落、标题、列表、表格、代码块先用标准 Markdown。
-2. layout directives before JSX：需要对比、时间线、步骤、判断、引用、资源列表、结尾总结或强阅读入口时，先读取 `/journal` 的 `references/layout-directives.md` 并使用 directive blocks。
-3. MDX JSX last：只有当 `references/layout-directives.md` 无法表达决策记录、行动表、风险矩阵、转写、图表、可复制片段等强语义对象时，再读取 `references/component-recipes.md` 并使用 JSX。
+2. MDX JSX second：需要对比、时间线、步骤、判断、引用、资源列表、结尾总结、强阅读入口或复杂语义对象时，读取 `/journal` 的 `references/component-catalog.md` 和 `references/component-recipes.md` 并使用 typed JSX。
 
-普通条目通常使用 2-5 个承载信息的 directive blocks；不要为了装饰使用 directive 或 JSX。
+普通条目通常使用 0-5 个承载信息的 JSX components；不要为了装饰使用组件。
 
 ## MDX 组件
 
@@ -97,6 +95,6 @@ sources: [2604/raw/file.m4a]
 
 ### 核心原则
 
-1. 一条日志通常 0-3 个 JSX 组件，纯 Markdown 和 layout directives 优先
+1. 一条日志通常 0-5 个 JSX 组件，纯 Markdown 优先
 2. 图表数据必须真实，不可捏造
 3. Callout: `info`=背景, `warning`=风险, `tip`=建议, `note`=旁注

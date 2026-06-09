@@ -57,7 +57,7 @@ export function DecisionRecord({
   rationale?: string
 }) {
   return (
-    <section className="mdx-decision-record">
+    <section className="mdx-decision-record mdx-specialized-prose">
       <div className="mdx-decision-question">{question}</div>
       <div className="mdx-decision-answer">{decision}</div>
       {(owner || due) && (
@@ -166,7 +166,7 @@ export function MilestoneTimeline({
   items: { time: string; title: string; desc?: string }[]
 }) {
   return (
-    <div className="mdx-semantic-timeline">
+    <div className="mdx-semantic-timeline mdx-specialized-content">
       {items.map((item) => (
         <div key={`${item.time}-${item.title}`} className="mdx-semantic-timeline-item">
           <span>{item.time}</span>
@@ -184,7 +184,7 @@ export function IncidentTimeline({
   items: { time: string; title: string; impact?: string; desc?: string }[]
 }) {
   return (
-    <div className="mdx-semantic-timeline mdx-incident-timeline">
+    <div className="mdx-semantic-timeline mdx-incident-timeline mdx-specialized-content">
       {items.map((item) => (
         <div key={`${item.time}-${item.title}`} className="mdx-semantic-timeline-item">
           <span>{item.time}</span>
@@ -209,7 +209,7 @@ function SemanticCard({
   children: ReactNode
 }) {
   return (
-    <aside className={`mdx-semantic-card ${className}`}>
+    <aside className={`mdx-semantic-card mdx-specialized-prose ${className}`}>
       <div className="mdx-semantic-card-title">{title}</div>
       {meta && <div className="mdx-semantic-card-meta">{meta}</div>}
       <div className="mdx-semantic-card-body">{children}</div>

@@ -55,13 +55,7 @@ export function ImageViewer({
   )
 }
 
-export function FileCard({
-  path,
-  label,
-}: {
-  path: string
-  label?: string
-}) {
+export function FileCard({ path, label }: { path: string; label?: string }) {
   return (
     <a className="mdx-file-card" data-filepath={path} style={{ cursor: 'pointer' }}>
       <FileText className="mdx-file-icon" aria-hidden="true" size={15} strokeWidth={1.8} />

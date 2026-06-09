@@ -23,9 +23,7 @@ function createLazyChart(
   return function ChartWrapper({ data, title, color }: ChartProps) {
     return (
       <ChartFrame title={title} type={type} dataLength={data?.length ?? 0}>
-        {(layout) => (
-          <LazyComponent data={data} color={color ?? defaultColor} layout={layout} />
-        )}
+        {(layout) => <LazyComponent data={data} color={color ?? defaultColor} layout={layout} />}
       </ChartFrame>
     )
   }

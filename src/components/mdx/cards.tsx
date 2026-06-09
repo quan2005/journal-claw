@@ -29,13 +29,7 @@ export function Card({
 
 // ── Stack — vertical spacing ──────────────────────────
 
-export function Stack({
-  children,
-  gap = 4,
-}: {
-  children: React.ReactNode
-  gap?: number
-}) {
+export function Stack({ children, gap = 4 }: { children: React.ReactNode; gap?: number }) {
   return (
     <div
       className="mdx-stack"
@@ -91,7 +85,11 @@ export function Kanban({
               {item.text}
               {item.tags && item.tags.length > 0 && (
                 <div className="mdx-tag-list">
-                  {item.tags.map((t, ti) => <span key={ti} className="mdx-tag">{t}</span>)}
+                  {item.tags.map((t, ti) => (
+                    <span key={ti} className="mdx-tag">
+                      {t}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
@@ -104,16 +102,14 @@ export function Kanban({
 
 // ── Checklist ───────────────────────────────────────────
 
-export function Checklist({
-  items,
-}: {
-  items: { text: string; checked?: boolean }[]
-}) {
+export function Checklist({ items }: { items: { text: string; checked?: boolean }[] }) {
   return (
     <ul className="mdx-checklist">
       {items.map((item, i) => (
         <li key={i} className="mdx-checklist-item">
-          <span className={`mdx-checklist-marker ${item.checked ? 'mdx-checklist-marker--checked' : 'mdx-checklist-marker--unchecked'}`}>
+          <span
+            className={`mdx-checklist-marker ${item.checked ? 'mdx-checklist-marker--checked' : 'mdx-checklist-marker--unchecked'}`}
+          >
             {item.checked ? '✓' : '○'}
           </span>
           <span>{item.text}</span>

@@ -206,6 +206,18 @@ export const zh: Strings = {
   generalSubtitle: '设置谨迹保存日志、原始素材、身份画像和待办的位置。',
   workspaceFolder: '工作区文件夹',
   workspaceSaveHint: '切换路径后，应用会读取另一个日志库。',
+  legacyMigrationTitle: '迁移旧版日志语法',
+  legacyMigrationDescription:
+    '将旧 directive 块转换为 JSX。预览会逐个验证文件，确认迁移后才会先备份再写入。',
+  legacyMigrationScanning: '正在扫描工作区…',
+  legacyMigrationNone: '未发现旧版语法',
+  legacyMigrationCandidates: '发现 {count} 个使用旧版语法的文件',
+  legacyMigrationPreview: '预览迁移',
+  legacyMigrationPreviewResult: '{valid} 个可迁移 · {failed} 个需要处理',
+  legacyMigrationApply: '迁移 {count} 个文件',
+  legacyMigrationApplying: '正在验证、备份并迁移…',
+  legacyMigrationDone: '已迁移 {converted} 个 · {failed} 个失败',
+  legacyMigrationBackup: '备份位置：{path}',
 
   // Settings: AI Engine
   aiEngineSection: '模型配置',

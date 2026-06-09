@@ -18,10 +18,9 @@ import {
 import { ReferenceList, Transcript, TimestampLink } from '../components/mdx'
 
 vi.mock('../components/mdx/mermaidRuntime', async () => {
-  const actual =
-    await vi.importActual<typeof import('../components/mdx/mermaidRuntime')>(
-      '../components/mdx/mermaidRuntime',
-    )
+  const actual = await vi.importActual<typeof import('../components/mdx/mermaidRuntime')>(
+    '../components/mdx/mermaidRuntime',
+  )
 
   return {
     ...actual,

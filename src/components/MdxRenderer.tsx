@@ -12,8 +12,8 @@ import {
 import { compileMdx, getWorkspacePath, openFile } from '../lib/tauri'
 import { resolveRelativePath } from '../lib/markdownUtils'
 import { createMarkdownComponents } from '../lib/markdownComponents'
-import { transformMdxDirectives } from '../lib/journalLayout'
 import { mdxComponents } from './mdx'
+import { MdxRuntimeProvider } from './mdx/context'
 import { createMdxComponent, type MdxRuntimeComponent } from '../lib/mdxRuntime'
 import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
 
@@ -305,8 +305,7 @@ function parseMediaTime(value: string): number {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function MdxRenderer({ content, entryPath }: Props) {
-  const transformedContent = useMemo(() => transformMdxDirectives(content), [content])
-  const cacheKey = `${entryPath ?? ''}\0${transformedContent}`
+  const cacheKey = `${entryPath ?? ''}\0${content}`
   const [compileState, setCompileState] = useState<CompileState>(() => {
     const cached = getCachedComponent(cacheKey)
     return cached
@@ -319,10 +318,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
     [entryPath],
   )
 
-  const componentSources = useMemo(
-    () => extractMdxComponentSources(transformedContent),
-    [transformedContent],
-  )
+  const componentSources = useMemo(() => extractMdxComponentSources(content), [content])
 
   const components = useMemo(
     () =>
@@ -343,7 +339,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
     }
 
     setCompileState({ key: cacheKey, status: 'loading' })
-    compileMdx(transformedContent, entryPath)
+    compileMdx(content, entryPath)
       .then((compiled) => createMdxComponent(compiled))
       .then((component) => {
         setCachedComponent(cacheKey, component)
@@ -360,7 +356,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
     return () => {
       cancelled = true
     }
-  }, [cacheKey, transformedContent, entryPath])
+  }, [cacheKey, content, entryPath])
 
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -462,7 +458,9 @@ export function MdxRenderer({ content, entryPath }: Props) {
         )}
         {activeState.status === 'ready' && Content && (
           <Suspense fallback={mdxLoadingFallback()}>
-            <Content components={components} />
+            <MdxRuntimeProvider entryPath={entryPath}>
+              <Content components={components} />
+            </MdxRuntimeProvider>
           </Suspense>
         )}
       </MdxErrorBoundary>

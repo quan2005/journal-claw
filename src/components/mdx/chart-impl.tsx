@@ -21,8 +21,7 @@ import type { ChartData, ChartLayout } from './chart-frame'
 const amber = '#b8782a'
 
 function useChartTheme() {
-  const resolve = () =>
-    document.documentElement.getAttribute('data-theme') === 'dark'
+  const resolve = () => document.documentElement.getAttribute('data-theme') === 'dark'
 
   const [isDark, setIsDark] = useState(resolve)
 
@@ -277,7 +276,10 @@ export function RadarChartImpl({
     <ResponsiveContainer width="100%" height={layout.height}>
       <RechartsRadar data={data} margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
         <PolarGrid stroke={t.grid} />
-        <PolarAngleAxis dataKey="label" tick={{ fontSize: layout.compact ? 11 : 12, fill: t.text }} />
+        <PolarAngleAxis
+          dataKey="label"
+          tick={{ fontSize: layout.compact ? 11 : 12, fill: t.text }}
+        />
         <Tooltip
           contentStyle={{
             background: t.tooltipBg,
@@ -287,12 +289,7 @@ export function RadarChartImpl({
             color: t.isDark ? '#e8e8e8' : '#1c1c1e',
           }}
         />
-        <Radar
-          dataKey="value"
-          stroke={color}
-          fill={color}
-          fillOpacity={0.18}
-        />
+        <Radar dataKey="value" stroke={color} fill={color} fillOpacity={0.18} />
       </RechartsRadar>
     </ResponsiveContainer>
   )

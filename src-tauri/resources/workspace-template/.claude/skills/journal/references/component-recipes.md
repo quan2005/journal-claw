@@ -1,8 +1,29 @@
 # Component Recipes
 
-## Layout Before JSX
+## Markdown Before Components
 
-Before choosing JSX components, check `layout-directives.md`. Use directives for hero openings, metric summaries, timelines, steps, verdicts, quotes, FAQ, resource lists, notices, and final summaries. JSX components are for richer semantic structures such as decision records, action tables, risks, source traceability, transcripts, charts, and copyable exact text.
+Use Markdown for ordinary prose, headings, lists, tables, and code. Use typed JSX directly for hero openings, metric summaries, timelines, steps, verdicts, quotes, FAQ, resource lists, notices, final summaries, and richer semantic structures. Prefer one component that carries information over several decorative wrappers.
+
+## Evidence Quote
+
+```mdx
+<Quote
+  text="第 3 轮后模型经常答非所问。"
+  author="张荣立"
+  context="多轮对话场景，缺少节点级可观测性"
+/>
+```
+
+## Structured Summary
+
+```mdx
+<Hero title="用户研究结论" subtitle="效果优先与节点级可观测性是当前最强信号。" />
+
+<Metrics
+  heading="样本概览"
+  items={[{ label: '访谈', value: 3, description: '覆盖新用户与成长期用户' }]}
+/>
+```
 
 ## Decision Review
 

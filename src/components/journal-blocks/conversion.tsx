@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { JournalBlock } from '../../lib/journalLayout'
 
 function fields(block: JournalBlock): Record<string, string> {
@@ -6,6 +8,18 @@ function fields(block: JournalBlock): Record<string, string> {
 
 function rows(block: JournalBlock): string[][] {
   return block.body.format === 'rows' ? block.body.rows : []
+}
+
+function InlineMarkdown({ value }: { value: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      allowedElements={['p', 'strong', 'em', 'del', 'code', 'a', 'br']}
+      unwrapDisallowed
+    >
+      {value}
+    </ReactMarkdown>
+  )
 }
 
 function ChecklistMarkIcon() {
@@ -94,7 +108,7 @@ export function SummaryBlock({ block }: { block: JournalBlock }) {
   return (
     <section className="journal-block journal-block-prose journal-block-summary">
       <h2>{data.title}</h2>
-      {data.body && <p>{data.body}</p>}
+      {data.body && <InlineMarkdown value={data.body} />}
     </section>
   )
 }

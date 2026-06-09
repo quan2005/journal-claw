@@ -27,11 +27,26 @@ function stringValue(value: unknown): string {
 
 export function QuoteBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
+  const sourceLabel = data.source || data.url
+  const hasMeta = Boolean(data.author || data.context || sourceLabel)
+
   return (
-    <blockquote className="journal-block journal-block-prose journal-block-quote">
-      <p>{data.text}</p>
-      {data.source && <cite>{data.url ? <a href={data.url}>{data.source}</a> : data.source}</cite>}
-    </blockquote>
+    <figure className="journal-block journal-block-content journal-block-quote">
+      <blockquote className="journal-block-quote-body">
+        <p className="journal-block-quote-text">{data.text}</p>
+      </blockquote>
+      {hasMeta && (
+        <figcaption className="journal-block-quote-meta">
+          {data.author && <span className="journal-block-quote-author">{data.author}</span>}
+          {sourceLabel && (
+            <cite className="journal-block-quote-source">
+              {data.url ? <a href={data.url}>{sourceLabel}</a> : sourceLabel}
+            </cite>
+          )}
+          {data.context && <span className="journal-block-quote-context">{data.context}</span>}
+        </figcaption>
+      )}
+    </figure>
   )
 }
 

@@ -5,8 +5,7 @@ export type MdxRuntimeComponent = ComponentType<{
   components?: Record<string, unknown>
 }>
 
-const JSX_RUNTIME_IMPORT_RE =
-  /^\s*import\s+\{[^}]*\}\s+from\s+["']react\/jsx-runtime["'];?\s*/gm
+const JSX_RUNTIME_IMPORT_RE = /^\s*import\s+\{[^}]*\}\s+from\s+["']react\/jsx-runtime["'];?\s*/gm
 const EXPORT_DEFAULT_RE = /^\s*export\s+default\s+MDXContent;?\s*$/m
 const IMPORT_OR_EXPORT_RE = /^\s*(?:import|export)\s/m
 

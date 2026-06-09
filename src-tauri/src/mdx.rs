@@ -13,6 +13,350 @@ pub fn compile_mdx_source(source: &str, filepath: Option<String>) -> Result<Stri
     mdxjs::compile(&escaped, &options).map_err(|e| e.to_string())
 }
 
+pub fn validate_mdx_document(source: &str, filepath: Option<String>) -> Result<(), String> {
+    let stripped = strip_frontmatter(source);
+    let preflight_issues = collect_mdx_preflight_issues(stripped.source, stripped.line_offset);
+    let compile_result = compile_mdx_source(stripped.source, filepath)
+        .map(|_| ())
+        .map_err(|error| remap_error_line_numbers(&error, stripped.line_offset));
+
+    match (preflight_issues.is_empty(), compile_result) {
+        (true, Ok(())) => Ok(()),
+        (true, Err(error)) => Err(error),
+        (false, Ok(())) => Err(format_preflight_issues(&preflight_issues, None)),
+        (false, Err(error)) => Err(format_preflight_issues(&preflight_issues, Some(&error))),
+    }
+}
+
+struct StrippedMdxSource<'a> {
+    source: &'a str,
+    line_offset: usize,
+}
+
+fn strip_frontmatter(source: &str) -> StrippedMdxSource<'_> {
+    let Some(rest) = source.strip_prefix("---") else {
+        return StrippedMdxSource {
+            source,
+            line_offset: 0,
+        };
+    };
+
+    let Some(end) = rest.find("\n---") else {
+        return StrippedMdxSource {
+            source,
+            line_offset: 0,
+        };
+    };
+
+    let body = &rest[end + 4..];
+    let stripped_body = body.trim_start_matches(['\r', '\n']);
+    let body_start = source.len() - stripped_body.len();
+
+    StrippedMdxSource {
+        source: stripped_body,
+        line_offset: source[..body_start].bytes().filter(|b| *b == b'\n').count(),
+    }
+}
+
+fn remap_error_line_numbers(error: &str, line_offset: usize) -> String {
+    if line_offset == 0 {
+        return error.to_string();
+    }
+
+    error
+        .lines()
+        .map(|line| remap_error_line_number(line, line_offset))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn remap_error_line_number(line: &str, line_offset: usize) -> String {
+    let Some(first_colon) = line.find(':') else {
+        return line.to_string();
+    };
+
+    let candidate = &line[..first_colon];
+    if candidate.is_empty() || !candidate.chars().all(|ch| ch.is_ascii_digit()) {
+        return line.to_string();
+    }
+
+    let Ok(line_number) = candidate.parse::<usize>() else {
+        return line.to_string();
+    };
+
+    format!("{}{}", line_number + line_offset, &line[first_colon..])
+}
+
+#[derive(Debug)]
+struct MdxPreflightIssue {
+    line: usize,
+    column: usize,
+    message: String,
+}
+
+#[derive(Debug)]
+struct OpenTag {
+    name: String,
+    line: usize,
+    column: usize,
+}
+
+enum TagScan {
+    Complete { end: usize, self_closing: bool },
+    Malformed { column: usize, message: String },
+    Incomplete,
+}
+
+fn collect_mdx_preflight_issues(source: &str, line_offset: usize) -> Vec<MdxPreflightIssue> {
+    let mut issues = Vec::new();
+    let mut stack: Vec<OpenTag> = Vec::new();
+    let mut in_fence = false;
+
+    for (line_index, line) in source.lines().enumerate() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_fence = !in_fence;
+            continue;
+        }
+        if in_fence {
+            continue;
+        }
+
+        scan_mdx_line_for_jsx(line, line_offset + line_index + 1, &mut stack, &mut issues);
+    }
+
+    issues.extend(stack.into_iter().map(|tag| MdxPreflightIssue {
+        line: tag.line,
+        column: tag.column,
+        message: format!("opening tag <{}> is not closed", tag.name),
+    }));
+    issues
+}
+
+fn scan_mdx_line_for_jsx(
+    line: &str,
+    line_number: usize,
+    stack: &mut Vec<OpenTag>,
+    issues: &mut Vec<MdxPreflightIssue>,
+) {
+    let mut index = 0;
+
+    while index < line.len() {
+        let Some(relative_lt) = line[index..].find('<') else {
+            break;
+        };
+        let lt = index + relative_lt;
+        let after_lt = lt + 1;
+        let rest = &line[after_lt..];
+
+        if rest.starts_with("!--") {
+            index = line[after_lt..]
+                .find("-->")
+                .map_or(line.len(), |end| after_lt + end + 3);
+            continue;
+        }
+
+        if rest.starts_with("http://") || rest.starts_with("https://") {
+            index = line[after_lt..]
+                .find('>')
+                .map_or(after_lt, |end| after_lt + end + 1);
+            continue;
+        }
+
+        let closing = rest.starts_with('/');
+        let name_start = after_lt + usize::from(closing);
+        let Some(first) = line[name_start..].chars().next() else {
+            break;
+        };
+        if !first.is_ascii_alphabetic() {
+            index = after_lt;
+            continue;
+        }
+
+        let name_end = parse_jsx_tag_name_end(line, name_start);
+        let name = &line[name_start..name_end];
+        match scan_jsx_tag_tail(line, name_end) {
+            TagScan::Complete { end, self_closing } => {
+                if closing {
+                    close_jsx_tag(name, line_number, byte_column(line, lt), stack, issues);
+                } else if !self_closing && !is_void_tag(name) {
+                    stack.push(OpenTag {
+                        name: name.to_string(),
+                        line: line_number,
+                        column: byte_column(line, lt),
+                    });
+                }
+                index = end + 1;
+            }
+            TagScan::Malformed { column, message } => {
+                issues.push(MdxPreflightIssue {
+                    line: line_number,
+                    column,
+                    message,
+                });
+                break;
+            }
+            TagScan::Incomplete => break,
+        }
+    }
+}
+
+fn parse_jsx_tag_name_end(line: &str, start: usize) -> usize {
+    let mut end = start;
+    while end < line.len() {
+        let Some(ch) = line[end..].chars().next() else {
+            break;
+        };
+        if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | ':') {
+            end += ch.len_utf8();
+        } else {
+            break;
+        }
+    }
+    end
+}
+
+fn scan_jsx_tag_tail(line: &str, start: usize) -> TagScan {
+    let mut index = start;
+    let mut quote: Option<(char, usize)> = None;
+    let mut brace_depth = 0usize;
+    let mut first_brace: Option<usize> = None;
+
+    while index < line.len() {
+        let Some(ch) = line[index..].chars().next() else {
+            break;
+        };
+
+        if let Some((quote_ch, _)) = quote {
+            if ch == quote_ch {
+                quote = None;
+            }
+            index += ch.len_utf8();
+            continue;
+        }
+
+        match ch {
+            '"' | '\'' => quote = Some((ch, index)),
+            '{' => {
+                brace_depth += 1;
+                first_brace.get_or_insert(index);
+            }
+            '}' => {
+                brace_depth = brace_depth.saturating_sub(1);
+                if brace_depth == 0 {
+                    first_brace = None;
+                }
+            }
+            '>' if brace_depth == 0 => {
+                return TagScan::Complete {
+                    end: index,
+                    self_closing: line[..index].trim_end().ends_with('/'),
+                };
+            }
+            _ => {}
+        }
+        index += ch.len_utf8();
+    }
+
+    if let Some((_, quote_index)) = quote {
+        return TagScan::Malformed {
+            column: byte_column(line, quote_index),
+            message: "JSX attribute quote is not closed before the end of the line".to_string(),
+        };
+    }
+
+    if let Some(brace_index) = first_brace {
+        return TagScan::Malformed {
+            column: byte_column(line, brace_index),
+            message: "JSX expression brace is not closed before the end of the line".to_string(),
+        };
+    }
+
+    TagScan::Incomplete
+}
+
+fn close_jsx_tag(
+    name: &str,
+    line: usize,
+    column: usize,
+    stack: &mut Vec<OpenTag>,
+    issues: &mut Vec<MdxPreflightIssue>,
+) {
+    if stack.last().is_some_and(|tag| tag.name == name) {
+        stack.pop();
+        return;
+    }
+
+    if let Some(position) = stack.iter().rposition(|tag| tag.name == name) {
+        let open = stack.pop().expect("stack has last item");
+        issues.push(MdxPreflightIssue {
+            line,
+            column,
+            message: format!(
+                "closing tag </{}> does not match opening tag <{}> from line {}",
+                name, open.name, open.line
+            ),
+        });
+        stack.truncate(position);
+        return;
+    }
+
+    issues.push(MdxPreflightIssue {
+        line,
+        column,
+        message: format!("closing tag </{}> has no matching opening tag", name),
+    });
+}
+
+fn is_void_tag(name: &str) -> bool {
+    if name
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
+    {
+        return false;
+    }
+
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "area"
+            | "base"
+            | "br"
+            | "col"
+            | "embed"
+            | "hr"
+            | "img"
+            | "input"
+            | "link"
+            | "meta"
+            | "param"
+            | "source"
+            | "track"
+            | "wbr"
+    )
+}
+
+fn byte_column(line: &str, byte_index: usize) -> usize {
+    line[..byte_index].chars().count() + 1
+}
+
+fn format_preflight_issues(issues: &[MdxPreflightIssue], compiler_error: Option<&str>) -> String {
+    let mut output = format!("MDX preflight found {} issue(s):", issues.len());
+    for issue in issues {
+        output.push_str(&format!(
+            "\n- Line {}:{}: {}",
+            issue.line, issue.column, issue.message
+        ));
+    }
+
+    if let Some(error) = compiler_error {
+        output.push_str("\n\nCompiler error:\n");
+        output.push_str(error);
+    }
+
+    output
+}
+
 #[derive(Clone, Copy)]
 enum MathKind {
     Inline,
@@ -199,7 +543,7 @@ fn push_js_string_literal(out: &mut String, value: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::compile_mdx_source;
+    use super::{compile_mdx_source, validate_mdx_document};
 
     #[test]
     fn compiles_basic_mdx() {
@@ -296,5 +640,66 @@ mod tests {
 
         assert!(output.contains("language-math math-inline"));
         assert!(output.contains("language-math math-display"));
+    }
+
+    #[test]
+    fn validates_mdx_document_after_frontmatter() {
+        let result = validate_mdx_document(
+            "---\nsummary: ok\ntags: [journal]\n---\n\n# Good\n\n<Callout>Body</Callout>",
+            Some("entry.mdx".to_string()),
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn validates_pascal_case_components_named_like_html_void_elements() {
+        validate_mdx_document(
+            "<Grid>\n  <Col span={6}>\n    content\n  </Col>\n</Grid>",
+            Some("grid.mdx".to_string()),
+        )
+        .expect("PascalCase Col is an MDX component, not the HTML col void element");
+    }
+
+    #[test]
+    fn mdx_validation_errors_use_original_source_line_numbers() {
+        let error = validate_mdx_document(
+            "---\nsummary: ok\ntags: [journal]\n---\n\n# Broken\n\n<Callout title=\"Missing close>",
+            Some("entry.mdx".to_string()),
+        )
+        .unwrap_err();
+
+        assert!(
+            error.contains("Line 8:"),
+            "expected preflight source line 8, got {error}"
+        );
+        assert!(
+            error.contains("\n8:"),
+            "expected compiler source line 8, got {error}"
+        );
+    }
+
+    #[test]
+    fn mdx_validation_reports_multiple_recoverable_syntax_issues() {
+        let error = validate_mdx_document(
+            "---\nsummary: bad\ntags: [journal]\n---\n\n# Broken\n\n<Callout title=\"Missing close>\n\n</Card>\n\n<Section>",
+            Some("entry.mdx".to_string()),
+        )
+        .unwrap_err();
+
+        assert!(error.contains("MDX preflight found 3 issue(s):"), "{error}");
+        assert!(error.contains("Line 8:"), "{error}");
+        assert!(error.contains("attribute quote"), "{error}");
+        assert!(error.contains("Line 10:"), "{error}");
+        assert!(
+            error.contains("closing tag </Card> has no matching opening tag"),
+            "{error}"
+        );
+        assert!(error.contains("Line 12:"), "{error}");
+        assert!(
+            error.contains("opening tag <Section> is not closed"),
+            "{error}"
+        );
+        assert!(error.contains("Compiler error:"), "{error}");
     }
 }

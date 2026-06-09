@@ -31,9 +31,7 @@ export function usePinned() {
 
   const unpin = useCallback(
     async (path: string) => {
-      const updated = items
-        .filter((i) => i.path !== path)
-        .map((item, i) => ({ ...item, order: i }))
+      const updated = items.filter((i) => i.path !== path).map((item, i) => ({ ...item, order: i }))
       await setPinnedItems(updated)
       setItems(updated)
     },

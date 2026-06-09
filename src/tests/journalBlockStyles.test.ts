@@ -34,9 +34,7 @@ describe('journal block visual contracts', () => {
 
   it('keeps section title text on adaptive readable lines', () => {
     expect(rule('.journal-block-part')).toContain('max-inline-size: 100%')
-    expect(rule('.journal-block-part h2')).toContain(
-      'max-inline-size: 100%',
-    )
+    expect(rule('.journal-block-part h2')).toContain('max-inline-size: 100%')
     expect(rule('.journal-block-part h2')).toContain(
       'font-size: var(--journal-block-part-title-size, var(--text-xl))',
     )
@@ -55,9 +53,7 @@ describe('journal block visual contracts', () => {
     expect(rule('.journal-block-part-title-compact')).toContain(
       '--journal-block-part-title-line-height: 1.38',
     )
-    expect(rule('.journal-block-part-title-dense')).not.toContain(
-      '--journal-block-part-title-max',
-    )
+    expect(rule('.journal-block-part-title-dense')).not.toContain('--journal-block-part-title-max')
     expect(rule('.journal-block-part-title-compact')).not.toContain(
       '--journal-block-part-title-max',
     )
@@ -100,6 +96,27 @@ describe('journal block visual contracts', () => {
     expect(rule('.journal-block-bridge-arrow')).toContain('display: inline-flex')
     expect(rule('.journal-block-bridge-arrow')).toContain('border-radius: 999px')
     expect(rule('.journal-block-bridge-why')).toContain('border-top')
+  })
+
+  it('styles quotes as open evidence ledger rows instead of cards or display prose', () => {
+    expect(rule('.journal-block-quote')).toContain('display: grid')
+    expect(rule('.journal-block-quote')).toContain(
+      'grid-template-columns: minmax(0, 1fr) minmax(148px, 0.28fr)',
+    )
+    expect(rule('.journal-block-quote')).toContain('border-top: 1px solid var(--divider)')
+    expect(rule('.journal-block-quote')).toContain('background: transparent')
+    expect(rule('.journal-block-quote')).not.toContain('border-left: 2px solid var(--record-btn)')
+    expect(rule('.journal-block-quote-mark')).toBe('')
+    expect(rule('.journal-block-quote-body')).toContain('border-left')
+    expect(rule('.journal-block-quote-body')).toContain('padding-left: var(--space-3)')
+    expect(rule('.journal-block-quote .journal-block-quote-body')).toContain('margin: 0')
+    expect(rule('.journal-block-quote .journal-block-quote-body')).toContain('padding: 0')
+    expect(rule('.journal-block-quote-text')).toContain('font-size: var(--text-md)')
+    expect(rule('.journal-block-quote-text')).toContain('color: var(--item-text)')
+    expect(rule('.journal-block-quote .journal-block-quote-text')).toContain('margin: 0')
+    expect(rule('.journal-block-quote-meta')).toContain('display: grid')
+    expect(rule('.journal-block-quote-author')).toContain('font-size: var(--text-sm)')
+    expect(rule('.journal-block-quote-context')).toContain('font-size: var(--text-xs)')
   })
 
   it('styles checklist with the same checkbox grammar as idea rows', () => {
@@ -148,7 +165,9 @@ describe('journal block visual contracts', () => {
     expect(rule('.journal-block-people-grid')).toContain('justify-content: start')
     expect(rule('.journal-block-people')).toContain('container-type: inline-size')
     expect(rule('.journal-block-person-card')).toContain('grid-template-columns: 28px')
-    expect(rule('.journal-block-person-card')).toContain('grid-template-rows: minmax(24px, auto) auto')
+    expect(rule('.journal-block-person-card')).toContain(
+      'grid-template-rows: minmax(24px, auto) auto',
+    )
     expect(rule('.journal-block-person-card')).toContain('grid-template-areas')
     expect(rule('.journal-block-person-card')).toContain('inline-size: 100%')
     expect(rule('.journal-block-person-card')).not.toContain('max-inline-size')
@@ -157,15 +176,11 @@ describe('journal block visual contracts', () => {
     expect(rule('.journal-block-person-card')).toContain('min-block-size: 72px')
     expect(rule('.journal-block-person-card')).toContain('padding: 10px')
     expect(rule('.journal-block-person-card')).toContain('box-shadow: inset 0 1px 0')
-    expect(rule('.journal-block-person-card--header-only')).toContain(
-      'align-content: center',
-    )
+    expect(rule('.journal-block-person-card--header-only')).toContain('align-content: center')
     expect(rule('.journal-block-person-card--header-only')).toContain(
       'grid-template-rows: minmax(24px, auto)',
     )
-    expect(rule('.journal-block-person-card--header-only')).toContain(
-      "'avatar heading'",
-    )
+    expect(rule('.journal-block-person-card--header-only')).toContain("'avatar heading'")
     expect(rule('.journal-block .journal-block-person-initial')).toContain('grid-area: avatar')
     expect(rule('.journal-block .journal-block-person-initial')).toContain('align-self: center')
     expect(rule('.journal-block .journal-block-person-initial')).toContain('width: 24px')
@@ -200,13 +215,9 @@ describe('journal block visual contracts', () => {
     expect(rule('.journal-block .journal-block-person-note')).toContain('grid-column: 1 / -1')
     expect(rule('.journal-block .journal-block-person-note')).toContain('margin: 0')
     expect(rule('.journal-block .journal-block-person-note')).toContain('overflow-wrap: anywhere')
-    expect(rule('.journal-block .journal-block-person-note')).toContain(
-      'font-size: var(--text-xs)',
-    )
+    expect(rule('.journal-block .journal-block-person-note')).toContain('font-size: var(--text-xs)')
     expect(rule('.journal-block .journal-block-person-note')).toContain('line-height: 1.55')
-    expect(rule('@container (max-width: 520px)')).toContain(
-      'grid-template-columns: minmax(0, 1fr)',
-    )
+    expect(rule('@container (max-width: 520px)')).toContain('grid-template-columns: minmax(0, 1fr)')
   })
 
   it('scopes people text rules above markdown prose defaults', () => {

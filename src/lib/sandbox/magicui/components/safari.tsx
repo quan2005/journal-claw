@@ -1,4 +1,4 @@
-import { useId, type HTMLAttributes } from "react"
+import { useId, type HTMLAttributes } from 'react'
 
 const SAFARI_WIDTH = 1203
 const SAFARI_HEIGHT = 753
@@ -12,7 +12,7 @@ const TOP_PCT = (SCREEN_Y / SAFARI_HEIGHT) * 100
 const WIDTH_PCT = (SCREEN_WIDTH / SAFARI_WIDTH) * 100
 const HEIGHT_PCT = (SCREEN_HEIGHT / SAFARI_HEIGHT) * 100
 
-type SafariMode = "default" | "simple"
+type SafariMode = 'default' | 'simple'
 
 export interface SafariProps extends HTMLAttributes<HTMLDivElement> {
   url?: string
@@ -27,14 +27,14 @@ export function Safari({
   imageSrc,
   videoSrc,
   url,
-  mode = "default",
+  mode = 'default',
   className,
   style,
   ...props
 }: SafariProps) {
   // Use stable unique ID per instance to avoid SVG ID collisions
   const reactId = useId()
-  const idPrefix = `s${safariInstanceCounter++}-${reactId.replace(/:/g, "")}`
+  const idPrefix = `s${safariInstanceCounter++}-${reactId.replace(/:/g, '')}`
   const maskId = `${idPrefix}-mask`
   const clipId = `${idPrefix}-clip`
   const roundedId = `${idPrefix}-rounded`
@@ -44,7 +44,7 @@ export function Safari({
 
   return (
     <div
-      className={`relative inline-block w-full align-middle leading-none ${className ?? ""}`}
+      className={`relative inline-block w-full align-middle leading-none ${className ?? ''}`}
       style={{
         aspectRatio: `${SAFARI_WIDTH}/${SAFARI_HEIGHT}`,
         ...style,
@@ -81,14 +81,10 @@ export function Safari({
             top: `${TOP_PCT}%`,
             width: `${WIDTH_PCT}%`,
             height: `${HEIGHT_PCT}%`,
-            borderRadius: "0 0 11px 11px",
+            borderRadius: '0 0 11px 11px',
           }}
         >
-          <img
-            src={imageSrc}
-            alt=""
-            className="block size-full object-cover object-top"
-          />
+          <img src={imageSrc} alt="" className="block size-full object-cover object-top" />
         </div>
       )}
 
@@ -97,17 +93,11 @@ export function Safari({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="absolute inset-0 z-10 size-full"
-        style={{ transform: "translateZ(0)" }}
+        style={{ transform: 'translateZ(0)' }}
       >
         <defs>
           <mask id={maskId} maskUnits="userSpaceOnUse">
-            <rect
-              x="0"
-              y="0"
-              width={SAFARI_WIDTH}
-              height={SAFARI_HEIGHT}
-              fill="white"
-            />
+            <rect x="0" y="0" width={SAFARI_WIDTH} height={SAFARI_HEIGHT} fill="white" />
             <path
               d="M1 52H1201V741C1201 747.075 1196.08 752 1190 752H12C5.92486 752 1 747.075 1 741V52Z"
               fill="black"
@@ -126,10 +116,7 @@ export function Safari({
           </clipPath>
         </defs>
 
-        <g
-          clipPath={`url(#${clipId})`}
-          mask={hasMedia ? `url(#${maskId})` : undefined}
-        >
+        <g clipPath={`url(#${clipId})`} mask={hasMedia ? `url(#${maskId})` : undefined}>
           <path
             d="M0 52H1202V741C1202 747.627 1196.63 753 1190 753H12C5.37258 753 0 747.627 0 741V52Z"
             className="fill-[#E5E5E5] dark:fill-[#404040]"
@@ -146,24 +133,9 @@ export function Safari({
             d="M1.06738 12C1.06738 5.92487 5.99225 1 12.0674 1H1189.93C1196.01 1 1200.93 5.92487 1200.93 12V51H1.06738V12Z"
             className="fill-white dark:fill-[#262626]"
           />
-          <circle
-            cx="27"
-            cy="25"
-            r="6"
-            className="fill-[#E5E5E5] dark:fill-[#404040]"
-          />
-          <circle
-            cx="47"
-            cy="25"
-            r="6"
-            className="fill-[#E5E5E5] dark:fill-[#404040]"
-          />
-          <circle
-            cx="67"
-            cy="25"
-            r="6"
-            className="fill-[#E5E5E5] dark:fill-[#404040]"
-          />
+          <circle cx="27" cy="25" r="6" className="fill-[#E5E5E5] dark:fill-[#404040]" />
+          <circle cx="47" cy="25" r="6" className="fill-[#E5E5E5] dark:fill-[#404040]" />
+          <circle cx="67" cy="25" r="6" className="fill-[#E5E5E5] dark:fill-[#404040]" />
           <path
             d="M286 17C286 13.6863 288.686 11 292 11H946C949.314 11 952 13.6863 952 17V35C952 38.3137 949.314 41 946 41H292C288.686 41 286 38.3137 286 35V17Z"
             className="fill-[#E5E5E5] dark:fill-[#404040]"
@@ -176,18 +148,12 @@ export function Safari({
           </g>
 
           <g className="mix-blend-luminosity">
-            <text
-              x="580"
-              y="30"
-              fill="#A3A3A3"
-              fontSize="12"
-              fontFamily="Arial, sans-serif"
-            >
+            <text x="580" y="30" fill="#A3A3A3" fontSize="12" fontFamily="Arial, sans-serif">
               {url}
             </text>
           </g>
 
-          {mode === "default" ? (
+          {mode === 'default' ? (
             <>
               <g className="mix-blend-luminosity">
                 <path

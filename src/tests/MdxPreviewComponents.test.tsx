@@ -43,9 +43,7 @@ describe('MDX preview components', () => {
       </HtmlPreview>,
     )
 
-    expect(screen.getByTestId('sandbox-preview').getAttribute('data-title')).toBe(
-      'Inline preview',
-    )
+    expect(screen.getByTestId('sandbox-preview').getAttribute('data-title')).toBe('Inline preview')
     expect(screen.getByTestId('sandbox-preview').getAttribute('data-height')).toBe('360')
     expect(screen.getByText(/Inline HTML/)).toBeTruthy()
   })

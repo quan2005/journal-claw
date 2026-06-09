@@ -140,12 +140,6 @@ const SKILL_JOURNAL_REFERENCE_FILES: &[(&str, &str)] = &[
         ),
     ),
     (
-        "references/layout-directives.md",
-        include_str!(
-            "../resources/workspace-template/.claude/skills/journal/references/layout-directives.md"
-        ),
-    ),
-    (
         "references/templates/meeting-collaboration.md",
         include_str!(
             "../resources/workspace-template/.claude/skills/journal/references/templates/meeting-collaboration.md"
@@ -427,6 +421,10 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
         SKILL_JOURNAL_MD,
         SKILL_JOURNAL_REFERENCE_FILES,
     );
+    let retired_layout_guide = journal_dir.join("references").join("layout-directives.md");
+    if retired_layout_guide.exists() {
+        let _ = std::fs::remove_file(retired_layout_guide);
+    }
 
     // Meeting minutes was merged into /journal in v2. Remove stale installed copies.
     let old_meeting_dir = dot_claude.join("skills").join("meeting-minutes");
@@ -994,13 +992,15 @@ mod tests {
     }
 
     #[test]
-    fn embedded_workspace_prompts_prefer_journal_layout_directives() {
+    fn embedded_workspace_prompts_use_jsx_as_the_only_component_syntax() {
         assert!(WORKSPACE_CLAUDE_MD.contains("所有日志默认输出为 `.mdx`"));
         assert!(WORKSPACE_CLAUDE_MD.contains("Markdown first"));
-        assert!(WORKSPACE_CLAUDE_MD.contains("layout directives before JSX"));
-        assert!(WORKSPACE_CLAUDE_MD.contains("references/layout-directives.md"));
+        assert!(WORKSPACE_CLAUDE_MD.contains("MDX JSX second"));
+        assert!(!WORKSPACE_CLAUDE_MD.contains("layout directives"));
+        assert!(!WORKSPACE_CLAUDE_MD.contains("references/layout-directives.md"));
         assert!(WORKSPACE_USER_CLAUDE_MD.contains("/journal"));
-        assert!(WORKSPACE_USER_CLAUDE_MD.contains("layout directives"));
+        assert!(WORKSPACE_USER_CLAUDE_MD.contains("JSX components"));
+        assert!(!WORKSPACE_USER_CLAUDE_MD.contains("layout directives"));
     }
 
     #[test]
@@ -1097,11 +1097,11 @@ mod tests {
             "journal registry should be installed"
         );
         assert!(
-            journal_dir
+            !journal_dir
                 .join("references")
                 .join("layout-directives.md")
                 .exists(),
-            "layout directive guide should be installed"
+            "retired layout directive guide should not be installed"
         );
         assert!(
             journal_dir

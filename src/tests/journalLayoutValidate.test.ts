@@ -25,6 +25,28 @@ subtitle: Blocks define reading rhythm
     })
   })
 
+  it('keeps plain prose after summary fields as the summary body', () => {
+    const result = parseJournalLayout(`:::summary[简报要点]
+title: 三件事
+一个信号：**自然语言生成工作流**仍是压倒性第一需求（19/27，70%），新样本中何靖瑶提出「vibe coding」级体验期望，需求从「能不能有」升级为「能不能做好」。两个底线：**调试体验**（12/27，含 Agent 节点专项痛点）和**平台稳定性**持续侵蚀用户信任，已从功能缺失演变为信任危机。
+:::`)
+
+    expect(result.segments[0]).toMatchObject({
+      kind: 'block',
+      block: {
+        name: 'summary',
+        title: '简报要点',
+        body: {
+          format: 'fields',
+          fields: {
+            title: '三件事',
+            body: expect.stringContaining('自然语言生成工作流'),
+          },
+        },
+      },
+    })
+  })
+
   it('reports missing required fields locally', () => {
     const result = parseJournalLayout(`:::hero
 subtitle: Missing title

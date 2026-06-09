@@ -11,6 +11,9 @@ import type {
   AutomationRun,
   CreateRoutineRequest,
   UpdateRoutineRequest,
+  LegacyDirectiveFile,
+  ApplyDirectiveMigrationRequest,
+  ApplyDirectiveMigrationResult,
 } from '../types'
 
 export type { CreateRoutineRequest, UpdateRoutineRequest } from '../types'
@@ -53,6 +56,12 @@ export const getJournalEntryContent = (path: string) =>
 
 export const compileMdx = (source: string, filepath?: string) =>
   invoke<string>('compile_mdx', { source, filepath: filepath ?? null })
+
+export const scanLegacyDirectiveFiles = () =>
+  invoke<LegacyDirectiveFile[]>('scan_legacy_directive_files')
+
+export const applyDirectiveMigration = (request: ApplyDirectiveMigrationRequest) =>
+  invoke<ApplyDirectiveMigrationResult>('apply_directive_migration', { request })
 
 // Materials
 export const importFile = (srcPath: string) =>

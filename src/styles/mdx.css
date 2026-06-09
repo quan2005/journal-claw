@@ -1694,3 +1694,117 @@
   font-size: var(--text-sm);
   line-height: 1.7;
 }
+
+/* ── Canonical specialized component language ── */
+.mdx-specialized-prose {
+  width: 100%;
+  max-width: var(--journal-prose-max);
+}
+
+.mdx-specialized-content {
+  width: 100%;
+  max-width: var(--journal-content-max, 100%);
+}
+
+.mdx-specialized-wide {
+  width: 100%;
+  max-width: 100%;
+}
+
+.mdx-card--elevated {
+  border-color: var(--mdx-border);
+  box-shadow: none;
+}
+
+.mdx-mac-preview {
+  box-shadow: none;
+}
+
+.mdx-decision-record {
+  max-width: var(--journal-prose-max);
+  margin: var(--space-8) 0;
+  padding: var(--space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--mdx-border);
+  border-bottom: 1px solid var(--mdx-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mdx-decision-answer {
+  color: var(--item-text);
+  font-size: var(--text-md);
+  line-height: 1.55;
+}
+
+.mdx-decision-option {
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  border-left-color: color-mix(in srgb, var(--mdx-accent) 40%, var(--mdx-border));
+  background: transparent;
+}
+
+.mdx-semantic-card {
+  max-width: var(--journal-prose-max);
+  margin: var(--space-8) 0;
+  padding: var(--space-2) 0 var(--space-2) var(--space-4);
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--mdx-accent) 42%, var(--mdx-border));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mdx-semantic-card-body {
+  margin-top: var(--space-2);
+}
+
+.mdx-semantic-timeline {
+  margin: var(--space-8) 0;
+  padding-left: var(--space-5);
+  gap: var(--space-4);
+}
+
+.mdx-source-card {
+  max-width: var(--journal-content-max, 100%);
+  padding: var(--space-3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--mdx-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mdx-source-type {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.mdx-transcript {
+  max-width: var(--journal-prose-max);
+  margin: var(--space-8) 0;
+  padding: var(--space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--mdx-border);
+  border-bottom: 1px solid var(--mdx-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mdx-options {
+  border: 0;
+  border-top: 1px solid var(--mdx-border);
+  border-radius: 0;
+}
+
+.mdx-option {
+  padding: var(--space-3) 0;
+  background: transparent;
+}
+
+.mdx-chart,
+.mdx-media-card {
+  border: 1px solid var(--mdx-border);
+  border-radius: var(--mdx-radius);
+}

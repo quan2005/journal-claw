@@ -181,6 +181,11 @@ vi.mock('../lib/tauri', async () => {
 beforeEach(() => {
   vi.clearAllMocks()
   listenerMap.clear()
+  Object.defineProperty(window, 'innerWidth', {
+    value: 1280,
+    writable: true,
+    configurable: true,
+  })
   // Mock localStorage
   const store: Record<string, string> = {}
   Object.defineProperty(window, 'localStorage', {
@@ -290,6 +295,36 @@ describe('App', () => {
     expect(rightExpandToggle.querySelector('svg')?.classList.contains('lucide-chevron-left')).toBe(
       true,
     )
+  })
+
+  it('preserves readable detail width by closing sidebars at narrow window sizes', async () => {
+    Object.defineProperty(window, 'innerWidth', {
+      value: 840,
+      writable: true,
+      configurable: true,
+    })
+
+    await act(async () => {
+      renderApp()
+    })
+
+    const leftPanel = document.querySelector('[data-sidebar-panel="left"]') as HTMLElement
+    const rightPanel = document.querySelector('[data-sidebar-panel="right"]') as HTMLElement
+
+    await waitFor(() => {
+      expect(rightPanel.style.width).toBe('0px')
+      expect(leftPanel.style.width).not.toBe('0px')
+    })
+
+    await act(async () => {
+      window.innerWidth = 680
+      fireEvent(window, new Event('resize'))
+    })
+
+    await waitFor(() => {
+      expect(leftPanel.style.width).toBe('0px')
+      expect(rightPanel.style.width).toBe('0px')
+    })
   })
 
   it('loads topic files from the workspace topics directory', async () => {

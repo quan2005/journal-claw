@@ -5,9 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('recharts', () => {
   const passthrough =
     (testId: string) =>
-    ({ children }: { children?: React.ReactNode }) => (
-      <div data-testid={testId}>{children}</div>
-    )
+    ({ children }: { children?: React.ReactNode }) => <div data-testid={testId}>{children}</div>
 
   return {
     BarChart: passthrough('bar-chart'),

@@ -213,15 +213,9 @@ export function useConversation() {
             }
 
             if (last?.role === 'assistant') {
-              return [
-                ...prev.slice(0, -1),
-                { ...last, content: textContent, blocks },
-              ]
+              return [...prev.slice(0, -1), { ...last, content: textContent, blocks }]
             }
-            return [
-              ...prev,
-              { role: 'assistant' as const, content: textContent, blocks },
-            ]
+            return [...prev, { role: 'assistant' as const, content: textContent, blocks }]
           })
           break
 
@@ -385,10 +379,7 @@ export function useConversation() {
                       }
                     }
                   }
-                  return [
-                    ...prev.slice(0, -1),
-                    { ...last, content: last.content, blocks },
-                  ]
+                  return [...prev.slice(0, -1), { ...last, content: last.content, blocks }]
                 })
               }
               artifactParsers.delete(sid)

@@ -688,7 +688,9 @@ function SourceView({
         >
           <span
             data-testid="source-line-number"
+            data-line-number={index + 1}
             aria-hidden="true"
+            className="source-line-number"
             style={{
               paddingRight: 13,
               textAlign: 'right',
@@ -697,9 +699,7 @@ function SourceView({
               userSelect: 'none',
               fontVariantNumeric: 'tabular-nums',
             }}
-          >
-            {index + 1}
-          </span>
+          />
           <code
             data-source-code="true"
             className={`hljs language-${language}`}

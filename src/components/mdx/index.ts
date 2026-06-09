@@ -4,19 +4,16 @@ export { Split, Columns, Column, MacPreview, Placeholder } from './layout'
 // Display
 export { ProsCons, Pros, Cons, Stat, StatGroup } from './display'
 export { Table } from './display'
-export { Timeline } from './display'
 export { TagList } from './display'
 export { Progress } from './display'
 export { Avatar, AvatarGroup } from './display'
 
 // Callout & Quote
-export { Callout, Quote, RelatedEntry, RelatedIdentity } from './callout'
+export { RelatedEntry, RelatedIdentity } from './callout'
 
 // Cards & Lists
-export { Cards, Card } from './cards'
 export { Options, Option } from './cards'
 export { Kanban } from './cards'
-export { Checklist } from './cards'
 export { Counter } from './cards'
 export { RatingBar } from './cards'
 export { Stack } from './cards'
@@ -57,15 +54,16 @@ export {
   IncidentTimeline,
   InsightCard,
   EvidenceCard,
-  QuoteCard,
 } from './semantic'
 
 // Sources and transcripts
 export { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from './source'
 
+// Canonical directive-parity layout components
+export * from './layout/index'
+
 // ── Component map ─────────────────────────────────────────
 
-import { createElement } from 'react'
 import { Split, Columns, Column, MacPreview, Placeholder } from './layout'
 import {
   ProsCons,
@@ -74,14 +72,13 @@ import {
   Stat,
   StatGroup,
   Table,
-  Timeline,
   TagList,
   Progress,
   Avatar,
   AvatarGroup,
 } from './display'
-import { Callout, Quote, RelatedEntry, RelatedIdentity } from './callout'
-import { Cards, Card, Options, Option, Kanban, Checklist, Counter, RatingBar, Stack } from './cards'
+import { RelatedEntry, RelatedIdentity } from './callout'
+import { Options, Option, Kanban, Counter, RatingBar, Stack } from './cards'
 import { AudioCard, VideoCard, ImageViewer, FileCard } from './media'
 import { BarChart, LineChart, PieChart, RadarChart } from './charts'
 import { Mermaid } from './mermaid'
@@ -103,26 +100,11 @@ import {
   IncidentTimeline,
   InsightCard,
   EvidenceCard,
-  QuoteCard,
 } from './semantic'
 import { SourceCard, ReferenceList, Transcript, TimestampLink, CopyButton } from './source'
-import { BlockError } from '../journal-blocks/BlockError'
-import { JournalBlockRenderer } from '../journal-blocks/JournalBlockRenderer'
-import type { JournalBlock as JournalBlockData, LayoutIssue } from '../../lib/journalLayout'
-
-export { JournalBlockRenderer }
-
-function JournalBlock({ block }: { block: JournalBlockData }) {
-  return createElement(JournalBlockRenderer, { block })
-}
-
-function JournalBlockError({ issue }: { issue: LayoutIssue }) {
-  return createElement(BlockError, { issue })
-}
+import * as LayoutComponents from './layout/index'
 
 export const mdxComponents = {
-  JournalBlock,
-  JournalBlockError,
   Split,
   Columns,
   Column,
@@ -134,21 +116,15 @@ export const mdxComponents = {
   Stat,
   StatGroup,
   Table,
-  Timeline,
   TagList,
   Progress,
   Avatar,
   AvatarGroup,
-  Callout,
-  Quote,
   RelatedEntry,
   RelatedIdentity,
-  Cards,
-  Card,
   Options,
   Option,
   Kanban,
-  Checklist,
   Counter,
   RatingBar,
   Stack,
@@ -184,10 +160,10 @@ export const mdxComponents = {
   IncidentTimeline,
   InsightCard,
   EvidenceCard,
-  QuoteCard,
   SourceCard,
   ReferenceList,
   Transcript,
   TimestampLink,
   CopyButton,
+  ...LayoutComponents,
 }

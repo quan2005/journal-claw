@@ -20,7 +20,12 @@ const refs = {
   mdxCss: projectSource('src/styles/mdx.css'),
   mdxRenderer: projectSource('src/components/MdxRenderer.tsx'),
   mdxRuntime: projectSource('src/lib/mdxRuntime.ts'),
+  componentManifest: projectSource('src/components/mdx/component-manifest.json'),
 }
+
+const componentManifest = JSON.parse(
+  fs.readFileSync(path.join(repoRoot, 'src/components/mdx/component-manifest.json'), 'utf8'),
+)
 
 const familyMeta = {
   'meeting-collaboration': {
@@ -209,8 +214,12 @@ const componentSpecs = [
       ['children', 'ReactNode', 'Col 子元素。'],
     ],
     example: `<Grid cols={12} gap={12}>
-  <Col span={7}><Callout title="主要内容">占 7 列。</Callout></Col>
-  <Col span={5}><Callout title="补充信息" type="info">占 5 列。</Callout></Col>
+  <Col span={7}>
+    <Callout title="主要内容">占 7 列。</Callout>
+  </Col>
+  <Col span={5}>
+    <Callout title="补充信息" type="info">占 5 列。</Callout>
+  </Col>
 </Grid>`,
   },
   {
@@ -224,8 +233,12 @@ const componentSpecs = [
       ['children', 'ReactNode', '列内容。'],
     ],
     example: `<Grid cols={12}>
-  <Col span={4}><Stat label="A" value="4/12" /></Col>
-  <Col span={8}><Stat label="B" value="8/12" /></Col>
+  <Col span={4}>
+    <Stat label="A" value="4/12" />
+  </Col>
+  <Col span={8}>
+    <Stat label="B" value="8/12" />
+  </Col>
 </Grid>`,
   },
   {
@@ -937,6 +950,84 @@ const componentSpecs = [
   },
 ]
 
+const canonicalExamples = {
+  Hero: `<Hero eyebrow="研究结论" title="效果优先" subtitle="效率不是首要矛盾。" meta="3 位用户" />`,
+  Toc: `<Toc heading="目录" items={[{ label: "01", title: "结论", description: "先看核心判断" }]} />`,
+  Part: `<Part label="01" title="核心判断" subtitle="建立章节级阅读入口。" />`,
+  LabelTitle: `<LabelTitle label="研究主题" title="节点级可观测性" subtitle="定位偏差发生在哪个节点。" />`,
+  Metrics: `<Metrics heading="样本概览" items={[{ label: "访谈", value: 3, description: "覆盖不同阶段用户" }]} />`,
+  Compare: `<Compare heading="体验转变" items={[{ item: "调试", left: "反复猜测", right: "逐节点定位" }]} />`,
+  Steps: `<Steps heading="理想流程" items={[{ title: "描述目标", description: "用自然语言说明任务。" }, { title: "生成并微调", description: "得到可运行版本后调整细节。" }]} />`,
+  Infographic: `<Infographic title="效果优先" value="01" summary="先稳定结果，再压缩操作成本。" />`,
+  Verdict: `<Verdict title="优先建设节点级可观测性" status="建议" confidence="高" summary="它能形成生成与调试的质量闭环。" />`,
+  AudienceFit: `<AudienceFit heading="用户适配" items={[{ audience: "新用户", fit: "高", reason: "降低初次搭建与调试负担" }]} />`,
+  MythFact: `<MythFact heading="常见误判" items={[{ myth: "用户最在意效率", fact: "用户更在意效果", reason: "效果调试更不可预测" }]} />`,
+  Manifesto: `<Manifesto heading="产品原则" items={[{ principle: "效果先于效率", detail: "先建立稳定结果。" }]} />`,
+  Bridge: `<Bridge from="黑盒式重试" to="逐节点诊断" why="把偏差变成可修复事实。" />`,
+  ImageText: `<ImageText image="/Users/yanwu/Projects/github/journal/src/assets/wechat-qrcode.png" title="图片证据" text="图片与解释保持同一上下文。" />`,
+  ImageCompare: `<ImageCompare before="/Users/yanwu/Projects/github/journal/src/assets/wechat-qrcode.png" after="/Users/yanwu/Projects/github/journal/src/assets/wechat-qrcode.png" title="前后对照" />`,
+  ImageAnnotate: `<ImageAnnotate image="/Users/yanwu/Projects/github/journal/src/assets/wechat-qrcode.png" title="标注说明" notes={["第一处信号", "第二处线索"]} />`,
+  ImageSteps: `<ImageSteps items={[{ image: "/Users/yanwu/Projects/github/journal/src/assets/wechat-qrcode.png", title: "查看", text: "确认原始状态。" }]} />`,
+  Cta: `<Cta title="建立质量闭环" description="让工作流可观察、可调整、可验证。" action="下一步：定义 trace schema" />`,
+  Faq: `<Faq heading="关键问题" items={[{ question: "为什么不是先做更快？", answer: "因为结果质量才是主要不确定性。" }]} />`,
+  Cases: `<Cases heading="案例" items={[{ case: "多轮对话", result: "定位第 3 轮偏差", note: "区分意图、召回与提示词问题" }]} />`,
+  Summary: `<Summary title="核心结论" body="用统一 JSX 组件表达结构，并通过可观测性保障效果。" />`,
+  Notice: `<Notice title="边界" text="组件用于承载信息，不用于装饰。" />`,
+  Logos: `<Logos heading="相关系统" items={[{ name: "JournalClaw", meta: "阅读与沉淀" }]} />`,
+  Pricing: `<Pricing heading="投入评估" items={[{ plan: "基础闭环", price: "P0", note: "trace + rerun" }]} />`,
+  Specs: `<Specs heading="能力规格" items={[{ name: "语法", value: "MDX JSX", note: "单一作者语法" }]} />`,
+  Toolbox: `<Toolbox heading="工具箱" items={[{ tool: "Component catalog", use: "选择组件", link: ".agents/skills/journal/references/component-catalog.md" }]} />`,
+  AuthorCard: `<AuthorCard name="谨迹" role="私人知识秘书" bio="把碎片素材整理成可回溯的长期记录。" />`,
+  Subscribe: `<Subscribe title="持续沉淀" description="把新证据追加到同一主题。" />`,
+  People: `<People heading="访谈对象" items={[{ name: "冯灿威", role: "新用户", note: "效果优先" }]} />`,
+  Series: `<Series heading="相关记录" items={[{ title: "用户研究简报", status: "当前", path: "2606/08-用户研究.mdx" }]} />`,
+  Definition: `<Definition term="节点级可观测性" description="检查每个节点输入、输出与偏差来源。" />`,
+  Tweet: `<Tweet text="生成不是终点，可观察、可调整、可验证才真正可用。" author="研究摘要" />`,
+  StatRow: `<StatRow items={[{ label: "Directive parity", value: "43/43" }, { label: "Author syntax", value: "JSX only" }]} />`,
+  Question: `<Question text="如何让第 3 轮之后仍保持意图一致？" context="连接用户目标、节点 trace 与评测反馈。" />`,
+  ResourceList: `<ResourceList items={[{ title: "Component catalog", url: ".agents/skills/journal/references/component-catalog.md" }]} />`,
+  ComparisonTable: `<ComparisonTable columns={["Directive", "JSX"]} rows={[{ label: "作者语法", values: ["退休", "唯一"] }]} />`,
+  Changelog: `<Changelog items={[{ date: "2026-06-09", title: "Canonical JSX parity", note: "43 个 layout components 统一注册。" }]} />`,
+  InlineMath: `<p>行内公式：<InlineMath math="E = mc^2" /></p>`,
+  BlockMath: `<BlockMath math="\\text{Attention}(Q,K,V)" />`,
+}
+
+const categorySources = {
+  opening: 'src/components/mdx/layout/opening.tsx',
+  infographic: 'src/components/mdx/layout/infographic.tsx',
+  judgment: 'src/components/mdx/layout/judgment.tsx',
+  evidence: 'src/components/mdx/layout/evidence.tsx',
+  conversion: 'src/components/mdx/layout/conversion.tsx',
+  brand: 'src/components/mdx/layout/brand.tsx',
+  enhanced: 'src/components/mdx/layout/enhanced.tsx',
+  math: 'src/components/mdx/math.tsx',
+}
+
+const existingComponentNames = new Set(componentSpecs.map((spec) => spec.name))
+for (const entry of componentManifest) {
+  if (existingComponentNames.has(entry.jsxName)) continue
+  const example = canonicalExamples[entry.jsxName]
+  const source = categorySources[entry.category]
+  if (!example || !source) {
+    throw new Error(`Missing manual configuration for ${entry.jsxName}`)
+  }
+  componentSpecs.push({
+    name: entry.jsxName,
+    group: entry.category[0].toUpperCase() + entry.category.slice(1),
+    source,
+    desc: `${entry.jsxName} 的 canonical JSX 用法，遵循谨迹的克制、沉静、专业视觉语言。`,
+    props: [['typed props', '见组件源码', '以实时示例和 TypeScript 接口为准。']],
+    example,
+  })
+  existingComponentNames.add(entry.jsxName)
+}
+
+if (existingComponentNames.size !== componentManifest.length) {
+  throw new Error(
+    `Component manual mismatch: specs=${existingComponentNames.size}, manifest=${componentManifest.length}`,
+  )
+}
+
 function frontmatter({ tags, summary, sources }) {
   return `---\ntags: ${q(tags)}\nsummary: ${q(summary)}\nsources: ${q(sources)}\n---\n\n`
 }
@@ -1421,14 +1512,77 @@ const scenarioIntros = {
 
 const subtypeFieldOverrides = {
   'meeting-collaboration/daily-standup': ['上次完成', '今天计划', '阻塞', '需要协助', '行动项'],
-  'meeting-collaboration/requirement-review': ['需求背景', '用户场景', '验收标准', '变更点', '争议', '结论', '行动项'],
-  'meeting-collaboration/technical-review': ['技术背景', '约束', '方案选项', '架构风险', '迁移风险', '决策', '验证方式', '行动项'],
-  'meeting-collaboration/design-review': ['设计目标', '方案截图/链接', '反馈主题', '互斥意见', '组合方案', '下一轮修改', '行动项'],
-  'meeting-collaboration/strategic-decision': ['战略问题', '选项', '资源投入', '机会成本', '隐藏风险', '决策稳定性', '行动项'],
-  'meeting-collaboration/customer-visit': ['客户背景', '需求', '痛点', '异议', '购买信号', '跟进行动'],
-  'meeting-collaboration/training-share': ['主题', '核心概念', '案例', '可迁移方法', '听众问题', '行动项'],
-  'meeting-collaboration/retrospective': ['目标', '实际结果', '时间线', '原因', '影响', '经验教训', '修复动作'],
-  'meeting-collaboration/incident-review': ['目标', '实际结果', '时间线', '原因', '影响', '经验教训', '修复动作'],
+  'meeting-collaboration/requirement-review': [
+    '需求背景',
+    '用户场景',
+    '验收标准',
+    '变更点',
+    '争议',
+    '结论',
+    '行动项',
+  ],
+  'meeting-collaboration/technical-review': [
+    '技术背景',
+    '约束',
+    '方案选项',
+    '架构风险',
+    '迁移风险',
+    '决策',
+    '验证方式',
+    '行动项',
+  ],
+  'meeting-collaboration/design-review': [
+    '设计目标',
+    '方案截图/链接',
+    '反馈主题',
+    '互斥意见',
+    '组合方案',
+    '下一轮修改',
+    '行动项',
+  ],
+  'meeting-collaboration/strategic-decision': [
+    '战略问题',
+    '选项',
+    '资源投入',
+    '机会成本',
+    '隐藏风险',
+    '决策稳定性',
+    '行动项',
+  ],
+  'meeting-collaboration/customer-visit': [
+    '客户背景',
+    '需求',
+    '痛点',
+    '异议',
+    '购买信号',
+    '跟进行动',
+  ],
+  'meeting-collaboration/training-share': [
+    '主题',
+    '核心概念',
+    '案例',
+    '可迁移方法',
+    '听众问题',
+    '行动项',
+  ],
+  'meeting-collaboration/retrospective': [
+    '目标',
+    '实际结果',
+    '时间线',
+    '原因',
+    '影响',
+    '经验教训',
+    '修复动作',
+  ],
+  'meeting-collaboration/incident-review': [
+    '目标',
+    '实际结果',
+    '时间线',
+    '原因',
+    '影响',
+    '经验教训',
+    '修复动作',
+  ],
 
   'work-reports/status-report': ['当前状态', '状态变化', '阻塞', '风险', '下一步', '需要支持'],
   'work-reports/performance-review': ['周期', '目标', '证据', '影响', '成长点', '反馈', '下一步'],
@@ -1468,7 +1622,16 @@ const subtypeFieldOverrides = {
   'personal-journal/family-affairs': ['相关人', '时间线', '责任', '待确认', '跟进'],
 
   'technical-docs/rfc': ['问题', '提案', '替代方案', '决策', '兼容性', '迁移方案', '开放问题'],
-  'technical-docs/architecture-doc': ['上下文', '需求', '约束', '架构', '数据流', '取舍', '上线计划', '风险'],
+  'technical-docs/architecture-doc': [
+    '上下文',
+    '需求',
+    '约束',
+    '架构',
+    '数据流',
+    '取舍',
+    '上线计划',
+    '风险',
+  ],
   'technical-docs/deployment-runbook': ['环境', '命令', '验证', '回滚', '负责人', '风险'],
   'technical-docs/code-review': ['文件', '发现', '风险', '必要修复', '验证'],
   'technical-docs/code-snippet': ['代码', '使用场景', '注意事项', '相关文件'],
@@ -1483,7 +1646,13 @@ const subtypeFieldOverrides = {
   'hr-operations/support-ticket': ['问题', '复现步骤', '处理过程', '结果', '后续'],
   'hr-operations/partner-communication': ['合作目标', '资源', '分工', '风险', '下一步'],
   'hr-operations/customer-success': ['使用情况', '已交付价值', '风险', '续费/扩展信号', '下一步'],
-  'hr-operations/customer-success-followup': ['使用情况', '已交付价值', '风险', '续费/扩展信号', '下一步'],
+  'hr-operations/customer-success-followup': [
+    '使用情况',
+    '已交付价值',
+    '风险',
+    '续费/扩展信号',
+    '下一步',
+  ],
 }
 
 const localSourcePath = (sourcePath) =>
@@ -1499,7 +1668,9 @@ function parseFamilyRules(meta) {
     const [, subtype, body] = match
     core.set(subtype.trim(), {
       fields: splitCsv(body.match(/^Fields:\s*(.+)$/m)?.[1]),
-      components: [...(body.match(/^Recommended components:\s*(.+)$/m)?.[1]?.matchAll(/`([^`]+)`/g) ?? [])].map((m) => m[1]),
+      components: [
+        ...(body.match(/^Recommended components:\s*(.+)$/m)?.[1]?.matchAll(/`([^`]+)`/g) ?? []),
+      ].map((m) => m[1]),
       useWhen: body.match(/^Use when:\s*(.+)$/m)?.[1] ?? '',
       avoidWhen: body.match(/^Avoid when:\s*(.+)$/m)?.[1] ?? '',
     })
@@ -1545,8 +1716,18 @@ function subtypeOverride(map, family, title) {
 const expertTemplateProfiles = {
   'meeting-collaboration/general-meeting': {
     lens: 'Andy Grove 的高产出会议视角',
-    insight: '通用会议不是转写汇总，而是把信息同步、决策、未决问题和承诺分桶，让读者立刻知道会议产出了什么。',
-    fields: ['会议目标', '本次产出类型', '议题推进表', '关键证据', '已确认结论', '未决问题', '待确认信息', '行动项'],
+    insight:
+      '通用会议不是转写汇总，而是把信息同步、决策、未决问题和承诺分桶，让读者立刻知道会议产出了什么。',
+    fields: [
+      '会议目标',
+      '本次产出类型',
+      '议题推进表',
+      '关键证据',
+      '已确认结论',
+      '未决问题',
+      '待确认信息',
+      '行动项',
+    ],
     checks: [
       '第一屏能看到会议目标和本次产出类型',
       '每个议题都有结论、未决或后续动作之一',
@@ -1556,7 +1737,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/decision-review': {
     lens: 'Annie Duke 的决策质量视角',
     insight: '好决策记录要把结果好坏和决策质量分开，保留选项、关键假设、反证、转折点和复盘条件。',
-    fields: ['决策问题', '不同立场', '关键假设', '关键证据', '反证或弃用理由', '不可逆程度', '稳定性/重审条件', '复盘时间'],
+    fields: [
+      '决策问题',
+      '不同立场',
+      '关键假设',
+      '关键证据',
+      '反证或弃用理由',
+      '不可逆程度',
+      '稳定性/重审条件',
+      '复盘时间',
+    ],
     checks: [
       '至少有两个选项；只有一个选项时写明其他选项为何被排除',
       '决策理由写出关键证据和转折点，不能只写大家同意',
@@ -1565,8 +1755,18 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/progress-sync': {
     lens: 'Eliyahu Goldratt 的约束理论视角',
-    insight: '进展同步的核心不是逐人报功劳，而是找出限制吞吐的约束，并明确下一次同步前可以验证的解除动作。',
-    fields: ['轨道/负责人', '上次承诺 vs 当前状态', '状态变化', '当前约束', '需要协助', '下次可验证结果', '风险/阻塞板', '行动项'],
+    insight:
+      '进展同步的核心不是逐人报功劳，而是找出限制吞吐的约束，并明确下一次同步前可以验证的解除动作。',
+    fields: [
+      '轨道/负责人',
+      '上次承诺 vs 当前状态',
+      '状态变化',
+      '当前约束',
+      '需要协助',
+      '下次可验证结果',
+      '风险/阻塞板',
+      '行动项',
+    ],
     checks: [
       '每个轨道都有相对上次同步的状态变化',
       '每个阻塞都写清影响、解除负责人和截止时间',
@@ -1576,7 +1776,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/daily-standup': {
     lens: 'Jeff Sutherland 的 Scrum 检视与调整视角',
     insight: '站会不是状态汇报会，而是围绕迭代目标检查承诺、暴露阻塞、调整当天最小推进。',
-    fields: ['迭代目标', '成员', '昨日承诺完成情况', '今日最小推进', '阻塞/决策请求', '需要协助人', '状态变化', '升级项'],
+    fields: [
+      '迭代目标',
+      '成员',
+      '昨日承诺完成情况',
+      '今日最小推进',
+      '阻塞/决策请求',
+      '需要协助人',
+      '状态变化',
+      '升级项',
+    ],
     checks: [
       '每个人都有昨日、今日、阻塞三项；没有变化也写无变化/无阻塞',
       '每个阻塞都有需要协助的人或待决策对象',
@@ -1586,7 +1795,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/interview-1on1': {
     lens: 'Edgar Schein 的过程咨询视角',
     insight: '一对一记录要保存对方的真实语境和心智模型，区分原话、事实信号、记录员判断和后续承诺。',
-    fields: ['访谈目标', '对象背景/关系', '明示需求', '真实痛点', '关键原话', '信号与证据', '记录员判断', '跟进承诺'],
+    fields: [
+      '访谈目标',
+      '对象背景/关系',
+      '明示需求',
+      '真实痛点',
+      '关键原话',
+      '信号与证据',
+      '记录员判断',
+      '跟进承诺',
+    ],
     checks: [
       '至少有一条关键原话支撑后面的判断',
       '每条记录员判断都能回指到原话、事实或行为信号',
@@ -1595,8 +1813,18 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/customer-visit': {
     lens: 'Steve Blank 的客户发现视角',
-    insight: '客户拜访记录不是销售纪要，而是用客户原话和行为信号验证问题、现有替代方案、购买意愿和下一步实验。',
-    fields: ['访谈目标', '客户画像/当前流程', '触发事件', '任务/需求', '现有替代方案', '反对意见', '购买/扩展信号', '商务/产品跟进'],
+    insight:
+      '客户拜访记录不是销售纪要，而是用客户原话和行为信号验证问题、现有替代方案、购买意愿和下一步实验。',
+    fields: [
+      '访谈目标',
+      '客户画像/当前流程',
+      '触发事件',
+      '任务/需求',
+      '现有替代方案',
+      '反对意见',
+      '购买/扩展信号',
+      '商务/产品跟进',
+    ],
     checks: [
       '至少一条痛点或异议来自客户原话',
       '购买信号必须绑定行为或明确表述，不能只写记录员感觉',
@@ -1606,7 +1834,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/retrospective': {
     lens: 'Diana Larsen 与 Esther Derby 的敏捷复盘视角',
     insight: '复盘不是追责，而是从事实差距中提炼可复用模式，并把教训转成下一轮实验。',
-    fields: ['时间范围', '预期目标', '实际结果', '关键时间线', '差距解释', '学到的模式', '改进实验', '实验成功信号'],
+    fields: [
+      '时间范围',
+      '预期目标',
+      '实际结果',
+      '关键时间线',
+      '差距解释',
+      '学到的模式',
+      '改进实验',
+      '实验成功信号',
+    ],
     checks: [
       '预期目标和实际结果能直接比较，不能只有情绪评价',
       '每条教训都能回指到时间线中的具体事件',
@@ -1615,8 +1852,18 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/retrospective-incident': {
     lens: 'Gary Klein 的 After Action Review 视角',
-    insight: '事故/项目混合复盘要先选复盘类型，再对比预期与实际，解释差距，并把修复动作拆成防复发或可复用两类。',
-    fields: ['复盘类型', '预期结果', '实际发生', '关键时间线', '影响范围', '差距解释', '防复发/复用动作', '验证方式'],
+    insight:
+      '事故/项目混合复盘要先选复盘类型，再对比预期与实际，解释差距，并把修复动作拆成防复发或可复用两类。',
+    fields: [
+      '复盘类型',
+      '预期结果',
+      '实际发生',
+      '关键时间线',
+      '影响范围',
+      '差距解释',
+      '防复发/复用动作',
+      '验证方式',
+    ],
     checks: [
       '页面明确选择项目复盘或事故复盘，不能两套语言混用',
       '预期与实际的差距能被记录员直接读出',
@@ -1625,8 +1872,18 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/incident-review': {
     lens: 'Sidney Dekker 与 John Allspaw 的无责事故复盘视角',
-    insight: '事故复盘要把人为错误当作分析起点，而不是根因；记录系统条件、检测、缓解、恢复和防复发验证。',
-    fields: ['触发时间', '检测时间', '缓解时间', '恢复时间', '用户/业务影响', '促成因素/系统条件', '未确认事实', '防复发验证'],
+    insight:
+      '事故复盘要把人为错误当作分析起点，而不是根因；记录系统条件、检测、缓解、恢复和防复发验证。',
+    fields: [
+      '触发时间',
+      '检测时间',
+      '缓解时间',
+      '恢复时间',
+      '用户/业务影响',
+      '促成因素/系统条件',
+      '未确认事实',
+      '防复发验证',
+    ],
     checks: [
       '时间线至少包含触发、检测、缓解、恢复四类节点中的已知项',
       '原因不能只写某个人做错；必须写系统、流程或信息条件',
@@ -1635,7 +1892,8 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/brainstorm': {
     lens: 'IDEO / Tom Kelley 的创意收敛视角',
-    insight: '头脑风暴的价值不是点子数量，而是记录点子之间的互补、互斥、并列、组合和依赖关系，再收敛为可验证行动。',
+    insight:
+      '头脑风暴的价值不是点子数量，而是记录点子之间的互补、互斥、并列、组合和依赖关系，再收敛为可验证行动。',
     fields: ['背景问题', '观点', '主张', '推理过程', '观点关系', '组合方案', '共识', '行动项'],
     checks: [
       '背景问题同时写清触发背景、目标和边界',
@@ -1645,8 +1903,18 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/training-share': {
     lens: 'Robert Gagne 的教学设计视角',
-    insight: '培训分享记录要把内容转成可迁移任务能力：概念、例子、适用边界、练习和会后实践必须连起来。',
-    fields: ['学习目标/任务', '概念与定义', '工作案例', '适用边界', '可复用步骤', '练习/检查题', '听众问题与澄清', '会后实践行动'],
+    insight:
+      '培训分享记录要把内容转成可迁移任务能力：概念、例子、适用边界、练习和会后实践必须连起来。',
+    fields: [
+      '学习目标/任务',
+      '概念与定义',
+      '工作案例',
+      '适用边界',
+      '可复用步骤',
+      '练习/检查题',
+      '听众问题与澄清',
+      '会后实践行动',
+    ],
     checks: [
       '每个核心概念都有例子或反例',
       '可迁移方法能按步骤执行，不是抽象心得',
@@ -1655,8 +1923,18 @@ const expertTemplateProfiles = {
   },
   'meeting-collaboration/requirement-review': {
     lens: 'Marty Cagan 的产品发现视角',
-    insight: '需求评审不是功能清单确认，而是把用户问题、证据、验收行为、范围变更和风险假设放到同一页。',
-    fields: ['用户问题/业务背景', '用户场景', '可验收行为', '变更点与影响', '争议/取舍', '非目标', '成功指标', '待验证假设'],
+    insight:
+      '需求评审不是功能清单确认，而是把用户问题、证据、验收行为、范围变更和风险假设放到同一页。',
+    fields: [
+      '用户问题/业务背景',
+      '用户场景',
+      '可验收行为',
+      '变更点与影响',
+      '争议/取舍',
+      '非目标',
+      '成功指标',
+      '待验证假设',
+    ],
     checks: [
       '每条通过的需求都有可测试的验收标准',
       '每个变更点都写清对范围、时间或风险的影响',
@@ -1666,7 +1944,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/technical-review': {
     lens: 'Martin Fowler 的架构取舍视角',
     insight: '技术评审要像轻量 ADR：记录约束、方案力场、迁移风险、验证方法和回滚条件。',
-    fields: ['现状架构', '设计约束', '方案/取舍', '不可逆点', '性能/安全/维护性影响', '迁移与回滚风险', '验证命令/指标', '回滚条件'],
+    fields: [
+      '现状架构',
+      '设计约束',
+      '方案/取舍',
+      '不可逆点',
+      '性能/安全/维护性影响',
+      '迁移与回滚风险',
+      '验证命令/指标',
+      '回滚条件',
+    ],
     checks: [
       '至少两个方案有明确取舍，不能只写最终方案',
       '最终决策有验证命令、指标或回滚条件',
@@ -1676,7 +1963,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/design-review': {
     lens: 'Don Norman 的以用户任务为中心的设计评审视角',
     insight: '设计反馈不能停留在审美偏好，必须绑定用户任务、可用性证据、互斥意见和下一轮验证。',
-    fields: ['设计目标', '用户任务', '截图/版本链接', '反馈主题', '互斥意见及用户影响', '合并方案', '待验证体验假设', '下一轮验证方式'],
+    fields: [
+      '设计目标',
+      '用户任务',
+      '截图/版本链接',
+      '反馈主题',
+      '互斥意见及用户影响',
+      '合并方案',
+      '待验证体验假设',
+      '下一轮验证方式',
+    ],
     checks: [
       '每条反馈都能对应设计目标或用户任务',
       '互斥意见必须写清取舍理由和最终处理',
@@ -1686,7 +1982,16 @@ const expertTemplateProfiles = {
   'meeting-collaboration/strategic-decision': {
     lens: 'Richard Rumelt 的好战略视角',
     insight: '战略决策页要写诊断、指导方针和一致行动，尤其要暴露机会成本、资源配置和重审触发条件。',
-    fields: ['诊断', '指导方针选项', '非目标', '资源配置', '机会成本', '关键假设', '风险信号', '一致行动'],
+    fields: [
+      '诊断',
+      '指导方针选项',
+      '非目标',
+      '资源配置',
+      '机会成本',
+      '关键假设',
+      '风险信号',
+      '一致行动',
+    ],
     checks: [
       '决策回答了诊断中的核心问题，不只是写期望结果',
       '资源投入和机会成本至少有定性说明；能量化的必须量化',
@@ -1696,536 +2001,1564 @@ const expertTemplateProfiles = {
   'work-reports/daily-report': {
     lens: 'David Allen 的 GTD 视角',
     insight: '日报不是流水账，而是把今日承诺闭环、未闭环原因和明日最小行动放进同一个可信系统。',
-    fields: ['已完成且可验证的产出', '关键事实/数据', '未完成原因', '阻塞', '明日 Top 3', '需要支持'],
-    checks: ['每条完成项必须有证据、数量、链接或明确交付物', '每个阻塞必须写明需要谁在何时提供什么支持', '明日计划不得超过 3 条，且每条都能在 1 个工作日内验证'],
+    fields: [
+      '已完成且可验证的产出',
+      '关键事实/数据',
+      '未完成原因',
+      '阻塞',
+      '明日 Top 3',
+      '需要支持',
+    ],
+    checks: [
+      '每条完成项必须有证据、数量、链接或明确交付物',
+      '每个阻塞必须写明需要谁在何时提供什么支持',
+      '明日计划不得超过 3 条，且每条都能在 1 个工作日内验证',
+    ],
   },
   'work-reports/weekly-report': {
     lens: 'Andy Grove 的高产出管理视角',
     insight: '周报要汇报产出和杠杆，不汇报忙碌；指标要同时体现结果指标和前置指标。',
-    fields: ['本周可验证成果', '结果指标', '前置指标', '项目进展', '管理层需关注', '风险', '下周杠杆动作'],
-    checks: ['每个指标必须包含本周值、上周值或目标值中的至少两项', '每个风险必须有应对、负责人和截止时间', '下周计划中的每条动作必须绑定一个成果、风险或指标'],
+    fields: [
+      '本周可验证成果',
+      '结果指标',
+      '前置指标',
+      '项目进展',
+      '管理层需关注',
+      '风险',
+      '下周杠杆动作',
+    ],
+    checks: [
+      '每个指标必须包含本周值、上周值或目标值中的至少两项',
+      '每个风险必须有应对、负责人和截止时间',
+      '下周计划中的每条动作必须绑定一个成果、风险或指标',
+    ],
   },
   'work-reports/monthly-report': {
     lens: 'Peter Drucker 的目标管理视角',
     insight: '月报应回答本月对目标贡献了什么、资源是否用在正确事项上、下月该停止或加码什么。',
-    fields: ['目标与贡献', '关键指标', '资源投入', '重大变化', '停止/加码/保持', '风险', '需要决策'],
-    checks: ['每个关键指标必须有本月值和目标值', '每个重大变化必须注明发生时间和证据来源', '每个决策请求必须写清选项、推荐项和截止日期'],
+    fields: [
+      '目标与贡献',
+      '关键指标',
+      '资源投入',
+      '重大变化',
+      '停止/加码/保持',
+      '风险',
+      '需要决策',
+    ],
+    checks: [
+      '每个关键指标必须有本月值和目标值',
+      '每个重大变化必须注明发生时间和证据来源',
+      '每个决策请求必须写清选项、推荐项和截止日期',
+    ],
   },
   'work-reports/quarterly-report': {
     lens: 'Michael Porter 的战略取舍视角',
-    insight: '季报要呈现战略选择是否有效，而不是把三个月周报相加；重点是取舍、资源配置和下一季度下注。',
-    fields: ['季度战略目标', '关键指标', '战略取舍', '资源配置变化', '重大变化', '风险暴露', '下季度押注'],
-    checks: ['每个季度结论必须绑定至少一个目标或关键指标', '每个战略变化必须说明相对上季度的差异', '下季度重点不得超过 3 个，并必须写明负责人'],
+    insight:
+      '季报要呈现战略选择是否有效，而不是把三个月周报相加；重点是取舍、资源配置和下一季度下注。',
+    fields: [
+      '季度战略目标',
+      '关键指标',
+      '战略取舍',
+      '资源配置变化',
+      '重大变化',
+      '风险暴露',
+      '下季度押注',
+    ],
+    checks: [
+      '每个季度结论必须绑定至少一个目标或关键指标',
+      '每个战略变化必须说明相对上季度的差异',
+      '下季度重点不得超过 3 个，并必须写明负责人',
+    ],
   },
   'work-reports/monthly-quarterly-report': {
     lens: 'Ram Charan 的执行节奏视角',
-    insight: '通用周期汇报要先固定比较口径，再按月度或季度选择粒度，避免同一模板生成不可比较的叙述。',
+    insight:
+      '通用周期汇报要先固定比较口径，再按月度或季度选择粒度，避免同一模板生成不可比较的叙述。',
     fields: ['汇报周期', '比较基线', '目标', '关键指标', '相对基线变化', '风险', '领导层请求'],
-    checks: ['页面必须明确是月度、季度或其他周期', '所有核心指标必须有当前值和比较基线', '每个领导层请求必须写明请求对象和决策期限'],
+    checks: [
+      '页面必须明确是月度、季度或其他周期',
+      '所有核心指标必须有当前值和比较基线',
+      '每个领导层请求必须写明请求对象和决策期限',
+    ],
   },
   'work-reports/okr-tracking': {
     lens: 'John Doerr 的 OKR 视角',
     insight: 'OKR 跟踪不是任务进度表，而是用可量化 KR、信心指数和调整动作判断目标是否仍可达成。',
-    fields: ['目标结果', 'KR 基线/当前/目标', '当前进度', '信心依据', '阻塞', 'KR 调整请求', '下一步行动'],
-    checks: ['每个 KR 必须有可量化目标和当前值', '信心指数必须写明依据，不能只有高/中/低', '每条下一步行动必须绑定到一个具体 KR'],
+    fields: [
+      '目标结果',
+      'KR 基线/当前/目标',
+      '当前进度',
+      '信心依据',
+      '阻塞',
+      'KR 调整请求',
+      '下一步行动',
+    ],
+    checks: [
+      '每个 KR 必须有可量化目标和当前值',
+      '信心指数必须写明依据，不能只有高/中/低',
+      '每条下一步行动必须绑定到一个具体 KR',
+    ],
   },
   'work-reports/status-report': {
     lens: 'Eliyahu Goldratt 的约束理论视角',
-    insight: '状态汇报的价值在于暴露系统约束：当前状态、上次状态、变化原因和解除约束所需支持必须连在一起。',
-    fields: ['当前健康状态', '上次状态', '状态变化', '系统约束', '风险', '解除约束所需支持', '下一步'],
-    checks: ['必须同时出现上次状态和当前状态', '每个状态变化必须写明触发原因或证据', '每个支持请求必须有支持对象、截止时间和预期结果'],
+    insight:
+      '状态汇报的价值在于暴露系统约束：当前状态、上次状态、变化原因和解除约束所需支持必须连在一起。',
+    fields: [
+      '当前健康状态',
+      '上次状态',
+      '状态变化',
+      '系统约束',
+      '风险',
+      '解除约束所需支持',
+      '下一步',
+    ],
+    checks: [
+      '必须同时出现上次状态和当前状态',
+      '每个状态变化必须写明触发原因或证据',
+      '每个支持请求必须有支持对象、截止时间和预期结果',
+    ],
   },
   'work-reports/performance-review': {
     lens: 'Kim Scott 的 Radical Candor 视角',
     insight: '绩效复盘要把事实证据、业务影响、行为模式和成长动作分开，避免空泛评价。',
-    fields: ['周期', '角色期待', '目标', '行为证据', '业务影响', '成长点', '反馈', '成长动作与支持'],
-    checks: ['每条绩效判断必须对应至少一条行为证据', '每个影响必须写清影响对象、范围或指标', '每条成长动作必须有负责人、截止时间和验证方式'],
+    fields: [
+      '周期',
+      '角色期待',
+      '目标',
+      '行为证据',
+      '业务影响',
+      '成长点',
+      '反馈',
+      '成长动作与支持',
+    ],
+    checks: [
+      '每条绩效判断必须对应至少一条行为证据',
+      '每个影响必须写清影响对象、范围或指标',
+      '每条成长动作必须有负责人、截止时间和验证方式',
+    ],
   },
   'work-reports/project-progress': {
     lens: 'Fred Brooks 的项目里程碑视角',
     insight: '项目进展不能只写百分比；必须写清里程碑是否真实完成、关键路径是否变化、依赖是否可控。',
-    fields: ['里程碑验收状态', '最新进展', '验收证据', '关键路径变化', '范围变化', '依赖', '风险', '需要支持'],
-    checks: ['每个里程碑必须有截止时间、状态和验收证据', '每个依赖必须有外部负责人和期望交付时间', '任何范围变化必须说明对时间、成本或质量的影响'],
+    fields: [
+      '里程碑验收状态',
+      '最新进展',
+      '验收证据',
+      '关键路径变化',
+      '范围变化',
+      '依赖',
+      '风险',
+      '需要支持',
+    ],
+    checks: [
+      '每个里程碑必须有截止时间、状态和验收证据',
+      '每个依赖必须有外部负责人和期望交付时间',
+      '任何范围变化必须说明对时间、成本或质量的影响',
+    ],
   },
   'work-reports/executive-summary': {
     lens: 'Barbara Minto 的金字塔原理视角',
-    insight: '管理层摘要必须答案先行：结论、证据、风险、请求按决策顺序排列，低层细节只保留能影响判断的部分。',
+    insight:
+      '管理层摘要必须答案先行：结论、证据、风险、请求按决策顺序排列，低层细节只保留能影响判断的部分。',
     fields: ['一句话答案', '关键指标', '财务/业务影响', '风险', '可选方案', '决策请求', '决策期限'],
-    checks: ['首个结论能独立回答管理层最关心的问题', '每个决策请求必须包含推荐项、备选项和截止时间', '正文不得出现无法支撑结论、风险或请求的细节'],
+    checks: [
+      '首个结论能独立回答管理层最关心的问题',
+      '每个决策请求必须包含推荐项、备选项和截止时间',
+      '正文不得出现无法支撑结论、风险或请求的细节',
+    ],
   },
   'work-reports/risk-focused-report': {
     lens: 'Nassim Nicholas Taleb 的尾部风险视角',
     insight: '风险专项汇报要区分概率、暴露、触发信号和残余风险，不能只列风险名称。',
     fields: ['风险', '概率', '影响半径', '严重度', '触发信号', '应对', '残余风险', '升级阈值'],
-    checks: ['每个风险必须包含概率、影响、严重度和应对', '所有高严重度风险必须有负责人和截止时间', '每个风险必须写明触发信号或升级阈值'],
+    checks: [
+      '每个风险必须包含概率、影响、严重度和应对',
+      '所有高严重度风险必须有负责人和截止时间',
+      '每个风险必须写明触发信号或升级阈值',
+    ],
   },
   'research-analysis/market-research': {
     lens: 'Clayton Christensen + April Dunford 的市场机会视角',
-    insight: '市场研究不能只列市场规模；要把谁在什么情境下为什么会切换写清楚，否则机会会变成空泛 TAM。',
-    fields: ['研究问题', '市场背景', '目标细分', '需求触发/切换动因', '证据发现', '机会假设', '限制条件', '下一步验证'],
-    checks: ['每个市场规模、增长率或用户行为判断都必须有来源', '机会判断必须写成推断，并列出至少一个限制条件', '下一步验证必须包含动作、指标和判定阈值'],
+    insight:
+      '市场研究不能只列市场规模；要把谁在什么情境下为什么会切换写清楚，否则机会会变成空泛 TAM。',
+    fields: [
+      '研究问题',
+      '市场背景',
+      '目标细分',
+      '需求触发/切换动因',
+      '证据发现',
+      '机会假设',
+      '限制条件',
+      '下一步验证',
+    ],
+    checks: [
+      '每个市场规模、增长率或用户行为判断都必须有来源',
+      '机会判断必须写成推断，并列出至少一个限制条件',
+      '下一步验证必须包含动作、指标和判定阈值',
+    ],
   },
   'research-analysis/competitor-analysis': {
     lens: 'Michael Porter 的竞争战略视角',
     insight: '竞品分析的核心是定位差异和可防守优势；功能对比只是证据，不是结论。',
-    fields: ['竞品集合', '客户任务/购买标准', '对比维度', '对方优势证据', '对方弱点证据', '定位判断', '可差异化机会', '待验证盲区'],
-    checks: ['每个关键对比维度至少有一条来源证据，不能只写主观评分', '定位、优势和弱点必须区分事实证据和分析推断', '下一步验证必须指向真实市场信号'],
+    fields: [
+      '竞品集合',
+      '客户任务/购买标准',
+      '对比维度',
+      '对方优势证据',
+      '对方弱点证据',
+      '定位判断',
+      '可差异化机会',
+      '待验证盲区',
+    ],
+    checks: [
+      '每个关键对比维度至少有一条来源证据，不能只写主观评分',
+      '定位、优势和弱点必须区分事实证据和分析推断',
+      '下一步验证必须指向真实市场信号',
+    ],
   },
   'research-analysis/data-analysis': {
     lens: 'John Tukey + Edward Tufte 的数据解释视角',
     insight: '数据分析模板要防止看见趋势就讲故事；必须先写数据范围、口径和异常处理。',
-    fields: ['分析问题', '数据范围/口径', '基线/对照', '指标变化', '异常与排除', '解释假设', '建议', '下一步验证'],
-    checks: ['每个指标必须有时间范围、样本量或数据口径', '解释必须至少列出一个替代解释或异常来源', '下一步验证必须说明要补哪份数据、跑哪个切分或做什么对照实验'],
+    fields: [
+      '分析问题',
+      '数据范围/口径',
+      '基线/对照',
+      '指标变化',
+      '异常与排除',
+      '解释假设',
+      '建议',
+      '下一步验证',
+    ],
+    checks: [
+      '每个指标必须有时间范围、样本量或数据口径',
+      '解释必须至少列出一个替代解释或异常来源',
+      '下一步验证必须说明要补哪份数据、跑哪个切分或做什么对照实验',
+    ],
   },
   'research-analysis/swot': {
     lens: 'Richard Rumelt 的好战略视角',
     insight: 'SWOT 不应是四格词库；每一格都要有证据，并收敛到战略判断和下一步行动。',
-    fields: ['背景目标', '优势证据', '劣势证据', '机会推断', '威胁推断', '战略诊断', '优先动作', '待验证假设'],
-    checks: ['优势和劣势必须来自内部事实或可追溯证据', '战略诊断必须引用 SWOT 中至少两个证据项', '下一步动作必须能验证某个关键假设'],
+    fields: [
+      '背景目标',
+      '优势证据',
+      '劣势证据',
+      '机会推断',
+      '威胁推断',
+      '战略诊断',
+      '优先动作',
+      '待验证假设',
+    ],
+    checks: [
+      '优势和劣势必须来自内部事实或可追溯证据',
+      '战略诊断必须引用 SWOT 中至少两个证据项',
+      '下一步动作必须能验证某个关键假设',
+    ],
   },
   'research-analysis/user-research': {
     lens: 'Erika Hall + Teresa Torres 的用户机会视角',
     insight: '用户研究最重要的是把用户说了什么、做了什么和我们推断什么分开。',
-    fields: ['样本与招募条件', '研究方法', '行为/痛点证据', '关键原话', '洞察假设', '机会点', '样本限制', '后续验证'],
-    checks: ['每条用户痛点至少对应一条原话、行为观察或调查数据', '洞察必须声明样本限制', '下一步验证必须说明验证对象、方法和成功标准'],
+    fields: [
+      '样本与招募条件',
+      '研究方法',
+      '行为/痛点证据',
+      '关键原话',
+      '洞察假设',
+      '机会点',
+      '样本限制',
+      '后续验证',
+    ],
+    checks: [
+      '每条用户痛点至少对应一条原话、行为观察或调查数据',
+      '洞察必须声明样本限制',
+      '下一步验证必须说明验证对象、方法和成功标准',
+    ],
   },
   'research-analysis/feasibility': {
     lens: 'Marty Cagan + Bent Flyvbjerg 的可行性视角',
     insight: '可行性模板不能只问能不能做；要写清约束、最小可行验证和失败条件。',
-    fields: ['约束', '价值假设', '技术假设', '商业/成本假设', '可行性判断', '所需验证', '风险', '决策'],
-    checks: ['可行性判断必须绑定具体约束', '每个高风险假设必须标注证据状态', '下一步验证必须包含最小实验、负责人和停止条件'],
+    fields: [
+      '约束',
+      '价值假设',
+      '技术假设',
+      '商业/成本假设',
+      '可行性判断',
+      '所需验证',
+      '风险',
+      '决策',
+    ],
+    checks: [
+      '可行性判断必须绑定具体约束',
+      '每个高风险假设必须标注证据状态',
+      '下一步验证必须包含最小实验、负责人和停止条件',
+    ],
   },
   'research-analysis/feasibility-analysis': {
     lens: 'Marty Cagan + Bent Flyvbjerg 的可行性视角',
     insight: '可行性模板不能只问能不能做；要写清约束、最小可行验证和失败条件。',
-    fields: ['约束', '价值假设', '技术假设', '商业/成本假设', '可行性判断', '所需验证', '风险', '决策'],
-    checks: ['可行性判断必须绑定具体约束', '每个高风险假设必须标注证据状态', '下一步验证必须包含最小实验、负责人和停止条件'],
+    fields: [
+      '约束',
+      '价值假设',
+      '技术假设',
+      '商业/成本假设',
+      '可行性判断',
+      '所需验证',
+      '风险',
+      '决策',
+    ],
+    checks: [
+      '可行性判断必须绑定具体约束',
+      '每个高风险假设必须标注证据状态',
+      '下一步验证必须包含最小实验、负责人和停止条件',
+    ],
   },
   'research-analysis/risk-assessment': {
     lens: 'Nassim Taleb + Paul Slovic 的风险认知视角',
     insight: '风险模板要避免只打分；必须写清触发信号、暴露面、缓解动作和剩余风险。',
-    fields: ['风险背景', '风险清单', '触发信号', '概率', '影响', '缓解措施', '负责人', '剩余风险/监控'],
-    checks: ['每个高等级风险必须有证据来源或明确标注为假设风险', '概率和影响必须说明判断依据', '下一步验证必须包含监控信号、阈值和触发后的负责人动作'],
+    fields: [
+      '风险背景',
+      '风险清单',
+      '触发信号',
+      '概率',
+      '影响',
+      '缓解措施',
+      '负责人',
+      '剩余风险/监控',
+    ],
+    checks: [
+      '每个高等级风险必须有证据来源或明确标注为假设风险',
+      '概率和影响必须说明判断依据',
+      '下一步验证必须包含监控信号、阈值和触发后的负责人动作',
+    ],
   },
   'research-analysis/experiment-report': {
     lens: 'Ron Kohavi + R. A. Fisher 的实验设计视角',
     insight: '实验报告的价值不在结果好坏，而在结果是否足以改变决策。',
-    fields: ['假设', '实验设计', '样本/分流', '指标与成功标准', '结果', '异常/污染', '决策', '下一步验证'],
-    checks: ['实验必须写清预注册假设、主要指标和成功标准', '结果解释必须区分数据证据、推断原因和实验限制', '下一步必须明确是放大、复测、改方案还是停止'],
+    fields: [
+      '假设',
+      '实验设计',
+      '样本/分流',
+      '指标与成功标准',
+      '结果',
+      '异常/污染',
+      '决策',
+      '下一步验证',
+    ],
+    checks: [
+      '实验必须写清预注册假设、主要指标和成功标准',
+      '结果解释必须区分数据证据、推断原因和实验限制',
+      '下一步必须明确是放大、复测、改方案还是停止',
+    ],
   },
   'research-analysis/business-analysis': {
     lens: 'Alex Osterwalder + Hamilton Helmer 的商业模式视角',
     insight: '商业分析不能只列收入成本；要判断这个模式为什么能持续、哪里会被竞争或执行成本击穿。',
-    fields: ['商业模式', '客户/渠道', '成本结构', '收入结构', '单位经济', '战略影响', '风险', '建议/下一步验证'],
-    checks: ['收入、成本、单位经济等数字必须有来源、口径或假设说明', '战略影响必须说明依赖哪些商业假设', '下一步验证必须指向一个关键商业假设'],
+    fields: [
+      '商业模式',
+      '客户/渠道',
+      '成本结构',
+      '收入结构',
+      '单位经济',
+      '战略影响',
+      '风险',
+      '建议/下一步验证',
+    ],
+    checks: [
+      '收入、成本、单位经济等数字必须有来源、口径或假设说明',
+      '战略影响必须说明依赖哪些商业假设',
+      '下一步验证必须指向一个关键商业假设',
+    ],
   },
   'project-docs/project-plan': {
     lens: 'Andy Grove 的高产出管理视角',
     insight: '项目计划不是愿望列表，而是目标、边界、节奏、责任人与前置风险构成的执行系统。',
-    fields: ['预期结果', '范围内', '范围外', '成功指标', '项目节奏/检查点', '关键依赖', '验收口径', '下一步行动/负责人/截止时间'],
-    checks: ['范围必须同时写范围内和范围外', '每个里程碑必须有负责人和验收口径', '每个高风险项必须有缓解动作或负责人'],
+    fields: [
+      '预期结果',
+      '范围内',
+      '范围外',
+      '成功指标',
+      '项目节奏/检查点',
+      '关键依赖',
+      '验收口径',
+      '下一步行动/负责人/截止时间',
+    ],
+    checks: [
+      '范围必须同时写范围内和范围外',
+      '每个里程碑必须有负责人和验收口径',
+      '每个高风险项必须有缓解动作或负责人',
+    ],
   },
   'project-docs/charter': {
     lens: 'Harold Kerzner 的项目治理视角',
     insight: '项目章程的核心是授权：谁批准、给多少资源、谁有权改变范围与优先级。',
-    fields: ['授权目标', 'Sponsor/批准人', '授权边界', '预算/资源上限', '决策权', '升级路径', '里程碑', '治理风险'],
-    checks: ['Sponsor 和批准人不能为空', '范围、预算、时间任一变更的决策人必须明确', '预算或资源上限未知时必须标记为待确认'],
+    fields: [
+      '授权目标',
+      'Sponsor/批准人',
+      '授权边界',
+      '预算/资源上限',
+      '决策权',
+      '升级路径',
+      '里程碑',
+      '治理风险',
+    ],
+    checks: [
+      'Sponsor 和批准人不能为空',
+      '范围、预算、时间任一变更的决策人必须明确',
+      '预算或资源上限未知时必须标记为待确认',
+    ],
   },
   'project-docs/prd': {
     lens: 'Marty Cagan 的产品发现视角',
     insight: 'PRD 应把用户问题、产品行为、风险和成功指标分开，而不是堆功能清单。',
-    fields: ['目标用户', '核心场景/JTBD', '用户问题', '非目标场景', '可测试需求', '验收标准', '成功指标', '开放问题'],
-    checks: ['每条需求必须对应用户问题或场景', '每条验收标准必须可测试', '成功指标必须写基线或目标值'],
+    fields: [
+      '目标用户',
+      '核心场景/JTBD',
+      '用户问题',
+      '非目标场景',
+      '可测试需求',
+      '验收标准',
+      '成功指标',
+      '开放问题',
+    ],
+    checks: [
+      '每条需求必须对应用户问题或场景',
+      '每条验收标准必须可测试',
+      '成功指标必须写基线或目标值',
+    ],
   },
   'project-docs/user-story': {
     lens: 'Jeff Patton 的用户故事地图视角',
     insight: '用户故事要落在旅程和验收示例里，否则只是格式化口号。',
-    fields: ['用户角色', '触发情境', '前置条件', '待完成任务', '用户价值/业务价值', '主流程', '例外/边界', '验收示例'],
-    checks: ['每条故事只能服务一个明确用户角色', '验收条件必须包含 Given/When/Then 或等价可测描述', '故事必须写清用户价值，不只写系统动作'],
+    fields: [
+      '用户角色',
+      '触发情境',
+      '前置条件',
+      '待完成任务',
+      '用户价值/业务价值',
+      '主流程',
+      '例外/边界',
+      '验收示例',
+    ],
+    checks: [
+      '每条故事只能服务一个明确用户角色',
+      '验收条件必须包含 Given/When/Then 或等价可测描述',
+      '故事必须写清用户价值，不只写系统动作',
+    ],
   },
   'project-docs/requirement-pool': {
     lens: 'Karl Wiegers 的需求工程视角',
     insight: '需求池是 triage 系统，重点是来源、优先级理由、状态和冲突处理。',
-    fields: ['需求ID', '来源证据', '可验收需求陈述', '优先级', '优先级理由', '状态', '冲突/依赖', '下一步处理动作'],
-    checks: ['每条需求必须有来源', '优先级必须有理由，不能只有 P0/P1', '重复或冲突需求必须标记合并、拆分或待决'],
+    fields: [
+      '需求ID',
+      '来源证据',
+      '可验收需求陈述',
+      '优先级',
+      '优先级理由',
+      '状态',
+      '冲突/依赖',
+      '下一步处理动作',
+    ],
+    checks: [
+      '每条需求必须有来源',
+      '优先级必须有理由，不能只有 P0/P1',
+      '重复或冲突需求必须标记合并、拆分或待决',
+    ],
   },
   'project-docs/technical-proposal': {
     lens: 'Michael Nygard 的 ADR 视角',
     insight: '技术方案应记录约束下的选择、备选项、后果、上线与回滚，不是架构说明散文。',
-    fields: ['问题', '不可变约束', '方案选项', '架构草图/数据流', '决策状态', '后果/权衡', '验证计划', '回滚方案'],
-    checks: ['至少两个方案必须写出取舍', '最终决策必须有负责人和状态', '上线计划必须同时写验证方式和回滚触发条件'],
+    fields: [
+      '问题',
+      '不可变约束',
+      '方案选项',
+      '架构草图/数据流',
+      '决策状态',
+      '后果/权衡',
+      '验证计划',
+      '回滚方案',
+    ],
+    checks: [
+      '至少两个方案必须写出取舍',
+      '最终决策必须有负责人和状态',
+      '上线计划必须同时写验证方式和回滚触发条件',
+    ],
   },
   'project-docs/test-plan': {
     lens: 'Cem Kaner 的情境驱动测试视角',
     insight: '测试计划应说明要降低哪些风险、用什么环境和数据证明，而不是穷举用例。',
-    fields: ['测试目标', '测试范围', '不测范围', '风险模型', '测试数据', '风险驱动用例', '入口/退出标准', '缺陷分级'],
-    checks: ['每个测试用例必须映射到需求或风险', '环境和测试数据必须可复现', '通过/失败标准必须避免主观词'],
+    fields: [
+      '测试目标',
+      '测试范围',
+      '不测范围',
+      '风险模型',
+      '测试数据',
+      '风险驱动用例',
+      '入口/退出标准',
+      '缺陷分级',
+    ],
+    checks: [
+      '每个测试用例必须映射到需求或风险',
+      '环境和测试数据必须可复现',
+      '通过/失败标准必须避免主观词',
+    ],
   },
   'project-docs/release-checklist': {
     lens: 'Gene Kim 的发布安全视角',
     insight: '发布检查清单要证明发布可控、反馈可见、回滚可执行。',
-    fields: ['发布窗口', '前置条件', '发布检查项', '灰度/回滚开关', '监控信号', '沟通对象', 'Go/No-Go 决策', '回滚步骤'],
-    checks: ['每个检查项必须有负责人和状态', '回滚必须写触发条件和具体步骤', '沟通计划必须写对象、内容和时间'],
+    fields: [
+      '发布窗口',
+      '前置条件',
+      '发布检查项',
+      '灰度/回滚开关',
+      '监控信号',
+      '沟通对象',
+      'Go/No-Go 决策',
+      '回滚步骤',
+    ],
+    checks: [
+      '每个检查项必须有负责人和状态',
+      '回滚必须写触发条件和具体步骤',
+      '沟通计划必须写对象、内容和时间',
+    ],
   },
   'project-docs/roadmap': {
     lens: 'Bruce McCarthy 的产品路线图视角',
     insight: '路线图传达意图和不确定性，Now/Next/Later 必须连接 outcome、证据和依赖。',
     fields: ['产品目标', '主题/机会', 'Now', 'Next', 'Later', '假设', '决策门槛', '不做事项'],
-    checks: ['每个路线图事项必须写结果目标', 'Next/Later 必须体现不确定性或待验证条件', '关键依赖和不做事项必须可见'],
+    checks: [
+      '每个路线图事项必须写结果目标',
+      'Next/Later 必须体现不确定性或待验证条件',
+      '关键依赖和不做事项必须可见',
+    ],
   },
   'project-docs/milestone-plan': {
     lens: 'Eliyahu Goldratt 的约束理论视角',
     insight: '里程碑计划要暴露瓶颈、依赖和缓冲，而不只是日期清单。',
     fields: ['目标', '可验收里程碑', '交付物', '负责人', '关键链/阻塞点', '依赖', '缓冲', '决策门'],
-    checks: ['每个里程碑必须有交付物和验收标准', '依赖必须早于对应里程碑列出', '关键瓶颈必须有负责人和缓冲方案'],
+    checks: [
+      '每个里程碑必须有交付物和验收标准',
+      '依赖必须早于对应里程碑列出',
+      '关键瓶颈必须有负责人和缓冲方案',
+    ],
   },
   'project-docs/changelog': {
     lens: 'Olivier Lacan 的 Keep a Changelog 视角',
     insight: '变更日志是面向读者的影响账本，不是 commit log。',
-    fields: ['版本', '发布日期', '新增', '变更', '修复', 'Breaking changes', '用户/系统影响', '迁移/兼容性'],
-    checks: ['条目必须按新增、变更、修复、破坏性变更分组', '破坏性变更必须写迁移动作', '每条重要变更必须有来源或 issue/PR 编号'],
+    fields: [
+      '版本',
+      '发布日期',
+      '新增',
+      '变更',
+      '修复',
+      'Breaking changes',
+      '用户/系统影响',
+      '迁移/兼容性',
+    ],
+    checks: [
+      '条目必须按新增、变更、修复、破坏性变更分组',
+      '破坏性变更必须写迁移动作',
+      '每条重要变更必须有来源或 issue/PR 编号',
+    ],
   },
   'project-docs/project-retrospective': {
     lens: 'Norman Kerth 的项目复盘视角',
     insight: '项目复盘要把事实、解释、系统性原因和后续实验分开，避免归咎个人。',
-    fields: ['时间线/事实', '预期 vs 实际', '未达到预期', '系统性原因', '可复用经验', '修复实验', '复发风险', '跟进日期'],
-    checks: ['关键判断必须连接事实或证据', '根因描述必须指向系统、流程或约束', '每个跟进行动必须有负责人、日期和成功信号'],
+    fields: [
+      '时间线/事实',
+      '预期 vs 实际',
+      '未达到预期',
+      '系统性原因',
+      '可复用经验',
+      '修复实验',
+      '复发风险',
+      '跟进日期',
+    ],
+    checks: [
+      '关键判断必须连接事实或证据',
+      '根因描述必须指向系统、流程或约束',
+      '每个跟进行动必须有负责人、日期和成功信号',
+    ],
   },
   'technical-docs/technical-design': {
     lens: 'Martin Fowler 的演进式架构视角',
     insight: '技术设计不是一次性蓝图，而是把当前约束下的可逆选择、不可逆选择和演进路径写清楚。',
-    fields: ['问题背景与触发原因', '功能需求与非功能需求', '明确不解决什么', '已确定/待确认/废弃方案', '核心设计选择', '验证计划', '回滚或降级路径', '未覆盖风险'],
-    checks: ['每个关键设计选择都有证据来源、约束来源或业务需求来源', '验证计划包含可执行检查', '回滚路径写清触发条件、负责人和仍未覆盖的兼容性风险'],
+    fields: [
+      '问题背景与触发原因',
+      '功能需求与非功能需求',
+      '明确不解决什么',
+      '已确定/待确认/废弃方案',
+      '核心设计选择',
+      '验证计划',
+      '回滚或降级路径',
+      '未覆盖风险',
+    ],
+    checks: [
+      '每个关键设计选择都有证据来源、约束来源或业务需求来源',
+      '验证计划包含可执行检查',
+      '回滚路径写清触发条件、负责人和仍未覆盖的兼容性风险',
+    ],
   },
   'technical-docs/api-doc': {
     lens: 'Stripe API Docs 的契约优先视角',
-    insight: 'API 文档的核心不是解释实现，而是让调用方在不知道内部代码的情况下稳定集成、处理错误并安全升级。',
-    fields: ['方法与路径', '认证方式与权限范围', '参数表', '请求示例', '响应示例', '错误与恢复', '限流与重试策略', '版本/弃用/兼容承诺'],
-    checks: ['请求示例和响应示例能直接复制运行', '每个错误码都写明状态、原因、是否可重试和调用方动作', '兼容性章节写清新增字段、废弃字段、破坏性变更和旧客户端风险'],
+    insight:
+      'API 文档的核心不是解释实现，而是让调用方在不知道内部代码的情况下稳定集成、处理错误并安全升级。',
+    fields: [
+      '方法与路径',
+      '认证方式与权限范围',
+      '参数表',
+      '请求示例',
+      '响应示例',
+      '错误与恢复',
+      '限流与重试策略',
+      '版本/弃用/兼容承诺',
+    ],
+    checks: [
+      '请求示例和响应示例能直接复制运行',
+      '每个错误码都写明状态、原因、是否可重试和调用方动作',
+      '兼容性章节写清新增字段、废弃字段、破坏性变更和旧客户端风险',
+    ],
   },
   'technical-docs/debug-record': {
     lens: 'Charity Majors 的可观测性调试视角',
-    insight: '调试记录要保存证据链，而不是只保存最终修复；未来读者需要复盘每个假设为何成立或被排除。',
-    fields: ['可观察症状', '环境', '证据：日志/trace/metric/截图/命令输出', '复现步骤与复现率', '假设', '已排除假设', '根因', '回归测试或监控告警'],
-    checks: ['根因结论必须能回指至少一条证据或实验结果', '每个假设都标明 confirmed、ruled out 或 pending', '修复后必须写明验证命令、回归测试名称或监控指标'],
+    insight:
+      '调试记录要保存证据链，而不是只保存最终修复；未来读者需要复盘每个假设为何成立或被排除。',
+    fields: [
+      '可观察症状',
+      '环境',
+      '证据：日志/trace/metric/截图/命令输出',
+      '复现步骤与复现率',
+      '假设',
+      '已排除假设',
+      '根因',
+      '回归测试或监控告警',
+    ],
+    checks: [
+      '根因结论必须能回指至少一条证据或实验结果',
+      '每个假设都标明 confirmed、ruled out 或 pending',
+      '修复后必须写明验证命令、回归测试名称或监控指标',
+    ],
   },
   'technical-docs/architecture-doc': {
     lens: 'Simon Brown 的 C4 模型视角',
     insight: '架构文档要按读者层级组织：先说明系统边界和关系，再进入容器、组件、运行时和质量属性。',
-    fields: ['系统上下文与外部依赖', 'C4 层级', '需求', '质量属性', '依赖方向', '关键失败模式', '架构决策', '未来演进约束'],
-    checks: ['图中每个外部系统、数据库、队列或第三方服务都有职责说明和失败影响', '至少列出 3 个质量属性及验证方式', '兼容性与迁移段落写明旧模块、旧数据、旧 API 或旧客户端影响'],
+    fields: [
+      '系统上下文与外部依赖',
+      'C4 层级',
+      '需求',
+      '质量属性',
+      '依赖方向',
+      '关键失败模式',
+      '架构决策',
+      '未来演进约束',
+    ],
+    checks: [
+      '图中每个外部系统、数据库、队列或第三方服务都有职责说明和失败影响',
+      '至少列出 3 个质量属性及验证方式',
+      '兼容性与迁移段落写明旧模块、旧数据、旧 API 或旧客户端影响',
+    ],
   },
   'technical-docs/incident-rca': {
     lens: 'John Allspaw / Google SRE 的无责复盘视角',
-    insight: 'RCA 不是寻找单一罪魁祸首，而是重建系统如何允许事故发生，并把检测、缓解和预防动作落到可验证改进。',
-    fields: ['事故摘要与当前状态', '用户/数据/业务影响', '时间线', '发现方式', '根因', '促成因素', '为什么没有更早发现', '预防动作'],
-    checks: ['时间线至少包含检测、确认、缓解、恢复四个节点', '根因和促成因素必须分开', '每个预防动作都有负责人、截止时间、验证方式和残余风险'],
+    insight:
+      'RCA 不是寻找单一罪魁祸首，而是重建系统如何允许事故发生，并把检测、缓解和预防动作落到可验证改进。',
+    fields: [
+      '事故摘要与当前状态',
+      '用户/数据/业务影响',
+      '时间线',
+      '发现方式',
+      '根因',
+      '促成因素',
+      '为什么没有更早发现',
+      '预防动作',
+    ],
+    checks: [
+      '时间线至少包含检测、确认、缓解、恢复四个节点',
+      '根因和促成因素必须分开',
+      '每个预防动作都有负责人、截止时间、验证方式和残余风险',
+    ],
   },
   'technical-docs/rfc': {
     lens: 'IETF RFC 的 durable agreement 视角',
-    insight: 'RFC 的价值在于把争议、替代方案、兼容性和迁移代价写成可审议的决策记录，而不是提前包装成最终答案。',
-    fields: ['问题陈述与成功标准', '提案概要', '替代方案与拒绝理由', '决策状态', '兼容性契约', '迁移/灰度/回滚', '开放问题', '审议记录'],
-    checks: ['至少列出 2 个替代方案并说明为什么不选', '兼容性章节明确列出受影响 API、数据、配置、依赖方或运行环境', '开放问题必须标注负责人、决策截止时间和阻塞影响'],
+    insight:
+      'RFC 的价值在于把争议、替代方案、兼容性和迁移代价写成可审议的决策记录，而不是提前包装成最终答案。',
+    fields: [
+      '问题陈述与成功标准',
+      '提案概要',
+      '替代方案与拒绝理由',
+      '决策状态',
+      '兼容性契约',
+      '迁移/灰度/回滚',
+      '开放问题',
+      '审议记录',
+    ],
+    checks: [
+      '至少列出 2 个替代方案并说明为什么不选',
+      '兼容性章节明确列出受影响 API、数据、配置、依赖方或运行环境',
+      '开放问题必须标注负责人、决策截止时间和阻塞影响',
+    ],
   },
   'technical-docs/rfc-architecture': {
     lens: 'IETF RFC + 架构 ADR 的 durable agreement 视角',
     insight: '架构类 RFC 要把系统边界、替代方案、兼容性和迁移代价写成可审议的长期决策。',
-    fields: ['问题陈述与成功标准', '架构提案', '替代方案与拒绝理由', '系统边界', '兼容性契约', '迁移/灰度/回滚', '开放问题', '审议记录'],
-    checks: ['至少列出 2 个替代架构方案并说明为什么不选', '兼容性章节明确列出受影响模块、数据、配置或依赖方', '开放问题必须标注负责人、决策截止时间和阻塞影响'],
+    fields: [
+      '问题陈述与成功标准',
+      '架构提案',
+      '替代方案与拒绝理由',
+      '系统边界',
+      '兼容性契约',
+      '迁移/灰度/回滚',
+      '开放问题',
+      '审议记录',
+    ],
+    checks: [
+      '至少列出 2 个替代架构方案并说明为什么不选',
+      '兼容性章节明确列出受影响模块、数据、配置或依赖方',
+      '开放问题必须标注负责人、决策截止时间和阻塞影响',
+    ],
   },
   'technical-docs/deployment-runbook': {
     lens: 'Google SRE Workbook 的运营就绪视角',
     insight: 'Runbook 要让值班人按步骤执行并判断是否继续、暂停或回滚；它不是部署过程的回忆录。',
-    fields: ['环境与前置条件', '影响范围和冻结窗口', '部署命令与参数', '部署前验证', '部署后验证', '回滚步骤与触发条件', '负责人和值班升级路径', '风险'],
-    checks: ['每条命令都包含目标环境、必要变量、预期输出或成功判断', '验证步骤覆盖部署前、部署后和回滚后三个阶段', '回滚触发条件可观察'],
+    fields: [
+      '环境与前置条件',
+      '影响范围和冻结窗口',
+      '部署命令与参数',
+      '部署前验证',
+      '部署后验证',
+      '回滚步骤与触发条件',
+      '负责人和值班升级路径',
+      '风险',
+    ],
+    checks: [
+      '每条命令都包含目标环境、必要变量、预期输出或成功判断',
+      '验证步骤覆盖部署前、部署后和回滚后三个阶段',
+      '回滚触发条件可观察',
+    ],
   },
   'technical-docs/code-review': {
     lens: 'Michaela Greiler 的有效代码评审视角',
     insight: '代码评审记录应优先保存行为风险、接口契约和必须修改项，而不是逐行复述代码。',
-    fields: ['变更文件与职责', '发现', '严重度', '证据', '行为变化与回归风险', '必改项', '已有/缺失测试', '兼容性影响'],
-    checks: ['每条发现都指向具体文件、函数、测试、日志或用户行为风险', '高/中风险项必须写明缺失测试或需要补的验证命令', '兼容性检查明确覆盖旧数据、旧配置、旧调用方或跨平台行为'],
+    fields: [
+      '变更文件与职责',
+      '发现',
+      '严重度',
+      '证据',
+      '行为变化与回归风险',
+      '必改项',
+      '已有/缺失测试',
+      '兼容性影响',
+    ],
+    checks: [
+      '每条发现都指向具体文件、函数、测试、日志或用户行为风险',
+      '高/中风险项必须写明缺失测试或需要补的验证命令',
+      '兼容性检查明确覆盖旧数据、旧配置、旧调用方或跨平台行为',
+    ],
   },
   'technical-docs/code-snippet': {
     lens: 'Kent Beck 的小例子视角',
     insight: '代码片段要最小、完整、可运行，并说明边界；否则只是未来会过期的摘抄。',
-    fields: ['解决的具体问题', '最小可运行代码', '依赖版本与导入方式', '输入示例', '预期输出', '测试方式', '边界/前置条件/反例', '真实项目文件路径'],
-    checks: ['代码片段包含必要 import、依赖版本、输入示例和预期输出', '明确写出至少一个不适用场景或容易误用的边界', '相关文件路径、包版本或来源链接存在'],
+    fields: [
+      '解决的具体问题',
+      '最小可运行代码',
+      '依赖版本与导入方式',
+      '输入示例',
+      '预期输出',
+      '测试方式',
+      '边界/前置条件/反例',
+      '真实项目文件路径',
+    ],
+    checks: [
+      '代码片段包含必要 import、依赖版本、输入示例和预期输出',
+      '明确写出至少一个不适用场景或容易误用的边界',
+      '相关文件路径、包版本或来源链接存在',
+    ],
   },
   'technical-docs/migration-guide': {
     lens: 'Kelsey Hightower 的生产迁移视角',
     insight: '迁移指南的重点是控制风险：读者必须知道迁移前后差异、兼容窗口、验证点和如何撤回。',
-    fields: ['迁移前状态', '迁移后状态', '分阶段步骤', '兼容窗口和受影响方', '数据备份/校验/恢复', '切换/灰度/冻结窗口', '回滚或前滚策略', '验证'],
-    checks: ['迁移前后差异能对照检查', '每个阶段都有验证命令、预期结果和失败处理方式', '回滚策略说明哪些变化可回滚、哪些只能前滚，以及数据安全风险'],
+    fields: [
+      '迁移前状态',
+      '迁移后状态',
+      '分阶段步骤',
+      '兼容窗口和受影响方',
+      '数据备份/校验/恢复',
+      '切换/灰度/冻结窗口',
+      '回滚或前滚策略',
+      '验证',
+    ],
+    checks: [
+      '迁移前后差异能对照检查',
+      '每个阶段都有验证命令、预期结果和失败处理方式',
+      '回滚策略说明哪些变化可回滚、哪些只能前滚，以及数据安全风险',
+    ],
   },
   'learning-notes/deep-reading': {
     lens: 'Mortimer Adler 的分析阅读视角',
     insight: '深度阅读不是摘录更多，而是能复述作者的问题、论证链和自己可迁移的判断。',
-    fields: ['核心命题', '论证链', '关键证据', '隐含假设', '反向复述', '我的批判', '可迁移工作场景', '复习问题'],
-    checks: ['必须有一段不引用原文的反向复述', '至少写出一个本周可试用的动作或判断标准', '复习问题至少包含一个针对论证漏洞或假设的问题'],
+    fields: [
+      '核心命题',
+      '论证链',
+      '关键证据',
+      '隐含假设',
+      '反向复述',
+      '我的批判',
+      '可迁移工作场景',
+      '复习问题',
+    ],
+    checks: [
+      '必须有一段不引用原文的反向复述',
+      '至少写出一个本周可试用的动作或判断标准',
+      '复习问题至少包含一个针对论证漏洞或假设的问题',
+    ],
   },
   'learning-notes/book-note': {
     lens: 'Tiago Forte 的渐进式摘要视角',
     insight: '书摘要服务于未来调用，不服务于完整复述；每条笔记都要能回到行动、决策或表达。',
-    fields: ['书籍信息', '章节一句话', '关键摘录', '可复用概念', '二次压缩摘要', '未来调用场景', '个人应用实验', '重读触发条件'],
-    checks: ['每章摘要必须用主张、理由和例子表达', '至少一条个人应用要转成带负责人和截止时间的行动', '必须写明下次重读触发条件'],
+    fields: [
+      '书籍信息',
+      '章节一句话',
+      '关键摘录',
+      '可复用概念',
+      '二次压缩摘要',
+      '未来调用场景',
+      '个人应用实验',
+      '重读触发条件',
+    ],
+    checks: [
+      '每章摘要必须用主张、理由和例子表达',
+      '至少一条个人应用要转成带负责人和截止时间的行动',
+      '必须写明下次重读触发条件',
+    ],
   },
   'learning-notes/paper-note': {
     lens: 'S. Keshav 的三遍论文阅读视角',
     insight: '论文笔记的关键是读懂研究问题、方法可信度、结论边界和可复用部分。',
-    fields: ['阅读轮次', '研究问题', '方法与样本', '主要发现', '限制与威胁', '关键图表', '可复用方法/指标/数据', '后续追踪论文'],
-    checks: ['必须用不超过 5 句话说明研究问题、方法、发现和限制', '至少写出一个可复用元素', '至少列出两个后续追踪问题或引用论文'],
+    fields: [
+      '阅读轮次',
+      '研究问题',
+      '方法与样本',
+      '主要发现',
+      '限制与威胁',
+      '关键图表',
+      '可复用方法/指标/数据',
+      '后续追踪论文',
+    ],
+    checks: [
+      '必须用不超过 5 句话说明研究问题、方法、发现和限制',
+      '至少写出一个可复用元素',
+      '至少列出两个后续追踪问题或引用论文',
+    ],
   },
   'learning-notes/course-video-note': {
     lens: 'Richard Mayer 的多媒体学习视角',
     insight: '视频笔记必须把时间点、概念、例子和练习结果连起来，否则很难回看和迁移。',
-    fields: ['视频/课程来源', '关键时间点', '知识点', '示例', '自己的复述', '未解问题', '练习任务与结果', '回看原因'],
-    checks: ['至少 3 个关键时间点后写一句自己的复述', '至少一个练习任务有可交付结果', '必须标记需要回看的时间点及回看原因'],
+    fields: [
+      '视频/课程来源',
+      '关键时间点',
+      '知识点',
+      '示例',
+      '自己的复述',
+      '未解问题',
+      '练习任务与结果',
+      '回看原因',
+    ],
+    checks: [
+      '至少 3 个关键时间点后写一句自己的复述',
+      '至少一个练习任务有可交付结果',
+      '必须标记需要回看的时间点及回看原因',
+    ],
   },
   'learning-notes/knowledge-card': {
     lens: 'Andy Matuschak 的 Evergreen notes 视角',
     insight: '知识卡不是资料片段，而是一个可被未来笔记引用的独立命题。',
-    fields: ['原子概念', '一句话定义', '正例', '反例', '适用边界', '易混概念', '使用条件', '相关笔记'],
-    checks: ['一张卡只解释一个概念，并能用一句话定义', '至少写出一个使用条件和一个不该使用的边界', '必须链接至少一篇相关笔记或写明待建立链接主题'],
+    fields: [
+      '原子概念',
+      '一句话定义',
+      '正例',
+      '反例',
+      '适用边界',
+      '易混概念',
+      '使用条件',
+      '相关笔记',
+    ],
+    checks: [
+      '一张卡只解释一个概念，并能用一句话定义',
+      '至少写出一个使用条件和一个不该使用的边界',
+      '必须链接至少一篇相关笔记或写明待建立链接主题',
+    ],
   },
   'learning-notes/cornell-note': {
     lens: 'Walter Pauk 的 Cornell Notes 视角',
     insight: 'Cornell 的价值在课后自测：线索必须能遮住正文后触发主动回忆。',
     fields: ['线索/问题', '主笔记', '课后总结', '自测问题', '错误回忆', '迁移题', '复习计划'],
-    checks: ['线索栏至少包含 5 个可自测问题，不能只是章节标题', '至少一个问题必须改写成真实情境中的迁移题', '必须记录一次遮住主笔记后的自测结果'],
+    checks: [
+      '线索栏至少包含 5 个可自测问题，不能只是章节标题',
+      '至少一个问题必须改写成真实情境中的迁移题',
+      '必须记录一次遮住主笔记后的自测结果',
+    ],
   },
   'learning-notes/feynman-note': {
     lens: 'Richard Feynman 的解释失败视角',
     insight: '费曼笔记的核心不是通俗化，而是用解释失败找到知识缺口。',
-    fields: ['概念', '禁用术语清单', '小白解释', '卡壳点', '类比', '新例子', '修正版解释', '复讲对象/日期'],
-    checks: ['小白解释中如果出现术语，必须紧跟一句不用术语的解释', '必须写一个来自原材料之外的新例子', '必须记录卡壳点是否已被修正版解释解决'],
+    fields: [
+      '概念',
+      '禁用术语清单',
+      '小白解释',
+      '卡壳点',
+      '类比',
+      '新例子',
+      '修正版解释',
+      '复讲对象/日期',
+    ],
+    checks: [
+      '小白解释中如果出现术语，必须紧跟一句不用术语的解释',
+      '必须写一个来自原材料之外的新例子',
+      '必须记录卡壳点是否已被修正版解释解决',
+    ],
   },
   'learning-notes/concept-explanation': {
     lens: 'Robert Gagne 的概念学习视角',
     insight: '概念解释不是下定义，而是让读者能判断什么属于它、什么不属于它。',
     fields: ['定义', '必要属性', '非必要属性', '正例', '反例', '判断边界', '易混概念', '诊断题'],
-    checks: ['至少列出 2 个正例和 2 个反例，并说明判断依据', '必须写一个诊断题让读者判断新案例', '必须把易混概念加入复习清单并写出区分标准'],
+    checks: [
+      '至少列出 2 个正例和 2 个反例，并说明判断依据',
+      '必须写一个诊断题让读者判断新案例',
+      '必须把易混概念加入复习清单并写出区分标准',
+    ],
   },
   'learning-notes/problem-solving': {
     lens: 'George Polya 的解题四步法视角',
     insight: '解题笔记要保留失败尝试，因为迁移能力来自看见路径选择和错因。',
-    fields: ['问题重述', '已知/未知', '约束条件', '尝试记录', '最终解法', '检验方式', '错因与规律', '类似题迁移'],
-    checks: ['必须先重述问题，并列出已知、未知和约束，才能写解法', '必须写至少一个类似题或工作中的同构问题', '必须记录错误尝试及错因'],
+    fields: [
+      '问题重述',
+      '已知/未知',
+      '约束条件',
+      '尝试记录',
+      '最终解法',
+      '检验方式',
+      '错因与规律',
+      '类似题迁移',
+    ],
+    checks: [
+      '必须先重述问题，并列出已知、未知和约束，才能写解法',
+      '必须写至少一个类似题或工作中的同构问题',
+      '必须记录错误尝试及错因',
+    ],
   },
   'learning-notes/literature-matrix': {
     lens: 'Webster & Watson 的概念中心文献综述视角',
     insight: '文献矩阵的目标是发现共识、冲突和缺口，而不是把多篇论文笔记拼成表格。',
-    fields: ['主题维度', '论文/年份', '研究问题', '方法/样本', '发现', '限制', '共识', '冲突/研究缺口'],
-    checks: ['矩阵至少包含 3 篇文献，并按同一组列比较', '必须产出至少一个可复用框架、方法、指标或研究假设', '必须写出下一轮阅读顺序以及每篇要补的缺口'],
+    fields: [
+      '主题维度',
+      '论文/年份',
+      '研究问题',
+      '方法/样本',
+      '发现',
+      '限制',
+      '共识',
+      '冲突/研究缺口',
+    ],
+    checks: [
+      '矩阵至少包含 3 篇文献，并按同一组列比较',
+      '必须产出至少一个可复用框架、方法、指标或研究假设',
+      '必须写出下一轮阅读顺序以及每篇要补的缺口',
+    ],
   },
   'learning-notes/learning-plan': {
     lens: 'Anders Ericsson 的刻意练习视角',
     insight: '学习计划不是资源清单；它必须定义目标行为、练习任务、反馈来源和复盘节奏。',
-    fields: ['当前水平', '目标行为', '资源队列', '刻意练习任务', '训练排期', '反馈来源', '进度指标', '复盘节奏'],
-    checks: ['目标必须写成可观察行为', '每个资源至少绑定一个练习任务或输出物', '必须设置复盘频率和进度指标，至少包含本周检查点'],
+    fields: [
+      '当前水平',
+      '目标行为',
+      '资源队列',
+      '刻意练习任务',
+      '训练排期',
+      '反馈来源',
+      '进度指标',
+      '复盘节奏',
+    ],
+    checks: [
+      '目标必须写成可观察行为',
+      '每个资源至少绑定一个练习任务或输出物',
+      '必须设置复盘频率和进度指标，至少包含本周检查点',
+    ],
   },
   'learning-notes/flashcard': {
     lens: 'Piotr Wozniak 的间隔重复视角',
     insight: '闪卡不是笔记摘要，而是一次主动回忆测试；问题必须能被明确判对或判错。',
-    fields: ['问题', '标准答案', '提示', '干扰项/易错点', '评分标准', '掌握程度', '下次复习时间', '来源链接'],
-    checks: ['每张卡只问一个问题，答案必须能明确判对、部分对或错', '至少一张卡要把概念放入新情境', '必须记录掌握程度和下次复习时间'],
+    fields: [
+      '问题',
+      '标准答案',
+      '提示',
+      '干扰项/易错点',
+      '评分标准',
+      '掌握程度',
+      '下次复习时间',
+      '来源链接',
+    ],
+    checks: [
+      '每张卡只问一个问题，答案必须能明确判对、部分对或错',
+      '至少一张卡要把概念放入新情境',
+      '必须记录掌握程度和下次复习时间',
+    ],
   },
   'personal-journal/daily-journal': {
     lens: 'James Pennebaker + Daniel Kahneman 的可复核日记视角',
-    insight: '日记不是把一天写满，而是把发生了什么、我怎么感受、我当时如何解释、明天做一个什么小动作留成可复核记录。',
+    insight:
+      '日记不是把一天写满，而是把发生了什么、我怎么感受、我当时如何解释、明天做一个什么小动作留成可复核记录。',
     fields: ['事实片段', '感受', '当时解释', '为什么重要', '下一步小行动', '保留问题'],
-    checks: ['至少写出一个可被第三方观察到的事实片段', '感受词和解释句分成不同字段', '只有一个 15 分钟内可启动的下一步小行动'],
+    checks: [
+      '至少写出一个可被第三方观察到的事实片段',
+      '感受词和解释句分成不同字段',
+      '只有一个 15 分钟内可启动的下一步小行动',
+    ],
   },
   'personal-journal/morning-journal': {
     lens: 'Peter Drucker + Gollwitzer 的执行意图视角',
     insight: '晨间记录的价值是把注意力从愿望收束到今天的触发条件、优先级和第一步。',
-    fields: ['今日意图', '当前精力信号', '今日前三优先级', '现实约束', '今日边界', 'if-then 启动句', '第一小行动'],
+    fields: [
+      '今日意图',
+      '当前精力信号',
+      '今日前三优先级',
+      '现实约束',
+      '今日边界',
+      'if-then 启动句',
+      '第一小行动',
+    ],
     checks: ['列出今天明确不做的一件事', '每个优先级都有可启动的第一步', '包含一个 if-then 触发句'],
   },
   'personal-journal/evening-journal': {
     lens: 'Donald Schon + Kahneman 的晚间复盘视角',
     insight: '晚间记录要避免只被最后一件事支配，先列事实，再写感受和解释，最后完成收尾。',
-    fields: ['三个事实', '事件', '感受', '我给事件的解释', '今日收尾动作', '未关闭事项', '明日一件事'],
-    checks: ['至少记录两个非最后时段发生的事实', '明确区分事实、感受、解释', '把明日行动压缩为一件事'],
+    fields: [
+      '三个事实',
+      '事件',
+      '感受',
+      '我给事件的解释',
+      '今日收尾动作',
+      '未关闭事项',
+      '明日一件事',
+    ],
+    checks: [
+      '至少记录两个非最后时段发生的事实',
+      '明确区分事实、感受、解释',
+      '把明日行动压缩为一件事',
+    ],
   },
   'personal-journal/emotion-log': {
     lens: 'Lisa Feldman Barrett + James Gross 的情绪标注视角',
-    insight: '情绪记录不是分析自己，而是给状态贴上更精确的标签，并记录触发、身体信号、解释和可做动作。',
-    fields: ['事实触发', '身体信号', '情绪标签', '强度 1-5', '我当时的解释', '当下可做动作', '后续观察时间'],
-    checks: ['写的是具体触发事件而不是笼统原因', '身体信号和情绪标签是两个独立字段', '不出现诊断、人格判断或治疗建议'],
+    insight:
+      '情绪记录不是分析自己，而是给状态贴上更精确的标签，并记录触发、身体信号、解释和可做动作。',
+    fields: [
+      '事实触发',
+      '身体信号',
+      '情绪标签',
+      '强度 1-5',
+      '我当时的解释',
+      '当下可做动作',
+      '后续观察时间',
+    ],
+    checks: [
+      '写的是具体触发事件而不是笼统原因',
+      '身体信号和情绪标签是两个独立字段',
+      '不出现诊断、人格判断或治疗建议',
+    ],
   },
   'personal-journal/goal-okr': {
     lens: 'John Doerr + Locke & Latham 的个人目标视角',
-    insight: '个人 OKR 要把愿望变成可观察进度：目标、关键结果、领先指标、风险和下一步动作必须连起来。',
-    fields: ['目标', '关键结果', '领先指标', '当前证据', '信心依据', '反目标', '下一步行动', '下次检查日期'],
+    insight:
+      '个人 OKR 要把愿望变成可观察进度：目标、关键结果、领先指标、风险和下一步动作必须连起来。',
+    fields: [
+      '目标',
+      '关键结果',
+      '领先指标',
+      '当前证据',
+      '信心依据',
+      '反目标',
+      '下一步行动',
+      '下次检查日期',
+    ],
     checks: ['每个 KR 都有可度量当前值', '信心分数后面有事实依据', '下一步行动能直接推动某个 KR'],
   },
   'personal-journal/review-journal': {
     lens: 'Kolb + Donald Schon 的经验学习视角',
     insight: '复盘不是自我评价，而是把目标、结果、证据、原因假设和下一轮调整连成学习闭环。',
     fields: ['周期', '原目标', '结果证据', '原因假设', '可复用经验', '下一轮调整'],
-    checks: ['结果字段包含数字、产物或事实证据', '原因写成假设而不是定论', '下一轮调整具体到时间或触发条件'],
+    checks: [
+      '结果字段包含数字、产物或事实证据',
+      '原因写成假设而不是定论',
+      '下一轮调整具体到时间或触发条件',
+    ],
   },
   'personal-journal/decision-journal': {
     lens: 'Annie Duke + Tetlock 的决策日志视角',
     insight: '好决策日志要保留当时知道什么、不知道什么、各选项取舍和未来如何复盘，避免事后聪明。',
-    fields: ['决策问题', '已知事实', '选项', '判断标准', '关键假设', '情绪/压力信号', '预期结果与概率', '复盘触发条件'],
+    fields: [
+      '决策问题',
+      '已知事实',
+      '选项',
+      '判断标准',
+      '关键假设',
+      '情绪/压力信号',
+      '预期结果与概率',
+      '复盘触发条件',
+    ],
     checks: ['每个选项都有明确取舍', '至少写出一个可能推翻决策的假设', '有具体复盘日期或触发条件'],
   },
   'personal-journal/habit-tracking': {
     lens: 'BJ Fogg + Wendy Wood 的习惯形成视角',
     insight: '习惯记录不要只看意志力，要记录触发、摩擦、奖励、连续证据和下一次更小的调整。',
-    fields: ['习惯', '触发条件', '进度', '连续天数', '行为完成证据', '摩擦点', '奖励/反馈', '下一次更小动作'],
-    checks: ['记录触发条件而不是只写目标', '完成情况有日期、次数或截图等证据', '下一次动作比当前动作更容易启动'],
+    fields: [
+      '习惯',
+      '触发条件',
+      '进度',
+      '连续天数',
+      '行为完成证据',
+      '摩擦点',
+      '奖励/反馈',
+      '下一次更小动作',
+    ],
+    checks: [
+      '记录触发条件而不是只写目标',
+      '完成情况有日期、次数或截图等证据',
+      '下一次动作比当前动作更容易启动',
+    ],
   },
   'personal-journal/travel-plan': {
     lens: 'Rick Steves + Gary Klein 的旅行预演视角',
     insight: '旅行计划的核心不是景点清单，而是目的、约束、动线、预算、备用方案和待确认事项。',
     fields: ['出行目的', '日期与地点', '行程动线', '交通', '住宿', '预算', '关键约束', '备用方案'],
-    checks: ['每一天都有地点、交通和住宿状态', '预算包含交通、住宿、餐饮和机动项', '每个高风险事项都有备用方案'],
+    checks: [
+      '每一天都有地点、交通和住宿状态',
+      '预算包含交通、住宿、餐饮和机动项',
+      '每个高风险事项都有备用方案',
+    ],
   },
   'personal-journal/purchase-decision': {
     lens: 'Wirecutter 评测方法 + 行为决策偏差视角',
     insight: '购买决策要先写真实需求和不可妥协条件，再比较总成本、证据、取舍和复盘触发。',
-    fields: ['真实需求', '不可妥协条件', '替代方案', '总拥有成本', '使用频率假设', '不买的代价', '取舍', '复盘日期'],
-    checks: ['先写不买或延迟购买的选项', '比较总拥有成本而不仅是标价', '每个候选项至少有一条来源证据'],
+    fields: [
+      '真实需求',
+      '不可妥协条件',
+      '替代方案',
+      '总拥有成本',
+      '使用频率假设',
+      '不买的代价',
+      '取舍',
+      '复盘日期',
+    ],
+    checks: [
+      '先写不买或延迟购买的选项',
+      '比较总拥有成本而不仅是标价',
+      '每个候选项至少有一条来源证据',
+    ],
   },
   'personal-journal/family-affairs': {
     lens: 'Harvard Negotiation Project 的原则谈判视角',
     insight: '家庭事务记录应把人、事实、责任、待确认和跟进分开，避免把解释写成对人的判断。',
-    fields: ['相关人及角色', '具体事件', '时间线', '各方明确表达的需求', '责任与决策权', '待确认问题', '跟进时间'],
-    checks: ['只记录对方明确说过或做过的事实', '责任人与决策权没有混在一起', '每个待确认问题都有跟进人和时间'],
+    fields: [
+      '相关人及角色',
+      '具体事件',
+      '时间线',
+      '各方明确表达的需求',
+      '责任与决策权',
+      '待确认问题',
+      '跟进时间',
+    ],
+    checks: [
+      '只记录对方明确说过或做过的事实',
+      '责任人与决策权没有混在一起',
+      '每个待确认问题都有跟进人和时间',
+    ],
   },
   'personal-journal/personal-plan': {
     lens: 'David Allen + Peter Drucker 的结果优先规划视角',
     insight: '个人计划要从期望结果倒推约束、资源、时间块、风险和下一步，而不是堆愿望清单。',
-    fields: ['期望结果', '范围边界', '可用资源', '时间块', '完成清单', '风险', '下一步行动', '复盘日期'],
+    fields: [
+      '期望结果',
+      '范围边界',
+      '可用资源',
+      '时间块',
+      '完成清单',
+      '风险',
+      '下一步行动',
+      '复盘日期',
+    ],
     checks: ['写清不在本计划范围内的事项', '每个阶段都有产出或完成标准', '下一步行动有具体时间块'],
   },
   'content-creation/article-draft': {
     lens: '资深长文主编的论证编辑视角',
-    insight: '文章不是素材堆叠，而是一条可辩护的主张链：受众问题、中心主张、证据顺序、反对意见和结尾动作必须连成闭环。',
-    fields: ['受众问题', '读者承诺', '中心主张', '证据地图', '关键论点', '反对意见', '发布渠道', '最终事实检查'],
-    checks: ['受众问题能用一句话写出，且开头前 120 字回应这个问题', '每个关键论点至少绑定一个证据或来源', '发布前确认标题、导语、结尾行动、链接、日期和引用来源'],
+    insight:
+      '文章不是素材堆叠，而是一条可辩护的主张链：受众问题、中心主张、证据顺序、反对意见和结尾动作必须连成闭环。',
+    fields: [
+      '受众问题',
+      '读者承诺',
+      '中心主张',
+      '证据地图',
+      '关键论点',
+      '反对意见',
+      '发布渠道',
+      '最终事实检查',
+    ],
+    checks: [
+      '受众问题能用一句话写出，且开头前 120 字回应这个问题',
+      '每个关键论点至少绑定一个证据或来源',
+      '发布前确认标题、导语、结尾行动、链接、日期和引用来源',
+    ],
   },
   'content-creation/talk-outline': {
     lens: 'TED 风格演讲教练的听众迁移视角',
-    insight: '演讲大纲的核心不是 slide list，而是听众状态变化：进场时相信什么，离场时应该相信什么，中间靠哪些转折完成迁移。',
-    fields: ['听众状态变化', '开场 hook', '信念弧线', '关键 takeaway', '证据时刻', '互动/停顿', '时间预算'],
-    checks: ['每个段落标出听众状态变化，不能只列主题', '每个核心观点对应一个例子、数据、故事或演示证据', '发布前确认总时长、开场 60 秒、转场句、收尾行动和设备需求'],
+    insight:
+      '演讲大纲的核心不是 slide list，而是听众状态变化：进场时相信什么，离场时应该相信什么，中间靠哪些转折完成迁移。',
+    fields: [
+      '听众状态变化',
+      '开场 hook',
+      '信念弧线',
+      '关键 takeaway',
+      '证据时刻',
+      '互动/停顿',
+      '时间预算',
+    ],
+    checks: [
+      '每个段落标出听众状态变化，不能只列主题',
+      '每个核心观点对应一个例子、数据、故事或演示证据',
+      '发布前确认总时长、开场 60 秒、转场句、收尾行动和设备需求',
+    ],
   },
   'content-creation/talk-ppt-outline': {
     lens: 'TED 风格演讲教练的听众迁移视角',
     insight: 'PPT 大纲的核心不是页数，而是每页推动听众从一个状态迁移到下一个状态。',
-    fields: ['听众状态变化', '开场 hook', '信念弧线', '幻灯片信息', '证据时刻', '视觉提示', '时间预算'],
-    checks: ['每页都标出信息、证据和听众状态变化', '每个核心观点对应一个例子、数据、故事或演示证据', '发布前确认总时长、转场句、视觉素材和设备需求'],
+    fields: [
+      '听众状态变化',
+      '开场 hook',
+      '信念弧线',
+      '幻灯片信息',
+      '证据时刻',
+      '视觉提示',
+      '时间预算',
+    ],
+    checks: [
+      '每页都标出信息、证据和听众状态变化',
+      '每个核心观点对应一个例子、数据、故事或演示证据',
+      '发布前确认总时长、转场句、视觉素材和设备需求',
+    ],
   },
   'content-creation/social-plan': {
     lens: '增长内容负责人的分发实验视角',
-    insight: '社媒计划不是排期表，而是同一主张在不同平台的分发实验：hook、格式、受众细分、复用路径和衡量口径要一起设计。',
-    fields: ['受众细分', '平台', 'hook 角度', '核心主张', '内容格式', '平台适配', '复用路径', '成功指标'],
-    checks: ['每条内容写清目标受众、平台、hook 和读者下一步', '每个核心主张有证据、案例、截图、链接或公开来源', '发布前确认平台限制、链接、图片比例、排期时区和衡量指标'],
+    insight:
+      '社媒计划不是排期表，而是同一主张在不同平台的分发实验：hook、格式、受众细分、复用路径和衡量口径要一起设计。',
+    fields: [
+      '受众细分',
+      '平台',
+      'hook 角度',
+      '核心主张',
+      '内容格式',
+      '平台适配',
+      '复用路径',
+      '成功指标',
+    ],
+    checks: [
+      '每条内容写清目标受众、平台、hook 和读者下一步',
+      '每个核心主张有证据、案例、截图、链接或公开来源',
+      '发布前确认平台限制、链接、图片比例、排期时区和衡量指标',
+    ],
   },
   'content-creation/social-content-plan': {
     lens: '增长内容负责人的分发实验视角',
     insight: '社媒内容计划要把同一主张拆成平台化实验，并保留复用路径和复盘日期。',
-    fields: ['受众细分', '平台', 'hook 角度', '核心主张', '内容格式', '平台适配', '复用路径', '复盘日期'],
-    checks: ['每条内容写清目标受众、平台、hook 和读者下一步', '每个核心主张有证据、案例、截图、链接或公开来源', '发布前确认平台限制、链接、图片比例、排期时区和衡量指标'],
+    fields: [
+      '受众细分',
+      '平台',
+      'hook 角度',
+      '核心主张',
+      '内容格式',
+      '平台适配',
+      '复用路径',
+      '复盘日期',
+    ],
+    checks: [
+      '每条内容写清目标受众、平台、hook 和读者下一步',
+      '每个核心主张有证据、案例、截图、链接或公开来源',
+      '发布前确认平台限制、链接、图片比例、排期时区和衡量指标',
+    ],
   },
   'content-creation/product-copy': {
     lens: '产品营销负责人的转化文案视角',
     insight: '产品文案要把用户痛点、承诺、差异化和证明压缩成可选择的语言，不是把功能翻译成形容词。',
     fields: ['用户任务', '痛点', '承诺', '差异化', '反对意见', '证明资产', '文案版本', '转化目标'],
-    checks: ['首屏文案同时说明受众、痛点、承诺和下一步动作', '每个价值主张绑定证明资产', '发布前确认 CTA、价格/版本信息、法律限制、链接和埋点名称'],
+    checks: [
+      '首屏文案同时说明受众、痛点、承诺和下一步动作',
+      '每个价值主张绑定证明资产',
+      '发布前确认 CTA、价格/版本信息、法律限制、链接和埋点名称',
+    ],
   },
   'content-creation/press-release': {
     lens: '企业传播总监的新闻价值视角',
-    insight: '新闻稿要服务记者快速判断新闻价值：what changed, why now, who cares, proof, quote, availability 必须可抓取。',
-    fields: ['新闻角度', '导语', '影响对象', '证据/指标', '发言人引用', '可用性/时间', '公司样板', '媒体联系人'],
-    checks: ['导语第一段回答 what changed、who cares、why now', '所有数字、日期、客户名、引用和可用性信息有来源或审批记录', '发布前确认媒体联系人、禁发时间、链接和图片素材可公开'],
+    insight:
+      '新闻稿要服务记者快速判断新闻价值：what changed, why now, who cares, proof, quote, availability 必须可抓取。',
+    fields: [
+      '新闻角度',
+      '导语',
+      '影响对象',
+      '证据/指标',
+      '发言人引用',
+      '可用性/时间',
+      '公司样板',
+      '媒体联系人',
+    ],
+    checks: [
+      '导语第一段回答 what changed、who cares、why now',
+      '所有数字、日期、客户名、引用和可用性信息有来源或审批记录',
+      '发布前确认媒体联系人、禁发时间、链接和图片素材可公开',
+    ],
   },
   'content-creation/announcement': {
     lens: '变更沟通负责人的不确定性管理视角',
-    insight: '公告的重点是减少不确定性：谁受影响、什么时候发生、用户要做什么、哪里能获得帮助，比宣传语更重要。',
+    insight:
+      '公告的重点是减少不确定性：谁受影响、什么时候发生、用户要做什么、哪里能获得帮助，比宣传语更重要。',
     fields: ['影响对象', '变更内容', '用户影响', '生效时间', '需要的行动', '支持路径', '例外/回滚'],
-    checks: ['开头写清影响对象、变化内容、生效时间和是否需要用户行动', '影响范围、例外情况和支持路径可从来源链接复核', '发布前确认时区、版本号、帮助文档、客服话术和更新路径'],
+    checks: [
+      '开头写清影响对象、变化内容、生效时间和是否需要用户行动',
+      '影响范围、例外情况和支持路径可从来源链接复核',
+      '发布前确认时区、版本号、帮助文档、客服话术和更新路径',
+    ],
   },
   'content-creation/interview-record': {
     lens: '深度采访编辑的可追溯原话视角',
     insight: '采访记录要保留原话的可追溯性，同时提炼可发布主题；不能把受访者没说过的话润色成结论。',
-    fields: ['采访目标', '采访对象', '授权范围', '转写片段', '已核验引语', '主题', '可发布摘录', '后续问题'],
-    checks: ['每条可发布引语保留原文、来源位置和必要上下文', '主题洞察能追溯到转写片段', '发布前确认授权范围、匿名处理、敏感信息、事实核验和回访问题'],
+    fields: [
+      '采访目标',
+      '采访对象',
+      '授权范围',
+      '转写片段',
+      '已核验引语',
+      '主题',
+      '可发布摘录',
+      '后续问题',
+    ],
+    checks: [
+      '每条可发布引语保留原文、来源位置和必要上下文',
+      '主题洞察能追溯到转写片段',
+      '发布前确认授权范围、匿名处理、敏感信息、事实核验和回访问题',
+    ],
   },
   'content-creation/speaker-notes': {
     lens: '高管演讲稿教练的现场执行视角',
-    insight: 'speaker notes 是现场执行脚本：讲什么、何时停顿、如何转场、哪里强调、如果超时怎么删，都要能直接上台使用。',
+    insight:
+      'speaker notes 是现场执行脚本：讲什么、何时停顿、如何转场、哪里强调、如果超时怎么删，都要能直接上台使用。',
     fields: ['段落时间', '讲法提示', '转场句', '强调语', '听众互动', '删减备选', '彩排备注'],
-    checks: ['每段备注包含时间、讲法提示、转场句和强调语', '关键主张配有例子、数据、故事或现场演示提示', '发布前确认计时、删减备选、设备、读音、人名和结尾行动'],
+    checks: [
+      '每段备注包含时间、讲法提示、转场句和强调语',
+      '关键主张配有例子、数据、故事或现场演示提示',
+      '发布前确认计时、删减备选、设备、读音、人名和结尾行动',
+    ],
   },
   'content-creation/newsletter-brief': {
     lens: 'Newsletter 主编的读者信任视角',
-    insight: '简报要建立读者信任：稳定栏目、清晰筛选标准、少而准的摘要、可点击的下一步，比信息量更重要。',
-    fields: ['读者细分', '编辑承诺', '固定栏目', '主条目', '为什么重要', '链接与来源', '订阅读者行动', '主题行'],
-    checks: ['每个栏目说明读者是谁、这条信息为什么值得进入本期', '每个链接有摘要、来源和读者下一步', '发布前确认主题行、预览文本、链接、UTM、退订页和发送时间'],
+    insight:
+      '简报要建立读者信任：稳定栏目、清晰筛选标准、少而准的摘要、可点击的下一步，比信息量更重要。',
+    fields: [
+      '读者细分',
+      '编辑承诺',
+      '固定栏目',
+      '主条目',
+      '为什么重要',
+      '链接与来源',
+      '订阅读者行动',
+      '主题行',
+    ],
+    checks: [
+      '每个栏目说明读者是谁、这条信息为什么值得进入本期',
+      '每个链接有摘要、来源和读者下一步',
+      '发布前确认主题行、预览文本、链接、UTM、退订页和发送时间',
+    ],
   },
   'hr-operations/recruiting-interview': {
     lens: '结构化招聘专家的胜任力证据视角',
-    insight: '面试记录的价值不是印象总结，而是把岗位胜任力、行为证据、录用风险和后续验证动作绑在一起。',
-    fields: ['岗位/级别/胜任力模型', '候选人背景与约束', '面试阶段状态', '面试问题与能力维度', 'STAR 证据', '录用风险与验证计划', '决策负责人', '跟进截止时间'],
-    checks: ['每个能力判断至少有一条可追溯证据或明确写为假设', '最终决策包含负责人、决定日期、下一步动作和截止时间', '每个录用风险都有验证动作、责任人和状态'],
+    insight:
+      '面试记录的价值不是印象总结，而是把岗位胜任力、行为证据、录用风险和后续验证动作绑在一起。',
+    fields: [
+      '岗位/级别/胜任力模型',
+      '候选人背景与约束',
+      '面试阶段状态',
+      '面试问题与能力维度',
+      'STAR 证据',
+      '录用风险与验证计划',
+      '决策负责人',
+      '跟进截止时间',
+    ],
+    checks: [
+      '每个能力判断至少有一条可追溯证据或明确写为假设',
+      '最终决策包含负责人、决定日期、下一步动作和截止时间',
+      '每个录用风险都有验证动作、责任人和状态',
+    ],
   },
   'hr-operations/performance-review': {
     lens: '绩效校准与管理教练视角',
     insight: '绩效不是评价人格，而是把目标结果、行为证据、业务影响、反馈协议和成长承诺分开记录。',
-    fields: ['目标/KR 与权重', '结果证据与行为例子', '差距/影响/根因', '校准状态', '反馈负责人', '成长计划里程碑', '下次 review 日期'],
-    checks: ['每个评价或评级都有对应目标、证据日期和影响说明', '每个差距都有具体行为例子、改进动作和支持人', '成长计划至少包含负责人、截止时间、状态和下次检查日期'],
+    fields: [
+      '目标/KR 与权重',
+      '结果证据与行为例子',
+      '差距/影响/根因',
+      '校准状态',
+      '反馈负责人',
+      '成长计划里程碑',
+      '下次 review 日期',
+    ],
+    checks: [
+      '每个评价或评级都有对应目标、证据日期和影响说明',
+      '每个差距都有具体行为例子、改进动作和支持人',
+      '成长计划至少包含负责人、截止时间、状态和下次检查日期',
+    ],
   },
   'hr-operations/event-plan': {
     lens: '大型活动制作人的现场控制视角',
-    insight: '活动计划不是待办清单，而是成功指标、run-of-show、DRI、供应商交接和应急预案的现场控制系统。',
-    fields: ['活动目标与成功指标', 'run-of-show 时间线', 'DRI/RACI', '预算负责人和上限', '供应商/场地交接', '当日指挥链', '风险触发条件与应急方案'],
-    checks: ['每个关键里程碑都有 DRI、截止时间和当前状态', '每个高风险项都有触发条件、应对方案和现场负责人', '活动前交接包包含联系人、物料状态、场地/供应商确认和下一步'],
+    insight:
+      '活动计划不是待办清单，而是成功指标、run-of-show、DRI、供应商交接和应急预案的现场控制系统。',
+    fields: [
+      '活动目标与成功指标',
+      'run-of-show 时间线',
+      'DRI/RACI',
+      '预算负责人和上限',
+      '供应商/场地交接',
+      '当日指挥链',
+      '风险触发条件与应急方案',
+    ],
+    checks: [
+      '每个关键里程碑都有 DRI、截止时间和当前状态',
+      '每个高风险项都有触发条件、应对方案和现场负责人',
+      '活动前交接包包含联系人、物料状态、场地/供应商确认和下一步',
+    ],
   },
   'hr-operations/sop': {
     lens: '流程卓越与检查清单专家视角',
-    insight: '可执行 SOP 必须把触发条件、输入输出、步骤责任、异常路径和验收标准写清，而不是写成说明文。',
-    fields: ['目的与成功标准', '适用边界/不适用边界', '触发条件', 'RACI', '步骤：输入/动作/输出/责任人', '异常处理与升级路径', '版本负责人和复审周期'],
-    checks: ['每个步骤都有输入、动作、输出、责任人和完成校验', '每个异常场景都有升级负责人、SLA 或处理时限', '修订历史写清版本、修改人、日期、状态和下次复审时间'],
+    insight:
+      '可执行 SOP 必须把触发条件、输入输出、步骤责任、异常路径和验收标准写清，而不是写成说明文。',
+    fields: [
+      '目的与成功标准',
+      '适用边界/不适用边界',
+      '触发条件',
+      'RACI',
+      '步骤：输入/动作/输出/责任人',
+      '异常处理与升级路径',
+      '版本负责人和复审周期',
+    ],
+    checks: [
+      '每个步骤都有输入、动作、输出、责任人和完成校验',
+      '每个异常场景都有升级负责人、SLA 或处理时限',
+      '修订历史写清版本、修改人、日期、状态和下次复审时间',
+    ],
   },
   'hr-operations/customer-profile': {
     lens: '企业客户经营专家的健康度视角',
-    insight: '客户画像应暴露客户想达成的业务结果、当前健康度、关键干系人、价值缺口和下一次推进动作。',
-    fields: ['客户背景/干系人地图', '使用情况与健康信号', '期望业务结果', '已确认价值', '阻塞与异议', '续费/扩展风险', '成功计划下一步'],
-    checks: ['客户健康状态必须有使用数据、客户反馈或会议证据支撑', '每个风险都有影响、缓解动作、负责人和截止时间', '下一步明确客户侧干系人、我方负责人、目标结果和状态'],
+    insight:
+      '客户画像应暴露客户想达成的业务结果、当前健康度、关键干系人、价值缺口和下一次推进动作。',
+    fields: [
+      '客户背景/干系人地图',
+      '使用情况与健康信号',
+      '期望业务结果',
+      '已确认价值',
+      '阻塞与异议',
+      '续费/扩展风险',
+      '成功计划下一步',
+    ],
+    checks: [
+      '客户健康状态必须有使用数据、客户反馈或会议证据支撑',
+      '每个风险都有影响、缓解动作、负责人和截止时间',
+      '下一步明确客户侧干系人、我方负责人、目标结果和状态',
+    ],
   },
   'hr-operations/kpi-tracking': {
     lens: '运营指标管理专家的控制回路视角',
     insight: 'KPI 模板要形成控制回路：定义指标、看趋势、解释偏差、指定负责人、安排下一次复盘。',
-    fields: ['指标定义/口径', '当前值与数据源', '目标/阈值', '趋势与状态', '偏差解释/驱动因素', '调整动作', '复盘 cadence 与指标负责人'],
-    checks: ['每个 KPI 都有口径、数据源、负责人和目标阈值', '每个 off-target 指标都有偏差解释、调整动作和截止时间', '记录中包含上次状态、本次状态变化和下一次复盘日期'],
+    fields: [
+      '指标定义/口径',
+      '当前值与数据源',
+      '目标/阈值',
+      '趋势与状态',
+      '偏差解释/驱动因素',
+      '调整动作',
+      '复盘 cadence 与指标负责人',
+    ],
+    checks: [
+      '每个 KPI 都有口径、数据源、负责人和目标阈值',
+      '每个 off-target 指标都有偏差解释、调整动作和截止时间',
+      '记录中包含上次状态、本次状态变化和下一次复盘日期',
+    ],
   },
   'hr-operations/support-ticket': {
     lens: 'ITIL 支持运营负责人的可交接工单视角',
     insight: '工单的核心是可复现、可分级、可交接、可验证关闭，并且客户沟通不能断线。',
-    fields: ['问题/影响范围/严重级别', 'SLA/响应状态', '环境/步骤/预期/实际', '处理时间线', '解决方案与验证结果', '交接负责人', '客户沟通记录与后续'],
-    checks: ['工单包含严重级别、当前状态、SLA 负责人和下一次响应时间', '复现信息足够让接手人复查', '关闭或交接时写清验证结果、客户通知状态、下一步负责人和截止时间'],
+    fields: [
+      '问题/影响范围/严重级别',
+      'SLA/响应状态',
+      '环境/步骤/预期/实际',
+      '处理时间线',
+      '解决方案与验证结果',
+      '交接负责人',
+      '客户沟通记录与后续',
+    ],
+    checks: [
+      '工单包含严重级别、当前状态、SLA 负责人和下一次响应时间',
+      '复现信息足够让接手人复查',
+      '关闭或交接时写清验证结果、客户通知状态、下一步负责人和截止时间',
+    ],
   },
   'hr-operations/partner-communication': {
     lens: '战略合作运营专家的承诺闭环视角',
-    insight: '合作沟通要把共同目标、双方承诺、资源依赖、未决请求和升级路径固定下来，避免只留下寒暄纪要。',
-    fields: ['共同目标/衡量方式', '双方资源承诺', '双方分工/RACI', '依赖与决策权', '未决请求', '风险与升级路径', '下一次同步时间'],
-    checks: ['每个合作承诺都标明我方负责人、对方负责人、截止时间和状态', '每个未决请求都有决策人、所需材料和目标决定日期', '每个合作风险都有依赖方、升级路径和下一步动作'],
+    insight:
+      '合作沟通要把共同目标、双方承诺、资源依赖、未决请求和升级路径固定下来，避免只留下寒暄纪要。',
+    fields: [
+      '共同目标/衡量方式',
+      '双方资源承诺',
+      '双方分工/RACI',
+      '依赖与决策权',
+      '未决请求',
+      '风险与升级路径',
+      '下一次同步时间',
+    ],
+    checks: [
+      '每个合作承诺都标明我方负责人、对方负责人、截止时间和状态',
+      '每个未决请求都有决策人、所需材料和目标决定日期',
+      '每个合作风险都有依赖方、升级路径和下一步动作',
+    ],
   },
   'hr-operations/customer-success': {
     lens: '客户成功负责人的生命周期视角',
-    insight: '客户成功记录必须连接生命周期阶段、健康信号、价值实现、续费/扩展机会和下一步成功计划。',
-    fields: ['生命周期阶段', '健康状态/风险等级', '使用情况与采用率', '已交付价值/业务结果', '续费/扩展信号', '干系人负责人', '下一步成功计划'],
-    checks: ['健康状态必须由使用数据、客户反馈或价值交付证据支持', '续费/扩展信号写清来源干系人、金额或范围假设、风险状态', '下一步同时包含 CSM 负责人、客户侧负责人、截止时间和期望结果'],
+    insight:
+      '客户成功记录必须连接生命周期阶段、健康信号、价值实现、续费/扩展机会和下一步成功计划。',
+    fields: [
+      '生命周期阶段',
+      '健康状态/风险等级',
+      '使用情况与采用率',
+      '已交付价值/业务结果',
+      '续费/扩展信号',
+      '干系人负责人',
+      '下一步成功计划',
+    ],
+    checks: [
+      '健康状态必须由使用数据、客户反馈或价值交付证据支持',
+      '续费/扩展信号写清来源干系人、金额或范围假设、风险状态',
+      '下一步同时包含 CSM 负责人、客户侧负责人、截止时间和期望结果',
+    ],
   },
   'hr-operations/customer-success-followup': {
     lens: '客户成功跟进专家的承诺闭环视角',
-    insight: '跟进记录的重点是闭环上次承诺：状态发生了什么变化、客户是否确认、还剩什么风险、下一次何时推进。',
-    fields: ['上次承诺与当前状态', '使用变化', '本轮交付价值', '客户确认/反馈', '未闭环风险', '本轮续费/扩展信号', '下次跟进触发条件'],
-    checks: ['上次承诺的每个动作都有 done/open/blocked 状态和说明', '本轮价值或风险变化有客户确认、使用数据或会议证据', '下次跟进写清触发条件、负责人、截止时间和客户动作'],
+    insight:
+      '跟进记录的重点是闭环上次承诺：状态发生了什么变化、客户是否确认、还剩什么风险、下一次何时推进。',
+    fields: [
+      '上次承诺与当前状态',
+      '使用变化',
+      '本轮交付价值',
+      '客户确认/反馈',
+      '未闭环风险',
+      '本轮续费/扩展信号',
+      '下次跟进触发条件',
+    ],
+    checks: [
+      '上次承诺的每个动作都有 done/open/blocked 状态和说明',
+      '本轮价值或风险变化有客户确认、使用数据或会议证据',
+      '下次跟进写清触发条件、负责人、截止时间和客户动作',
+    ],
   },
 }
 
@@ -2233,22 +3566,38 @@ const familyExpertProfiles = {
   'project-docs': {
     lens: 'Senior Project Manager 的执行系统视角',
     insight: '项目文档要把目标、边界、责任、风险和验收口径固定下来，让后续协作不依赖口头记忆。',
-    checks: ['范围必须能区分做什么和不做什么', '责任人和验收口径必须可见', '高风险项必须有缓解动作或升级路径'],
+    checks: [
+      '范围必须能区分做什么和不做什么',
+      '责任人和验收口径必须可见',
+      '高风险项必须有缓解动作或升级路径',
+    ],
   },
   'technical-docs': {
     lens: '资深架构师的证据链视角',
     insight: '技术文档要把问题、约束、方案、验证、回滚和未覆盖风险连成证据链，避免只留下实现描述。',
-    checks: ['关键结论能回指需求、日志、测试或约束来源', '验证方式包含命令、指标或验收样例', '回滚或恢复路径写清触发条件和负责人'],
+    checks: [
+      '关键结论能回指需求、日志、测试或约束来源',
+      '验证方式包含命令、指标或验收样例',
+      '回滚或恢复路径写清触发条件和负责人',
+    ],
   },
   'learning-notes': {
     lens: '学习设计专家的闭环视角',
     insight: '学习笔记的目标不是保存更多材料，而是完成理解验证、迁移应用和复习闭环。',
-    checks: ['必须有自己的复述或解释', '至少有一个可迁移的应用场景或练习动作', '复习问题、复习时间或后续阅读必须可见'],
+    checks: [
+      '必须有自己的复述或解释',
+      '至少有一个可迁移的应用场景或练习动作',
+      '复习问题、复习时间或后续阅读必须可见',
+    ],
   },
   'personal-journal': {
     lens: '专业个人记录员的事实分离视角',
     insight: '个人日志要把事实、感受、解释和下一步小行动分开，避免把一时判断写成不可更改的结论。',
-    checks: ['事实、感受和解释没有混写', '下一步小行动足够具体且可完成', '需要复盘的判断有日期或触发条件'],
+    checks: [
+      '事实、感受和解释没有混写',
+      '下一步小行动足够具体且可完成',
+      '需要复盘的判断有日期或触发条件',
+    ],
   },
   'content-creation': {
     lens: '资深主编的读者任务视角',
@@ -2258,7 +3607,11 @@ const familyExpertProfiles = {
   'hr-operations': {
     lens: '运营负责人的闭环交接视角',
     insight: '运营记录的价值在于让责任、状态、风险、交接和下一步可追踪，避免只留下过程描述。',
-    checks: ['每个状态都有负责人或归属对象', '风险和异常有升级路径', '下一步动作写清负责人、截止时间和验收方式'],
+    checks: [
+      '每个状态都有负责人或归属对象',
+      '风险和异常有升级路径',
+      '下一步动作写清负责人、截止时间和验收方式',
+    ],
   },
 }
 
@@ -2278,24 +3631,35 @@ function templateSpec(family, title) {
   const baseSubtype =
     title === 'monthly-report' || title === 'quarterly-report'
       ? 'monthly-quarterly-report'
-      : baseSubtypeFromVariant(variantNote, family) ?? title
-  const base = core.get(title) ?? core.get(baseSubtype) ?? {
-    fields: meta.fields,
-    components: meta.recommended,
-    useWhen: meta.signal,
-    avoidWhen: meta.avoid,
-  }
+      : (baseSubtypeFromVariant(variantNote, family) ?? title)
+  const base = core.get(title) ??
+    core.get(baseSubtype) ?? {
+      fields: meta.fields,
+      components: meta.recommended,
+      useWhen: meta.signal,
+      avoidWhen: meta.avoid,
+    }
   const profile = templateProfile(family, title, baseSubtype)
 
   return {
     family,
     title,
-    label: subtypeLabels[family === 'hr-operations' && title === 'performance-review' ? 'hr-operations-performance-review' : title] ?? `${title.replace(/-/g, ' ')} ${meta.label}`,
-    fields: profile?.fields ?? overrideFields ?? (base.fields.length > 0 ? base.fields : meta.fields),
+    label:
+      subtypeLabels[
+        family === 'hr-operations' && title === 'performance-review'
+          ? 'hr-operations-performance-review'
+          : title
+      ] ?? `${title.replace(/-/g, ' ')} ${meta.label}`,
+    fields:
+      profile?.fields ?? overrideFields ?? (base.fields.length > 0 ? base.fields : meta.fields),
     components: base.components.length > 0 ? base.components : meta.recommended,
     baseSubtype,
     variantNote,
-    intro: scenarioIntros[title] ?? scenarioIntros[baseSubtype] ?? profile?.insight ?? `${meta.label}场景记录模板，按素材替换占位内容。`,
+    intro:
+      scenarioIntros[title] ??
+      scenarioIntros[baseSubtype] ??
+      profile?.insight ??
+      `${meta.label}场景记录模板，按素材替换占位内容。`,
   }
 }
 
@@ -2304,10 +3668,9 @@ function exampleTitle(family, title) {
 }
 
 function fieldRows(fields) {
-  return fields.slice(0, 8).map((field) => [
-    translatedField(field),
-    `【填写 ${translatedField(field)}】`,
-  ])
+  return fields
+    .slice(0, 8)
+    .map((field) => [translatedField(field), `【填写 ${translatedField(field)}】`])
 }
 
 function fieldTable(fields) {
@@ -2322,24 +3685,23 @@ function summaryWhen(spec) {
     return '当讨论处于发散状态，需要整理背景问题、观点逻辑关系、共识和下一步实验时使用。'
   }
 
-  const fields = spec.fields
-    .slice(0, 4)
-    .map(translatedField)
-    .join('、')
+  const fields = spec.fields.slice(0, 4).map(translatedField).join('、')
   return `当需要记录${spec.label}，并梳理${fields}时使用。`
 }
 
 function expertProfile(spec) {
   const profile = templateProfile(spec.family, spec.title, spec.baseSubtype)
-  return profile ?? {
-    lens: '专业记录员',
-    insight: '把事实、判断、风险和下一步分开记录，让读者打开后能直接复核和执行。',
-    checks: [
-      '结论能脱离上下文独立读懂',
-      '关键判断都有事实、证据或假设来源',
-      '下一步写清负责人、截止时间和触发条件',
-    ],
-  }
+  return (
+    profile ?? {
+      lens: '专业记录员',
+      insight: '把事实、判断、风险和下一步分开记录，让读者打开后能直接复核和执行。',
+      checks: [
+        '结论能脱离上下文独立读懂',
+        '关键判断都有事实、证据或假设来源',
+        '下一步写清负责人、截止时间和触发条件',
+      ],
+    }
+  )
 }
 
 function expertCallout(spec) {
@@ -2470,7 +3832,15 @@ ${qualityChecklist(spec)}`
 
 function meetingTemplate(spec) {
   if (spec.title === 'brainstorm') return brainstormTemplate(spec)
-  if (['decision-review', 'requirement-review', 'technical-review', 'design-review', 'strategic-decision'].includes(spec.title)) {
+  if (
+    [
+      'decision-review',
+      'requirement-review',
+      'technical-review',
+      'design-review',
+      'strategic-decision',
+    ].includes(spec.title)
+  ) {
     return `<Subtitle>${spec.intro}</Subtitle>
 
 ${expertCallout(spec)}
@@ -3274,7 +4644,9 @@ ${fieldTable(spec.fields)}
 ${evidenceInsight('截图、日志或复现证据', '解决方案与验证')}
 
 ${actionTable(spec.label, '【交接、回访或补验证】')}`
-  } else if (['customer-profile', 'customer-success', 'customer-success-followup'].includes(spec.title)) {
+  } else if (
+    ['customer-profile', 'customer-success', 'customer-success-followup'].includes(spec.title)
+  ) {
     body = `## 客户健康与成功计划
 
 <Flow>
@@ -3556,7 +4928,7 @@ ${referenceList([{ path: refs.registry, label: 'template-registry.md', type: 'fi
     path.join(manualRoot, '05-component-selection.mdx'),
     `${frontmatter({
       tags: ['journal', 'mdx-manual', 'components'],
-      summary: '组件选择页按用途列出 66 个可用 MDX 组件。',
+      summary: `组件选择页按用途列出 ${componentSpecs.length} 个可用 MDX 组件。`,
       sources: [refs.componentCatalog, refs.componentRecipes, refs.mdxIndex],
     })}# Component Selection
 
@@ -3630,6 +5002,13 @@ function main() {
   }
 
   const templateFiles = existingTemplateFiles()
+  const expectedComponentFiles = new Set(componentSpecs.map((spec) => `${spec.name}.mdx`))
+
+  for (const file of fs.readdirSync(componentRoot)) {
+    if (file.endsWith('.mdx') && !expectedComponentFiles.has(file)) {
+      fs.unlinkSync(path.join(componentRoot, file))
+    }
+  }
 
   for (const spec of componentSpecs) {
     writeFile(path.join(componentRoot, `${spec.name}.mdx`), componentPage(spec))

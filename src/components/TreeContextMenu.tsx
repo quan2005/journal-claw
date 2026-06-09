@@ -21,11 +21,22 @@ interface TreeContextMenuProps {
 }
 
 type MenuItemDef =
-  | { type: 'action'; label: string; shortcut?: string; icon: string; danger?: boolean; onClick: () => void }
+  | {
+      type: 'action'
+      label: string
+      shortcut?: string
+      icon: string
+      danger?: boolean
+      onClick: () => void
+    }
   | { type: 'divider' }
 
 export function TreeContextMenu({
-  state, onClose, onPin, onUnpin, onDelete,
+  state,
+  onClose,
+  onPin,
+  onUnpin,
+  onDelete,
 }: TreeContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -57,7 +68,11 @@ export function TreeContextMenu({
   const { itemType, name, path, isPinned, x, y } = state
 
   async function copyPath() {
-    try { await navigator.clipboard.writeText(path) } catch { /* ignore */ }
+    try {
+      await navigator.clipboard.writeText(path)
+    } catch {
+      /* ignore */
+    }
     onClose()
   }
 
@@ -65,13 +80,19 @@ export function TreeContextMenu({
     await revealInFileManager(state.absolutePath ?? path)
     onClose()
   }
-  async function handleOpenInEditor() { await openFile(state.absolutePath ?? path); onClose() }
+  async function handleOpenInEditor() {
+    await openFile(state.absolutePath ?? path)
+    onClose()
+  }
 
   function handlePin() {
     onPin(itemType === 'identity' ? 'identity' : 'journal', path)
     onClose()
   }
-  function handleUnpin() { onUnpin(path); onClose() }
+  function handleUnpin() {
+    onUnpin(path)
+    onClose()
+  }
   async function handleDelete() {
     onClose()
     const confirmed = await ask(`确认删除「${name}」？`, { title: '删除确认', kind: 'warning' })
@@ -79,8 +100,7 @@ export function TreeContextMenu({
   }
 
   const deleteLabel =
-    itemType === 'identity' ? '删除画像' :
-    itemType === 'topic-folder' ? '删除文件夹' : '删除条目'
+    itemType === 'identity' ? '删除画像' : itemType === 'topic-folder' ? '删除文件夹' : '删除条目'
 
   const items: MenuItemDef[] = [
     {
@@ -99,7 +119,14 @@ export function TreeContextMenu({
       onClick: handleShowInFileManager,
     },
     { type: 'divider' },
-    { type: 'action', label: deleteLabel, shortcut: '⌫', icon: 'delete', danger: true, onClick: handleDelete },
+    {
+      type: 'action',
+      label: deleteLabel,
+      shortcut: '⌫',
+      icon: 'delete',
+      danger: true,
+      onClick: handleDelete,
+    },
   ]
 
   return (
@@ -140,7 +167,9 @@ export function TreeContextMenu({
 
       {items.map((item, i) => {
         if (item.type === 'divider') {
-          return <div key={i} style={{ height: 0.5, background: 'var(--divider)', margin: '2px 8px' }} />
+          return (
+            <div key={i} style={{ height: 0.5, background: 'var(--divider)', margin: '2px 8px' }} />
+          )
         }
         return (
           <MenuItemRow
@@ -160,9 +189,7 @@ export function TreeContextMenu({
 // ── MenuIcon ────────────────────────────────────────────────────────────────────
 
 const iconPaths: Record<string, React.ReactNode> = {
-  pin: (
-    <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-  ),
+  pin: <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />,
   copy: (
     <g>
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -175,9 +202,7 @@ const iconPaths: Record<string, React.ReactNode> = {
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </g>
   ),
-  folder: (
-    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-  ),
+  folder: <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
   delete: (
     <g>
       <polyline points="3 6 5 6 21 6" />
@@ -192,7 +217,8 @@ function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
   const color = danger ? 'var(--status-danger)' : 'var(--item-meta)'
   return (
     <svg
-      width={14} height={14}
+      width={14}
+      height={14}
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
@@ -209,7 +235,11 @@ function MenuIcon({ icon, danger }: { icon: string; danger?: boolean }) {
 // ── MenuItemRow ─────────────────────────────────────────────────────────────────
 
 function MenuItemRow({
-  label, shortcut, icon, danger, onClick,
+  label,
+  shortcut,
+  icon,
+  danger,
+  onClick,
 }: {
   label: string
   shortcut?: string
@@ -221,7 +251,9 @@ function MenuItemRow({
     <div
       onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
         padding: '5px 10px',
         fontSize: 'var(--text-sm, 0.8125rem)',
         cursor: 'pointer',
@@ -238,18 +270,28 @@ function MenuItemRow({
         ;(e.currentTarget as HTMLDivElement).style.background = 'transparent'
       }}
     >
-      <span style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span
+        style={{
+          width: 18,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
         <MenuIcon icon={icon} danger={danger} />
       </span>
       <span style={{ flex: 1 }}>{label}</span>
       {shortcut && (
-        <span style={{
-          fontSize: '0.6875rem',
-          color: 'var(--text-tertiary, #5c5852)',
-          fontFamily: 'var(--font-body)',
-          flexShrink: 0,
-          marginLeft: 16,
-        }}>
+        <span
+          style={{
+            fontSize: '0.6875rem',
+            color: 'var(--text-tertiary, #5c5852)',
+            fontFamily: 'var(--font-body)',
+            flexShrink: 0,
+            marginLeft: 16,
+          }}
+        >
           {shortcut}
         </span>
       )}

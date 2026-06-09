@@ -52,7 +52,11 @@ describe('SettingsLayout', () => {
     const onSectionConsumed = vi.fn()
 
     render(
-      <SettingsLayout height="600px" initialSection="about" onSectionConsumed={onSectionConsumed} />,
+      <SettingsLayout
+        height="600px"
+        initialSection="about"
+        onSectionConsumed={onSectionConsumed}
+      />,
     )
 
     expect(screen.getByText('About panel')).toBeTruthy()

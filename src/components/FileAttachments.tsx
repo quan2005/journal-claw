@@ -10,9 +10,7 @@ export function FileAttachments({ blocks }: { blocks: MessageBlock[] }) {
   const [workspacePath, setWorkspacePath] = useState('')
 
   useEffect(() => {
-    getWorkspacePath()
-      .then(setWorkspacePath)
-      .catch(console.error)
+    getWorkspacePath().then(setWorkspacePath).catch(console.error)
   }, [])
 
   const filePaths = new Map<string, string>()

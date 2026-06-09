@@ -175,3 +175,30 @@ pub fn log_label(name: &str, input: &serde_json::Value) -> String {
         _ => format!("{}: {}", name, path),
     }
 }
+
+pub(super) fn validate_mdx_after_write(
+    path: &str,
+    content: &str,
+    success_output: String,
+) -> Option<ToolResult> {
+    if !path
+        .rsplit_once('.')
+        .is_some_and(|(_, ext)| ext.eq_ignore_ascii_case("mdx"))
+    {
+        return None;
+    }
+
+    match crate::mdx::validate_mdx_document(content, Some(path.to_string())) {
+        Ok(()) => Some(ToolResult {
+            output: format!("{} (MDX syntax check passed)", success_output),
+            is_error: false,
+        }),
+        Err(error) => Some(ToolResult {
+            output: format!(
+                "{}\n\nMDX syntax check failed for {}:\n{}\n\nPlease fix the MDX syntax and write the file again.",
+                success_output, path, error
+            ),
+            is_error: true,
+        }),
+    }
+}

@@ -24,7 +24,7 @@ function issue(
   }
 }
 
-function parseFields(bodyRaw: string): Record<string, string> {
+function parseFields(bodyRaw: string, fallbackField?: string): Record<string, string> {
   const fields: Record<string, string> = {}
   let activeKey = ''
 
@@ -40,6 +40,12 @@ function parseFields(bodyRaw: string): Record<string, string> {
 
     if (activeKey && /^\s+/.test(rawLine)) {
       fields[activeKey] = `${fields[activeKey]} ${rawLine.trim()}`.trim()
+      continue
+    }
+
+    if (fallbackField) {
+      activeKey = fallbackField
+      fields[fallbackField] = `${fields[fallbackField] ?? ''} ${rawLine.trim()}`.trim()
     }
   }
 
@@ -103,7 +109,8 @@ function parseBody(block: RawJournalBlock): ParsedBlockBody | LayoutIssue {
 
   try {
     if (spec.bodyFormat === 'fields') {
-      const fields = parseFields(block.bodyRaw)
+      const fallbackField = spec.optionalFields?.includes('body') ? 'body' : undefined
+      const fields = parseFields(block.bodyRaw, fallbackField)
       for (const field of spec.requiredFields ?? []) {
         if (!fields[field]) {
           return issue(

@@ -7,22 +7,21 @@ description: '统一笔记整理 skill。用户提交录音、粘贴文本、文
 
 ## Contract
 
-| Field      | Rule                                                                           |
-| ---------- | ------------------------------------------------------------------------------ |
-| reads      | `yyMM/raw/*`, existing `yyMM/*.mdx`, `identity/*.md`, `todos.md` when relevant |
-| writes     | `yyMM/*.mdx`; `identity/*.md` only after loading `/identity-profiling`         |
-| format     | Markdown-first `.mdx` with YAML frontmatter; layout directives before JSX      |
-| references | load only the registry and the relevant family/template/layout/component files |
+| Field      | Rule                                                                            |
+| ---------- | ------------------------------------------------------------------------------- |
+| reads      | `yyMM/raw/*`, existing `yyMM/*.mdx`, `identity/*.md`, `todos.md` when relevant  |
+| writes     | `yyMM/*.mdx`; `identity/*.md` only after loading `/identity-profiling`          |
+| format     | Markdown-first `.mdx` with YAML frontmatter and typed JSX components            |
+| references | load only the registry and the relevant family/template/example/component files |
 
 ## Output Format Priority
 
 Default to a JournalClaw-renderable `.mdx` document for durable notes, meeting minutes, research briefs, technical records, manuals, and topic pages.
 
 1. Markdown first: use normal headings, paragraphs, lists, tables, and code fences for ordinary structure.
-2. Layout directives second: when the note needs a stronger reading entrance, comparison, timeline, steps, verdict, quote, resource list, notice, or final summary, read `references/layout-directives.md` and use directive blocks.
-3. MDX JSX last: read `references/component-recipes.md` only when a semantic component carries information the directive catalog cannot express, such as decision records, action tables, risk matrices, source traceability, transcripts, charts, or copyable exact text.
+2. MDX JSX second: when structured presentation improves scanning or verification, read `references/component-catalog.md` and `references/component-recipes.md`, then use the smallest suitable typed JSX component.
 
-Ordinary notes usually need 2-5 information-bearing directive blocks. Do not use layout directives or JSX as decoration.
+Ordinary notes usually need 0-5 information-bearing JSX components. Do not use components as decoration.
 
 ## Required Flow
 
@@ -30,11 +29,17 @@ Ordinary notes usually need 2-5 information-bearing directive blocks. Do not use
 2. Read `references/template-registry.md`.
 3. Classify exactly one primary family and one subtype. If uncertain, choose the closest family and mark uncertainty in the note.
 4. Load the relevant `references/templates/{family}.md`.
-5. Load `references/writing-rules.md` for source, quote, summary, uncertainty, and append rules.
-6. Load `references/layout-directives.md` when the note needs stronger visual hierarchy, comparisons, timelines, decisions, evidence blocks, or end summaries. Prefer layout directives before JSX components.
-7. Load `references/component-recipes.md` only when semantic MDX components improve clarity beyond layout directives.
+5. When available, load only the matching `references/template-examples/{family}/{subtype}.mdx` as the concrete structure reference.
+6. Load `references/writing-rules.md` for source, quote, summary, uncertainty, and append rules.
+7. Load `references/component-catalog.md` and `references/component-recipes.md` when stronger visual hierarchy, comparisons, timelines, decisions, evidence blocks, or end summaries improve clarity.
 8. Create or append a `.mdx` entry. On append, merge `sources` and update `summary`.
 9. Load `/identity-profiling` before creating or editing identity files.
+
+Template example rule:
+
+- Use `template-examples` as ready-to-use structure, fields, components, expert calibration, and quality checks.
+- Do not copy the example frontmatter literally. Replace `tags`, `summary`, and `sources` with the actual note metadata.
+- Load only the exact `{family}/{subtype}.mdx` example unless comparing neighboring subtypes is necessary.
 
 ## Families
 
@@ -68,7 +73,7 @@ Rules:
 
 ## Component Boundary
 
-Use Markdown first. Use layout directives for repeatable document rhythm. Use MDX components only when they make dense information easier to scan or verify beyond what directives can express.
+Use Markdown first. Use typed MDX JSX components only when they make dense information easier to scan or verify.
 
 Allowed component interactions are read-only: collapse, copy, jump, source expansion, and audio/video timestamp seek.
 

@@ -13,6 +13,7 @@ mod automation_templates;
 mod automation_types;
 mod config;
 mod conversation;
+mod directive_migration;
 mod feishu_bridge;
 mod frontmatter;
 mod identity;
@@ -278,6 +279,8 @@ fn main() {
             materials::import_text_temp,
             materials::import_image_temp,
             mdx::compile_mdx,
+            directive_migration::scan_legacy_directive_files,
+            directive_migration::apply_directive_migration,
             audio_pipeline::prepare_audio_for_ai,
             ai_processor::trigger_ai_processing,
             ai_processor::get_workspace_prompt,

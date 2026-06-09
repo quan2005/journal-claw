@@ -1903,6 +1903,10 @@ body,
   border-radius: 8px;
 }
 
+.source-line-number::before {
+  content: attr(data-line-number);
+}
+
 .hljs-comment,
 .hljs-quote {
   color: #6a7385;

@@ -1,12 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  lazy,
-  Suspense,
-  type CSSProperties,
-} from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, type CSSProperties } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
@@ -54,6 +46,8 @@ import OnboardingView from './components/OnboardingView'
 
 const SOUL_PATH = '__soul__'
 const DIVIDER_WIDTH = 7
+const HIDE_RIGHT_PANEL_BELOW = 960
+const HIDE_LEFT_SIDEBAR_BELOW = 720
 const PANEL_TOGGLE_TOP = 'clamp(88px, 12vh, 120px)'
 const SIDEBAR_PANEL_TRANSITION =
   'width 220ms var(--ease-out), opacity 160ms var(--ease-out), border-color 160ms var(--ease-out)'
@@ -117,29 +111,31 @@ function PanelDividerToggle({
         e.stopPropagation()
         onToggle()
       }}
-      style={{
-        '--panel-toggle-top': PANEL_TOGGLE_TOP,
-        position: 'absolute',
-        top: 'var(--panel-toggle-top)',
-        left: open || edge === 'left' ? (open ? '50%' : 8) : undefined,
-        right: !open && edge === 'right' ? 8 : undefined,
-        transform: open ? 'translate(-50%, -50%)' : 'translateY(-50%)',
-        zIndex: 4,
-        width: 28,
-        height: 28,
-        padding: 0,
-        border: '0.5px solid var(--divider)',
-        borderRadius: 999,
-        background: 'var(--sidebar-bg)',
-        color: open ? 'var(--record-btn)' : 'var(--item-meta)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        lineHeight: 1,
-        transition:
-          'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out)',
-      } as CSSProperties}
+      style={
+        {
+          '--panel-toggle-top': PANEL_TOGGLE_TOP,
+          position: 'absolute',
+          top: 'var(--panel-toggle-top)',
+          left: open || edge === 'left' ? (open ? '50%' : 8) : undefined,
+          right: !open && edge === 'right' ? 8 : undefined,
+          transform: open ? 'translate(-50%, -50%)' : 'translateY(-50%)',
+          zIndex: 4,
+          width: 28,
+          height: 28,
+          padding: 0,
+          border: '0.5px solid var(--divider)',
+          borderRadius: 999,
+          background: 'var(--sidebar-bg)',
+          color: open ? 'var(--record-btn)' : 'var(--item-meta)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          lineHeight: 1,
+          transition:
+            'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out)',
+        } as CSSProperties
+      }
       onMouseEnter={(e) => {
         e.currentTarget.style.background = 'var(--item-hover-bg)'
         e.currentTarget.style.borderColor = 'var(--divider-hover)'
@@ -205,6 +201,22 @@ export default function App() {
   const [onboardingLoading, setOnboardingLoading] = useState(true)
   const [defaultWsPath, setDefaultWsPath] = useState('')
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    if (viewportWidth < HIDE_RIGHT_PANEL_BELOW && rightPanelOpen) {
+      setRightPanelOpen(false)
+    }
+    if (viewportWidth < HIDE_LEFT_SIDEBAR_BELOW && leftSidebarOpen) {
+      setLeftSidebarOpen(false)
+    }
+  }, [leftSidebarOpen, rightPanelOpen, setRightPanelOpen, viewportWidth])
 
   useEffect(() => {
     Promise.all([getOnboardingStatus(), getWorkspacePath()])

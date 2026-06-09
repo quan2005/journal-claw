@@ -31,7 +31,13 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
   )
 }
 
-function ToastItemView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
+function ToastItemView({
+  toast,
+  onDismiss,
+}: {
+  toast: ToastItem
+  onDismiss: (id: number) => void
+}) {
   const bg = BG[toast.level]
   const border = BORDER[toast.level]
   const color = COLOR[toast.level]

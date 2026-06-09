@@ -1,13 +1,13 @@
-import React from "react"
-import { createRoot } from "react-dom/client"
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 
-import { NumberTicker } from "./components/number-ticker"
-import { Marquee } from "./components/marquee"
-import { BorderBeam } from "./components/border-beam"
-import { Pointer } from "./components/pointer"
-import { Safari } from "./components/safari"
-import { AnimatedBeam } from "./components/animated-beam"
-import { Highlighter } from "./components/highlighter"
+import { NumberTicker } from './components/number-ticker'
+import { Marquee } from './components/marquee'
+import { BorderBeam } from './components/border-beam'
+import { Pointer } from './components/pointer'
+import { Safari } from './components/safari'
+import { AnimatedBeam } from './components/animated-beam'
+import { Highlighter } from './components/highlighter'
 
 type MagicProps = Record<string, unknown>
 
@@ -27,11 +27,11 @@ function camelize(s: string): string {
 /** Parse HTML attribute value to the right JS type */
 function parseAttr(value: string | null): string | number | boolean | undefined {
   if (value === null) return undefined
-  if (value === "") return true // boolean attribute
+  if (value === '') return true // boolean attribute
   const num = Number(value)
-  if (!isNaN(num) && value.trim() !== "") return num
-  if (value === "true") return true
-  if (value === "false") return false
+  if (!isNaN(num) && value.trim() !== '') return num
+  if (value === 'true') return true
+  if (value === 'false') return false
   return value
 }
 
@@ -40,15 +40,15 @@ function extractProps(el: HTMLElement): Record<string, unknown> {
   const props: Record<string, unknown> = {}
   for (const attr of el.getAttributeNames()) {
     // Skip attributes handled specially
-    if (attr === "class" || attr === "style" || attr === "id") continue
+    if (attr === 'class' || attr === 'style' || attr === 'id') continue
     props[camelize(attr)] = parseAttr(el.getAttribute(attr))
   }
   // Pass through className
-  if (el.hasAttribute("class")) {
-    props.className = el.getAttribute("class")
+  if (el.hasAttribute('class')) {
+    props.className = el.getAttribute('class')
   }
-  if (el.hasAttribute("style")) {
-    props.style = el.getAttribute("style")
+  if (el.hasAttribute('style')) {
+    props.style = el.getAttribute('style')
   }
   return props
 }
@@ -82,10 +82,10 @@ class MagicMarquee extends HTMLElement {
         React.createElement(
           MagicMarqueeComponent,
           props,
-          React.createElement("span", {
+          React.createElement('span', {
             dangerouslySetInnerHTML: htmlChildren(inner),
-          })
-        )
+          }),
+        ),
       )
     })
   }
@@ -98,8 +98,8 @@ class MagicBorderBeam extends HTMLElement {
     const parent = this.parentElement
     if (parent) {
       const parentPos = getComputedStyle(parent).position
-      if (parentPos === "static") {
-        parent.style.position = "relative"
+      if (parentPos === 'static') {
+        parent.style.position = 'relative'
       }
     }
     const props = extractProps(this)
@@ -115,7 +115,7 @@ class MagicPointer extends HTMLElement {
     const props = extractProps(this)
     const root = createRoot(this)
     if (hasChildren) {
-      const children = React.createElement("div", {
+      const children = React.createElement('div', {
         dangerouslySetInnerHTML: htmlChildren(this.innerHTML),
       })
       root.render(React.createElement(MagicPointerComponent, props, children))
@@ -138,12 +138,12 @@ class MagicSafari extends HTMLElement {
 class MagicAnimatedBeam extends HTMLElement {
   connectedCallback() {
     const props = extractProps(this)
-    const fromId = this.getAttribute("from-id")
-    const toId = this.getAttribute("to-id")
-    const containerId = this.getAttribute("container-id")
+    const fromId = this.getAttribute('from-id')
+    const toId = this.getAttribute('to-id')
+    const containerId = this.getAttribute('container-id')
 
     if (!fromId || !toId) {
-      console.warn("magic-animated-beam: from-id and to-id are required")
+      console.warn('magic-animated-beam: from-id and to-id are required')
       return
     }
 
@@ -153,15 +153,14 @@ class MagicAnimatedBeam extends HTMLElement {
 
       const fromEl = document.getElementById(fromId)
       const toEl = document.getElementById(toId)
-      const containerEl = containerId
-        ? document.getElementById(containerId)
-        : this.parentElement
+      const containerEl = containerId ? document.getElementById(containerId) : this.parentElement
 
       if (!fromEl || !toEl || !containerEl) {
-        console.warn(
-          "magic-animated-beam: could not find elements by ID",
-          { fromId, toId, containerId }
-        )
+        console.warn('magic-animated-beam: could not find elements by ID', {
+          fromId,
+          toId,
+          containerId,
+        })
         return
       }
 
@@ -177,7 +176,7 @@ class MagicAnimatedBeam extends HTMLElement {
           containerRef,
           fromRef,
           toRef,
-        })
+        }),
       )
     })
   }
@@ -187,12 +186,10 @@ class MagicAnimatedBeam extends HTMLElement {
 class MagicHighlighter extends HTMLElement {
   connectedCallback() {
     const props = extractProps(this)
-    const text = this.textContent || ""
+    const text = this.textContent || ''
     // Clear and re-render with React
     const root = createRoot(this)
-    root.render(
-      React.createElement(MagicHighlighterComponent, props, text)
-    )
+    root.render(React.createElement(MagicHighlighterComponent, props, text))
   }
 }
 
@@ -200,16 +197,16 @@ class MagicHighlighter extends HTMLElement {
 
 // Wait for DOM to be parsed, then register
 function registerAll() {
-  if (typeof customElements === "undefined") return
+  if (typeof customElements === 'undefined') return
 
   const components: [string, CustomElementConstructor][] = [
-    ["magic-number-ticker", MagicNumberTicker],
-    ["magic-marquee", MagicMarquee],
-    ["magic-border-beam", MagicBorderBeam],
-    ["magic-pointer", MagicPointer],
-    ["magic-safari", MagicSafari],
-    ["magic-animated-beam", MagicAnimatedBeam],
-    ["magic-highlighter", MagicHighlighter],
+    ['magic-number-ticker', MagicNumberTicker],
+    ['magic-marquee', MagicMarquee],
+    ['magic-border-beam', MagicBorderBeam],
+    ['magic-pointer', MagicPointer],
+    ['magic-safari', MagicSafari],
+    ['magic-animated-beam', MagicAnimatedBeam],
+    ['magic-highlighter', MagicHighlighter],
   ]
 
   for (const [name, ctor] of components) {
@@ -220,11 +217,8 @@ function registerAll() {
 }
 
 // Register immediately if DOM is already interactive, otherwise wait
-if (
-  document.readyState === "interactive" ||
-  document.readyState === "complete"
-) {
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
   registerAll()
 } else {
-  document.addEventListener("DOMContentLoaded", registerAll)
+  document.addEventListener('DOMContentLoaded', registerAll)
 }

@@ -12,7 +12,7 @@ export function SourceCard({ path, label, type = 'file', note }: ReferenceSource
   const attrs = isUrl ? { href: path } : { 'data-filepath': path }
 
   return (
-    <a className="mdx-source-card" {...attrs}>
+    <a className="mdx-source-card mdx-specialized-content" {...attrs}>
       <span className="mdx-source-type">{type}</span>
       <span className="mdx-source-label">{label ?? path}</span>
       {note && <span className="mdx-source-note">{note}</span>}
@@ -22,7 +22,7 @@ export function SourceCard({ path, label, type = 'file', note }: ReferenceSource
 
 export function ReferenceList({ sources }: { sources: ReferenceSource[] }) {
   return (
-    <div className="mdx-reference-list">
+    <div className="mdx-reference-list mdx-specialized-content">
       {sources.map((source) => (
         <SourceCard key={`${source.path}-${source.label ?? ''}`} {...source} />
       ))}
@@ -100,7 +100,7 @@ export function Transcript({
 
   if (collapsible) {
     return (
-      <details className="mdx-transcript">
+      <details className="mdx-transcript mdx-specialized-prose">
         <summary>{title}</summary>
         {body}
       </details>
@@ -108,7 +108,7 @@ export function Transcript({
   }
 
   return (
-    <section className="mdx-transcript">
+    <section className="mdx-transcript mdx-specialized-prose">
       <div className="mdx-transcript-title">{title}</div>
       {body}
     </section>

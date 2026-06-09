@@ -53,10 +53,7 @@ export const SandboxPreview = React.memo(function SandboxPreview({
   // Sync initial theme to iframe on load
   const handleLoad = useCallback(() => {
     try {
-      iframeRef.current?.contentWindow?.postMessage(
-        { type: 'journal:theme', theme },
-        '*',
-      )
+      iframeRef.current?.contentWindow?.postMessage({ type: 'journal:theme', theme }, '*')
     } catch {
       // ignore
     }

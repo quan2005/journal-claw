@@ -17,14 +17,7 @@ export interface GridProps {
   stackBelow?: number
 }
 
-export function Grid({
-  children,
-  className,
-  cols = 12,
-  gap = 16,
-  rowGap,
-  stackBelow,
-}: GridProps) {
+export function Grid({ children, className, cols = 12, gap = 16, rowGap, stackBelow }: GridProps) {
   return (
     <div
       className={`mdx-grid ${className ?? ''}`}
@@ -87,12 +80,19 @@ export interface FlowProps {
 }
 
 const justifyMap: Record<string, string> = {
-  start: 'flex-start', center: 'center', end: 'flex-end',
-  between: 'space-between', around: 'space-around', evenly: 'space-evenly',
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  between: 'space-between',
+  around: 'space-around',
+  evenly: 'space-evenly',
 }
 
 const alignMap: Record<string, string> = {
-  start: 'flex-start', center: 'center', end: 'flex-end', stretch: 'stretch',
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  stretch: 'stretch',
 }
 
 export function Flow({

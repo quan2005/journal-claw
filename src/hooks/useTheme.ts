@@ -12,9 +12,7 @@ function applyTheme(theme: Theme) {
       : theme
   document.documentElement.setAttribute('data-theme', resolved)
   // Sync macOS native chrome (traffic light buttons) with the webview theme
-  getCurrentWindow()
-    .setTheme(resolved)
-    .catch(console.error)
+  getCurrentWindow().setTheme(resolved).catch(console.error)
 }
 
 export function useTheme() {

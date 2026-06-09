@@ -14,7 +14,11 @@ interface TodoContextValue {
   updateTodoText: (lineIndex: number, text: string, doneFile: boolean) => Promise<void>
   setTodoPath: (lineIndex: number, path: string | null, doneFile: boolean) => Promise<void>
   removeTodoPath: (lineIndex: number, doneFile: boolean) => Promise<void>
-  setTodoSessionId: (lineIndex: number, sessionId: string | null, doneFile: boolean) => Promise<void>
+  setTodoSessionId: (
+    lineIndex: number,
+    sessionId: string | null,
+    doneFile: boolean,
+  ) => Promise<void>
 }
 
 const TodoContext = createContext<TodoContextValue>(null!)

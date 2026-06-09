@@ -1,5 +1,5 @@
 /* Magic UI Tailwind utilities: no preflight reset, so Journal preview preset stays in control. */
-@import "tailwindcss/utilities";
+@import 'tailwindcss/utilities';
 
 /* Scan Magic UI components for used classes */
 @source "./components/";
@@ -7,13 +7,21 @@
 /* ===== Custom animations used by Magic UI components ===== */
 
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-100% - var(--gap))); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
 }
 
 @keyframes marquee-vertical {
-  from { transform: translateY(0); }
-  to { transform: translateY(calc(-100% - var(--gap))); }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
 }
 
 @utility animate-marquee {

@@ -1,5 +1,51 @@
 import type { LayoutModuleSpec } from './types'
 
+export const LAYOUT_JSX_NAMES = {
+  hero: 'Hero',
+  toc: 'Toc',
+  cards: 'Cards',
+  part: 'Part',
+  'label-title': 'LabelTitle',
+  metrics: 'Metrics',
+  compare: 'Compare',
+  steps: 'Steps',
+  timeline: 'Timeline',
+  infographic: 'Infographic',
+  verdict: 'Verdict',
+  'audience-fit': 'AudienceFit',
+  'myth-fact': 'MythFact',
+  manifesto: 'Manifesto',
+  bridge: 'Bridge',
+  quote: 'Quote',
+  'image-text': 'ImageText',
+  'image-compare': 'ImageCompare',
+  'image-annotate': 'ImageAnnotate',
+  'image-steps': 'ImageSteps',
+  cta: 'Cta',
+  faq: 'Faq',
+  checklist: 'Checklist',
+  cases: 'Cases',
+  summary: 'Summary',
+  notice: 'Notice',
+  logos: 'Logos',
+  pricing: 'Pricing',
+  specs: 'Specs',
+  toolbox: 'Toolbox',
+  'author-card': 'AuthorCard',
+  subscribe: 'Subscribe',
+  people: 'People',
+  series: 'Series',
+  callout: 'Callout',
+  definition: 'Definition',
+  'quote-card': 'QuoteCard',
+  tweet: 'Tweet',
+  'stat-row': 'StatRow',
+  question: 'Question',
+  'resource-list': 'ResourceList',
+  'comparison-table': 'ComparisonTable',
+  changelog: 'Changelog',
+} as const satisfies Record<string, string>
+
 const specs = [
   {
     name: 'hero',
@@ -145,8 +191,8 @@ const specs = [
     bodyFormat: 'fields',
     renderer: 'quote',
     requiredFields: ['text'],
-    optionalFields: ['source', 'url'],
-    description: 'Quoted evidence with optional source.',
+    optionalFields: ['author', 'context', 'source', 'url'],
+    description: 'Quoted evidence with optional author, context, and source.',
   },
   {
     name: 'image-text',
@@ -380,7 +426,7 @@ const specs = [
     renderer: 'changelog',
     description: 'Changelog entries.',
   },
-] satisfies Array<Omit<LayoutModuleSpec, 'implemented'>>
+] satisfies Array<Omit<LayoutModuleSpec, 'implemented' | 'jsxName'>>
 
 export const IMPLEMENTED_LAYOUT_MODULES = specs.map((spec) => spec.name)
 
@@ -388,6 +434,7 @@ const implemented = new Set<string>(IMPLEMENTED_LAYOUT_MODULES)
 
 export const JOURNAL_LAYOUT_MODULES: readonly LayoutModuleSpec[] = specs.map((spec) => ({
   ...spec,
+  jsxName: LAYOUT_JSX_NAMES[spec.name as keyof typeof LAYOUT_JSX_NAMES],
   implemented: implemented.has(spec.name),
 }))
 

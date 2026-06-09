@@ -79,7 +79,11 @@ export function HtmlPreview({ src, html, title, height, className, children }: H
 
   return (
     <div className={cls}>
-      <SandboxPreview html={state.html} title={title ?? src} style={{ height: cssHeight(height) }} />
+      <SandboxPreview
+        html={state.html}
+        title={title ?? src}
+        style={{ height: cssHeight(height) }}
+      />
     </div>
   )
 }

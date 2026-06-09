@@ -9,11 +9,9 @@ export function buildSrcdoc(html: string, theme: 'light' | 'dark'): string {
   const head = html.trimStart().slice(0, 64).toLowerCase()
   const isFullDoc = head.startsWith('<!doctype') || head.startsWith('<html')
 
-  const bridges = [
-    injectSandboxShim(),
-    injectPreviewFocusGuard(),
-    injectThemeBridge(theme),
-  ].join('\n')
+  const bridges = [injectSandboxShim(), injectPreviewFocusGuard(), injectThemeBridge(theme)].join(
+    '\n',
+  )
 
   if (isFullDoc) {
     return injectBridges(html, bridges)

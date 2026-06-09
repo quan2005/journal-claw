@@ -13,7 +13,7 @@ import {
   ToolboxBlock,
 } from './conversion'
 import { CalloutBlock, ComparisonTableBlock, DefinitionBlock, ResourceListBlock } from './enhanced'
-import { ImageStepsBlock, ImageTextBlock, QuoteBlock, QuoteCardBlock } from './evidence'
+import { CompareBlock, ImageStepsBlock, ImageTextBlock, QuoteBlock, QuoteCardBlock } from './evidence'
 import { MetricsBlock, StepsBlock, TimelineBlock } from './infographic'
 import { MythFactBlock, VerdictBlock } from './judgment'
 import { CardsBlock, HeroBlock, TocBlock } from './opening'
@@ -56,6 +56,8 @@ export function JournalBlockRenderer({
       return <QuoteBlock block={block} />
     case 'quote-card':
       return <QuoteCardBlock block={block} />
+    case 'compare':
+      return <CompareBlock block={block} />
     case 'image-text':
       return <ImageTextBlock block={block} entryPath={entryPath} />
     case 'image-steps':

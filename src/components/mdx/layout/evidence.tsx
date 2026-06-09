@@ -1,4 +1,4 @@
-import { arrayBlock, fieldsBlock, LayoutBlock } from './blockFactory'
+import { arrayBlock, fieldsBlock, LayoutBlock, objectBlock } from './blockFactory'
 
 export function Quote({
   text,
@@ -62,4 +62,27 @@ export interface ImageStepItem {
 
 export function ImageSteps({ items }: { items: ImageStepItem[] }) {
   return <LayoutBlock block={arrayBlock('image-steps', items)} />
+}
+
+export interface CompareItem {
+  leftTag?: string
+  leftLabel: string
+  leftText: string
+  rightTag?: string
+  rightLabel: string
+  rightText: string
+}
+
+export function Compare({
+  heading,
+  items,
+}: {
+  heading?: string
+  items: CompareItem[]
+}) {
+  return (
+    <LayoutBlock
+      block={objectBlock('compare', { heading, items })}
+    />
+  )
 }

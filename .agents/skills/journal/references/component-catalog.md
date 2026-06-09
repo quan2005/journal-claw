@@ -188,6 +188,13 @@ The public MDX surface is defined by `src/components/mdx/component-manifest.json
 - Best for: golden quotes, core arguments, or keynote statements that deserve visual weight.
 - Avoid: routine evidence citations; use `Quote`. Do not use multiple `large` variants on one page.
 
+### `Compare`
+
+- Purpose: side-by-side comparison cards with VS marker for contrasting perspectives.
+- Props: `heading?`, `items[{ leftTag?, leftLabel, leftText, rightTag?, rightLabel, rightText }]`.
+- Best for: contrasting current state vs. desired state, problem vs. solution, before vs. after.
+- Avoid: multi-dimensional comparisons with many attributes; use `ComparisonMatrix`.
+
 ### `Callout`
 
 - Purpose: isolate a consequential note, warning, or tip.

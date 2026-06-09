@@ -11,6 +11,7 @@ export const LAYOUT_JSX_NAMES = {
   'myth-fact': 'MythFact',
   quote: 'Quote',
   'quote-card': 'QuoteCard',
+  'compare': 'Compare',
   'image-text': 'ImageText',
   'image-steps': 'ImageSteps',
   cta: 'Cta',
@@ -118,6 +119,13 @@ const specs = [
     optionalFields: ['author', 'source'],
     variants: ['default', 'minimal', 'large', 'inline'],
     description: 'Prominent quote card for key statements with visual variants.',
+  },
+  {
+    name: 'compare',
+    category: 'evidence',
+    bodyFormat: 'json_object',
+    renderer: 'compare',
+    description: 'Side-by-side comparison cards with VS marker for contrasting perspectives.',
   },
   {
     name: 'image-text',

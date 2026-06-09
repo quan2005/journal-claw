@@ -1,3 +1,4 @@
+mod ai_plan;
 mod ai_processor;
 mod audio_files;
 mod audio_pipeline;

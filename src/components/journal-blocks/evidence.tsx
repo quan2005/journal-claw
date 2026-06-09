@@ -73,6 +73,41 @@ export function QuoteCardBlock({ block }: { block: JournalBlock }) {
   )
 }
 
+export function CompareBlock({ block }: { block: JournalBlock }) {
+  const data = block.body.format === 'json_object' ? block.body.value : {}
+  const heading = stringValue(data.heading)
+  const items = Array.isArray(data.items) ? data.items : []
+
+  return (
+    <section className="journal-block journal-block-content journal-block-compare">
+      {heading && <h2 className="journal-block-compare-heading">{heading}</h2>}
+      <div className="journal-block-compare-list">
+        {items.map((item, index) => {
+          const row = asRecord(item)
+          return (
+            <div key={index} className="journal-block-compare-item">
+              <div className="journal-block-compare-card-left">
+                {stringValue(row.leftTag) && (
+                  <span className="journal-block-compare-tag">{stringValue(row.leftTag)}</span>
+                )}
+                <div className="journal-block-compare-label">{stringValue(row.leftLabel)}</div>
+                <p className="journal-block-compare-text">{stringValue(row.leftText)}</p>
+              </div>
+              <div className="journal-block-compare-card-right">
+                {stringValue(row.rightTag) && (
+                  <span className="journal-block-compare-tag">{stringValue(row.rightTag)}</span>
+                )}
+                <div className="journal-block-compare-label">{stringValue(row.rightLabel)}</div>
+                <p className="journal-block-compare-text">{stringValue(row.rightText)}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export function ImageTextBlock({ block, entryPath }: { block: JournalBlock; entryPath?: string }) {
   const data = fields(block)
   const variant = block.attrs.variant === 'reverse' ? ' journal-block-image-text-reverse' : ''

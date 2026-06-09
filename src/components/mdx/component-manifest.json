@@ -71,6 +71,13 @@
   },
   {
     "kind": "layout",
+    "directive": "compare",
+    "jsxName": "Compare",
+    "category": "evidence",
+    "public": true
+  },
+  {
+    "kind": "layout",
     "directive": "image-text",
     "jsxName": "ImageText",
     "category": "evidence",

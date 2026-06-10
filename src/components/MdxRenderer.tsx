@@ -9,12 +9,13 @@ import {
   type ElementType,
   type ReactNode,
 } from 'react'
-import { compileMdx, getWorkspacePath, openFile } from '../lib/tauri'
+import { getWorkspacePath, openFile } from '../lib/tauri'
 import { resolveRelativePath } from '../lib/markdownUtils'
 import { createMarkdownComponents } from '../lib/markdownComponents'
 import { mdxComponents } from './mdx'
 import { MdxRuntimeProvider } from './mdx/context'
-import { createMdxComponent, type MdxRuntimeComponent } from '../lib/mdxRuntime'
+import { compileMdxDocument, type MdxDocumentResult } from '../lib/mdx'
+import { BlockRenderer } from './mdx/BlockRenderer'
 import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
 
 interface Props {
@@ -27,10 +28,10 @@ interface State {
   error?: Error
 }
 
-interface CompileState {
+interface DocumentState {
   key: string
   status: 'loading' | 'ready' | 'error'
-  component?: MdxRuntimeComponent
+  result?: MdxDocumentResult
   error?: string
 }
 
@@ -282,22 +283,6 @@ function extractMdxComponentSources(source: string): MdxComponentSourceMap {
   return sources
 }
 
-// ── Compile cache ──────────────────────────────────────────────────────────
-
-const MAX_COMPILED_CACHE = 50
-const compiledCache = new Map<string, MdxRuntimeComponent>()
-
-function getCachedComponent(key: string): MdxRuntimeComponent | undefined {
-  return compiledCache.get(key)
-}
-
-function setCachedComponent(key: string, component: MdxRuntimeComponent) {
-  compiledCache.set(key, component)
-  if (compiledCache.size > MAX_COMPILED_CACHE) {
-    const firstKey = compiledCache.keys().next().value
-    if (firstKey) compiledCache.delete(firstKey)
-  }
-}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -314,12 +299,10 @@ function parseMediaTime(value: string): number {
 
 export function MdxRenderer({ content, entryPath }: Props) {
   const cacheKey = `${entryPath ?? ''}\0${content}`
-  const [compileState, setCompileState] = useState<CompileState>(() => {
-    const cached = getCachedComponent(cacheKey)
-    return cached
-      ? { key: cacheKey, status: 'ready', component: cached }
-      : { key: cacheKey, status: 'loading' }
-  })
+  const [compileState, setCompileState] = useState<DocumentState>(() => ({
+    key: cacheKey,
+    status: 'loading',
+  }))
 
   const markdownComponents = useMemo(
     () => createMarkdownComponents({ entryPath: entryPath || '' }),
@@ -339,20 +322,12 @@ export function MdxRenderer({ content, entryPath }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    const cached = getCachedComponent(cacheKey)
-
-    if (cached) {
-      setCompileState({ key: cacheKey, status: 'ready', component: cached })
-      return
-    }
 
     setCompileState({ key: cacheKey, status: 'loading' })
-    compileMdx(content, entryPath)
-      .then((compiled) => createMdxComponent(compiled))
-      .then((component) => {
-        setCachedComponent(cacheKey, component)
+    compileMdxDocument(content)
+      .then((result) => {
         if (!cancelled) {
-          setCompileState({ key: cacheKey, status: 'ready', component })
+          setCompileState({ key: cacheKey, status: 'ready', result })
         }
       })
       .catch((error) => {
@@ -364,7 +339,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
     return () => {
       cancelled = true
     }
-  }, [cacheKey, content, entryPath])
+  }, [cacheKey, content])
 
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -450,9 +425,8 @@ export function MdxRenderer({ content, entryPath }: Props) {
     </div>
   )
 
-  const activeState: CompileState =
+  const activeState: DocumentState =
     compileState.key === cacheKey ? compileState : { key: cacheKey, status: 'loading' }
-  const Content = activeState.component
 
   return (
     <div className="md-content mdx-content" onClick={handleClick}>
@@ -464,12 +438,16 @@ export function MdxRenderer({ content, entryPath }: Props) {
             <pre className="mdx-fallback">{content}</pre>
           </>
         )}
-        {activeState.status === 'ready' && Content && (
-          <Suspense fallback={mdxLoadingFallback()}>
-            <MdxRuntimeProvider entryPath={entryPath}>
-              <Content components={components} />
-            </MdxRuntimeProvider>
-          </Suspense>
+        {activeState.status === 'ready' && activeState.result && (
+          <MdxRuntimeProvider entryPath={entryPath}>
+            {activeState.result.blocks.map((compiled, i) => (
+              <BlockRenderer
+                key={`${compiled.block.startLine}-${i}`}
+                compiled={compiled}
+                components={components}
+              />
+            ))}
+          </MdxRuntimeProvider>
         )}
       </MdxErrorBoundary>
     </div>

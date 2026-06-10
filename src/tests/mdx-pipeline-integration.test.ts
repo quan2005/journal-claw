@@ -44,7 +44,7 @@ describe('mdx pipeline integration', () => {
     mockCompileMdx.mockResolvedValue(VALID_MDX_OUTPUT)
 
     const source = '[react]: https://react.dev\n\nSee [react] for more.'
-    const result = await compileMdxDocument(source)
+    await compileMdxDocument(source)
 
     expect(mockCompileMdx).toHaveBeenCalled()
     const callArgs = mockCompileMdx.mock.calls

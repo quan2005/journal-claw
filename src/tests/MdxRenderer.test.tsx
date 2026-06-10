@@ -2,13 +2,40 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MdxRenderer } from '../components/MdxRenderer'
 import { createMdxComponent, toRunnableFunctionBody } from '../lib/mdxRuntime'
-import { compileMdx, openFile } from '../lib/tauri'
+import { openFile } from '../lib/tauri'
+import type { MdxDocumentResult } from '../lib/mdx'
 
 vi.mock('../lib/tauri', () => ({
   compileMdx: vi.fn(),
   getWorkspacePath: vi.fn(async () => '/tmp/journal'),
   openFile: vi.fn(),
 }))
+
+vi.mock('../lib/mdx', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/mdx')>()
+  return {
+    ...actual,
+    compileMdxDocument: vi.fn(),
+  }
+})
+
+import { compileMdxDocument } from '../lib/mdx'
+
+/** Build a single-block MdxDocumentResult from a compiled JS string */
+function makeDocResult(compiledJs: string): MdxDocumentResult {
+  const component = createMdxComponent(compiledJs)
+  return {
+    blocks: [
+      {
+        block: { source: '', startLine: 1, endLine: 1, kind: 'jsx' },
+        level: 'L0',
+        component,
+      },
+    ],
+    scope: { esmBlocks: [], linkDefinitions: [], footnoteDefinitions: [] },
+    hasDegradation: false,
+  }
+}
 
 const writeClipboardText = vi.fn()
 
@@ -38,7 +65,7 @@ describe('mdxRuntime', () => {
 
 describe('MdxRenderer', () => {
   beforeEach(() => {
-    vi.mocked(compileMdx).mockReset()
+    vi.mocked(compileMdxDocument).mockReset()
     vi.mocked(openFile).mockReset()
     writeClipboardText.mockReset()
     writeClipboardText.mockResolvedValue(undefined)
@@ -49,7 +76,7 @@ describe('MdxRenderer', () => {
   })
 
   it('renders compiled MDX content', async () => {
-    vi.mocked(compileMdx).mockResolvedValue(compiledParagraph)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledParagraph))
 
     const { container } = render(<MdxRenderer content="Hello **world**" />)
 
@@ -76,7 +103,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledUnknownAmongMarkdown)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledUnknownAmongMarkdown))
 
     render(
       <MdxRenderer
@@ -119,7 +146,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledRemovedComponents)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledRemovedComponents))
 
     render(
       <MdxRenderer
@@ -155,7 +182,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledCopy)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledCopy))
     const handler = vi.fn()
     window.addEventListener('mdx-copy', handler)
 
@@ -182,7 +209,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledChart)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledChart))
 
     render(<MdxRenderer content="<BarChart title='测试图表' data={[{label:'A', value:1}]} />" />)
 
@@ -204,7 +231,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledMath)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledMath))
 
     const { container } = render(<MdxRenderer content="$d_{model}$" />)
 
@@ -227,7 +254,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledMathComponent)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledMathComponent))
 
     const { container } = render(<MdxRenderer content="\\(d_{model}\\)" />)
 
@@ -246,7 +273,7 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledLocalFile)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledLocalFile))
     const handler = vi.fn()
     window.addEventListener('journal-file-open', handler)
 
@@ -272,7 +299,7 @@ export default MDXContent;`
   })
 
   it('passes MDX source to the compiler without legacy directive transforms', async () => {
-    vi.mocked(compileMdx).mockResolvedValue(compiledParagraph)
+    vi.mocked(compileMdxDocument).mockResolvedValue(makeDocResult(compiledParagraph))
 
     const content = `Before
 
@@ -284,9 +311,9 @@ After`
     render(<MdxRenderer content={content} entryPath="/tmp/journal/2606/04-layout.mdx" />)
 
     await waitFor(() => {
-      expect(compileMdx).toHaveBeenCalled()
+      expect(compileMdxDocument).toHaveBeenCalled()
     })
 
-    expect(vi.mocked(compileMdx).mock.calls[0][0]).toBe(content)
+    expect(vi.mocked(compileMdxDocument).mock.calls[0][0]).toBe(content)
   })
 })

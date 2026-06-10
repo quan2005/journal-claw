@@ -78,27 +78,52 @@ export function CompareBlock({ block }: { block: JournalBlock }) {
   const heading = stringValue(data.heading)
   const items = Array.isArray(data.items) ? data.items : []
 
+  // First row may be a header row defining left/right labels
+  let leftTag = ''
+  let rightTag = ''
+  let dataItems = items
+
+  if (items.length > 0) {
+    const first = asRecord(items[0])
+    const firstItem = stringValue(first.item)
+    // Detect header row: "item" field is a generic label like "痛点"
+    // and left/right describe what the columns mean
+    if (firstItem && !stringValue(first.leftLabel) && !stringValue(first.leftText)) {
+      // New format: { item, left, right }
+      leftTag = stringValue(first.left)
+      rightTag = stringValue(first.right)
+      dataItems = items.slice(1)
+    }
+  }
+
   return (
     <section className="journal-block journal-block-content journal-block-compare">
       {heading && <h2 className="journal-block-compare-heading">{heading}</h2>}
       <div className="journal-block-compare-list">
-        {items.map((item, index) => {
+        {dataItems.map((item, index) => {
           const row = asRecord(item)
+          const rowLeftLabel = stringValue(row.leftLabel) || stringValue(row.item)
+          const rowLeftText = stringValue(row.leftText) || stringValue(row.left)
+          const rowRightLabel = stringValue(row.rightLabel) || stringValue(row.item)
+          const rowRightText = stringValue(row.rightText) || stringValue(row.right)
+          const rowLeftTag = stringValue(row.leftTag) || leftTag
+          const rowRightTag = stringValue(row.rightTag) || rightTag
+
           return (
             <div key={index} className="journal-block-compare-item">
               <div className="journal-block-compare-card-left">
-                {stringValue(row.leftTag) && (
-                  <span className="journal-block-compare-tag">{stringValue(row.leftTag)}</span>
+                {rowLeftTag && (
+                  <span className="journal-block-compare-tag">{rowLeftTag}</span>
                 )}
-                <div className="journal-block-compare-label">{stringValue(row.leftLabel)}</div>
-                <p className="journal-block-compare-text">{stringValue(row.leftText)}</p>
+                <h3 className="journal-block-compare-label">{rowLeftLabel}</h3>
+                <p className="journal-block-compare-text">{rowLeftText}</p>
               </div>
               <div className="journal-block-compare-card-right">
-                {stringValue(row.rightTag) && (
-                  <span className="journal-block-compare-tag">{stringValue(row.rightTag)}</span>
+                {rowRightTag && (
+                  <span className="journal-block-compare-tag">{rowRightTag}</span>
                 )}
-                <div className="journal-block-compare-label">{stringValue(row.rightLabel)}</div>
-                <p className="journal-block-compare-text">{stringValue(row.rightText)}</p>
+                <h3 className="journal-block-compare-label">{rowRightLabel}</h3>
+                <p className="journal-block-compare-text">{rowRightText}</p>
               </div>
             </div>
           )

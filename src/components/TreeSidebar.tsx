@@ -6,7 +6,7 @@ import { TopicTree } from './TopicTree'
 import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
-import { deleteJournalEntry, deleteIdentity, deleteTopic } from '../lib/tauri'
+import { deleteJournalEntry, deleteIdentity, deleteTopic, getWorkspacePath } from '../lib/tauri'
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -344,11 +344,13 @@ export function TreeSidebar({
   const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
   const { items: pinnedItems, pin, unpin, refresh: refreshPinned } = usePinned()
   const { dirs, loading: topicsLoading, load: loadTopics, toggleDir } = useTopics()
+  const [wsPath, setWsPath] = useState('')
 
   // Initialize on mount
   useEffect(() => {
     refreshPinned()
     loadTopics()
+    getWorkspacePath().then(setWsPath).catch(() => {})
   }, [refreshPinned, loadTopics])
 
   // ── Collapse toggle ───────────────────────────────────────────────────────
@@ -919,6 +921,7 @@ export function TreeSidebar({
                     false,
                     x,
                     y,
+                    wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
                   )
                 }
               />

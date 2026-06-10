@@ -589,9 +589,6 @@
   line-height: 1.55;
   background: color-mix(in srgb, var(--mdx-surface) 72%, transparent);
 }
-.mdx-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--mdx-surface-muted) 76%, transparent);
-}
 
 /* Timeline */
 .mdx-timeline {

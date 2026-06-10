@@ -1173,16 +1173,6 @@ export default function App() {
             cursor: rightPanelOpen ? 'col-resize' : 'default',
             transition: 'background-color 0.15s var(--ease-out)',
           }}
-          onMouseEnter={(e) => {
-            if (rightPanelOpen && !isRightPanelDragging) {
-              e.currentTarget.style.background = 'var(--divider-hover)'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (rightPanelOpen && !isRightPanelDragging) {
-              e.currentTarget.style.background = 'transparent'
-            }
-          }}
         >
           <PanelDividerToggle
             edge="right"

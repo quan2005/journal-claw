@@ -321,7 +321,7 @@ describe('MDX table rendering contract', () => {
     expect(mdxCss).toContain('border-top: 1px solid var(--mdx-border)')
     expect(mdxCss).toContain('.mdx-table--plain tbody tr:first-child td')
     expect(mdxCss).toContain('.mdx-table th + th')
-    expect(mdxCss).toContain('.mdx-table tbody tr:hover td')
+    expect(mdxCss).not.toContain('.mdx-table tbody tr:hover td')
   })
 })
 

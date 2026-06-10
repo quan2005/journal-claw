@@ -17,10 +17,7 @@
   max-width: 100%;
 }
 
-.journal-block h1,
-.journal-block h2,
-.journal-block h3,
-.journal-block p {
+.journal-block :where(h1, h2, h3, p) {
   margin: 0;
 }
 
@@ -187,16 +184,6 @@
   width: 160px;
   height: 1px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--record-btn) 72%, transparent), transparent);
-}
-
-.journal-block-hero h1,
-.journal-block-hero p,
-.journal-block-hero div {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  font: inherit;
 }
 
 .journal-block-hero-kicker {
@@ -500,23 +487,12 @@
   max-width: 100%;
 }
 
-.journal-block-compare h2,
-.journal-block-compare p,
-.journal-block-compare div,
-.journal-block-compare span {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  font: inherit;
-}
-
 .journal-block-compare-heading {
   font-size: 18px;
   font-weight: var(--font-semibold);
   line-height: 1.3;
   letter-spacing: -0.02em;
-  color: var(--item-text);
+  color: var(--journal-title-color);
   margin-bottom: 24px;
 }
 
@@ -557,7 +533,7 @@
 .journal-block-compare-card-left,
 .journal-block-compare-card-right {
   border-radius: 12px;
-  padding: 20px 24px;
+  padding: 24px 28px;
 }
 
 .journal-block-compare-card-left {
@@ -1212,6 +1188,7 @@
   border-left-color: color-mix(in srgb, var(--record-btn) 46%, var(--divider));
   background: color-mix(in srgb, var(--bg-secondary) 36%, transparent);
 }
+
 
 .journal-block-resource-main {
   display: grid;

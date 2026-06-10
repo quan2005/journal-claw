@@ -1,0 +1,219 @@
+/* ─── Error Card (L2) ──────────────────────────────────────────── */
+
+.mdx-error-card {
+  margin: 12px 0;
+  border: 1px solid var(--color-border-error, #e5484d);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 13px;
+  background: var(--color-surface-error, #fff0f0);
+}
+
+[data-theme="dark"] .mdx-error-card {
+  background: var(--color-surface-error, #1f1315);
+  border-color: var(--color-border-error, #822025);
+}
+
+.mdx-error-card-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--color-surface-error-subtle, #fef0f0);
+  border-bottom: 1px solid var(--color-border-error, #e5484d);
+  font-weight: 500;
+}
+
+[data-theme="dark"] .mdx-error-card-status {
+  background: var(--color-surface-error-subtle, #291415);
+}
+
+.mdx-error-card-icon {
+  color: var(--color-text-error, #cd2b31);
+  flex-shrink: 0;
+}
+
+.mdx-error-card-message {
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.mdx-error-card-location {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mdx-error-card-source {
+  margin: 0;
+  padding: 8px 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--color-surface-code, #f6f6f6);
+  border-bottom: 1px solid var(--color-border-subtle, #e8e8e8);
+}
+
+[data-theme="dark"] .mdx-error-card-source {
+  background: var(--color-surface-code, #1a1a1a);
+}
+
+.mdx-error-card-source code {
+  display: block;
+}
+
+.mdx-error-card-line-num {
+  display: inline-block;
+  width: 3ch;
+  margin-right: 12px;
+  color: var(--color-text-tertiary, #999);
+  text-align: right;
+  user-select: none;
+}
+
+.mdx-error-card-source-highlight {
+  background: rgba(229, 72, 77, 0.12);
+  display: block;
+  margin: 0 -12px;
+  padding: 0 12px;
+}
+
+[data-theme="dark"] .mdx-error-card-source-highlight {
+  background: rgba(229, 72, 77, 0.15);
+}
+
+.mdx-error-card-details {
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-border-subtle, #e8e8e8);
+}
+
+.mdx-error-card-details summary {
+  padding: 6px 0;
+  cursor: pointer;
+  color: var(--color-text-secondary, #666);
+  font-size: 12px;
+  user-select: none;
+}
+
+.mdx-error-card-raw {
+  margin: 0 0 8px;
+  padding: 8px;
+  font-family: var(--font-mono, 'SF Mono', monospace);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--color-text-secondary, #666);
+  background: var(--color-surface-code, #f6f6f6);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .mdx-error-card-raw {
+  background: var(--color-surface-code, #1a1a1a);
+}
+
+.mdx-error-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.mdx-error-card-btn {
+  padding: 3px 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-secondary, #666);
+  cursor: pointer;
+  transition: background 0.15s ease-out;
+}
+
+.mdx-error-card-btn:hover {
+  background: var(--color-surface-hover, rgba(0, 0, 0, 0.04));
+}
+
+[data-theme="dark"] .mdx-error-card-btn:hover {
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+.mdx-error-card-hint {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #999);
+  font-style: italic;
+}
+
+/* ─── Degradation Badge (L1) ───────────────────────────────────── */
+
+.mdx-degradation-wrapper {
+  position: relative;
+}
+
+.mdx-degradation-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-warning, #f5a623);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s ease-out;
+}
+
+.mdx-degradation-badge:hover {
+  opacity: 1;
+}
+
+.mdx-degradation-tooltip {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 10;
+  max-width: 280px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  background: var(--color-surface-elevated, #fff);
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  white-space: normal;
+}
+
+[data-theme="dark"] .mdx-degradation-tooltip {
+  background: var(--color-surface-elevated, #2a2a2a);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Component Placeholder (unregistered) ─────────────────────── */
+
+.mdx-component-placeholder {
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px dashed var(--color-border, #ddd);
+  border-radius: 6px;
+  color: var(--color-text-tertiary, #999);
+  font-size: 12px;
+}
+
+.mdx-component-placeholder-name {
+  font-family: var(--font-mono, 'SF Mono', monospace);
+  font-weight: 500;
+  color: var(--color-text-secondary, #666);
+}
+
+.mdx-component-placeholder-label {
+  margin-left: 8px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* ─── Block degraded content (L1 markdown fallback) ──────────── */
+
+.mdx-block-degraded {
+  /* Inherit standard markdown styles */
+}

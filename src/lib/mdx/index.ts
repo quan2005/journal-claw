@@ -31,16 +31,18 @@ export async function compileMdxDocument(source: string): Promise<MdxDocumentRes
   }
 
   if (blocks.length === 0) {
-    return { blocks: [], scope: { esmBlocks: [], linkDefinitions: [], footnoteDefinitions: [] }, hasDegradation: false }
+    return {
+      blocks: [],
+      scope: { esmBlocks: [], linkDefinitions: [], footnoteDefinitions: [] },
+      hasDegradation: false,
+    }
   }
 
   const scope = extractScope(blocks)
 
   // Compile content blocks (ESM blocks are scope-only, skip them)
   const contentBlocks = blocks.filter((b) => b.kind !== 'esm')
-  const compiledBlocks = await Promise.all(
-    contentBlocks.map((block) => compileBlock(block, scope))
-  )
+  const compiledBlocks = await Promise.all(contentBlocks.map((block) => compileBlock(block, scope)))
 
   const hasDegradation = compiledBlocks.some((b) => b.level !== 'L0')
 

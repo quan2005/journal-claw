@@ -26,6 +26,7 @@ vi.mock('../lib/tauri', () => ({
   deleteJournalEntry: vi.fn(),
   deleteIdentity: vi.fn(),
   deleteTopic: vi.fn(),
+  getWorkspacePath: vi.fn().mockResolvedValue('/ws'),
 }))
 
 const identity: IdentityEntry = {

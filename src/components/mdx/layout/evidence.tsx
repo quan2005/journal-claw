@@ -73,16 +73,6 @@ export interface CompareItem {
   rightText: string
 }
 
-export function Compare({
-  heading,
-  items,
-}: {
-  heading?: string
-  items: CompareItem[]
-}) {
-  return (
-    <LayoutBlock
-      block={objectBlock('compare', { heading, items })}
-    />
-  )
+export function Compare({ heading, items }: { heading?: string; items: CompareItem[] }) {
+  return <LayoutBlock block={objectBlock('compare', { heading, items })} />
 }

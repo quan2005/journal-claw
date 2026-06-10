@@ -31,10 +31,7 @@ export function BlockRenderer({ compiled, components }: BlockRendererProps) {
   if (level === 'L1' && markdownHtml && error) {
     return (
       <DegradationBadge error={error}>
-        <div
-          className="mdx-block-degraded"
-          dangerouslySetInnerHTML={{ __html: markdownHtml }}
-        />
+        <div className="mdx-block-degraded" dangerouslySetInnerHTML={{ __html: markdownHtml }} />
       </DegradationBadge>
     )
   }

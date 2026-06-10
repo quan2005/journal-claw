@@ -159,7 +159,10 @@ mod tests {
         let content = b"test content for dedup";
         let digest = crate::digest::compute_source_digest(content, "v1", "model-x");
         let entry_content = format!("---\nsource_digest: {}\n---\n\n# Test\n", digest);
-        assert!(crate::frontmatter::entry_has_digest(&entry_content, &digest));
+        assert!(crate::frontmatter::entry_has_digest(
+            &entry_content,
+            &digest
+        ));
     }
 
     #[test]

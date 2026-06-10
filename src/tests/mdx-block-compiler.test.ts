@@ -18,7 +18,7 @@ function makeBlock(source: string, kind: 'markdown' | 'jsx' | 'esm' = 'markdown'
 describe('mdx block compiler', () => {
   it('returns L0 when MDX compilation succeeds', async () => {
     mockCompileMdx.mockResolvedValue(
-      'import {jsx as _jsx} from "react/jsx-runtime"\nfunction MDXContent(){return _jsx("p",{children:"hi"})}\nexport default MDXContent'
+      'import {jsx as _jsx} from "react/jsx-runtime"\nfunction MDXContent(){return _jsx("p",{children:"hi"})}\nexport default MDXContent',
     )
     const result = await compileBlock(makeBlock('Hello world'), emptyScope)
     expect(result.level).toBe('L0')

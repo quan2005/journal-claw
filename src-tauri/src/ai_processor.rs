@@ -607,13 +607,24 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                     }
                     Ok(Err(e)) => {
                         let error_code = crate::errors::AiErrorCode::from_llm_error(&e);
-                        let decision = crate::llm::retry::decide_retry(&error_code, attempt, &side_effects, &retry_policy);
+                        let decision = crate::llm::retry::decide_retry(
+                            &error_code,
+                            attempt,
+                            &side_effects,
+                            &retry_policy,
+                        );
                         match decision {
-                            crate::llm::retry::RetryDecision::Retry { delay, attempt: new_attempt } => {
+                            crate::llm::retry::RetryDecision::Retry {
+                                delay,
+                                attempt: new_attempt,
+                            } => {
                                 attempt = new_attempt;
                                 eprintln!(
                                     "[ai_queue] retry {}/{} after {}ms: {}",
-                                    attempt, retry_policy.max_attempts, delay.as_millis(), e
+                                    attempt,
+                                    retry_policy.max_attempts,
+                                    delay.as_millis(),
+                                    e
                                 );
                                 let _ = app.emit(
                                     "ai-processing",
@@ -624,7 +635,10 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                                         structured_error: Some(
                                             crate::errors::AiProcessingError::new(
                                                 error_code,
-                                                format!("第 {}/{} 次重试...", attempt, retry_policy.max_attempts),
+                                                format!(
+                                                    "第 {}/{} 次重试...",
+                                                    attempt, retry_policy.max_attempts
+                                                ),
                                                 attempt,
                                             ),
                                         ),
@@ -634,7 +648,10 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                                 continue;
                             }
                             crate::llm::retry::RetryDecision::Abort { reason } => {
-                                eprintln!("[ai_queue] task failed ({}): {} → {}", reason, material_path, e);
+                                eprintln!(
+                                    "[ai_queue] task failed ({}): {} → {}",
+                                    reason, material_path, e
+                                );
                                 break;
                             }
                         }
@@ -692,11 +709,8 @@ pub async fn process_material(
     current_task: &tauri::State<'_, CurrentTask>,
 ) -> Result<(), String> {
     let cfg = config::load_config(app).inspect_err(|e| {
-        let structured = AiProcessingError::new(
-            crate::errors::AiErrorCode::InternalError,
-            e.clone(),
-            0,
-        );
+        let structured =
+            AiProcessingError::new(crate::errors::AiErrorCode::InternalError, e.clone(), 0);
         let _ = app.emit(
             "ai-processing",
             ProcessingUpdate {
@@ -764,8 +778,8 @@ async fn process_material_builtin(
 
     // ── Dedup check: compute source digest and skip if already processed ──
     let source_digest = {
-        let material_bytes = std::fs::read(material_path)
-            .map_err(|e| format!("无法读取素材文件: {}", e))?;
+        let material_bytes =
+            std::fs::read(material_path).map_err(|e| format!("无法读取素材文件: {}", e))?;
         crate::digest::compute_source_digest(&material_bytes, "v1", model_for_digest)
     };
 
@@ -976,9 +990,7 @@ async fn process_material_builtin(
                         e.metadata()
                             .ok()
                             .and_then(|m| m.modified().ok())
-                            .and_then(|t| {
-                                t.duration_since(std::time::SystemTime::UNIX_EPOCH).ok()
-                            })
+                            .and_then(|t| t.duration_since(std::time::SystemTime::UNIX_EPOCH).ok())
                             .unwrap_or_default()
                     });
 
@@ -1014,13 +1026,17 @@ async fn process_material_builtin(
             let _ = app.emit("journal-updated", &ym);
             // Record to event log for catch-up
             if let Some(event_log) = app.try_state::<EventLogState>() {
-                event_log.0.record(EventKind::JournalUpdated, serde_json::json!(&ym));
+                event_log
+                    .0
+                    .record(EventKind::JournalUpdated, serde_json::json!(&ym));
             }
             let todos_path = std::path::Path::new(&workspace).join("todos.md");
             if todos_path.exists() {
                 let _ = app.emit("todos-updated", ());
                 if let Some(event_log) = app.try_state::<EventLogState>() {
-                    event_log.0.record(EventKind::TodosUpdated, serde_json::json!(null));
+                    event_log
+                        .0
+                        .record(EventKind::TodosUpdated, serde_json::json!(null));
                 }
             }
             if let Some(ctx) = reply_ctx {

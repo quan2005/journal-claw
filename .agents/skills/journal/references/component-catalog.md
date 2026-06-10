@@ -18,13 +18,6 @@ The public MDX surface is defined by `src/components/mdx/component-manifest.json
 - Best for: parallel themes, deliverables, or entry points.
 - Avoid: continuous prose or card-heavy page composition; use a list.
 
-### `Hero`
-
-- Purpose: editorial-style article header with oversized title and kicker.
-- Props: `title`, `eyebrow?` (or `kicker?`), `subtitle?` (or `lead?`), `meta?`.
-- Best for: long-form reading notes, research briefs, and deep-dive entries that need a prominent opening statement.
-- Avoid: short daily logs or routine meeting notes; use a heading and paragraph.
-
 ### `Card`
 
 - Purpose: one item inside `Cards`, or one standalone summary.
@@ -175,25 +168,6 @@ The public MDX surface is defined by `src/components/mdx/component-manifest.json
 - Props: `text`, `author?`, `context?`, `source?`, `url?`.
 - Best for: interview evidence or an exact statement that affects interpretation.
 - Avoid: long transcripts or unattributed claims; use prose and `ReferenceList`.
-
-### `QuoteCard`
-
-- Purpose: highlight a key statement or insight with visual prominence.
-- Props: `text`, `author?`, `source?`, `variant="default|minimal|large|inline"?`.
-- Variants:
-  - `default`: card with accent bar and attribution.
-  - `minimal`: transparent with subtle left border, quieter.
-  - `large`: centered, accent-tinted background, for hero-level statements.
-  - `inline`: no card background, italic text with accent bar, for inline emphasis.
-- Best for: golden quotes, core arguments, or keynote statements that deserve visual weight.
-- Avoid: routine evidence citations; use `Quote`. Do not use multiple `large` variants on one page.
-
-### `Compare`
-
-- Purpose: side-by-side comparison cards with VS marker for contrasting perspectives.
-- Props: `heading?`, `items[{ leftTag?, leftLabel, leftText, rightTag?, rightLabel, rightText }]`.
-- Best for: contrasting current state vs. desired state, problem vs. solution, before vs. after.
-- Avoid: multi-dimensional comparisons with many attributes; use `ComparisonMatrix`.
 
 ### `Callout`
 

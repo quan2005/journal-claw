@@ -350,7 +350,9 @@ export function TreeSidebar({
   useEffect(() => {
     refreshPinned()
     loadTopics()
-    getWorkspacePath().then(setWsPath).catch(() => {})
+    getWorkspacePath()
+      .then(setWsPath)
+      .catch(() => {})
   }, [refreshPinned, loadTopics])
 
   // ── Collapse toggle ───────────────────────────────────────────────────────

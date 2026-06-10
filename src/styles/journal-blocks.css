@@ -183,7 +183,11 @@
   bottom: -1px;
   width: 160px;
   height: 1px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--record-btn) 72%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--record-btn) 72%, transparent),
+    transparent
+  );
 }
 
 .journal-block-hero-kicker {
@@ -1188,7 +1192,6 @@
   border-left-color: color-mix(in srgb, var(--record-btn) 46%, var(--divider));
   background: color-mix(in srgb, var(--bg-secondary) 36%, transparent);
 }
-
 
 .journal-block-resource-main {
   display: grid;

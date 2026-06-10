@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useJournal } from '../hooks/useJournal'
 import { listAvailableMonths, listJournalEntriesByMonths } from '../lib/tauri'
 
@@ -32,6 +32,7 @@ vi.mock('../lib/tauri', () => ({
     },
   ]),
   listWorkQueue: vi.fn().mockResolvedValue([]),
+  getEventsSince: vi.fn().mockResolvedValue([]),
   enqueueWork: vi
     .fn()
     .mockResolvedValue({ id: 'wq-test', status: 'queued', display_name: 'test', created_at: 0 }),
@@ -174,8 +175,7 @@ describe('useJournal', () => {
     })
   })
 
-  it('polls the workspace and loads newly available months', async () => {
-    vi.useFakeTimers()
+  it('refreshes the workspace and loads newly available months after a journal update event', async () => {
     let poll = 0
     vi.mocked(listAvailableMonths).mockImplementation(async () =>
       poll === 0 ? ['2603'] : ['2604', '2603'],
@@ -220,20 +220,23 @@ describe('useJournal', () => {
     })
 
     const { result } = renderHook(() => useJournal())
-    await act(async () => {})
-    expect(result.current.entries.map((entry) => entry.filename)).toEqual([
-      '28-AI平台产品会议纪要.md',
-    ])
+    await waitFor(() =>
+      expect(result.current.entries.map((entry) => entry.filename)).toEqual([
+        '28-AI平台产品会议纪要.md',
+      ]),
+    )
 
     poll = 1
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3000)
+    act(() => {
+      fireEvent('journal-updated', '2604')
     })
 
-    expect(result.current.entries.map((entry) => entry.filename)).toEqual([
-      '01-new.md',
-      '28-AI平台产品会议纪要.md',
-    ])
+    await waitFor(() =>
+      expect(result.current.entries.map((entry) => entry.filename)).toEqual([
+        '01-new.md',
+        '28-AI平台产品会议纪要.md',
+      ]),
+    )
   })
 
   it('updates an existing entry when only sub-second mtime changes', async () => {

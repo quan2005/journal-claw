@@ -93,9 +93,7 @@ export function HeroBlock({ block }: { block: JournalBlock }) {
 
   return (
     <section className="journal-block journal-block-hero">
-      {kicker && (
-        <div className="journal-block-hero-kicker">{kicker}</div>
-      )}
+      {kicker && <div className="journal-block-hero-kicker">{kicker}</div>}
       <h1 className="journal-block-hero-title">
         <TextWithBreaks value={title} />
       </h1>

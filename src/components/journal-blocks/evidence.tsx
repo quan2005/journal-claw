@@ -53,12 +53,13 @@ export function QuoteBlock({ block }: { block: JournalBlock }) {
 export function QuoteCardBlock({ block }: { block: JournalBlock }) {
   const data = fields(block)
   const variant = (block.attrs.variant as string) || 'default'
-  const variantClass =
-    variant !== 'default' ? ` journal-block-quote-card-${variant}` : ''
+  const variantClass = variant !== 'default' ? ` journal-block-quote-card-${variant}` : ''
   const hasMeta = Boolean(data.author || data.source)
 
   return (
-    <figure className={`journal-block journal-block-content journal-block-quote-card${variantClass}`}>
+    <figure
+      className={`journal-block journal-block-content journal-block-quote-card${variantClass}`}
+    >
       <blockquote className="journal-block-quote-card-body">
         <p className="journal-block-quote-card-text">{data.text}</p>
       </blockquote>
@@ -112,16 +113,12 @@ export function CompareBlock({ block }: { block: JournalBlock }) {
           return (
             <div key={index} className="journal-block-compare-item">
               <div className="journal-block-compare-card-left">
-                {rowLeftTag && (
-                  <span className="journal-block-compare-tag">{rowLeftTag}</span>
-                )}
+                {rowLeftTag && <span className="journal-block-compare-tag">{rowLeftTag}</span>}
                 <h3 className="journal-block-compare-label">{rowLeftLabel}</h3>
                 <p className="journal-block-compare-text">{rowLeftText}</p>
               </div>
               <div className="journal-block-compare-card-right">
-                {rowRightTag && (
-                  <span className="journal-block-compare-tag">{rowRightTag}</span>
-                )}
+                {rowRightTag && <span className="journal-block-compare-tag">{rowRightTag}</span>}
                 <h3 className="journal-block-compare-label">{rowRightLabel}</h3>
                 <p className="journal-block-compare-text">{rowRightText}</p>
               </div>

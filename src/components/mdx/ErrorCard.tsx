@@ -20,9 +20,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
       <div className="mdx-error-card-status">
         <span className="mdx-error-card-icon">⚠</span>
         <span className="mdx-error-card-message">{error.friendly}</span>
-        {error.line && (
-          <span className="mdx-error-card-location">· 第 {error.line} 行</span>
-        )}
+        {error.line && <span className="mdx-error-card-location">· 第 {error.line} 行</span>}
       </div>
 
       {/* Source degradation area */}
@@ -32,10 +30,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
             const lineNum = block.startLine + i
             const isErrorLine = lineNum === error.line
             return (
-              <span
-                key={i}
-                className={isErrorLine ? 'mdx-error-card-source-highlight' : undefined}
-              >
+              <span key={i} className={isErrorLine ? 'mdx-error-card-source-highlight' : undefined}>
                 <span className="mdx-error-card-line-num">{lineNum}</span>
                 {line}
                 {'\n'}
@@ -60,9 +55,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
         <button className="mdx-error-card-btn" onClick={handleCopyError}>
           复制错误
         </button>
-        {error.fixHint && (
-          <span className="mdx-error-card-hint">{error.fixHint}</span>
-        )}
+        {error.fixHint && <span className="mdx-error-card-hint">{error.fixHint}</span>}
       </div>
     </div>
   )

@@ -13,7 +13,13 @@ import {
   ToolboxBlock,
 } from './conversion'
 import { CalloutBlock, ComparisonTableBlock, DefinitionBlock, ResourceListBlock } from './enhanced'
-import { CompareBlock, ImageStepsBlock, ImageTextBlock, QuoteBlock, QuoteCardBlock } from './evidence'
+import {
+  CompareBlock,
+  ImageStepsBlock,
+  ImageTextBlock,
+  QuoteBlock,
+  QuoteCardBlock,
+} from './evidence'
 import { MetricsBlock, StepsBlock, TimelineBlock } from './infographic'
 import { MythFactBlock, VerdictBlock } from './judgment'
 import { CardsBlock, HeroBlock, TocBlock } from './opening'

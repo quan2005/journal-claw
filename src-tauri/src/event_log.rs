@@ -71,10 +71,7 @@ impl EventLog {
             eprintln!("[event_log] mutex poisoned, recovering");
             e.into_inner()
         });
-        buf.iter()
-            .filter(|e| e.seq > since_seq)
-            .cloned()
-            .collect()
+        buf.iter().filter(|e| e.seq > since_seq).cloned().collect()
     }
 
     /// Current sequence number (next event will get this + 1).

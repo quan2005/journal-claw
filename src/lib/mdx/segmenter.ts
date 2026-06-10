@@ -1,7 +1,7 @@
 import type { Block, BlockKind } from './types'
 
 /** PascalCase JSX open tag: <ComponentName or <Component.Sub */
-const OPEN_TAG_RE = /^<([A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*)[\s>\/]/
+const OPEN_TAG_RE = /^<([A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*)[\s>/]/
 /** Self-closing PascalCase JSX tag on its own line */
 const SELF_CLOSE_RE = /^<[A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*[^>]*\/>/
 /** Fenced code block delimiter (``` or ~~~) */
@@ -132,7 +132,7 @@ export function segmentMdx(source: string): Block[] {
       }
     } else {
       // Inside a JSX container — count nested opens/closes on this line
-      const openMatches = line.match(/<[A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*[\s>\/]/g) ?? []
+      const openMatches = line.match(/<[A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*[\s>/]/g) ?? []
       const selfCloseMatches = line.match(/<[A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*[^>]*\/>/g) ?? []
       const closeMatches = line.match(/<\/[A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*\s*>/g) ?? []
 

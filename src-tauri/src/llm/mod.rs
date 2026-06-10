@@ -98,11 +98,7 @@ mod tests {
 
     #[test]
     fn factory_unknown_protocol_defaults_to_anthropic() {
-        let _engine = create_engine_for_provider(
-            "key",
-            "https://api.example.com",
-            "model",
-            "volcengine",
-        );
+        let _engine =
+            create_engine_for_provider("key", "https://api.example.com", "model", "volcengine");
     }
 }

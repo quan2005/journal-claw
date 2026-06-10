@@ -26,7 +26,8 @@ describe('mdx segmenter', () => {
   })
 
   it('keeps JSX container components as a single block', () => {
-    const source = '<Tabs>\n  <Tab label="A">\n    Content A\n  </Tab>\n\n  <Tab label="B">\n    Content B\n  </Tab>\n</Tabs>'
+    const source =
+      '<Tabs>\n  <Tab label="A">\n    Content A\n  </Tab>\n\n  <Tab label="B">\n    Content B\n  </Tab>\n</Tabs>'
     const blocks = segmentMdx(source)
     expect(blocks).toHaveLength(1)
     expect(blocks[0].kind).toBe('jsx')

@@ -21,9 +21,7 @@ impl AiErrorCode {
     pub fn retryable(&self) -> bool {
         matches!(
             self,
-            AiErrorCode::RateLimited
-                | AiErrorCode::NetworkTimeout
-                | AiErrorCode::ModelUnavailable
+            AiErrorCode::RateLimited | AiErrorCode::NetworkTimeout | AiErrorCode::ModelUnavailable
         )
     }
 
@@ -64,10 +62,7 @@ impl AiErrorCode {
             && (lower.contains("not found") || lower.contains("unavailable"))
         {
             AiErrorCode::ModelUnavailable
-        } else if lower.contains("quota")
-            || lower.contains("billing")
-            || lower.contains("credit")
-        {
+        } else if lower.contains("quota") || lower.contains("billing") || lower.contains("credit") {
             AiErrorCode::QuotaExhausted
         } else {
             AiErrorCode::LlmError

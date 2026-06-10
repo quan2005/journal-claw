@@ -33,6 +33,12 @@ export { Section, Subtitle, Label, Divider } from './typography'
 // Preview
 export { HtmlPreview } from './html-preview'
 
+// Error handling & fault-tolerant rendering
+export { ErrorCard } from './ErrorCard'
+export { DegradationBadge } from './DegradationBadge'
+export { BlockErrorBoundary } from './BlockErrorBoundary'
+export { BlockRenderer } from './BlockRenderer'
+
 // Grid & Flow
 export { Grid, Flow } from './grid'
 

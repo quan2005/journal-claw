@@ -1,5 +1,6 @@
 import './styles/globals.css'
 import './styles/animations.css'
+import './styles/mdx-errors.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'

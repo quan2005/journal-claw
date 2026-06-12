@@ -86,3 +86,8 @@
   pointer-events: none;
   font-family: var(--font-body);
 }
+
+@keyframes nav-rail-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

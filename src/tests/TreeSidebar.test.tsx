@@ -3,6 +3,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import { TreeSidebar } from '../components/TreeSidebar'
 import type { IdentityEntry, JournalEntry, TreeSelection } from '../types'
+import type { Category } from '../contexts/UIContext'
 
 vi.mock('../hooks/usePinned', () => ({
   usePinned: () => ({
@@ -74,11 +75,7 @@ function renderTreeSidebar(overrides: Partial<Parameters<typeof TreeSidebar>[0]>
     onAtRef: vi.fn(),
     todayYearMonth: '2606',
     todayDay: 2,
-    ideasCount: 0,
-    ideasSelected: false,
-    onSelectIdeas: vi.fn(),
-    automationSelected: false,
-    onSelectAutomation: vi.fn(),
+    category: 'journal' as Category,
     ...overrides,
   }
 

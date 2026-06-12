@@ -671,15 +671,6 @@ export default function App() {
     [setShowIdeas, setTreeSelection, setView],
   )
 
-  const handleSelectAutomation = useCallback(() => {
-    setDetailReturnTarget(null)
-    setShowIdeas(false)
-    setSelectedEntry(null)
-    setTopicFocusSelection(null)
-    setTreeSelection({ type: 'automation', path: '__automation__' })
-    setView('automation')
-  }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
-
   const handleCategoryChange = useCallback(
     (cat: Category) => {
       setDetailReturnTarget(null)
@@ -701,9 +692,10 @@ export default function App() {
   )
 
   useEffect(() => {
-    window.addEventListener('open-automation-workbench', handleSelectAutomation)
-    return () => window.removeEventListener('open-automation-workbench', handleSelectAutomation)
-  }, [handleSelectAutomation])
+    const handler = () => handleCategoryChange('automation')
+    window.addEventListener('open-automation-workbench', handler)
+    return () => window.removeEventListener('open-automation-workbench', handler)
+  }, [handleCategoryChange])
 
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
@@ -1050,13 +1042,15 @@ export default function App() {
           ) : (
             <DetailView
               type={
-                showIdeas
+                activeCategory === 'ideas'
                   ? 'ideas'
                   : !treeSelection || treeSelection.type === 'journal'
                     ? 'journal'
                     : treeSelection.type === 'identity'
                       ? 'identity'
-                      : 'topic-file'
+                      : treeSelection.type === 'topic-file'
+                        ? 'topic-file'
+                        : 'journal'
               }
               entry={
                 treeSelection?.type === 'journal'

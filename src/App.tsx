@@ -15,6 +15,8 @@ import { useIdentity } from './hooks/useIdentity'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
 import { useUI } from './contexts/UIContext'
+import type { Category } from './contexts/UIContext'
+import { NavRail } from './components/NavRail'
 import { useTodoContext } from './contexts/TodoContext'
 import {
   importFile,
@@ -193,6 +195,8 @@ export default function App() {
     setRightPanelWidth,
     chatInitialText,
     setChatInitialText,
+    activeCategory,
+    setActiveCategory,
     deselect,
   } = useUI()
 
@@ -683,6 +687,26 @@ export default function App() {
     setView('automation')
   }, [setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
+  const handleCategoryChange = useCallback(
+    (cat: Category) => {
+      setDetailReturnTarget(null)
+      setTopicFocusSelection(null)
+
+      if (cat === 'automation') {
+        setShowIdeas(false)
+        setSelectedEntry(null)
+        setTreeSelection({ type: 'automation', path: '__automation__' })
+        setView('automation')
+      } else {
+        setView('journal')
+        setShowIdeas(cat === 'ideas')
+      }
+
+      setActiveCategory(cat)
+    },
+    [setActiveCategory, setSelectedEntry, setShowIdeas, setTreeSelection, setView],
+  )
+
   useEffect(() => {
     window.addEventListener('open-automation-workbench', handleSelectAutomation)
     return () => window.removeEventListener('open-automation-workbench', handleSelectAutomation)
@@ -942,6 +966,12 @@ export default function App() {
           filter: view === 'settings' ? 'saturate(0.9)' : undefined,
         }}
       >
+        <NavRail
+          activeCategory={activeCategory}
+          onCategoryChange={handleCategoryChange}
+          onSettingsClick={() => setView('settings')}
+        />
+
         {/* Left: Tree Sidebar */}
         <div
           className="app-sidebar-panel"
@@ -1086,8 +1116,12 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          {view === 'automation' ? (
+          {activeCategory === 'automation' ? (
             <AutomationWorkbench onOpenConversation={(sessionId) => openChatPanel(sessionId)} />
+          ) : activeCategory === 'skills' ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--item-meta)' }}>
+              <p>技能工作台（即将推出）</p>
+            </div>
           ) : (
             <DetailView
               type={

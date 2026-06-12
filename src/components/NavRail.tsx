@@ -1,5 +1,5 @@
 import { useCallback, useRef, type KeyboardEvent } from 'react'
-import { ScrollText, Lightbulb, Users, Archive, RefreshCw, Zap, Settings } from 'lucide-react'
+import { ScrollText, Lightbulb, Users, Archive, Bot, Zap, Settings } from 'lucide-react'
 import type { Category } from '../contexts/UIContext'
 import '../styles/nav-rail.css'
 
@@ -15,19 +15,21 @@ interface NavItem {
   icon: typeof ScrollText
 }
 
-const CONTENT_ITEMS: NavItem[] = [
-  { id: 'journal', label: '流水', icon: ScrollText },
+// 全屏类（不需要侧栏）
+const FULLSCREEN_ITEMS: NavItem[] = [
   { id: 'ideas', label: '想法', icon: Lightbulb },
-  { id: 'identity', label: '画像', icon: Users },
-  { id: 'topics', label: '专题', icon: Archive },
-]
-
-const TOOL_ITEMS: NavItem[] = [
-  { id: 'automation', label: '自动化', icon: RefreshCw },
+  { id: 'automation', label: '自动化', icon: Bot },
   { id: 'skills', label: '技能', icon: Zap },
 ]
 
-const ALL_ITEMS = [...CONTENT_ITEMS, ...TOOL_ITEMS]
+// 列表类（需要侧栏）
+const LIST_ITEMS: NavItem[] = [
+  { id: 'topics', label: '专题', icon: Archive },
+  { id: 'identity', label: '画像', icon: Users },
+  { id: 'journal', label: '流水', icon: ScrollText },
+]
+
+const ALL_ITEMS = [...FULLSCREEN_ITEMS, ...LIST_ITEMS]
 
 export function NavRail({ activeCategory, onCategoryChange, onSettingsClick }: NavRailProps) {
   const navRef = useRef<HTMLElement>(null)
@@ -84,9 +86,9 @@ export function NavRail({ activeCategory, onCategoryChange, onSettingsClick }: N
       aria-label="分类导航"
       onKeyDown={handleKeyDown}
     >
-      {CONTENT_ITEMS.map(renderButton)}
+      {FULLSCREEN_ITEMS.map(renderButton)}
       <div className="nav-rail__divider" role="separator" />
-      {TOOL_ITEMS.map(renderButton)}
+      {LIST_ITEMS.map(renderButton)}
       <div className="nav-rail__spacer" />
       <button
         type="button"

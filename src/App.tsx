@@ -670,6 +670,14 @@ export default function App() {
 
   const handleCategoryChange = useCallback(
     (cat: Category) => {
+      const needsSidebar = cat === 'journal' || cat === 'identity' || cat === 'topics'
+
+      // 重复点击当前类别：切换侧栏展开/收起
+      if (cat === activeCategory && needsSidebar) {
+        setLeftSidebarOpen((prev) => !prev)
+        return
+      }
+
       setDetailReturnTarget(null)
       setTopicFocusSelection(null)
 
@@ -684,12 +692,11 @@ export default function App() {
       }
 
       // Auto-hide sidebar for categories that don't need a list
-      const needsSidebar = cat === 'journal' || cat === 'identity' || cat === 'topics'
       setLeftSidebarOpen(needsSidebar)
 
       setActiveCategory(cat)
     },
-    [setActiveCategory, setSelectedEntry, setShowIdeas, setTreeSelection, setView],
+    [activeCategory, setActiveCategory, setSelectedEntry, setShowIdeas, setTreeSelection, setView],
   )
 
   useEffect(() => {
@@ -1040,13 +1047,6 @@ export default function App() {
             cursor: leftSidebarOpen ? 'col-resize' : 'default',
           }}
         >
-          <PanelDividerToggle
-            edge="left"
-            open={leftSidebarOpen}
-            collapseLabel={t('collapseLeftSidebar')}
-            expandLabel={t('expandLeftSidebar')}
-            onToggle={() => setLeftSidebarOpen((prev) => !prev)}
-          />
         </div>
 
         {/* Center: Detail panel */}

@@ -13,6 +13,8 @@ import type { JournalEntry, TreeSelection } from '../types'
 
 type AppView = 'journal' | 'settings' | 'automation'
 
+export type Category = 'journal' | 'ideas' | 'memory' | 'topics' | 'automation' | 'skills'
+
 // ── Persistent layout dimensions ──
 const loadDim = (key: string, fallback: number): number => {
   try {
@@ -50,6 +52,7 @@ interface StoredTreeSelectionState {
   view: AppView
   treeSelection: TreeSelection | null
   showIdeas: boolean
+  activeCategory?: Category
 }
 
 function isTreeSelection(value: unknown): value is TreeSelection {
@@ -66,7 +69,7 @@ function loadTreeSelectionState(): StoredTreeSelectionState {
   try {
     const raw = localStorage.getItem(TREE_SELECTION_STORAGE_KEY)
     if (!raw) {
-      return { view: 'journal', treeSelection: null, showIdeas: false }
+      return { view: 'journal', treeSelection: null, showIdeas: false, activeCategory: 'journal' }
     }
 
     const parsed = JSON.parse(raw) as Partial<StoredTreeSelectionState>
@@ -80,9 +83,10 @@ function loadTreeSelectionState(): StoredTreeSelectionState {
       view,
       treeSelection,
       showIdeas: parsed.showIdeas === true,
+      activeCategory: (parsed.activeCategory as Category) || 'journal',
     }
   } catch {
-    return { view: 'journal', treeSelection: null, showIdeas: false }
+    return { view: 'journal', treeSelection: null, showIdeas: false, activeCategory: 'journal' }
   }
 }
 
@@ -127,6 +131,10 @@ interface UIContextValue {
   chatInitialText: string
   setChatInitialText: Dispatch<SetStateAction<string>>
 
+  // Category navigation
+  activeCategory: Category
+  setActiveCategory: (cat: Category) => void
+
   // Convenience
   deselect: () => void
 }
@@ -144,6 +152,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
     initialTreeState.treeSelection,
   )
   const [showIdeas, setShowIdeas] = useState(initialTreeState.showIdeas)
+  const [activeCategory, setActiveCategoryState] = useState<Category>(
+    initialTreeState.activeCategory || 'journal',
+  )
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim('journal_base_width', 320))
@@ -163,13 +174,18 @@ export function UIProvider({ children }: { children: ReactNode }) {
     saveDim('journal_right_panel_width', w)
   }, [])
 
+  const setActiveCategory = useCallback((cat: Category) => {
+    setActiveCategoryState(cat)
+  }, [])
+
   useEffect(() => {
     saveTreeSelectionState({
       view: view === 'automation' ? 'automation' : 'journal',
       treeSelection,
       showIdeas,
+      activeCategory,
     })
-  }, [view, treeSelection, showIdeas])
+  }, [view, treeSelection, showIdeas, activeCategory])
 
   const deselect = useCallback(() => {
     setSelectedEntry(null)
@@ -201,6 +217,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
         setRightPanelWidth,
         chatInitialText,
         setChatInitialText,
+        activeCategory,
+        setActiveCategory,
         deselect,
       }}
     >

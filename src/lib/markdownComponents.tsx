@@ -340,7 +340,7 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
     blockquote: ({ children }: { children?: React.ReactNode }) => (
       <blockquote
         style={{
-          borderLeft: '3px solid var(--md-quote-bar)',
+          borderLeft: '2px solid var(--md-quote-bar)',
           paddingLeft: 12,
           margin: '8px 0',
           color: 'var(--md-quote-text)',

@@ -234,7 +234,7 @@ export function SessionList({
         background: fullWidth ? 'transparent' : 'var(--dialog-sidebar-bg)',
         flexShrink: fullWidth ? 1 : 0,
         overflow: 'hidden',
-        transition: fullWidth ? undefined : 'width 200ms ease-out',
+        transition: fullWidth ? undefined : 'opacity 160ms var(--ease-out)',
       }}
     >
       <style>{`

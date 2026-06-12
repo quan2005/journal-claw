@@ -13,7 +13,7 @@ import type { JournalEntry, TreeSelection } from '../types'
 
 type AppView = 'journal' | 'settings' | 'automation'
 
-export type Category = 'journal' | 'ideas' | 'memory' | 'topics' | 'automation' | 'skills'
+export type Category = 'journal' | 'ideas' | 'identity' | 'topics' | 'automation' | 'skills'
 
 // ── Persistent layout dimensions ──
 const loadDim = (key: string, fallback: number): number => {

@@ -260,42 +260,6 @@ function PinIcon() {
   )
 }
 
-function PersonIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  )
-}
-
-function ClockIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  )
-}
-
 function TopicIcon() {
   return (
     <svg
@@ -564,130 +528,110 @@ export function TreeSidebar({
             )}
 
             {/* ════════════════════════════════════════════════════════════════════
-                Identities Section (画像)
-                ════════════════════════════════════════════════════════════════════ */}
-            <div>
-              <SectionHeader
-                collapsed={isCollapsed('identities')}
-                onToggle={() => toggleSection('identities')}
-                label="画像"
-                count={identities.length}
-                icon={<PersonIcon />}
-              />
-              {!isCollapsed('identities') && (
-                <>
-                  {sortedIdentities.map((identity) => (
-                    <TreeItem
-                      key={identity.path}
-                      itemType="identity"
-                      identity={identity}
-                      isSelected={isSelected('identity', identity.path)}
-                      onClick={() => handleSelect({ type: 'identity', path: identity.path })}
-                      onAt={() => onAtRef(`identities/${identity.filename}`)}
-                      onMore={(x, y) =>
-                        handleMore('identity', identity.name, identity.path, false, x, y)
-                      }
-                    />
-                  ))}
-                  {identityLoading && (
-                    <div
-                      style={{
-                        padding: '8px 6px',
-                        fontSize: '0.75rem',
-                        color: 'var(--text-tertiary, #5c5852)',
-                      }}
-                    >
-                      加载中...
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* ════════════════════════════════════════════════════════════════════
                 Journal Pipeline Section (流水)
                 ════════════════════════════════════════════════════════════════════ */}
             <div>
-              <SectionHeader
-                collapsed={isCollapsed('journal')}
-                onToggle={() => toggleSection('journal')}
-                label="流水"
-                count={entries.length}
-                icon={<ClockIcon />}
-              />
-              {!isCollapsed('journal') && (
-                <>
-                  {monthGroups.map(([yearMonth, monthEntries]) => (
-                    <div key={yearMonth}>
-                      <MonthDivider
-                        label={yearMonth}
-                        collapsed={isCollapsed(`journal-month:${yearMonth}`)}
-                        onToggle={() => toggleSection(`journal-month:${yearMonth}`)}
+              {monthGroups.map(([yearMonth, monthEntries]) => (
+                <div key={yearMonth}>
+                  <MonthDivider
+                    label={yearMonth}
+                    collapsed={isCollapsed(`journal-month:${yearMonth}`)}
+                    onToggle={() => toggleSection(`journal-month:${yearMonth}`)}
+                  />
+                  {!isCollapsed(`journal-month:${yearMonth}`) &&
+                    monthEntries.map((entry) => (
+                      <TreeItem
+                        key={entry.path}
+                        itemType="journal"
+                        entry={entry}
+                        isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
+                        isSelected={isSelected(
+                          'journal',
+                          `${entry.year_month}/${entry.filename}`,
+                        )}
+                        onClick={() =>
+                          handleSelect({
+                            type: 'journal',
+                            path: `${entry.year_month}/${entry.filename}`,
+                          })
+                        }
+                        onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
+                        onMore={(x, y) =>
+                          handleMore(
+                            'journal',
+                            entry.title,
+                            `${entry.year_month}/${entry.filename}`,
+                            false,
+                            x,
+                            y,
+                            entry.path,
+                          )
+                        }
                       />
-                      {!isCollapsed(`journal-month:${yearMonth}`) &&
-                        monthEntries.map((entry) => (
-                          <TreeItem
-                            key={entry.path}
-                            itemType="journal"
-                            entry={entry}
-                            isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
-                            isSelected={isSelected(
-                              'journal',
-                              `${entry.year_month}/${entry.filename}`,
-                            )}
-                            onClick={() =>
-                              handleSelect({
-                                type: 'journal',
-                                path: `${entry.year_month}/${entry.filename}`,
-                              })
-                            }
-                            onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
-                            onMore={(x, y) =>
-                              handleMore(
-                                'journal',
-                                entry.title,
-                                `${entry.year_month}/${entry.filename}`,
-                                false,
-                                x,
-                                y,
-                                entry.path,
-                              )
-                            }
-                          />
-                        ))}
-                    </div>
-                  ))}
-                  {hasMore && (
-                    <div
-                      style={{
-                        padding: '8px 6px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <button
-                        onClick={onLoadMore}
-                        disabled={loadingMore}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-secondary, #a0988c)',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          padding: '4px 12px',
-                          borderRadius: 4,
-                        }}
-                      >
-                        {loadingMore ? '加载中…' : '加载更多'}
-                      </button>
-                    </div>
-                  )}
-                </>
+                    ))}
+                </div>
+              ))}
+              {hasMore && (
+                <div
+                  style={{
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <button
+                    onClick={onLoadMore}
+                    disabled={loadingMore}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-secondary, #a0988c)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      padding: '4px 12px',
+                      borderRadius: 4,
+                    }}
+                  >
+                    {loadingMore ? '加载中…' : '加载更多'}
+                  </button>
+                </div>
               )}
             </div>
           </>
         )}
 
-        {(category === 'journal' || category === 'topics') && (
+        {category === 'identity' && (
+          <>
+            {/* ════════════════════════════════════════════════════════════════════
+                Identities Section (画像)
+                ════════════════════════════════════════════════════════════════════ */}
+            {sortedIdentities.map((identity) => (
+              <TreeItem
+                key={identity.path}
+                itemType="identity"
+                identity={identity}
+                isSelected={isSelected('identity', identity.path)}
+                onClick={() => handleSelect({ type: 'identity', path: identity.path })}
+                onAt={() => onAtRef(`identities/${identity.filename}`)}
+                onMore={(x, y) =>
+                  handleMore('identity', identity.name, identity.path, false, x, y)
+                }
+              />
+            ))}
+            {identityLoading && (
+              <div
+                style={{
+                  padding: '8px 6px',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-tertiary, #5c5852)',
+                }}
+              >
+                加载中...
+              </div>
+            )}
+          </>
+        )}
+
+        {category === 'topics' && (
           <div>
             <SectionHeader
               collapsed={isCollapsed('topics')}
@@ -742,12 +686,6 @@ export function TreeSidebar({
                 )}
               </>
             )}
-          </div>
-        )}
-
-        {category === 'memory' && (
-          <div style={{ padding: '16px', color: 'var(--item-meta)', fontSize: 'var(--text-sm)' }}>
-            暂无记忆条目
           </div>
         )}
 

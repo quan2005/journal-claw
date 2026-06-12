@@ -12,9 +12,9 @@ describe('NavRail', () => {
 
   it('renders all category buttons', () => {
     render(<NavRail {...defaultProps} />)
-    expect(screen.getByRole('button', { name: /日志/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /流水/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /想法/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /记忆/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /画像/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /专题/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /自动化/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /技能/i })).toBeTruthy()
@@ -23,7 +23,7 @@ describe('NavRail', () => {
   it('marks active category with aria-current', () => {
     render(<NavRail {...defaultProps} activeCategory="ideas" />)
     expect(screen.getByRole('button', { name: /想法/i }).getAttribute('aria-current')).toBe('page')
-    expect(screen.getByRole('button', { name: /日志/i }).getAttribute('aria-current')).toBeNull()
+    expect(screen.getByRole('button', { name: /流水/i }).getAttribute('aria-current')).toBeNull()
   })
 
   it('calls onCategoryChange when clicking a button', () => {

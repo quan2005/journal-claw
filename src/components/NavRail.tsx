@@ -1,5 +1,5 @@
 import { useCallback, useRef, type KeyboardEvent } from 'react'
-import { Book, Lightbulb, Heart, Archive, RefreshCw, Zap, Settings } from 'lucide-react'
+import { ScrollText, Lightbulb, Users, Archive, RefreshCw, Zap, Settings } from 'lucide-react'
 import type { Category } from '../contexts/UIContext'
 import '../styles/nav-rail.css'
 
@@ -12,13 +12,13 @@ interface NavRailProps {
 interface NavItem {
   id: Category
   label: string
-  icon: typeof Book
+  icon: typeof ScrollText
 }
 
 const CONTENT_ITEMS: NavItem[] = [
-  { id: 'journal', label: '日志', icon: Book },
+  { id: 'journal', label: '流水', icon: ScrollText },
   { id: 'ideas', label: '想法', icon: Lightbulb },
-  { id: 'memory', label: '记忆', icon: Heart },
+  { id: 'identity', label: '画像', icon: Users },
   { id: 'topics', label: '专题', icon: Archive },
 ]
 
@@ -92,7 +92,7 @@ export function NavRail({ activeCategory, onCategoryChange, onSettingsClick }: N
         type="button"
         className="nav-rail__btn"
         aria-label="设置"
-        data-tooltip="设置"
+        data-tooltip="设置 ⌘,"
         onClick={onSettingsClick}
       >
         <Settings size={18} strokeWidth={1.6} />

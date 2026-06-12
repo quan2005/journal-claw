@@ -10,6 +10,7 @@ import type { IdeaConversationRequest } from './components/IdeasWorkbench'
 const SettingsPanel = lazy(() =>
   import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
 )
+const SkillsPanel = lazy(() => import('./settings/components/SectionPlugins'))
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { useIdentity } from './hooks/useIdentity'
 import { useJournal } from './hooks/useJournal'
@@ -539,10 +540,6 @@ export default function App() {
         e.preventDefault()
         setRightPanelOpen((prev) => !prev)
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setRightPanelOpen((prev) => !prev)
-      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
         newTab()
@@ -685,6 +682,10 @@ export default function App() {
         setView('journal')
         setShowIdeas(cat === 'ideas')
       }
+
+      // Auto-hide sidebar for categories that don't need a list
+      const needsSidebar = cat === 'journal' || cat === 'identity' || cat === 'topics'
+      setLeftSidebarOpen(needsSidebar)
 
       setActiveCategory(cat)
     },
@@ -910,6 +911,31 @@ export default function App() {
             aria-modal="true"
             aria-label={t('settings')}
             onMouseDown={(event) => event.stopPropagation()}
+            ref={(node) => {
+              if (!node) return
+              // Focus trap: keep Tab cycling within the dialog
+              const focusableSelector =
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+              const handler = (e: KeyboardEvent) => {
+                if (e.key !== 'Tab') return
+                const focusable = node.querySelectorAll<HTMLElement>(focusableSelector)
+                if (focusable.length === 0) return
+                const first = focusable[0]
+                const last = focusable[focusable.length - 1]
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault()
+                  last.focus()
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault()
+                  first.focus()
+                }
+              }
+              node.addEventListener('keydown', handler)
+              // Auto-focus the close button
+              const firstFocusable = node.querySelector<HTMLElement>(focusableSelector)
+              firstFocusable?.focus()
+              return () => node.removeEventListener('keydown', handler)
+            }}
           >
             <button
               type="button"
@@ -1036,8 +1062,10 @@ export default function App() {
           {activeCategory === 'automation' ? (
             <AutomationWorkbench onOpenConversation={(sessionId) => openChatPanel(sessionId)} />
           ) : activeCategory === 'skills' ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--item-meta)' }}>
-              <p>技能工作台（即将推出）</p>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <Suspense fallback={null}>
+                <SkillsPanel />
+              </Suspense>
             </div>
           ) : (
             <DetailView
@@ -1052,6 +1080,7 @@ export default function App() {
                         ? 'topic-file'
                         : 'journal'
               }
+              category={activeCategory}
               entry={
                 treeSelection?.type === 'journal'
                   ? entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ||

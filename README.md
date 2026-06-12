@@ -129,3 +129,11 @@ npm run tauri build      # Build → src-tauri/target/release/bundle/
 ```
 
 First run requires microphone permission: System Settings → Privacy & Security → Microphone.
+
+## Documentation
+
+- [User Guide](docs/guide/quick-start.md) — installation, recording, import, conversation, timeline
+- [Developer Guide](docs/dev/index.md) — environment setup, architecture, frontend/backend development, build & release
+- [Design System](docs/design/index.md) — colors, typography, components, layout, animation
+- [Architecture (ARCH.md)](docs/ARCH.md) — full architecture document
+- [llms.txt](llms.txt) — machine-readable documentation index for AI agents

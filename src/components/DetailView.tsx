@@ -842,6 +842,7 @@ function FilePreviewPane({ children }: { children: React.ReactNode }) {
 // ── Props ──────────────────────────────────────────────────────────────────────
 export interface DetailViewProps {
   type: 'journal' | 'identity' | 'topic-file' | 'ideas'
+  category?: 'journal' | 'ideas' | 'identity' | 'topics' | 'automation' | 'skills'
 
   // Journal
   entry?: JournalEntry
@@ -1098,6 +1099,7 @@ function DetailContextMenu({
 // ── Main component ─────────────────────────────────────────────────────────────
 export const DetailView = React.memo(function DetailView({
   type,
+  category,
   entry,
   entries = [],
   identity,
@@ -1368,7 +1370,9 @@ export const DetailView = React.memo(function DetailView({
 
   if (!hasSelection) {
     const isEmpty = isJournalMode && entries.length === 0
-    const showCards = isJournalMode
+    const showJournalCards = isJournalMode && (category === 'journal' || !category)
+    const showIdentityHint = category === 'identity'
+    const showTopicsHint = category === 'topics'
 
     return (
       <div
@@ -1404,7 +1408,8 @@ export const DetailView = React.memo(function DetailView({
           謹跡
         </span>
 
-        {showCards && (
+        {/* ── Journal empty state ──────────────────────────────────────── */}
+        {showJournalCards && (
           <div
             style={{
               position: 'relative',
@@ -1583,6 +1588,97 @@ export const DetailView = React.memo(function DetailView({
                   </div>
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Identity empty state ───────────────────────────────────────── */}
+        {showIdentityHint && (
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+              padding: '0 32px',
+              width: '100%',
+              maxWidth: 400,
+              textAlign: 'center',
+            }}
+          >
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--item-meta)"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ opacity: 0.5 }}
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            <div
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--item-meta)',
+                lineHeight: 1.6,
+              }}
+            >
+              在左侧选择一个人物，查看 AI 自动归纳的画像档案。
+              <br />
+              <span style={{ opacity: 0.6 }}>
+                画像来源于日志中提及的人物和对话。
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Topics empty state ───────────────────────────────────────── */}
+        {showTopicsHint && (
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+              padding: '0 32px',
+              width: '100%',
+              maxWidth: 400,
+              textAlign: 'center',
+            }}
+          >
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--item-meta)"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ opacity: 0.5 }}
+            >
+              <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+            </svg>
+            <div
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--item-meta)',
+                lineHeight: 1.6,
+              }}
+            >
+              在左侧选择一个专题文件夹或文档进行阅读。
+              <br />
+              <span style={{ opacity: 0.6 }}>
+                专题是围绕特定主题组织的笔记和资料集合。
+              </span>
             </div>
           </div>
         )}

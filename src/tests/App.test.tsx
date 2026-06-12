@@ -341,6 +341,11 @@ describe('App', () => {
       renderApp()
     })
 
+    // Switch to topics category via NavRail
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '专题' }))
+    })
+
     const topicFile = await screen.findByText('guide.mdx')
 
     await act(async () => {
@@ -371,6 +376,11 @@ describe('App', () => {
       renderApp()
       await Promise.resolve()
       await Promise.resolve()
+    })
+
+    // Switch to topics category via NavRail
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '专题' }))
     })
 
     const topicFile = await screen.findByText('guide.mdx')
@@ -407,6 +417,11 @@ describe('App', () => {
     await act(async () => {
       await Promise.resolve()
       await Promise.resolve()
+    })
+
+    // Switch to topics category via NavRail
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '专题' }))
     })
 
     await act(async () => {
@@ -469,6 +484,11 @@ describe('App', () => {
       renderApp()
       await Promise.resolve()
       await Promise.resolve()
+    })
+
+    // Switch to topics category via NavRail
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '专题' }))
     })
 
     await act(async () => {
@@ -645,14 +665,14 @@ describe('App', () => {
     })
     await act(async () => {})
 
-    // Click identity tab
-    const identityTab = screen.getByText('画像')
+    // Click identity category via NavRail
+    const identityBtn = screen.getByRole('button', { name: '画像' })
     await act(async () => {
-      fireEvent.click(identityTab)
+      fireEvent.click(identityBtn)
     })
 
-    // Identity tab should now be active (the tab text is still visible)
-    expect(screen.getByText('画像')).toBeTruthy()
+    // Identity button should now be active
+    expect(identityBtn.getAttribute('aria-current')).toBe('page')
   })
 
   it('toggles todo sidebar with Cmd+T', async () => {

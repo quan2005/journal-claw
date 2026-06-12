@@ -129,3 +129,11 @@ npm run tauri build      # 构建产物 → src-tauri/target/release/bundle/
 ```
 
 首次运行需授权麦克风权限：系统设置 → 隐私与安全性 → 麦克风。
+
+## 文档
+
+- [用户指南](docs/guide/quick-start.md) — 安装、录音、导入、对话、时间线
+- [开发者指南](docs/dev/index.md) — 环境搭建、架构、前后端开发、构建与发布
+- [设计系统](docs/design/index.md) — 配色、排版、组件、布局、动画
+- [架构文档 (ARCH.md)](docs/ARCH.md) — 完整架构文档
+- [llms.txt](llms.txt) — 面向 AI Agent 的机读文档索引

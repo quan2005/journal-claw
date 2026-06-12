@@ -107,17 +107,16 @@ beforeEach(() => {
 })
 
 describe('TreeSidebar', () => {
-  it('restores collapsed section state and persists later toggles', () => {
-    window.localStorage.setItem('journal_tree_sidebar_collapsed_v1', JSON.stringify(['identities']))
-
-    renderTreeSidebar()
-
-    expect(screen.queryByText('张三')).toBeNull()
-
-    fireEvent.click(screen.getByText('画像'))
+  it('renders identities in identity category', () => {
+    renderTreeSidebar({ category: 'identity' })
 
     expect(screen.getByText('张三')).toBeTruthy()
-    expect(window.localStorage.getItem('journal_tree_sidebar_collapsed_v1')).toBe('[]')
+  })
+
+  it('does not render identities in journal category', () => {
+    renderTreeSidebar({ category: 'journal' })
+
+    expect(screen.queryByText('张三')).toBeNull()
   })
 
   it('collapses journal month groups and persists the month state', () => {
@@ -145,16 +144,15 @@ describe('TreeSidebar', () => {
     expect(window.localStorage.getItem('journal_tree_sidebar_collapsed_v1')).toBe('[]')
   })
 
-  it('injects brighter hover states for section and month headers', () => {
+  it('injects brighter hover states for month headers', () => {
     renderTreeSidebar({
-      entries: [journalEntry({ year_month: '2606', day: 2, title: '六月日志' })],
+      category: 'topics',
     })
 
     const injectedCss = [...document.head.querySelectorAll('style')]
       .map((style) => style.textContent ?? '')
       .join('\n')
 
-    expect(injectedCss).toContain('.tree-section-header:hover .tree-section-label')
     expect(injectedCss).toContain('.tree-month-header:hover .tree-month-label')
   })
 })

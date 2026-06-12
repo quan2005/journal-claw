@@ -78,7 +78,6 @@ pub fn list_topics_dir(app: AppHandle, relative_path: String) -> Result<Vec<Topi
     };
 
     if !dir.exists() {
-        std::fs::create_dir_all(&dir).map_err(|e| format!("创建 topics 目录失败: {}", e))?;
         return Ok(vec![]);
     }
 

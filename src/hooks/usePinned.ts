@@ -21,7 +21,7 @@ export function usePinned() {
   }, [refresh])
 
   const pin = useCallback(
-    async (itemType: 'journal' | 'identity', path: string) => {
+    async (itemType: 'journal' | 'identity' | 'topic', path: string) => {
       const updated = [...items, { type: itemType, path, order: items.length }]
       await setPinnedItems(updated)
       setItems(updated)

@@ -693,7 +693,7 @@ export const importFileToTopic = (source: string, topicPath: string): Promise<st
 // ── Pinned ───────────────────────────────────────────────────
 
 export interface PinnedItem {
-  type: 'journal' | 'identity'
+  type: 'journal' | 'identity' | 'topic'
   path: string
   order: number
 }

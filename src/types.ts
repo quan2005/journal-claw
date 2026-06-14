@@ -350,8 +350,8 @@ export interface TreeSelection {
 
 /** 置顶条目（持久化在 workspace settings.json） */
 export interface PinnedItem {
-  type: 'journal' | 'identity'
-  path: string // workspace-relative path, e.g. "2605/25-xxx.md" or "identities/张三.md"
+  type: 'journal' | 'identity' | 'topic'
+  path: string // workspace-relative path, e.g. "2605/25-xxx.md" or "identities/张三.md" or "topics/xxx"
   order: number
 }
 

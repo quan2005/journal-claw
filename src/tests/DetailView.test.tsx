@@ -364,6 +364,7 @@ describe('DetailView topic file rendering', () => {
           tags: ['person'],
           speaker_id: 'spk-1',
           mtime_secs: 1_714_521_600,
+          archived: false,
         }}
       />,
     )

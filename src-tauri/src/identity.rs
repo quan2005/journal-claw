@@ -13,6 +13,7 @@ pub struct IdentityEntry {
     pub tags: Vec<String>,
     pub speaker_id: String,
     pub mtime_secs: i64,
+    pub archived: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -23,11 +24,40 @@ struct IdentityFrontMatter {
     tags: Vec<String>,
     #[serde(default)]
     speaker_id: String,
+    #[serde(default)]
+    archived: bool,
 }
 
 /// Escape a string for use inside YAML double quotes: `"` → `\"`, `\` → `\\`.
 fn yaml_escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// Reassemble an identity file from its frontmatter fields and body.
+/// Every frontmatter-mutating path (archive, merge) goes through this so the
+/// serialized shape stays consistent and a new field can't be silently dropped
+/// by one writer but not the others.
+fn format_identity_content(
+    summary: &str,
+    tags: &[String],
+    speaker_id: &str,
+    archived: bool,
+    body: &str,
+) -> String {
+    let tags_yaml = tags
+        .iter()
+        .map(|t| format!("\"{}\"", yaml_escape(t)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let archived_line = if archived { "archived: true\n" } else { "" };
+    format!(
+        "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n{}---\n\n{}",
+        yaml_escape(summary),
+        tags_yaml,
+        yaml_escape(speaker_id),
+        archived_line,
+        body.trim_start(),
+    )
 }
 
 pub fn identity_dir(workspace: &str) -> PathBuf {
@@ -162,6 +192,7 @@ pub fn list_identity_entries(workspace: &str) -> Result<Vec<IdentityEntry>, Stri
             summary: crate::journal::strip_surrounding_quotes(&fm.summary),
             tags: fm.tags,
             speaker_id: fm.speaker_id,
+            archived: fm.archived,
             mtime_secs,
         });
     }
@@ -202,6 +233,54 @@ pub fn delete_identity(app: AppHandle, path: String) -> Result<(), String> {
     }
     std::fs::remove_file(&path).map_err(|e| e.to_string())?;
     let _ = app.emit("identity-updated", ());
+    Ok(())
+}
+
+#[tauri::command]
+pub fn archive_identity(app: AppHandle, path: String) -> Result<(), String> {
+    set_archived_flag(&path, true)?;
+    let _ = app.emit("identity-updated", ());
+    Ok(())
+}
+
+#[tauri::command]
+pub fn unarchive_identity(app: AppHandle, path: String) -> Result<(), String> {
+    set_archived_flag(&path, false)?;
+    let _ = app.emit("identity-updated", ());
+    Ok(())
+}
+
+/// Set or remove the `archived` flag in an identity file's frontmatter.
+/// Parses via gray_matter (a real YAML engine) so a `---` inside a field value
+/// cannot corrupt the file the way a naive substring search would. No-op when
+/// the file is already in the desired state.
+fn set_archived_flag(path: &str, archived: bool) -> Result<(), String> {
+    use gray_matter::{engine::YAML, Matter};
+
+    let content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let matter = Matter::<YAML>::new();
+
+    let (mut fm, body) = match matter.parse_with_struct::<IdentityFrontMatter>(&content) {
+        Some(parsed) => (parsed.data, parsed.content),
+        None => {
+            // No parseable frontmatter — only prepend one when archiving.
+            if !archived {
+                return Ok(());
+            }
+            let with_fm = format!("---\narchived: true\n---\n\n{}", content);
+            std::fs::write(path, with_fm).map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+    };
+
+    if fm.archived == archived {
+        return Ok(()); // already in the desired state — don't rewrite
+    }
+    fm.archived = archived;
+
+    let new_content =
+        format_identity_content(&fm.summary, &fm.tags, &fm.speaker_id, archived, &body);
+    std::fs::write(path, new_content).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -267,20 +346,15 @@ pub fn merge_identity(
         src_fm.speaker_id.clone()
     };
 
-    // Update target's speaker_id in frontmatter (both modes need this)
-    let tags_yaml = tgt_fm
-        .tags
-        .iter()
-        .map(|t| format!("\"{}\"", yaml_escape(t)))
-        .collect::<Vec<_>>()
-        .join(", ");
+    // Update target's speaker_id in frontmatter (both modes need this).
+    // Preserve the target's `archived` flag — merging must not silently un-archive it.
     let tgt_body = extract_body(&target_content);
-    let new_target = format!(
-        "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n---\n\n{}",
-        yaml_escape(&tgt_fm.summary),
-        tags_yaml,
-        yaml_escape(&merged_speaker_id),
-        tgt_body.trim_start()
+    let new_target = format_identity_content(
+        &tgt_fm.summary,
+        &tgt_fm.tags,
+        &merged_speaker_id,
+        tgt_fm.archived,
+        tgt_body,
     );
     std::fs::write(&target_path, new_target).map_err(|e| e.to_string())?;
 
@@ -361,5 +435,62 @@ mod tests {
         assert_eq!(yaml_escape(r#"hello "world""#), r#"hello \"world\""#);
         assert_eq!(yaml_escape(r#"back\slash"#), r#"back\\slash"#);
         assert_eq!(yaml_escape("plain"), "plain");
+    }
+
+    #[test]
+    fn set_archived_flag_preserves_summary_containing_dashes() {
+        // Regression: a summary containing "---" must survive an archive toggle.
+        // The old string-surgery impl used content.find("---"), which matched
+        // the "---" inside the summary value and corrupted the whole file.
+        let file = tempfile::NamedTempFile::new().unwrap();
+        let path = file.path().to_string_lossy().to_string();
+        let original =
+            "---\nsummary: 会议---复盘\ntags: [\"x\"]\nspeaker_id: \"spk-1\"\n---\n\n# 张三\n";
+        std::fs::write(&path, original).unwrap();
+
+        set_archived_flag(&path, true).unwrap();
+
+        let rewritten = std::fs::read_to_string(&path).unwrap();
+        let matter = gray_matter::Matter::<gray_matter::engine::YAML>::new();
+        let parsed = matter
+            .parse_with_struct::<IdentityFrontMatter>(&rewritten)
+            .map(|p| p.data)
+            .unwrap_or_default();
+        assert_eq!(parsed.summary, "会议---复盘");
+        assert!(parsed.archived);
+    }
+
+    #[test]
+    fn format_identity_content_includes_archived_only_when_set() {
+        let tags = vec!["a".to_string()];
+        let archived = format_identity_content("s", &tags, "spk", true, "正文");
+        assert!(archived.contains("archived: true"));
+        assert!(archived.contains("summary: \"s\""));
+
+        let active = format_identity_content("s", &[], "spk", false, "正文");
+        assert!(!active.contains("archived"));
+    }
+
+    #[test]
+    fn set_archived_flag_roundtrips_archive_then_unarchive() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        let path = file.path().to_string_lossy().to_string();
+        let original =
+            "---\nsummary: 简介含\"引号\"\ntags: [\"x\", \"y\"]\nspeaker_id: \"spk-1\"\n---\n\n# 张三\n";
+        std::fs::write(&path, original).unwrap();
+
+        set_archived_flag(&path, true).unwrap();
+        set_archived_flag(&path, false).unwrap();
+
+        let rewritten = std::fs::read_to_string(&path).unwrap();
+        let matter = gray_matter::Matter::<gray_matter::engine::YAML>::new();
+        let parsed = matter
+            .parse_with_struct::<IdentityFrontMatter>(&rewritten)
+            .map(|p| p.data)
+            .unwrap_or_default();
+        assert_eq!(parsed.summary, "简介含\"引号\"");
+        assert_eq!(parsed.tags, vec!["x".to_string(), "y".to_string()]);
+        assert_eq!(parsed.speaker_id, "spk-1");
+        assert!(!parsed.archived);
     }
 }

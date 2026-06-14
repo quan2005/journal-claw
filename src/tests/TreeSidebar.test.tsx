@@ -39,6 +39,7 @@ const identity: IdentityEntry = {
   tags: [],
   speaker_id: '',
   mtime_secs: 0,
+  archived: false,
 }
 
 function journalEntry(overrides: Partial<JournalEntry>): JournalEntry {
@@ -135,13 +136,15 @@ describe('TreeSidebar', () => {
     expect(screen.queryByText('六月日志')).toBeNull()
     expect(screen.getByText('五月日志')).toBeTruthy()
     expect(window.localStorage.getItem('journal_tree_sidebar_collapsed_v1')).toBe(
-      JSON.stringify(['journal-month:2606']),
+      JSON.stringify(['identity-archived', 'journal-month:2606']),
     )
 
     fireEvent.click(screen.getByRole('button', { name: '展开2026年6月' }))
 
     expect(screen.getByText('六月日志')).toBeTruthy()
-    expect(window.localStorage.getItem('journal_tree_sidebar_collapsed_v1')).toBe('[]')
+    expect(window.localStorage.getItem('journal_tree_sidebar_collapsed_v1')).toBe(
+      JSON.stringify(['identity-archived']),
+    )
   })
 
   it('injects brighter hover states for month headers', () => {

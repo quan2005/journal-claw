@@ -110,6 +110,7 @@ export interface IdentityEntry {
   tags: string[] // from frontmatter
   speaker_id: string // linked speaker profile id
   mtime_secs: number // Unix timestamp for sorting
+  archived: boolean // frontmatter archived flag
 }
 
 export type MergeMode = 'voice_only' | 'full'

@@ -852,6 +852,7 @@ export default function App() {
     tags: [],
     speaker_id: '',
     mtime_secs: 0,
+    archived: false,
   }
   const allIdentities: IdentityEntry[] = [SOUL_ENTRY, ...identities]
 

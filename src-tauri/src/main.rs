@@ -332,6 +332,8 @@ fn main() {
             identity::delete_identity,
             identity::create_identity,
             identity::merge_identity,
+            identity::archive_identity,
+            identity::unarchive_identity,
             todos::list_todos,
             todos::add_todo,
             todos::toggle_todo,

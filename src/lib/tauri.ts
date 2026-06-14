@@ -340,6 +340,12 @@ export const saveIdentityContent = (path: string, content: string): Promise<void
 export const deleteIdentity = (path: string): Promise<void> =>
   invoke<void>('delete_identity', { path })
 
+export const archiveIdentity = (path: string): Promise<void> =>
+  invoke<void>('archive_identity', { path })
+
+export const unarchiveIdentity = (path: string): Promise<void> =>
+  invoke<void>('unarchive_identity', { path })
+
 export const createIdentity = (
   region: string,
   name: string,

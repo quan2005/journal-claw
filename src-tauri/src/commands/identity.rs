@@ -6,5 +6,7 @@ pub fn command_names() -> Vec<&'static str> {
         "delete_identity",
         "create_identity",
         "merge_identity",
+        "archive_identity",
+        "unarchive_identity",
     ]
 }

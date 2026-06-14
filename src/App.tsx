@@ -1047,8 +1047,7 @@ export default function App() {
             userSelect: 'none' as const,
             cursor: leftSidebarOpen ? 'col-resize' : 'default',
           }}
-        >
-        </div>
+        ></div>
 
         {/* Center: Detail panel */}
         <div

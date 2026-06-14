@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 38px 0 12px; /* 38px top = titlebar height clearance */
+  padding: 14px 0 12px;
   gap: 4px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--divider);

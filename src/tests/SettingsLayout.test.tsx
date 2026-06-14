@@ -23,10 +23,6 @@ vi.mock('../settings/components/SectionAutomation', () => ({
   default: () => <div>Automation panel</div>,
 }))
 
-vi.mock('../settings/components/SectionPlugins', () => ({
-  default: () => <div>Plugins panel</div>,
-}))
-
 vi.mock('../settings/components/SectionFeishu', () => ({
   default: () => <div>IM panel</div>,
 }))

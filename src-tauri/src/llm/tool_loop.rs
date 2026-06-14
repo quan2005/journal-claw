@@ -48,7 +48,9 @@ pub async fn run_agent(
     cancel: CancellationToken,
     global_skills_enabled: bool,
 ) -> Result<String, LlmError> {
-    let skills = super::prompt::scan_skills(workspace_path, global_skills_enabled).await;
+    let disabled =
+        crate::workspace_settings::get_disabled_skills_for_workspace(workspace_path);
+    let skills = super::prompt::scan_skills(workspace_path, global_skills_enabled, &disabled).await;
     let mut tools = vec![bash_tool::definition(), enable_skill::definition(&skills)];
     tools.extend(fs_tools::definitions());
 

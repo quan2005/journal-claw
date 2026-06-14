@@ -1,12 +1,4 @@
-export type NavId =
-  | 'general'
-  | 'ai'
-  | 'voice'
-  | 'permissions'
-  | 'automation'
-  | 'plugins'
-  | 'im'
-  | 'about'
+export type NavId = 'general' | 'ai' | 'voice' | 'permissions' | 'automation' | 'im' | 'about'
 
 export const ALL_NAV_IDS: NavId[] = [
   'general',
@@ -14,7 +6,6 @@ export const ALL_NAV_IDS: NavId[] = [
   'voice',
   'permissions',
   'automation',
-  'plugins',
   'im',
   'about',
 ]

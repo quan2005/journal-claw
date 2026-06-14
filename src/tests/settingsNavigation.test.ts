@@ -7,7 +7,7 @@ describe('resolveActiveNav', () => {
     ai: 120,
     voice: 180,
     guide: 220,
-    plugins: 420,
+    im: 320,
     about: 520,
   } as const
 
@@ -19,7 +19,7 @@ describe('resolveActiveNav', () => {
   })
 
   it('activates short trailing sections at the bottom', () => {
-    expect(resolveActiveNav(sectionTops, 390)).toBe('plugins')
+    expect(resolveActiveNav(sectionTops, 350)).toBe('im')
     expect(resolveActiveNav(sectionTops, 490)).toBe('about')
   })
 })

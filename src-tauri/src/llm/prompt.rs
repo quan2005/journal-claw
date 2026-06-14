@@ -51,7 +51,8 @@ pub async fn build_system_prompt(
     }
 
     // 5. Available skills — details are in the load_skill tool definition
-    let skills = scan_skills(workspace_path, global_skills_enabled).await;
+    let disabled = crate::workspace_settings::get_disabled_skills_for_workspace(workspace_path);
+    let skills = scan_skills(workspace_path, global_skills_enabled, &disabled).await;
     if !skills.is_empty() {
         parts.push(available_skills_hint());
     }
@@ -137,23 +138,28 @@ async fn run_workspace_script(workspace_path: &str, script: &str, args: &[&str])
 }
 
 /// Scan workspace and global skill directories, return (dir_name, description) pairs.
+/// Skills whose id (`scope:dir_name`) is in `disabled_ids` are excluded so the LLM
+/// cannot load_skill them.
 pub async fn scan_skills(
     workspace_path: &str,
     global_skills_enabled: bool,
+    disabled_ids: &[String],
 ) -> Vec<(String, String)> {
     let mut skills = Vec::new();
 
-    let mut dirs = vec![PathBuf::from(workspace_path).join(".claude").join("skills")];
+    let mut dirs: Vec<(PathBuf, &str)> =
+        vec![(PathBuf::from(workspace_path).join(".claude").join("skills"), "project")];
     if global_skills_enabled {
-        dirs.push(
+        dirs.push((
             dirs::home_dir()
                 .unwrap_or_default()
                 .join(".claude")
                 .join("skills"),
-        );
+            "global",
+        ));
     }
 
-    for dir in dirs {
+    for (dir, scope) in dirs {
         let mut entries = match tokio::fs::read_dir(&dir).await {
             Ok(e) => e,
             Err(_) => continue,
@@ -178,6 +184,12 @@ pub async fn scan_skills(
                 .to_string();
 
             if dir_name.is_empty() {
+                continue;
+            }
+
+            // Skip skills the user has disabled.
+            let skill_id = format!("{}:{}", scope, dir_name);
+            if disabled_ids.contains(&skill_id) {
                 continue;
             }
 

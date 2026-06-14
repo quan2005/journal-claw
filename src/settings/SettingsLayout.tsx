@@ -5,7 +5,6 @@ import {
   Mic,
   ShieldCheck,
   Timer,
-  Puzzle,
   Blocks,
   Info,
   ChevronLeft,
@@ -17,7 +16,6 @@ import SectionVoice from './components/SectionVoice'
 import SectionPermissions from './components/SectionPermissions'
 import SectionAutomation from './components/SectionAutomation'
 import SectionIM from './components/SectionFeishu'
-import SectionPlugins from './components/SectionPlugins'
 import SectionAbout from './components/SectionAbout'
 import { ALL_NAV_IDS, type NavId } from './navigation'
 import { useTranslation } from '../contexts/I18nContext'
@@ -62,8 +60,6 @@ function renderActiveSection(id: NavId) {
       return <SectionPermissions />
     case 'automation':
       return <SectionAutomation />
-    case 'plugins':
-      return <SectionPlugins />
     case 'im':
       return <SectionIM />
     case 'about':
@@ -85,7 +81,6 @@ export function SettingsLayout({
     { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
-    { id: 'plugins', label: t('plugins'), icon: Puzzle },
     { id: 'im', label: t('thirdPartyTools'), icon: Blocks },
     { id: 'about', label: t('about'), icon: Info },
   ]

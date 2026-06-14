@@ -10,7 +10,7 @@ import type { IdeaConversationRequest } from './components/IdeasWorkbench'
 const SettingsPanel = lazy(() =>
   import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
 )
-const SkillsPanel = lazy(() => import('./settings/components/SectionPlugins'))
+const SkillsWorkbench = lazy(() => import('./components/SkillsWorkbench'))
 import { MergeIdentityDialog } from './components/MergeIdentityDialog'
 import { useIdentity } from './hooks/useIdentity'
 import { useJournal } from './hooks/useJournal'
@@ -1064,7 +1064,7 @@ export default function App() {
           ) : activeCategory === 'skills' ? (
             <div style={{ flex: 1, overflow: 'auto' }}>
               <Suspense fallback={null}>
-                <SkillsPanel />
+                <SkillsWorkbench />
               </Suspense>
             </div>
           ) : (

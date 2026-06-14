@@ -1824,7 +1824,8 @@ async fn run_conversation_turn(
     cancel: CancellationToken,
     global_skills: bool,
 ) -> Result<(Vec<Message>, u64, u64), (llm::types::LlmError, Vec<Message>, u64, u64)> {
-    let skills = llm::prompt::scan_skills(workspace, global_skills).await;
+    let disabled = crate::workspace_settings::get_disabled_skills_for_workspace(workspace);
+    let skills = llm::prompt::scan_skills(workspace, global_skills, &disabled).await;
     let mut tools = vec![
         llm::bash_tool::definition(),
         llm::enable_skill::definition(&skills),

@@ -489,18 +489,38 @@ export const getFeishuStatus = (): Promise<FeishuStatus> =>
   invoke<FeishuStatus>('get_feishu_status')
 
 // Skills (技能插件)
+export interface SkillTrigger {
+  kind: string
+  label: string
+}
+
+export interface SkillLoad {
+  name: string
+  type: string
+}
+
 export interface SkillInfo {
   id: string
   name: string
   description: string
   scope: 'project' | 'global'
   dir_name: string
+  triggers: SkillTrigger[]
+  output: string | null
+  loads: SkillLoad[]
+  enabled: boolean
 }
 
 export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_skills')
 
 export const openSkillsDir = (scope: 'project' | 'global'): Promise<void> =>
   invoke<void>('open_skills_dir', { scope })
+
+export const openSkillDir = (scope: 'project' | 'global', dirName: string): Promise<void> =>
+  invoke<void>('open_skill_dir', { scope, dirName })
+
+export const setSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
+  invoke<void>('set_skill_enabled', { skillId, enabled })
 
 // Conversation
 export const conversationCreate = (context?: string, contextFiles?: string[]): Promise<string> =>

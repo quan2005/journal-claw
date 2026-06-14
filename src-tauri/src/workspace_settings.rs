@@ -60,6 +60,11 @@ struct WorkspaceSettings {
     global_skills_enabled: bool,
     #[serde(default)]
     pinned: Option<Vec<PinnedItemData>>,
+    /// Per-skill disabled list — stores skill ids (`scope:dir_name`, e.g.
+    /// `project:journal`) that the user has toggled off. Skills not in this list
+    /// are enabled (subject to the global toggle for global-scope skills).
+    #[serde(default)]
+    disabled_skills: Option<Vec<String>>,
 }
 
 impl Default for WorkspaceSettings {
@@ -69,6 +74,7 @@ impl Default for WorkspaceSettings {
             auto_lint: AutoLintConfig::default(),
             global_skills_enabled: false,
             pinned: None,
+            disabled_skills: None,
         }
     }
 }
@@ -185,6 +191,42 @@ pub fn is_global_skills_enabled(app: &AppHandle) -> bool {
     load_settings(app)
         .map(|s| s.global_skills_enabled)
         .unwrap_or(false)
+}
+
+/// Return the list of disabled skill ids (`scope:dir_name`). Empty when unset.
+pub fn get_disabled_skills(app: &AppHandle) -> Vec<String> {
+    load_settings(app)
+        .ok()
+        .and_then(|s| s.disabled_skills)
+        .unwrap_or_default()
+}
+
+/// Return disabled skill ids for a workspace path, without needing an AppHandle.
+/// Used by LLM paths (build_system_prompt / run_agent) which only carry workspace_path.
+pub fn get_disabled_skills_for_workspace(workspace_path: &str) -> Vec<String> {
+    if workspace_path.is_empty() {
+        return vec![];
+    }
+    let path = PathBuf::from(workspace_path).join(".setting.json");
+    let data = match fs::read_to_string(&path) {
+        Ok(d) => d,
+        Err(_) => return vec![],
+    };
+    let settings: WorkspaceSettings = serde_json::from_str(&data).unwrap_or_default();
+    settings.disabled_skills.unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn set_skill_enabled(app: AppHandle, skill_id: String, enabled: bool) -> Result<(), String> {
+    let mut settings = load_settings(&app)?;
+    let mut list = settings.disabled_skills.unwrap_or_default();
+    if enabled {
+        list.retain(|id| id != &skill_id);
+    } else if !list.contains(&skill_id) {
+        list.push(skill_id);
+    }
+    settings.disabled_skills = if list.is_empty() { None } else { Some(list) };
+    save_settings(&app, &settings)
 }
 
 #[tauri::command]

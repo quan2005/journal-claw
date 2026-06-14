@@ -59,6 +59,22 @@ pub async fn execute(input: &Value, workspace: &str) -> ToolResult {
         }
     };
 
+    // Runtime guard: refuse to load skills the user has disabled. The definition's
+    // skill list already excludes them (so the model shouldn't see them), but this
+    // prevents the model from loading a disabled skill by guessing its name.
+    let disabled = crate::workspace_settings::get_disabled_skills_for_workspace(workspace);
+    let project_id = format!("project:{}", name);
+    let global_id = format!("global:{}", name);
+    if disabled.contains(&project_id) || disabled.contains(&global_id) {
+        return ToolResult {
+            output: format!(
+                "error: skill '{}' is disabled by the user and cannot be loaded",
+                name
+            ),
+            is_error: true,
+        };
+    }
+
     // Search project skills first, then global
     let search_dirs = vec![
         PathBuf::from(workspace).join(".claude").join("skills"),

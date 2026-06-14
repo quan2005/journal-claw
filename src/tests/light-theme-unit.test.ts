@@ -63,31 +63,31 @@ describe('Dark theme invariance', () => {
   const darkVars =
     darkBlocks.length > 0 ? parseVarsFromBlock(darkBlocks[darkBlocks.length - 1]) : new Map()
 
-  /** Expected dark theme values (snapshot of key variables) */
+  /** Expected dark theme values (snapshot of key variables — Agentic palette) */
   const DARK_THEME_SNAPSHOT: Record<string, string> = {
     '--bg': '#0f0f0f',
     '--titlebar-bg': '#161616',
-    '--divider': '#1e2228',
+    '--divider': '#1f2937',
     '--item-text': '#e8e8e8',
     '--item-meta': '#a2a6ae',
-    '--duration-text': '#48484a',
-    '--record-btn': '#c8933b',
-    '--record-btn-hover': '#d9a44b',
+    '--duration-text': '#6b7280',
+    '--record-btn': '#ff7a33',
+    '--record-btn-hover': '#ff9355',
     '--record-btn-icon': '#0f0f0f',
-    '--item-selected-bg': '#1a1c20',
-    '--item-selected-text': '#c8933b',
+    '--item-selected-bg': 'rgba(255, 122, 51, 0.14)',
+    '--item-selected-text': '#ff9355',
     '--sidebar-bg': '#141414',
     '--dock-bg': '#141414',
-    '--dock-border': '#252525',
+    '--dock-border': '#2c2c2e',
     '--md-h1': 'var(--journal-title-color)',
     '--md-h2': 'var(--journal-title-color)',
-    '--md-text': '#a8acb4',
-    '--md-strong': '#c8933b',
+    '--md-text': '#d1d5db',
+    '--md-strong': '#ff9355',
     '--md-code-bg': 'rgba(255, 255, 255, 0.08)',
     '--md-pre-bg': '#141414',
     '--queue-bg': '#1c1c1e',
-    '--ai-pill-bg': '#1a1708',
-    '--ai-pill-text': '#c8933b',
+    '--ai-pill-bg': 'rgba(255, 122, 51, 0.12)',
+    '--ai-pill-text': '#ff9355',
   }
 
   it('should have all expected dark theme variables unchanged', () => {
@@ -102,9 +102,9 @@ describe('Dark theme invariance', () => {
 
   it('should preserve dark theme tag CSS tokens', () => {
     const css = fs.readFileSync(path.resolve(__dirname, '../styles/globals.css'), 'utf-8')
-    // Dark theme tag tokens
-    expect(css).toContain('--tag-text: rgba(200, 147, 59, 0.65)')
-    expect(css).toContain('--tag-bg: rgba(200, 147, 59, 0.1)')
+    // Dark theme tag tokens (Agentic — neutral white-alpha)
+    expect(css).toContain('--tag-text: rgba(255, 255, 255, 0.6)')
+    expect(css).toContain('--tag-bg: rgba(255, 255, 255, 0.08)')
   })
 })
 
@@ -160,25 +160,25 @@ describe('Accent colors unchanged', () => {
   const rootVars = rootMatch ? parseVarsFromBlock(rootMatch[1]) : new Map()
 
   const ACCENT_SNAPSHOT: Record<string, string> = {
-    '--record-btn': '#b8782a',
-    '--record-btn-hover': '#a06820',
-    '--item-selected-text': '#7a5800',
+    '--record-btn': '#ff5701',
+    '--record-btn-hover': '#e64a00',
+    '--item-selected-text': '#9a3412',
     '--md-h1': 'var(--journal-title-color)',
     '--md-h2': 'var(--journal-title-color)',
-    '--md-strong': '#1c1c1e',
-    '--ai-pill-text': '#8a6500',
-    '--ai-pill-active-text': '#6a4e00',
-    '--ai-pill-active-border': '#b8782a',
-    '--dock-paste-border': '#b8782a',
-    '--dock-paste-label': '#8a6500',
-    '--dock-kbd-text': '#8a6500',
-    '--dock-dropzone-hover-border': '#b8782a',
-    '--date-today-number': '#8a6500',
-    '--date-today-weekday': '#a07828',
-    '--item-selected-meta': '#a07828',
-    '--md-link': '#8a6500',
-    '--md-link-hover': '#6a4e00',
-    '--md-code-text': '#8a6500',
+    '--md-strong': '#111827',
+    '--ai-pill-text': '#c2410c',
+    '--ai-pill-active-text': '#9a3412',
+    '--ai-pill-active-border': '#f97316',
+    '--dock-paste-border': '#ff5701',
+    '--dock-paste-label': '#c2410c',
+    '--dock-kbd-text': '#9a3412',
+    '--dock-dropzone-hover-border': '#ff5701',
+    '--date-today-number': '#c2410c',
+    '--date-today-weekday': '#9a3412',
+    '--item-selected-meta': '#c2410c',
+    '--md-link': '#c2410c',
+    '--md-link-hover': '#9a3412',
+    '--md-code-text': '#c2410c',
   }
 
   for (const [varName, expectedValue] of Object.entries(ACCENT_SNAPSHOT)) {

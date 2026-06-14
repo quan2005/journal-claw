@@ -70,7 +70,7 @@ export default function SectionFeishu() {
                   width: 18,
                   height: 18,
                   borderRadius: '50%',
-                  background: '#fff',
+                  background: 'var(--bg)',
                   position: 'absolute',
                   top: 2,
                   left: 2,

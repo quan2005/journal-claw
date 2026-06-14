@@ -7,7 +7,7 @@ import { TopicTree } from './TopicTree'
 import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
-import { deleteJournalEntry, deleteIdentity, deleteTopic, getWorkspacePath } from '../lib/tauri'
+import { deleteJournalEntry, deleteIdentity, deleteTopic, getWorkspacePath, archiveIdentity, unarchiveIdentity, listTopicsDir, type TopicEntry } from '../lib/tauri'
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -31,6 +31,7 @@ interface TreeSidebarProps {
 
 const TOP_LEVEL_LEADING_SLOT_WIDTH = 9
 const COLLAPSED_SECTIONS_STORAGE_KEY = 'journal_tree_sidebar_collapsed_v1'
+const DEFAULT_COLLAPSED_SECTIONS = ['identity-archived']
 
 const TREE_SECTION_HEADER_CSS = `
   .tree-section-header:hover .tree-section-collapse-button,
@@ -83,11 +84,12 @@ function injectTreeSectionHeaderCss() {
 function loadCollapsedSections(): Set<string> {
   try {
     const raw = localStorage.getItem(COLLAPSED_SECTIONS_STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    if (!Array.isArray(parsed)) return new Set()
+    if (!raw) return new Set(DEFAULT_COLLAPSED_SECTIONS)
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return new Set(DEFAULT_COLLAPSED_SECTIONS)
     return new Set(parsed.filter((key): key is string => typeof key === 'string'))
   } catch {
-    return new Set()
+    return new Set(DEFAULT_COLLAPSED_SECTIONS)
   }
 }
 
@@ -272,10 +274,47 @@ function TopicIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M6 3h11a2 2 0 0 1 2 2v16H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
-      <path d="M8 3v18" />
-      <path d="M11 8h5" />
-      <path d="M11 12h5" />
+      <path d="M3 6.5h6l2 2H21v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M3 9h18" />
+    </svg>
+  )
+}
+
+function IdentityIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+function ArchiveIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="3" width="20" height="5" rx="1" />
+      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+      <path d="M10 12h4" />
     </svg>
   )
 }
@@ -302,6 +341,34 @@ export function TreeSidebar({
   const { items: pinnedItems, pin, unpin, refresh: refreshPinned } = usePinned()
   const { dirs, loading: topicsLoading, load: loadTopics, toggleDir } = useTopics()
   const [wsPath, setWsPath] = useState('')
+
+  // Independent state for pinned folder expansion (does not affect main TopicTree)
+  const [pinnedExpanded, setPinnedExpanded] = useState<Set<string>>(() => new Set())
+  const [pinnedChildren, setPinnedChildren] = useState<Map<string, TopicEntry[]>>(() => new Map())
+
+  const togglePinnedDir = useCallback(
+    async (path: string) => {
+      setPinnedExpanded((prev) => {
+        const next = new Set(prev)
+        if (next.has(path)) {
+          next.delete(path)
+        } else {
+          next.add(path)
+        }
+        return next
+      })
+      // Load children if not yet loaded
+      if (!pinnedChildren.has(path)) {
+        try {
+          const children = await listTopicsDir(path)
+          setPinnedChildren((prev) => new Map(prev).set(path, children))
+        } catch (e) {
+          console.error('[TreeSidebar] pinned dir load failed:', e)
+        }
+      }
+    },
+    [pinnedChildren],
+  )
 
   // Initialize on mount
   useEffect(() => {
@@ -367,15 +434,59 @@ export function TreeSidebar({
 
   // ── Sorted identities ─────────────────────────────────────────────────────
 
+  const coreIdentities = useMemo(
+    () =>
+      identities.filter(
+        (i) => i.path === '__soul__' || i.filename === 'README.md',
+      ),
+    [identities],
+  )
+
+  const identityGroups = useMemo(() => {
+    const nonCore = identities.filter(
+      (i) => i.path !== '__soul__' && i.filename !== 'README.md' && !i.archived,
+    )
+    const groups = new Map<string, typeof nonCore>()
+    for (const id of nonCore) {
+      const key = id.region || '其他'
+      const list = groups.get(key) ?? []
+      list.push(id)
+      groups.set(key, list)
+    }
+    // Sort each group alphabetically
+    for (const list of groups.values()) {
+      list.sort((a, b) => a.name.localeCompare(b.name))
+    }
+    // Sort group keys alphabetically, but "其他" last
+    return [...groups.entries()].sort((a, b) => {
+      if (a[0] === '其他') return 1
+      if (b[0] === '其他') return -1
+      return a[0].localeCompare(b[0])
+    })
+  }, [identities])
+
+  const archivedIdentities = useMemo(
+    () =>
+      identities
+        .filter(
+          (i) => i.archived && i.path !== '__soul__' && i.filename !== 'README.md',
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [identities],
+  )
+
   const sortedIdentities = useMemo(
-    () => [...identities].sort((a, b) => a.name.localeCompare(b.name)),
+    () =>
+      [...identities]
+        .filter((i) => i.path !== '__soul__' && i.filename !== 'README.md' && !i.archived)
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [identities],
   )
 
   // ── Resolve pinned item to actual entry ───────────────────────────────────
 
   const resolvePinnedEntry = useCallback(
-    (pinned: { type: 'journal' | 'identity'; path: string }) => {
+    (pinned: { type: 'journal' | 'identity' | 'topic'; path: string }) => {
       if (pinned.type === 'journal') {
         return entries.find((e) => `${e.year_month}/${e.filename}` === pinned.path)
       }
@@ -384,9 +495,15 @@ export function TreeSidebar({
           (i) => i.path === pinned.path || `identities/${i.filename}` === pinned.path,
         )
       }
+      if (pinned.type === 'topic') {
+        for (const [, dirState] of dirs) {
+          const found = dirState.entries.find((e) => e.path === pinned.path)
+          if (found) return found
+        }
+      }
       return undefined
     },
-    [entries, identities],
+    [entries, identities, dirs],
   )
 
   // ── Context menu ────────────────────────────────────────────────────────
@@ -400,6 +517,8 @@ export function TreeSidebar({
       x: number,
       y: number,
       absolutePath?: string,
+      isArchived?: boolean,
+      isCoreIdentity?: boolean,
     ) => {
       setCtxMenu({
         itemType: itemType as TreeContextMenuState['itemType'],
@@ -407,6 +526,8 @@ export function TreeSidebar({
         path,
         absolutePath,
         isPinned,
+        isArchived,
+        isCoreIdentity,
         x,
         y,
       })
@@ -460,73 +581,6 @@ export function TreeSidebar({
       >
         {category === 'journal' && (
           <>
-            {/* ════════════════════════════════════════════════════════════════════
-                Pinned Section
-                ════════════════════════════════════════════════════════════════════ */}
-            {pinnedItems.length > 0 && (
-              <div style={{ marginBottom: 2 }}>
-                <SectionHeader
-                  collapsed={isCollapsed('pinned')}
-                  onToggle={() => toggleSection('pinned')}
-                  label="置顶"
-                  count={pinnedItems.length}
-                  icon={<PinIcon />}
-                />
-                {!isCollapsed('pinned') &&
-                  pinnedItems.map((pinned) => {
-                    const resolved = resolvePinnedEntry(pinned)
-                    if (!resolved) return null
-
-                    if (pinned.type === 'journal') {
-                      const entry = resolved as JournalEntry
-                      return (
-                        <TreeItem
-                          key={`pinned-journal-${entry.path}`}
-                          itemType="journal"
-                          entry={entry}
-                          isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
-                          isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
-                          onClick={() =>
-                            handleSelect({
-                              type: 'journal',
-                              path: `${entry.year_month}/${entry.filename}`,
-                            })
-                          }
-                          onAt={() => onAtRef(`${entry.year_month}/${entry.filename}`)}
-                          onMore={(x, y) =>
-                            handleMore(
-                              'journal',
-                              entry.title,
-                              `${entry.year_month}/${entry.filename}`,
-                              true,
-                              x,
-                              y,
-                              entry.path,
-                            )
-                          }
-                        />
-                      )
-                    }
-
-                    // Identity
-                    const identity = resolved as IdentityEntry
-                    return (
-                      <TreeItem
-                        key={`pinned-identity-${identity.path}`}
-                        itemType="identity"
-                        identity={identity}
-                        isSelected={isSelected('identity', identity.path)}
-                        onClick={() => handleSelect({ type: 'identity', path: identity.path })}
-                        onAt={() => onAtRef(`identities/${identity.filename}`)}
-                        onMore={(x, y) =>
-                          handleMore('identity', identity.name, identity.path, true, x, y)
-                        }
-                      />
-                    )
-                  })}
-              </div>
-            )}
-
             {/* ════════════════════════════════════════════════════════════════════
                 Journal Pipeline Section (流水)
                 ════════════════════════════════════════════════════════════════════ */}
@@ -584,7 +638,7 @@ export function TreeSidebar({
                     style={{
                       background: 'transparent',
                       border: 'none',
-                      color: 'var(--text-secondary, #a0988c)',
+                      color: 'var(--text-secondary, #9CA3AF)',
                       fontSize: '0.75rem',
                       cursor: 'pointer',
                       padding: '4px 12px',
@@ -602,27 +656,121 @@ export function TreeSidebar({
         {category === 'identity' && (
           <>
             {/* ════════════════════════════════════════════════════════════════════
-                Identities Section (画像)
+                Core Identities Section (核心画像)
                 ════════════════════════════════════════════════════════════════════ */}
-            {sortedIdentities.map((identity) => (
-              <TreeItem
-                key={identity.path}
-                itemType="identity"
-                identity={identity}
-                isSelected={isSelected('identity', identity.path)}
-                onClick={() => handleSelect({ type: 'identity', path: identity.path })}
-                onAt={() => onAtRef(`identities/${identity.filename}`)}
-                onMore={(x, y) =>
-                  handleMore('identity', identity.name, identity.path, false, x, y)
-                }
+            {coreIdentities.length > 0 && (
+              <div style={{ marginBottom: 2 }}>
+                <SectionHeader
+                  collapsed={isCollapsed('core-identity')}
+                  onToggle={() => toggleSection('core-identity')}
+                  label="核心画像"
+                  count={coreIdentities.length}
+                  icon={<PinIcon />}
+                />
+                {!isCollapsed('core-identity') &&
+                  coreIdentities.map((identity) => (
+                    <TreeItem
+                      key={`core-${identity.path}`}
+                      itemType="identity"
+                      identity={identity}
+                      isSelected={isSelected('identity', identity.path)}
+                      onClick={() => handleSelect({ type: 'identity', path: identity.path })}
+                      onAt={() => onAtRef(`identities/${identity.filename}`)}
+                      onMore={(x, y) =>
+                        handleMore('identity', identity.name, identity.path, false, x, y,
+                          undefined, false, true)
+                      }
+                    />
+                  ))}
+              </div>
+            )}
+
+            {coreIdentities.length > 0 && sortedIdentities.length > 0 && (
+              <div
+                style={{
+                  height: 0,
+                  borderBottom: '0.5px solid var(--divider)',
+                  margin: '6px 12px',
+                }}
               />
+            )}
+
+            {/* ════════════════════════════════════════════════════════════════════
+                Identities by Region (按分组)
+                ════════════════════════════════════════════════════════════════════ */}
+            {identityGroups.map(([region, groupIdentities]) => (
+              <div key={region} style={{ marginBottom: 2 }}>
+                <SectionHeader
+                  collapsed={isCollapsed(`identity-region:${region}`)}
+                  onToggle={() => toggleSection(`identity-region:${region}`)}
+                  label={region}
+                  count={groupIdentities.length}
+                  icon={<IdentityIcon />}
+                />
+                {!isCollapsed(`identity-region:${region}`) &&
+                  groupIdentities.map((identity) => (
+                    <TreeItem
+                      key={identity.path}
+                      itemType="identity"
+                      identity={identity}
+                      isSelected={isSelected('identity', identity.path)}
+                      onClick={() => handleSelect({ type: 'identity', path: identity.path })}
+                      onAt={() => onAtRef(`identities/${identity.filename}`)}
+                      onMore={(x, y) =>
+                        handleMore('identity', identity.name, identity.path, false, x, y,
+                          undefined, false, false)
+                      }
+                    />
+                  ))}
+              </div>
             ))}
+
+            {/* ════════════════════════════════════════════════════════════════════
+                Archived Identities (归档)
+                ════════════════════════════════════════════════════════════════════ */}
+            {archivedIdentities.length > 0 && (
+              <>
+                {sortedIdentities.length > 0 && (
+                  <div
+                    style={{
+                      height: 0,
+                      borderBottom: '0.5px solid var(--divider)',
+                      margin: '6px 12px',
+                    }}
+                  />
+                )}
+                <div style={{ marginBottom: 2 }}>
+                  <SectionHeader
+                    collapsed={isCollapsed('identity-archived')}
+                    onToggle={() => toggleSection('identity-archived')}
+                    label="归档"
+                    count={archivedIdentities.length}
+                    icon={<ArchiveIcon />}
+                  />
+                  {!isCollapsed('identity-archived') &&
+                    archivedIdentities.map((identity) => (
+                      <TreeItem
+                        key={identity.path}
+                        itemType="identity"
+                        identity={identity}
+                        isSelected={isSelected('identity', identity.path)}
+                        onClick={() => handleSelect({ type: 'identity', path: identity.path })}
+                        onAt={() => onAtRef(`identities/${identity.filename}`)}
+                        onMore={(x, y) =>
+                          handleMore('identity', identity.name, identity.path, false, x, y,
+                            undefined, true, false)
+                        }
+                      />
+                    ))}
+                </div>
+              </>
+            )}
             {identityLoading && (
               <div
                 style={{
                   padding: '8px 6px',
                   fontSize: '0.75rem',
-                  color: 'var(--text-tertiary, #5c5852)',
+                  color: 'var(--text-tertiary, #9CA3AF)',
                 }}
               >
                 加载中...
@@ -632,8 +780,122 @@ export function TreeSidebar({
         )}
 
         {category === 'topics' && (
-          <div>
-            <SectionHeader
+          <>
+            {/* ════════════════════════════════════════════════════════════════════
+                Pinned Topics Section
+                ════════════════════════════════════════════════════════════════════ */}
+            {pinnedItems.filter((p) => p.type === 'topic').length > 0 && (
+              <div style={{ marginBottom: 2 }}>
+                <SectionHeader
+                  collapsed={isCollapsed('pinned')}
+                  onToggle={() => toggleSection('pinned')}
+                  label="置顶"
+                  count={pinnedItems.filter((p) => p.type === 'topic').length}
+                  icon={<PinIcon />}
+                />
+                {!isCollapsed('pinned') &&
+                  pinnedItems
+                    .filter((p) => p.type === 'topic')
+                    .map((pinned) => {
+                      const resolved = resolvePinnedEntry(pinned)
+                      if (!resolved) return null
+                      const topicEntry = resolved as TopicEntry
+                      if (topicEntry.is_dir) {
+                        const isExpanded = pinnedExpanded.has(topicEntry.path)
+                        const children = pinnedChildren.get(topicEntry.path)
+                        return (
+                          <div key={`pinned-topic-${topicEntry.path}`}>
+                            <TreeItem
+                              itemType="topic-file"
+                              topicEntry={topicEntry}
+                              isSelected={isSelected('topic', topicEntry.path)}
+                              onClick={() => togglePinnedDir(topicEntry.path)}
+                              onAt={() => onAtRef(topicEntry.path)}
+                              onMore={(x, y) =>
+                                handleMore(
+                                  'topic-folder',
+                                  topicEntry.name,
+                                  topicEntry.path,
+                                  true,
+                                  x,
+                                  y,
+                                  wsPath ? `${wsPath}/topics/${topicEntry.path}` : undefined,
+                                )
+                              }
+                            />
+                            {isExpanded && children && (
+                              <TopicTree
+                                entries={children}
+                                dirs={dirs}
+                                selectedPath={
+                                  selected?.type === 'topic' || selected?.type === 'topic-file'
+                                    ? selected.path
+                                    : null
+                                }
+                                indent={1}
+                                onToggleDir={toggleDir}
+                                onSelectFile={(entry) =>
+                                  handleSelect({
+                                    type: entry.is_dir ? 'topic' : 'topic-file',
+                                    path: entry.path,
+                                    name: entry.name,
+                                    created_secs: entry.created_secs,
+                                    mtime_secs: entry.mtime_secs,
+                                  })
+                                }
+                                onAt={(path) => onAtRef(path)}
+                                onMore={(entry, x, y) =>
+                                  handleMore(
+                                    entry.is_dir ? 'topic-folder' : 'topic-file',
+                                    entry.name,
+                                    entry.path,
+                                    pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
+                                    x,
+                                    y,
+                                    wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
+                                  )
+                                }
+                              />
+                            )}
+                          </div>
+                        )
+                      }
+                      // pinned file
+                      return (
+                        <TreeItem
+                          key={`pinned-topic-${topicEntry.path}`}
+                          itemType="topic-file"
+                          topicEntry={topicEntry}
+                          isSelected={isSelected('topic-file', topicEntry.path)}
+                          onClick={() =>
+                            handleSelect({
+                              type: 'topic-file',
+                              path: topicEntry.path,
+                              name: topicEntry.name,
+                              created_secs: topicEntry.created_secs,
+                              mtime_secs: topicEntry.mtime_secs,
+                            })
+                          }
+                          onAt={() => onAtRef(topicEntry.path)}
+                          onMore={(x, y) =>
+                            handleMore(
+                              'topic-file',
+                              topicEntry.name,
+                              topicEntry.path,
+                              true,
+                              x,
+                              y,
+                              wsPath ? `${wsPath}/topics/${topicEntry.path}` : undefined,
+                            )
+                          }
+                        />
+                      )
+                    })}
+              </div>
+            )}
+
+            <div>
+              <SectionHeader
               collapsed={isCollapsed('topics')}
               onToggle={() => toggleSection('topics')}
               label="专题"
@@ -646,7 +908,7 @@ export function TreeSidebar({
                     style={{
                       padding: '8px 6px',
                       fontSize: '0.75rem',
-                      color: 'var(--text-tertiary, #5c5852)',
+                      color: 'var(--text-tertiary, #9CA3AF)',
                     }}
                   >
                     加载中...
@@ -676,7 +938,7 @@ export function TreeSidebar({
                         entry.is_dir ? 'topic-folder' : 'topic-file',
                         entry.name,
                         entry.path,
-                        false,
+                        pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
                         x,
                         y,
                         wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
@@ -686,7 +948,8 @@ export function TreeSidebar({
                 )}
               </>
             )}
-          </div>
+            </div>
+          </>
         )}
 
         {/* ideas, automation, skills: sidebar shows nothing — workbench fills center panel */}
@@ -708,6 +971,12 @@ export function TreeSidebar({
           onDelete={(type, path) => {
             handleDelete(type, path)
             setCtxMenu(null)
+          }}
+          onArchive={(path) => {
+            archiveIdentity(path).then(() => setCtxMenu(null))
+          }}
+          onUnarchive={(path) => {
+            unarchiveIdentity(path).then(() => setCtxMenu(null))
           }}
         />
       )}

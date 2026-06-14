@@ -7,7 +7,7 @@ interface ChartProps {
   color?: string
 }
 
-const defaultColor = '#b8782a'
+const defaultColor = '#FF5701'
 
 type ChartImplProps = {
   data: ChartData[]

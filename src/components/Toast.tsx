@@ -83,18 +83,18 @@ const ICON: Record<string, string> = {
 // Use CSS variables for theme compatibility; fallbacks for safety.
 const BG: Record<string, string> = {
   success: 'var(--status-success-bg, rgba(91,166,122,0.12))',
-  warning: 'var(--status-warning-bg, rgba(200,147,59,0.12))',
+  warning: 'var(--status-warning-bg, rgba(217,119,6,0.12))',
   error: 'var(--status-danger-bg, rgba(224,108,96,0.12))',
 }
 
 const BORDER: Record<string, string> = {
-  success: 'var(--status-success, #5ba67a)',
-  warning: 'var(--status-warning, #c8933b)',
-  error: 'var(--status-danger, #e06c60)',
+  success: 'var(--status-success, #16a34a)',
+  warning: 'var(--status-warning, #d97706)',
+  error: 'var(--status-danger, #dc2626)',
 }
 
 const COLOR: Record<string, string> = {
-  success: 'var(--status-success, #5ba67a)',
-  warning: 'var(--status-warning, #c8933b)',
-  error: 'var(--status-danger, #e06c60)',
+  success: 'var(--status-success, #16a34a)',
+  warning: 'var(--status-warning, #d97706)',
+  error: 'var(--status-danger, #dc2626)',
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { revealInFileManager, openFile } from '../lib/tauri'
 import { ask } from '@tauri-apps/plugin-dialog'
 
@@ -10,14 +11,18 @@ export interface TreeContextMenuState {
   path: string
   absolutePath?: string
   isPinned: boolean
+  isArchived?: boolean
+  isCoreIdentity?: boolean
 }
 
 interface TreeContextMenuProps {
   state: TreeContextMenuState
   onClose: () => void
-  onPin: (type: 'journal' | 'identity', path: string) => void
+  onPin: (type: 'journal' | 'identity' | 'topic', path: string) => void
   onUnpin: (path: string) => void
   onDelete: (type: string, path: string) => void
+  onArchive?: (path: string) => void
+  onUnarchive?: (path: string) => void
 }
 
 type MenuItemDef =
@@ -37,6 +42,8 @@ export function TreeContextMenu({
   onPin,
   onUnpin,
   onDelete,
+  onArchive,
+  onUnarchive,
 }: TreeContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -65,7 +72,7 @@ export function TreeContextMenu({
       ref.current.style.top = `${Math.max(4, window.innerHeight - rect.height - 8)}px`
   }, [])
 
-  const { itemType, name, path, isPinned, x, y } = state
+  const { itemType, name, path, isPinned, isArchived, isCoreIdentity, x, y } = state
 
   async function copyPath() {
     try {
@@ -86,11 +93,20 @@ export function TreeContextMenu({
   }
 
   function handlePin() {
-    onPin(itemType === 'identity' ? 'identity' : 'journal', path)
+    const pinType = itemType === 'identity' ? 'identity' : itemType === 'topic-file' || itemType === 'topic-folder' ? 'topic' : 'journal'
+    onPin(pinType, path)
     onClose()
   }
   function handleUnpin() {
     onUnpin(path)
+    onClose()
+  }
+  function handleArchive() {
+    onArchive?.(path)
+    onClose()
+  }
+  function handleUnarchive() {
+    onUnarchive?.(path)
     onClose()
   }
   async function handleDelete() {
@@ -102,13 +118,19 @@ export function TreeContextMenu({
   const deleteLabel =
     itemType === 'identity' ? '删除画像' : itemType === 'topic-folder' ? '删除文件夹' : '删除条目'
 
+  const showPin = itemType === 'topic-file' || itemType === 'topic-folder'
+
   const items: MenuItemDef[] = [
-    {
-      type: 'action',
-      label: isPinned ? '取消置顶' : '置顶',
-      icon: 'pin',
-      onClick: isPinned ? handleUnpin : handlePin,
-    },
+    ...(showPin
+      ? [
+          {
+            type: 'action' as const,
+            label: isPinned ? '取消置顶' : '置顶',
+            icon: 'pin',
+            onClick: isPinned ? handleUnpin : handlePin,
+          },
+        ]
+      : []),
     { type: 'action', label: '复制路径', shortcut: '⌘C', icon: 'copy', onClick: copyPath },
     { type: 'divider' },
     { type: 'action', label: '在编辑器中打开', icon: 'edit', onClick: handleOpenInEditor },
@@ -118,6 +140,24 @@ export function TreeContextMenu({
       icon: 'folder',
       onClick: handleShowInFileManager,
     },
+    ...(itemType === 'identity' && !isCoreIdentity
+      ? [
+          { type: 'divider' as const },
+          isArchived
+            ? {
+                type: 'action' as const,
+                label: '取消归档',
+                icon: 'archive',
+                onClick: handleUnarchive,
+              }
+            : {
+                type: 'action' as const,
+                label: '归档',
+                icon: 'archive',
+                onClick: handleArchive,
+              },
+        ]
+      : []),
     { type: 'divider' },
     {
       type: 'action',
@@ -129,7 +169,7 @@ export function TreeContextMenu({
     },
   ]
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       style={{
@@ -153,7 +193,7 @@ export function TreeContextMenu({
           padding: '4px 10px 6px',
           fontSize: '0.6875rem',
           fontWeight: 500,
-          color: 'var(--text-tertiary, #5c5852)',
+          color: 'var(--text-tertiary, #9CA3AF)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -182,7 +222,8 @@ export function TreeContextMenu({
           />
         )
       })}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -203,6 +244,13 @@ const iconPaths: Record<string, React.ReactNode> = {
     </g>
   ),
   folder: <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
+  archive: (
+    <g>
+      <rect x="2" y="3" width="20" height="5" rx="1" />
+      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+      <path d="M10 12h4" />
+    </g>
+  ),
   delete: (
     <g>
       <polyline points="3 6 5 6 21 6" />
@@ -286,7 +334,7 @@ function MenuItemRow({
         <span
           style={{
             fontSize: '0.6875rem',
-            color: 'var(--text-tertiary, #5c5852)',
+            color: 'var(--text-tertiary, #9CA3AF)',
             fontFamily: 'var(--font-body)',
             flexShrink: 0,
             marginLeft: 16,

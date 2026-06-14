@@ -164,7 +164,7 @@ export function TopicTree({
             <div
               style={{
                 paddingLeft: rowIndent + 20,
-                color: 'var(--text-tertiary, #5c5852)',
+                color: 'var(--text-tertiary, #9CA3AF)',
                 fontSize: '0.75rem',
                 paddingTop: 4,
                 paddingBottom: 4,

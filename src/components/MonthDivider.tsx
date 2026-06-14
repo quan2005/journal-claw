@@ -59,7 +59,7 @@ export function MonthDivider({ label, collapsed = false, onToggle }: MonthDivide
       <span
         className="tree-month-label"
         style={{
-          color: 'var(--text-tertiary, #5c5852)',
+          color: 'var(--text-tertiary, #9CA3AF)',
           transition: 'color 0.15s var(--ease-out)',
         }}
       >

@@ -107,6 +107,7 @@ function ItemBlock({
   isSelected: boolean
 }) {
   if (itemType === 'topic-file' && topicEntry) {
+    const iconKind = topicEntry.is_dir ? 'folder' : fileTypeIconKindFromName(topicEntry.name)
     return (
       <div
         style={{
@@ -118,7 +119,7 @@ function ItemBlock({
           justifyContent: 'center',
         }}
       >
-        <FileTypeIcon kind={fileTypeIconKindFromName(topicEntry.name)} selected={isSelected} />
+        <FileTypeIcon kind={iconKind} selected={isSelected} />
       </div>
     )
   }
@@ -441,7 +442,7 @@ export function TreeItem({
         <div
           style={{
             fontSize: '0.75rem',
-            color: 'var(--text-secondary, #5c5852)',
+            color: 'var(--text-secondary, #9CA3AF)',
             lineHeight: 1.5,
             marginTop: 2,
             paddingLeft: 0,

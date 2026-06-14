@@ -37,8 +37,8 @@ function Badge({ variant, label }: { variant: BadgeVariant; label: string }) {
   // Single accent color (var(--record-btn)) with opacity variations per CLAUDE.md design principles
   const color: Record<BadgeVariant, string> = {
     ok: 'var(--item-text)',
-    warn: 'color-mix(in srgb, var(--record-btn, #ff3b30) 60%, var(--item-text))',
-    error: 'var(--record-btn, #ff3b30)',
+    warn: 'color-mix(in srgb, var(--record-btn, #FF5701) 60%, var(--item-text))',
+    error: 'var(--record-btn, #FF5701)',
     idle: 'var(--item-meta)',
   }
   return (
@@ -51,13 +51,13 @@ function Badge({ variant, label }: { variant: BadgeVariant; label: string }) {
           variant === 'ok'
             ? 'color-mix(in srgb, var(--item-text) 8%, transparent)'
             : variant === 'error'
-              ? 'color-mix(in srgb, var(--record-btn, #ff3b30) 12%, transparent)'
+              ? 'color-mix(in srgb, var(--record-btn, #FF5701) 12%, transparent)'
               : variant === 'warn'
-                ? 'color-mix(in srgb, var(--record-btn, #ff3b30) 8%, transparent)'
+                ? 'color-mix(in srgb, var(--record-btn, #FF5701) 8%, transparent)'
                 : 'color-mix(in srgb, var(--item-meta) 8%, transparent)',
         border:
           variant === 'error'
-            ? '1px solid color-mix(in srgb, var(--record-btn, #ff3b30) 30%, transparent)'
+            ? '1px solid color-mix(in srgb, var(--record-btn, #FF5701) 30%, transparent)'
             : '1px solid transparent',
         borderRadius: 4,
         padding: '2px 7px',
@@ -325,7 +325,7 @@ export default function SectionPermissions() {
               padding: '7px 16px',
               borderRadius: 7,
               border: 'none',
-              background: 'var(--record-btn, #ff3b30)',
+              background: 'var(--record-btn, #FF5701)',
               color: 'var(--status-on-fill)',
               fontSize: 14,
               fontWeight: 500,
@@ -372,9 +372,9 @@ export default function SectionPermissions() {
             marginBottom: 20,
             borderRadius: 6,
             fontSize: 13,
-            color: 'var(--record-btn, #ff3b30)',
-            background: 'color-mix(in srgb, var(--record-btn, #ff3b30) 8%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--record-btn, #ff3b30) 20%, transparent)',
+            color: 'var(--record-btn, #FF5701)',
+            background: 'color-mix(in srgb, var(--record-btn, #FF5701) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--record-btn, #FF5701) 20%, transparent)',
           }}
         >
           {error}

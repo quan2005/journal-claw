@@ -8,7 +8,9 @@
 
 ## 设计基调
 
-**克制 · 沉静 · 专业**（Intentional · Quiet · Precise）
+**Modern · Bold · Agentic**（现代 · 大胆 · 对话式 AI 优先）
+
+单一信号橙 `#FF5701` 作为所有交互 accent 的唯一来源；纯白表面 `#FFFFFF` + 墨色文字 `#111827`；系统无衬线字体栈（标题用 700/800 字重承载 bold 气质）；8pt 间距网格；表面分层传达深度。
 
 完整设计规范见 `docs/DESIGN.md`（含配色、排版、组件、动效、Anti-slop 规则）。
 

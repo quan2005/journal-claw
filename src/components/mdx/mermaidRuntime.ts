@@ -88,8 +88,8 @@ async function getMermaid(isDark: boolean, type: string, renderSequence: number)
     deterministicIDSeed: 'm'.repeat(renderSequence + 1),
     themeVariables: isDark
       ? {
-          primaryColor: '#c8933b',
-          primaryBorderColor: '#c8933b',
+          primaryColor: '#ff5701',
+          primaryBorderColor: '#ff5701',
           lineColor: '#3a3a3c',
           textColor: '#a2a6ae',
           primaryTextColor: '#e8e8e8',
@@ -102,8 +102,8 @@ async function getMermaid(isDark: boolean, type: string, renderSequence: number)
           tertiaryTextColor: '#a2a6ae',
         }
       : {
-          primaryColor: '#b8782a',
-          primaryBorderColor: '#b8782a',
+          primaryColor: '#ff5701',
+          primaryBorderColor: '#ff5701',
           lineColor: '#d8dce0',
           textColor: '#4a5058',
           primaryTextColor: '#1c1c1e',
@@ -137,15 +137,15 @@ async function getMermaid(isDark: boolean, type: string, renderSequence: number)
       taskTextDarkColor: '#1a1a1a',
       taskTextOutsideColor: isDark ? '#b0b0b0' : '#3a3a3a',
       taskBorderColor: isDark ? '#888888' : '#a0a0a0',
-      activeTaskBkgColor: isDark ? '#c8933b' : '#b8782a',
-      activeTaskBorderColor: isDark ? '#a07820' : '#8a6500',
+      activeTaskBkgColor: isDark ? '#ff7a33' : '#ff5701',
+      activeTaskBorderColor: isDark ? '#ff9355' : '#e64a00',
       activeTaskTextColor: '#0f0f0f',
       activeTaskTextDarkColor: '#0f0f0f',
       sectionBkgColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
-      sectionBkgColor2: isDark ? 'rgba(200,147,59,0.04)' : 'rgba(184,120,42,0.03)',
-      altSectionBkgColor: isDark ? 'rgba(200,147,59,0.04)' : 'rgba(184,120,42,0.03)',
+      sectionBkgColor2: isDark ? 'rgba(255,87,1,0.04)' : 'rgba(255,87,1,0.03)',
+      altSectionBkgColor: isDark ? 'rgba(255,87,1,0.04)' : 'rgba(255,87,1,0.03)',
       gridColor: isDark ? '#2c2c2e' : '#e5e5e7',
-      todayLineColor: isDark ? '#c8933b' : '#b8782a',
+      todayLineColor: isDark ? '#ff7a33' : '#ff5701',
       titleColor: isDark ? '#d0d0d0' : '#2a2a2a',
     }
   }

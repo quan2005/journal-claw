@@ -30,15 +30,16 @@ const hintStyle: React.CSSProperties = {
 }
 
 // Deterministic avatar color from profile id
+// Agentic categorical palette — shared with chart-impl's AGENTIC_SERIES for cohesion.
 const AVATAR_COLORS = [
-  '#5e81f4',
-  '#3eb489',
-  '#e8a838',
-  '#e05252',
-  '#9b59b6',
-  '#1abc9c',
-  '#e67e22',
-  '#e74c3c',
+  '#FF5701',
+  '#16A34A',
+  '#D97706',
+  '#3B82F6',
+  '#8B5CF6',
+  '#EC4899',
+  '#14B8A6',
+  '#6B7280',
 ]
 
 function avatarColor(id: string): string {
@@ -399,7 +400,7 @@ function ProfileRow({ profile, allProfiles, onUpdated }: ProfileRowProps) {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: confirmDelete ? '#ff3b30' : 'var(--item-meta)',
+                color: confirmDelete ? 'var(--status-danger)' : 'var(--item-meta)',
                 padding: '4px 6px',
                 borderRadius: 4,
                 fontSize: confirmDelete ? 10 : undefined,

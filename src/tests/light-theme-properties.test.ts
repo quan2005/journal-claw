@@ -340,7 +340,13 @@ describe('Feature: light-theme-optimization, Property 1: Tinted Neutral hue rang
     }
   })
 
-  it('property: tinted neutral variables must have hue in cool-blue range when chroma > 0.003', () => {
+  it('property: tinted neutral variables should be near-achromatic (Agentic neutral gray, no strong hue)', () => {
+    // Agentic design language uses pure neutral grays (Tailwind-style slate/gray family)
+    // for surfaces, borders, and auxiliary text — deliberately replacing the prior
+    // "ink-cyan" cool-blue tinted neutral system. Neutrals must have very low chroma
+    // (≤ 0.03). Tailwind's gray/slate family carries a faint residual chroma (~0.01–0.025)
+    // from hex quantization; the threshold of 0.03 accommodates that while still rejecting
+    // truly tinted colors (cool-blue ink-cyan ≈ 0.03+, warm amber ≈ 0.05+).
     fc.assert(
       fc.property(fc.constantFrom(...TINTED_NEUTRAL_VARIABLES), (varName) => {
         const value = rootVars.get(varName)
@@ -349,19 +355,12 @@ describe('Feature: light-theme-optimization, Property 1: Tinted Neutral hue rang
         // Only test hex colors (skip var() references)
         if (!HEX_COLOR_REGEX.test(value!)) return
 
-        const [, chroma, hue] = hexToOklch(value!)
-
-        // If chroma is very low (essentially achromatic), skip hue check
-        if (chroma <= 0.003) return
+        const [, chroma] = hexToOklch(value!)
 
         expect(
-          hue,
-          `${varName} (${value}): hue=${hue.toFixed(2)}° should be in 195°~250° (chroma=${chroma.toFixed(4)})`,
-        ).toBeGreaterThanOrEqual(195)
-        expect(
-          hue,
-          `${varName} (${value}): hue=${hue.toFixed(2)}° should be in 195°~250° (chroma=${chroma.toFixed(4)})`,
-        ).toBeLessThanOrEqual(250)
+          chroma,
+          `${varName} (${value}): Agentic neutral must be near-achromatic, chroma=${chroma.toFixed(4)} should be ≤ 0.03`,
+        ).toBeLessThanOrEqual(0.03)
       }),
       { numRuns: 100, verbose: true },
     )
@@ -526,13 +525,13 @@ describe('Feature: light-theme-optimization, Property 4: Tag palette contrast', 
     )
   })
 
-  it('should verify tag CSS tokens match design spec', () => {
+  it('should verify tag CSS tokens match Agentic design spec', () => {
     const css = fs.readFileSync(path.resolve(__dirname, '../styles/globals.css'), 'utf-8')
-    // Light theme tag tokens
-    expect(css).toContain('--tag-text: rgba(90, 100, 112, 0.8)')
-    expect(css).toContain('--tag-bg: rgba(90, 100, 112, 0.1)')
-    // Dark theme tag tokens
-    expect(css).toContain('--tag-text: rgba(200, 147, 59, 0.65)')
-    expect(css).toContain('--tag-bg: rgba(200, 147, 59, 0.1)')
+    // Light theme tag tokens — Agentic neutral gray-alpha
+    expect(css).toContain('--tag-text: rgba(75, 85, 99, 0.85)')
+    expect(css).toContain('--tag-bg: rgba(75, 85, 99, 0.08)')
+    // Dark theme tag tokens — Agentic white-alpha
+    expect(css).toContain('--tag-text: rgba(255, 255, 255, 0.6)')
+    expect(css).toContain('--tag-bg: rgba(255, 255, 255, 0.08)')
   })
 })

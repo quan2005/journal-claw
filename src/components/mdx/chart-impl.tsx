@@ -18,7 +18,18 @@ import {
 } from 'recharts'
 import type { ChartData, ChartLayout } from './chart-frame'
 
-const amber = '#b8782a'
+// Agentic chart palette — primary orange first, categorical series follow.
+const amber = '#FF5701'
+const AGENTIC_SERIES = [
+  '#FF5701',
+  '#16A34A',
+  '#D97706',
+  '#3B82F6',
+  '#8B5CF6',
+  '#EC4899',
+  '#14B8A6',
+  '#6B7280',
+]
 
 function useChartTheme() {
   const resolve = () => document.documentElement.getAttribute('data-theme') === 'dark'
@@ -36,16 +47,14 @@ function useChartTheme() {
 
   return {
     isDark,
-    grid: isDark ? '#2c2c2e' : '#e5e5e7',
-    text: isDark ? '#8e8e93' : '#6a7278',
-    axisLine: isDark ? '#3a3a3c' : '#e5e5e7',
-    tooltipBg: isDark ? '#1c1c1e' : '#ffffff',
-    tooltipBorder: isDark ? '#3a3a3c' : '#e5e5e7',
-    amberLight: isDark ? 'rgba(200, 147, 59, 0.12)' : '#f0e4cc',
-    amberLightSolid: isDark ? '#3a3025' : '#f5edd8',
-    pieColors: isDark
-      ? ['#c8933b', '#b8782a', '#d4a84a', '#e0c080', '#8a6500']
-      : ['#b8782a', '#f0e4cc', '#d4b878', '#8a6500', '#f5edd8'],
+    grid: isDark ? '#374151' : '#E5E7EB',
+    text: isDark ? '#9CA3AF' : '#6B7280',
+    axisLine: isDark ? '#374151' : '#E5E7EB',
+    tooltipBg: isDark ? '#1c1c1e' : '#FFFFFF',
+    tooltipBorder: isDark ? '#374151' : '#E5E7EB',
+    amberLight: isDark ? 'rgba(255, 87, 1, 0.12)' : '#FFEDD9',
+    amberLightSolid: isDark ? '#3a3025' : '#FFF4ED',
+    pieColors: AGENTIC_SERIES,
   }
 }
 
@@ -82,7 +91,7 @@ export function BarChartImpl({
             border: `1px solid ${t.tooltipBorder}`,
             borderRadius: 10,
             fontSize: 13,
-            color: t.isDark ? '#e8e8e8' : '#1c1c1e',
+            color: t.isDark ? '#FFFFFF' : '#111827',
           }}
           cursor={{ fill: t.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}
         />
@@ -130,7 +139,7 @@ export function LineChartImpl({
             border: `1px solid ${t.tooltipBorder}`,
             borderRadius: 10,
             fontSize: 13,
-            color: t.isDark ? '#e8e8e8' : '#1c1c1e',
+            color: t.isDark ? '#FFFFFF' : '#111827',
           }}
           cursor={{ stroke: t.axisLine, strokeWidth: 1 }}
         />
@@ -211,7 +220,7 @@ export function PieChartImpl({
                 border: `1px solid ${t.tooltipBorder}`,
                 borderRadius: 10,
                 fontSize: 13,
-                color: t.isDark ? '#e8e8e8' : '#1c1c1e',
+                color: t.isDark ? '#FFFFFF' : '#111827',
               }}
               formatter={(value, name) => [
                 `${value ?? ''} (${total > 0 ? Math.round((Number(value ?? 0) / total) * 100) : 0}%)`,
@@ -238,7 +247,7 @@ export function PieChartImpl({
               alignItems: 'center',
               gap: 8,
               fontSize: 13,
-              color: t.isDark ? '#a8acb4' : '#2a3038',
+              color: t.isDark ? '#9CA3AF' : '#111827',
             }}
           >
             <span
@@ -286,7 +295,7 @@ export function RadarChartImpl({
             border: `1px solid ${t.tooltipBorder}`,
             borderRadius: 10,
             fontSize: 13,
-            color: t.isDark ? '#e8e8e8' : '#1c1c1e',
+            color: t.isDark ? '#FFFFFF' : '#111827',
           }}
         />
         <Radar dataKey="value" stroke={color} fill={color} fillOpacity={0.18} />

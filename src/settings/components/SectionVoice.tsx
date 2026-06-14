@@ -128,14 +128,14 @@ function panelStatusCopy(status: WhisperDownloadPanelStatus) {
     return {
       label: t('downloading'),
       color: 'var(--record-btn)',
-      background: 'rgba(200,147,58,0.12)',
+      background: 'rgba(255,87,1,0.10)',
     }
   }
   if (status === 'downloading') {
     return {
       label: t('downloading'),
       color: 'var(--record-btn)',
-      background: 'rgba(200,147,58,0.12)',
+      background: 'rgba(255,87,1,0.10)',
     }
   }
   if (status === 'success') {
@@ -537,7 +537,7 @@ export default function SectionVoice() {
                       setSaveStatus('idle')
                     }}
                     style={{
-                      background: isActive ? 'rgba(200,147,58,0.08)' : 'var(--detail-case-bg)',
+                      background: isActive ? 'rgba(255,87,1,0.08)' : 'var(--detail-case-bg)',
                       border: `1px solid ${isActive ? 'var(--record-btn)' : 'var(--divider)'}`,
                       borderRadius: 10,
                       padding: '14px 12px 12px',
@@ -773,7 +773,7 @@ export default function SectionVoice() {
                           borderRadius: 8,
                           cursor: 'pointer',
                           background: isSelected
-                            ? 'rgba(200,147,58,0.08)'
+                            ? 'rgba(255,87,1,0.08)'
                             : 'var(--detail-case-bg)',
                           border: `1px solid ${isSelected ? 'var(--record-btn)' : 'var(--divider)'}`,
                           transition: 'border-color 0.15s, background 0.15s',
@@ -799,7 +799,7 @@ export default function SectionVoice() {
                                 width: 5,
                                 height: 5,
                                 borderRadius: '50%',
-                                background: '#fff',
+                                background: 'var(--bg)',
                               }}
                             />
                           )}

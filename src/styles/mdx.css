@@ -10,8 +10,8 @@
     var(--divider, #d8dce0) 72%,
     var(--item-text, #1c1c1e) 28%
   );
-  --mdx-accent: var(--record-btn, #b8782a);
-  --mdx-accent-soft: var(--record-highlight, #fbf3e5);
+  --mdx-accent: var(--record-btn, #ff5701);
+  --mdx-accent-soft: var(--record-highlight, #fff4ed);
   --mdx-radius: 8px;
   --mdx-radius-sm: 6px;
   width: 100%;
@@ -945,7 +945,7 @@
   margin-top: 1px;
 }
 .mdx-checklist-marker--checked {
-  color: var(--record-btn, #b8782a);
+  color: var(--record-btn, #ff5701);
 }
 .mdx-checklist-marker--unchecked {
   color: var(--text-tertiary, #a0a8ad);
@@ -1250,7 +1250,7 @@
 }
 
 .mdx-diagram-frame--gantt .today {
-  stroke: #c8933b !important;
+  stroke: #ff5701 !important;
   stroke-width: 1.5px !important;
   stroke-dasharray: 4 4 !important;
 }

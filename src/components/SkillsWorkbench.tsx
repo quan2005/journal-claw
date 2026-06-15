@@ -18,7 +18,6 @@ import {
   openSkillDir,
   setSkillEnabled,
   setGlobalSkillEnabled,
-  getSkillContent,
   type SkillInfo,
   type SkillTrigger,
 } from '../lib/tauri'
@@ -324,19 +323,11 @@ export default function SkillsWorkbench() {
     )
   }
 
-  const invokeOnce = async (skill: SkillInfo) => {
-    if (skill.enabled && !skill.shadowed_by) {
-      alert('该技能已在当前对话中生效')
-      return
-    }
-    try {
-      const content = await getSkillContent(skill.id)
-      window.dispatchEvent(
-        new CustomEvent('skill-invoke-once', { detail: { skillId: skill.id, content } }),
-      )
-    } catch (e) {
-      console.error('invoke skill failed:', e)
-    }
+  const invokeOnce = (skill: SkillInfo) => {
+    // Dispatch event so ChatPanel fills input with /skillName
+    window.dispatchEvent(
+      new CustomEvent('skill-slash-invoke', { detail: { name: skill.dir_name } }),
+    )
   }
 
   const list = useMemo(() => {

@@ -288,6 +288,17 @@ export function ChatPanel({
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [])
 
+  // Listen for skill-slash-invoke from SkillsWorkbench "/" button
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name } = (e as CustomEvent).detail
+      setInputValue(`/${name} `)
+      setTimeout(() => inputRef.current?.focus(), 0)
+    }
+    window.addEventListener('skill-slash-invoke', handler)
+    return () => window.removeEventListener('skill-slash-invoke', handler)
+  }, [])
+
   const handleAtSelect = useCallback(
     (path: string) => {
       setAtOpen(false)

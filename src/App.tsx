@@ -734,6 +734,15 @@ export default function App() {
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
   }, [setRightPanelOpen])
+
+  // Open chat panel when skill "/" button is clicked from SkillsWorkbench
+  useEffect(() => {
+    const handler = () => {
+      setRightPanelOpen(true)
+    }
+    window.addEventListener('skill-slash-invoke', handler)
+    return () => window.removeEventListener('skill-slash-invoke', handler)
+  }, [setRightPanelOpen])
   const handleSelectSample = useCallback(() => {
     setDetailReturnTarget(null)
     createSampleEntry()

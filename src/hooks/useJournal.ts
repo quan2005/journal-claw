@@ -238,41 +238,21 @@ export function useJournal() {
 
   // ── Event listeners ────────────────────────────────────
 
-  // Event-driven journal refresh (replaces polling).
-  // AC-28: trailing debounce (200ms) so bursts of events (e.g. batch AI processing)
-  // only trigger one refresh at the end.
-  const debouncedRefresh = useMemo(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-    return () => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        timer = null
-        refresh()
-      }, 200)
-    }
-  }, [refresh])
-
-  const debouncedRefreshWorkQueue = useMemo(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-    return () => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        timer = null
-        refreshWorkQueue()
-      }, 200)
-    }
-  }, [refreshWorkQueue])
-
-  // AC-27: journal-updated + work-queue-updated are subscribed ONCE here via useEventSync.
-  // The previous direct listen('work-queue-updated') was removed to avoid double-refresh.
+  // Event-driven journal refresh (replaces polling)
   useEventSync(['journal-updated', 'work-queue-updated'], () => {
-    debouncedRefresh()
-    debouncedRefreshWorkQueue()
+    refresh()
+    refreshWorkQueue()
   })
 
   useEffect(() => {
     refresh()
     refreshWorkQueue()
+
+    // Work queue updates from Rust — also refresh journal entries (may have changed)
+    const unlistenWorkQueue = listen('work-queue-updated', () => {
+      refreshWorkQueue()
+      refresh()
+    })
 
     // Audio pipeline events (local items)
     const unlistenProcessing = listen<ProcessingUpdate>('ai-processing', (event) => {
@@ -448,6 +428,7 @@ export function useJournal() {
 
     return () => {
       refreshing.current = false
+      unlistenWorkQueue.then((fn) => fn())
       unlistenProcessing.then((fn) => fn())
       unlistenLog.then((fn) => fn())
       unlistenAudioReady.then((fn) => fn())

@@ -153,10 +153,9 @@ function SkillCard({
         </div>
         <div className="sk-card-meta">
           <div className="sk-card-meta-row">
-            <span className="sk-card-id">{s.dir_name}</span>
-            <ScopeChip scope={s.scope} />
+            <span className="sk-card-id">{s.name}</span>
           </div>
-          <div className="sk-card-title">{s.name}</div>
+          <div className="sk-card-title">{s.description}</div>
         </div>
         <div className="sk-card-actions" onClick={(e) => e.stopPropagation()}>
           <StarBtn on={isFavorite} onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} />
@@ -174,11 +173,6 @@ function SkillCard({
       {/* shadowed notice */}
       {isShadowed && (
         <p className="sk-card-shadowed">已被高优先级技能覆盖</p>
-      )}
-
-      {/* description */}
-      {!isShadowed && s.description && (
-        <p className="sk-card-desc">{s.description}</p>
       )}
 
       {/* footer: trigger chips */}

@@ -188,8 +188,11 @@ fn scan_skill_loads(skill_dir: &PathBuf) -> Vec<LoadInfo> {
 
 /// Scan builtin skills bundled inside the app resources directory.
 /// In dev mode, falls back to the source workspace-template skills directory.
+/// Excludes dev-workflow skills (they appear as project skills from .agents/skills/).
 fn scan_builtin_skills(app: &tauri::AppHandle) -> Vec<SkillInfo> {
     use tauri::Manager;
+    const DEV_SKILLS: &[&str] = &["docs-maintenance", "requirements-gate", "verification-gate"];
+
     let bundle_dir = app
         .path()
         .resource_dir()
@@ -198,16 +201,20 @@ fn scan_builtin_skills(app: &tauri::AppHandle) -> Vec<SkillInfo> {
         .join("workspace-template")
         .join(".claude")
         .join("skills");
-    if bundle_dir.is_dir() {
-        return scan_skills_dir(&bundle_dir, "builtin");
-    }
-    // Dev-mode fallback: use source directory relative to CARGO_MANIFEST_DIR
-    let dev_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("resources")
-        .join("workspace-template")
-        .join(".claude")
-        .join("skills");
-    scan_skills_dir(&dev_dir, "builtin")
+    let dir = if bundle_dir.is_dir() {
+        bundle_dir
+    } else {
+        // Dev-mode fallback
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("workspace-template")
+            .join(".claude")
+            .join("skills")
+    };
+    scan_skills_dir(&dir, "builtin")
+        .into_iter()
+        .filter(|s| !DEV_SKILLS.contains(&s.dir_name.as_str()))
+        .collect()
 }
 
 /// Scan global skill directories: ~/.claude/skills/ + ~/.claude/plugins/cache/*/skills/

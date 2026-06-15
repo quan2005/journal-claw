@@ -383,6 +383,8 @@ export function ChatPanel({
 
   return (
     <>
+      {/* History control — anchored to top-left of the chat area */}
+      {historyControl}
       {/* Messages */}
       <div
         ref={scrollRef}
@@ -665,8 +667,6 @@ export function ChatPanel({
         onDrop={handleDrop}
         style={{ padding: '8px 24px 12px', flexShrink: 0, position: 'relative' }}
       >
-        {historyControl}
-
         {slashOpen && (
           <SlashCommandMenu
             query={slashQuery}

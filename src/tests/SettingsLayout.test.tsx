@@ -23,10 +23,6 @@ vi.mock('../settings/components/SectionAutomation', () => ({
   default: () => <div>Automation panel</div>,
 }))
 
-vi.mock('../settings/components/SectionFeishu', () => ({
-  default: () => <div>IM panel</div>,
-}))
-
 vi.mock('../settings/components/SectionAbout', () => ({
   default: () => <div>About panel</div>,
 }))
@@ -57,17 +53,5 @@ describe('SettingsLayout', () => {
 
     expect(screen.getByText('About panel')).toBeTruthy()
     expect(onSectionConsumed).toHaveBeenCalledTimes(1)
-  })
-
-  it('keeps unavailable sections visible but not navigable', () => {
-    render(<SettingsLayout height="600px" />)
-
-    const imButton = screen.getByRole('button', { name: '第三方工具' })
-    expect(imButton.getAttribute('aria-disabled')).toBe('true')
-
-    fireEvent.click(imButton)
-
-    expect(screen.getByText('General panel')).toBeTruthy()
-    expect(screen.queryByText('IM panel')).toBeNull()
   })
 })

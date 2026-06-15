@@ -22,6 +22,7 @@ export function RightPanel({ chatContent, chatInputBar }: RightPanelProps) {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          position: 'relative',
         }}
       >
         {chatContent}

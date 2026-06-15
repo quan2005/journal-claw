@@ -63,6 +63,8 @@ export const zh: Strings = {
   expandLeftSidebar: '展开左侧栏',
   collapseRightSidebar: '折叠右侧栏 (⌘T)',
   expandRightSidebar: '展开右侧栏 (⌘T)',
+  pinRightPanel: '固定右侧栏（切换内容时不收起）',
+  unpinRightPanel: '取消固定右侧栏',
 
   // Context menus (journal + identity)
   referenceEntry: '引用',

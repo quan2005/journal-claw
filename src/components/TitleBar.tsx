@@ -2,6 +2,8 @@ import type { Theme } from '../types'
 import { ThemeToggle } from './ThemeToggle'
 import { AiStatusPill } from './AiStatusPill'
 import { useTranslation } from '../contexts/I18nContext'
+import { PanelRight, Pin, PinOff } from 'lucide-react'
+import type { CSSProperties } from 'react'
 
 interface TitleBarProps {
   theme: Theme
@@ -10,6 +12,30 @@ interface TitleBarProps {
   processingFilename?: string
   view: 'journal' | 'settings'
   onOpenChat?: () => void
+  // Panel visibility controls (rendered beside ThemeToggle)
+  rightPanelOpen: boolean
+  onToggleRightPanel: () => void
+  rightPanelPinned: boolean
+  onToggleRightPanelPin: () => void
+}
+
+// Shared icon-button style for the panel toggles + pin, visually consistent with
+// the ThemeToggle segments (same height, divider, accent color).
+const iconButtonStyle: CSSProperties = {
+  width: 28,
+  height: 22,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  border: '1px solid var(--divider)',
+  borderRadius: 6,
+  background: 'transparent',
+  color: 'var(--item-meta)',
+  padding: 0,
+  lineHeight: 1,
+  transition:
+    'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out)',
 }
 
 export function TitleBar({
@@ -19,8 +45,15 @@ export function TitleBar({
   processingFilename,
   view,
   onOpenChat,
+  rightPanelOpen,
+  onToggleRightPanel,
+  rightPanelPinned,
+  onToggleRightPanelPin,
 }: TitleBarProps) {
   const { t } = useTranslation()
+  const PinIcon = rightPanelPinned ? PinOff : Pin
+  const pinLabel = rightPanelPinned ? t('unpinRightPanel') : t('pinRightPanel')
+
   return (
     <div
       data-tauri-drag-region
@@ -61,9 +94,60 @@ export function TitleBar({
         )}
       </div>
 
-      {/* Right: theme toggle */}
-      <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8 }}>
-        {view !== 'settings' && <ThemeToggle theme={theme} onChange={onThemeChange} />}
+      {/* Right: theme toggle + panel controls */}
+      <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 6 }}>
+        {view !== 'settings' && (
+          <>
+            <ThemeToggle theme={theme} onChange={onThemeChange} />
+            <button
+              type="button"
+              aria-label={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
+              aria-pressed={rightPanelOpen}
+              title={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
+              onClick={onToggleRightPanel}
+              style={{
+                ...iconButtonStyle,
+                color: rightPanelOpen ? 'var(--record-btn)' : 'var(--item-meta)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--item-hover-bg)'
+                e.currentTarget.style.borderColor = 'var(--divider-hover)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--divider)'
+              }}
+            >
+              <PanelRight size={13} strokeWidth={1.6} />
+            </button>
+            {/* Pin is meaningful only while the right panel is open */}
+            <button
+              type="button"
+              aria-label={pinLabel}
+              aria-pressed={rightPanelPinned}
+              title={pinLabel}
+              disabled={!rightPanelOpen}
+              onClick={onToggleRightPanelPin}
+              style={{
+                ...iconButtonStyle,
+                color: rightPanelPinned ? 'var(--record-btn)' : 'var(--item-meta)',
+                opacity: rightPanelOpen ? 1 : 0.35,
+                cursor: rightPanelOpen ? 'pointer' : 'default',
+              }}
+              onMouseEnter={(e) => {
+                if (!rightPanelOpen) return
+                e.currentTarget.style.background = 'var(--item-hover-bg)'
+                e.currentTarget.style.borderColor = 'var(--divider-hover)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--divider)'
+              }}
+            >
+              <PinIcon size={13} strokeWidth={1.6} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   )

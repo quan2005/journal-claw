@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense, type CSSProperties } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
-import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 import { DetailView } from './components/DetailView'
@@ -51,7 +50,6 @@ const SOUL_PATH = '__soul__'
 const DIVIDER_WIDTH = 7
 const HIDE_RIGHT_PANEL_BELOW = 960
 const HIDE_LEFT_SIDEBAR_BELOW = 720
-const PANEL_TOGGLE_TOP = 'clamp(88px, 12vh, 120px)'
 const SIDEBAR_PANEL_TRANSITION =
   'width 220ms var(--ease-out), opacity 160ms var(--ease-out), border-color 160ms var(--ease-out)'
 
@@ -78,79 +76,6 @@ function treeSelectionLabel(selection: TreeSelection, entry?: JournalEntry): str
 
 function sameTreeSelection(a: TreeSelection | null | undefined, b: TreeSelection): boolean {
   return a?.type === b.type && a.path === b.path
-}
-
-function panelToggleIcon(edge: 'left' | 'right', open: boolean): LucideIcon {
-  if (edge === 'left') return open ? ChevronLeft : ChevronRight
-  return open ? ChevronRight : ChevronLeft
-}
-
-interface PanelDividerToggleProps {
-  edge: 'left' | 'right'
-  open: boolean
-  collapseLabel: string
-  expandLabel: string
-  onToggle: () => void
-}
-
-function PanelDividerToggle({
-  edge,
-  open,
-  collapseLabel,
-  expandLabel,
-  onToggle,
-}: PanelDividerToggleProps) {
-  const Icon = panelToggleIcon(edge, open)
-  const label = open ? collapseLabel : expandLabel
-
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-expanded={open}
-      title={label}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation()
-        onToggle()
-      }}
-      style={
-        {
-          '--panel-toggle-top': PANEL_TOGGLE_TOP,
-          position: 'absolute',
-          top: 'var(--panel-toggle-top)',
-          left: open || edge === 'left' ? (open ? '50%' : 8) : undefined,
-          right: !open && edge === 'right' ? 8 : undefined,
-          transform: open ? 'translate(-50%, -50%)' : 'translateY(-50%)',
-          zIndex: 4,
-          width: 28,
-          height: 28,
-          padding: 0,
-          border: '0.5px solid var(--divider)',
-          borderRadius: 999,
-          background: 'var(--sidebar-bg)',
-          color: open ? 'var(--record-btn)' : 'var(--item-meta)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          lineHeight: 1,
-          transition:
-            'background-color 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out)',
-        } as CSSProperties
-      }
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--item-hover-bg)'
-        e.currentTarget.style.borderColor = 'var(--divider-hover)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'var(--sidebar-bg)'
-        e.currentTarget.style.borderColor = 'var(--divider)'
-      }}
-    >
-      <Icon size={14} strokeWidth={1.6} />
-    </button>
-  )
 }
 
 export default function App() {
@@ -194,6 +119,8 @@ export default function App() {
     setRightPanelOpen,
     rightPanelWidth,
     setRightPanelWidth,
+    rightPanelPinned,
+    setRightPanelPinned,
     chatInitialText,
     setChatInitialText,
     activeCategory,
@@ -205,7 +132,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingLoading, setOnboardingLoading] = useState(true)
   const [defaultWsPath, setDefaultWsPath] = useState('')
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
 
   useEffect(() => {
@@ -540,6 +467,10 @@ export default function App() {
         e.preventDefault()
         setRightPanelOpen((prev) => !prev)
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setRightPanelOpen((prev) => !prev)
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
         newTab()
@@ -704,6 +635,26 @@ export default function App() {
     window.addEventListener('open-automation-workbench', handler)
     return () => window.removeEventListener('open-automation-workbench', handler)
   }, [handleCategoryChange])
+
+  // Auto-collapse right panel on content switch (AC-3/4/5/8).
+  // Fires ONLY at the instant of a content-key change. If a task is in flight
+  // (streaming or queued) the panel stays open for this switch; it will be
+  // re-evaluated on the next switch. Pinned panels never collapse here.
+  // Note: clicking "@" opens the panel but does NOT change the content key,
+  // so it cannot self-collapse (AC-8).
+  const prevContentKeyRef = useRef<string>('')
+  useEffect(() => {
+    const contentKey = `${activeCategory}:${selectedEntry?.path ?? treeSelection?.path ?? ''}`
+    if (prevContentKeyRef.current === '') {
+      prevContentKeyRef.current = contentKey
+      return
+    }
+    if (contentKey === prevContentKeyRef.current) return
+    prevContentKeyRef.current = contentKey
+    if (!rightPanelPinned && !isStreaming && pendingQueue.length === 0) {
+      setRightPanelOpen(false)
+    }
+  }, [activeCategory, selectedEntry, treeSelection, rightPanelPinned, isStreaming, pendingQueue, setRightPanelOpen])
 
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
@@ -899,8 +850,12 @@ export default function App() {
         processingFilename={processingFilename}
         view="journal"
         onOpenChat={() => {
-          setRightPanelOpen(true)
+          setRightPanelOpen((prev) => !prev)
         }}
+        rightPanelOpen={rightPanelOpen}
+        onToggleRightPanel={() => setRightPanelOpen((prev) => !prev)}
+        rightPanelPinned={rightPanelPinned}
+        onToggleRightPanelPin={() => setRightPanelPinned(!rightPanelPinned)}
       />
 
       {view === 'settings' && (
@@ -1156,13 +1111,6 @@ export default function App() {
             transition: 'background-color 0.15s var(--ease-out)',
           }}
         >
-          <PanelDividerToggle
-            edge="right"
-            open={rightPanelOpen}
-            collapseLabel={t('collapseRightSidebar')}
-            expandLabel={t('expandRightSidebar')}
-            onToggle={() => setRightPanelOpen((prev) => !prev)}
-          />
         </div>
         <div
           className="app-sidebar-panel"

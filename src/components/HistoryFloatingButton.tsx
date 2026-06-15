@@ -135,8 +135,8 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
       onMouseLeave={handleMouseLeave}
       style={{
         position: 'absolute',
-        bottom: '100%',
-        left: 24,
+        top: 8,
+        left: 8,
         zIndex: 20,
         width: hovered ? panelWidth : btnSize,
         height: hovered ? 'auto' : btnSize,

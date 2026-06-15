@@ -154,10 +154,14 @@
   --journal-prose-max: 100%;
   --journal-readable-max: 100%;
   --journal-content-max: var(--journal-readable-max);
-  --journal-workbench-max: 1120px;
+  --journal-workbench-max: 1640px;
   --journal-page-gutter: min(56px, 5vw);
   --journal-page-top: 44px;
   --journal-page-bottom: 34px;
+  /* Workbench vertical padding — aligned to SkillsWorkbench inline 52px/80px so
+     想法/自动化/技能 three tabs share identical top & bottom rhythm on wide screens. */
+  --journal-workbench-pad-top: 52px;
+  --journal-workbench-pad-bottom: 80px;
   --journal-detail-padding: 26px var(--journal-page-gutter) 40px;
   --journal-title-color: var(--record-btn);
   --journal-title-size: 48px;
@@ -626,7 +630,7 @@ body,
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding: var(--journal-page-top) var(--journal-page-gutter) 24px;
+  padding: var(--journal-workbench-pad-top) var(--journal-page-gutter) 24px;
 }
 
 .automation-eyebrow {
@@ -717,7 +721,7 @@ body,
 .automation-body {
   min-height: 0;
   overflow: auto;
-  padding: 24px var(--journal-page-gutter) var(--journal-page-bottom);
+  padding: 24px var(--journal-page-gutter) var(--journal-workbench-pad-bottom);
 }
 
 .automation-grid {
@@ -1231,7 +1235,8 @@ body,
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: var(--journal-page-top) var(--journal-page-gutter) var(--journal-page-bottom);
+  padding: var(--journal-workbench-pad-top) var(--journal-page-gutter)
+    var(--journal-workbench-pad-bottom);
   background: var(--detail-bg);
   color: var(--ideas-text);
 }
@@ -1773,6 +1778,8 @@ body,
     --journal-page-gutter: 18px;
     --journal-page-top: 30px;
     --journal-page-bottom: 24px;
+    --journal-workbench-pad-top: 30px;
+    --journal-workbench-pad-bottom: 24px;
     --journal-title-size: var(--journal-title-size-mobile);
     --journal-summary-size: var(--journal-summary-size-mobile);
     --journal-detail-padding: 22px var(--journal-page-gutter) 34px;

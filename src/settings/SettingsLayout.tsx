@@ -5,7 +5,6 @@ import {
   Mic,
   ShieldCheck,
   Timer,
-  Blocks,
   Info,
   ChevronLeft,
   type LucideIcon,
@@ -15,7 +14,6 @@ import SectionAiEngine from './components/SectionAiEngine'
 import SectionVoice from './components/SectionVoice'
 import SectionPermissions from './components/SectionPermissions'
 import SectionAutomation from './components/SectionAutomation'
-import SectionIM from './components/SectionFeishu'
 import SectionAbout from './components/SectionAbout'
 import { ALL_NAV_IDS, type NavId } from './navigation'
 import { useTranslation } from '../contexts/I18nContext'
@@ -42,7 +40,7 @@ const navIconStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-const DISABLED_NAVS: ReadonlySet<NavId> = new Set(['im'])
+const DISABLED_NAVS: ReadonlySet<NavId> = new Set()
 
 function isNavId(value?: string): value is NavId {
   return !!value && ALL_NAV_IDS.includes(value as NavId)
@@ -60,8 +58,6 @@ function renderActiveSection(id: NavId) {
       return <SectionPermissions />
     case 'automation':
       return <SectionAutomation />
-    case 'im':
-      return <SectionIM />
     case 'about':
       return <SectionAbout />
   }
@@ -81,7 +77,6 @@ export function SettingsLayout({
     { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
-    { id: 'im', label: t('thirdPartyTools'), icon: Blocks },
     { id: 'about', label: t('about'), icon: Info },
   ]
   const [activeNav, setActiveNav] = useState<NavId>(() =>

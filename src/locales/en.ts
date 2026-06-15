@@ -61,6 +61,8 @@ export const en = {
   expandLeftSidebar: 'Expand left sidebar',
   collapseRightSidebar: 'Collapse right sidebar (⌘T)',
   expandRightSidebar: 'Expand right sidebar (⌘T)',
+  pinRightPanel: 'Pin right panel (keep open on content switch)',
+  unpinRightPanel: 'Unpin right panel',
 
   // Context menus (journal + identity)
   referenceEntry: 'Reference',

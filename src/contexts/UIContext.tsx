@@ -33,6 +33,24 @@ const saveDim = (key: string, v: number) => {
   }
 }
 
+// ── Persistent boolean (panel pinned flag) ──
+const loadBool = (key: string, fallback: boolean): boolean => {
+  try {
+    const v = localStorage.getItem(key)
+    return v === null ? fallback : v === 'true'
+  } catch {
+    return fallback
+  }
+}
+
+const saveBool = (key: string, v: boolean) => {
+  try {
+    localStorage.setItem(key, String(v))
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
 // ── Persistent tree selection ──
 
 const TREE_SELECTION_STORAGE_KEY = 'journal_tree_selection_v1'
@@ -126,6 +144,11 @@ interface UIContextValue {
   setRightPanelOpen: Dispatch<SetStateAction<boolean>>
   rightPanelWidth: number
   setRightPanelWidth: (w: number) => void
+  // Right panel pinned flag (persisted) — when true, auto-collapse on content
+  // switch is suppressed. Only the pin button mutates this; open paths (Cmd+T,
+  // Cmd+N, @, chevron) intentionally leave it untouched (AC-6).
+  rightPanelPinned: boolean
+  setRightPanelPinned: (p: boolean) => void
 
   // Chat init
   chatInitialText: string
@@ -158,9 +181,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim('journal_base_width', 320))
-  const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [rightPanelWidth, setRightPanelWidthState] = useState(() =>
     loadDim('journal_right_panel_width', 320),
+  )
+  const [rightPanelPinned, setRightPanelPinnedState] = useState(() =>
+    loadBool('journal_right_panel_pinned', false),
   )
   const [chatInitialText, setChatInitialText] = useState('')
 
@@ -172,6 +198,11 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const setRightPanelWidth = useCallback((w: number) => {
     setRightPanelWidthState(w)
     saveDim('journal_right_panel_width', w)
+  }, [])
+
+  const setRightPanelPinned = useCallback((p: boolean) => {
+    setRightPanelPinnedState(p)
+    saveBool('journal_right_panel_pinned', p)
   }, [])
 
   const setActiveCategory = useCallback((cat: Category) => {
@@ -215,6 +246,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
         setRightPanelOpen,
         rightPanelWidth,
         setRightPanelWidth,
+        rightPanelPinned,
+        setRightPanelPinned,
         chatInitialText,
         setChatInitialText,
         activeCategory,

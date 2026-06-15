@@ -246,45 +246,65 @@ pub async fn scan_skills(
             }
         }
 
-        // ~/.claude/plugins/cache/*/skills/
+        // ~/.claude/plugins/cache/<publisher>/<plugin>/<version>/skills/
         let plugins_cache = home.join(".claude").join("plugins").join("cache");
-        if let Ok(mut plugin_entries) = tokio::fs::read_dir(&plugins_cache).await {
-            while let Ok(Some(plugin_entry)) = plugin_entries.next_entry().await {
-                let skills_dir = plugin_entry.path().join("skills");
-                if !skills_dir.is_dir() {
+        if let Ok(mut publishers) = tokio::fs::read_dir(&plugins_cache).await {
+            while let Ok(Some(publisher)) = publishers.next_entry().await {
+                if !publisher.path().is_dir() {
                     continue;
                 }
-                let plugin_name = plugin_entry
-                    .file_name()
-                    .to_string_lossy()
-                    .to_string();
-                if let Ok(mut entries) = tokio::fs::read_dir(&skills_dir).await {
-                    while let Ok(Some(entry)) = entries.next_entry().await {
-                        let path = entry.path();
-                        if !path.is_dir() {
+                let publisher_name = publisher.file_name().to_string_lossy().to_string();
+                if let Ok(mut plugins) = tokio::fs::read_dir(publisher.path()).await {
+                    while let Ok(Some(plugin)) = plugins.next_entry().await {
+                        if !plugin.path().is_dir() {
                             continue;
                         }
-                        let skill_md = path.join("SKILL.md");
-                        let content = match tokio::fs::read_to_string(&skill_md).await {
-                            Ok(c) => c,
-                            Err(_) => continue,
-                        };
-                        let raw_dir = path
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .unwrap_or("")
-                            .to_string();
-                        if raw_dir.is_empty() {
-                            continue;
+                        let plugin_name = plugin.file_name().to_string_lossy().to_string();
+                        // Find latest version (sort desc, take first)
+                        let mut versions: Vec<_> = Vec::new();
+                        if let Ok(mut ver_entries) = tokio::fs::read_dir(plugin.path()).await {
+                            while let Ok(Some(v)) = ver_entries.next_entry().await {
+                                if v.path().is_dir() {
+                                    versions.push(v);
+                                }
+                            }
                         }
-                        let dir_name = format!("{}/{}", plugin_name, raw_dir);
-                        let skill_id = format!("global:{}", dir_name);
-                        if !enabled_globals.contains(&skill_id) {
-                            continue;
-                        }
-                        let description = parse_skill_description(&content).unwrap_or_default();
-                        if !skills.iter().any(|(n, _)| n == &dir_name) {
-                            skills.push((dir_name, description));
+                        versions.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+                        if let Some(version_entry) = versions.first() {
+                            let skills_dir = version_entry.path().join("skills");
+                            if !skills_dir.is_dir() {
+                                continue;
+                            }
+                            if let Ok(mut entries) = tokio::fs::read_dir(&skills_dir).await {
+                                while let Ok(Some(entry)) = entries.next_entry().await {
+                                    let path = entry.path();
+                                    if !path.is_dir() {
+                                        continue;
+                                    }
+                                    let skill_md = path.join("SKILL.md");
+                                    let content = match tokio::fs::read_to_string(&skill_md).await {
+                                        Ok(c) => c,
+                                        Err(_) => continue,
+                                    };
+                                    let raw_dir = path
+                                        .file_name()
+                                        .and_then(|n| n.to_str())
+                                        .unwrap_or("")
+                                        .to_string();
+                                    if raw_dir.is_empty() {
+                                        continue;
+                                    }
+                                    let dir_name = format!("{}/{}/{}", publisher_name, plugin_name, raw_dir);
+                                    let skill_id = format!("global:{}", dir_name);
+                                    if !enabled_globals.contains(&skill_id) {
+                                        continue;
+                                    }
+                                    let description = parse_skill_description(&content).unwrap_or_default();
+                                    if !skills.iter().any(|(n, _)| n == &dir_name) {
+                                        skills.push((dir_name, description));
+                                    }
+                                }
+                            }
                         }
                     }
                 }

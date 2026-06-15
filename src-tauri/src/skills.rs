@@ -218,21 +218,40 @@ fn scan_global_skills_extended() -> Vec<SkillInfo> {
     let global_dir = home.join(".claude").join("skills");
     all.extend(scan_skills_dir(&global_dir, "global"));
 
-    // 2. ~/.claude/plugins/cache/*/skills/ (e.g. superpowers)
+    // 2. ~/.claude/plugins/cache/<publisher>/<plugin>/<version>/skills/
     let plugins_cache = home.join(".claude").join("plugins").join("cache");
-    if let Ok(entries) = fs::read_dir(&plugins_cache) {
-        for entry in entries.flatten() {
-            let skills_dir = entry.path().join("skills");
-            if skills_dir.is_dir() {
-                let plugin_name = entry
-                    .file_name()
-                    .to_string_lossy()
-                    .to_string();
-                let plugin_skills = scan_skills_dir(&skills_dir, "global");
-                for mut skill in plugin_skills {
-                    skill.dir_name = format!("{}/{}", plugin_name, skill.dir_name);
-                    skill.id = format!("global:{}", skill.dir_name);
-                    all.push(skill);
+    if let Ok(publishers) = fs::read_dir(&plugins_cache) {
+        for publisher in publishers.flatten() {
+            if !publisher.path().is_dir() {
+                continue;
+            }
+            let publisher_name = publisher.file_name().to_string_lossy().to_string();
+            if let Ok(plugins) = fs::read_dir(publisher.path()) {
+                for plugin in plugins.flatten() {
+                    if !plugin.path().is_dir() {
+                        continue;
+                    }
+                    // Find the latest version directory (sort desc, take first)
+                    let mut versions: Vec<_> = fs::read_dir(plugin.path())
+                        .into_iter()
+                        .flatten()
+                        .flatten()
+                        .filter(|e| e.path().is_dir())
+                        .collect();
+                    versions.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+                    if let Some(version_entry) = versions.first() {
+                        let skills_dir = version_entry.path().join("skills");
+                        if skills_dir.is_dir() {
+                            let plugin_id = format!("{}/{}", publisher_name,
+                                plugin.file_name().to_string_lossy());
+                            let plugin_skills = scan_skills_dir(&skills_dir, "global");
+                            for mut skill in plugin_skills {
+                                skill.dir_name = format!("{}/{}", plugin_id, skill.dir_name);
+                                skill.id = format!("global:{}", skill.dir_name);
+                                all.push(skill);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -429,14 +448,30 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
         "global" => {
             let home = dirs::home_dir().ok_or("cannot resolve home directory")?;
             if dir_name.contains('/') {
-                let parts: Vec<&str> = dir_name.splitn(2, '/').collect();
-                home.join(".claude")
-                    .join("plugins")
-                    .join("cache")
-                    .join(parts[0])
-                    .join("skills")
-                    .join(parts[1])
-                    .join("SKILL.md")
+                // Format: "publisher/plugin/skill_dir" from plugin cache
+                let segments: Vec<&str> = dir_name.splitn(3, '/').collect();
+                if segments.len() == 3 {
+                    // Resolve latest version directory
+                    let plugin_dir = home.join(".claude")
+                        .join("plugins")
+                        .join("cache")
+                        .join(segments[0])
+                        .join(segments[1]);
+                    let mut versions: Vec<_> = fs::read_dir(&plugin_dir)
+                        .into_iter()
+                        .flatten()
+                        .flatten()
+                        .filter(|e| e.path().is_dir())
+                        .collect();
+                    versions.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+                    match versions.first() {
+                        Some(v) => v.path().join("skills").join(segments[2]).join("SKILL.md"),
+                        None => return Err(format!("no version found for plugin: {}", dir_name)),
+                    }
+                } else {
+                    // Fallback: 2-segment "prefix/skill" in ~/.claude/skills/
+                    home.join(".claude").join("skills").join(dir_name).join("SKILL.md")
+                }
             } else {
                 home.join(".claude").join("skills").join(dir_name).join("SKILL.md")
             }

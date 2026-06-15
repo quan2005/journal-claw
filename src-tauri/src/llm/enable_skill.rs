@@ -87,13 +87,33 @@ pub async fn execute(input: &Value, workspace: &str) -> ToolResult {
     // Global skills
     if let Some(home) = dirs::home_dir() {
         search_dirs.push(home.join(".claude").join("skills"));
-        // Plugin cache skills
+        // Plugin cache skills: ~/.claude/plugins/cache/<publisher>/<plugin>/<version>/skills/
         let plugins_cache = home.join(".claude").join("plugins").join("cache");
-        if let Ok(entries) = std::fs::read_dir(&plugins_cache) {
-            for entry in entries.flatten() {
-                let skills_dir = entry.path().join("skills");
-                if skills_dir.is_dir() {
-                    search_dirs.push(skills_dir);
+        if let Ok(publishers) = std::fs::read_dir(&plugins_cache) {
+            for publisher in publishers.flatten() {
+                if !publisher.path().is_dir() {
+                    continue;
+                }
+                if let Ok(plugins) = std::fs::read_dir(publisher.path()) {
+                    for plugin in plugins.flatten() {
+                        if !plugin.path().is_dir() {
+                            continue;
+                        }
+                        // Find latest version
+                        let mut versions: Vec<_> = std::fs::read_dir(plugin.path())
+                            .into_iter()
+                            .flatten()
+                            .flatten()
+                            .filter(|e| e.path().is_dir())
+                            .collect();
+                        versions.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+                        if let Some(v) = versions.first() {
+                            let skills_dir = v.path().join("skills");
+                            if skills_dir.is_dir() {
+                                search_dirs.push(skills_dir);
+                            }
+                        }
+                    }
                 }
             }
         }

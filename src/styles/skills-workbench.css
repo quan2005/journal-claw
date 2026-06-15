@@ -639,3 +639,68 @@
     flex-wrap: wrap;
   }
 }
+
+/* ── Section dividers ─────────────────── */
+.skills-section {
+  margin-bottom: 2rem;
+}
+.skills-section-title {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  text-transform: none;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* ── Invoke button (/) ────────────────── */
+.skills-card-invoke {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: transparent;
+  color: var(--color-text-secondary, #6b7280);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+  transition: all 0.15s ease;
+}
+.skills-card-invoke:hover {
+  border-color: #FF5701;
+  color: #FF5701;
+  background: rgba(255, 87, 1, 0.05);
+}
+
+/* ── Shadowed state ───────────────────── */
+.skills-card.is-shadowed {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.skills-card-shadowed {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary, #9ca3af);
+  margin-top: 0.25rem;
+}
+
+/* ── Scope badge variants ─────────────── */
+.skills-card-scope.scope-builtin {
+  background: rgba(255, 87, 1, 0.1);
+  color: #FF5701;
+}
+.skills-card-scope.scope-project {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+.skills-card-scope.scope-global {
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}

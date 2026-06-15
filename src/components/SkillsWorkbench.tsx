@@ -17,8 +17,8 @@ import {
   openSkillsDir,
   openSkillDir,
   setSkillEnabled,
-  getGlobalSkillsEnabled,
-  setGlobalSkillsEnabled,
+  setGlobalSkillEnabled,
+  getSkillContent,
   type SkillInfo,
   type SkillTrigger,
 } from '../lib/tauri'
@@ -67,17 +67,22 @@ function SkillCard({
   on,
   toggle,
   onOpen,
+  onInvoke,
+  showToggle,
 }: {
   s: SkillInfo
   on: boolean
   toggle: () => void
   onOpen: () => void
+  onInvoke: () => void
+  showToggle: boolean
 }) {
   const Icon = skillIcon(s.dir_name)
+  const isShadowed = !!s.shadowed_by
   return (
     <div
       onClick={onOpen}
-      className={`skills-card${on ? '' : ' is-disabled'}`}
+      className={`skills-card${on ? '' : ' is-disabled'}${isShadowed ? ' is-shadowed' : ''}`}
     >
       {/* header */}
       <div className="skills-card-header">
@@ -87,26 +92,44 @@ function SkillCard({
         <div className="skills-card-meta">
           <div className="skills-card-meta-row">
             <span className="skills-card-id">{s.dir_name}</span>
-            <span className={`skills-card-scope${s.scope === 'global' ? ' is-global' : ''}`}>
-              {s.scope === 'global' ? '全局' : '项目'}
+            <span className={`skills-card-scope scope-${s.scope}`}>
+              {s.scope === 'builtin' ? '内置' : s.scope === 'global' ? '全局' : '项目'}
             </span>
           </div>
           <div className="skills-card-name">{s.name}</div>
         </div>
-        <Switch
-          on={on}
+        <button
+          type="button"
+          className="skills-card-invoke"
+          title="临时使用此技能"
           onClick={(e) => {
             e.stopPropagation()
-            toggle()
+            onInvoke()
           }}
-        />
+        >
+          /
+        </button>
+        {showToggle && !isShadowed && (
+          <Switch
+            on={on}
+            onClick={(e) => {
+              e.stopPropagation()
+              toggle()
+            }}
+          />
+        )}
       </div>
 
+      {/* shadowed notice */}
+      {isShadowed && (
+        <p className="skills-card-shadowed">已被高优先级技能覆盖</p>
+      )}
+
       {/* description */}
-      {s.description && <p className="skills-card-desc">{s.description}</p>}
+      {!isShadowed && s.description && <p className="skills-card-desc">{s.description}</p>}
 
       {/* footer: trigger chips */}
-      {s.triggers.length > 0 && (
+      {!isShadowed && s.triggers.length > 0 && (
         <div className="skills-card-triggers">
           {s.triggers.map((t, i) => (
             <TriggerChip key={i} trig={t} />
@@ -187,20 +210,22 @@ function SkillDrawer({
           </div>
           {/* meta row */}
           <div className="skills-drawer-meta-row">
-            <span className={`skills-card-scope${s.scope === 'global' ? ' is-global' : ''}`}>
-              {s.scope === 'global' ? '全局' : '项目'}
+            <span className={`skills-card-scope scope-${s.scope}`}>
+              {s.scope === 'builtin' ? '内置' : s.scope === 'global' ? '全局' : '项目'}
             </span>
             <span style={{ flex: 1 }} />
             <span className={`skills-drawer-status${on ? ' is-on' : ' is-off'}`}>
               {on ? '已启用' : '已停用'}
             </span>
-            <Switch
-              on={on}
-              onClick={(e) => {
-                e.stopPropagation()
-                toggle()
-              }}
-            />
+            {s.scope !== 'builtin' && (
+              <Switch
+                on={on}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggle()
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -276,38 +301,42 @@ function SkillDrawer({
 // ── Skills page ───────────────────────────────────────────
 export default function SkillsWorkbench() {
   const [skills, setSkills] = useState<SkillInfo[]>([])
-  const [globalEnabled, setGlobalEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([listSkills(), getGlobalSkillsEnabled()])
-      .then(([s, enabled]) => {
-        setSkills(s)
-        setGlobalEnabled(enabled)
-      })
+    listSkills()
+      .then(setSkills)
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
 
-  const toggle = (id: string) => {
+  const toggle = (skill: SkillInfo) => {
+    const next = !skill.enabled
+    if (skill.scope === 'global') {
+      setGlobalSkillEnabled(skill.id, next).catch(console.error)
+    } else {
+      setSkillEnabled(skill.id, next).catch(console.error)
+    }
     setSkills((prev) =>
-      prev.map((s) => {
-        if (s.id !== id) return s
-        const next = !s.enabled
-        setSkillEnabled(id, next).catch(console.error)
-        return { ...s, enabled: next }
-      }),
+      prev.map((s) => (s.id === skill.id ? { ...s, enabled: next } : s)),
     )
   }
 
-  const toggleGlobal = () => {
-    const next = !globalEnabled
-    setGlobalEnabled(next)
-    setGlobalSkillsEnabled(next)
-      .then(() => listSkills().then(setSkills).catch(console.error))
-      .catch(console.error)
+  const invokeOnce = async (skill: SkillInfo) => {
+    if (skill.enabled && !skill.shadowed_by) {
+      alert('该技能已在当前对话中生效')
+      return
+    }
+    try {
+      const content = await getSkillContent(skill.id)
+      window.dispatchEvent(
+        new CustomEvent('skill-invoke-once', { detail: { skillId: skill.id, content } }),
+      )
+    } catch (e) {
+      console.error('invoke skill failed:', e)
+    }
   }
 
   const list = useMemo(() => {
@@ -318,9 +347,11 @@ export default function SkillsWorkbench() {
     )
   }, [skills, q])
 
+  const builtin = list.filter((s) => s.scope === 'builtin')
+  const project = list.filter((s) => s.scope === 'project')
+  const global = list.filter((s) => s.scope === 'global')
+
   const enabledCount = skills.filter((s) => s.enabled).length
-  const globalCount = skills.filter((s) => s.scope === 'global').length
-  const slashCount = skills.filter((s) => s.triggers.some((t) => t.kind === 'slash')).length
 
   if (loading) {
     return <div className="skills-workbench-loading">加载中…</div>
@@ -329,22 +360,21 @@ export default function SkillsWorkbench() {
   return (
     <section className="skills-workbench">
       <div className="skills-workbench-inner">
-        {/* ── header ───────────────────────────────── */}
+        {/* header */}
         <div className="skills-workbench-header">
           <div className="skills-workbench-header-left">
             <span className="skills-workbench-eyebrow">AGENT SKILLS</span>
             <h1 className="skills-workbench-title">技能</h1>
             <p className="skills-workbench-summary">
-              管理触发 AI 行为的技能。每个技能定义触发方式、加载的规则与产出 ——
-              启用后即可在对话中被调用。
+              三层技能架构：内置技能始终生效，项目技能可切换，全局技能按需启用。
             </p>
           </div>
           <div className="skills-workbench-header-right">
             <StatCard
               cells={[
                 { n: enabledCount, l: '已启用' },
-                { n: globalCount, l: '全局' },
-                { n: slashCount, l: '斜杠命令' },
+                { n: builtin.length, l: '内置' },
+                { n: global.length, l: '全局' },
               ]}
             />
             <div className="skills-workbench-actions">
@@ -368,17 +398,8 @@ export default function SkillsWorkbench() {
           </div>
         </div>
 
-        {/* ── global toggle + search row ───────────── */}
+        {/* search */}
         <div className="skills-workbench-toolbar">
-          <span className="skills-workbench-toolbar-label">全局技能</span>
-          <Switch
-            on={globalEnabled}
-            onClick={(e) => {
-              e.stopPropagation()
-              toggleGlobal()
-            }}
-          />
-          <span className="skills-workbench-toolbar-spacer" />
           <div className="skills-workbench-search">
             <Search size={15} className="skills-workbench-search-icon" />
             <input
@@ -390,35 +411,83 @@ export default function SkillsWorkbench() {
           </div>
         </div>
 
-        {/* ── grid ─────────────────────────────────── */}
-        {list.length ? (
-          <div className="skills-workbench-grid">
-            {list.map((s) => (
-              <SkillCard
-                key={s.id}
-                s={s}
-                on={s.enabled}
-                toggle={() => toggle(s.id)}
-                onOpen={() => setOpenId(s.id)}
-              />
-            ))}
+        {/* L1: Builtin */}
+        {builtin.length > 0 && (
+          <div className="skills-section">
+            <h2 className="skills-section-title">🔒 内置技能</h2>
+            <div className="skills-workbench-grid">
+              {builtin.map((s) => (
+                <SkillCard
+                  key={s.id}
+                  s={s}
+                  on={true}
+                  toggle={() => {}}
+                  onOpen={() => setOpenId(s.id)}
+                  onInvoke={() => invokeOnce(s)}
+                  showToggle={false}
+                />
+              ))}
+            </div>
           </div>
-        ) : (
+        )}
+
+        {/* L2: Project */}
+        {project.length > 0 && (
+          <div className="skills-section">
+            <h2 className="skills-section-title">📦 项目技能</h2>
+            <div className="skills-workbench-grid">
+              {project.map((s) => (
+                <SkillCard
+                  key={s.id}
+                  s={s}
+                  on={s.enabled}
+                  toggle={() => toggle(s)}
+                  onOpen={() => setOpenId(s.id)}
+                  onInvoke={() => invokeOnce(s)}
+                  showToggle={true}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* L3: Global */}
+        {global.length > 0 && (
+          <div className="skills-section">
+            <h2 className="skills-section-title">🌐 全局技能</h2>
+            <div className="skills-workbench-grid">
+              {global.map((s) => (
+                <SkillCard
+                  key={s.id}
+                  s={s}
+                  on={s.enabled}
+                  toggle={() => toggle(s)}
+                  onOpen={() => setOpenId(s.id)}
+                  onInvoke={() => invokeOnce(s)}
+                  showToggle={true}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {list.length === 0 && (
           <div className="skills-workbench-empty">
             <div className="skills-workbench-empty-icon">+</div>
             <div className="skills-workbench-empty-title">
-              {skills.length === 0
-                ? '未发现技能'
-                : '没有匹配的技能'}
+              {skills.length === 0 ? '未发现技能' : '没有匹配的技能'}
             </div>
             <div className="skills-workbench-empty-subtitle">
               {skills.length === 0
-                ? '在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能'
+                ? '内置技能将随应用更新自动添加'
                 : '尝试调整搜索关键词'}
             </div>
           </div>
         )}
       </div>
+
+      {/* Drawer */}
       {openId &&
         (() => {
           const s = skills.find((k) => k.id === openId)
@@ -427,7 +496,7 @@ export default function SkillsWorkbench() {
             <SkillDrawer
               s={s}
               on={s.enabled}
-              toggle={() => toggle(s.id)}
+              toggle={() => toggle(s)}
               onClose={() => setOpenId(null)}
             />
           )

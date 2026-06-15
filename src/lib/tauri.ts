@@ -520,10 +520,10 @@ export interface SkillInfo {
 
 export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_skills')
 
-export const openSkillsDir = (scope: 'project' | 'global'): Promise<void> =>
+export const openSkillsDir = (scope: 'builtin' | 'project' | 'global'): Promise<void> =>
   invoke<void>('open_skills_dir', { scope })
 
-export const openSkillDir = (scope: 'project' | 'global', dirName: string): Promise<void> =>
+export const openSkillDir = (scope: 'builtin' | 'project' | 'global', dirName: string): Promise<void> =>
   invoke<void>('open_skill_dir', { scope, dirName })
 
 export const setSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>

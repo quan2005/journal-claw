@@ -12,6 +12,10 @@ import {
   FileText,
   Pencil,
   Star,
+  Lock,
+  Package,
+  Globe,
+  SquareSlash,
 } from 'lucide-react'
 import {
   listSkills,
@@ -32,14 +36,7 @@ function skillIcon(name: string) {
   return ICON_BY_NAME[name] ?? Zap
 }
 
-type TabKey = 'builtin' | 'project' | 'global' | 'favorites'
-
-const TABS: { key: TabKey; label: string; icon?: string }[] = [
-  { key: 'favorites', label: '收藏', icon: '⭐' },
-  { key: 'builtin', label: '内置', icon: '🔒' },
-  { key: 'project', label: '项目', icon: '📦' },
-  { key: 'global', label: '全局', icon: '🌐' },
-]
+type TabKey = 'favorites' | 'builtin' | 'project' | 'global'
 
 // ── Favorites persistence (localStorage) ─────────────────
 const FAVORITES_KEY = 'skills-favorites'
@@ -58,7 +55,7 @@ function saveFavorites(ids: string[]) {
 function TriggerChip({ trig }: { trig: SkillTrigger }) {
   const isCmd = trig.kind === 'slash'
   return (
-    <span className={`skills-trigger-chip${isCmd ? ' is-cmd' : ''}`}>
+    <span className={`sk-trigger-chip${isCmd ? ' is-cmd' : ''}`}>
       {trig.kind === 'slash' && <ChevronRight size={12} />}
       {trig.kind === 'auto' && <Bolt size={12} />}
       {trig.kind === 'drop' && <Paperclip size={12} />}
@@ -68,7 +65,19 @@ function TriggerChip({ trig }: { trig: SkillTrigger }) {
   )
 }
 
-// ── Switch (per-skill toggle) ─────────────────────────────
+// ── Scope chip ────────────────────────────────────────────
+function ScopeChip({ scope }: { scope: string }) {
+  const Icon = scope === 'builtin' ? Lock : scope === 'global' ? Globe : Package
+  const label = scope === 'builtin' ? '内置' : scope === 'global' ? '全局' : '项目'
+  return (
+    <span className={`sk-scope-chip scope-${scope}`}>
+      <Icon size={11} />
+      {label}
+    </span>
+  )
+}
+
+// ── Small toggle switch ───────────────────────────────────
 function Switch({ on, onClick }: { on: boolean; onClick: (e: React.MouseEvent) => void }) {
   return (
     <button
@@ -76,9 +85,38 @@ function Switch({ on, onClick }: { on: boolean; onClick: (e: React.MouseEvent) =
       role="switch"
       aria-checked={on}
       onClick={onClick}
-      className={`skills-switch${on ? ' is-on' : ''}`}
+      className={`sk-switch${on ? ' is-on' : ''}`}
     >
-      <span className="skills-switch-knob" />
+      <span className="sk-switch-knob" />
+    </button>
+  )
+}
+
+// ── Star button ───────────────────────────────────────────
+function StarBtn({ on, onClick }: { on: boolean; onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={on ? '取消收藏' : '收藏'}
+      onClick={onClick}
+      className={`sk-star-btn${on ? ' is-active' : ''}`}
+    >
+      <Star size={15} fill={on ? 'currentColor' : 'none'} />
+    </button>
+  )
+}
+
+// ── Slash invoke button ───────────────────────────────────
+function SlashBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="斜杠命令"
+      title="运行技能"
+      onClick={onClick}
+      className="sk-slash-btn"
+    >
+      <SquareSlash size={15} />
     </button>
   )
 }
@@ -90,7 +128,6 @@ function SkillCard({
   toggle,
   onOpen,
   onInvoke,
-  showToggle,
   isFavorite,
   onToggleFavorite,
 }: {
@@ -99,7 +136,6 @@ function SkillCard({
   toggle: () => void
   onOpen: () => void
   onInvoke: () => void
-  showToggle: boolean
   isFavorite: boolean
   onToggleFavorite: () => void
 }) {
@@ -108,66 +144,46 @@ function SkillCard({
   return (
     <div
       onClick={onOpen}
-      className={`skills-card${on ? '' : ' is-disabled'}${isShadowed ? ' is-shadowed' : ''}`}
+      className={`sk-card${on ? '' : ' is-disabled'}${isShadowed ? ' is-shadowed' : ''}`}
     >
       {/* header */}
-      <div className="skills-card-header">
-        <div className="skills-card-icon">
+      <div className="sk-card-header">
+        <div className="sk-card-icon-box">
           <Icon size={19} />
         </div>
-        <div className="skills-card-meta">
-          <div className="skills-card-meta-row">
-            <span className="skills-card-id">{s.dir_name}</span>
-            <span className={`skills-card-scope scope-${s.scope}`}>
-              {s.scope === 'builtin' ? '内置' : s.scope === 'global' ? '全局' : '项目'}
-            </span>
+        <div className="sk-card-meta">
+          <div className="sk-card-meta-row">
+            <span className="sk-card-id">{s.dir_name}</span>
+            <ScopeChip scope={s.scope} />
           </div>
-          <div className="skills-card-name">{s.name}</div>
+          <div className="sk-card-title">{s.name}</div>
         </div>
-        <button
-          type="button"
-          className={`skills-card-star${isFavorite ? ' is-active' : ''}`}
-          title={isFavorite ? '取消收藏' : '收藏'}
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleFavorite()
-          }}
-        >
-          <Star size={14} fill={isFavorite ? 'currentColor' : 'none'} />
-        </button>
-        <button
-          type="button"
-          className="skills-card-invoke"
-          title="临时使用此技能"
-          onClick={(e) => {
-            e.stopPropagation()
-            onInvoke()
-          }}
-        >
-          /
-        </button>
-        {showToggle && !isShadowed && (
-          <Switch
-            on={on}
-            onClick={(e) => {
-              e.stopPropagation()
-              toggle()
-            }}
-          />
-        )}
+        <div className="sk-card-actions" onClick={(e) => e.stopPropagation()}>
+          <StarBtn on={isFavorite} onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} />
+          <SlashBtn onClick={(e) => { e.stopPropagation(); onInvoke() }} />
+          {s.scope === 'builtin' ? (
+            <span className="sk-card-builtin-badge">
+              <Lock size={12} />常驻
+            </span>
+          ) : !isShadowed ? (
+            <Switch on={on} onClick={(e) => { e.stopPropagation(); toggle() }} />
+          ) : null}
+        </div>
       </div>
 
       {/* shadowed notice */}
       {isShadowed && (
-        <p className="skills-card-shadowed">已被高优先级技能覆盖</p>
+        <p className="sk-card-shadowed">已被高优先级技能覆盖</p>
       )}
 
       {/* description */}
-      {!isShadowed && s.description && <p className="skills-card-desc">{s.description}</p>}
+      {!isShadowed && s.description && (
+        <p className="sk-card-desc">{s.description}</p>
+      )}
 
       {/* footer: trigger chips */}
       {!isShadowed && s.triggers.length > 0 && (
-        <div className="skills-card-triggers">
+        <div className="sk-card-footer">
           {s.triggers.map((t, i) => (
             <TriggerChip key={i} trig={t} />
           ))}
@@ -177,30 +193,20 @@ function SkillCard({
   )
 }
 
-// ── Stat card ─────────────────────────────────────────────
-function StatCard({ cells }: { cells: { n: number; l: string }[] }) {
-  return (
-    <div className="skills-stats">
-      {cells.map((c, i) => (
-        <div key={i} className="skills-stats-cell">
-          <span className="skills-stats-number">{c.n}</span>
-          <span className="skills-stats-label">{c.l}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ── Skill detail drawer ───────────────────────────────────
 function SkillDrawer({
   s,
   on,
+  fav,
   toggle,
+  onFav,
   onClose,
 }: {
   s: SkillInfo
   on: boolean
+  fav: boolean
   toggle: () => void
+  onFav: () => void
   onClose: () => void
 }) {
   const [show, setShow] = useState(false)
@@ -220,7 +226,7 @@ function SkillDrawer({
 
   const close = () => {
     setShow(false)
-    setTimeout(onClose, 200)
+    setTimeout(onClose, 240)
   }
 
   const Icon = skillIcon(s.dir_name)
@@ -228,57 +234,56 @@ function SkillDrawer({
   return (
     <div
       onClick={close}
-      className={`skills-drawer-backdrop${show ? ' is-show' : ''}`}
+      className={`sk-drawer-backdrop${show ? ' is-show' : ''}`}
     >
-      <div onClick={(e) => e.stopPropagation()} className="skills-drawer">
+      <div onClick={(e) => e.stopPropagation()} className={`sk-drawer${show ? ' is-show' : ''}`}>
         {/* header */}
-        <div className="skills-drawer-header">
-          <div className="skills-drawer-header-top">
-            <div className="skills-drawer-icon">
+        <div className="sk-drawer-header">
+          <div className="sk-drawer-header-top">
+            <div className="sk-drawer-icon-box">
               <Icon size={22} />
             </div>
-            <div className="skills-drawer-title-area">
-              <div className="skills-drawer-id">{s.dir_name}</div>
-              <div className="skills-drawer-name">{s.name}</div>
+            <div className="sk-drawer-title-area">
+              <div className="sk-drawer-id">{s.dir_name}</div>
+              <div className="sk-drawer-title">{s.name}</div>
             </div>
-            <button type="button" aria-label="关闭" onClick={close} className="skills-drawer-close">
+            <StarBtn on={fav} onClick={(e) => { e.stopPropagation(); onFav() }} />
+            <button type="button" aria-label="关闭" onClick={close} className="sk-drawer-close">
               <X size={18} />
             </button>
           </div>
           {/* meta row */}
-          <div className="skills-drawer-meta-row">
-            <span className={`skills-card-scope scope-${s.scope}`}>
-              {s.scope === 'builtin' ? '内置' : s.scope === 'global' ? '全局' : '项目'}
-            </span>
+          <div className="sk-drawer-meta-row">
+            <ScopeChip scope={s.scope} />
             <span style={{ flex: 1 }} />
-            <span className={`skills-drawer-status${on ? ' is-on' : ' is-off'}`}>
-              {on ? '已启用' : '已停用'}
-            </span>
-            {s.scope !== 'builtin' && (
-              <Switch
-                on={on}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggle()
-                }}
-              />
+            {s.scope === 'builtin' ? (
+              <span className="sk-drawer-builtin-label">
+                <Lock size={14} />常驻 · 不可停用
+              </span>
+            ) : (
+              <>
+                <span className={`sk-drawer-status${on ? ' is-on' : ''}`}>
+                  {on ? '已启用' : '已停用'}
+                </span>
+                <Switch on={on} onClick={(e) => { e.stopPropagation(); toggle() }} />
+              </>
             )}
           </div>
         </div>
 
         {/* scroll body */}
-        <div className="skills-drawer-body">
+        <div className="sk-drawer-body">
           {s.description && (
-            <div className="skills-drawer-section">
-              <div className="skills-drawer-section-title">说明</div>
-              <p className="skills-drawer-section-text">{s.description}</p>
+            <div className="sk-drawer-section">
+              <div className="sk-drawer-section-title">说明</div>
+              <p className="sk-drawer-section-text">{s.description}</p>
             </div>
           )}
 
           {s.triggers.length > 0 && (
-            <div className="skills-drawer-section">
-              <div className="skills-drawer-section-title">触发方式</div>
-              <div className="skills-drawer-triggers">
+            <div className="sk-drawer-section">
+              <div className="sk-drawer-section-title">触发方式</div>
+              <div className="sk-drawer-triggers">
                 {s.triggers.map((t, i) => (
                   <TriggerChip key={i} trig={t} />
                 ))}
@@ -287,21 +292,21 @@ function SkillDrawer({
           )}
 
           {s.output && (
-            <div className="skills-drawer-section">
-              <div className="skills-drawer-section-title">产出</div>
-              <p className="skills-drawer-section-text-sm">{s.output}</p>
+            <div className="sk-drawer-section">
+              <div className="sk-drawer-section-title">产出</div>
+              <p className="sk-drawer-section-text">{s.output}</p>
             </div>
           )}
 
           {s.loads.length > 0 && (
-            <div className="skills-drawer-section">
-              <div className="skills-drawer-section-title">
+            <div className="sk-drawer-section">
+              <div className="sk-drawer-section-title">
                 加载的规则 · {s.loads.length}
               </div>
-              <div className="skills-drawer-loads">
+              <div className="sk-drawer-loads">
                 {s.loads.map((f, i) => (
-                  <div key={i} className="skills-drawer-file-chip">
-                    <FileText size={14} className="skills-drawer-file-chip-icon" />
+                  <div key={i} className="sk-drawer-file-chip">
+                    <FileText size={14} />
                     {f.name}
                   </div>
                 ))}
@@ -311,23 +316,23 @@ function SkillDrawer({
         </div>
 
         {/* footer */}
-        <div className="skills-drawer-footer">
+        <div className="sk-drawer-footer">
           <button
             type="button"
             onClick={() => openSkillDir(s.scope, s.dir_name)}
-            className="skills-workbench-button"
-          >
-            <Pencil size={15} />
-            编辑技能
-          </button>
-          <span className="skills-drawer-footer-spacer" />
-          <button
-            type="button"
-            onClick={() => openSkillDir(s.scope, s.dir_name)}
-            className="skills-workbench-button"
+            className="sk-btn-ghost"
           >
             <FileText size={15} />
             查看 SKILL.md
+          </button>
+          <span style={{ flex: 1 }} />
+          <button
+            type="button"
+            onClick={() => openSkillDir(s.scope, s.dir_name)}
+            className="sk-btn-secondary"
+          >
+            <Pencil size={15} />
+            编辑技能
           </button>
         </div>
       </div>
@@ -374,15 +379,20 @@ export default function SkillsWorkbench() {
   }
 
   const invokeOnce = (skill: SkillInfo) => {
-    // Dispatch event so ChatPanel fills input with /skillName and opens slash menu
     window.dispatchEvent(
       new CustomEvent('skill-slash-invoke', { detail: { name: skill.dir_name } }),
     )
   }
 
+  const tabs: { key: TabKey; label: string; icon: typeof Zap; count: number }[] = useMemo(() => [
+    { key: 'favorites', label: '收藏', icon: Star, count: favorites.length },
+    { key: 'builtin', label: '内置', icon: Lock, count: skills.filter((s) => s.scope === 'builtin').length },
+    { key: 'project', label: '项目', icon: Package, count: skills.filter((s) => s.scope === 'project').length },
+    { key: 'global', label: '全局', icon: Globe, count: skills.filter((s) => s.scope === 'global').length },
+  ], [skills, favorites])
+
   const list = useMemo(() => {
     let filtered = skills
-    // Tab filter
     switch (tab) {
       case 'builtin':
         filtered = skills.filter((s) => s.scope === 'builtin')
@@ -397,7 +407,6 @@ export default function SkillsWorkbench() {
         filtered = skills.filter((s) => favorites.includes(s.id))
         break
     }
-    // Search filter
     if (q.trim()) {
       const needle = q.trim().toLowerCase()
       filtered = filtered.filter((s) =>
@@ -407,82 +416,63 @@ export default function SkillsWorkbench() {
     return filtered
   }, [skills, tab, q, favorites])
 
-  const enabledCount = skills.filter((s) => s.enabled).length
-
   if (loading) {
-    return <div className="skills-workbench-loading">加载中…</div>
+    return <div className="sk-loading">加载中…</div>
   }
 
   return (
-    <section className="skills-workbench">
-      <div className="skills-workbench-inner">
-        {/* header */}
-        <div className="skills-workbench-header">
-          <div className="skills-workbench-header-left">
-            <span className="skills-workbench-eyebrow">AGENT SKILLS</span>
-            <h1 className="skills-workbench-title">技能</h1>
-            <p className="skills-workbench-summary">
-              三层技能架构：内置技能始终生效，项目技能可切换，全局技能按需启用。
-            </p>
-          </div>
-          <div className="skills-workbench-header-right">
-            <StatCard
-              cells={[
-                { n: enabledCount, l: '已启用' },
-                { n: skills.filter((s) => s.scope === 'builtin').length, l: '内置' },
-                { n: favorites.length, l: '收藏' },
-              ]}
-            />
-            <div className="skills-workbench-actions">
-              <button
-                type="button"
-                onClick={() => openSkillsDir('project')}
-                className="skills-workbench-button"
-              >
-                <FolderOpen size={15} />
-                打开目录
-              </button>
-              <button
-                type="button"
-                onClick={() => openSkillsDir('project')}
-                className="skills-workbench-button-primary"
-              >
-                <Plus size={15} />
-                新建技能
-              </button>
-            </div>
-          </div>
+    <section className="sk-page">
+      <div className="sk-page-inner">
+        {/* ── header ───────────────────────────────── */}
+        <div className="sk-header">
+          <span className="sk-eyebrow">AGENT SKILLS</span>
+          <h1 className="sk-title">技能</h1>
+          <p className="sk-subtitle">
+            管理触发 AI 行为的技能。每个技能定义触发方式、加载的规则与产出 —— 启用后即可在对话中被调用。
+          </p>
         </div>
 
-        {/* tabs + search row */}
-        <div className="skills-workbench-toolbar">
-          <div className="skills-tabs">
-            {TABS.map((t) => (
+        {/* ── filter row ───────────────────────────── */}
+        <div className="sk-filter-row">
+          {tabs.map((t) => {
+            const TabIcon = t.icon
+            const active = tab === t.key
+            return (
               <button
                 key={t.key}
                 type="button"
-                className={`skills-tab${tab === t.key ? ' is-active' : ''}`}
+                className={`sk-tab-pill${active ? ' is-active' : ''}`}
                 onClick={() => setTab(t.key)}
               >
-                {t.icon && <span className="skills-tab-icon">{t.icon}</span>}
+                <TabIcon size={13} />
                 {t.label}
+                <span className="sk-tab-count">{t.count}</span>
               </button>
-            ))}
-          </div>
-          <div className="skills-workbench-search">
-            <Search size={15} className="skills-workbench-search-icon" />
+            )
+          })}
+          <span className="sk-filter-spacer" />
+          <div className="sk-search">
+            <Search size={15} />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="搜索技能…"
-              className="skills-workbench-search-input"
             />
           </div>
+          <span className="sk-filter-divider" />
+          <button type="button" className="sk-btn-ghost" onClick={() => openSkillsDir('project')}>
+            <FolderOpen size={15} />
+            打开目录
+          </button>
+          <button type="button" className="sk-btn-primary" onClick={() => openSkillsDir('project')}>
+            <Plus size={15} />
+            新建技能
+          </button>
         </div>
 
-        {/* grid */}
+        {/* ── grid ─────────────────────────────────── */}
         {list.length > 0 ? (
-          <div className="skills-workbench-grid">
+          <div className="sk-grid">
             {list.map((s) => (
               <SkillCard
                 key={s.id}
@@ -491,28 +481,19 @@ export default function SkillsWorkbench() {
                 toggle={() => toggle(s)}
                 onOpen={() => setOpenId(s.id)}
                 onInvoke={() => invokeOnce(s)}
-                showToggle={s.scope !== 'builtin'}
                 isFavorite={favorites.includes(s.id)}
                 onToggleFavorite={() => toggleFavorite(s.id)}
               />
             ))}
           </div>
         ) : (
-          <div className="skills-workbench-empty">
-            <div className="skills-workbench-empty-icon">+</div>
-            <div className="skills-workbench-empty-title">
+          <div className="sk-empty">
+            <div className="sk-empty-text">
               {tab === 'favorites'
-                ? '暂无收藏'
+                ? '暂无收藏 — 点击技能卡片上的 ⭐ 收藏常用技能'
                 : skills.length === 0
                   ? '未发现技能'
                   : '没有匹配的技能'}
-            </div>
-            <div className="skills-workbench-empty-subtitle">
-              {tab === 'favorites'
-                ? '点击技能卡片上的 ⭐ 收藏常用技能'
-                : skills.length === 0
-                  ? '内置技能将随应用更新自动添加'
-                  : '尝试调整搜索关键词'}
             </div>
           </div>
         )}
@@ -527,7 +508,9 @@ export default function SkillsWorkbench() {
             <SkillDrawer
               s={s}
               on={s.enabled}
+              fav={favorites.includes(s.id)}
               toggle={() => toggle(s)}
+              onFav={() => toggleFavorite(s.id)}
               onClose={() => setOpenId(null)}
             />
           )

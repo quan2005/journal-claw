@@ -187,7 +187,7 @@ fn scan_skill_loads(skill_dir: &PathBuf) -> Vec<LoadInfo> {
 }
 
 /// Scan builtin skills bundled inside the app resources directory.
-/// In dev mode, falls back to the source `resources/builtin-skills/` directory.
+/// In dev mode, falls back to the source workspace-template skills directory.
 fn scan_builtin_skills(app: &tauri::AppHandle) -> Vec<SkillInfo> {
     use tauri::Manager;
     let bundle_dir = app
@@ -195,14 +195,18 @@ fn scan_builtin_skills(app: &tauri::AppHandle) -> Vec<SkillInfo> {
         .resource_dir()
         .unwrap_or_default()
         .join("resources")
-        .join("builtin-skills");
+        .join("workspace-template")
+        .join(".claude")
+        .join("skills");
     if bundle_dir.is_dir() {
         return scan_skills_dir(&bundle_dir, "builtin");
     }
     // Dev-mode fallback: use source directory relative to CARGO_MANIFEST_DIR
     let dev_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("resources")
-        .join("builtin-skills");
+        .join("workspace-template")
+        .join(".claude")
+        .join("skills");
     scan_skills_dir(&dev_dir, "builtin")
 }
 
@@ -424,7 +428,9 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
                 .resource_dir()
                 .unwrap_or_default()
                 .join("resources")
-                .join("builtin-skills")
+                .join("workspace-template")
+                .join(".claude")
+                .join("skills")
                 .join(dir_name)
                 .join("SKILL.md");
             if bundle_path.exists() {
@@ -433,7 +439,9 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
                 // Dev-mode fallback
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("resources")
-                    .join("builtin-skills")
+                    .join("workspace-template")
+                    .join(".claude")
+                    .join("skills")
                     .join(dir_name)
                     .join("SKILL.md")
             }

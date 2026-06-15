@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SectionVoice 提示文字修复方案对比</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #fafafa;
+    --bg-tertiary: #f4f4f5;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --duration-text: #9ca3af;
+    --divider: #e5e7eb;
+    --record-btn: #ff5701;
+    --record-btn-soft-bg: #fff4ed;
+    --record-btn-soft-border: #fdba74;
+    --status-warning: #d97706;
+    --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-tertiary);
+    padding: 40px 20px;
+    color: var(--text-primary);
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .case {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--divider);
+  }
+
+  .case-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge-bad { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .badge-good { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+  .case-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  /* 模拟设置面板里的输入框 + 提示文字场景 */
+  .field {
+    margin-bottom: 12px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .input-mock {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    background: var(--bg);
+  }
+
+  /* hintStyle 复刻 */
+  .hint {
+    font-size: 12px;
+    color: var(--duration-text);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* ── 方案 A（当前违规）：橙色小号文字 ── */
+  .hint-bad {
+    color: var(--record-btn);  /* ⚠️ #FF5701 on #FFFFFF = 2.7:1，不达标 */
+  }
+
+  /* ── 方案 B（spec 默认）：墨色文字 + 左侧橙色竖条 ── */
+  .hint-bar {
+    color: var(--text-secondary);   /* 墨色，可读 */
+    border-left: 3px solid var(--record-btn);  /* 橙色竖条做视觉强调 */
+    padding-left: 10px;
+    margin-top: 12px;
+  }
+
+  /* ── 方案 C（备选）：callout（橙边框 + 橙底 + 墨色文字）── */
+  .hint-callout {
+    color: var(--text-primary);     /* 深墨，最可读 */
+    background: var(--record-btn-soft-bg);      /* #FFF4ED 橙软底 */
+    border: 1px solid var(--record-btn-soft-border);  /* #FDBA74 橙边框 */
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .meta {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--divider);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+  }
+
+  .contrast-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--bg-tertiary);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+
+  .contrast-fail { color: #dc2626; }
+  .contrast-pass { color: #16a34a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div>
+    <h1>SectionVoice 提示文字修复方案对比</h1>
+    <p class="subtitle">
+      违规点：12px 小字染成 <code style="font-family:var(--font-mono);color:var(--record-btn)">#FF5701</code>，
+      白底对比度仅 <strong>2.7:1</strong>，低于 WCAG AA 的 4.5:1。
+      这是「单次请求限制 30 秒」的用户必读说明，可读性必须保证。
+    </p>
+  </div>
+
+  <!-- 方案 A：当前（违规） -->
+  <div class="case">
+    <div class="case-label">
+      <span class="badge badge-bad">当前 · 违规</span>
+    </div>
+    <div class="case-title">方案 A：橙色小号正文（现状）</div>
+    <div class="field">
+      <div class="field-label">API Key</div>
+      <div class="input-mock">sk-••••••••••••••••</div>
+      <div class="hint">智谱开放平台的 API Key，留空则使用默认配置</div>
+      <div class="hint hint-bad" style="margin-top: 8px;">
+        单次请求限制 30 秒，长音频将自动分片处理
+      </div>
+    </div>
+    <div class="meta">
+      <span class="contrast-tag contrast-fail">对比度 2.7:1 · 不达标</span>
+      违反 DESIGN.md §100/226。橙色仅可作填充背景，不可作小号文字色。
+    </div>
+  </div>
+
+  <!-- 方案 B：spec 默认 -->
+  <div class="case">
+    <div class="case-label">
+      <span class="badge badge-good">spec 默认</span>
+    </div>
+    <div class="case-title">方案 B：墨色文字 + 左侧橙色竖条</div>
+    <div class="field">
+      <div class="field-label">API Key</div>
+      <div class="input-mock">sk-••••••••••••••••</div>
+      <div class="hint">智谱开放平台的 API Key，留空则使用默认配置</div>
+      <div class="hint-bar">
+        单次请求限制 30 秒，长音频将自动分片处理
+      </div>
+    </div>
+    <div class="meta">
+      <span class="contrast-tag contrast-pass">对比度 7.2:1 · 达标</span>
+      文字用 <code style="font-family:var(--font-mono)">--text-secondary</code>（#4B5563）保证可读；
+      橙色退到左侧 3px 竖条，保留「这是重要限制」的视觉信号。
+      最小改动，风格内敛。
+    </div>
+  </div>
+
+  <!-- 方案 C：备选 callout -->
+  <div class="case">
+    <div class="case-label">
+      <span class="badge badge-good">备选 · 更醒目</span>
+    </div>
+    <div class="case-title">方案 C：callout（橙边框 + 橙软底 + 墨色文字）</div>
+    <div class="field">
+      <div class="field-label">API Key</div>
+      <div class="input-mock">sk-••••••••••••••••</div>
+      <div class="hint">智谱开放平台的 API Key，留空则使用默认配置</div>
+      <div class="hint-callout">
+        单次请求限制 30 秒，长音频将自动分片处理
+      </div>
+    </div>
+    <div class="meta">
+      <span class="contrast-tag contrast-pass">对比度 16:1 · 达标</span>
+      深墨文字 + 橙软底（<code style="font-family:var(--font-mono)">#FFF4ED</code>）+ 橙边框。
+      视觉重量最重，适合「警告型」提示。但设置页里大量用会显得碎。
+    </div>
+  </div>
+
+  <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;padding:16px 20px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--divider);">
+    <strong>设计取舍：</strong><br/>
+    • 方案 B（竖条）—— 内敛，与列表项选中态的橙色竖条语言一致，适合「中性强调」<br/>
+    • 方案 C（callout）—— 醒目，适合「警告/限制」语义，但设置页若多处用会过重<br/>
+    • 这条是「30 秒限制」的说明，偏中性提醒，spec 默认选 B；若你觉得它更像警告，选 C。
+  </div>
+</div>
+</body>
+</html>

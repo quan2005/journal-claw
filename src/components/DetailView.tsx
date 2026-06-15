@@ -372,8 +372,8 @@ function FileViewShell({
     gap: 5,
     height: 28,
     padding: '0 9px',
-    borderRadius: 6,
-    border: active ? '1px solid var(--divider-active)' : '1px solid transparent',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid transparent',
     background: active ? 'var(--segment-active-bg)' : 'transparent',
     color: active ? 'var(--segment-active-text)' : 'var(--item-meta)',
     fontSize: 'var(--text-xs)',
@@ -545,9 +545,6 @@ function FileViewShell({
                 alignItems: 'center',
                 gap: 2,
                 padding: 2,
-                borderRadius: 8,
-                background: 'var(--segment-bg)',
-                border: '1px solid var(--divider)',
               }}
             >
               <button
@@ -1398,8 +1395,7 @@ export const DetailView = React.memo(function DetailView({
             color: 'var(--item-text)',
             opacity: 0.035,
             lineHeight: 1,
-            fontFamily:
-              '"Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "Songti SC", serif',
+            fontFamily: 'var(--font-display)',
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             position: 'absolute',
@@ -2108,8 +2104,8 @@ export const DetailView = React.memo(function DetailView({
     gap: 5,
     height: 28,
     padding: '0 9px',
-    borderRadius: 6,
-    border: active ? '1px solid var(--divider-active)' : '1px solid transparent',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid transparent',
     background: active ? 'var(--segment-active-bg)' : 'transparent',
     color: active ? 'var(--segment-active-text)' : 'var(--item-meta)',
     fontSize: 'var(--text-xs)',
@@ -2182,9 +2178,6 @@ export const DetailView = React.memo(function DetailView({
                 alignItems: 'center',
                 gap: 2,
                 padding: 2,
-                borderRadius: 8,
-                background: 'var(--segment-bg)',
-                border: '1px solid var(--divider)',
               }}
             >
               <button

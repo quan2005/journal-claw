@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="zh" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>谨迹设计系统验收 — Design System Unification</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* ═══ 新设计系统 token（与 globals.css 对齐） ═══ */
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f6f6f1;
+    --bg-tertiary: #ecece6;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --divider: #e5e7eb;
+    --record-btn: #ff5701;
+    --record-btn-hover: #e64a00;
+    --record-btn-icon: #111827;
+    --focus-ring: 2px solid color-mix(in srgb, var(--record-btn) 55%, var(--bg));
+    --segment-active-bg: rgba(255, 87, 1, 0.1);
+    --segment-active-text: var(--record-btn);
+    --item-hover-bg: #fff7f1;
+    --item-selected-bg: #ffedd9;
+    --item-selected-text: #9a3412;
+    --record-highlight: #fff4ed;
+    --dock-dropzone-border: #fdba74;
+    --status-success: #16a34a;
+    --status-warning: #d97706;
+    --status-danger: #dc2626;
+    --radius-sm: 6px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-pill: 999px;
+    --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --border-menu: 1px solid var(--divider);
+    --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Playfair Display', 'Noto Serif SC', serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --font-serif: 'Noto Serif SC', serif;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.5rem;
+    --text-2xl: 1.875rem;
+    --text-display: 2rem;
+    --text-display-lg: 2.5rem;
+  }
+
+  [data-theme='dark'] {
+    --bg: #0f0f0f;
+    --bg-secondary: #1c1c1e;
+    --bg-tertiary: #2c2c2e;
+    --text-primary: #e8e8e8;
+    --text-secondary: #a2a6ae;
+    --text-tertiary: #6b7280;
+    --divider: #1f2937;
+    --record-btn: #ff7a33;
+    --record-btn-hover: #ff9355;
+    --record-btn-icon: #fff8f0;
+    --focus-ring: 2px solid color-mix(in srgb, var(--record-btn) 60%, var(--bg));
+    --segment-active-bg: rgba(255, 122, 51, 0.16);
+    --segment-active-text: #ff7a33;
+    --item-hover-bg: rgba(255, 255, 255, 0.04);
+    --item-selected-bg: rgba(255, 122, 51, 0.14);
+    --item-selected-text: #ff9355;
+    --record-highlight: rgba(255, 122, 51, 0.12);
+    --dock-dropzone-border: rgba(255, 122, 51, 0.4);
+    --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --divider: #1f2937;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 40px 20px;
+    line-height: 1.5;
+  }
+
+  .wrap { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+
+  /* 主题切换 */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px; z-index: 100;
+    background: var(--bg); border: var(--border-menu); border-radius: var(--radius-pill);
+    padding: 6px 14px; font-size: var(--text-xs); cursor: pointer; color: var(--text-secondary);
+    box-shadow: var(--shadow-overlay); font-family: var(--font-body);
+    transition: background 0.2s var(--ease-out);
+  }
+  .theme-toggle:hover { background: var(--item-hover-bg); }
+
+  /* ═══ Section 1: 字体三栈 ═══ */
+  .hero {
+    background: var(--bg); border-radius: var(--radius-lg); padding: 48px 40px;
+    border: 1px solid var(--divider);
+  }
+  .hero-eyebrow {
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--record-btn);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .hero-title {
+    font-family: var(--font-display); font-size: var(--text-display-lg); font-weight: 800;
+    line-height: 1.04; color: var(--text-primary); margin-bottom: 8px;
+  }
+  .hero-title-zh {
+    font-family: var(--font-display); font-size: var(--text-display); font-weight: 700;
+    line-height: 1.2; color: var(--text-primary); margin-bottom: 20px;
+  }
+  .hero-sub {
+    font-family: var(--font-body); font-size: var(--text-lg); color: var(--text-secondary);
+    line-height: 1.6; max-width: 65ch;
+  }
+  .hero-mono {
+    font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-tertiary);
+    margin-top: 16px; padding: 8px 12px; background: var(--bg-secondary);
+    border-radius: var(--radius-sm); display: inline-block;
+  }
+
+  .font-demo { display: grid; grid-template-columns: 120px 1fr; gap: 16px 24px; align-items: baseline; }
+  .font-label { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-tertiary); }
+  .font-sample-display { font-family: var(--font-display); font-size: var(--text-display); font-weight: 800; line-height: 1.2; }
+  .font-sample-heading { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; line-height: 1.3; }
+  .font-sample-body { font-family: var(--font-body); font-size: var(--text-md); line-height: 1.75; }
+  .font-sample-mono { font-family: var(--font-mono); font-size: var(--text-sm); }
+
+  /* ═══ Section 2: 暖白分层 ═══ */
+  .layer-demo { display: flex; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--divider); }
+  .layer { flex: 1; padding: 32px 24px; display: flex; flex-direction: column; gap: 8px; }
+  .layer-1 { background: var(--bg); }
+  .layer-2 { background: var(--bg-secondary); }
+  .layer-3 { background: var(--bg-tertiary); }
+  .layer-name { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-tertiary); }
+  .layer-val { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); }
+  .layer-desc { font-size: var(--text-xs); color: var(--text-tertiary); line-height: 1.5; }
+
+  /* ═══ Section 3: 组件展示 ═══ */
+  .components { background: var(--bg); border-radius: var(--radius-lg); padding: 32px; border: 1px solid var(--divider); display: flex; flex-direction: column; gap: 28px; }
+  .comp-group { display: flex; flex-direction: column; gap: 12px; }
+  .comp-title { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700; color: var(--text-primary); }
+
+  /* 列表项 */
+  .list-item { padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent; transition: background-color 180ms var(--ease-out); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .list-item:hover { background: var(--item-hover-bg); }
+  .list-item.selected { background: var(--item-selected-bg); border-left: 3px solid var(--record-btn); }
+  .list-item-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+  .list-item.selected .list-item-title { color: var(--item-selected-text); }
+  .list-item-meta { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 2px; }
+
+  /* 分段控件（去卡片化） */
+  .segment { display: inline-flex; align-items: center; gap: 2px; padding: 2px; }
+  .segment-btn {
+    display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px;
+    border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer;
+    font-family: var(--font-body); font-size: var(--text-xs); background: transparent; color: var(--text-tertiary);
+    transition: background 0.18s var(--ease-out);
+  }
+  .segment-btn.active { background: var(--segment-active-bg); color: var(--segment-active-text); font-weight: 600; }
+
+  /* 来源徽章 */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1; }
+  .badge-voice { background: #fff4ed; border: 1px solid #fdba74; color: #c2410c; }
+  .badge-doc { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+  .badge-ai { background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; }
+
+  /* 浮层（统一阴影） */
+  .overlay-demo { display: flex; gap: 16px; }
+  .overlay-card {
+    background: var(--bg); border: var(--border-menu); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-overlay); padding: 12px 16px; min-width: 160px;
+    font-size: var(--text-sm); color: var(--text-primary);
+  }
+
+  /* 聚焦环 */
+  .focus-input {
+    padding: 8px 12px; border: 1px solid var(--divider); border-radius: var(--radius-md);
+    font-size: var(--text-sm); font-family: var(--font-body); background: var(--bg); color: var(--text-primary);
+    width: 240px;
+  }
+  .focus-input:focus { outline: var(--focus-ring); border-color: var(--record-btn); }
+
+  /* callout（SectionVoice 修复） */
+  .callout {
+    padding: 8px 12px; background: var(--record-highlight); border: 1px solid var(--dock-dropzone-border);
+    border-radius: var(--radius-sm); color: var(--text-primary); font-size: var(--text-xs); line-height: 1.5;
+    max-width: 320px;
+  }
+
+  /* 信号橙按钮 */
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    background: var(--record-btn); color: var(--record-btn-icon); border: none;
+    border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600;
+    font-family: var(--font-body); cursor: pointer;
+    transition: transform 180ms var(--ease-out), background 180ms var(--ease-out);
+  }
+  .btn-primary:hover { background: var(--record-btn-hover); transform: scale(1.02); }
+  .btn-primary svg { width: 16px; height: 16px; }
+
+  /* inline icon (lucide-style stroke) */
+  .icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+
+  .section-label {
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+  <svg class="icon" id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <span id="themeLabel">切换深色</span>
+</button>
+
+<div class="wrap">
+
+  <!-- ═══ Hero：字体三栈中英混排 ═══ -->
+  <div class="hero">
+    <div class="hero-eyebrow">Design System · Agentic</div>
+    <h1 class="hero-title">JournalClaw</h1>
+    <div class="hero-title-zh">谨迹 · 设计系统统一</div>
+    <p class="hero-sub">
+      Modern · Bold · Agentic。信号橙覆盖所有交互 accent，暖白分层传达深度，
+      Playfair Display 承载标题衬线气质，JetBrains Mono 专属代码语义。
+    </p>
+    <div class="hero-mono">--font-display: 'Playfair Display', 'Noto Serif SC', serif</div>
+  </div>
+
+  <!-- ═══ 字体三栈样例 ═══ -->
+  <div class="components">
+    <div class="section-label">Typography · 三栈各司其职</div>
+    <div class="font-demo">
+      <div class="font-label">Display (Playfair)</div>
+      <div class="font-sample-display">会议纪要与知识沉淀</div>
+      <div class="font-label">Heading (Playfair)</div>
+      <div class="font-sample-heading">产品设计评审记录</div>
+      <div class="font-label">Body (System)</div>
+      <div class="font-sample-body">正文使用系统无衬线栈，零加载成本，完美系统集成。阅读时忘记工具的存在。</div>
+      <div class="font-label">Mono (JetBrains)</div>
+      <div class="font-sample-mono">npm run tauri dev  # 启动开发环境</div>
+    </div>
+  </div>
+
+  <!-- ═══ 暖白三层分层 ═══ -->
+  <div>
+    <div class="section-label">Surface Layering · 暖白三层</div>
+    <div class="layer-demo">
+      <div class="layer layer-1">
+        <div class="layer-name">--bg</div>
+        <div class="layer-val">#FFFFFF</div>
+        <div class="layer-desc">主应用背景<br/>纯白表面</div>
+      </div>
+      <div class="layer layer-2">
+        <div class="layer-name">--bg-secondary</div>
+        <div class="layer-val">#F6F6F1</div>
+        <div class="layer-desc">浮起表面<br/>暖白基调</div>
+      </div>
+      <div class="layer layer-3">
+        <div class="layer-name">--bg-tertiary</div>
+        <div class="layer-val">#ECECE6</div>
+        <div class="layer-desc">更深分隔<br/>ΔE ≥ 3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 组件展示 ═══ -->
+  <div class="components">
+    <div class="section-label">Components · 结构化 token 对齐</div>
+
+    <!-- 列表项 -->
+    <div class="comp-group">
+      <div class="comp-title">列表项（3px 橙竖条统一）</div>
+      <div class="list-item">
+        <div class="list-item-title">产品周会 · Q2 路线图评审</div>
+        <div class="list-item-meta">06-15 · 语音 · 3 条待办</div>
+      </div>
+      <div class="list-item selected">
+        <div class="list-item-title">设计系统统一 · spec 落地</div>
+        <div class="list-item-meta">06-15 · 文档 · 已选中</div>
+      </div>
+    </div>
+
+      <!-- 分段控件（去卡片化） -->
+    <div class="comp-group">
+      <div class="comp-title">分段控件（无边框无容器）</div>
+      <div class="segment">
+        <button class="segment-btn active"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>预览</button>
+        <button class="segment-btn"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>代码</button>
+      </div>
+    </div>
+
+    <!-- 来源徽章 -->
+    <div class="comp-group">
+      <div class="comp-title">来源徽章（圆角/字号/边框统一）</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="badge badge-voice"><svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>voice.m4a</span>
+        <span class="badge badge-doc"><svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>report.pdf</span>
+        <span class="badge badge-ai"><svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI 生成</span>
+      </div>
+    </div>
+
+    <!-- 浮层（统一阴影） -->
+    <div class="comp-group">
+      <div class="comp-title">浮层（--shadow-overlay 统一）</div>
+      <div class="overlay-demo">
+        <div class="overlay-card"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>上下文菜单<br/><span style="font-size:var(--text-xs);color:var(--text-tertiary);margin-left:20px">box-shadow: var(--shadow-overlay)</span></div>
+        <div class="overlay-card"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>对话框<br/><span style="font-size:var(--text-xs);color:var(--text-tertiary);margin-left:20px">0 4px 12px 统一值</span></div>
+      </div>
+    </div>
+
+    <!-- 聚焦环 + callout -->
+    <div class="comp-group">
+      <div class="comp-title">聚焦环 + Callout（P0 修复）</div>
+      <input class="focus-input" placeholder="点击我看 --focus-ring 聚焦环" />
+      <div class="callout">
+        <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--record-btn)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>单次请求限制 30 秒，长音频将自动分片处理
+        <br/><span style="font-size:0.65rem;color:var(--text-tertiary);margin-left:17px">墨色文字 + 橙软底 + 橙边框（对比度 16:1 达标）</span>
+      </div>
+    </div>
+
+    <!-- 主按钮 -->
+    <div class="comp-group">
+      <div class="comp-title">信号橙主按钮</div>
+      <button class="btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>开始处理</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var MOON = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  var SUN = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  function toggleTheme() {
+    var html = document.documentElement;
+    var current = html.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    document.getElementById('themeIcon').innerHTML = next === 'dark' ? SUN : MOON;
+    document.getElementById('themeLabel').textContent = next === 'dark' ? '切换浅色' : '切换深色';
+  }
+</script>
+</body>
+</html>

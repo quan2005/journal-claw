@@ -64,7 +64,7 @@
 }
 
 .nav-rail__btn:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--record-btn) 60%, transparent);
+  outline: var(--focus-ring);
   outline-offset: 1px;
 }
 

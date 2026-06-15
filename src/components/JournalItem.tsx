@@ -44,11 +44,11 @@ export const JournalItem = memo(function JournalItem({
         onContextMenu?.(entry, e.clientX, e.clientY)
       }}
       style={{
+        position: 'relative' as const,
         padding: '9px 14px',
         userSelect: 'none' as const,
         cursor: 'pointer',
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
-        borderLeft: isSelected ? '3px solid var(--record-btn)' : '3px solid transparent',
         transition: 'background-color 180ms var(--ease-out)',
       }}
       onMouseEnter={(e) => {
@@ -59,6 +59,20 @@ export const JournalItem = memo(function JournalItem({
         if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'
       }}
     >
+      {/* Animated selection bar — 3px wide, consistent with TreeItem */}
+      <span
+        style={{
+          position: 'absolute' as const,
+          left: 0,
+          top: 9,
+          bottom: 9,
+          width: 3,
+          borderRadius: 2,
+          background: 'var(--record-btn)',
+          transform: isSelected ? 'scaleY(1)' : 'scaleY(0)',
+          transition: 'transform 0.2s var(--ease-out)',
+        }}
+      />
       {/* Title */}
       <div
         ref={titleRef}

@@ -19,7 +19,7 @@
 - [声纹档案](/docs/guide/speaker-profiles): 设备端说话人识别，与人物画像联动。
 - [技能插件](/docs/guide/skills): 通过 SKILL.md 扩展 AI 处理流程，自定义触发规则。
 - [飞书桥接](/docs/guide/feishu): WebSocket 连接飞书，实时接收消息作为知识素材。
-- [主题](/docs/guide/themes): 浅色/深色双主题，琥珀金与墨水青配色，设计纪律。
+- [主题](/docs/guide/themes): 浅色/深色双主题，信号橙与暖白分层配色，设计纪律。
 - [设置面板](/docs/guide/settings): 九大设置区域完整参考。
 
 ## 开发者指南
@@ -33,9 +33,4 @@
 
 ## 设计系统
 
-- [设计哲学](/docs/design): 墨水青中性体系、琥珀金、克制美学、交互纪律。
-- [色板](/docs/design/colors): 完整色彩 Token 参考——强调色、表面、文字、边框、交互态、语义色、文件类型色。
-- [排版](/docs/design/typography): 字体栈、字号阶梯、字重角色、信息密度分层、Markdown 排版。
-- [组件规范](/docs/design/components): 录音按钮、列表项、AI 状态标识、来源徽章、分段控件、右键菜单、滚动条。
-- [布局与间距](/docs/design/layout): 应用布局、4px 间距系统、圆角尺度、层次纵深、左侧边界标识。
-- [动画](/docs/design/animation): 动画纪律——transform + opacity only，ease-out-quart，≤300ms，prefers-reduced-motion。
+- [DESIGN.md](/DESIGN.md): 设计系统唯一权威——信号橙 (#FF5701)、暖白分层 (#FFFFFF/#F6F6F1/#ECECE6)、三栈字体 (Playfair Display + 系统无衬线 + JetBrains Mono)、8pt 网格、结构化 token (圆角/阴影/边框/聚焦环)、组件规格、该做与不该做规则。

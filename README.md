@@ -40,7 +40,7 @@ Your questions answered
 - **Skill plugins** — Extensible processing pipeline via `SKILL.md` files in workspace or global `~/.claude/skills/`.
 - **Feishu bridge** — Connect to Feishu (Lark) via WebSocket to receive messages and process them as journal materials.
 - **Multi-workspace** — Monthly archive, configurable workspace path.
-- **Light / Dark theme** — System-adaptive or manual. Amber-gold accent, ink-cyan neutral palette.
+- **Light / Dark theme** — System-adaptive or manual. Signal orange (#FF5701) accent, warm-white layered surfaces.
 - **Voice engines** — Apple on-device (zero config, SpeechAnalyzer on macOS 26+), WhisperKit (on-device, offline), DashScope (cloud).
 - **Multi-vendor AI** — Supports Anthropic, Volcengine, Zhipu AI, and Alibaba DashScope as LLM providers.
 
@@ -134,6 +134,6 @@ First run requires microphone permission: System Settings → Privacy & Security
 
 - [User Guide](docs/guide/quick-start.md) — installation, recording, import, conversation, timeline
 - [Developer Guide](docs/dev/index.md) — environment setup, architecture, frontend/backend development, build & release
-- [Design System](docs/design/index.md) — colors, typography, components, layout, animation
+- [Design System](docs/DESIGN.md) — colors, typography, components, layout, animation, structured tokens
 - [Architecture (ARCH.md)](docs/ARCH.md) — full architecture document
 - [llms.txt](llms.txt) — machine-readable documentation index for AI agents

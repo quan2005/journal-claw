@@ -124,10 +124,10 @@ const { todos, add, complete, remove } = useTodos();
 | `--item-text` | 主要文字色 |
 | `--item-meta` | 次要文字色 |
 | `--divider` | 分割线色 |
-| `--record-btn` | 琥珀金交互色 |
-| `--accent` | 录音红（仅录制中） |
+| `--record-btn` | 信号橙交互 accent |
+| `--accent` | 危险红（删除/破坏性操作） |
 
-完整色彩系统见[设计系统 - 色板](/docs/design/colors)。
+完整色彩系统见 [DESIGN.md](/DESIGN.md)。
 
 ## 国际化
 

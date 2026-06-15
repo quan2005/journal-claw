@@ -122,7 +122,7 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
     h1: ({ children }: { children?: React.ReactNode }) => (
       <h1
         style={{
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 'var(--text-xl)',
           fontWeight: 'var(--font-semibold)',
           color: 'var(--md-h1)',
@@ -136,7 +136,7 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
     h2: ({ children }: { children?: React.ReactNode }) => (
       <h2
         style={{
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 'var(--text-lg)',
           fontWeight: 'var(--font-bold)',
           color: 'var(--md-h2)',
@@ -150,7 +150,7 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
     h3: ({ children }: { children?: React.ReactNode }) => (
       <h3
         style={{
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 'var(--text-md)',
           fontWeight: 'var(--font-semibold)',
           color: 'var(--md-h3)',

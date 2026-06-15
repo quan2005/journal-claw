@@ -38,7 +38,6 @@ function ToastItemView({
   toast: ToastItem
   onDismiss: (id: number) => void
 }) {
-  const bg = BG[toast.level]
   const border = BORDER[toast.level]
   const color = COLOR[toast.level]
 
@@ -52,16 +51,14 @@ function ToastItemView({
         gap: 10,
         padding: '10px 16px',
         borderRadius: 8,
-        background: bg,
+        background: 'var(--bg)',
         border: `1px solid ${border}`,
         color,
         fontSize: 13,
         fontWeight: 500,
         lineHeight: 1.4,
         maxWidth: 400,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: 'var(--shadow-overlay)',
         animation: 'toast-in 250ms ease-out',
         cursor: 'pointer',
         userSelect: 'none',
@@ -81,12 +78,6 @@ const ICON: Record<string, string> = {
 }
 
 // Use CSS variables for theme compatibility; fallbacks for safety.
-const BG: Record<string, string> = {
-  success: 'var(--status-success-bg, rgba(91,166,122,0.12))',
-  warning: 'var(--status-warning-bg, rgba(217,119,6,0.12))',
-  error: 'var(--status-danger-bg, rgba(224,108,96,0.12))',
-}
-
 const BORDER: Record<string, string> = {
   success: 'var(--status-success, #16a34a)',
   warning: 'var(--status-warning, #d97706)',

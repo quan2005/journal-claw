@@ -916,13 +916,10 @@ export default function SectionVoice() {
                   <div style={{ position: 'sticky', bottom: 16, zIndex: 2, marginTop: 14 }}>
                     <div
                       style={{
-                        background:
-                          'linear-gradient(180deg, rgba(255,255,255,0.02), transparent), var(--detail-case-bg)',
+                        background: 'var(--detail-case-bg)',
                         border: '1px solid var(--divider)',
-                        borderRadius: 10,
+                        borderRadius: 'var(--radius-lg)',
                         padding: '12px 14px',
-                        boxShadow: '0 10px 24px rgba(0,0,0,0.12)',
-                        backdropFilter: 'blur(10px)',
                       }}
                     >
                       <div
@@ -1242,7 +1239,18 @@ export default function SectionVoice() {
                   }}
                 />
                 <div style={hintStyle}>{t('zhipuApiKeyHint')}</div>
-                <div style={{ ...hintStyle, marginTop: 8, color: 'var(--record-btn)' }}>
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: '8px 12px',
+                    background: 'var(--record-highlight)',
+                    border: '1px solid var(--dock-dropzone-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-primary)',
+                    fontSize: 'var(--text-xs)',
+                    lineHeight: 1.5,
+                  }}
+                >
                   {t('zhipuLimitHint')}
                 </div>
               </div>

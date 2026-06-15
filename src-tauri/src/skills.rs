@@ -39,6 +39,10 @@ pub struct SkillInfo {
     /// global skills gated by the global toggle + per-skill disabled list).
     #[serde(default = "default_enabled")]
     pub enabled: bool,
+    /// If this skill is shadowed by a higher-priority skill (L1 > L2 > L3),
+    /// this holds the shadowing skill's id. UI uses this to grey out and explain.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shadowed_by: Option<String>,
 }
 
 fn default_enabled() -> bool {
@@ -182,6 +186,91 @@ fn scan_skill_loads(skill_dir: &PathBuf) -> Vec<LoadInfo> {
     loads
 }
 
+/// Scan builtin skills bundled inside the app resources directory.
+fn scan_builtin_skills(app: &tauri::AppHandle) -> Vec<SkillInfo> {
+    use tauri::Manager;
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .unwrap_or_default()
+        .join("resources")
+        .join("builtin-skills");
+    scan_skills_dir(&resource_dir, "builtin")
+}
+
+/// Scan global skill directories: ~/.claude/skills/ + ~/.claude/plugins/cache/*/skills/
+fn scan_global_skills_extended() -> Vec<SkillInfo> {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return vec![],
+    };
+    let mut all = Vec::new();
+
+    // 1. ~/.claude/skills/
+    let global_dir = home.join(".claude").join("skills");
+    all.extend(scan_skills_dir(&global_dir, "global"));
+
+    // 2. ~/.claude/plugins/cache/*/skills/ (e.g. superpowers)
+    let plugins_cache = home.join(".claude").join("plugins").join("cache");
+    if let Ok(entries) = fs::read_dir(&plugins_cache) {
+        for entry in entries.flatten() {
+            let skills_dir = entry.path().join("skills");
+            if skills_dir.is_dir() {
+                let plugin_name = entry
+                    .file_name()
+                    .to_string_lossy()
+                    .to_string();
+                let plugin_skills = scan_skills_dir(&skills_dir, "global");
+                for mut skill in plugin_skills {
+                    skill.dir_name = format!("{}/{}", plugin_name, skill.dir_name);
+                    skill.id = format!("global:{}", skill.dir_name);
+                    all.push(skill);
+                }
+            }
+        }
+    }
+
+    all
+}
+
+/// Merge skills from three layers with strict priority: builtin > project > global.
+/// Same-name skills at lower priority get shadowed_by set and enabled = false.
+fn merge_skills_with_priority(
+    builtin: Vec<SkillInfo>,
+    project: Vec<SkillInfo>,
+    global: Vec<SkillInfo>,
+) -> Vec<SkillInfo> {
+    let mut result: Vec<SkillInfo> = Vec::new();
+    let mut seen_names: Vec<(String, String)> = Vec::new(); // (name, id)
+
+    for skill in builtin {
+        seen_names.push((skill.name.clone(), skill.id.clone()));
+        result.push(skill);
+    }
+
+    for mut skill in project {
+        if let Some((_, shadow_id)) = seen_names.iter().find(|(n, _)| n == &skill.name) {
+            skill.shadowed_by = Some(shadow_id.clone());
+            skill.enabled = false;
+        } else {
+            seen_names.push((skill.name.clone(), skill.id.clone()));
+        }
+        result.push(skill);
+    }
+
+    for mut skill in global {
+        if let Some((_, shadow_id)) = seen_names.iter().find(|(n, _)| n == &skill.name) {
+            skill.shadowed_by = Some(shadow_id.clone());
+            skill.enabled = false;
+        } else {
+            seen_names.push((skill.name.clone(), skill.id.clone()));
+        }
+        result.push(skill);
+    }
+
+    result
+}
+
 fn scan_skills_dir(dir: &PathBuf, scope: &str) -> Vec<SkillInfo> {
     let mut skills = Vec::new();
 
@@ -235,6 +324,7 @@ fn scan_skills_dir(dir: &PathBuf, scope: &str) -> Vec<SkillInfo> {
             loads,
             // enabled is resolved by the caller (list_skills) against the disabled list.
             enabled: true,
+            shadowed_by: None,
         });
     }
 
@@ -244,44 +334,123 @@ fn scan_skills_dir(dir: &PathBuf, scope: &str) -> Vec<SkillInfo> {
 
 #[tauri::command]
 pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
-    let mut all_skills = Vec::new();
+    // L1: Builtin skills (always loaded)
+    let builtin = scan_builtin_skills(&app);
 
-    // 1. Project skills: <workspace>/.claude/skills/
+    // L2: Project skills
     let config = crate::config::load_config(&app)?;
-    if !config.workspace_path.is_empty() {
+    let project = if !config.workspace_path.is_empty() {
         let project_skills_dir = PathBuf::from(&config.workspace_path)
-            .join(".claude")
+            .join(".agents")
             .join("skills");
-        all_skills.extend(scan_skills_dir(&project_skills_dir, "project"));
-    }
+        scan_skills_dir(&project_skills_dir, "project")
+    } else {
+        vec![]
+    };
 
-    // 2. Global skills: ~/.claude/skills/ (only when enabled)
-    if crate::workspace_settings::is_global_skills_enabled(&app) {
-        if let Some(home) = dirs::home_dir() {
-            let global_skills_dir = home.join(".claude").join("skills");
-            all_skills.extend(scan_skills_dir(&global_skills_dir, "global"));
+    // L3: Global skills (always scanned for discovery, enabled state resolved below)
+    let global = scan_global_skills_extended();
+
+    // Merge with priority
+    let mut all = merge_skills_with_priority(builtin, project, global);
+
+    // Resolve enabled state:
+    // - builtin: always true
+    // - project: true unless in disabled_skills
+    // - global: false unless in enabled_global_skills (and not shadowed)
+    let disabled = crate::workspace_settings::get_disabled_skills(&app);
+    let enabled_globals = crate::workspace_settings::get_enabled_global_skills_for_workspace(
+        &config.workspace_path,
+    );
+
+    for skill in &mut all {
+        if skill.shadowed_by.is_some() {
+            skill.enabled = false;
+            continue;
+        }
+        match skill.scope.as_str() {
+            "builtin" => skill.enabled = true,
+            "project" => skill.enabled = !disabled.contains(&skill.id),
+            "global" => skill.enabled = enabled_globals.contains(&skill.id),
+            _ => {}
         }
     }
 
-    // Resolve per-skill enabled state against the disabled list.
-    let disabled = crate::workspace_settings::get_disabled_skills(&app);
-    for skill in &mut all_skills {
-        skill.enabled = !disabled.contains(&skill.id);
-    }
+    Ok(all)
+}
 
-    Ok(all_skills)
+/// Return the full SKILL.md content for a skill by its id.
+/// Used for one-shot `/` invocation in the chat UI.
+#[tauri::command]
+pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Result<String, String> {
+    use tauri::Manager;
+    let config = crate::config::load_config(&app)?;
+    let parts: Vec<&str> = skill_id.splitn(2, ':').collect();
+    if parts.len() != 2 {
+        return Err(format!("invalid skill_id format: {}", skill_id));
+    }
+    let (scope, dir_name) = (parts[0], parts[1]);
+
+    let skill_md_path = match scope {
+        "builtin" => {
+            app.path()
+                .resource_dir()
+                .unwrap_or_default()
+                .join("resources")
+                .join("builtin-skills")
+                .join(dir_name)
+                .join("SKILL.md")
+        }
+        "project" => {
+            PathBuf::from(&config.workspace_path)
+                .join(".agents")
+                .join("skills")
+                .join(dir_name)
+                .join("SKILL.md")
+        }
+        "global" => {
+            let home = dirs::home_dir().ok_or("cannot resolve home directory")?;
+            if dir_name.contains('/') {
+                let parts: Vec<&str> = dir_name.splitn(2, '/').collect();
+                home.join(".claude")
+                    .join("plugins")
+                    .join("cache")
+                    .join(parts[0])
+                    .join("skills")
+                    .join(parts[1])
+                    .join("SKILL.md")
+            } else {
+                home.join(".claude").join("skills").join(dir_name).join("SKILL.md")
+            }
+        }
+        _ => return Err(format!("unknown scope: {}", scope)),
+    };
+
+    tokio::fs::read_to_string(&skill_md_path)
+        .await
+        .map_err(|e| format!("cannot read skill: {}", e))
 }
 
 #[tauri::command]
 pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), String> {
     let dir = match scope.as_str() {
+        "builtin" => {
+            // Builtin skills are in the app bundle — open the source copy in .agents/skills
+            let config = crate::config::load_config(&app)?;
+            if config.workspace_path.is_empty() {
+                return Err("workspace_path not set".to_string());
+            }
+            PathBuf::from(&config.workspace_path)
+                .join(".agents")
+                .join("skills")
+        }
         "project" => {
             let config = crate::config::load_config(&app)?;
             if config.workspace_path.is_empty() {
                 return Err("workspace_path not set".to_string());
             }
             PathBuf::from(&config.workspace_path)
-                .join(".claude")
+                .join(".agents")
                 .join("skills")
         }
         "global" => dirs::home_dir()
@@ -300,13 +469,23 @@ pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), Strin
 #[tauri::command]
 pub fn open_skill_dir(app: tauri::AppHandle, scope: String, dir_name: String) -> Result<(), String> {
     let base = match scope.as_str() {
+        "builtin" => {
+            // Builtin skills are read-only in the bundle — open the source copy in .agents/skills
+            let config = crate::config::load_config(&app)?;
+            if config.workspace_path.is_empty() {
+                return Err("workspace_path not set".to_string());
+            }
+            PathBuf::from(&config.workspace_path)
+                .join(".agents")
+                .join("skills")
+        }
         "project" => {
             let config = crate::config::load_config(&app)?;
             if config.workspace_path.is_empty() {
                 return Err("workspace_path not set".to_string());
             }
             PathBuf::from(&config.workspace_path)
-                .join(".claude")
+                .join(".agents")
                 .join("skills")
         }
         "global" => dirs::home_dir()
@@ -390,6 +569,23 @@ mod tests {
     fn trigger_from_string_defaults_nl() {
         let t = trigger_from_string("帮我想想");
         assert_eq!(t.kind, "nl");
+    }
+
+    #[test]
+    fn skill_info_shadowed_by_defaults_none() {
+        let info = SkillInfo {
+            id: "builtin:test".to_string(),
+            name: "test".to_string(),
+            description: String::new(),
+            scope: "builtin".to_string(),
+            dir_name: "test".to_string(),
+            triggers: vec![],
+            output: None,
+            loads: vec![],
+            enabled: true,
+            shadowed_by: None,
+        };
+        assert!(info.shadowed_by.is_none());
     }
 }
 

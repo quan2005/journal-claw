@@ -32,14 +32,13 @@ function skillIcon(name: string) {
   return ICON_BY_NAME[name] ?? Zap
 }
 
-type TabKey = 'all' | 'builtin' | 'project' | 'global' | 'favorites'
+type TabKey = 'builtin' | 'project' | 'global' | 'favorites'
 
 const TABS: { key: TabKey; label: string; icon?: string }[] = [
-  { key: 'all', label: '全部' },
+  { key: 'favorites', label: '收藏', icon: '⭐' },
   { key: 'builtin', label: '内置', icon: '🔒' },
   { key: 'project', label: '项目', icon: '📦' },
   { key: 'global', label: '全局', icon: '🌐' },
-  { key: 'favorites', label: '收藏', icon: '⭐' },
 ]
 
 // ── Favorites persistence (localStorage) ─────────────────
@@ -342,7 +341,7 @@ export default function SkillsWorkbench() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
-  const [tab, setTab] = useState<TabKey>('all')
+  const [tab, setTab] = useState<TabKey>('favorites')
   const [favorites, setFavorites] = useState<string[]>(loadFavorites)
 
   useEffect(() => {
@@ -396,8 +395,6 @@ export default function SkillsWorkbench() {
         break
       case 'favorites':
         filtered = skills.filter((s) => favorites.includes(s.id))
-        break
-      default:
         break
     }
     // Search filter

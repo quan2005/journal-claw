@@ -9,38 +9,54 @@ import { MdxRenderer } from './MdxRenderer'
 import hljs from 'highlight.js/lib/core'
 import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
 import { getMermaidErrorMessage, renderMermaidToElement } from './mdx/mermaidRuntime'
-
-import javascript from 'highlight.js/lib/languages/javascript'
-import typescript from 'highlight.js/lib/languages/typescript'
-import python from 'highlight.js/lib/languages/python'
-import rust from 'highlight.js/lib/languages/rust'
-import bash from 'highlight.js/lib/languages/bash'
-import json from 'highlight.js/lib/languages/json'
-import cssLang from 'highlight.js/lib/languages/css'
-import xml from 'highlight.js/lib/languages/xml'
-import sql from 'highlight.js/lib/languages/sql'
-import yaml from 'highlight.js/lib/languages/yaml'
-import mdLang from 'highlight.js/lib/languages/markdown'
 import '../styles/markdown.css'
 
-hljs.registerLanguage('javascript', javascript)
-hljs.registerLanguage('js', javascript)
-hljs.registerLanguage('typescript', typescript)
-hljs.registerLanguage('ts', typescript)
-hljs.registerLanguage('python', python)
-hljs.registerLanguage('rust', rust)
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('sh', bash)
-hljs.registerLanguage('shell', bash)
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('css', cssLang)
-hljs.registerLanguage('html', xml)
-hljs.registerLanguage('xml', xml)
-hljs.registerLanguage('sql', sql)
-hljs.registerLanguage('yaml', yaml)
-hljs.registerLanguage('yml', yaml)
-hljs.registerLanguage('markdown', mdLang)
-hljs.registerLanguage('md', mdLang)
+// AC-17: lazy-load highlight.js language definitions on first use instead of
+// statically importing + registering all 11 languages at module load. This keeps
+// the highlight chunk out of the critical path and only loads the language a code
+// block actually needs.
+//
+// Maps the language aliases a fenced code block may declare to the module specifier
+// and the canonical hljs name used for registration.
+const LANGUAGE_LOADERS: Record<string, () => Promise<{ default: unknown }>> = {
+  javascript: () => import('highlight.js/lib/languages/javascript'),
+  js: () => import('highlight.js/lib/languages/javascript'),
+  typescript: () => import('highlight.js/lib/languages/typescript'),
+  ts: () => import('highlight.js/lib/languages/typescript'),
+  python: () => import('highlight.js/lib/languages/python'),
+  rust: () => import('highlight.js/lib/languages/rust'),
+  bash: () => import('highlight.js/lib/languages/bash'),
+  sh: () => import('highlight.js/lib/languages/bash'),
+  shell: () => import('highlight.js/lib/languages/bash'),
+  json: () => import('highlight.js/lib/languages/json'),
+  css: () => import('highlight.js/lib/languages/css'),
+  html: () => import('highlight.js/lib/languages/xml'),
+  xml: () => import('highlight.js/lib/languages/xml'),
+  sql: () => import('highlight.js/lib/languages/sql'),
+  yaml: () => import('highlight.js/lib/languages/yaml'),
+  yml: () => import('highlight.js/lib/languages/yaml'),
+  markdown: () => import('highlight.js/lib/languages/markdown'),
+  md: () => import('highlight.js/lib/languages/markdown'),
+}
+
+const loadedLanguages = new Set<string>()
+
+/** Eagerly pre-register all known languages asynchronously (fire-and-forget on
+ * module load). Each language registers itself once loaded; the first code block
+ * of a given language may render un-highlighted for a tick until the module lands,
+ * then re-renders highlighted on the next MarkdownRenderer pass. */
+function registerLanguage(alias: string, mod: { default: unknown }) {
+  if (loadedLanguages.has(alias)) return
+  hljs.registerLanguage(alias, mod.default as never)
+  loadedLanguages.add(alias)
+}
+
+// Kick off loading all languages in the background once this module is evaluated.
+// They land in the separate `highlight` chunk (see vite manualChunks) and register
+// asynchronously — the main bundle no longer blocks on them.
+for (const [alias, loader] of Object.entries(LANGUAGE_LOADERS)) {
+  loader().then((mod) => registerLanguage(alias, mod))
+}
 
 // ── Caches ──────────────────────────────────────────────────────────────────
 

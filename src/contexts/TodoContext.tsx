@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { useTodos } from '../hooks/useTodos'
 import type { TodoItem } from '../types'
 
@@ -25,7 +25,14 @@ const TodoContext = createContext<TodoContextValue>(null!)
 
 export function TodoProvider({ children }: { children: ReactNode }) {
   const todoHook = useTodos()
-  return <TodoContext.Provider value={todoHook}>{children}</TodoContext.Provider>
+  // Memoize value so consumers don't re-render unless todos/loading actually change (AC-4).
+  // useTodos() already returns useCallback-stable functions; only todos/loading vary.
+  const value = useMemo<TodoContextValue>(
+    () => todoHook,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todoHook.todos, todoHook.loading],
+  )
+  return <TodoContext.Provider value={value}>{children}</TodoContext.Provider>
 }
 
 export function useTodoContext() {

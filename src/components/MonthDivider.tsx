@@ -1,4 +1,5 @@
 // src/components/MonthDivider.tsx
+import { memo } from 'react'
 
 interface MonthDividerProps {
   label: string // format: "2605" → display as "2026年5月"
@@ -21,7 +22,11 @@ const MONTH_NAMES: Record<string, string> = {
   '12': '12月',
 }
 
-export function MonthDivider({ label, collapsed = false, onToggle }: MonthDividerProps) {
+export const MonthDivider = memo(function MonthDivider({
+  label,
+  collapsed = false,
+  onToggle,
+}: MonthDividerProps) {
   // label format: "2605" → "2026年5月"
   const year = `20${label.slice(0, 2)}`
   const monthNum = label.slice(2)
@@ -115,4 +120,4 @@ export function MonthDivider({ label, collapsed = false, onToggle }: MonthDivide
       {content}
     </div>
   )
-}
+})

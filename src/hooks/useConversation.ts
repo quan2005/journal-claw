@@ -81,26 +81,85 @@ export function useConversation() {
     setTabs((prev) => prev.map((t) => (t.sessionId === sid ? { ...t, ...fresh } : t)))
   }, [])
 
-  /** Update a tab's messages in both global cache and React state */
+  /** Update a tab's messages in the global cache and schedule a rAF-batched React sync.
+   *
+   * The global cache is the source of truth; the artifact parser runs synchronously here
+   * so tag detection never lags (AC-10). The React state sync is coalesced per-frame so
+   * rapid text_delta / thinking_delta events produce at most one setState per frame (AC-9). */
+  const dirtySessions = useRef<Set<string>>(new Set())
+  const rafScheduled = useRef(false)
+  const rafIdRef = useRef<number | null>(null)
+
+  const flushDirty = useCallback(() => {
+    rafScheduled.current = false
+    rafIdRef.current = null
+    if (dirtySessions.current.size === 0) return
+    const sids = Array.from(dirtySessions.current)
+    dirtySessions.current.clear()
+    setTabs((prevTabs) => {
+      let next = prevTabs
+      for (const sid of sids) {
+        const cached = globalCache.get(sid)
+        if (!cached) continue
+        const idx = prevTabs.findIndex((t) => t.sessionId === sid)
+        if (idx === -1) continue
+        if (next === prevTabs) next = prevTabs.slice()
+        next[idx] = { ...next[idx], messages: cached }
+      }
+      return next
+    })
+  }, [])
+
   const updateTabMessages = useCallback(
     (sid: string, updater: (prev: ConversationMessage[]) => ConversationMessage[]) => {
       const prev = globalCache.get(sid) ?? []
       const next = updater(prev)
       globalCache.set(sid, next)
-      // Sync React state
-      setTabs((prevTabs) =>
-        prevTabs.map((t) => (t.sessionId === sid ? { ...t, messages: next } : t)),
-      )
+      // Schedule a single rAF flush; multiple updates within a frame coalesce into one setState
+      dirtySessions.current.add(sid)
+      if (!rafScheduled.current) {
+        rafScheduled.current = true
+        rafIdRef.current = requestAnimationFrame(flushDirty)
+      }
     },
-    [],
+    [flushDirty],
   )
 
-  /** Set streaming state for a session (global + React) */
+  /** Set streaming state for a session (global + React).
+   *  When streaming ends, synchronously flush any pending message updates so the
+   *  final assistant message is never dropped by a cancelled rAF (AC-10). */
   const setTabStreaming = useCallback((sid: string, streaming: boolean) => {
     if (streaming) {
       globalStreamingSessions.add(sid)
     } else {
       globalStreamingSessions.delete(sid)
+      // Flush pending message deltas before toggling streaming off
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = null
+        rafScheduled.current = false
+      }
+      if (dirtySessions.current.size > 0) {
+        const sids = Array.from(dirtySessions.current)
+        dirtySessions.current.clear()
+        setTabs((prevTabs) => {
+          let next = prevTabs
+          for (const s of sids) {
+            const cached = globalCache.get(s)
+            if (!cached) continue
+            const idx = prevTabs.findIndex((t) => t.sessionId === s)
+            if (idx === -1) continue
+            if (next === prevTabs) next = prevTabs.slice()
+            next[idx] = { ...next[idx], messages: cached, isStreaming: false }
+          }
+          // Ensure the ending session's streaming flag is off even if not dirty
+          if (next === prevTabs) next = prevTabs.slice()
+          const idx = next.findIndex((t) => t.sessionId === sid)
+          if (idx !== -1) next[idx] = { ...next[idx], isStreaming: false }
+          return next
+        })
+        return
+      }
     }
     setTabs((prev) => prev.map((t) => (t.sessionId === sid ? { ...t, isStreaming: streaming } : t)))
   }, [])

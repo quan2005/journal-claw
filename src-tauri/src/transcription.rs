@@ -1,4 +1,6 @@
 use crate::config;
+#[allow(unused_imports)]
+use crate::dprintln;
 use crate::config::Config;
 use crate::speaker_profiles;
 use async_trait::async_trait;
@@ -1142,7 +1144,7 @@ async fn transcribe_with_zhipu(
     let mut all_text = String::new();
     let total = chunks.len();
     for (i, (start, end)) in chunks.iter().enumerate() {
-        eprintln!(
+        dprintln!(
             "[zhipu] transcribing chunk {}/{} ({:.1}s-{:.1}s)",
             i + 1,
             total,
@@ -1158,7 +1160,7 @@ async fn transcribe_with_zhipu(
                 all_text.push_str(&text);
             }
             Err(e) => {
-                eprintln!("[zhipu] chunk {}/{} failed: {}", i + 1, total, e);
+                dprintln!("[zhipu] chunk {}/{} failed: {}", i + 1, total, e);
             }
         }
         let _ = std::fs::remove_file(&chunk_path);
@@ -1270,7 +1272,7 @@ pub async fn transcribe_audio_to_ai_markdown(
         // Apple/SpeakerKit local tools cannot decode Opus in MP4 containers.
         if crate::audio_files::is_unsupported_codec(&file_path) {
             let msg = "不支持的音频编码（Opus），请转换为 AAC 格式后重试".to_string();
-            eprintln!("[transcription] Opus codec detected, rejecting");
+            dprintln!("[transcription] Opus codec detected, rejecting");
             save_transcript(&app, &file_path, "failed", &msg);
             return Err(msg);
         }
@@ -1314,7 +1316,7 @@ pub async fn transcribe_audio_to_ai_markdown(
                 (speakers, true)
             }
             Err(e) => {
-                eprintln!(
+                dprintln!(
                     "[transcription] SpeakerKit failed, continuing without diarization: {}",
                     e
                 );
@@ -1339,7 +1341,7 @@ pub async fn transcribe_audio_to_ai_markdown(
         match engine.transcribe(&input).await {
             Ok(t) => (t, primary_name),
             Err(e) if primary_name != "apple" && cfg!(target_os = "macos") => {
-                eprintln!(
+                dprintln!(
                     "[transcription] engine '{}' failed: {}, falling back to Apple STT",
                     primary_name, e
                 );
@@ -1938,14 +1940,14 @@ pub async fn diarize_with_speakerkit(
                     .collect()
             })
             .unwrap_or_default();
-        eprintln!(
+        dprintln!(
             "[speaker_profiles] CLI output: {} speakers, embeddings key={}, parsed {} embeddings",
             speakers.len(),
             has_embeddings_key,
             embeddings.len(),
         );
         if !has_embeddings_key {
-            eprintln!("[speaker_profiles] WARNING: no embeddings in CLI output. Swift CLI may not have SpeakerEmbedder model loaded.");
+            dprintln!("[speaker_profiles] WARNING: no embeddings in CLI output. Swift CLI may not have SpeakerEmbedder model loaded.");
         }
 
         Ok((speakers, embeddings))

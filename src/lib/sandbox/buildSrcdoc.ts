@@ -1,6 +1,15 @@
 import { injectSandboxShim, injectPreviewFocusGuard, injectThemeBridge } from './bridges'
 import { previewPresetCSS } from './previewPreset'
-import tablerIconsCSSUrl from '@tabler/icons-webfont/dist/tabler-icons.min.css?url'
+// AC-21: Only ship woff2 (drop ttf+woff ~4MB). Build a trimmed @font-face from the
+// full icon-class CSS so we keep all .ti-* classes but reference woff2 only.
+import tablerIconsRawCSS from '@tabler/icons-webfont/dist/tabler-icons.min.css?inline'
+import tablerIconsWoff2Url from '@tabler/icons-webfont/dist/fonts/tabler-icons.woff2?url'
+
+// Strip the multi-format src(...) down to woff2 only, keeping every icon class.
+const tablerIconsCSS = tablerIconsRawCSS.replace(
+  /src:url\([^)]*\)\s*format\("woff2"\)[^}]*\}/,
+  `src:url("${tablerIconsWoff2Url}") format("woff2")}`,
+)
 // Magic UI — React + Tailwind + Motion components for rich journal entries
 import magicUICSS from './magicui/dist/magicui.bundle.css?inline'
 import magicUIJS from './magicui/dist/magicui.bundle.js?raw'
@@ -36,7 +45,7 @@ function injectBridges(doc: string, bridges: string): string {
 function buildPreviewResources(): string {
   return [
     `<style id="journal-preview-preset">${previewPresetCSS}</style>`,
-    `<link id="journal-preview-tabler-icons" rel="stylesheet" href="${tablerIconsCSSUrl}" />`,
+    `<style id="journal-preview-tabler-icons">${tablerIconsCSS}</style>`,
     `<style>${magicUICSS}</style>`,
     `<script>${magicUIJS}</script>`,
   ].join('\n')

@@ -1,20 +1,24 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
-import { DetailView } from './components/DetailView'
+const DetailView = lazy(() =>
+  import('./components/DetailView').then((m) => ({ default: m.DetailView })),
+)
 import { AutomationWorkbench } from './components/AutomationWorkbench'
 import type { IdeaConversationRequest } from './components/IdeasWorkbench'
 const SettingsPanel = lazy(() =>
   import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
 )
 const SkillsWorkbench = lazy(() => import('./components/SkillsWorkbench'))
-import { MergeIdentityDialog } from './components/MergeIdentityDialog'
+const MergeIdentityDialog = lazy(() =>
+  import('./components/MergeIdentityDialog').then((m) => ({ default: m.MergeIdentityDialog })),
+)
 import { useIdentity } from './hooks/useIdentity'
 import { useJournal } from './hooks/useJournal'
 import { useTheme } from './hooks/useTheme'
-import { useUI } from './contexts/UIContext'
+import { useUI, useLayout } from './contexts/UIContext'
 import type { Category } from './contexts/UIContext'
 import { NavRail } from './components/NavRail'
 import { useTodoContext } from './contexts/TodoContext'
@@ -40,11 +44,15 @@ import { fileKindFromName } from './lib/fileKind'
 import { fileBasename, type JournalFileOpenDetail } from './lib/fileNavigation'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import { useTranslation } from './contexts/I18nContext'
-import { RightPanel } from './components/RightPanel'
-import { ChatPanel } from './components/ChatPanel'
+const RightPanel = lazy(() =>
+  import('./components/RightPanel').then((m) => ({ default: m.RightPanel })),
+)
+const ChatPanel = lazy(() =>
+  import('./components/ChatPanel').then((m) => ({ default: m.ChatPanel })),
+)
 import { HistoryFloatingButton } from './components/HistoryFloatingButton'
 import { useConversation } from './hooks/useConversation'
-import OnboardingView from './components/OnboardingView'
+const OnboardingView = lazy(() => import('./components/OnboardingView'))
 
 const SOUL_PATH = '__soul__'
 const DIVIDER_WIDTH = 7
@@ -113,20 +121,24 @@ export default function App() {
     setTreeSelection,
     showIdeas,
     setShowIdeas,
-    sidebarWidth,
-    setSidebarWidth,
-    rightPanelOpen,
-    setRightPanelOpen,
-    rightPanelWidth,
-    setRightPanelWidth,
-    rightPanelPinned,
-    setRightPanelPinned,
     chatInitialText,
     setChatInitialText,
     activeCategory,
     setActiveCategory,
     deselect,
   } = useUI()
+  const {
+    sidebarWidth,
+    setSidebarWidthView,
+    persistSidebarWidth,
+    rightPanelOpen,
+    setRightPanelOpen,
+    rightPanelWidth,
+    setRightPanelWidthView,
+    persistRightPanelWidth,
+    rightPanelPinned,
+    setRightPanelPinned,
+  } = useLayout()
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -136,9 +148,19 @@ export default function App() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
 
   useEffect(() => {
-    const handleResize = () => setViewportWidth(window.innerWidth)
+    let rafId = 0
+    const handleResize = () => {
+      if (rafId) return // already scheduled this frame
+      rafId = requestAnimationFrame(() => {
+        rafId = 0
+        setViewportWidth(window.innerWidth)
+      })
+    }
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', handleResize)
+    }
   }, [])
 
   useEffect(() => {
@@ -219,29 +241,51 @@ export default function App() {
       .catch(() => {})
   }, [view]) // re-check after settings closed
 
-  // Divider drag (left sidebar)
+  // Divider drag (left sidebar) — rAF-batched view updates, persist on mouseup (AC-1,3)
   const onDividerMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true)
     dragStartX.current = e.clientX
     dragStartWidth.current = sidebarWidth
   }
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!isDragging) return
-      const delta = e.clientX - dragStartX.current
-      const newWidth = Math.max(220, Math.min(560, dragStartWidth.current + delta))
-      setSidebarWidth(newWidth)
+    if (!isDragging) return
+    let rafId = 0
+    let pendingWidth: number | null = null
+    const flush = () => {
+      rafId = 0
+      if (pendingWidth !== null) {
+        setSidebarWidthView(pendingWidth)
+        pendingWidth = null
+      }
     }
-    const onUp = () => setIsDragging(false)
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - dragStartX.current
+      pendingWidth = Math.max(220, Math.min(560, dragStartWidth.current + delta))
+      if (!rafId) rafId = requestAnimationFrame(flush)
+    }
+    const onUp = () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      // Flush final value synchronously so mouseup reflects the last move
+      if (pendingWidth !== null) {
+        const finalWidth = pendingWidth
+        pendingWidth = null
+        setSidebarWidthView(finalWidth)
+        persistSidebarWidth(finalWidth)
+      } else {
+        persistSidebarWidth(sidebarWidth)
+      }
+      setIsDragging(false)
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => {
+      if (rafId) cancelAnimationFrame(rafId)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [isDragging, setIsDragging, setSidebarWidth])
+  }, [isDragging, setIsDragging, setSidebarWidthView, persistSidebarWidth, sidebarWidth])
 
-  // Right panel divider drag
+  // Right panel divider drag — rAF-batched view updates, persist on mouseup (AC-1,2,3)
   const [isRightPanelDragging, setIsRightPanelDragging] = useState(false)
   const rightPanelDragStartX = useRef(0)
   const rightPanelDragStartWidth = useRef(0)
@@ -254,21 +298,41 @@ export default function App() {
   }
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!isRightPanelDragging) return
-      const delta = rightPanelDragStartX.current - e.clientX
-      const newWidth = Math.max(200, Math.min(480, rightPanelDragStartWidth.current + delta))
-      setRightPanelWidth(newWidth)
-      localStorage.setItem('journal_right_panel_width', String(newWidth))
+    if (!isRightPanelDragging) return
+    let rafId = 0
+    let pendingWidth: number | null = null
+    const flush = () => {
+      rafId = 0
+      if (pendingWidth !== null) {
+        setRightPanelWidthView(pendingWidth)
+        pendingWidth = null
+      }
     }
-    const onUp = () => setIsRightPanelDragging(false)
+    const onMove = (e: MouseEvent) => {
+      const delta = rightPanelDragStartX.current - e.clientX
+      pendingWidth = Math.max(200, Math.min(480, rightPanelDragStartWidth.current + delta))
+      if (!rafId) rafId = requestAnimationFrame(flush)
+    }
+    const onUp = () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      if (pendingWidth !== null) {
+        const finalWidth = pendingWidth
+        pendingWidth = null
+        setRightPanelWidthView(finalWidth)
+        persistRightPanelWidth(finalWidth)
+      } else {
+        persistRightPanelWidth(rightPanelWidth)
+      }
+      setIsRightPanelDragging(false)
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => {
+      if (rafId) cancelAnimationFrame(rafId)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [isRightPanelDragging, setRightPanelWidth])
+  }, [isRightPanelDragging, setRightPanelWidthView, persistRightPanelWidth, rightPanelWidth])
 
   // journal-entry-deleted event
   useEffect(() => {
@@ -654,7 +718,15 @@ export default function App() {
     if (!rightPanelPinned && !isStreaming && pendingQueue.length === 0) {
       setRightPanelOpen(false)
     }
-  }, [activeCategory, selectedEntry, treeSelection, rightPanelPinned, isStreaming, pendingQueue, setRightPanelOpen])
+  }, [
+    activeCategory,
+    selectedEntry,
+    treeSelection,
+    rightPanelPinned,
+    isStreaming,
+    pendingQueue,
+    setRightPanelOpen,
+  ])
 
   const handleOpenChat = useCallback(() => {
     setRightPanelOpen(true)
@@ -756,6 +828,29 @@ export default function App() {
     [setSelectedEntry, setShowIdeas, setTreeSelection, setView],
   )
 
+  // Stabilized callback previously inlined in JSX (AC-6)
+  const handleNavigateToTopicPath = useCallback(
+    (path: string, isFile: boolean) => {
+      const nextSelection: TreeSelection = {
+        type: isFile ? 'topic-file' : 'topic',
+        path,
+        name: path.split('/').pop() ?? path,
+        created_secs: treeSelection?.path === path ? treeSelection.created_secs : undefined,
+        mtime_secs: treeSelection?.path === path ? treeSelection.mtime_secs : undefined,
+      }
+      setView('journal')
+      setShowIdeas(false)
+      if (isFile) {
+        setDetailReturnTarget(null)
+        setTopicFocusSelection(null)
+        setTreeSelection(nextSelection)
+      } else {
+        setTopicFocusSelection(nextSelection)
+      }
+    },
+    [treeSelection, setView, setShowIdeas, setTreeSelection],
+  )
+
   const handleCancelQueueItem = async (item: QueueItem) => {
     try {
       await cancelWorkItem(item.id)
@@ -805,7 +900,40 @@ export default function App() {
     mtime_secs: 0,
     archived: false,
   }
-  const allIdentities: IdentityEntry[] = [SOUL_ENTRY, ...identities]
+  const allIdentities: IdentityEntry[] = useMemo(() => [SOUL_ENTRY, ...identities], [identities])
+
+  // Memoized DetailView props — stable references unless selection/data actually changes (AC-6).
+  // Previously `entries.find(...)` + inline object literals ran every render, breaking React.memo.
+  const detailEntry = useMemo<JournalEntry | undefined>(() => {
+    if (treeSelection?.type === 'journal') {
+      return (
+        entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ||
+        selectedEntry ||
+        undefined
+      )
+    }
+    return selectedEntry || undefined
+  }, [treeSelection, entries, selectedEntry])
+
+  const detailIdentity = useMemo(() => {
+    if (treeSelection?.type === 'identity') {
+      return allIdentities.find((i) => i.path === treeSelection.path) ?? undefined
+    }
+    return undefined
+  }, [treeSelection, allIdentities])
+
+  const detailFile = useMemo(() => {
+    if (treeSelection?.type === 'topic-file') {
+      return {
+        name: treeSelection.name ?? treeSelection.path.split('/').pop() ?? '',
+        path: treeSelection.path,
+        is_dir: false,
+        created_secs: treeSelection.created_secs,
+        mtime_secs: treeSelection.mtime_secs ?? 0,
+      }
+    }
+    return undefined
+  }, [treeSelection])
 
   const handleOnboardingComplete = useCallback(async () => {
     await completeOnboarding()
@@ -837,10 +965,12 @@ export default function App() {
       }}
     >
       {showOnboarding && !onboardingLoading && (
-        <OnboardingView
-          defaultWorkspacePath={defaultWsPath}
-          onComplete={handleOnboardingComplete}
-        />
+        <Suspense fallback={null}>
+          <OnboardingView
+            defaultWorkspacePath={defaultWsPath}
+            onComplete={handleOnboardingComplete}
+          />
+        </Suspense>
       )}
 
       <TitleBar
@@ -1023,77 +1153,41 @@ export default function App() {
               </Suspense>
             </div>
           ) : (
-            <DetailView
-              type={
-                activeCategory === 'ideas'
-                  ? 'ideas'
-                  : !treeSelection || treeSelection.type === 'journal'
-                    ? 'journal'
-                    : treeSelection.type === 'identity'
-                      ? 'identity'
-                      : treeSelection.type === 'topic-file'
-                        ? 'topic-file'
-                        : 'journal'
-              }
-              category={activeCategory}
-              entry={
-                treeSelection?.type === 'journal'
-                  ? entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ||
-                    selectedEntry ||
-                    undefined
-                  : selectedEntry || undefined
-              }
-              entries={entries}
-              identity={
-                treeSelection?.type === 'identity'
-                  ? (allIdentities.find((i) => i.path === treeSelection.path) ?? undefined)
-                  : undefined
-              }
-              file={
-                treeSelection?.type === 'topic-file'
-                  ? {
-                      name: treeSelection.name ?? treeSelection.path.split('/').pop() ?? '',
-                      path: treeSelection.path,
-                      is_dir: false,
-                      created_secs: treeSelection.created_secs,
-                      mtime_secs: treeSelection.mtime_secs ?? 0,
-                    }
-                  : undefined
-              }
-              onDeselect={handleDeselect}
-              onOpenDock={handleOpenChat}
-              onSelectSample={handleSelectSample}
-              onAddToTodo={handleAddToTodo}
-              onProcess={handleProcessEntry}
-              onVisualDesign={handleVisualDesign}
-              onOpenIdeaConversation={handleOpenIdeaConversation}
-              onNavigateToIdeaSource={handleNavigateToIdeaSource}
-              returnTargetLabel={
-                detailReturnTarget
-                  ? treeSelectionLabel(detailReturnTarget.selection, detailReturnTarget.entry)
-                  : undefined
-              }
-              onReturnToPrevious={detailReturnTarget ? handleReturnToPreviousDetail : undefined}
-              onNavigateToTopicPath={(path, isFile) => {
-                const nextSelection: TreeSelection = {
-                  type: isFile ? 'topic-file' : 'topic',
-                  path,
-                  name: path.split('/').pop() ?? path,
-                  created_secs:
-                    treeSelection?.path === path ? treeSelection.created_secs : undefined,
-                  mtime_secs: treeSelection?.path === path ? treeSelection.mtime_secs : undefined,
+            <Suspense fallback={null}>
+              <DetailView
+                type={
+                  activeCategory === 'ideas'
+                    ? 'ideas'
+                    : !treeSelection || treeSelection.type === 'journal'
+                      ? 'journal'
+                      : treeSelection.type === 'identity'
+                        ? 'identity'
+                        : treeSelection.type === 'topic-file'
+                          ? 'topic-file'
+                          : 'journal'
                 }
-                setView('journal')
-                setShowIdeas(false)
-                if (isFile) {
-                  setDetailReturnTarget(null)
-                  setTopicFocusSelection(null)
-                  setTreeSelection(nextSelection)
-                } else {
-                  setTopicFocusSelection(nextSelection)
+                category={activeCategory}
+                entry={detailEntry}
+                entries={entries}
+                identity={detailIdentity}
+                file={detailFile}
+                onDeselect={handleDeselect}
+                onOpenDock={handleOpenChat}
+                onSelectSample={handleSelectSample}
+                onAddToTodo={handleAddToTodo}
+                onProcess={handleProcessEntry}
+                onVisualDesign={handleVisualDesign}
+                onOpenIdeaConversation={handleOpenIdeaConversation}
+                onNavigateToIdeaSource={handleNavigateToIdeaSource}
+                returnTargetLabel={
+                  detailReturnTarget
+                    ? treeSelectionLabel(detailReturnTarget.selection, detailReturnTarget.entry)
+                    : undefined
                 }
-              }}
-            />
+                onReturnToPrevious={detailReturnTarget ? handleReturnToPreviousDetail : undefined}
+                onNavigateToTopicPath={handleNavigateToTopicPath}
+              />
+            </Suspense>
           )}
         </div>
 
@@ -1110,8 +1204,7 @@ export default function App() {
             cursor: rightPanelOpen ? 'col-resize' : 'default',
             transition: 'background-color 0.15s var(--ease-out)',
           }}
-        >
-        </div>
+        ></div>
         <div
           className="app-sidebar-panel"
           data-sidebar-panel="right"
@@ -1130,44 +1223,48 @@ export default function App() {
             willChange: 'width, opacity',
           }}
         >
-          <RightPanel
-            chatContent={
-              <ChatPanel
-                sessionId={sessionId}
-                messages={messages}
-                isStreaming={isStreaming}
-                usage={usage}
-                stats={stats}
-                pendingQueue={pendingQueue}
-                initialInput={chatInitialText}
-                onSend={send}
-                onCancel={cancel}
-                onRetry={retry}
-                onEditAndResend={editAndResend}
-                onRemovePendingItem={removePendingItem}
-                onContinue={() => send('请继续')}
-                historyControl={
-                  <HistoryFloatingButton
-                    activeSessionId={sessionId}
-                    onSelect={(id: string) => openChatPanel(id)}
-                  />
-                }
-              />
-            }
-          />
+          <Suspense fallback={null}>
+            <RightPanel
+              chatContent={
+                <ChatPanel
+                  sessionId={sessionId}
+                  messages={messages}
+                  isStreaming={isStreaming}
+                  usage={usage}
+                  stats={stats}
+                  pendingQueue={pendingQueue}
+                  initialInput={chatInitialText}
+                  onSend={send}
+                  onCancel={cancel}
+                  onRetry={retry}
+                  onEditAndResend={editAndResend}
+                  onRemovePendingItem={removePendingItem}
+                  onContinue={() => send('请继续')}
+                  historyControl={
+                    <HistoryFloatingButton
+                      activeSessionId={sessionId}
+                      onSelect={(id: string) => openChatPanel(id)}
+                    />
+                  }
+                />
+              }
+            />
+          </Suspense>
         </div>
       </div>
 
       {mergeSource && (
-        <MergeIdentityDialog
-          source={mergeSource}
-          onClose={() => setMergeSource(null)}
-          onMerged={() => {
-            setMergeSource(null)
-            if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
-            refreshIdentity()
-          }}
-        />
+        <Suspense fallback={null}>
+          <MergeIdentityDialog
+            source={mergeSource}
+            onClose={() => setMergeSource(null)}
+            onMerged={() => {
+              setMergeSource(null)
+              if (selectedIdentity?.path === mergeSource.path) setSelectedIdentity(null)
+              refreshIdentity()
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Drag-over overlay */}

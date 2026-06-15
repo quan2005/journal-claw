@@ -1,11 +1,30 @@
-import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  memo,
+  lazy,
+  Suspense,
+  type ReactNode,
+} from 'react'
 import type { ConversationMessage, MessageBlock, WebSearchResultItem, Attachment } from '../types'
 import type { SessionStats } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 import { useToast } from '../contexts/ToastContext'
 import { Spinner } from './Spinner'
 import { SandboxPreview } from './SandboxPreview'
-import { MarkdownRenderer } from './MarkdownRenderer'
+const MarkdownRenderer = lazy(() =>
+  import('./MarkdownRenderer').then((m) => ({ default: m.MarkdownRenderer })),
+)
+/** Suspense boundary wrapper so lazy MarkdownRenderer doesn't crash mid-tree (AC-16). */
+function LazyMD({ content }: { content: string }) {
+  return (
+    <Suspense fallback={null}>
+      <MarkdownRenderer content={content} />
+    </Suspense>
+  )
+}
 import { useSmoothStream } from '../hooks/useSmoothStream'
 import { importText, openFile } from '../lib/tauri'
 import { FileAttachments } from './FileAttachments'
@@ -961,7 +980,7 @@ export function ChatPanel({
   )
 }
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   message,
   index,
   isStreaming,
@@ -1186,7 +1205,7 @@ function MessageBubble({
       </div>
     </div>
   )
-}
+})
 
 function UserContent({ text }: { text: string }) {
   const { showToast } = useToast()
@@ -1330,7 +1349,7 @@ function AssistantActions({ content }: { content: string }) {
   )
 }
 
-function AssistantRun({
+const AssistantRun = memo(function AssistantRun({
   messages,
   isStreaming,
   onRetry,
@@ -1435,7 +1454,7 @@ function AssistantRun({
               wordBreak: 'break-word',
             }}
           >
-            <MarkdownRenderer content={lastTextBlock.content} />
+            <LazyMD content={lastTextBlock.content} />
           </div>
         )}
         <FileAttachments blocks={allBlocks} />
@@ -1464,7 +1483,7 @@ function AssistantRun({
       {!hideActions && <AssistantActions content={lastTextBlock?.content ?? ''} />}
     </div>
   )
-}
+})
 
 function CollapsedToolSummary({
   icons,
@@ -1898,7 +1917,7 @@ function SmoothTextBlock({ content }: { content: string }) {
         wordBreak: 'break-word',
       }}
     >
-      <MarkdownRenderer content={smoothed} />
+      <LazyMD content={smoothed} />
     </div>
   )
 }
@@ -1927,7 +1946,7 @@ function BlockRenderer({
             wordBreak: 'break-word',
           }}
         >
-          <MarkdownRenderer content={block.content} />
+          <LazyMD content={block.content} />
         </div>
       )
     case 'thinking':
@@ -1951,7 +1970,7 @@ function BlockRenderer({
   }
 }
 
-function ArtifactBlock({
+const ArtifactBlock = memo(function ArtifactBlock({
   artifact,
   streaming,
 }: {
@@ -2095,9 +2114,9 @@ function ArtifactBlock({
       )}
     </div>
   )
-}
+})
 
-function ToolBlock({
+const ToolBlock = memo(function ToolBlock({
   tool,
 }: {
   tool: { name: string; label: string; output?: string; isError?: boolean }
@@ -2195,7 +2214,7 @@ function ToolBlock({
       )}
     </div>
   )
-}
+})
 
 function SubtaskBlock({
   subtask,
@@ -2357,7 +2376,7 @@ function SubtaskBlock({
                 fontFamily: 'var(--font-body)',
               }}
             >
-              <MarkdownRenderer content={subtask.summary} />
+              <LazyMD content={subtask.summary} />
             </div>
           )}
         </div>
@@ -2366,7 +2385,13 @@ function SubtaskBlock({
   )
 }
 
-function WebSearchBlock({ query, results }: { query: string; results: WebSearchResultItem[] }) {
+const WebSearchBlock = memo(function WebSearchBlock({
+  query,
+  results,
+}: {
+  query: string
+  results: WebSearchResultItem[]
+}) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const label = query ? t('sessionWebSearchQuery').replace('{query}', query) : t('sessionWebSearch')
@@ -2476,9 +2501,9 @@ function WebSearchBlock({ query, results }: { query: string; results: WebSearchR
       )}
     </div>
   )
-}
+})
 
-function ThinkingBlock({ thinking }: { thinking: string }) {
+const ThinkingBlock = memo(function ThinkingBlock({ thinking }: { thinking: string }) {
   const [expanded, setExpanded] = useState(false)
   const trimmed = thinking.trim()
   const summary = trimmed.slice(0, 120).replace(/\n/g, ' ') + (trimmed.length > 120 ? '…' : '')
@@ -2569,4 +2594,4 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
       )}
     </div>
   )
-}
+})

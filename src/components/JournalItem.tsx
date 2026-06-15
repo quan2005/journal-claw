@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import type { JournalEntry } from '../types'
 import { pickDisplayTags } from '../lib/tags'
 import { useTextOverflow } from '../hooks/useTextOverflow'
@@ -10,7 +10,12 @@ interface JournalItemProps {
   onContextMenu?: (entry: JournalEntry, x: number, y: number) => void
 }
 
-export function JournalItem({ entry, isSelected, onClick, onContextMenu }: JournalItemProps) {
+export const JournalItem = memo(function JournalItem({
+  entry,
+  isSelected,
+  onClick,
+  onContextMenu,
+}: JournalItemProps) {
   const tags = pickDisplayTags(entry.tags, Infinity)
   const ref = useRef<HTMLDivElement>(null)
   const [titleRef, titleOverflow] = useTextOverflow<HTMLDivElement>()
@@ -43,7 +48,8 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
         userSelect: 'none' as const,
         cursor: 'pointer',
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
-        borderLeft: isSelected ? '2px solid var(--record-btn)' : '2px solid transparent',
+        borderLeft: isSelected ? '3px solid var(--record-btn)' : '3px solid transparent',
+        transition: 'background-color 180ms var(--ease-out)',
       }}
       onMouseEnter={(e) => {
         if (!isSelected)
@@ -141,4 +147,4 @@ export function JournalItem({ entry, isSelected, onClick, onContextMenu }: Journ
       </div>
     </div>
   )
-}
+})

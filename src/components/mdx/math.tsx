@@ -1,6 +1,17 @@
 import type { ReactNode } from 'react'
 import katex from 'katex'
-import 'katex/dist/katex.min.css'
+
+// AC-18: load katex CSS only when math is actually rendered, not on app boot.
+// The import is idempotent — the browser dedupes subsequent calls.
+let katexCssLoaded = false
+function ensureKatexCss() {
+  if (katexCssLoaded) return
+  katexCssLoaded = true
+  // top-level await is not used to keep this module sync-evaluable
+  import('katex/dist/katex.min.css').catch(() => {
+    katexCssLoaded = false // allow retry on failure
+  })
+}
 
 interface MathProps {
   math?: string
@@ -56,6 +67,9 @@ function MathFallback({
 
 function MathFormula({ math, children, displayMode }: MathProps & { displayMode: boolean }) {
   const source = (math ?? childrenToText(children)).trim()
+
+  // AC-18: trigger CSS load on first actual math render
+  if (source) ensureKatexCss()
 
   if (!source) {
     return <MathFallback source="" displayMode={displayMode} error="Formula source is empty." />

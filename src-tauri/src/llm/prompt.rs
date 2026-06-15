@@ -137,70 +137,162 @@ async fn run_workspace_script(workspace_path: &str, script: &str, args: &[&str])
     }
 }
 
-/// Scan workspace and global skill directories, return (dir_name, description) pairs.
-/// Skills whose id (`scope:dir_name`) is in `disabled_ids` are excluded so the LLM
-/// cannot load_skill them.
+/// Scan skills from all layers, return (dir_name, description) pairs.
+/// Project and enabled global skills are included. Disabled ones are excluded.
 pub async fn scan_skills(
     workspace_path: &str,
-    global_skills_enabled: bool,
+    _global_skills_enabled: bool,  // kept for API compat, now always scans global
     disabled_ids: &[String],
 ) -> Vec<(String, String)> {
-    let mut skills = Vec::new();
+    let mut skills: Vec<(String, String)> = Vec::new();
 
-    let mut dirs: Vec<(PathBuf, &str)> =
-        vec![(PathBuf::from(workspace_path).join(".claude").join("skills"), "project")];
-    if global_skills_enabled {
-        dirs.push((
-            dirs::home_dir()
-                .unwrap_or_default()
-                .join(".claude")
-                .join("skills"),
-            "global",
-        ));
-    }
-
-    for (dir, scope) in dirs {
-        let mut entries = match tokio::fs::read_dir(&dir).await {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-
+    // L2: Project skills (from .agents/skills/ — these include builtin-mirrored skills)
+    let project_skills_dir = PathBuf::from(workspace_path).join(".agents").join("skills");
+    if let Ok(mut entries) = tokio::fs::read_dir(&project_skills_dir).await {
         while let Ok(Some(entry)) = entries.next_entry().await {
             let path = entry.path();
             if !path.is_dir() {
                 continue;
             }
-
             let skill_md = path.join("SKILL.md");
             let content = match tokio::fs::read_to_string(&skill_md).await {
                 Ok(c) => c,
                 Err(_) => continue,
             };
-
             let dir_name = path
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("")
                 .to_string();
-
             if dir_name.is_empty() {
                 continue;
             }
-
-            // Skip skills the user has disabled.
-            let skill_id = format!("{}:{}", scope, dir_name);
+            let skill_id = format!("project:{}", dir_name);
             if disabled_ids.contains(&skill_id) {
                 continue;
             }
-
-            // Parse frontmatter for description
             let description = parse_skill_description(&content).unwrap_or_default();
             skills.push((dir_name, description));
         }
     }
 
+    // Also scan .claude/skills/ for backward compatibility
+    let claude_skills_dir = PathBuf::from(workspace_path).join(".claude").join("skills");
+    if let Ok(mut entries) = tokio::fs::read_dir(&claude_skills_dir).await {
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let skill_md = path.join("SKILL.md");
+            let content = match tokio::fs::read_to_string(&skill_md).await {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let dir_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("")
+                .to_string();
+            if dir_name.is_empty() {
+                continue;
+            }
+            let skill_id = format!("project:{}", dir_name);
+            if disabled_ids.contains(&skill_id) {
+                continue;
+            }
+            // Skip if already found in .agents/skills/
+            if skills.iter().any(|(n, _)| n == &dir_name) {
+                continue;
+            }
+            let description = parse_skill_description(&content).unwrap_or_default();
+            skills.push((dir_name, description));
+        }
+    }
+
+    // L3: Global skills (only enabled ones from whitelist)
+    let enabled_globals =
+        crate::workspace_settings::get_enabled_global_skills_for_workspace(workspace_path);
+    if let Some(home) = dirs::home_dir() {
+        // ~/.claude/skills/
+        let global_dir = home.join(".claude").join("skills");
+        if let Ok(mut entries) = tokio::fs::read_dir(&global_dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if !path.is_dir() {
+                    continue;
+                }
+                let skill_md = path.join("SKILL.md");
+                let content = match tokio::fs::read_to_string(&skill_md).await {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+                let dir_name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                if dir_name.is_empty() {
+                    continue;
+                }
+                let skill_id = format!("global:{}", dir_name);
+                if !enabled_globals.contains(&skill_id) {
+                    continue;
+                }
+                let description = parse_skill_description(&content).unwrap_or_default();
+                if !skills.iter().any(|(n, _)| n == &dir_name) {
+                    skills.push((dir_name, description));
+                }
+            }
+        }
+
+        // ~/.claude/plugins/cache/*/skills/
+        let plugins_cache = home.join(".claude").join("plugins").join("cache");
+        if let Ok(mut plugin_entries) = tokio::fs::read_dir(&plugins_cache).await {
+            while let Ok(Some(plugin_entry)) = plugin_entries.next_entry().await {
+                let skills_dir = plugin_entry.path().join("skills");
+                if !skills_dir.is_dir() {
+                    continue;
+                }
+                let plugin_name = plugin_entry
+                    .file_name()
+                    .to_string_lossy()
+                    .to_string();
+                if let Ok(mut entries) = tokio::fs::read_dir(&skills_dir).await {
+                    while let Ok(Some(entry)) = entries.next_entry().await {
+                        let path = entry.path();
+                        if !path.is_dir() {
+                            continue;
+                        }
+                        let skill_md = path.join("SKILL.md");
+                        let content = match tokio::fs::read_to_string(&skill_md).await {
+                            Ok(c) => c,
+                            Err(_) => continue,
+                        };
+                        let raw_dir = path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                            .to_string();
+                        if raw_dir.is_empty() {
+                            continue;
+                        }
+                        let dir_name = format!("{}/{}", plugin_name, raw_dir);
+                        let skill_id = format!("global:{}", dir_name);
+                        if !enabled_globals.contains(&skill_id) {
+                            continue;
+                        }
+                        let description = parse_skill_description(&content).unwrap_or_default();
+                        if !skills.iter().any(|(n, _)| n == &dir_name) {
+                            skills.push((dir_name, description));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     skills.sort_by(|a, b| a.0.cmp(&b.0));
-    skills.dedup_by(|a, b| a.0 == b.0); // project skills take precedence
     skills
 }
 

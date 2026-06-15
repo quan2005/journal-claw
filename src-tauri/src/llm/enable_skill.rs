@@ -75,14 +75,29 @@ pub async fn execute(input: &Value, workspace: &str) -> ToolResult {
         };
     }
 
-    // Search project skills first, then global
-    let search_dirs = vec![
-        PathBuf::from(workspace).join(".claude").join("skills"),
-        dirs::home_dir()
-            .unwrap_or_default()
-            .join(".claude")
-            .join("skills"),
-    ];
+    // Search: builtin/project first, then .claude/skills, then global
+    let mut search_dirs: Vec<PathBuf> = Vec::new();
+
+    // Builtin/project skills (in workspace's .agents/skills/)
+    search_dirs.push(PathBuf::from(workspace).join(".agents").join("skills"));
+
+    // Legacy project skills location
+    search_dirs.push(PathBuf::from(workspace).join(".claude").join("skills"));
+
+    // Global skills
+    if let Some(home) = dirs::home_dir() {
+        search_dirs.push(home.join(".claude").join("skills"));
+        // Plugin cache skills
+        let plugins_cache = home.join(".claude").join("plugins").join("cache");
+        if let Ok(entries) = std::fs::read_dir(&plugins_cache) {
+            for entry in entries.flatten() {
+                let skills_dir = entry.path().join("skills");
+                if skills_dir.is_dir() {
+                    search_dirs.push(skills_dir);
+                }
+            }
+        }
+    }
 
     for dir in &search_dirs {
         let skill_md = dir.join(name).join("SKILL.md");

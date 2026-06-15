@@ -509,12 +509,13 @@ export interface SkillInfo {
   id: string
   name: string
   description: string
-  scope: 'project' | 'global'
+  scope: 'builtin' | 'project' | 'global'
   dir_name: string
   triggers: SkillTrigger[]
   output: string | null
   loads: SkillLoad[]
   enabled: boolean
+  shadowed_by?: string | null
 }
 
 export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_skills')
@@ -527,6 +528,12 @@ export const openSkillDir = (scope: 'project' | 'global', dirName: string): Prom
 
 export const setSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
   invoke<void>('set_skill_enabled', { skillId, enabled })
+
+export const setGlobalSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
+  invoke<void>('set_global_skill_enabled', { skillId, enabled })
+
+export const getSkillContent = (skillId: string): Promise<string> =>
+  invoke<string>('get_skill_content', { skillId })
 
 // Conversation
 export const conversationCreate = (context?: string, contextFiles?: string[]): Promise<string> =>

@@ -65,6 +65,10 @@ struct WorkspaceSettings {
     /// are enabled (subject to the global toggle for global-scope skills).
     #[serde(default)]
     disabled_skills: Option<Vec<String>>,
+    /// Global skills whitelist — stores skill ids that the user has opted-in.
+    /// Global skills default to off, so we record which ones are explicitly enabled.
+    #[serde(default)]
+    enabled_global_skills: Option<Vec<String>>,
 }
 
 impl Default for WorkspaceSettings {
@@ -75,6 +79,7 @@ impl Default for WorkspaceSettings {
             global_skills_enabled: false,
             pinned: None,
             disabled_skills: None,
+            enabled_global_skills: None,
         }
     }
 }
@@ -216,6 +221,20 @@ pub fn get_disabled_skills_for_workspace(workspace_path: &str) -> Vec<String> {
     settings.disabled_skills.unwrap_or_default()
 }
 
+/// Return enabled global skill ids for a workspace path, without needing an AppHandle.
+pub fn get_enabled_global_skills_for_workspace(workspace_path: &str) -> Vec<String> {
+    if workspace_path.is_empty() {
+        return vec![];
+    }
+    let path = PathBuf::from(workspace_path).join(".setting.json");
+    let data = match fs::read_to_string(&path) {
+        Ok(d) => d,
+        Err(_) => return vec![],
+    };
+    let settings: WorkspaceSettings = serde_json::from_str(&data).unwrap_or_default();
+    settings.enabled_global_skills.unwrap_or_default()
+}
+
 #[tauri::command]
 pub fn set_skill_enabled(app: AppHandle, skill_id: String, enabled: bool) -> Result<(), String> {
     let mut settings = load_settings(&app)?;
@@ -226,6 +245,21 @@ pub fn set_skill_enabled(app: AppHandle, skill_id: String, enabled: bool) -> Res
         list.push(skill_id);
     }
     settings.disabled_skills = if list.is_empty() { None } else { Some(list) };
+    save_settings(&app, &settings)
+}
+
+#[tauri::command]
+pub fn set_global_skill_enabled(app: AppHandle, skill_id: String, enabled: bool) -> Result<(), String> {
+    let mut settings = load_settings(&app)?;
+    let mut list = settings.enabled_global_skills.unwrap_or_default();
+    if enabled {
+        if !list.contains(&skill_id) {
+            list.push(skill_id);
+        }
+    } else {
+        list.retain(|id| id != &skill_id);
+    }
+    settings.enabled_global_skills = if list.is_empty() { None } else { Some(list) };
     save_settings(&app, &settings)
 }
 
@@ -282,5 +316,19 @@ mod tests {
             s.theme = "system".to_string();
         }
         assert_eq!(s.theme, "system");
+    }
+
+    #[test]
+    fn enabled_global_skills_defaults_to_empty() {
+        let s: WorkspaceSettings = serde_json::from_str("{}").unwrap();
+        assert!(s.enabled_global_skills.is_none());
+    }
+
+    #[test]
+    fn enabled_global_skills_round_trip() {
+        let json = r#"{"enabled_global_skills":["global:superpowers:brainstorming"]}"#;
+        let s: WorkspaceSettings = serde_json::from_str(json).unwrap();
+        let list = s.enabled_global_skills.unwrap();
+        assert_eq!(list, vec!["global:superpowers:brainstorming"]);
     }
 }

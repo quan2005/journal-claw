@@ -305,7 +305,7 @@ describe('Journal content frame contract', () => {
     expect(statsRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
     expect(statItemRule).toContain('justify-content: center')
     expect(statItemRule).toContain('padding: 0 20px')
-    expect(statValueRule).toContain('font-size: var(--text-md)')
+    expect(statValueRule).toContain('font-size: var(--text-lg)')
   })
 })
 

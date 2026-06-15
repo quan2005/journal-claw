@@ -36,22 +36,7 @@ function skillIcon(name: string) {
 function TriggerChip({ trig }: { trig: SkillTrigger }) {
   const isCmd = trig.kind === 'slash'
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        height: 24,
-        padding: '0 9px',
-        borderRadius: 6,
-        fontSize: 'var(--text-xs)',
-        fontFamily: isCmd ? 'var(--font-mono)' : 'var(--font-body)',
-        background: isCmd ? 'var(--detail-case-bg)' : 'var(--tag-bg)',
-        color: isCmd ? 'var(--record-btn)' : 'var(--tag-text)',
-        border: '1px solid ' + (isCmd ? 'transparent' : 'var(--divider)'),
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className={`skills-trigger-chip${isCmd ? ' is-cmd' : ''}`}>
       {trig.kind === 'slash' && <ChevronRight size={12} />}
       {trig.kind === 'auto' && <Bolt size={12} />}
       {trig.kind === 'drop' && <Paperclip size={12} />}
@@ -69,31 +54,9 @@ function Switch({ on, onClick }: { on: boolean; onClick: (e: React.MouseEvent) =
       role="switch"
       aria-checked={on}
       onClick={onClick}
-      style={{
-        width: 38,
-        height: 22,
-        flexShrink: 0,
-        borderRadius: 999,
-        padding: 2,
-        border: 'none',
-        cursor: 'pointer',
-        background: on ? 'var(--record-btn)' : 'var(--bg-tertiary)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        transition: 'background 160ms var(--ease-out)',
-      }}
+      className={`skills-switch${on ? ' is-on' : ''}`}
     >
-      <span
-        style={{
-          width: 18,
-          height: 18,
-          borderRadius: '50%',
-          background: '#fff',
-          transform: on ? 'translateX(16px)' : 'translateX(0)',
-          boxShadow: '0 1px 2px rgba(0,0,0,.25)',
-          transition: 'transform 160ms var(--ease-out)',
-        }}
-      />
+      <span className="skills-switch-knob" />
     </button>
   )
 }
@@ -110,73 +73,25 @@ function SkillCard({
   toggle: () => void
   onOpen: () => void
 }) {
-  const [hover, setHover] = useState(false)
   const Icon = skillIcon(s.dir_name)
   return (
     <div
       onClick={onOpen}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        padding: 20,
-        borderRadius: 8,
-        background: 'var(--detail-case-bg)',
-        cursor: 'pointer',
-        border: '1px solid ' + (hover ? 'var(--divider-hover)' : 'var(--detail-case-border)'),
-        opacity: on ? 1 : 0.62,
-        transition: 'border-color 160ms var(--ease-out), opacity 160ms ease',
-      }}
+      className={`skills-card${on ? '' : ' is-disabled'}`}
     >
       {/* header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div
-          style={{
-            width: 38,
-            height: 38,
-            flexShrink: 0,
-            borderRadius: 6,
-            background: 'var(--detail-case-bg)',
-            color: 'var(--record-btn)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'inset 0 0 0 1px var(--divider)',
-          }}
-        >
+      <div className="skills-card-header">
+        <div className="skills-card-icon">
           <Icon size={19} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-base)',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {s.dir_name}
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                padding: '2px 7px',
-                borderRadius: 6,
-                color: s.scope === 'global' ? 'var(--record-btn)' : 'var(--text-tertiary)',
-                background: s.scope === 'global' ? 'var(--detail-case-bg)' : 'var(--tag-bg)',
-              }}
-            >
+        <div className="skills-card-meta">
+          <div className="skills-card-meta-row">
+            <span className="skills-card-id">{s.dir_name}</span>
+            <span className={`skills-card-scope${s.scope === 'global' ? ' is-global' : ''}`}>
               {s.scope === 'global' ? '全局' : '项目'}
             </span>
           </div>
-          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', marginTop: 3 }}>
-            {s.name}
-          </div>
+          <div className="skills-card-name">{s.name}</div>
         </div>
         <Switch
           on={on}
@@ -188,35 +103,11 @@ function SkillCard({
       </div>
 
       {/* description */}
-      {s.description && (
-        <p
-          style={{
-            margin: '14px 0 0',
-            fontSize: 'var(--text-sm)',
-            lineHeight: 1.65,
-            color: 'var(--text-secondary)',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            minHeight: 42,
-          }}
-        >
-          {s.description}
-        </p>
-      )}
+      {s.description && <p className="skills-card-desc">{s.description}</p>}
 
       {/* footer: trigger chips */}
       {s.triggers.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="skills-card-triggers">
           {s.triggers.map((t, i) => (
             <TriggerChip key={i} trig={t} />
           ))}
@@ -229,45 +120,11 @@ function SkillCard({
 // ── Stat card ─────────────────────────────────────────────
 function StatCard({ cells }: { cells: { n: number; l: string }[] }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        border: '1px solid var(--divider)',
-        borderRadius: 8,
-        background: 'var(--detail-case-bg)',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="skills-stats">
       {cells.map((c, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 8,
-            padding: '16px 24px',
-            borderLeft: i ? '1px solid var(--divider)' : 'none',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 'var(--text-xl)',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              lineHeight: 1,
-            }}
-          >
-            {c.n}
-          </span>
-          <span
-            style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--text-secondary)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {c.l}
-          </span>
+        <div key={i} className="skills-stats-cell">
+          <span className="skills-stats-number">{c.n}</span>
+          <span className="skills-stats-label">{c.l}</span>
         </div>
       ))}
     </div>
@@ -303,145 +160,38 @@ function SkillDrawer({
 
   const close = () => {
     setShow(false)
-    setTimeout(onClose, 240)
+    setTimeout(onClose, 200)
   }
 
   const Icon = skillIcon(s.dir_name)
 
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div style={{ padding: '20px 24px', borderTop: '1px solid var(--divider)' }}>
-      <div
-        style={{
-          fontSize: 'var(--text-xs)',
-          fontWeight: 600,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
-          marginBottom: 12,
-        }}
-      >
-        {title}
-      </div>
-      {children}
-    </div>
-  )
-
   return (
     <div
       onClick={close}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 80,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-        background: 'rgba(10, 12, 16, 0.46)',
-        opacity: show ? 1 : 0,
-        transition: 'opacity 200ms var(--ease-out)',
-      }}
+      className={`skills-drawer-backdrop${show ? ' is-show' : ''}`}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(660px, 94vw)',
-          maxHeight: '86vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--bg)',
-          border: '1px solid var(--divider)',
-          borderRadius: 16,
-          boxShadow: '0 28px 80px rgba(0,0,0,0.34)',
-          overflow: 'hidden',
-          transform: show ? 'scale(1)' : 'scale(0.96)',
-          opacity: show ? 1 : 0,
-          transition: 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease',
-        }}
-      >
+      <div onClick={(e) => e.stopPropagation()} className="skills-drawer">
         {/* header */}
-        <div style={{ padding: '22px 24px 18px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                flexShrink: 0,
-                borderRadius: 6,
-                background: 'var(--detail-case-bg)',
-                color: 'var(--record-btn)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'inset 0 0 0 1px var(--divider)',
-              }}
-            >
+        <div className="skills-drawer-header">
+          <div className="skills-drawer-header-top">
+            <div className="skills-drawer-icon">
               <Icon size={22} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {s.dir_name}
-              </div>
-              <div
-                style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--text-secondary)',
-                  marginTop: 2,
-                }}
-              >
-                {s.name}
-              </div>
+            <div className="skills-drawer-title-area">
+              <div className="skills-drawer-id">{s.dir_name}</div>
+              <div className="skills-drawer-name">{s.name}</div>
             </div>
-            <button
-              type="button"
-              aria-label="关闭"
-              onClick={close}
-              style={{
-                width: 30,
-                height: 30,
-                flexShrink: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                borderRadius: 6,
-                color: 'var(--text-tertiary)',
-              }}
-            >
+            <button type="button" aria-label="关闭" onClick={close} className="skills-drawer-close">
               <X size={18} />
             </button>
           </div>
           {/* meta row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: '2px 7px',
-                borderRadius: 6,
-                color: s.scope === 'global' ? 'var(--record-btn)' : 'var(--text-tertiary)',
-                background: s.scope === 'global' ? 'var(--detail-case-bg)' : 'var(--tag-bg)',
-              }}
-            >
+          <div className="skills-drawer-meta-row">
+            <span className={`skills-card-scope${s.scope === 'global' ? ' is-global' : ''}`}>
               {s.scope === 'global' ? '全局' : '项目'}
             </span>
             <span style={{ flex: 1 }} />
-            <span
-              style={{
-                fontSize: 'var(--text-sm)',
-                color: on ? 'var(--record-btn)' : 'var(--text-tertiary)',
-                fontWeight: 500,
-              }}
-            >
+            <span className={`skills-drawer-status${on ? ' is-on' : ' is-off'}`}>
               {on ? '已启用' : '已停用'}
             </span>
             <Switch
@@ -455,91 +205,65 @@ function SkillDrawer({
         </div>
 
         {/* scroll body */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="skills-drawer-body">
           {s.description && (
-            <Section title="说明">
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 'var(--text-md)',
-                  lineHeight: 1.7,
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                {s.description}
-              </p>
-            </Section>
+            <div className="skills-drawer-section">
+              <div className="skills-drawer-section-title">说明</div>
+              <p className="skills-drawer-section-text">{s.description}</p>
+            </div>
           )}
 
           {s.triggers.length > 0 && (
-            <Section title="触发方式">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div className="skills-drawer-section">
+              <div className="skills-drawer-section-title">触发方式</div>
+              <div className="skills-drawer-triggers">
                 {s.triggers.map((t, i) => (
                   <TriggerChip key={i} trig={t} />
                 ))}
               </div>
-            </Section>
+            </div>
           )}
 
           {s.output && (
-            <Section title="产出">
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 'var(--text-base)',
-                  lineHeight: 1.6,
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                {s.output}
-              </p>
-            </Section>
+            <div className="skills-drawer-section">
+              <div className="skills-drawer-section-title">产出</div>
+              <p className="skills-drawer-section-text-sm">{s.output}</p>
+            </div>
           )}
 
           {s.loads.length > 0 && (
-            <Section title={`加载的规则 · ${s.loads.length}`}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="skills-drawer-section">
+              <div className="skills-drawer-section-title">
+                加载的规则 · {s.loads.length}
+              </div>
+              <div className="skills-drawer-loads">
                 {s.loads.map((f, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '6px 10px',
-                      borderRadius: 6,
-                      background: 'var(--detail-case-bg)',
-                      border: '1px solid var(--divider)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--record-btn)',
-                    }}
-                  >
-                    <FileText size={14} style={{ flexShrink: 0, opacity: 0.7 }} />
+                  <div key={i} className="skills-drawer-file-chip">
+                    <FileText size={14} className="skills-drawer-file-chip-icon" />
                     {f.name}
                   </div>
                 ))}
               </div>
-            </Section>
+            </div>
           )}
         </div>
 
         {/* footer */}
-        <div
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            gap: 10,
-            padding: '14px 24px',
-            borderTop: '1px solid var(--divider)',
-          }}
-        >
-          <button type="button" onClick={() => openSkillDir(s.scope, s.dir_name)} style={ghostBtn}>
+        <div className="skills-drawer-footer">
+          <button
+            type="button"
+            onClick={() => openSkillDir(s.scope, s.dir_name)}
+            className="skills-workbench-button"
+          >
             <Pencil size={15} />
             编辑技能
           </button>
-          <span style={{ flex: 1 }} />
-          <button type="button" onClick={() => openSkillDir(s.scope, s.dir_name)} style={ghostBtn}>
+          <span className="skills-drawer-footer-spacer" />
+          <button
+            type="button"
+            onClick={() => openSkillDir(s.scope, s.dir_name)}
+            className="skills-workbench-button"
+          >
             <FileText size={15} />
             查看 SKILL.md
           </button>
@@ -547,21 +271,6 @@ function SkillDrawer({
       </div>
     </div>
   )
-}
-
-const ghostBtn: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  height: 32,
-  padding: '0 12px',
-  borderRadius: 6,
-  border: '1px solid var(--divider)',
-  background: 'transparent',
-  color: 'var(--text-secondary)',
-  fontSize: 'var(--text-sm)',
-  fontWeight: 500,
-  cursor: 'pointer',
 }
 
 // ── Skills page ───────────────────────────────────────────
@@ -614,66 +323,23 @@ export default function SkillsWorkbench() {
   const slashCount = skills.filter((s) => s.triggers.some((t) => t.kind === 'slash')).length
 
   if (loading) {
-    return <div style={{ flex: 1, padding: 80, color: 'var(--text-tertiary)' }}>加载中…</div>
+    return <div className="skills-workbench-loading">加载中…</div>
   }
 
   return (
-    <section style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1640, margin: '0 auto', padding: '52px 56px 80px' }}>
+    <section className="skills-workbench">
+      <div className="skills-workbench-inner">
         {/* ── header ───────────────────────────────── */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 32,
-          }}
-        >
-          <div style={{ maxWidth: 560 }}>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '5px 12px',
-                borderRadius: 999,
-                marginBottom: 22,
-                background: 'var(--detail-case-bg)',
-                border: '1px solid var(--divider)',
-                color: 'var(--record-btn)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                letterSpacing: '0.14em',
-              }}
-            >
-              AGENT SKILLS
-            </span>
-            <h1
-              style={{
-                margin: '0 0 18px',
-                fontFamily: 'var(--font-body)',
-                fontWeight: 800,
-                fontSize: 'clamp(44px, 5vw, 60px)',
-                lineHeight: 1.04,
-                letterSpacing: '-0.01em',
-                color: 'var(--record-btn)',
-              }}
-            >
-              技能
-            </h1>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 'var(--text-md)',
-                lineHeight: 1.7,
-                color: 'var(--text-secondary)',
-              }}
-            >
+        <div className="skills-workbench-header">
+          <div className="skills-workbench-header-left">
+            <span className="skills-workbench-eyebrow">AGENT SKILLS</span>
+            <h1 className="skills-workbench-title">技能</h1>
+            <p className="skills-workbench-summary">
               管理触发 AI 行为的技能。每个技能定义触发方式、加载的规则与产出 ——
               启用后即可在对话中被调用。
             </p>
           </div>
-          <div
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 16 }}
-          >
+          <div className="skills-workbench-header-right">
             <StatCard
               cells={[
                 { n: enabledCount, l: '已启用' },
@@ -681,15 +347,11 @@ export default function SkillsWorkbench() {
                 { n: slashCount, l: '斜杠命令' },
               ]}
             />
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="skills-workbench-actions">
               <button
                 type="button"
                 onClick={() => openSkillsDir('project')}
-                style={{
-                  ...ghostBtn,
-                  height: 38,
-                  padding: '0 14px',
-                }}
+                className="skills-workbench-button"
               >
                 <FolderOpen size={15} />
                 打开目录
@@ -697,20 +359,7 @@ export default function SkillsWorkbench() {
               <button
                 type="button"
                 onClick={() => openSkillsDir('project')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  height: 38,
-                  padding: '0 16px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: 'var(--record-btn)',
-                  color: 'var(--record-btn-icon)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className="skills-workbench-button-primary"
               >
                 <Plus size={15} />
                 新建技能
@@ -720,20 +369,8 @@ export default function SkillsWorkbench() {
         </div>
 
         {/* ── global toggle + search row ───────────── */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-            margin: '40px 0 24px',
-            paddingBottom: 18,
-            borderBottom: '1px solid var(--divider)',
-          }}
-        >
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            全局技能
-          </span>
+        <div className="skills-workbench-toolbar">
+          <span className="skills-workbench-toolbar-label">全局技能</span>
           <Switch
             on={globalEnabled}
             onClick={(e) => {
@@ -741,47 +378,21 @@ export default function SkillsWorkbench() {
               toggleGlobal()
             }}
           />
-          <span style={{ flex: 1 }} />
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              width: 220,
-              height: 32,
-              padding: '0 10px',
-              borderRadius: 6,
-              border: '1px solid var(--divider)',
-              background: 'var(--bg)',
-            }}
-          >
-            <Search size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+          <span className="skills-workbench-toolbar-spacer" />
+          <div className="skills-workbench-search">
+            <Search size={15} className="skills-workbench-search-icon" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="搜索技能…"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text-primary)',
-              }}
+              className="skills-workbench-search-input"
             />
           </div>
         </div>
 
         {/* ── grid ─────────────────────────────────── */}
         {list.length ? (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(440px, 1fr))',
-              gap: 18,
-            }}
-          >
+          <div className="skills-workbench-grid">
             {list.map((s) => (
               <SkillCard
                 key={s.id}
@@ -793,17 +404,18 @@ export default function SkillsWorkbench() {
             ))}
           </div>
         ) : (
-          <div
-            style={{
-              padding: '64px 0',
-              textAlign: 'center',
-              color: 'var(--text-tertiary)',
-              fontSize: 'var(--text-md)',
-            }}
-          >
-            {skills.length === 0
-              ? '未发现技能。在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能。'
-              : '没有匹配的技能。'}
+          <div className="skills-workbench-empty">
+            <div className="skills-workbench-empty-icon">+</div>
+            <div className="skills-workbench-empty-title">
+              {skills.length === 0
+                ? '未发现技能'
+                : '没有匹配的技能'}
+            </div>
+            <div className="skills-workbench-empty-subtitle">
+              {skills.length === 0
+                ? '在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能'
+                : '尝试调整搜索关键词'}
+            </div>
           </div>
         )}
       </div>

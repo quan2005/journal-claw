@@ -4,7 +4,10 @@ import { listen } from '@tauri-apps/api/event'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 const DetailView = lazy(() =>
-  import('./components/DetailView').then((m) => ({ default: m.DetailView })),
+  import('./components/DetailView').then((m) => ({
+    // m.DetailView is a React.memo object; lazy() needs a function component as default.
+    default: ((props: any) => <m.DetailView {...props} />) as typeof m.DetailView,
+  })),
 )
 import { AutomationWorkbench } from './components/AutomationWorkbench'
 import type { IdeaConversationRequest } from './components/IdeasWorkbench'

@@ -81,13 +81,19 @@ export function useConversation() {
     setTabs((prev) => prev.map((t) => (t.sessionId === sid ? { ...t, ...fresh } : t)))
   }, [])
 
-  /** Update a tab's messages in both global cache and React state */
+  /** Update a tab's messages in both global cache and React state synchronously.
+   *
+   * The global cache is the source of truth (used by create/load/sync). React state is
+   * updated immediately so streaming events render without frame-skipping races.
+   *
+   * NOTE: an earlier rAF-batched version (AC-9) caused streaming corruption — synchronous
+   * setTabs calls (streaming flag, tab migration) interleaved with the deferred flush
+   * produced stale reads. Kept synchronous until a batched approach can be proven race-free. */
   const updateTabMessages = useCallback(
     (sid: string, updater: (prev: ConversationMessage[]) => ConversationMessage[]) => {
       const prev = globalCache.get(sid) ?? []
       const next = updater(prev)
       globalCache.set(sid, next)
-      // Sync React state
       setTabs((prevTabs) =>
         prevTabs.map((t) => (t.sessionId === sid ? { ...t, messages: next } : t)),
       )
@@ -95,7 +101,7 @@ export function useConversation() {
     [],
   )
 
-  /** Set streaming state for a session (global + React) */
+  /** Set streaming state for a session (global + React). */
   const setTabStreaming = useCallback((sid: string, streaming: boolean) => {
     if (streaming) {
       globalStreamingSessions.add(sid)

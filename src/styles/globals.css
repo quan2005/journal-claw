@@ -27,7 +27,8 @@
   --font-extrabold: 800; /* Agentic allows bold display */
 
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Playfair Display', 'Noto Serif SC', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-serif: 'Noto Serif SC', serif;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -42,21 +43,29 @@
   --space-2: 8px; /* 8pt baseline */
   --space-3: 12px;
   --space-4: 16px; /* 2× 8pt */
-  --space-5: 24px; /* 3× 8pt */
-  --space-6: 24px;
+  --space-5: 20px; /* 2.5× 8pt — aligns with DESIGN.md frontmatter */
+  --space-6: 24px; /* 3× 8pt — section spacing */
   --space-8: 32px; /* 4× 8pt */
   --space-12: 48px; /* 6× 8pt */
 
+  /* ── Structured tokens (mandatory consumption, see DESIGN.md §5) ── */
+  --radius-sm: 6px; /* badges, small controls */
+  --radius-md: 6px; /* inputs */
+  --radius-lg: 8px; /* menus, dialogs, cards */
+  --radius-pill: 999px; /* pills */
+  --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.15); /* overlay surfaces — sole shadow value */
+  --border-menu: 1px solid var(--divider); /* menus, dialogs — uniform 1px */
+
   /* ── Agentic color system (light default) ─────── */
-  /* Surfaces — white base with subtle layering */
+  /* Surfaces — white base with warm-white layering */
   --bg: #ffffff;
-  --bg-secondary: #fafafa;
-  --bg-tertiary: #f4f4f5;
+  --bg-secondary: #f6f6f1;
+  --bg-tertiary: #ecece6;
   /* Text — ink scale */
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-tertiary: #9ca3af;
-  --titlebar-bg: #f9fafb;
+  --titlebar-bg: #f6f6f1;
   --divider: #e5e7eb;
   --divider-hover: color-mix(in srgb, var(--divider) 80%, var(--record-btn) 20%);
   --divider-active: color-mix(in srgb, var(--divider) 64%, var(--record-btn) 36%);
@@ -99,8 +108,8 @@
   --date-today-weekday: #9a3412;
 
   /* Sidebar */
-  --sidebar-bg: #f9fafb;
-  --sidebar-bg-translucent: rgba(249, 250, 251, 0.72);
+  --sidebar-bg: #f6f6f1;
+  --sidebar-bg-translucent: rgba(246, 246, 241, 0.72);
   --sidebar-month: #6b7280;
 
   /* AI Status Pill */
@@ -178,7 +187,7 @@
   --detail-content-max: var(--journal-readable-max);
   --detail-section-label: #6b7280;
   --detail-summary: #4b5563;
-  --detail-case-bg: #fafafa;
+  --detail-case-bg: #f6f6f1;
   --detail-case-border: #e5e7eb;
   --detail-case-title: #111827;
   --detail-case-key: #6b7280;
@@ -196,7 +205,7 @@
   --badge-ai-border: #ddd6fe;
 
   /* Processing queue */
-  --queue-bg: #fafafa;
+  --queue-bg: #f6f6f1;
   --queue-border: #e5e7eb;
   --queue-shadow: rgba(0, 0, 0, 0.06);
 
@@ -263,6 +272,7 @@
     --bg: #0f0f0f;
     --bg-secondary: #1c1c1e;
     --bg-tertiary: #2c2c2e;
+    --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.5); /* dark overlay shadow */
     --text-primary: #e8e8e8;
     --text-secondary: #a2a6ae;
     --text-tertiary: #6b7280;
@@ -279,7 +289,7 @@
     --accent: #f87171; /* danger red, dark variant */
     --record-btn: #ff7a33; /* Agentic orange brightened for dark bg (~5.5:1 on #0f0f0f) */
     --record-btn-hover: #ff9355;
-    --record-btn-icon: #0f0f0f; /* dark text on bright orange fill */
+    --record-btn-icon: #fff8f0; /* warm white on bright orange fill — visually harmonious with dark theme */
     --focus-ring: color-mix(in srgb, var(--record-btn) 60%, var(--bg));
     --segment-bg: rgba(255, 255, 255, 0.06);
     --segment-active-bg: rgba(255, 122, 51, 0.16);
@@ -441,6 +451,7 @@
   --bg: #0f0f0f;
   --bg-secondary: #1c1c1e;
   --bg-tertiary: #2c2c2e;
+  --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.5); /* dark overlay shadow */
   --text-primary: #e8e8e8;
   --text-secondary: #a2a6ae;
   --text-tertiary: #6b7280;
@@ -457,7 +468,7 @@
   --accent: #f87171;
   --record-btn: #ff7a33;
   --record-btn-hover: #ff9355;
-  --record-btn-icon: #0f0f0f;
+  --record-btn-icon: #fff8f0; /* warm white on bright orange fill */
   --focus-ring: color-mix(in srgb, var(--record-btn) 60%, var(--bg));
   --segment-bg: rgba(255, 255, 255, 0.06);
   --segment-active-bg: rgba(255, 122, 51, 0.16);
@@ -1165,7 +1176,7 @@ body,
 
 .automation-input:focus {
   border-color: var(--record-btn);
-  outline: 2px solid color-mix(in srgb, var(--record-btn) 22%, transparent);
+  outline: var(--focus-ring);
   outline-offset: 1px;
 }
 
@@ -1584,7 +1595,7 @@ body,
 
 .ideas-workbench-draft textarea:focus {
   border-color: var(--record-btn);
-  outline: 2px solid color-mix(in srgb, var(--record-btn) 22%, transparent);
+  outline: var(--focus-ring);
   outline-offset: 1px;
 }
 
@@ -1678,9 +1689,10 @@ body,
   min-width: 176px;
   overflow: hidden;
   padding: 4px 0;
-  border: 1px solid var(--context-menu-border);
-  border-radius: 8px;
+  border: var(--border-menu);
+  border-radius: var(--radius-lg);
   background: var(--context-menu-bg);
+  box-shadow: var(--shadow-overlay);
 }
 
 .ideas-workbench-menu-item {
@@ -2013,7 +2025,7 @@ body,
 
 [data-theme='light'] {
   --bg: #ffffff;
-  --titlebar-bg: #f9fafb;
+  --titlebar-bg: #f6f6f1;
   --divider: #e5e7eb;
   --divider-hover: color-mix(in srgb, var(--divider) 80%, var(--record-btn) 20%);
   --divider-active: color-mix(in srgb, var(--divider) 64%, var(--record-btn) 36%);
@@ -2045,8 +2057,8 @@ body,
   --tag-bg: rgba(75, 85, 99, 0.08);
   --date-today-number: #c2410c;
   --date-today-weekday: #9a3412;
-  --sidebar-bg: #f9fafb;
-  --sidebar-bg-translucent: rgba(249, 250, 251, 0.72);
+  --sidebar-bg: #f6f6f1;
+  --sidebar-bg-translucent: rgba(246, 246, 241, 0.72);
   --sidebar-month: #6b7280;
   --ai-pill-bg: #fff4ed;
   --ai-pill-border: #fb923c;
@@ -2091,7 +2103,7 @@ body,
   --detail-content-max: var(--journal-readable-max);
   --detail-section-label: #6b7280;
   --detail-summary: #4b5563;
-  --detail-case-bg: #fafafa;
+  --detail-case-bg: #f6f6f1;
   --detail-case-border: #e5e7eb;
   --detail-case-title: #111827;
   --detail-case-key: #6b7280;
@@ -2226,11 +2238,9 @@ body,
   min-height: 520px;
   overflow: hidden;
   border: 1px solid var(--divider);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--bg);
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.38),
-    0 6px 22px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-overlay);
   animation: settings-modal-in 180ms ease-out both;
 }
 

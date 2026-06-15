@@ -1,5 +1,8 @@
 use crate::config;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+use std::time::SystemTime;
 use tauri::AppHandle;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -204,6 +207,20 @@ pub(crate) fn material_kind(filename: &str) -> String {
     .to_string()
 }
 
+// ── Per-file frontmatter cache (AC-24) ───────────────────────────────────────
+// list_entries reads + parses every file's full content just to extract frontmatter.
+// Caching parsed metadata keyed by (path, mtime) avoids re-reading unchanged files.
+struct CachedEntry {
+    mtime: SystemTime,
+    entry: JournalEntry,
+}
+
+static ENTRY_CACHE: OnceLock<Mutex<HashMap<String, CachedEntry>>> = OnceLock::new();
+
+fn entry_cache() -> &'static Mutex<HashMap<String, CachedEntry>> {
+    ENTRY_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
 pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntry>, String> {
     use crate::workspace;
     use gray_matter::{engine::YAML, Matter};
@@ -225,6 +242,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
+        let path_str = path.to_string_lossy().to_string();
 
         let (day, title) = match parse_entry_filename(&filename) {
             Some(v) => v,
@@ -269,6 +287,20 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             }
         }
 
+        let meta = entry.metadata().ok();
+        let mtime = meta.as_ref().and_then(|m| m.modified().ok());
+
+        // AC-24: check cache — if mtime unchanged, reuse the parsed entry
+        if let Some(mt) = mtime {
+            let cache = entry_cache().lock().unwrap();
+            if let Some(cached) = cache.get(&path_str) {
+                if cached.mtime == mt {
+                    entries.push(cached.entry.clone());
+                    continue;
+                }
+            }
+        }
+
         let content = std::fs::read_to_string(&path).unwrap_or_default();
 
         // Route to appropriate metadata parser based on file extension
@@ -283,11 +315,8 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
                 .unwrap_or_else(|| parse_frontmatter_fallback(&content))
         };
 
-        let meta = entry.metadata().ok();
         // birthtime (created) for stable display time and same-day sort order
         let birthtime = meta.as_ref().and_then(|m| m.created().ok());
-        // mtime for change detection only
-        let mtime = meta.as_ref().and_then(|m| m.modified().ok());
 
         // Display time comes from birthtime; fall back to mtime if birthtime unavailable
         let display_time = birthtime.or(mtime);
@@ -311,7 +340,7 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0);
 
-        entries.push(JournalEntry {
+        let journal_entry = JournalEntry {
             filename,
             path: path.to_string_lossy().to_string(),
             title,
@@ -325,7 +354,21 @@ pub fn list_entries(workspace: &str, year_month: &str) -> Result<Vec<JournalEntr
             mtime_ms,
             materials: vec![],
             sources: fm.sources,
-        });
+        };
+
+        // AC-24: populate cache
+        if let Some(mt) = mtime {
+            let mut cache = entry_cache().lock().unwrap();
+            cache.insert(
+                path_str,
+                CachedEntry {
+                    mtime: mt,
+                    entry: journal_entry.clone(),
+                },
+            );
+        }
+
+        entries.push(journal_entry);
     }
 
     // Sort by day descending, then by creation time descending within same day

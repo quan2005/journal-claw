@@ -5,6 +5,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useMemo,
   type ReactNode,
   type Dispatch,
   type SetStateAction,
@@ -116,8 +117,37 @@ function saveTreeSelectionState(state: StoredTreeSelectionState) {
   }
 }
 
-// ── Types ─────────────────────────────────────────────
+// ── Layout dimension storage keys ──
+const SIDEBAR_WIDTH_KEY = 'journal_base_width'
+const RIGHT_PANEL_WIDTH_KEY = 'journal_right_panel_width'
+const RIGHT_PANEL_PINNED_KEY = 'journal_right_panel_pinned'
 
+// ── LayoutContext: high-frequency layout dimensions (drag/resize) ──
+// Split from UIContext so that dragging a divider does NOT re-render
+// consumers that only care about view / selectedEntry / etc. (AC-5).
+interface LayoutContextValue {
+  sidebarWidth: number
+  /** Update width in view state only — does NOT touch localStorage. Use during drag. */
+  setSidebarWidthView: (w: number) => void
+  /** Persist current width to localStorage. Call on drag end. */
+  persistSidebarWidth: (w: number) => void
+  /** Convenience: set view + persist in one call (for non-drag paths). */
+  setSidebarWidth: (w: number) => void
+
+  rightPanelWidth: number
+  setRightPanelWidthView: (w: number) => void
+  persistRightPanelWidth: (w: number) => void
+  setRightPanelWidth: (w: number) => void
+
+  rightPanelOpen: boolean
+  setRightPanelOpen: Dispatch<SetStateAction<boolean>>
+  rightPanelPinned: boolean
+  setRightPanelPinned: (p: boolean) => void
+}
+
+const LayoutContext = createContext<LayoutContextValue>(null!)
+
+// ── UIContext: semantic / low-frequency UI state ──
 interface UIContextValue {
   view: AppView
   setView: Dispatch<SetStateAction<AppView>>
@@ -131,24 +161,11 @@ interface UIContextValue {
   showIdeas: boolean
   setShowIdeas: Dispatch<SetStateAction<boolean>>
 
-  // Drag states
+  // Drag states (semantic flags, not dimensions)
   isDragging: boolean
   setIsDragging: Dispatch<SetStateAction<boolean>>
   isDragOver: boolean
   setIsDragOver: Dispatch<SetStateAction<boolean>>
-
-  // Layout dimensions (persisted)
-  sidebarWidth: number
-  setSidebarWidth: (w: number) => void
-  rightPanelOpen: boolean
-  setRightPanelOpen: Dispatch<SetStateAction<boolean>>
-  rightPanelWidth: number
-  setRightPanelWidth: (w: number) => void
-  // Right panel pinned flag (persisted) — when true, auto-collapse on content
-  // switch is suppressed. Only the pin button mutates this; open paths (Cmd+T,
-  // Cmd+N, @, chevron) intentionally leave it untouched (AC-6).
-  rightPanelPinned: boolean
-  setRightPanelPinned: (p: boolean) => void
 
   // Chat init
   chatInitialText: string
@@ -180,29 +197,44 @@ export function UIProvider({ children }: { children: ReactNode }) {
   )
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim('journal_base_width', 320))
-  const [rightPanelOpen, setRightPanelOpen] = useState(false)
-  const [rightPanelWidth, setRightPanelWidthState] = useState(() =>
-    loadDim('journal_right_panel_width', 320),
-  )
-  const [rightPanelPinned, setRightPanelPinnedState] = useState(() =>
-    loadBool('journal_right_panel_pinned', false),
-  )
   const [chatInitialText, setChatInitialText] = useState('')
 
+  // ── Layout dimensions (moved to LayoutContext below) ──
+  const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim(SIDEBAR_WIDTH_KEY, 320))
+  const [rightPanelOpen, setRightPanelOpen] = useState(false)
+  const [rightPanelWidth, setRightPanelWidthState] = useState(() =>
+    loadDim(RIGHT_PANEL_WIDTH_KEY, 320),
+  )
+  const [rightPanelPinned, setRightPanelPinnedState] = useState(() =>
+    loadBool(RIGHT_PANEL_PINNED_KEY, false),
+  )
+
+  // Setter split: view-only (drag hot path, no I/O) vs persist (drag end)
+  const setSidebarWidthView = useCallback((w: number) => {
+    setSidebarWidthState(w)
+  }, [])
+  const persistSidebarWidth = useCallback((w: number) => {
+    saveDim(SIDEBAR_WIDTH_KEY, w)
+  }, [])
   const setSidebarWidth = useCallback((w: number) => {
     setSidebarWidthState(w)
-    saveDim('journal_base_width', w)
+    saveDim(SIDEBAR_WIDTH_KEY, w)
   }, [])
 
+  const setRightPanelWidthView = useCallback((w: number) => {
+    setRightPanelWidthState(w)
+  }, [])
+  const persistRightPanelWidth = useCallback((w: number) => {
+    saveDim(RIGHT_PANEL_WIDTH_KEY, w)
+  }, [])
   const setRightPanelWidth = useCallback((w: number) => {
     setRightPanelWidthState(w)
-    saveDim('journal_right_panel_width', w)
+    saveDim(RIGHT_PANEL_WIDTH_KEY, w)
   }, [])
 
   const setRightPanelPinned = useCallback((p: boolean) => {
     setRightPanelPinnedState(p)
-    saveBool('journal_right_panel_pinned', p)
+    saveBool(RIGHT_PANEL_PINNED_KEY, p)
   }, [])
 
   const setActiveCategory = useCallback((cat: Category) => {
@@ -223,43 +255,91 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setTreeSelection(null)
   }, [])
 
+  // Memoized context values to avoid re-rendering all consumers on any state change (AC-4)
+  const uiValue = useMemo<UIContextValue>(
+    () => ({
+      view,
+      setView,
+      settingsInitialSection,
+      setSettingsInitialSection,
+      selectedEntry,
+      setSelectedEntry,
+      treeSelection,
+      setTreeSelection,
+      showIdeas,
+      setShowIdeas,
+      isDragging,
+      setIsDragging,
+      isDragOver,
+      setIsDragOver,
+      chatInitialText,
+      setChatInitialText,
+      activeCategory,
+      setActiveCategory,
+      deselect,
+    }),
+    [
+      view,
+      settingsInitialSection,
+      selectedEntry,
+      treeSelection,
+      showIdeas,
+      isDragging,
+      isDragOver,
+      chatInitialText,
+      activeCategory,
+      setActiveCategory,
+      deselect,
+    ],
+  )
+
+  const layoutValue = useMemo<LayoutContextValue>(
+    () => ({
+      sidebarWidth,
+      setSidebarWidthView,
+      persistSidebarWidth,
+      setSidebarWidth,
+      rightPanelWidth,
+      setRightPanelWidthView,
+      persistRightPanelWidth,
+      setRightPanelWidth,
+      rightPanelOpen,
+      setRightPanelOpen,
+      rightPanelPinned,
+      setRightPanelPinned,
+    }),
+    [
+      sidebarWidth,
+      setSidebarWidthView,
+      persistSidebarWidth,
+      setSidebarWidth,
+      rightPanelWidth,
+      setRightPanelWidthView,
+      persistRightPanelWidth,
+      setRightPanelWidth,
+      rightPanelOpen,
+      rightPanelPinned,
+      setRightPanelPinned,
+    ],
+  )
+
   return (
-    <UIContext.Provider
-      value={{
-        view,
-        setView,
-        settingsInitialSection,
-        setSettingsInitialSection,
-        selectedEntry,
-        setSelectedEntry,
-        treeSelection,
-        setTreeSelection,
-        showIdeas,
-        setShowIdeas,
-        isDragging,
-        setIsDragging,
-        isDragOver,
-        setIsDragOver,
-        sidebarWidth,
-        setSidebarWidth,
-        rightPanelOpen,
-        setRightPanelOpen,
-        rightPanelWidth,
-        setRightPanelWidth,
-        rightPanelPinned,
-        setRightPanelPinned,
-        chatInitialText,
-        setChatInitialText,
-        activeCategory,
-        setActiveCategory,
-        deselect,
-      }}
-    >
-      {children}
-    </UIContext.Provider>
+    <LayoutContext.Provider value={layoutValue}>
+      <UIContext.Provider value={uiValue}>{children}</UIContext.Provider>
+    </LayoutContext.Provider>
   )
 }
 
 export function useUI() {
   return useContext(UIContext)
+}
+
+export function useLayout() {
+  return useContext(LayoutContext)
+}
+
+// ── Legacy convenience hook: returns both contexts merged for components that
+// still read layout + ui in one place. Prefer useUI()/useLayout() separately.
+export function useUIAndLayout() {
+  return { ...useLayout(), ...useUI() }
 }

@@ -1,4 +1,6 @@
 use crate::config;
+#[allow(unused_imports)]
+use crate::dprintln;
 use crate::errors::AiProcessingError;
 use crate::event_log::{EventKind, EventLogState};
 use crate::llm;
@@ -272,7 +274,7 @@ const LEARNINGS_TEMPLATE: &str =
 
 fn write_embedded_skill_tree(skill_dir: &std::path::Path, skill_md: &str, files: &[(&str, &str)]) {
     if let Err(e) = std::fs::create_dir_all(skill_dir) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skill dir {}: {}",
             skill_dir.display(),
             e
@@ -295,7 +297,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let dot_claude = std::path::PathBuf::from(workspace_path).join(".claude");
     let scripts_dir = dot_claude.join("scripts");
     if let Err(e) = std::fs::create_dir_all(&scripts_dir) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create .claude/scripts dir: {}",
             e
         );
@@ -332,12 +334,12 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let ideate_scripts = ideate_dir.join("scripts");
     let ideate_references = ideate_dir.join("references");
     if let Err(e) = std::fs::create_dir_all(&ideate_scripts) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skills/ideate/scripts dir: {}",
             e
         );
     } else if let Err(e) = std::fs::create_dir_all(&ideate_references) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skills/ideate/references dir: {}",
             e
         );
@@ -404,7 +406,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let ip_dir = dot_claude.join("skills").join("identity-profiling");
     let ip_templates = ip_dir.join("assets").join("templates");
     if let Err(e) = std::fs::create_dir_all(&ip_templates) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skills/identity-profiling/assets/templates dir: {}",
             e
         );
@@ -442,7 +444,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let lint_dir = dot_claude.join("skills").join("lint");
     let lint_refs = lint_dir.join("references");
     if let Err(e) = std::fs::create_dir_all(&lint_refs) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skills/lint/references dir: {}",
             e
         );
@@ -456,7 +458,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let si_dir = dot_claude.join("skills").join("self-improvement");
     let si_refs = si_dir.join("references");
     if let Err(e) = std::fs::create_dir_all(&si_refs) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skills/self-improvement/references dir: {}",
             e
         );
@@ -485,7 +487,7 @@ pub fn ensure_workspace_dot_claude(workspace_path: &str) {
     let vdb_dir = dot_claude.join("skills").join("visual-design-book");
     let vdb_refs = vdb_dir.join("references");
     if let Err(e) = std::fs::create_dir_all(&vdb_refs) {
-        eprintln!(
+        dprintln!(
             "[ai_processor] warn: failed to create skills/visual-design-book/references dir: {}",
             e
         );
@@ -537,7 +539,7 @@ fn lock_current_task(
     mutex: &std::sync::Mutex<Option<tokio_util::sync::CancellationToken>>,
 ) -> std::sync::MutexGuard<'_, Option<tokio_util::sync::CancellationToken>> {
     mutex.lock().unwrap_or_else(|poisoned| {
-        eprintln!("[ai_queue] CurrentTask mutex poisoned, recovering");
+        dprintln!("[ai_queue] CurrentTask mutex poisoned, recovering");
         poisoned.into_inner()
     })
 }
@@ -550,7 +552,7 @@ fn cleanup_current_task_after_panic(app: &AppHandle) {
     let token = lock_current_task(&current_task.0).take();
     if let Some(token) = token {
         token.cancel();
-        eprintln!("[ai_queue] panic cleanup: cancelled builtin agent");
+        dprintln!("[ai_queue] panic cleanup: cancelled builtin agent");
     }
 }
 
@@ -558,9 +560,9 @@ fn cleanup_current_task_after_panic(app: &AppHandle) {
 /// Call once during app setup; pass the receiver half.
 pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
     tauri::async_runtime::spawn(async move {
-        eprintln!("[ai_queue] consumer loop started");
+        dprintln!("[ai_queue] consumer loop started");
         while let Some(task) = rx.recv().await {
-            eprintln!(
+            dprintln!(
                 "[ai_queue] dequeued task: {} ({})",
                 task.material_path, task.year_month
             );
@@ -569,13 +571,13 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
             let was_cancelled = {
                 let cancelled = app.state::<CancelledPaths>();
                 let mut set = cancelled.0.lock().unwrap_or_else(|e| {
-                    eprintln!("[ai_queue] CancelledPaths mutex poisoned, recovering");
+                    dprintln!("[ai_queue] CancelledPaths mutex poisoned, recovering");
                     e.into_inner()
                 });
                 set.remove(&task.material_path)
             };
             if was_cancelled {
-                eprintln!("[ai_queue] skipping cancelled task: {}", task.material_path);
+                dprintln!("[ai_queue] skipping cancelled task: {}", task.material_path);
                 continue;
             }
 
@@ -602,7 +604,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
 
                 match result {
                     Ok(Ok(())) => {
-                        eprintln!("[ai_queue] task completed: {}", material_path);
+                        dprintln!("[ai_queue] task completed: {}", material_path);
                         break;
                     }
                     Ok(Err(e)) => {
@@ -619,7 +621,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                                 attempt: new_attempt,
                             } => {
                                 attempt = new_attempt;
-                                eprintln!(
+                                dprintln!(
                                     "[ai_queue] retry {}/{} after {}ms: {}",
                                     attempt,
                                     retry_policy.max_attempts,
@@ -648,7 +650,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                                 continue;
                             }
                             crate::llm::retry::RetryDecision::Abort { reason } => {
-                                eprintln!(
+                                dprintln!(
                                     "[ai_queue] task failed ({}): {} → {}",
                                     reason, material_path, e
                                 );
@@ -658,7 +660,7 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                     }
                     Err(panic_payload) => {
                         let panic_msg = extract_panic_message(&panic_payload);
-                        eprintln!(
+                        dprintln!(
                             "[ai_queue] PANIC in process_material for {}: {}",
                             material_path, panic_msg
                         );
@@ -689,13 +691,13 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                             },
                         );
 
-                        eprintln!("[ai_queue] recovered from panic, continuing consumer loop");
+                        dprintln!("[ai_queue] recovered from panic, continuing consumer loop");
                         break;
                     }
                 }
             }
         }
-        eprintln!("[ai_queue] consumer loop ended (channel closed)");
+        dprintln!("[ai_queue] consumer loop ended (channel closed)");
     });
 }
 
@@ -722,7 +724,7 @@ pub async fn process_material(
         );
     })?;
 
-    eprintln!(
+    dprintln!(
         "[ai_processor] start — material={} ym={} engine={}",
         material_path, year_month, cfg.active_provider
     );
@@ -931,7 +933,7 @@ async fn process_material_builtin(
                     let usage_str = usage
                         .map(|u| format!("({}+{} tokens)", u.input_tokens, u.output_tokens))
                         .unwrap_or_default();
-                    eprintln!(
+                    dprintln!(
                         "[ai_processor:builtin] turn {} complete {}",
                         turn, usage_str
                     );
@@ -1074,7 +1076,7 @@ pub async fn trigger_ai_processing(
     year_month: String,
     note: Option<String>,
 ) -> Result<(), String> {
-    eprintln!("[trigger_ai] material={} ym={}", material_path, year_month);
+    dprintln!("[trigger_ai] material={} ym={}", material_path, year_month);
     enqueue_material(&app, material_path, year_month, note, None, None).await
 }
 
@@ -1112,10 +1114,10 @@ pub async fn cancel_ai_processing(
     match guard.take() {
         Some(token) => {
             token.cancel();
-            eprintln!("[ai_processor] cancel: cancelled builtin agent");
+            dprintln!("[ai_processor] cancel: cancelled builtin agent");
         }
         None => {
-            eprintln!("[ai_processor] cancel: no task running");
+            dprintln!("[ai_processor] cancel: no task running");
         }
     }
     Ok(())
@@ -1130,7 +1132,7 @@ pub async fn cancel_queued_item(
 ) -> Result<(), String> {
     let mut set = cancelled_paths.0.lock().map_err(|e| e.to_string())?;
     set.insert(material_path.clone());
-    eprintln!(
+    dprintln!(
         "[ai_processor] cancel_queued: marked for skip: {}",
         material_path
     );
@@ -1148,7 +1150,7 @@ pub async fn trigger_ai_prompt(app: AppHandle, prompt: String) -> Result<(), Str
     };
     let year_month = crate::workspace::current_year_month();
 
-    eprintln!("[trigger_ai_prompt] prompt_label={}", material_path);
+    dprintln!("[trigger_ai_prompt] prompt_label={}", material_path);
 
     enqueue_material(&app, material_path, year_month, None, Some(prompt), None).await
 }

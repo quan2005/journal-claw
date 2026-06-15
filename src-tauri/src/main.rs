@@ -1,3 +1,15 @@
+// AC-29: debug-only logging macro. Expands to eprintln! in debug builds,
+// compiles to nothing in release — so hot-path diagnostics incur zero cost in production.
+macro_rules! dprintln {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+pub(crate) use dprintln;
+
 mod ai_plan;
 mod ai_processor;
 mod audio_files;

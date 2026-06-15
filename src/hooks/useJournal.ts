@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import {
   listAvailableMonths,
@@ -89,8 +89,8 @@ export function useJournal() {
   const availableMonthsRef = useRef<string[]>([])
   const loadedMonthsRef = useRef<string[]>([])
 
-  // Merged queue for display
-  const queueItems = [...localItems, ...workItems]
+  // Merged queue for display — memoized so consumers don't re-render on unrelated state changes (AC-12)
+  const queueItems = useMemo(() => [...localItems, ...workItems], [localItems, workItems])
 
   const refresh = useCallback(async () => {
     if (refreshing.current) return
@@ -103,15 +103,10 @@ export function useJournal() {
       const currentLoaded = loadedMonthsRef.current
       if (currentLoaded.length === 0) {
         const initial = allMonths.slice(0, BATCH_SIZE)
-        const results: JournalEntry[] = []
-        for (const m of initial) {
-          const batch = await withTimeout(
-            listJournalEntriesByMonths([m]),
-            8000,
-            `listEntries(${m})`,
-          )
-          results.push(...batch)
-        }
+        // AC-25: single batched IPC instead of per-month serial awaits
+        const results = initial.length
+          ? await withTimeout(listJournalEntriesByMonths(initial), 8000, 'listEntries(initial)')
+          : []
         if (initial.length > 0) {
           loadedMonthsRef.current = initial
           setLoadedMonths(initial)
@@ -133,15 +128,10 @@ export function useJournal() {
           setLoadedMonths(nextLoaded)
         }
 
-        const results: JournalEntry[] = []
-        for (const m of nextLoaded) {
-          const batch = await withTimeout(
-            listJournalEntriesByMonths([m]),
-            8000,
-            `listEntries(${m})`,
-          )
-          results.push(...batch)
-        }
+        // AC-25: single batched IPC for all loaded months
+        const results = nextLoaded.length
+          ? await withTimeout(listJournalEntriesByMonths(nextLoaded), 8000, 'listEntries(loaded)')
+          : []
         results.sort(
           (a, b) =>
             b.year_month.localeCompare(a.year_month) ||
@@ -258,17 +248,15 @@ export function useJournal() {
     refresh()
     refreshWorkQueue()
 
-    // Work queue updates from Rust
+    // Work queue updates from Rust — also refresh journal entries (may have changed)
     const unlistenWorkQueue = listen('work-queue-updated', () => {
       refreshWorkQueue()
-      refresh() // journal entries may have changed too
+      refresh()
     })
 
     // Audio pipeline events (local items)
     const unlistenProcessing = listen<ProcessingUpdate>('ai-processing', (event) => {
       const { material_path, status, error, structured_error } = event.payload
-      console.log('[ai-processing]', status, material_path, error ?? '')
-
       if (status === 'queued') {
         setLocalItems((prev) => {
           if (prev.some((i) => i.path === material_path)) return prev
@@ -462,7 +450,10 @@ export function useJournal() {
     // No-op: session IDs are now managed by Rust work queue
   }, [])
 
-  const isProcessing = queueItems.some((i) => i.status === 'processing' || i.status === 'queued')
+  const isProcessing = useMemo(
+    () => queueItems.some((i) => i.status === 'processing' || i.status === 'queued'),
+    [queueItems],
+  )
 
   const hasMore = loadedMonths.length < availableMonths.length
 

@@ -347,7 +347,7 @@ function TodoRow({
           alignSelf: 'center',
           fontSize: '0.65rem',
           fontWeight: 400,
-          fontFamily: "'SF Mono', 'IBM Plex Mono', var(--font-mono)",
+          fontFamily: 'var(--font-mono)',
           lineHeight: 1,
           color: 'var(--duration-text)',
           opacity: item.done ? 0.4 : 0.7,

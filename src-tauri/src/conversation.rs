@@ -1,4 +1,6 @@
 use crate::config;
+#[allow(unused_imports)]
+use crate::dprintln;
 use crate::llm;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
@@ -470,7 +472,7 @@ fn build_context_section(files: &[String]) -> String {
                 total_chars += truncated.len();
             }
             Err(e) => {
-                eprintln!(
+                dprintln!(
                     "[conversation] failed to read context file {}: {}",
                     file_path, e
                 );
@@ -773,7 +775,7 @@ pub async fn conversation_create(
         .map_err(|e| e.to_string())?
         .insert(session_id.clone(), session);
 
-    eprintln!("[conversation] created session {}", session_id);
+    dprintln!("[conversation] created session {}", session_id);
     Ok(session_id)
 }
 
@@ -785,13 +787,13 @@ pub async fn conversation_send(
     message: String,
     images: Option<Vec<ImageAttachment>>,
 ) -> Result<(), String> {
-    eprintln!(
+    dprintln!(
         "[conversation] send called: session={} msg_len={}",
         session_id,
         message.len()
     );
     let cfg = config::load_config(&app)?;
-    eprintln!(
+    dprintln!(
         "[conversation] active_provider={} protocol={}",
         cfg.active_provider,
         cfg.active_vendor_config().3
@@ -1329,7 +1331,7 @@ pub async fn conversation_cancel(
     if let Some(session) = sessions.get_mut(&session_id) {
         if let Some(cancel) = session.cancel.take() {
             cancel.cancel();
-            eprintln!("[conversation] cancelled session {}", session_id);
+            dprintln!("[conversation] cancelled session {}", session_id);
         }
     }
     Ok(())
@@ -1345,7 +1347,7 @@ pub async fn conversation_close(
         if let Some(cancel) = session.cancel.take() {
             cancel.cancel();
         }
-        eprintln!("[conversation] closed session {}", session_id);
+        dprintln!("[conversation] closed session {}", session_id);
     }
     Ok(())
 }
@@ -1362,7 +1364,7 @@ pub async fn conversation_inject(
         .get_mut(&session_id)
         .ok_or_else(|| format!("session not found: {}", session_id))?;
     session.pending_user_messages.push(message.clone());
-    eprintln!(
+    dprintln!(
         "[conversation] injected message into session {}",
         session_id
     );
@@ -1390,7 +1392,7 @@ pub async fn conversation_truncate(
         .get_mut(&session_id)
         .ok_or_else(|| format!("session not found: {}", session_id))?;
     session.messages.truncate(keep_count);
-    eprintln!(
+    dprintln!(
         "[conversation] truncated session {} to {} messages",
         session_id, keep_count
     );
@@ -1437,7 +1439,7 @@ pub async fn conversation_retry(
             .unwrap_or(false);
 
         if last_is_tool_result {
-            eprintln!("[conversation] retrying mid-tool session {}", session_id);
+            dprintln!("[conversation] retrying mid-tool session {}", session_id);
             RetryAction::Continue
         } else {
             let last_user_text = session
@@ -1464,7 +1466,7 @@ pub async fn conversation_retry(
             {
                 session.messages.pop();
             }
-            eprintln!("[conversation] retrying session {}", session_id);
+            dprintln!("[conversation] retrying session {}", session_id);
             RetryAction::Resend(last_user_text)
         }
     }; // MutexGuard dropped here
@@ -1727,7 +1729,7 @@ pub async fn conversation_delete(
     let cfg = config::load_config(&app)?;
     let path = conversations_dir(&cfg.workspace_path).join(format!("{}.json", session_id));
     let _ = std::fs::remove_file(&path);
-    eprintln!("[conversation] deleted session {}", session_id);
+    dprintln!("[conversation] deleted session {}", session_id);
     Ok(())
 }
 
@@ -1801,7 +1803,7 @@ pub async fn conversation_load(
         .map_err(|e| e.to_string())?
         .insert(session_id.clone(), session);
 
-    eprintln!(
+    dprintln!(
         "[conversation] loaded session {} ({} messages)",
         session_id,
         display.len()
@@ -2038,7 +2040,7 @@ async fn run_conversation_turn(
                             content: vec![ContentBlock::Text { text }],
                         });
                     }
-                    eprintln!("[conversation] continuing turn with pending user messages");
+                    dprintln!("[conversation] continuing turn with pending user messages");
                     let _ = app.emit(
                         "conversation-stream",
                         ConversationStreamPayload {
@@ -2265,7 +2267,7 @@ async fn run_conversation_turn(
                     if let Some(det) = loop_detector.record(name, input, &result.output) {
                         match det.severity {
                             Severity::Warning => {
-                                eprintln!("[loop_detector] warning: {}", det.message);
+                                dprintln!("[loop_detector] warning: {}", det.message);
                                 let _ = app.emit(
                                     "conversation-stream",
                                     ConversationStreamPayload {
@@ -2287,7 +2289,7 @@ async fn run_conversation_turn(
                                 continue;
                             }
                             Severity::Block => {
-                                eprintln!("[loop_detector] blocked: {}", det.message);
+                                dprintln!("[loop_detector] blocked: {}", det.message);
                                 let _ = app.emit(
                                     "conversation-stream",
                                     ConversationStreamPayload {
@@ -2305,7 +2307,7 @@ async fn run_conversation_turn(
                                 continue;
                             }
                             Severity::Break => {
-                                eprintln!("[loop_detector] break: {}", det.message);
+                                dprintln!("[loop_detector] break: {}", det.message);
                                 let _ = app.emit(
                                     "conversation-stream",
                                     ConversationStreamPayload {
@@ -2359,7 +2361,7 @@ async fn run_conversation_turn(
                                 text: format!("[用户补充指令]\n{}", combined),
                             }],
                         });
-                        eprintln!(
+                        dprintln!(
                             "[conversation] injected {} pending messages into turn",
                             pending.len()
                         );

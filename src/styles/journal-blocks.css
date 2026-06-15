@@ -48,7 +48,7 @@
 .journal-block-hero h1 {
   max-width: var(--journal-prose-max);
   color: var(--journal-title-color);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: var(--font-semibold);
   line-height: 1.25;

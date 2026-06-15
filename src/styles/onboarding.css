@@ -258,14 +258,14 @@
   padding: 8px 12px;
   font-size: 14px;
   color: var(--item-text);
-  font-family: ui-monospace, monospace;
-  outline: none;
+  font-family: var(--font-body);
   box-sizing: border-box;
-  transition: border-color 160ms ease-out;
+  transition: border-color 160ms var(--ease-out);
 }
 
 .ob-input:focus {
   border-color: var(--record-btn);
+  outline: var(--focus-ring);
 }
 
 .ob-input-wrap {

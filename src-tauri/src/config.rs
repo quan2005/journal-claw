@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{OnceLock, RwLock};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -699,8 +700,37 @@ fn default_workspace_path() -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+// ── In-memory config cache (AC-22, AC-23) ────────────────────────────────────
+// The config is read on nearly every IPC call (40+ call sites). Caching it in
+// process memory avoids re-reading + re-parsing config.json each time. Invalidation
+// is mtime-based: if the file's mtime changes (external edit or our own save), the
+// cache is refreshed on the next load. `save_config` writes-through and updates both
+// the cache and the cached mtime.
+struct ConfigCache {
+    config: Config,
+    mtime: Option<std::time::SystemTime>,
+}
+
+static CONFIG_CACHE: OnceLock<RwLock<Option<ConfigCache>>> = OnceLock::new();
+
+fn config_cache() -> &'static RwLock<Option<ConfigCache>> {
+    CONFIG_CACHE.get_or_init(|| RwLock::new(None))
+}
+
 pub fn load_config(app: &AppHandle) -> Result<Config, String> {
     let path = config_path(app)?;
+
+    // AC-23: invalidate cache when file mtime changes
+    let current_mtime = fs::metadata(&path).ok().and_then(|m| m.modified().ok());
+    {
+        let cache = config_cache().read().unwrap();
+        if let Some(cached) = cache.as_ref() {
+            if cached.mtime == current_mtime {
+                return Ok(cached.config.clone());
+            }
+        }
+    }
+
     let mut config = if !path.exists() {
         Config::default()
     } else {
@@ -711,6 +741,13 @@ pub fn load_config(app: &AppHandle) -> Result<Config, String> {
         config.workspace_path = default_workspace_path()?;
     }
     sanitize_engine_config(&mut config);
+
+    // AC-22: populate cache for subsequent hits
+    *config_cache().write().unwrap() = Some(ConfigCache {
+        config: config.clone(),
+        mtime: current_mtime,
+    });
+
     Ok(config)
 }
 
@@ -724,7 +761,14 @@ fn write_config_file(path: &Path, config: &Config) -> Result<(), String> {
 
 pub fn save_config(app: &AppHandle, config: &Config) -> Result<(), String> {
     let path = config_path(app)?;
-    write_config_file(&path, config)
+    write_config_file(&path, config)?;
+    // Write-through: update cache + mtime so the next load_config hits the cache
+    let new_mtime = fs::metadata(&path).ok().and_then(|m| m.modified().ok());
+    *config_cache().write().unwrap() = Some(ConfigCache {
+        config: config.clone(),
+        mtime: new_mtime,
+    });
+    Ok(())
 }
 
 #[tauri::command]

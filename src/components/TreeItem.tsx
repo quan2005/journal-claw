@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import type { JournalEntry, IdentityEntry } from '../types'
 import type { TopicEntry } from '../lib/tauri'
 import { pickDisplayTags } from '../lib/tags'
@@ -178,7 +178,7 @@ function ItemBlock({
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-export function TreeItem({
+export const TreeItem = memo(function TreeItem({
   itemType,
   identity,
   entry,
@@ -457,4 +457,4 @@ export function TreeItem({
       )}
     </div>
   )
-}
+})

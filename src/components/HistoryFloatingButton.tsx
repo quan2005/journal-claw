@@ -138,70 +138,76 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
         top: 8,
         left: 8,
         zIndex: 20,
-        width: hovered ? panelWidth : btnSize,
-        height: hovered ? 'auto' : btnSize,
-        maxHeight: hovered ? 'min(60vh, 480px)' : btnSize,
-        borderRadius: hovered ? 12 : btnSize / 2,
-        background: hovered ? 'var(--detail-case-bg)' : 'var(--item-hover-bg)',
-        border: hovered ? '0.5px solid var(--detail-case-border)' : '0.5px solid transparent',
-        overflow: 'hidden',
-        transition: `
-          width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-          height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-          max-height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-          border-radius 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-          background 0.2s ease-out,
-          border-color 0.2s ease-out
-        `,
+        width: btnSize,
+        height: btnSize,
         cursor: hovered ? 'default' : 'pointer',
         userSelect: 'none',
       }}
     >
-      {/* Collapsed state: clock icon button */}
-      {!hovered && (
-        <button
-          type="button"
-          aria-label={t('history')}
-          style={{
-            width: btnSize,
-            height: btnSize,
-            display: 'grid',
-            placeItems: 'center',
-            lineHeight: 0,
-            padding: 0,
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--item-meta)',
-            cursor: 'pointer',
-          }}
+      {/* Collapsed state: clock icon button (fades out when expanding) */}
+      <button
+        type="button"
+        aria-label={t('history')}
+        style={{
+          width: btnSize,
+          height: btnSize,
+          display: 'grid',
+          placeItems: 'center',
+          lineHeight: 0,
+          padding: 0,
+          border: 'none',
+          borderRadius: '50%',
+          background: hovered ? 'transparent' : 'var(--item-hover-bg)',
+          color: 'var(--item-meta)',
+          cursor: 'pointer',
+          opacity: hovered ? 0 : 1,
+          transition: 'opacity 0.15s var(--ease-out)',
+          pointerEvents: hovered ? 'none' : 'auto',
+        }}
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block', opacity: 0.75 }}
         >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ display: 'block', opacity: 0.75 }}
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        </button>
-      )}
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </button>
 
-      {/* Expanded panel */}
-      {hovered && (
+      {/* Expanded panel — fixed size, transform + opacity transition (no layout animation) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: panelWidth,
+          maxHeight: 'min(60vh, 480px)',
+          borderRadius: 'var(--radius-lg)',
+          background: 'var(--detail-case-bg)',
+          border: 'var(--border-menu)',
+          overflow: 'hidden',
+          transform: hovered ? 'scale(1)' : 'scale(0.4)',
+          transformOrigin: 'top left',
+          opacity: hovered ? 1 : 0,
+          transition:
+            'transform 0.25s var(--ease-out), opacity 0.2s var(--ease-out), background 0.2s var(--ease-out)',
+          pointerEvents: hovered ? 'auto' : 'none',
+        }}
+      >
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
             maxHeight: 'min(60vh, 480px)',
             opacity: panelVisible ? 1 : 0,
-            transition: 'opacity 0.15s ease-out 0.08s',
+            transition: 'opacity 0.15s var(--ease-out) 0.08s',
           }}
         >
           {/* Search input */}
@@ -387,7 +393,7 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
             <span>⌘N 新建对话</span>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

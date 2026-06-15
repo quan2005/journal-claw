@@ -10,9 +10,9 @@
 
 **Modern · Bold · Agentic**（现代 · 大胆 · 对话式 AI 优先）
 
-单一信号橙 `#FF5701` 作为所有交互 accent 的唯一来源；纯白表面 `#FFFFFF` + 墨色文字 `#111827`；系统无衬线字体栈（标题用 700/800 字重承载 bold 气质）；8pt 间距网格；表面分层传达深度。
+单一信号橙 `#FF5701` 作为所有交互 accent 的唯一来源；纯白表面 `#FFFFFF` + 暖白分层 `#F6F6F1`/`#ECECE6` + 墨色文字 `#111827`；字体三栈各司其职——Playfair Display（标题衬线）+ 系统无衬线（UI 正文）+ JetBrains Mono（代码）；8pt 间距网格；表面分层传达深度。
 
-完整设计规范见 `docs/DESIGN.md`（含配色、排版、组件、动效、Anti-slop 规则）。
+完整设计规范见 `docs/DESIGN.md`（含配色、排版、组件、结构化 token、动效、Anti-slop 规则）。
 
 ---
 
@@ -97,3 +97,4 @@ Commit message 遵循 **Conventional Commits**：
 6. **IPC 单一入口**：所有前端 → Rust 调用必须经过 `src/lib/tauri.ts`，不允许在组件中直接 `invoke()`。
 7. **视觉修复必须验证真实渲染链**：MDX/日志详情里的样式问题不要只看孤立组件、源码 CSS 或普通 Vite probe。真实链路通常是 `MdxRenderer` → `.md-content.mdx-content` → `JournalBlockRenderer` → `journal-blocks.css`，还会叠加 `markdown.css` / `mdx.css` 的全局规则。修复前先确认真实 DOM、CSS 加载顺序、specificity、继承变量和 computed style；尤其留意 `max-width` / `max-inline-size`、`line-height`、`margin`、`text-wrap: balance` 这类会让”看似改了但界面没变”的属性。把用户指出的具体视觉问题写成红/绿测试；如需浏览器验证，尽量验证包含 `.md-content.mdx-content` 和真实 CSS cascade 的场景，普通 Vite 页面不能替代 Tauri 真实窗口。
 8. **优先使用 HTML mockup 澄清视觉效果**：讨论布局、组件外观、交互动效等视觉相关需求时，优先生成可在浏览器中打开的 HTML mockup 来展示和确认效果，而非仅用文字或 ASCII 描述。
+9. **结构化 token 强制消费**：圆角（`--radius-sm/md/lg/pill`）、浮层阴影（`--shadow-overlay`）、菜单边框（`--border-menu`）、聚焦环（`--focus-ring`）必须走 token，禁止组件各自硬编码数值。字体三栈各司其职：标题用 Playfair Display（`--font-display`），正文用系统无衬线（`--font-body`），代码用 JetBrains Mono（`--font-mono`），中文衬线编辑时刻用 Noto Serif SC（`--font-serif`）。详见 `docs/DESIGN.md` §5 结构化 token。

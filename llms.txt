@@ -19,7 +19,7 @@ This file indexes the project's documentation for Agent consumption. All paths a
 - [Speaker Profiles](docs/guide/speaker-profiles.md): On-device speaker identification, linked to people profiles.
 - [Skill Plugins](docs/guide/skills.md): Extend AI processing via SKILL.md, custom trigger rules.
 - [Feishu Bridge](docs/guide/feishu.md): WebSocket connection to Feishu for real-time message intake.
-- [Themes](docs/guide/themes.md): Light/dark dual theme, amber-gold and ink-cyan palette, design discipline.
+- [Themes](docs/guide/themes.md): Light/dark dual theme, signal orange accent, warm-white layered surfaces, design discipline.
 - [Settings](docs/guide/settings.md): Full reference for all nine settings sections.
 
 ## Developer Guide
@@ -33,12 +33,7 @@ This file indexes the project's documentation for Agent consumption. All paths a
 
 ## Design System
 
-- [Design Philosophy](docs/design/index.md): Ink-cyan neutrals, amber-gold, restrained aesthetics, interaction discipline.
-- [Colors](docs/design/colors.md): Complete color token reference — accents, surfaces, text, borders, interaction states.
-- [Typography](docs/design/typography.md): Font stack, size scale, weight roles, information density layering.
-- [Components](docs/design/components.md): Recording button, list items, AI status, source badges, context menu, scrollbar.
-- [Layout & Spacing](docs/design/layout.md): App layout, 4px spacing system, border radius, depth layers.
-- [Animation](docs/design/animation.md): Animation discipline — transform + opacity only, ease-out-quart, ≤300ms.
+- [DESIGN.md](docs/DESIGN.md): Single source of truth — signal orange (#FF5701), warm-white layered surfaces (#FFFFFF/#F6F6F1/#ECECE6), three-font stack (Playfair Display + system sans + JetBrains Mono), 8pt grid, structured tokens (radius/shadow/border/focus-ring), component specs, do/don't rules.
 
 ## Architecture & Agent Context
 

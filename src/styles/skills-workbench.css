@@ -704,3 +704,63 @@
   background: rgba(107, 114, 128, 0.1);
   color: #6b7280;
 }
+
+/* ── Tabs ─────────────────────────────── */
+.skills-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface-secondary, #f3f4f6);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+.skills-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.skills-tab:hover {
+  color: var(--color-text-primary, #111827);
+  background: rgba(255, 255, 255, 0.5);
+}
+.skills-tab.is-active {
+  background: #fff;
+  color: var(--color-text-primary, #111827);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.skills-tab-icon {
+  font-size: 0.75rem;
+}
+
+/* ── Star (favorite) button ───────────── */
+.skills-card-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary, #9ca3af);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.skills-card-star:hover {
+  color: #f59e0b;
+}
+.skills-card-star.is-active {
+  color: #f59e0b;
+}

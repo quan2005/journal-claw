@@ -11,6 +11,7 @@ import {
   Zap,
   FileText,
   Pencil,
+  Star,
 } from 'lucide-react'
 import {
   listSkills,
@@ -29,6 +30,29 @@ const ICON_BY_NAME: Record<string, typeof Zap> = {
 }
 function skillIcon(name: string) {
   return ICON_BY_NAME[name] ?? Zap
+}
+
+type TabKey = 'all' | 'builtin' | 'project' | 'global' | 'favorites'
+
+const TABS: { key: TabKey; label: string; icon?: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'builtin', label: '内置', icon: '🔒' },
+  { key: 'project', label: '项目', icon: '📦' },
+  { key: 'global', label: '全局', icon: '🌐' },
+  { key: 'favorites', label: '收藏', icon: '⭐' },
+]
+
+// ── Favorites persistence (localStorage) ─────────────────
+const FAVORITES_KEY = 'skills-favorites'
+function loadFavorites(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+function saveFavorites(ids: string[]) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids))
 }
 
 // ── Trigger chip ──────────────────────────────────────────
@@ -68,6 +92,8 @@ function SkillCard({
   onOpen,
   onInvoke,
   showToggle,
+  isFavorite,
+  onToggleFavorite,
 }: {
   s: SkillInfo
   on: boolean
@@ -75,6 +101,8 @@ function SkillCard({
   onOpen: () => void
   onInvoke: () => void
   showToggle: boolean
+  isFavorite: boolean
+  onToggleFavorite: () => void
 }) {
   const Icon = skillIcon(s.dir_name)
   const isShadowed = !!s.shadowed_by
@@ -97,6 +125,17 @@ function SkillCard({
           </div>
           <div className="skills-card-name">{s.name}</div>
         </div>
+        <button
+          type="button"
+          className={`skills-card-star${isFavorite ? ' is-active' : ''}`}
+          title={isFavorite ? '取消收藏' : '收藏'}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleFavorite()
+          }}
+        >
+          <Star size={14} fill={isFavorite ? 'currentColor' : 'none'} />
+        </button>
         <button
           type="button"
           className="skills-card-invoke"
@@ -303,6 +342,8 @@ export default function SkillsWorkbench() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [tab, setTab] = useState<TabKey>('all')
+  const [favorites, setFavorites] = useState<string[]>(loadFavorites)
 
   useEffect(() => {
     listSkills()
@@ -323,24 +364,51 @@ export default function SkillsWorkbench() {
     )
   }
 
+  const toggleFavorite = (skillId: string) => {
+    setFavorites((prev) => {
+      const next = prev.includes(skillId)
+        ? prev.filter((id) => id !== skillId)
+        : [...prev, skillId]
+      saveFavorites(next)
+      return next
+    })
+  }
+
   const invokeOnce = (skill: SkillInfo) => {
-    // Dispatch event so ChatPanel fills input with /skillName
+    // Dispatch event so ChatPanel fills input with /skillName and opens slash menu
     window.dispatchEvent(
       new CustomEvent('skill-slash-invoke', { detail: { name: skill.dir_name } }),
     )
   }
 
   const list = useMemo(() => {
-    if (!q.trim()) return skills
-    const needle = q.trim().toLowerCase()
-    return skills.filter((s) =>
-      (s.dir_name + s.name + s.description).toLowerCase().includes(needle),
-    )
-  }, [skills, q])
-
-  const builtin = list.filter((s) => s.scope === 'builtin')
-  const project = list.filter((s) => s.scope === 'project')
-  const global = list.filter((s) => s.scope === 'global')
+    let filtered = skills
+    // Tab filter
+    switch (tab) {
+      case 'builtin':
+        filtered = skills.filter((s) => s.scope === 'builtin')
+        break
+      case 'project':
+        filtered = skills.filter((s) => s.scope === 'project')
+        break
+      case 'global':
+        filtered = skills.filter((s) => s.scope === 'global')
+        break
+      case 'favorites':
+        filtered = skills.filter((s) => favorites.includes(s.id))
+        break
+      default:
+        break
+    }
+    // Search filter
+    if (q.trim()) {
+      const needle = q.trim().toLowerCase()
+      filtered = filtered.filter((s) =>
+        (s.dir_name + s.name + s.description).toLowerCase().includes(needle),
+      )
+    }
+    return filtered
+  }, [skills, tab, q, favorites])
 
   const enabledCount = skills.filter((s) => s.enabled).length
 
@@ -364,8 +432,8 @@ export default function SkillsWorkbench() {
             <StatCard
               cells={[
                 { n: enabledCount, l: '已启用' },
-                { n: builtin.length, l: '内置' },
-                { n: global.length, l: '全局' },
+                { n: skills.filter((s) => s.scope === 'builtin').length, l: '内置' },
+                { n: favorites.length, l: '收藏' },
               ]}
             />
             <div className="skills-workbench-actions">
@@ -389,8 +457,21 @@ export default function SkillsWorkbench() {
           </div>
         </div>
 
-        {/* search */}
+        {/* tabs + search row */}
         <div className="skills-workbench-toolbar">
+          <div className="skills-tabs">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`skills-tab${tab === t.key ? ' is-active' : ''}`}
+                onClick={() => setTab(t.key)}
+              >
+                {t.icon && <span className="skills-tab-icon">{t.icon}</span>}
+                {t.label}
+              </button>
+            ))}
+          </div>
           <div className="skills-workbench-search">
             <Search size={15} className="skills-workbench-search-icon" />
             <input
@@ -402,77 +483,39 @@ export default function SkillsWorkbench() {
           </div>
         </div>
 
-        {/* L1: Builtin */}
-        {builtin.length > 0 && (
-          <div className="skills-section">
-            <h2 className="skills-section-title">🔒 内置技能</h2>
-            <div className="skills-workbench-grid">
-              {builtin.map((s) => (
-                <SkillCard
-                  key={s.id}
-                  s={s}
-                  on={true}
-                  toggle={() => {}}
-                  onOpen={() => setOpenId(s.id)}
-                  onInvoke={() => invokeOnce(s)}
-                  showToggle={false}
-                />
-              ))}
-            </div>
+        {/* grid */}
+        {list.length > 0 ? (
+          <div className="skills-workbench-grid">
+            {list.map((s) => (
+              <SkillCard
+                key={s.id}
+                s={s}
+                on={s.scope === 'builtin' ? true : s.enabled}
+                toggle={() => toggle(s)}
+                onOpen={() => setOpenId(s.id)}
+                onInvoke={() => invokeOnce(s)}
+                showToggle={s.scope !== 'builtin'}
+                isFavorite={favorites.includes(s.id)}
+                onToggleFavorite={() => toggleFavorite(s.id)}
+              />
+            ))}
           </div>
-        )}
-
-        {/* L2: Project */}
-        {project.length > 0 && (
-          <div className="skills-section">
-            <h2 className="skills-section-title">📦 项目技能</h2>
-            <div className="skills-workbench-grid">
-              {project.map((s) => (
-                <SkillCard
-                  key={s.id}
-                  s={s}
-                  on={s.enabled}
-                  toggle={() => toggle(s)}
-                  onOpen={() => setOpenId(s.id)}
-                  onInvoke={() => invokeOnce(s)}
-                  showToggle={true}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* L3: Global */}
-        {global.length > 0 && (
-          <div className="skills-section">
-            <h2 className="skills-section-title">🌐 全局技能</h2>
-            <div className="skills-workbench-grid">
-              {global.map((s) => (
-                <SkillCard
-                  key={s.id}
-                  s={s}
-                  on={s.enabled}
-                  toggle={() => toggle(s)}
-                  onOpen={() => setOpenId(s.id)}
-                  onInvoke={() => invokeOnce(s)}
-                  showToggle={true}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {list.length === 0 && (
+        ) : (
           <div className="skills-workbench-empty">
             <div className="skills-workbench-empty-icon">+</div>
             <div className="skills-workbench-empty-title">
-              {skills.length === 0 ? '未发现技能' : '没有匹配的技能'}
+              {tab === 'favorites'
+                ? '暂无收藏'
+                : skills.length === 0
+                  ? '未发现技能'
+                  : '没有匹配的技能'}
             </div>
             <div className="skills-workbench-empty-subtitle">
-              {skills.length === 0
-                ? '内置技能将随应用更新自动添加'
-                : '尝试调整搜索关键词'}
+              {tab === 'favorites'
+                ? '点击技能卡片上的 ⭐ 收藏常用技能'
+                : skills.length === 0
+                  ? '内置技能将随应用更新自动添加'
+                  : '尝试调整搜索关键词'}
             </div>
           </div>
         )}

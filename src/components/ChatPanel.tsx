@@ -292,7 +292,9 @@ export function ChatPanel({
   useEffect(() => {
     const handler = (e: Event) => {
       const { name } = (e as CustomEvent).detail
-      setInputValue(`/${name} `)
+      setInputValue(`/${name}`)
+      setSlashOpen(true)
+      setSlashQuery(name)
       setTimeout(() => inputRef.current?.focus(), 0)
     }
     window.addEventListener('skill-slash-invoke', handler)

@@ -187,15 +187,23 @@ fn scan_skill_loads(skill_dir: &PathBuf) -> Vec<LoadInfo> {
 }
 
 /// Scan builtin skills bundled inside the app resources directory.
+/// In dev mode, falls back to the source `resources/builtin-skills/` directory.
 fn scan_builtin_skills(app: &tauri::AppHandle) -> Vec<SkillInfo> {
     use tauri::Manager;
-    let resource_dir = app
+    let bundle_dir = app
         .path()
         .resource_dir()
         .unwrap_or_default()
         .join("resources")
         .join("builtin-skills");
-    scan_skills_dir(&resource_dir, "builtin")
+    if bundle_dir.is_dir() {
+        return scan_skills_dir(&bundle_dir, "builtin");
+    }
+    // Dev-mode fallback: use source directory relative to CARGO_MANIFEST_DIR
+    let dev_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join("builtin-skills");
+    scan_skills_dir(&dev_dir, "builtin")
 }
 
 /// Scan global skill directories: ~/.claude/skills/ + ~/.claude/plugins/cache/*/skills/
@@ -393,13 +401,23 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
 
     let skill_md_path = match scope {
         "builtin" => {
-            app.path()
+            let bundle_path = app.path()
                 .resource_dir()
                 .unwrap_or_default()
                 .join("resources")
                 .join("builtin-skills")
                 .join(dir_name)
-                .join("SKILL.md")
+                .join("SKILL.md");
+            if bundle_path.exists() {
+                bundle_path
+            } else {
+                // Dev-mode fallback
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("resources")
+                    .join("builtin-skills")
+                    .join(dir_name)
+                    .join("SKILL.md")
+            }
         }
         "project" => {
             PathBuf::from(&config.workspace_path)

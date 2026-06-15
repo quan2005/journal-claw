@@ -679,6 +679,7 @@ body,
 .automation-title,
 .ideas-workbench-title {
   margin: 0;
+  font-family: var(--font-display);
   color: var(--journal-title-color);
   font-size: var(--journal-title-size);
   font-weight: var(--journal-title-weight);

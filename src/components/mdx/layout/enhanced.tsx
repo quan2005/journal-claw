@@ -22,7 +22,7 @@ export function Callout({
   return (
     <LayoutBlock
       block={rowsBlock('callout', [{ content: content ?? nodeText(children) }], ['content'], {
-        title: heading ?? title,
+        title: title ?? heading,
         modifier,
       })}
     />
@@ -60,7 +60,7 @@ export function ComparisonTable({
 }) {
   return (
     <LayoutBlock
-      block={objectBlock('comparison-table', { columns, rows }, { title: heading ?? title })}
+      block={objectBlock('comparison-table', { columns, rows }, { title: title ?? heading })}
     />
   )
 }

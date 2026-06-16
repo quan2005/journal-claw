@@ -19,7 +19,7 @@ export function Toc({
   return (
     <LayoutBlock
       block={rowsBlock('toc', items, ['label', 'title', 'description'], {
-        title: heading ?? title,
+        title: title ?? heading,
       })}
     />
   )
@@ -59,7 +59,7 @@ export function Cards({
   return (
     <LayoutBlock
       block={rowsBlock('cards', normalizedItems, ['title', 'description', 'meta', 'variant'], {
-        title: heading ?? title,
+        title: title ?? heading,
       })}
     />
   )

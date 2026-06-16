@@ -37,7 +37,7 @@ export function MythFact({
 }) {
   return (
     <LayoutBlock
-      block={rowsBlock('myth-fact', items, ['myth', 'fact', 'reason'], { title: heading ?? title })}
+      block={rowsBlock('myth-fact', items, ['myth', 'fact', 'reason'], { title: title ?? heading })}
     />
   )
 }

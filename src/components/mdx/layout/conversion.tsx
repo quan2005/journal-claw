@@ -29,7 +29,7 @@ export function Faq({
 }) {
   return (
     <LayoutBlock
-      block={rowsBlock('faq', items, ['question', 'answer'], { title: heading ?? title })}
+      block={rowsBlock('faq', items, ['question', 'answer'], { title: title ?? heading })}
     />
   )
 }
@@ -56,7 +56,7 @@ export function Checklist({
   }))
   return (
     <LayoutBlock
-      block={rowsBlock('checklist', normalized, ['item', 'state'], { title: heading ?? title })}
+      block={rowsBlock('checklist', normalized, ['item', 'state'], { title: title ?? heading })}
     />
   )
 }
@@ -78,7 +78,7 @@ export function Cases({
 }) {
   return (
     <LayoutBlock
-      block={rowsBlock('cases', items, ['case', 'result', 'note'], { title: heading ?? title })}
+      block={rowsBlock('cases', items, ['case', 'result', 'note'], { title: title ?? heading })}
     />
   )
 }
@@ -112,7 +112,7 @@ export function Toolbox({
 }) {
   return (
     <LayoutBlock
-      block={rowsBlock('toolbox', items, ['tool', 'use', 'link'], { title: heading ?? title })}
+      block={rowsBlock('toolbox', items, ['tool', 'use', 'link'], { title: title ?? heading })}
     />
   )
 }

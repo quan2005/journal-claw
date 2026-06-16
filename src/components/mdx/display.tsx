@@ -143,25 +143,10 @@ export function Table(props: TableProps) {
   )
 }
 
-// ── Timeline ────────────────────────────────────────────
-
-export function Timeline({ items }: { items: { time: string; title: string; desc?: string }[] }) {
-  return (
-    <div className="mdx-timeline">
-      {items.map((item, i) => (
-        <div key={i} className="mdx-timeline-item">
-          <div className="mdx-timeline-time">{item.time}</div>
-          <div className="mdx-timeline-title">{item.title}</div>
-          {item.desc && <div className="mdx-timeline-desc">{item.desc}</div>}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ── TagList ─────────────────────────────────────────────
 
 export function TagList({ tags }: { tags: string[] }) {
+  if (!tags || tags.length === 0) return null
   return (
     <div className="mdx-tag-list">
       {tags.map((tag, i) => (

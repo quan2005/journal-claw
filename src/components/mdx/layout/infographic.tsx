@@ -18,7 +18,7 @@ export function Metrics({
   return (
     <LayoutBlock
       block={rowsBlock('metrics', items, ['label', 'value', 'description'], {
-        title: heading ?? title,
+        title: title ?? heading,
       })}
     />
   )
@@ -42,7 +42,7 @@ export function Steps({
   return (
     <LayoutBlock
       block={rowsBlock('steps', items, ['title', 'description', 'meta'], {
-        title: heading ?? title,
+        title: title ?? heading,
       })}
     />
   )
@@ -68,7 +68,7 @@ export function Timeline({
   return (
     <LayoutBlock
       block={rowsBlock('timeline', normalized, ['time', 'title', 'description'], {
-        title: heading ?? title,
+        title: title ?? heading,
       })}
     />
   )

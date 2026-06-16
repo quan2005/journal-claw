@@ -51,6 +51,7 @@ export function Kanban({
 }: {
   columns: { title: string; items: { text: string; tags?: string[] }[] }[]
 }) {
+  if (!columns || columns.length === 0) return null
   return (
     <div className="mdx-kanban">
       {columns.map((col, ci) => (
@@ -76,24 +77,6 @@ export function Kanban({
   )
 }
 
-// ── Checklist ───────────────────────────────────────────
-
-export function Checklist({ items }: { items: { text: string; checked?: boolean }[] }) {
-  return (
-    <ul className="mdx-checklist">
-      {items.map((item, i) => (
-        <li key={i} className="mdx-checklist-item">
-          <span
-            className={`mdx-checklist-marker ${item.checked ? 'mdx-checklist-marker--checked' : 'mdx-checklist-marker--unchecked'}`}
-          >
-            {item.checked ? '✓' : '○'}
-          </span>
-          <span>{item.text}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 // ── Counter ─────────────────────────────────────────────
 

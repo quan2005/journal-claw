@@ -24,18 +24,7 @@ export function Callout({
   )
 }
 
-export function Quote({ text, source, url }: { text: string; source?: string; url?: string }) {
-  return (
-    <blockquote className="mdx-quote">
-      <p>{text}</p>
-      {source && (
-        <div className="mdx-quote-source">&mdash; {url ? <a href={url}>{source}</a> : source}</div>
-      )}
-    </blockquote>
-  )
-}
-
-export function RelatedEntry({ path, label }: { path: string; label?: string }) {
+function RelatedLink({ path, label }: { path: string; label?: string }) {
   return (
     <a className="mdx-related-link" data-md-link={path} style={{ cursor: 'pointer' }}>
       {label ?? path}
@@ -43,10 +32,10 @@ export function RelatedEntry({ path, label }: { path: string; label?: string }) 
   )
 }
 
-export function RelatedIdentity({ path, label }: { path: string; label?: string }) {
-  return (
-    <a className="mdx-related-link" data-md-link={path} style={{ cursor: 'pointer' }}>
-      {label ?? path}
-    </a>
-  )
+export function RelatedEntry(props: { path: string; label?: string }) {
+  return <RelatedLink {...props} />
+}
+
+export function RelatedIdentity(props: { path: string; label?: string }) {
+  return <RelatedLink {...props} />
 }

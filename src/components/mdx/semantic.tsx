@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Table } from './display'
+import { Timeline as LayoutTimeline } from './layout/index'
 
 export type ActionStatus = 'open' | 'doing' | 'blocked' | 'done' | string
 
@@ -65,6 +66,7 @@ export function ComparisonMatrix({
   columns: string[]
   rows: { label: string; values: string[] }[]
 }) {
+  if (!rows || rows.length === 0) return null
   return (
     <Table
       headers={['对象', ...columns]}
@@ -84,6 +86,7 @@ export function RACI({
     informed?: string
   }[]
 }) {
+  if (!rows || rows.length === 0) return null
   return (
     <Table
       headers={['事项', 'R', 'A', 'C', 'I']}
@@ -98,22 +101,16 @@ export function RACI({
   )
 }
 
+/**
+ * @deprecated Use `Timeline` from `./layout/infographic` instead.
+ */
 export function MilestoneTimeline({
   items,
 }: {
   items: { time: string; title: string; desc?: string }[]
 }) {
-  return (
-    <div className="mdx-semantic-timeline mdx-specialized-content">
-      {items.map((item) => (
-        <div key={`${item.time}-${item.title}`} className="mdx-semantic-timeline-item">
-          <span>{item.time}</span>
-          <strong>{item.title}</strong>
-          {item.desc && <p>{item.desc}</p>}
-        </div>
-      ))}
-    </div>
-  )
+  if (!items || items.length === 0) return null
+  return <LayoutTimeline items={items} />
 }
 
 function SemanticCard({

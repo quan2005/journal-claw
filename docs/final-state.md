@@ -444,3 +444,18 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 | **Artifacts** | ✅ ArtifactIndex（G7） | GET /runs/:id/artifacts |
 | **Runs** | ✅ 全链路 + 真 claude -p + 右侧面板 | live pong run |
 | **Rules/Memory** | ✅ 自动沉淀（G14） | live sedimentation_recorded |
+
+### 2026-06-25 增补：面板全对象展示
+
+| 内容 | 证据 | commit |
+|---|---|---|
+| Agent Run 面板现在展示全部五个一等对象的实时数据：Sources（读了哪些文件）、Artifacts（生成了什么）、Memory（沉淀了什么），加上已有的 timeline + file changes | 4 panel tests green（含 Sources/Artifacts/Memory 渲染测试）；typecheck clean | 04f03c |
+
+面板现在直接回应用户的七个可见性需求：
+- 当前任务是什么 → Goal section
+- Agent 打算怎么做 → Timeline (tool calls / thinking)
+- 正在读哪些本地资料 → **Sources read** section (G6)
+- 准备修改哪些内容 → **File changes** section (G8/G9)
+- 生成了哪些 artifact → **Artifacts** section (G7)
+- 哪些结论有引用依据 → Memory evidence + Source bindings
+- 哪些内容需要用户确认 → Authorization mode selector (G9)

@@ -11,9 +11,12 @@ import {
   createRun,
   subscribeRunEvents,
   listChangeSets,
+  listArtifacts,
+  listMemory,
+  listSources,
   type CreateRunInput,
 } from '../lib/agentRuns'
-import type { AgentRun, AgentRunEvent, ChangeSet, AuthorizationMode } from '../types/agentRun'
+import type { AgentRun, AgentRunEvent, ChangeSet, Artifact, MemoryRecord, SourceBinding, AuthorizationMode } from '../types/agentRun'
 
 export interface TimelineEntry {
   id: string
@@ -28,6 +31,9 @@ export interface UseAgentRunResult {
   run: AgentRun | null
   timeline: TimelineEntry[]
   changeSets: ChangeSet[]
+  artifacts: Artifact[]
+  memory: MemoryRecord[]
+  sources: SourceBinding[]
   assistantText: string
   isRunning: boolean
   error: string | null
@@ -37,9 +43,12 @@ export interface UseAgentRunResult {
 export function useAgentRun(): UseAgentRunResult {
   const [run, setRun] = useState<AgentRun | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
-  const [changeSets, setChangeSets] = useState<ChangeSet[]>([])
-  const [assistantText, setAssistantText] = useState('')
-  const [isRunning, setIsRunning] = useState(false)
+ const [changeSets, setChangeSets] = useState<ChangeSet[]>([])
+  const [artifacts, setArtifacts] = useState<Artifact[]>([])
+  const [memory, setMemory] = useState<MemoryRecord[]>([])
+  const [sources, setSources] = useState<SourceBinding[]>([])
+ const [assistantText, setAssistantText] = useState('')
+ const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
@@ -51,10 +60,13 @@ export function useAgentRun(): UseAgentRunResult {
 
   const start = useCallback(async (input: CreateRunInput) => {
     setError(null)
-    setTimeline([])
-    setAssistantText('')
-    setChangeSets([])
-    try {
+   setTimeline([])
+   setAssistantText('')
+   setChangeSets([])
+    setArtifacts([])
+    setMemory([])
+    setSources([])
+   try {
       const created = await createRun(input)
       setRun(created)
       setIsRunning(true)
@@ -102,16 +114,20 @@ export function useAgentRun(): UseAgentRunResult {
          ])
          break
        }
-        case 'run_finished':
-          setTimeline((t) => [...t, { id: ev.timestamp, kind: 'status', label: 'Run finished', timestamp: ev.timestamp }])
-          setIsRunning(false)
-          // Fetch the recorded file changes for this run.
-          if (run) {
-            listChangeSets(run.id)
-              .then(setChangeSets)
-              .catch(() => {})
-          }
-          break
+      case 'run_finished':
+        setTimeline((t) => [...t, { id: ev.timestamp, kind: 'status', label: 'Run finished', timestamp: ev.timestamp }])
+        setIsRunning(false)
+          // Fetch the post-run assets: file changes, artifacts, memory,
+          // sources. Use ev.runId directly (the closure's `run` may be stale
+          // if the subscribe callback was captured before setState settled).
+          const rid = ev.runId
+          if (rid) {
+            listChangeSets(rid).then(setChangeSets).catch(() => {})
+            listArtifacts(rid).then(setArtifacts).catch(() => {})
+            listMemory(rid).then(setMemory).catch(() => {})
+            listSources(rid).then(setSources).catch(() => {})
+         }
+         break
         case 'run_failed':
           setTimeline((t) => [...t, { id: ev.timestamp, kind: 'status', label: 'Run failed', timestamp: ev.timestamp }])
           setIsRunning(false)
@@ -121,7 +137,7 @@ export function useAgentRun(): UseAgentRunResult {
     [run],
   )
 
-  return { run, timeline, changeSets, assistantText, isRunning, error, start }
+  return { run, timeline, changeSets, artifacts, memory, sources, assistantText, isRunning, error, start }
 }
 
 function safeParse(data: string): Record<string, unknown> | null {

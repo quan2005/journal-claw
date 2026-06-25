@@ -12,7 +12,8 @@
  */
 import { useState, type ReactNode } from 'react'
 import { useAgentRun, AUTHORIZATION_MODES, type TimelineEntry } from '../hooks/useAgentRun'
-import type { AuthorizationMode, ChangeSet } from '../types/agentRun'
+  import type { AuthorizationMode, ChangeSet } from '../types/agentRun'
+  import type { Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   queued: { label: 'Queued', color: 'var(--status-warning)' },
@@ -31,7 +32,7 @@ const MODE_LABEL: Record<AuthorizationMode, string> = {
 }
 
 export function AgentRunPanel() {
-  const { run, timeline, changeSets, assistantText, isRunning, error, start } = useAgentRun()
+  const { run, timeline, changeSets, artifacts, memory, sources, assistantText, isRunning, error, start } = useAgentRun()
   const [goal, setGoal] = useState('')
   const [mode, setMode] = useState<AuthorizationMode>('workspace_write')
 
@@ -115,18 +116,51 @@ export function AgentRunPanel() {
             </section>
           )}
 
-          {changeSets.length > 0 && (
+         {changeSets.length > 0 && (
+           <section style={sectionStyle}>
+             <div style={eyebrowStyle}>File changes ({changeSets.length})</div>
+             <ul style={changeListStyle}>
+               {changeSets.map((cs) => (
+                 <ChangeSetRow key={cs.id} cs={cs} />
+               ))}
+             </ul>
+           </section>
+         )}
+
+          {sources.length > 0 && (
             <section style={sectionStyle}>
-              <div style={eyebrowStyle}>File changes ({changeSets.length})</div>
+              <div style={eyebrowStyle}>Sources read ({sources.length})</div>
               <ul style={changeListStyle}>
-                {changeSets.map((cs) => (
-                  <ChangeSetRow key={cs.id} cs={cs} />
+                {sources.map((s) => (
+                  <SourceRow key={s.id} source={s} />
                 ))}
               </ul>
             </section>
           )}
-        </>
-      )}
+
+          {artifacts.length > 0 && (
+            <section style={sectionStyle}>
+              <div style={eyebrowStyle}>Artifacts ({artifacts.length})</div>
+              <ul style={changeListStyle}>
+                {artifacts.map((a) => (
+                  <ArtifactRow key={a.id} artifact={a} />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {memory.length > 0 && (
+            <section style={sectionStyle}>
+              <div style={eyebrowStyle}>Memory ({memory.length})</div>
+              <ul style={changeListStyle}>
+                {memory.map((m) => (
+                  <MemoryRow key={m.id} record={m} />
+                ))}
+              </ul>
+            </section>
+          )}
+       </>
+     )}
     </div>
   )
 }
@@ -319,14 +353,61 @@ const changeItemStyle: React.CSSProperties = {
   fontSize: 12,
   padding: '4px 0',
 }
-const opTag: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', minWidth: 48 }
-const pathStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-mono, monospace)',
-  fontSize: 12,
-  color: 'var(--text-secondary, #555)',
-  flex: 1,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
+ const opTag: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', minWidth: 48 }
+ const pathStyle: React.CSSProperties = {
+   fontFamily: 'var(--font-mono, monospace)',
+   fontSize: 12,
+   color: 'var(--text-secondary, #555)',
+   flex: 1,
+   overflow: 'hidden',
+   textOverflow: 'ellipsis',
+   whiteSpace: 'nowrap',
+ }
+ const statusTag: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', color: 'var(--text-tertiary, #999)' }
+
+function SourceRow({ source }: { source: SourceBinding }): ReactNode {
+  const kindColor =
+    source.kind === 'cite' ? 'var(--accent)' : source.kind === 'read' ? 'var(--status-success, #16a34a)' : 'var(--text-tertiary, #999)'
+  return (
+    <li style={changeItemStyle}>
+      <span style={{ ...opTag, color: kindColor }}>{source.kind}</span>
+      <code style={pathStyle}>{source.path}</code>
+    </li>
+  )
 }
-const statusTag: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', color: 'var(--text-tertiary, #999)' }
+
+function ArtifactRow({ artifact }: { artifact: Artifact }): ReactNode {
+  return (
+    <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <span style={{ ...opTag, color: 'var(--accent)' }}>{artifact.type}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #111827)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{artifact.title}</span>
+      </div>
+      {artifact.content && (
+        <code style={{ ...pathStyle, whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>{artifact.content.slice(0, 200)}</code>
+      )}
+    </li>
+  )
+}
+
+const MEMORY_KIND_LABEL: Record<string, string> = {
+  preference: 'Pref',
+  project_fact: 'Fact',
+  writing_rule: 'Rule',
+  tool_rule: 'Tool',
+  note: 'Note',
+}
+
+function MemoryRow({ record }: { record: MemoryRecord }): ReactNode {
+  return (
+    <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <span style={{ ...opTag, color: 'var(--accent)' }}>{MEMORY_KIND_LABEL[record.kind] ?? record.kind}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-secondary, #555)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{record.summary}</span>
+      </div>
+      {record.evidence.length > 0 && (
+        <code style={{ ...pathStyle, whiteSpace: 'pre-wrap', maxHeight: 40, overflow: 'hidden', fontStyle: 'italic' }}>{record.evidence[0].slice(0, 160)}</code>
+      )}
+    </li>
+  )
+}

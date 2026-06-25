@@ -83,3 +83,55 @@ export interface ChangeSet {
   authorizationMode: AuthorizationMode
   status: ChangeSetStatus
 }
+
+// ── Artifact (G7) ─────────────────────────────────────────────────────────
+export type ArtifactType =
+  | 'article'
+  | 'outline'
+  | 'report'
+  | 'summary'
+  | 'plan'
+  | 'todo'
+  | 'index'
+  | 'card'
+  | 'note'
+  | string
+
+export interface Artifact {
+  id: string
+  runId: string
+  type: ArtifactType
+  title: string
+  content: string
+  path?: string
+  sourceRefs?: string[]
+  createdAt: string
+}
+
+// ── MemoryRecord (G14) ────────────────────────────────────────────────────
+export type MemoryKind = 'preference' | 'project_fact' | 'writing_rule' | 'tool_rule' | 'note'
+
+export interface MemoryRecord {
+  id: string
+  sourceRunId: string
+  kind: MemoryKind
+  summary: string
+  detail: string
+  evidence: string[]
+  sourceArtifactIds?: string[]
+  createdAt: string
+}
+
+// ── SourceBinding (G6) ────────────────────────────────────────────────────
+export type SourceBindingKind = 'read' | 'reference' | 'search' | 'cite'
+
+export interface SourceBinding {
+  id: string
+  runId: string
+  path: string
+  kind: SourceBindingKind
+  excerpt?: string
+  sourceSpanId?: string
+  note?: string
+  createdAt: string
+}

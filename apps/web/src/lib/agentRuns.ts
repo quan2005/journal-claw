@@ -7,7 +7,7 @@
  * daemon HTTP/SSE surface (the runtime flag decides whether the *chat* path
  * uses Tauri or daemon; the Run panel is daemon-native).
  */
-import type { AgentRun, AgentRunEvent, AuthorizationMode, ChangeSet } from '../types/agentRun'
+import type { AgentRun, AgentRunEvent, AuthorizationMode, ChangeSet, Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:17510'
 
@@ -68,4 +68,25 @@ export function subscribeRunEvents(runId: string, onEvent: (event: AgentRunEvent
     }
   }
   return () => es.close()
+}
+
+export async function listArtifacts(runId: string): Promise<Artifact[]> {
+  const res = await fetch(`${baseUrl()}/runs/${encodeURIComponent(runId)}/artifacts`)
+  if (!res.ok) throw new Error(`listArtifacts failed: ${res.status}`)
+  const body = (await res.json()) as { artifacts: Artifact[] }
+  return body.artifacts
+}
+
+export async function listMemory(runId: string): Promise<MemoryRecord[]> {
+  const res = await fetch(`${baseUrl()}/runs/${encodeURIComponent(runId)}/memory`)
+  if (!res.ok) throw new Error(`listMemory failed: ${res.status}`)
+  const body = (await res.json()) as { memory: MemoryRecord[] }
+  return body.memory
+}
+
+export async function listSources(runId: string): Promise<SourceBinding[]> {
+  const res = await fetch(`${baseUrl()}/runs/${encodeURIComponent(runId)}/sources`)
+  if (!res.ok) throw new Error(`listSources failed: ${res.status}`)
+  const body = (await res.json()) as { sources: SourceBinding[] }
+  return body.sources
 }

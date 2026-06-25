@@ -5,11 +5,17 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 const mockCreateRun = vi.fn()
 const mockSubscribe = vi.fn()
 const mockListChangeSets = vi.fn()
+const mockListArtifacts = vi.fn()
+const mockListMemory = vi.fn()
+const mockListSources = vi.fn()
 
 vi.mock('../lib/agentRuns', () => ({
   createRun: (...args: unknown[]) => mockCreateRun(...(args as [never])),
   subscribeRunEvents: (...args: unknown[]) => mockSubscribe(...(args as [never])),
   listChangeSets: (...args: unknown[]) => mockListChangeSets(...(args as [never])),
+  listArtifacts: (...args: unknown[]) => mockListArtifacts(...(args as [never])),
+  listMemory: (...args: unknown[]) => mockListMemory(...(args as [never])),
+  listSources: (...args: unknown[]) => mockListSources(...(args as [never])),
 }))
 
 import { AgentRunPanel } from '../components/AgentRunPanel'
@@ -36,8 +42,11 @@ describe('AgentRunPanel', () => {
       emit = onEvent
       return () => {}
     })
-    mockListChangeSets.mockResolvedValue([])
-  })
+   mockListChangeSets.mockResolvedValue([])
+    mockListArtifacts.mockResolvedValue([])
+    mockListMemory.mockResolvedValue([])
+    mockListSources.mockResolvedValue([])
+ })
 
   it('renders the goal form before a run starts', () => {
     render(<AgentRunPanel />)
@@ -67,8 +76,30 @@ describe('AgentRunPanel', () => {
     expect(screen.getByText('Done')).toBeTruthy()
   })
 
-  it('shows an authorization mode selector', () => {
+ it('shows an authorization mode selector', () => {
+   render(<AgentRunPanel />)
+   expect(screen.getByText('Workspace write')).toBeTruthy()
+ })
+
+  it('renders Sources, Artifacts, and Memory sections after a run finishes', async () => {
+    mockListArtifacts.mockResolvedValue([{ id: 'art-1', runId: 'r1', type: 'summary', title: 'Q2 Review', content: 'findings', createdAt: '2026-06-25T12:00:00Z' }])
+    mockListMemory.mockResolvedValue([{ id: 'mem-1', sourceRunId: 'r1', kind: 'preference', summary: 'I prefer concise text', detail: 'd', evidence: ['evidence snippet'], createdAt: '2026-06-25T12:00:00Z' }])
+    mockListSources.mockResolvedValue([{ id: 'src-1', runId: 'r1', path: 'meetings/standup.md', kind: 'read', createdAt: '2026-06-25T12:00:00Z' }])
+
     render(<AgentRunPanel />)
-    expect(screen.getByText('Workspace write')).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText('What should the agent do?'), { target: { value: 'test' } })
+    fireEvent.click(screen.getByText('Start run'))
+    await waitFor(() => expect(mockCreateRun).toHaveBeenCalled())
+
+    act(() => {
+      emit?.({ type: 'run_started', runId: 'r1', sessionId: 's1', data: '{}', timestamp: '2026-06-25T12:00:01Z' })
+      emit?.({ type: 'run_finished', runId: 'r1', sessionId: 's1', data: '{}', timestamp: '2026-06-25T12:00:02Z' })
+    })
+
+    await waitFor(() => expect(screen.getByText('Sources read (1)')).toBeTruthy())
+    expect(screen.getByText('Artifacts (1)')).toBeTruthy()
+    expect(screen.getByText('Memory (1)')).toBeTruthy()
+    expect(screen.getByText('Q2 Review')).toBeTruthy()
+    expect(screen.getByText('meetings/standup.md')).toBeTruthy()
   })
 })

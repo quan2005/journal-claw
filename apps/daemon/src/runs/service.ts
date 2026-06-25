@@ -18,6 +18,7 @@ import {
   type AgentRunEvent,
   type AgentRunMode,
   type AgentRunStatus,
+  type AuthorizationMode,
 } from '@journal/contracts'
 import { RunStore } from './store.js'
 
@@ -37,6 +38,7 @@ interface RunState extends AgentRun {
 export interface CreateRunInput {
   goal: string
   mode: AgentRunMode
+  authorizationMode?: AuthorizationMode
 }
 
 export class AgentRunService {
@@ -56,8 +58,7 @@ export class AgentRunService {
       goal: input.goal,
       mode: input.mode,
       status: 'queued',
-      // G4 不实现 AuthorizationMode 切换（G8/G9），默认 workspace_write（daemon 自身授权域）。
-      authorizationMode: 'workspace_write',
+      authorizationMode: input.authorizationMode ?? 'workspace_write',
       contextBindings: [],
       steps: [],
       createdAt: now,

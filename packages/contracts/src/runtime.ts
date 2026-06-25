@@ -16,6 +16,8 @@ export type RuntimeStreamFormat = string
 export interface RuntimeBuildOptions {
   model?: string | null
   reasoning?: string | null
+  /** Authorization mode applied to the spawned CLI; maps to its permission flag. */
+  authorizationMode?: 'read_only' | 'workspace_write' | 'full_access' | 'wide_with_audit'
 }
 
 export interface RuntimeContext {

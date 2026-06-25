@@ -23,6 +23,7 @@ export interface ExecuteRunInput {
   agentId: string
   prompt: string
   model?: string | null
+  authorizationMode?: 'read_only' | 'workspace_write' | 'full_access' | 'wide_with_audit'
   cwd?: string
 }
 
@@ -65,7 +66,10 @@ export async function executeRun(
     return { exitCode: null, ok: false }
   }
 
-  const args = def.buildArgs(input.prompt, [], [], { model: input.model ?? null })
+  const args = def.buildArgs(input.prompt, [], [], {
+    model: input.model ?? null,
+    authorizationMode: input.authorizationMode,
+  })
   const spawnChild =
     options.spawnChild ??
     ((bin: string, a: string[], opts: { cwd?: string }) =>

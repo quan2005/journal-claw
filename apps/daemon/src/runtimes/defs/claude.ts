@@ -53,12 +53,21 @@ export const claudeAgentDef: RuntimeAgentDef = {
     } else if (typeof runtimeContext.newSessionId === 'string' && runtimeContext.newSessionId) {
       args.push('--session-id', runtimeContext.newSessionId)
     }
-    // G9 AuthorizationMode mapping is not wired yet; default to the CLI's own
-    // default permission mode. --permission-mode will be added in G9.
+    // G9 AuthorizationMode -> claude --permission-mode. Falls back to
+    // acceptEdits when unset (workspace_write is the daemon default domain).
+    const mode = options.authorizationMode ?? 'workspace_write'
+    args.push('--permission-mode', CLAUDE_PERMISSION_MODE[mode] ?? 'acceptEdits')
     return args
   },
   promptViaStdin: true,
   promptInputFormat: 'stream-json',
   streamFormat: 'claude-stream-json',
   fallbackModels: FALLBACK_MODELS,
+}
+
+const CLAUDE_PERMISSION_MODE: Record<string, string> = {
+  read_only: 'plan',
+  workspace_write: 'acceptEdits',
+  full_access: 'bypassPermissions',
+  wide_with_audit: 'bypassPermissions',
 }

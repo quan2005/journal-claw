@@ -11,6 +11,7 @@ import type { Server } from 'node:http'
 import { AgentRunService } from './runs/service.js'
 import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
 import { executeRun } from './runtimes/runner.js'
+import { ChangeSetService } from './changeset/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -73,7 +74,8 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const app = express()
     app.use(express.json({ limit: '1mb' }))
 
-    const service = opts.runService ?? new AgentRunService(resolveDataDir())
+   const service = opts.runService ?? new AgentRunService(resolveDataDir())
+    const changeSetService = new ChangeSetService(process.cwd())
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
@@ -107,7 +109,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
    // ── AgentRun routes ──────────────────────────────────────────────────────
    // POST /runs — 创建一个 run，返回 { id, status: 'queued', ... }
    app.post('/runs', (req, res) => {
-      const body = (req.body ?? {}) as { goal?: unknown; mode?: unknown; agentId?: unknown; prompt?: unknown; model?: unknown }
+      const body = (req.body ?? {}) as { goal?: unknown; mode?: unknown; agentId?: unknown; prompt?: unknown; model?: unknown; authorizationMode?: unknown }
       const goal = typeof body.goal === 'string' ? body.goal : ''
       const mode = typeof body.mode === 'string' ? (body.mode as AgentRunMode) : 'agent'
       if (!goal.trim()) {
@@ -119,21 +121,25 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         return
       }
       const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
-      const def = getAgentDef(agentId)
-      if (!def) {
-        res.status(400).json({ error: `unknown agent: ${agentId}` })
-        return
-      }
-      const run = service.createRun({ goal, mode })
-      res.status(201).json(run)
+     const def = getAgentDef(agentId)
+     if (!def) {
+       res.status(400).json({ error: `unknown agent: ${agentId}` })
+       return
+     }
+      const VALID_AUTH_MODES = new Set(['wide_with_audit', 'read_only', 'workspace_write', 'full_access'])
+      const authorizationMode = VALID_AUTH_MODES.has(body.authorizationMode as string)
+        ? (body.authorizationMode as 'wide_with_audit' | 'read_only' | 'workspace_write' | 'full_access')
+        : 'workspace_write'
+     const run = service.createRun({ goal, mode, authorizationMode })
+     res.status(201).json(run)
       // Fire-and-forget: spawn the agent and stream its events into the run.
       // The promise must never reject — an unhandled rejection would crash the
       // daemon. executeRun already records run_failed on its known failure
       // paths; this catch is a belt-and-suspenders guard for anything thrown
       // synchronously before the inner Promise is constructed.
-      const prompt = typeof body.prompt === 'string' ? body.prompt : goal
-      const model = typeof body.model === 'string' && body.model ? body.model : null
-      executeRun(service, { runId: run.id, agentId, prompt, model }).catch((err) => {
+    const prompt = typeof body.prompt === 'string' ? body.prompt : goal
+    const model = typeof body.model === 'string' && body.model ? body.model : null
+      executeRun(service, { runId: run.id, agentId, prompt, model, authorizationMode }).catch((err) => {
         service.appendEvent(
           run.id,
           { type: 'run_failed', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), timestamp: new Date().toISOString() },
@@ -201,7 +207,12 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(404).json({ error: 'run not found' })
         return
       }
-      res.json(run)
+     res.json(run)
+   })
+
+    // GET /runs/:id/changesets — list the recorded file changes for a run
+    app.get('/runs/:id/changesets', (req, res) => {
+      res.json({ changeSets: changeSetService.listChangeSets(req.params.id) })
     })
 
     // Bind to loopback only: the daemon is a local runtime, not a network

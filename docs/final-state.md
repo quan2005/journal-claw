@@ -381,3 +381,24 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 - `hooks/useAgentRun.ts`：驱动 run 创建→事件流→derived timeline + 状态机映射
 - `components/AgentRunPanel.tsx`：token 驱动、密度优先、无装饰性卡片；goal 表单 + status badge + timeline（tool_call/thinking/status）+ output + file changes（按操作着色）+ authorization selector
 - 未接入 App 布局（避免触碰已有失败测试的 ChatPanel/RightPanel 路径），作为独立可渲染组件交付，集成留作下一步
+
+### 2026-06-25 增补：G13 + G7 落地
+
+| G | 内容 | 证据 | commit |
+|---|---|---|---|
+| **G13** | AgentRunPanel 接入真实 App 右侧面板（Chat ↔ Agent Run 切换） | App.test.tsx 2 个集成测试 green；Playwright 确认 toggle 按钮存在于 live dev build | cd1556c |
+| **G7** | Artifact 索引 — 把 Agent 产出从 chat 流 tag 升级为可索引、可溯源的一等资产 | ArtifactIndexService 6 测试 green（含 captureFromRun 解析 `<artifact>` tag）；contracts Artifact 类型 | 32e618c |
+
+- 右侧面板现在有 Chat/Agent Run 切换；默认 Chat（不回退），切到 Agent Run 显示 G12 的结构化面板。toggle 渲染在 Suspense 边界外，始终存在。
+- `GET /runs/:id/artifacts` + `GET /artifacts?type=` 列出索引化的 artifact。
+- 全量测试：contracts 16 + daemon 122 + web（runtime/agentrun/app）26 green；2 个 web 失败为既有无关布局测试。
+
+### 五个一等对象当前状态（实测）
+
+| 对象 | 落地情况 |
+|---|---|
+| **Workspace** | 已有（get/set/list + workspace prompt）；元数据化（G15）待做 |
+| **Sources** | ✅ ChangeSet（可追踪/可恢复）+ AuthorizationMode 三档（G8/G9）；source binding（G6）待做 |
+| **Artifacts** | ✅ ArtifactIndex（G7）；前端浏览器待做 |
+| **Runs** | ✅ 一等化全链路：可创建/流式/取消/JSONL 回放（G4）+ 真 claude -p 执行（G10/G11）+ 右侧面板 UI（G12/G13） |
+| **Rules/Memory** | 自动沉淀管线（G14）待做 |

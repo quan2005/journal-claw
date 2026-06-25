@@ -20,6 +20,10 @@ vi.mock('../lib/runtimeClient', () => ({
     invoke: vi.fn(),
     subscribe: (...args: unknown[]) => subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
   },
+  selectRuntimeClient: () => ({
+    invoke: vi.fn(),
+    subscribe: (...args: unknown[]) => subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
+  }),
   TauriRuntimeClient: class {},
 }))
 

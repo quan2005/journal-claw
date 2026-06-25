@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { defaultRuntimeClient } from '../lib/runtimeClient'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import type { ConversationMessage, ConversationStreamPayload, MessageBlock } from '../types'
 import type { ImageAttachment } from '../lib/tauri'
 import {
@@ -138,9 +138,13 @@ export function useConversation() {
     setTabs((prev) => prev.map((t) => (t.sessionId === sid ? { ...t, pendingQueue: queue } : t)))
   }, [])
 
-  // ── Event listener — processes ALL sessions ────────────
-  useEffect(() => {
-    const off = defaultRuntimeClient.subscribe<ConversationStreamPayload>('conversation-stream', (payload) => {
+ // ── Event listener — processes ALL sessions ────────────
+ useEffect(() => {
+    // Transport-agnostic client: the feature flag (JOURNAL_RUNTIME) decides
+    // whether this is the Tauri bridge or the daemon HttpRuntimeClient. The
+    // reducer below stays identical — only the transport differs.
+    const client = selectRuntimeClient()
+    const off = client.subscribe<ConversationStreamPayload>('conversation-stream', (payload) => {
       const { session_id: sid, event: evt, data } = payload
 
       switch (evt) {

@@ -358,3 +358,26 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 - **G8/G9** ChangeSet + AuthorizationMode（把 `claude --permission-mode` 接进三档授权）。
 - **G12** Agent Run Workbench（右侧面板结构化 timeline）——G5 已铺好前端传输，G12 在其上做 UI。
 - **真实 claude run 的端到端验收**：✅ 已完成（非沙盒环境）。实测 daemon -> POST /runs（spawn 真 `claude -p`）-> 有序事件 `run_started`/`text_delta{pong}`/`run_finished{result,usage}` 持久化进 JSONL；`GET /agents` 报告 claude installed+authed(oauth)。G11 的"非降级"补证已闭环。同时修复了实测暴露的两个缺陷：重复 `run_started`、未捕获 rejection 导致 daemon 崩溃。
+
+### 2026-06-25 增补：G8/G9 落地
+
+| G | 内容 | 证据 | commit |
+|---|---|---|---|
+| **G8** | ChangeSetService（record/revert/list，remove 走 .journal-trash 可恢复） | service.test green（含 revert 还原） | eb09d5 |
+| **G9** | AuthorizationMode 三档语义 + claude --permission-mode 映射（read_only->plan / workspace_write->acceptEdits / full_access->bypassPermissions） | authorization.test + claude buildArgs.test green；live POST /runs 记录 read_only/full_access | eb09d5 |
+
+- `isPathAllowed`：read_only 拒绝所有写入（结构化拒绝）；workspace_write 仅允许 workspace root 内；full_access/wide_with_audit 全放行。
+- `POST /runs` 现接受 `authorizationMode`（默认 workspace_write），run 记录该值并经 runner 传给 claude buildArgs。
+- `GET /runs/:id/changesets` 列出某 run 的文件变更。
+- daemon 测试 116 green，typecheck clean。
+
+### 2026-06-25 增补：G12 落地
+
+| G | 内容 | 证据 | commit |
+|---|---|---|---|
+| **G12** | AgentRunPanel — 右侧结构化 Run 面板（goal/status/timeline/output/file changes/authorization） | 3 component tests green；Playwright 渲染验证（截图非空、文字正确、零 console error） | 8c0edd |
+
+- `lib/agentRuns.ts`：daemon Run API client（createRun / subscribeRunEvents SSE / listChangeSets）
+- `hooks/useAgentRun.ts`：驱动 run 创建→事件流→derived timeline + 状态机映射
+- `components/AgentRunPanel.tsx`：token 驱动、密度优先、无装饰性卡片；goal 表单 + status badge + timeline（tool_call/thinking/status）+ output + file changes（按操作着色）+ authorization selector
+- 未接入 App 布局（避免触碰已有失败测试的 ChatPanel/RightPanel 路径），作为独立可渲染组件交付，集成留作下一步

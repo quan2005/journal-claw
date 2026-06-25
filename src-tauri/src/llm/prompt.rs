@@ -141,7 +141,7 @@ async fn run_workspace_script(workspace_path: &str, script: &str, args: &[&str])
 /// Project and enabled global skills are included. Disabled ones are excluded.
 pub async fn scan_skills(
     workspace_path: &str,
-    _global_skills_enabled: bool,  // kept for API compat, now always scans global
+    _global_skills_enabled: bool, // kept for API compat, now always scans global
     disabled_ids: &[String],
 ) -> Vec<(String, String)> {
     let mut skills: Vec<(String, String)> = Vec::new();
@@ -294,12 +294,14 @@ pub async fn scan_skills(
                                     if raw_dir.is_empty() {
                                         continue;
                                     }
-                                    let dir_name = format!("{}/{}/{}", publisher_name, plugin_name, raw_dir);
+                                    let dir_name =
+                                        format!("{}/{}/{}", publisher_name, plugin_name, raw_dir);
                                     let skill_id = format!("global:{}", dir_name);
                                     if !enabled_globals.contains(&skill_id) {
                                         continue;
                                     }
-                                    let description = parse_skill_description(&content).unwrap_or_default();
+                                    let description =
+                                        parse_skill_description(&content).unwrap_or_default();
                                     if !skills.iter().any(|(n, _)| n == &dir_name) {
                                         skills.push((dir_name, description));
                                     }

@@ -11,6 +11,9 @@ pub struct IdentityEntry {
     pub region: String,
     pub summary: String,
     pub tags: Vec<String>,
+    pub aliases: Vec<String>,
+    pub expert_skill: String,
+    pub is_expert: bool,
     pub speaker_id: String,
     pub mtime_secs: i64,
     pub archived: bool,
@@ -22,6 +25,10 @@ struct IdentityFrontMatter {
     summary: String,
     #[serde(default)]
     tags: Vec<String>,
+    #[serde(default)]
+    aliases: Vec<String>,
+    #[serde(default)]
+    expert_skill: String,
     #[serde(default)]
     speaker_id: String,
     #[serde(default)]
@@ -40,6 +47,8 @@ fn yaml_escape(s: &str) -> String {
 fn format_identity_content(
     summary: &str,
     tags: &[String],
+    aliases: &[String],
+    expert_skill: &str,
     speaker_id: &str,
     archived: bool,
     body: &str,
@@ -49,11 +58,28 @@ fn format_identity_content(
         .map(|t| format!("\"{}\"", yaml_escape(t)))
         .collect::<Vec<_>>()
         .join(", ");
+    let aliases_line = if aliases.is_empty() {
+        String::new()
+    } else {
+        let aliases_yaml = aliases
+            .iter()
+            .map(|t| format!("\"{}\"", yaml_escape(t)))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("aliases: [{}]\n", aliases_yaml)
+    };
+    let expert_skill_line = if expert_skill.trim().is_empty() {
+        String::new()
+    } else {
+        format!("expert_skill: \"{}\"\n", yaml_escape(expert_skill))
+    };
     let archived_line = if archived { "archived: true\n" } else { "" };
     format!(
-        "---\nsummary: \"{}\"\ntags: [{}]\nspeaker_id: \"{}\"\n{}---\n\n{}",
+        "---\nsummary: \"{}\"\ntags: [{}]\n{}{}speaker_id: \"{}\"\n{}---\n\n{}",
         yaml_escape(summary),
         tags_yaml,
+        aliases_line,
+        expert_skill_line,
         yaml_escape(speaker_id),
         archived_line,
         body.trim_start(),
@@ -72,6 +98,13 @@ pub fn ensure_identity_dir(workspace: &str) -> Result<(), String> {
 /// Build the canonical filename for an identity: `{region}-{name}.md`
 pub fn identity_filename(region: &str, name: &str) -> String {
     format!("{}-{}.md", region, name)
+}
+
+pub fn is_expert_identity(tags: &[String], expert_skill: &str) -> bool {
+    !expert_skill.trim().is_empty()
+        || tags
+            .iter()
+            .any(|tag| tag.trim() == "专家" || tag.trim().eq_ignore_ascii_case("expert"))
 }
 
 /// Create a new identity file with minimal frontmatter. Returns the absolute path.
@@ -190,7 +223,10 @@ pub fn list_identity_entries(workspace: &str) -> Result<Vec<IdentityEntry>, Stri
             name,
             region,
             summary: crate::journal::strip_surrounding_quotes(&fm.summary),
+            is_expert: is_expert_identity(&fm.tags, &fm.expert_skill),
             tags: fm.tags,
+            aliases: fm.aliases,
+            expert_skill: fm.expert_skill,
             speaker_id: fm.speaker_id,
             archived: fm.archived,
             mtime_secs,
@@ -278,8 +314,15 @@ fn set_archived_flag(path: &str, archived: bool) -> Result<(), String> {
     }
     fm.archived = archived;
 
-    let new_content =
-        format_identity_content(&fm.summary, &fm.tags, &fm.speaker_id, archived, &body);
+    let new_content = format_identity_content(
+        &fm.summary,
+        &fm.tags,
+        &fm.aliases,
+        &fm.expert_skill,
+        &fm.speaker_id,
+        archived,
+        &body,
+    );
     std::fs::write(path, new_content).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -352,6 +395,8 @@ pub fn merge_identity(
     let new_target = format_identity_content(
         &tgt_fm.summary,
         &tgt_fm.tags,
+        &tgt_fm.aliases,
+        &tgt_fm.expert_skill,
         &merged_speaker_id,
         tgt_fm.archived,
         tgt_body,
@@ -463,11 +508,11 @@ mod tests {
     #[test]
     fn format_identity_content_includes_archived_only_when_set() {
         let tags = vec!["a".to_string()];
-        let archived = format_identity_content("s", &tags, "spk", true, "正文");
+        let archived = format_identity_content("s", &tags, &[], "", "spk", true, "正文");
         assert!(archived.contains("archived: true"));
         assert!(archived.contains("summary: \"s\""));
 
-        let active = format_identity_content("s", &[], "spk", false, "正文");
+        let active = format_identity_content("s", &[], &[], "", "spk", false, "正文");
         assert!(!active.contains("archived"));
     }
 
@@ -492,5 +537,30 @@ mod tests {
         assert_eq!(parsed.tags, vec!["x".to_string(), "y".to_string()]);
         assert_eq!(parsed.speaker_id, "spk-1");
         assert!(!parsed.archived);
+    }
+
+    #[test]
+    fn expert_identity_detects_tag_or_skill() {
+        assert!(is_expert_identity(&["专家".to_string()], ""));
+        assert!(is_expert_identity(&["expert".to_string()], ""));
+        assert!(is_expert_identity(&[], "technical-architect-perspective"));
+        assert!(!is_expert_identity(&["人物".to_string()], ""));
+    }
+
+    #[test]
+    fn format_identity_content_preserves_expert_fields() {
+        let content = format_identity_content(
+            "s",
+            &["专家".to_string()],
+            &["架构师".to_string()],
+            "technical-architect-perspective",
+            "spk",
+            false,
+            "正文",
+        );
+
+        assert!(content.contains("tags: [\"专家\"]"));
+        assert!(content.contains("aliases: [\"架构师\"]"));
+        assert!(content.contains("expert_skill: \"technical-architect-perspective\""));
     }
 }

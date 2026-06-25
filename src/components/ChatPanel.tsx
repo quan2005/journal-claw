@@ -30,6 +30,7 @@ import { importText, openFile } from '../lib/tauri'
 import { FileAttachments } from './FileAttachments'
 import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
+import { dispatchJournalFileOpen } from '../lib/fileNavigation'
 import clipboard from 'tauri-plugin-clipboard-api'
 import { open } from '@tauri-apps/plugin-dialog'
 import { SlashCommandMenu } from './SlashCommandMenu'
@@ -1221,8 +1222,6 @@ const MessageBubble = memo(function MessageBubble({
 })
 
 function UserContent({ text }: { text: string }) {
-  const { showToast } = useToast()
-  const { t } = useTranslation()
   const lines = text.split('\n')
   return (
     <>
@@ -1233,7 +1232,7 @@ function UserContent({ text }: { text: string }) {
           return (
             <div
               key={i}
-              onClick={() => openFile(path).catch(() => showToast('warning', t('openFileFailed')))}
+              onClick={() => dispatchJournalFileOpen(path)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

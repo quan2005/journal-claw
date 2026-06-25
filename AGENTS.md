@@ -57,6 +57,14 @@ npm run tauri build
 
 ---
 
+## Codex 门禁约定
+
+- 新的开发需求在进入编码前，须先经 `.agents/skills/requirements-gate` 完成梳理，产出 `story.md` 并由用户确认为 `status: approved`。非开发消息、已批准任务的延续、或标注 `[skip-gate]` 的消息不受此约定影响。
+- `git commit` 前，若存在与本次改动相关、`status: approved` 但尚未 `verified` 的 `story.md`，须先经 `.agents/skills/verification-gate` 由独立 subAgent 完成验收并产出 `verify-report.md`，全部通过后将 story 翻为 `verified`。
+- `git commit` 前，若本次改动对应的 story 已 `verified` 且影响面涉及架构、设计、约定或用户可感知变化，须经 `.agents/skills/docs-maintenance` 同步更新 `AGENTS.md` / `ARCH.md` / `DESIGN.md`，并按需维护 `README`、`llms.txt` 与使用、开发说明文档。
+
+---
+
 ## 版本管理
 
 版本号在三个文件中必须一致，由 release-please 自动同步，**不要手动修改**：

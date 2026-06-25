@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { listWorkspaceDir, type WorkspaceDirEntry } from '../lib/tauri'
+import { listAtMentionCandidates, type AtMentionCandidate } from '../lib/tauri'
 
 interface AtMentionMenuProps {
   query: string
@@ -28,9 +28,15 @@ const FILE_ICON_TYPES: Record<string, string> = {
   json: 'code',
 }
 
-function FileIconSvg({ name, isDir }: { name: string; isDir?: boolean }) {
+const EXPERTS_VIRTUAL_DIR = '__experts__'
+
+function displayPathPart(part: string) {
+  return part === EXPERTS_VIRTUAL_DIR ? '专家' : part
+}
+
+function FileIconSvg({ name, isDir, kind }: { name: string; isDir?: boolean; kind?: string }) {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  const type = isDir ? 'folder' : (FILE_ICON_TYPES[ext] ?? 'file')
+  const type = kind === 'expert' ? 'expert' : isDir ? 'folder' : (FILE_ICON_TYPES[ext] ?? 'file')
   const props = {
     width: 14,
     height: 14,
@@ -95,6 +101,12 @@ function FileIconSvg({ name, isDir }: { name: string; isDir?: boolean }) {
           <path d="M8 6l-6 6 6 6" />
         </svg>
       )
+    case 'expert':
+      return (
+        <svg {...props}>
+          <path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z" />
+        </svg>
+      )
     default:
       return (
         <svg {...props}>
@@ -107,16 +119,20 @@ function FileIconSvg({ name, isDir }: { name: string; isDir?: boolean }) {
 
 export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) {
   const [currentPath, setCurrentPath] = useState('')
-  const [entries, setEntries] = useState<WorkspaceDirEntry[]>([])
+  const [entries, setEntries] = useState<AtMentionCandidate[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const loadDir = useCallback(async (path: string) => {
+  const loadDir = useCallback(async (path: string, q: string) => {
     setLoading(true)
     try {
-      const items = await listWorkspaceDir(path)
-      items.sort((a, b) => b.name.localeCompare(a.name))
+      const items = await listAtMentionCandidates(path, q)
+      items.sort((a, b) => {
+        if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1
+        if (a.kind !== b.kind) return a.kind === 'expert' ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
       setEntries(items)
       setActiveIndex(0)
     } catch {
@@ -126,11 +142,13 @@ export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) 
   }, [])
 
   useEffect(() => {
-    loadDir(currentPath)
-  }, [currentPath, loadDir])
+    loadDir(currentPath, query)
+  }, [currentPath, query, loadDir])
 
   const q = query.toLowerCase()
-  const filtered = q ? entries.filter((e) => e.name.toLowerCase().includes(q)) : entries
+  const filtered = q
+    ? entries.filter((e) => e.kind === 'expert' || e.name.toLowerCase().includes(q))
+    : entries
 
   useEffect(() => {
     setActiveIndex(0)
@@ -178,7 +196,7 @@ export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) 
         if (entry.is_dir) {
           setCurrentPath(entry.path)
         } else {
-          onSelect(entry.path)
+          onSelect(entry.insert_text ?? entry.path)
         }
       } else if (e.key === 'Backspace' && currentPath && !query) {
         e.preventDefault()
@@ -243,7 +261,7 @@ export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) 
                 onClick={() => setCurrentPath(path)}
                 style={{ cursor: 'pointer', opacity: i === breadcrumbs.length - 1 ? 1 : 0.7 }}
               >
-                {part}
+                {displayPathPart(part)}
               </span>
             </span>
           )
@@ -287,7 +305,7 @@ export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) 
                 if (entry.is_dir) {
                   setCurrentPath(entry.path)
                 } else {
-                  onSelect(entry.path)
+                  onSelect(entry.insert_text ?? entry.path)
                 }
               }}
               onMouseEnter={() => setActiveIndex(i)}
@@ -312,7 +330,7 @@ export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) 
                   color: 'var(--item-meta)',
                 }}
               >
-                <FileIconSvg name={entry.name} isDir={entry.is_dir} />
+                <FileIconSvg name={entry.name} isDir={entry.is_dir} kind={entry.kind} />
               </span>
               <span
                 style={{
@@ -326,6 +344,18 @@ export function AtMentionMenu({ query, onSelect, onClose }: AtMentionMenuProps) 
               >
                 {entry.name}
               </span>
+              {entry.kind === 'expert' && (
+                <span
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--record-btn)',
+                    opacity: 0.85,
+                    flexShrink: 0,
+                  }}
+                >
+                  专家
+                </span>
+              )}
               {entry.is_dir && (
                 <span
                   style={{ fontSize: 'var(--text-xs)', color: 'var(--item-meta)', opacity: 0.5 }}

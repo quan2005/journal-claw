@@ -84,4 +84,33 @@ describe('ChatPanel', () => {
       undefined,
     )
   })
+
+  it('appends identity @ refs from the sidebar without auto-sending', async () => {
+    const onSend = vi.fn()
+    renderChatPanel({ onSend })
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: '请看' } })
+
+    window.dispatchEvent(
+      new CustomEvent('chat-append-text', {
+        detail: '@identities/研究-犀利教授.md',
+      }),
+    )
+
+    await waitFor(() =>
+      expect(textarea.value).toBe('请看 @identities/研究-犀利教授.md'),
+    )
+    expect(onSend).not.toHaveBeenCalled()
+
+    fireEvent.change(textarea, {
+      target: { value: `${textarea.value} 这个问题怎么看？` },
+    })
+    fireEvent.keyDown(textarea, { key: 'Enter' })
+
+    expect(onSend).toHaveBeenCalledWith(
+      '请看 @identities/研究-犀利教授.md 这个问题怎么看？',
+      undefined,
+    )
+  })
 })

@@ -226,8 +226,10 @@ describe('Journal content frame contract', () => {
 
   it('defines shared readable, workbench, and title tokens', () => {
     expect(rootVars.get('--journal-prose-max')).toBe('100%')
+    expect(rootVars.get('--journal-prose-max')).not.toMatch(/ch$/)
+    expect(rootVars.get('--journal-prose-max')).not.toContain('clamp(')
     expect(rootVars.get('--journal-readable-max')).toBe('100%')
-    expect(rootVars.get('--journal-content-max')).toBe('var(--journal-readable-max)')
+    expect(rootVars.get('--journal-content-max')).toBe('100%')
     expect(rootVars.get('--journal-workbench-max')).toBe('1640px')
     expect(rootVars.get('--journal-page-gutter')).toBe('min(56px, 5vw)')
     expect(rootVars.get('--journal-title-size')).toBe('48px')
@@ -246,10 +248,14 @@ describe('Journal content frame contract', () => {
 
     expect(mdContentRule).toContain('width: 100%')
     expect(mdContentRule).toContain('max-width: var(--journal-readable-max)')
-    expect(mdProseRule).toContain('max-width: var(--journal-prose-max)')
+    expect(mdContentRule).toContain('text-align: left')
+    expect(mdContentRule).toContain('hanging-punctuation: none')
+    expect(mdProseRule).toContain('max-width: 100%')
+    expect(mdProseRule).toContain('text-align: left')
     expect(mdxContentRule).toContain('max-width: var(--journal-readable-max)')
+    expect(mdxContentRule).toContain('hanging-punctuation: none')
     expect(mdxWideRule).toContain('max-width: 100%')
-    expect(mdBodyRule).toContain('max-width: var(--journal-readable-max)')
+    expect(mdBodyRule).toContain('max-width: 100%')
     expect(detailViewSource).toContain(
       "isHtmlContent || isStandardDetailSourceMode ? 0 : 'var(--journal-detail-padding)'",
     )

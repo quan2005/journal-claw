@@ -108,6 +108,9 @@ export interface IdentityEntry {
   region: string // "广州"
   summary: string // from frontmatter
   tags: string[] // from frontmatter
+  aliases: string[] // alternative names used by @ expert search
+  expert_skill: string // linked skill dir/name for expert perspectives
+  is_expert: boolean // true when tags contain 专家/expert or expert_skill is set
   speaker_id: string // linked speaker profile id
   mtime_secs: number // Unix timestamp for sorting
   archived: boolean // frontmatter archived flag

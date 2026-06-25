@@ -431,10 +431,12 @@ export default function App() {
       setSelectedEntry(null)
       setTopicFocusSelection(null)
       setTreeSelection(nextSelection)
+      setActiveCategory('topics')
+      setLeftSidebarOpen(true)
     }
     window.addEventListener('journal-file-open', handler)
     return () => window.removeEventListener('journal-file-open', handler)
-  }, [rememberReturnTarget, setSelectedEntry, setShowIdeas, setTreeSelection, setView])
+  }, [rememberReturnTarget, setActiveCategory, setSelectedEntry, setShowIdeas, setTreeSelection, setView])
 
   // Open settings from Rust menu (Cmd+,) or keyboard shortcut
   useEffect(() => {
@@ -908,6 +910,9 @@ export default function App() {
     region: '',
     summary: t('assistantDesc'),
     tags: [],
+    aliases: [],
+    expert_skill: '',
+    is_expert: false,
     speaker_id: '',
     mtime_secs: 0,
     archived: false,

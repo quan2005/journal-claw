@@ -15,6 +15,7 @@ pub fn command_names() -> Vec<&'static str> {
         "list_skills",
         "open_skills_dir",
         "list_workspace_dir",
+        "list_at_mention_candidates",
         "workspace_duplicate_file",
         "workspace_rename_file",
         "workspace_move_file",

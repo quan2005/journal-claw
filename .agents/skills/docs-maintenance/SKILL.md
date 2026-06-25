@@ -1,6 +1,6 @@
 ---
 name: docs-maintenance
-description: "文档自动维护（Docs Maintenance）——git commit 前，凡本次改动对应的 spec 已 verified 且影响面涉及架构 / 设计 / 约定变更，必须使用本技能判断并同步更新 AGENTS.md / ARCH.md / DESIGN.md，并按需维护 README、llms.txt、用户使用说明与技术开发说明文档。当 PreToolUse hook 注入「文档维护」提醒时必须使用。文档已覆盖变更则跳过——本技能的产出是文档与代码一致，不是每次都改文档。"
+description: "文档自动维护（Docs Maintenance）——git commit 前，凡本次改动对应的 story 已 verified 且其 design.md 影响面涉及架构 / 设计 / 约定变更，必须使用本技能。文档已覆盖变更则跳过——本技能的产出是文档与代码一致，不是每次都改文档。"
 ---
 
 # 文档自动维护 Docs Maintenance
@@ -12,9 +12,9 @@ description: "文档自动维护（Docs Maintenance）——git commit 前，凡
 收到「文档维护」提醒或准备 commit 时，按序回答，命中即放行：
 
 1. 用户标注 `[skip-gate]` / `[跳过门禁]` → 放行
-2. 本次 commit 找不到对应的 spec → 放行
-3. spec 未 verified → 放行（文档只记录验收过的事实）
-4. spec 影响面（第 7 节）不涉及架构 / 设计 / 约定 / 项目定位 / 文档结构 / 用户可感知行为 / 开发工作流 → 放行
+2. 本次 commit 找不到对应的 story → 放行
+3. story 未 verified → 放行（文档只记录验收过的事实）
+4. 变更不涉及架构 / 设计 / 约定 / 项目定位 / 文档结构 / 用户可感知行为 / 开发工作流 → 放行（依据：design.md 的方案与影响面 + story.md 的 AC/非目标）
 5. 对应文档已覆盖这些变更 → 放行（正常出口：目标是一致，不是改动量）
 
 五问全部不命中 → 更新文档。
@@ -27,7 +27,7 @@ description: "文档自动维护（Docs Maintenance）——git commit 前，凡
 |---|---|---|
 | AGENTS.md | 识别变更 → 增量修订 → 版本号语义化递增 → 一致性传播检查 | `references/agents-md-protocol.md` |
 | ARCH.md | 按固定八章节定位修改；不存在时用模板初始化 | `references/arch-md-structure.md`、`assets/arch-template.md` |
-| DESIGN.md | 仅初始化时调 impeccable 技能生成；已存在时把 spec 影响面传给 impeccable，由其增量更新 | impeccable 技能 |
+| DESIGN.md | 仅初始化时调 impeccable 技能生成；已存在时把 design.md 影响面传给 impeccable，由其增量更新 | impeccable 技能 |
 | README.md | 按需更新：触发判据命中才更新；不存在则直接初始化 | `references/outward-docs.md` |
 | llms.txt | 按需更新：与 README 导航同触发，按 llmstxt.org 规范维护；不存在则直接初始化 | `references/outward-docs.md` |
 | 用户使用说明 | 按需更新：触发判据命中才更新；不存在则直接初始化 | `references/outward-docs.md` |
@@ -52,10 +52,10 @@ description: "文档自动维护（Docs Maintenance）——git commit 前，凡
 |---|---|
 | "改动很小，文档下次一起更新" | 下次永远不来。增量机制就是为了让每次都小到没有借口 |
 | "整个重写一遍更干净" | 增量修订，定位到章节。重写破坏版本史与引用锚点 |
-| "顺手优化其他章节" | spec 不涉及的章节一个字不动 |
+| "顺手优化其他章节" | 本次变更不涉及的章节一个字不动 |
 | "CLAUDE.md 也改一遍保险" | 只改 AGENTS.md。改两处必出分叉 |
-| "影响面我记得，不用读 spec" | 以 verified spec 第 7 节 + 实际 diff 为准 |
-| "spec 没 verified，文档先写上" | 未验收的实现不进文档 |
+| "影响面我记得，不用读契约" | 以 verified story 的 AC/非目标 + design.md 影响面 + 实际 diff 为准 |
+| "story 没 verified，文档先写上" | 未验收的实现不进文档 |
 | "用户文档里讲讲实现原理更清楚" | 读者视角铁律：用户文档零实现细节；开发文档链接 ARCH.md，不复制 |
 | "使用/开发文档不存在，先跳过吧" | 触发命中而文档不存在 = 直接初始化，不等待用户发起 |
 | "README 里把使用说明全写一遍" | README 是门面：定位 + 快速开始 + 导航链接，详情归 docs |
@@ -64,9 +64,9 @@ description: "文档自动维护（Docs Maintenance）——git commit 前，凡
 
 ## Verification — commit 前自检
 
-- [ ] 更新依据 = verified spec 影响面 + 实际 diff
+- [ ] 更新依据 = verified story（AC/非目标）+ design.md 影响面 + 实际 diff
 - [ ] AGENTS.md 已过写入前校验：版本语义定级、条目可检验无模糊词、同步影响报告与传播检查完成
-- [ ] ARCH.md 八章节结构未变，spec 不涉及的章节未触碰
+- [ ] ARCH.md 八章节结构未变，本次变更不涉及的章节未触碰
 - [ ] 使用 / 开发说明未混入对方视角：用户文档零实现细节，开发文档未复制 ARCH / AGENTS 内容
 - [ ] README 未膨胀为手册：超出快速开始深度的内容已链接 docs
 - [ ] llms.txt 节序符合规范且与 docs 实际结构一致，README 导航同次更新

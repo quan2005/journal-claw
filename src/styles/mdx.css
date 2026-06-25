@@ -12,18 +12,39 @@
   );
   --mdx-accent: var(--record-btn, #ff5701);
   --mdx-accent-soft: var(--record-highlight, #fff4ed);
-  --mdx-radius: 8px;
-  --mdx-radius-sm: 6px;
+  --mdx-radius: var(--radius-lg);
+  --mdx-radius-sm: var(--radius-sm);
   width: 100%;
   max-width: var(--journal-readable-max);
+  text-align: left;
   text-wrap: pretty;
-  hanging-punctuation: first;
+  hanging-punctuation: none;
 }
 .mdx-content :where(h1, h2, h3) {
   text-wrap: balance;
 }
 .mdx-content :where(p, li) {
   text-wrap: pretty;
+}
+.mdx-content
+  :where(
+    .mdx-subtitle,
+    .mdx-callout,
+    .mdx-quote,
+    .mdx-specialized-prose,
+    .mdx-component-error,
+    .mdx-math-fallback--block
+  ) {
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+.mdx-content
+  :where(.mdx-section, .mdx-block-degraded)
+  > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
 }
 .mdx-content
   :where(
@@ -203,7 +224,7 @@
   font-size: var(--text-md);
   line-height: 1.75;
   margin: 0 0 var(--space-5);
-  max-width: 64ch;
+  max-width: 100%;
 }
 
 /* Label */
@@ -1695,7 +1716,8 @@
 /* ── Canonical specialized component language ── */
 .mdx-specialized-prose {
   width: 100%;
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
+  text-align: left;
 }
 
 .mdx-specialized-content {
@@ -1718,7 +1740,7 @@
 }
 
 .mdx-decision-record {
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
   margin: var(--space-8) 0;
   padding: var(--space-4) 0;
   border: 0;
@@ -1742,7 +1764,7 @@
 }
 
 .mdx-semantic-card {
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
   margin: var(--space-8) 0;
   padding: var(--space-2) 0 var(--space-2) var(--space-4);
   border: 0;
@@ -1778,7 +1800,7 @@
 }
 
 .mdx-transcript {
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
   margin: var(--space-8) 0;
   padding: var(--space-4) 0;
   border: 0;

@@ -663,6 +663,25 @@ export interface WorkspaceDirEntry {
 export const listWorkspaceDir = (relativePath: string): Promise<WorkspaceDirEntry[]> =>
   invoke<WorkspaceDirEntry[]>('list_workspace_dir', { relativePath })
 
+export type AtMentionKind = 'file' | 'directory' | 'expert'
+
+export interface AtMentionCandidate {
+  name: string
+  is_dir: boolean
+  path: string
+  mtime_secs: number
+  kind: AtMentionKind
+  insert_text?: string | null
+  summary?: string | null
+  tags: string[]
+}
+
+export const listAtMentionCandidates = (
+  relativePath: string,
+  query = '',
+): Promise<AtMentionCandidate[]> =>
+  invoke<AtMentionCandidate[]>('list_at_mention_candidates', { relativePath, query })
+
 export const workspaceDuplicateFile = (relativePath: string): Promise<string> =>
   invoke<string>('workspace_duplicate_file', { relativePath })
 

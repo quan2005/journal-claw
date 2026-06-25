@@ -1,7 +1,7 @@
 use crate::config;
+use crate::config::Config;
 #[allow(unused_imports)]
 use crate::dprintln;
-use crate::config::Config;
 use crate::speaker_profiles;
 use async_trait::async_trait;
 use base64::Engine as _;
@@ -1343,7 +1343,8 @@ pub async fn transcribe_audio_to_ai_markdown(
             Err(e) if primary_name != "apple" && cfg!(target_os = "macos") => {
                 dprintln!(
                     "[transcription] engine '{}' failed: {}, falling back to Apple STT",
-                    primary_name, e
+                    primary_name,
+                    e
                 );
                 let _ = app.emit(
                     "transcription-progress",

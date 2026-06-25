@@ -162,7 +162,7 @@
   /* Journal page frame */
   --journal-prose-max: 100%;
   --journal-readable-max: 100%;
-  --journal-content-max: var(--journal-readable-max);
+  --journal-content-max: 100%;
   --journal-workbench-max: 1640px;
   --journal-page-gutter: min(56px, 5vw);
   --journal-page-top: 44px;
@@ -1282,10 +1282,6 @@ body,
 }
 
 .ideas-workbench-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
-  align-items: end;
   margin-bottom: 26px;
 }
 
@@ -1313,7 +1309,6 @@ body,
 }
 
 .ideas-workbench-summary {
-  max-width: 470px;
   margin-top: 18px;
   color: var(--journal-summary-color);
   font-size: var(--journal-summary-size);
@@ -1621,6 +1616,71 @@ body,
   outline-offset: 1px;
 }
 
+/* ── Quick add (bottom persistent input) ───────── */
+.ideas-workbench-quick-add {
+  width: 100%;
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--ideas-border);
+  border-radius: 8px;
+  background: var(--ideas-surface);
+  flex-shrink: 0;
+}
+
+.ideas-workbench-quick-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ideas-text);
+  caret-color: var(--ideas-text);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.42;
+  resize: none;
+  overflow: hidden;
+}
+
+.ideas-workbench-quick-input::placeholder {
+  color: var(--ideas-text-muted);
+}
+
+.ideas-workbench-quick-input:focus {
+  border-color: transparent;
+  outline: 0;
+}
+
+.ideas-workbench-quick-submit {
+  display: inline-grid;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ideas-text-muted);
+  cursor: pointer;
+}
+
+.ideas-workbench-quick-submit:hover {
+  border-color: var(--ideas-border);
+  background: var(--ideas-surface-hover);
+  color: var(--ideas-text);
+}
+
+.ideas-workbench-quick-submit:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--ideas-text-muted) 45%, transparent);
+  outline-offset: 2px;
+}
+
 .ideas-workbench-edit-input:focus {
   border-color: transparent;
   outline: 0;
@@ -1836,12 +1896,12 @@ body,
 
 /* ── Markdown body — ordered list numbers ───────────────────── */
 .md-body {
-  max-width: var(--journal-readable-max);
+  max-width: 100%;
   color: var(--md-text);
 }
 
 .md-body > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
 }
 
 .md-body ol li {

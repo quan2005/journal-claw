@@ -37,6 +37,9 @@ const identity: IdentityEntry = {
   region: '',
   summary: '测试画像',
   tags: [],
+  aliases: [],
+  expert_skill: '',
+  is_expert: false,
   speaker_id: '',
   mtime_secs: 0,
   archived: false,
@@ -112,6 +115,15 @@ describe('TreeSidebar', () => {
     renderTreeSidebar({ category: 'identity' })
 
     expect(screen.getByText('张三')).toBeTruthy()
+  })
+
+  it('emits identity @ refs from the identity list', () => {
+    const onAtRef = vi.fn()
+    renderTreeSidebar({ category: 'identity', onAtRef })
+
+    fireEvent.click(screen.getByText('@'))
+
+    expect(onAtRef).toHaveBeenCalledWith('identities/zhangsan.md')
   })
 
   it('does not render identities in journal category', () => {

@@ -401,6 +401,7 @@ fn main() {
             work_queue::retry_work_item,
             work_queue::dismiss_work_item,
             skills::list_workspace_dir,
+            skills::list_at_mention_candidates,
             skills::workspace_duplicate_file,
             skills::workspace_rename_file,
             skills::workspace_move_file,

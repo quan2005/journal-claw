@@ -249,7 +249,11 @@ pub fn set_skill_enabled(app: AppHandle, skill_id: String, enabled: bool) -> Res
 }
 
 #[tauri::command]
-pub fn set_global_skill_enabled(app: AppHandle, skill_id: String, enabled: bool) -> Result<(), String> {
+pub fn set_global_skill_enabled(
+    app: AppHandle,
+    skill_id: String,
+    enabled: bool,
+) -> Result<(), String> {
     let mut settings = load_settings(&app)?;
     let mut list = settings.enabled_global_skills.unwrap_or_default();
     if enabled {

@@ -94,8 +94,6 @@ function IdeaCompleteIcon() {
 export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: IdeasWorkbenchProps) {
   const { t } = useTranslation()
   const todoContext = useTodoContext()
-  const [activeFilter, setActiveFilter] = useState<IdeasFilter>('all')
-  const [drafting, setDrafting] = useState(false)
   const [draftText, setDraftText] = useState('')
   const [contextMenu, setContextMenu] = useState<IdeasContextMenuState | null>(null)
   const [datePicker, setDatePicker] = useState<IdeasContextMenuState | null>(null)
@@ -113,110 +111,33 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
   }, [contextMenu])
 
   useLayoutEffect(() => {
-    if (drafting) resizeTextarea(draftRef.current)
-  }, [drafting, draftText])
+    resizeTextarea(draftRef.current)
+  }, [draftText])
 
-  const stats = useMemo(() => getIdeaStats(todoContext.todos), [todoContext.todos])
   const visibleTodos = useMemo(
-    () => filterIdeas(todoContext.todos, activeFilter),
-    [activeFilter, todoContext.todos],
+    () => filterIdeas(todoContext.todos, 'all'),
+    [todoContext.todos],
   )
 
   const submitDraft = async () => {
     const text = draftText.trim()
-    if (!text) {
-      setDrafting(false)
-      setDraftText('')
-      return
-    }
+    if (!text) return
     await todoContext.addTodo(text)
-    setDrafting(false)
     setDraftText('')
   }
-
-  const tabs: Array<{ id: IdeasFilter; label: string; count: number }> = [
-    { id: 'all', label: '全部（未完成）', count: stats.open },
-    { id: 'pendingDiscussion', label: '待探讨（未完成且未探讨）', count: stats.pendingDiscussion },
-    { id: 'due', label: '有截止日期（未完成）', count: stats.due },
-    { id: 'done', label: '已完成', count: stats.done },
-  ]
 
   return (
     <div className="ideas-workbench">
       <header className="ideas-workbench-header">
-        <div>
-          <div className="ideas-workbench-eyebrow">IDEAS</div>
-          <h2 className="ideas-workbench-title">{t('todo')}</h2>
-          <div className="ideas-workbench-summary">
-            捕捉阅读和会议中产生的下一步思考。按处理状态筛选，保持轻量扫描。
-          </div>
-        </div>
-        <div className="ideas-workbench-actions">
-          <div className="ideas-workbench-stats" aria-label="想法处理状态统计">
-            <span aria-label={`${stats.open} 未完成`}>
-              <strong>{stats.open}</strong> 未完成
-            </span>
-            <span aria-label={`${stats.pendingDiscussion} 待探讨`}>
-              <strong>{stats.pendingDiscussion}</strong> 待探讨
-            </span>
-            <span aria-label={`${stats.due} 有截止日期`}>
-              <strong>{stats.due}</strong> 有截止日期
-            </span>
-          </div>
-          <button
-            type="button"
-            className="ideas-workbench-button ideas-workbench-button-primary"
-            onClick={() => setDrafting(true)}
-          >
-            <Plus aria-hidden="true" size={17} strokeWidth={1.8} />
-            <span>新建想法</span>
-          </button>
+        <div className="ideas-workbench-eyebrow">IDEAS</div>
+        <h2 className="ideas-workbench-title">{t('todo')}</h2>
+        <div className="ideas-workbench-summary">
+          捕捉阅读和会议中产生的下一步思考。按处理状态筛选，保持轻量扫描；需要推进时，再补上探讨状态或截止日期。
         </div>
       </header>
 
-      <nav className="ideas-workbench-tabs" aria-label="想法筛选">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`ideas-workbench-tab${activeFilter === tab.id ? ' is-active' : ''}`}
-            onClick={() => setActiveFilter(tab.id)}
-          >
-            {tab.label} <span>{tab.count}</span>
-          </button>
-        ))}
-      </nav>
-
       <main className="ideas-workbench-main">
         <div className="ideas-workbench-list">
-          {drafting && (
-            <div className="ideas-workbench-draft">
-              <textarea
-                ref={draftRef}
-                aria-label="新想法内容"
-                value={draftText}
-                rows={1}
-                onChange={(event) => {
-                  setDraftText(event.target.value)
-                  resizeTextarea(event.currentTarget)
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                    event.preventDefault()
-                    void submitDraft()
-                  }
-                  if (event.key === 'Escape') {
-                    setDrafting(false)
-                    setDraftText('')
-                  }
-                }}
-                onBlur={() => void submitDraft()}
-                placeholder={t('addTodo')}
-                autoFocus
-              />
-            </div>
-          )}
-
           {todoContext.loading ? (
             <IdeasLoadingRows />
           ) : visibleTodos.length === 0 ? (
@@ -240,6 +161,41 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
             ))
           )}
         </div>
+
+        <form
+          className="ideas-workbench-quick-add"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void submitDraft()
+          }}
+        >
+          <textarea
+            ref={draftRef}
+            className="ideas-workbench-quick-input"
+            aria-label="新增想法"
+            value={draftText}
+            rows={1}
+            onChange={(event) => {
+              setDraftText(event.target.value)
+              resizeTextarea(event.currentTarget)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                void submitDraft()
+              }
+            }}
+            placeholder={t('addTodo')}
+          />
+          <button
+            className="ideas-workbench-quick-submit"
+            type="submit"
+            aria-label="新增想法"
+            title="新增想法"
+          >
+            <Plus aria-hidden="true" size={18} strokeWidth={1.8} />
+          </button>
+        </form>
       </main>
 
       {contextMenu && (

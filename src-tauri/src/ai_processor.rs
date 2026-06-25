@@ -564,7 +564,8 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
         while let Some(task) = rx.recv().await {
             dprintln!(
                 "[ai_queue] dequeued task: {} ({})",
-                task.material_path, task.year_month
+                task.material_path,
+                task.year_month
             );
 
             // Check if this task was cancelled while waiting in the queue
@@ -652,7 +653,9 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                             crate::llm::retry::RetryDecision::Abort { reason } => {
                                 dprintln!(
                                     "[ai_queue] task failed ({}): {} → {}",
-                                    reason, material_path, e
+                                    reason,
+                                    material_path,
+                                    e
                                 );
                                 break;
                             }
@@ -662,7 +665,8 @@ pub fn start_queue_consumer(app: AppHandle, mut rx: mpsc::Receiver<QueueTask>) {
                         let panic_msg = extract_panic_message(&panic_payload);
                         dprintln!(
                             "[ai_queue] PANIC in process_material for {}: {}",
-                            material_path, panic_msg
+                            material_path,
+                            panic_msg
                         );
 
                         cleanup_current_task_after_panic(&app);
@@ -726,7 +730,9 @@ pub async fn process_material(
 
     dprintln!(
         "[ai_processor] start — material={} ym={} engine={}",
-        material_path, year_month, cfg.active_provider
+        material_path,
+        year_month,
+        cfg.active_provider
     );
 
     let _ = app.emit(
@@ -935,7 +941,8 @@ async fn process_material_builtin(
                         .unwrap_or_default();
                     dprintln!(
                         "[ai_processor:builtin] turn {} complete {}",
-                        turn, usage_str
+                        turn,
+                        usage_str
                     );
                 }
                 AgentEvent::Done {

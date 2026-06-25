@@ -5,18 +5,30 @@
   width: 100%;
   max-width: var(--journal-readable-max);
   font-family: var(--font-body);
-  font-size: var(--text-sm);
-  line-height: 1.7;
+  font-size: var(--text-md);
+  line-height: 1.75;
   color: var(--item-text);
+  text-align: left;
+  hanging-punctuation: none;
   word-break: break-word;
 }
 
 .md-content > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.md-content.mdx-content > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
 }
 
 .md-section > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
-  max-width: var(--journal-prose-max);
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
 }
 
 .md-content > :where(pre, table, img),
@@ -29,22 +41,23 @@
 .md-content h2,
 .md-content h3,
 .md-content h4 {
-  margin: 0.75em 0 0.25em;
+  margin: 1.1em 0 0.35em;
+  font-family: var(--font-display);
   line-height: 1.35;
   font-weight: var(--font-semibold, 600);
 }
 .md-content h1 {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
 }
 .md-content h1,
 .md-content h2 {
   color: var(--journal-title-color);
 }
 .md-content h2 {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
 }
 .md-content h3 {
-  font-size: 1rem;
+  font-size: var(--text-md);
 }
 .md-content h4 {
   font-size: var(--text-sm);
@@ -58,14 +71,14 @@
 
 /* Paragraphs */
 .md-content p {
-  margin: 0.4em 0;
+  margin: 0.55em 0;
 }
 
 /* Lists */
 .md-content ul,
 .md-content ol {
-  margin: 0.4em 0;
-  padding-left: 1.25rem;
+  margin: 0.55em 0;
+  padding-left: 1.35rem;
 }
 .md-content li {
   margin: 0.15em 0;
@@ -80,16 +93,16 @@
   font-size: 0.85em;
   background: var(--md-code-bg);
   color: var(--md-code-text);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   padding: 0.1em 0.35em;
 }
 
 /* Code blocks */
 .md-content pre {
-  margin: 0.5em 0;
+  margin: 0.75em 0;
   padding: 0.75rem 1rem;
   background: var(--md-pre-bg);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -105,8 +118,8 @@
 
 /* Blockquote */
 .md-content blockquote {
-  margin: 0.5em 0;
-  padding: 0.25em 0 0.25em 0.75rem;
+  margin: 0.75em 0;
+  padding: 0.35em 0 0.35em 0.85rem;
   border-left: 2px solid var(--md-quote-bar);
   color: var(--md-quote-text);
 }
@@ -118,7 +131,7 @@
 .md-content hr {
   border: none;
   border-top: 0.5px solid var(--md-quote-bar);
-  margin: 0.75em 0;
+  margin: 1.4em 0;
 }
 
 /* Links */
@@ -185,8 +198,8 @@
 /* Images (rare in chat, but handle gracefully) */
 .md-content img {
   max-width: 100%;
-  border-radius: 6px;
-  margin: 0.4em 0;
+  border-radius: var(--radius-lg);
+  margin: 0.75em 0;
 }
 
 /* Task lists (GFM) */

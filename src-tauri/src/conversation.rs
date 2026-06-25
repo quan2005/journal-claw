@@ -2,6 +2,7 @@ use crate::config;
 #[allow(unused_imports)]
 use crate::dprintln;
 use crate::llm;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 use std::path::PathBuf;
@@ -72,6 +73,7 @@ pub(crate) struct ConversationSession {
     context: Option<String>,
     /// Stored from create() for deferred prompt building
     context_files: Option<Vec<String>>,
+    expert_contexts: Vec<ExpertContext>,
     elapsed_secs: f64,
     total_input_tokens: u64,
     total_output_tokens: u64,
@@ -119,6 +121,8 @@ struct PersistedSessionV2 {
     #[serde(default)]
     system_prompt: Option<String>,
     #[serde(default)]
+    expert_contexts: Vec<ExpertContext>,
+    #[serde(default)]
     elapsed_secs: f64,
     #[serde(default)]
     total_input_tokens: u64,
@@ -149,6 +153,15 @@ struct PersistedMessageV1 {
     thinking: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<DisplayTool>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+struct ExpertContext {
+    identity_ref: String,
+    display_name: String,
+    summary: String,
+    skill_name: Option<String>,
+    profile_content: String,
 }
 
 /// Display-oriented tool info returned to the frontend.
@@ -391,6 +404,7 @@ fn save_session_to_disk(workspace: &str, session_id: &str, session: &Conversatio
         version: 2,
         messages: session.messages.clone(),
         system_prompt: session.system_prompt.clone(),
+        expert_contexts: session.expert_contexts.clone(),
         elapsed_secs: session.elapsed_secs,
         total_input_tokens: session.total_input_tokens,
         total_output_tokens: session.total_output_tokens,
@@ -474,7 +488,8 @@ fn build_context_section(files: &[String]) -> String {
             Err(e) => {
                 dprintln!(
                     "[conversation] failed to read context file {}: {}",
-                    file_path, e
+                    file_path,
+                    e
                 );
             }
         }
@@ -484,6 +499,119 @@ fn build_context_section(files: &[String]) -> String {
     } else {
         String::new()
     }
+}
+
+fn extract_identity_mentions(text: &str) -> Vec<String> {
+    let re = Regex::new(r"@((?:identities|identity)/[^\s`]+?\.md)").expect("valid regex");
+    re.captures_iter(text)
+        .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
+        .collect()
+}
+
+fn contains_expert_clear_mention(text: &str) -> bool {
+    let re = Regex::new(
+        r"(^|\s)@(清除专家|清除专家视角|专家/清除|__experts__/clear)($|[\s，。！？,.!?])",
+    )
+    .expect("valid regex");
+    re.is_match(text)
+}
+
+fn resolve_expert_contexts(workspace: &str, message: &str) -> Vec<ExpertContext> {
+    let refs = extract_identity_mentions(message);
+    if refs.is_empty() {
+        return vec![];
+    }
+
+    let identities = crate::identity::list_identity_entries(workspace).unwrap_or_default();
+    let mut contexts = Vec::new();
+    const PROFILE_LIMIT: usize = 8000;
+
+    for identity_ref in refs {
+        let filename = identity_ref
+            .strip_prefix("identities/")
+            .or_else(|| identity_ref.strip_prefix("identity/"))
+            .unwrap_or(identity_ref.as_str());
+        let Some(entry) = identities.iter().find(|entry| entry.filename == filename) else {
+            continue;
+        };
+        if !entry.is_expert || entry.archived {
+            continue;
+        }
+        let content = std::fs::read_to_string(&entry.path).unwrap_or_default();
+        let profile_content: String = content.chars().take(PROFILE_LIMIT).collect();
+        let skill_name = entry.expert_skill.trim();
+        contexts.push(ExpertContext {
+            identity_ref: format!("identities/{}", entry.filename),
+            display_name: entry.name.clone(),
+            summary: entry.summary.clone(),
+            skill_name: if skill_name.is_empty() {
+                None
+            } else {
+                Some(skill_name.to_string())
+            },
+            profile_content,
+        });
+    }
+
+    contexts
+}
+
+fn merge_expert_contexts(existing: &mut Vec<ExpertContext>, incoming: Vec<ExpertContext>) {
+    for context in incoming {
+        existing.retain(|item| item.identity_ref != context.identity_ref);
+        existing.push(context);
+    }
+}
+
+fn update_expert_contexts_for_message(
+    workspace: &str,
+    message: &str,
+    contexts: &mut Vec<ExpertContext>,
+) {
+    if contains_expert_clear_mention(message) {
+        contexts.clear();
+    }
+    let incoming_experts = resolve_expert_contexts(workspace, message);
+    merge_expert_contexts(contexts, incoming_experts);
+}
+
+fn format_expert_context_section(contexts: &[ExpertContext]) -> String {
+    if contexts.is_empty() {
+        return String::new();
+    }
+
+    let active = contexts
+        .last()
+        .map(|ctx| ctx.display_name.as_str())
+        .unwrap_or("最后一次 @ 的专家");
+    let mut section = format!(
+        "\n\n## 当前专家视角\n\n用户已通过 @ 召唤专家视角。回答时以「{}」作为本轮主视角；其他专家仅作为辅助参考。不要只模仿口吻，要使用该专家的思考框架，并给出判断、盲点提示、反观点或挑战性追问中的至少一种。信息不足时说明边界，不编造此人没说过的话。\n",
+        active
+    );
+
+    for context in contexts {
+        section.push_str(&format!(
+            "\n### {}\n\n来源：@{}\n摘要：{}\n",
+            context.display_name, context.identity_ref, context.summary
+        ));
+        if let Some(skill_name) = &context.skill_name {
+            section.push_str(&format!(
+                "\n关联 Skill：`{}`。如果需要完整规则，应调用 `load_skill` 加载该 Skill；如果加载失败，使用下方画像内容作为降级上下文。\n",
+                skill_name
+            ));
+        }
+        if !context.profile_content.trim().is_empty() {
+            section.push_str("\n画像内容：\n\n");
+            section.push_str(&context.profile_content);
+            section.push('\n');
+        }
+    }
+
+    section
+}
+
+fn system_prompt_with_experts(base: &str, contexts: &[ExpertContext]) -> String {
+    format!("{}{}", base, format_expert_context_section(contexts))
 }
 
 fn generate_session_id() -> String {
@@ -709,6 +837,7 @@ fn migrate_v1_to_v2(v1: PersistedSessionV1) -> PersistedSessionV2 {
         version: 2,
         messages,
         system_prompt: v1.system_prompt,
+        expert_contexts: vec![],
         elapsed_secs: 0.0,
         total_input_tokens: 0,
         total_output_tokens: 0,
@@ -763,6 +892,7 @@ pub async fn conversation_create(
         first_turn_done: false,
         context,
         context_files,
+        expert_contexts: vec![],
         elapsed_secs: 0.0,
         total_input_tokens: 0,
         total_output_tokens: 0,
@@ -874,6 +1004,12 @@ pub async fn conversation_send(
             role: Role::User,
             content: user_content,
         });
+        let workspace_for_experts = session.workspace.clone();
+        update_expert_contexts_for_message(
+            &workspace_for_experts,
+            &message,
+            &mut session.expert_contexts,
+        );
 
         // Instant provisional title from user text (replaced by LLM title after first turn)
         let provisional_title = if session.title.is_none() && !session.title_locked {
@@ -895,7 +1031,10 @@ pub async fn conversation_send(
 
         (
             session.messages.clone(),
-            session.system_prompt.clone().unwrap_or_default(),
+            system_prompt_with_experts(
+                &session.system_prompt.clone().unwrap_or_default(),
+                &session.expert_contexts,
+            ),
             session.workspace.clone(),
             cancel,
             provisional_title,
@@ -1161,6 +1300,7 @@ pub async fn run_unattended_agent_session(
         first_turn_done: false,
         context: None,
         context_files: None,
+        expert_contexts: vec![],
         elapsed_secs: 0.0,
         total_input_tokens: 0,
         total_output_tokens: 0,
@@ -1394,7 +1534,8 @@ pub async fn conversation_truncate(
     session.messages.truncate(keep_count);
     dprintln!(
         "[conversation] truncated session {} to {} messages",
-        session_id, keep_count
+        session_id,
+        keep_count
     );
     Ok(())
 }
@@ -1502,7 +1643,10 @@ async fn conversation_continue(
 
         (
             session.messages.clone(),
-            session.system_prompt.clone().unwrap_or_default(),
+            system_prompt_with_experts(
+                &session.system_prompt.clone().unwrap_or_default(),
+                &session.expert_contexts,
+            ),
             session.workspace.clone(),
             cancel,
         )
@@ -1791,6 +1935,7 @@ pub async fn conversation_load(
         first_turn_done: true,
         context: None,
         context_files: None,
+        expert_contexts: persisted.expert_contexts,
         elapsed_secs: persisted.elapsed_secs,
         total_input_tokens: persisted.total_input_tokens,
         total_output_tokens: persisted.total_output_tokens,
@@ -2568,5 +2713,112 @@ mod tests {
         assert_eq!(display[1].content, "我先读取最近日志。");
         assert!(display[2].content.contains("运行失败"));
         assert!(display[2].content.contains("connection reset"));
+    }
+
+    #[test]
+    fn resolves_expert_context_from_identity_mention() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let identity_dir = dir.path().join("identity");
+        std::fs::create_dir_all(&identity_dir).expect("identity dir");
+        std::fs::write(
+            identity_dir.join("研究-犀利教授.md"),
+            "---\nsummary: \"观点犀利的教授\"\ntags: [\"专家\"]\naliases: [\"教授\"]\nexpert_skill: \"sharp-professor-perspective\"\nspeaker_id: \"\"\n---\n\n# 犀利教授\n\n## 思考方式\n- 先挑战假设\n",
+        )
+        .expect("identity");
+
+        let contexts = resolve_expert_contexts(
+            dir.path().to_str().expect("workspace"),
+            "请 @identities/研究-犀利教授.md 帮我看这个问题",
+        );
+
+        assert_eq!(contexts.len(), 1);
+        assert_eq!(contexts[0].display_name, "犀利教授");
+        assert_eq!(
+            contexts[0].skill_name.as_deref(),
+            Some("sharp-professor-perspective")
+        );
+        assert!(contexts[0].profile_content.contains("先挑战假设"));
+    }
+
+    #[test]
+    fn normal_identity_mention_does_not_create_expert_context() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let identity_dir = dir.path().join("identity");
+        std::fs::create_dir_all(&identity_dir).expect("identity dir");
+        std::fs::write(
+            identity_dir.join("广州-张三.md"),
+            "---\nsummary: \"同事\"\ntags: [\"人物\"]\nspeaker_id: \"\"\n---\n\n# 张三\n",
+        )
+        .expect("identity");
+
+        let contexts = resolve_expert_contexts(
+            dir.path().to_str().expect("workspace"),
+            "请参考 @identities/广州-张三.md",
+        );
+
+        assert!(contexts.is_empty());
+    }
+
+    #[test]
+    fn detects_expert_clear_mention() {
+        assert!(contains_expert_clear_mention("@清除专家"));
+        assert!(contains_expert_clear_mention("先 @专家/清除，再继续"));
+        assert!(!contains_expert_clear_mention("@清除专业术语"));
+    }
+
+    #[test]
+    fn clear_mention_resets_then_applies_new_expert_context() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let identity_dir = dir.path().join("identity");
+        std::fs::create_dir_all(&identity_dir).expect("identity dir");
+        std::fs::write(
+            identity_dir.join("研究-犀利教授.md"),
+            "---\nsummary: \"观点犀利的教授\"\ntags: [\"专家\"]\nspeaker_id: \"\"\n---\n\n# 犀利教授\n",
+        )
+        .expect("identity");
+
+        let mut contexts = vec![ExpertContext {
+            identity_ref: "identities/旧专家.md".to_string(),
+            display_name: "旧专家".to_string(),
+            summary: "old".to_string(),
+            skill_name: None,
+            profile_content: "# old".to_string(),
+        }];
+
+        update_expert_contexts_for_message(
+            dir.path().to_str().expect("workspace"),
+            "@清除专家 @identities/研究-犀利教授.md 重新看",
+            &mut contexts,
+        );
+
+        assert_eq!(contexts.len(), 1);
+        assert_eq!(contexts[0].display_name, "犀利教授");
+    }
+
+    #[test]
+    fn expert_prompt_marks_last_context_as_active() {
+        let prompt = system_prompt_with_experts(
+            "base",
+            &[
+                ExpertContext {
+                    identity_ref: "identities/A.md".to_string(),
+                    display_name: "A".to_string(),
+                    summary: "a".to_string(),
+                    skill_name: None,
+                    profile_content: "# A".to_string(),
+                },
+                ExpertContext {
+                    identity_ref: "identities/B.md".to_string(),
+                    display_name: "B".to_string(),
+                    summary: "b".to_string(),
+                    skill_name: Some("b-skill".to_string()),
+                    profile_content: "# B".to_string(),
+                },
+            ],
+        );
+
+        assert!(prompt.starts_with("base"));
+        assert!(prompt.contains("以「B」作为本轮主视角"));
+        assert!(prompt.contains("关联 Skill：`b-skill`"));
     }
 }

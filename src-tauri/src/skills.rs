@@ -119,9 +119,8 @@ fn parse_skill_frontmatter(
             // gray_matter failed (malformed YAML, unclosed frontmatter). Fall back to the
             // line-based parser for name+description; triggers/output are unavailable.
             let name = crate::frontmatter::parse_frontmatter_field(content, "name")?;
-            let description =
-                crate::frontmatter::parse_frontmatter_field(content, "description")
-                    .unwrap_or_default();
+            let description = crate::frontmatter::parse_frontmatter_field(content, "description")
+                .unwrap_or_default();
             return Some((name, description, vec![], None));
         }
     };
@@ -253,8 +252,11 @@ fn scan_global_skills_extended() -> Vec<SkillInfo> {
                     if let Some(version_entry) = versions.first() {
                         let skills_dir = version_entry.path().join("skills");
                         if skills_dir.is_dir() {
-                            let plugin_id = format!("{}/{}", publisher_name,
-                                plugin.file_name().to_string_lossy());
+                            let plugin_id = format!(
+                                "{}/{}",
+                                publisher_name,
+                                plugin.file_name().to_string_lossy()
+                            );
                             let plugin_skills = scan_skills_dir(&skills_dir, "global");
                             for mut skill in plugin_skills {
                                 skill.dir_name = format!("{}/{}", plugin_id, skill.dir_name);
@@ -397,9 +399,8 @@ pub fn list_skills(app: tauri::AppHandle) -> Result<Vec<SkillInfo>, String> {
     // - project: true unless in disabled_skills
     // - global: false unless in enabled_global_skills (and not shadowed)
     let disabled = crate::workspace_settings::get_disabled_skills(&app);
-    let enabled_globals = crate::workspace_settings::get_enabled_global_skills_for_workspace(
-        &config.workspace_path,
-    );
+    let enabled_globals =
+        crate::workspace_settings::get_enabled_global_skills_for_workspace(&config.workspace_path);
 
     for skill in &mut all {
         if skill.shadowed_by.is_some() {
@@ -431,7 +432,8 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
 
     let skill_md_path = match scope {
         "builtin" => {
-            let bundle_path = app.path()
+            let bundle_path = app
+                .path()
                 .resource_dir()
                 .unwrap_or_default()
                 .join("resources")
@@ -453,13 +455,11 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
                     .join("SKILL.md")
             }
         }
-        "project" => {
-            PathBuf::from(&config.workspace_path)
-                .join(".agents")
-                .join("skills")
-                .join(dir_name)
-                .join("SKILL.md")
-        }
+        "project" => PathBuf::from(&config.workspace_path)
+            .join(".agents")
+            .join("skills")
+            .join(dir_name)
+            .join("SKILL.md"),
         "global" => {
             let home = dirs::home_dir().ok_or("cannot resolve home directory")?;
             if dir_name.contains('/') {
@@ -467,7 +467,8 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
                 let segments: Vec<&str> = dir_name.splitn(3, '/').collect();
                 if segments.len() == 3 {
                     // Resolve latest version directory
-                    let plugin_dir = home.join(".claude")
+                    let plugin_dir = home
+                        .join(".claude")
                         .join("plugins")
                         .join("cache")
                         .join(segments[0])
@@ -485,10 +486,16 @@ pub async fn get_skill_content(app: tauri::AppHandle, skill_id: String) -> Resul
                     }
                 } else {
                     // Fallback: 2-segment "prefix/skill" in ~/.claude/skills/
-                    home.join(".claude").join("skills").join(dir_name).join("SKILL.md")
+                    home.join(".claude")
+                        .join("skills")
+                        .join(dir_name)
+                        .join("SKILL.md")
                 }
             } else {
-                home.join(".claude").join("skills").join(dir_name).join("SKILL.md")
+                home.join(".claude")
+                    .join("skills")
+                    .join(dir_name)
+                    .join("SKILL.md")
             }
         }
         _ => return Err(format!("unknown scope: {}", scope)),
@@ -535,7 +542,11 @@ pub fn open_skills_dir(app: tauri::AppHandle, scope: String) -> Result<(), Strin
 /// Open the directory containing a specific skill's SKILL.md (used by the drawer's
 /// "edit skill" affordance). Falls back to the scope skills directory.
 #[tauri::command]
-pub fn open_skill_dir(app: tauri::AppHandle, scope: String, dir_name: String) -> Result<(), String> {
+pub fn open_skill_dir(
+    app: tauri::AppHandle,
+    scope: String,
+    dir_name: String,
+) -> Result<(), String> {
     let base = match scope.as_str() {
         "builtin" => {
             // Builtin skills are read-only in the bundle — open the source copy in .agents/skills
@@ -655,6 +666,48 @@ mod tests {
         };
         assert!(info.shadowed_by.is_none());
     }
+
+    #[test]
+    fn expert_candidates_include_expert_identity() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let identity_dir = dir.path().join("identity");
+        std::fs::create_dir_all(&identity_dir).expect("identity dir");
+        std::fs::write(
+            identity_dir.join("研究-犀利教授.md"),
+            "---\nsummary: \"观点犀利\"\ntags: [\"专家\"]\naliases: [\"教授\"]\nspeaker_id: \"\"\n---\n\n# 犀利教授\n",
+        )
+        .expect("identity");
+        std::fs::write(
+            identity_dir.join("广州-张三.md"),
+            "---\nsummary: \"同事\"\ntags: [\"人物\"]\nspeaker_id: \"\"\n---\n\n# 张三\n",
+        )
+        .expect("identity");
+
+        let candidates =
+            expert_candidates(dir.path().to_str().expect("workspace"), "教授").expect("candidates");
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].kind, "expert");
+        assert_eq!(candidates[0].path, "identities/研究-犀利教授.md");
+    }
+
+    #[test]
+    fn expert_mention_candidates_include_clear_control() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let identity_dir = dir.path().join("identity");
+        std::fs::create_dir_all(&identity_dir).expect("identity dir");
+
+        let candidates =
+            expert_mention_candidates(dir.path().to_str().expect("workspace"), "", true)
+                .expect("candidates");
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].path, CLEAR_EXPERTS_PATH);
+        assert_eq!(
+            candidates[0].insert_text.as_deref(),
+            Some(CLEAR_EXPERTS_INSERT_TEXT)
+        );
+    }
 }
 
 // ── Workspace directory browsing ─────────────────────────
@@ -666,6 +719,26 @@ pub struct WorkspaceDirEntry {
     pub path: String,
     pub mtime_secs: u64,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AtMentionCandidate {
+    pub name: String,
+    pub is_dir: bool,
+    pub path: String,
+    pub mtime_secs: u64,
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub insert_text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+const EXPERTS_VIRTUAL_DIR: &str = "__experts__";
+const EXPERTS_VIRTUAL_LABEL: &str = "专家";
+const CLEAR_EXPERTS_PATH: &str = "__experts__/clear";
+const CLEAR_EXPERTS_INSERT_TEXT: &str = "清除专家";
 
 #[tauri::command]
 pub fn list_workspace_dir(
@@ -737,6 +810,142 @@ pub fn list_workspace_dir(
     });
 
     Ok(entries)
+}
+
+fn query_matches(haystacks: &[&str], query: &str) -> bool {
+    let q = query.trim().to_lowercase();
+    if q.is_empty() {
+        return true;
+    }
+    haystacks
+        .iter()
+        .any(|s| s.to_lowercase().contains(q.as_str()))
+}
+
+fn expert_candidates(workspace: &str, query: &str) -> Result<Vec<AtMentionCandidate>, String> {
+    let mut experts: Vec<AtMentionCandidate> = crate::identity::list_identity_entries(workspace)?
+        .into_iter()
+        .filter(|entry| entry.is_expert && !entry.archived)
+        .filter(|entry| {
+            let mut haystacks = vec![
+                entry.name.as_str(),
+                entry.filename.as_str(),
+                entry.summary.as_str(),
+                entry.expert_skill.as_str(),
+            ];
+            haystacks.extend(entry.aliases.iter().map(String::as_str));
+            haystacks.extend(entry.tags.iter().map(String::as_str));
+            query_matches(&haystacks, query)
+        })
+        .map(|entry| AtMentionCandidate {
+            name: entry.name,
+            is_dir: false,
+            path: format!("identities/{}", entry.filename),
+            mtime_secs: entry.mtime_secs.max(0) as u64,
+            kind: "expert".to_string(),
+            insert_text: None,
+            summary: if entry.summary.trim().is_empty() {
+                None
+            } else {
+                Some(entry.summary)
+            },
+            tags: entry.tags,
+        })
+        .collect();
+    experts.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(experts)
+}
+
+fn clear_experts_candidate(query: &str) -> Option<AtMentionCandidate> {
+    if !query_matches(
+        &[
+            "清除专家视角",
+            CLEAR_EXPERTS_INSERT_TEXT,
+            "重置专家",
+            "clear expert",
+            "reset expert",
+        ],
+        query,
+    ) {
+        return None;
+    }
+
+    Some(AtMentionCandidate {
+        name: "清除专家视角".to_string(),
+        is_dir: false,
+        path: CLEAR_EXPERTS_PATH.to_string(),
+        mtime_secs: 0,
+        kind: "expert".to_string(),
+        insert_text: Some(CLEAR_EXPERTS_INSERT_TEXT.to_string()),
+        summary: Some("发送后移除当前会话里的专家视角".to_string()),
+        tags: vec!["专家".to_string()],
+    })
+}
+
+fn expert_mention_candidates(
+    workspace: &str,
+    query: &str,
+    include_controls: bool,
+) -> Result<Vec<AtMentionCandidate>, String> {
+    let mut candidates = Vec::new();
+    if include_controls {
+        if let Some(candidate) = clear_experts_candidate(query) {
+            candidates.push(candidate);
+        }
+    }
+    candidates.extend(expert_candidates(workspace, query)?);
+    Ok(candidates)
+}
+
+#[tauri::command]
+pub fn list_at_mention_candidates(
+    app: tauri::AppHandle,
+    relative_path: String,
+    query: String,
+) -> Result<Vec<AtMentionCandidate>, String> {
+    let config = crate::config::load_config(&app)?;
+    if config.workspace_path.is_empty() {
+        return Err("workspace_path not set".to_string());
+    }
+
+    if relative_path == EXPERTS_VIRTUAL_DIR {
+        return expert_mention_candidates(&config.workspace_path, &query, true);
+    }
+
+    let mut candidates: Vec<AtMentionCandidate> = list_workspace_dir(app, relative_path.clone())?
+        .into_iter()
+        .map(|entry| AtMentionCandidate {
+            name: entry.name,
+            is_dir: entry.is_dir,
+            path: entry.path,
+            mtime_secs: entry.mtime_secs,
+            kind: if entry.is_dir { "directory" } else { "file" }.to_string(),
+            insert_text: None,
+            summary: None,
+            tags: vec![],
+        })
+        .collect();
+
+    if relative_path.is_empty() {
+        candidates.push(AtMentionCandidate {
+            name: EXPERTS_VIRTUAL_LABEL.to_string(),
+            is_dir: true,
+            path: EXPERTS_VIRTUAL_DIR.to_string(),
+            mtime_secs: 0,
+            kind: "directory".to_string(),
+            insert_text: None,
+            summary: Some("可召唤的专家视角".to_string()),
+            tags: vec!["专家".to_string()],
+        });
+
+        candidates.extend(expert_mention_candidates(
+            &config.workspace_path,
+            &query,
+            !query.trim().is_empty(),
+        )?);
+    }
+
+    Ok(candidates)
 }
 
 #[tauri::command]

@@ -316,7 +316,49 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
     // GET /runs/:id/sources — source bindings (which files the run used)
     app.get('/runs/:id/sources', (req, res) => {
-      res.json({ sources: sourceBindingService.listByRun(req.params.id) })
+     res.json({ sources: sourceBindingService.listByRun(req.params.id) })
+   })
+
+    // GET /runs/:id/subtasks — list child runs (multi-agent delegation)
+    app.get('/runs/:id/subtasks', (req, res) => {
+      res.json({ subtasks: service.listChildRuns(req.params.id) })
+    })
+
+    // POST /runs/:id/subtasks — spawn a child run (Agent Team delegation)
+    app.post('/runs/:id/subtasks', (req, res) => {
+      const parentId = req.params.id
+      if (!service.hasRun(parentId)) {
+        res.status(404).json({ error: 'parent run not found' })
+        return
+      }
+      const body = (req.body ?? {}) as { goal?: unknown; agentId?: unknown; prompt?: unknown }
+      const goal = typeof body.goal === 'string' ? body.goal : ''
+      if (!goal.trim()) {
+        res.status(400).json({ error: 'goal is required' })
+        return
+      }
+      const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
+      const def = getAgentDef(agentId)
+      if (!def) {
+        res.status(400).json({ error: `unknown agent: ${agentId}` })
+        return
+      }
+      const childRun = service.createRun({ goal, mode: 'agent', parentRunId: parentId })
+      res.status(201).json(childRun)
+      const prompt = typeof body.prompt === 'string' ? body.prompt : goal
+      executeRun(service, { runId: childRun.id, agentId, prompt })
+        .then((result) => {
+          if (!result.ok) return
+          const events = service.readEvents(childRun.id)
+          const assistantText = events
+            .filter((e) => e.type === 'text_delta')
+            .map((e) => { try { return (JSON.parse(e.data) as { text?: string }).text ?? '' } catch { return '' } })
+            .join('')
+          artifactIndex.captureFromRun(childRun.id, assistantText)
+          const changeSets = changeSetService.listChangeSets(childRun.id)
+          sedimentService.sediment(childRun.id, events, [], changeSets)
+        })
+        .catch(() => {})
     })
 
     // Bind to loopback only: the daemon is a local runtime, not a network

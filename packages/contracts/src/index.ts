@@ -38,6 +38,8 @@ export interface AgentRun {
   authorizationMode: AuthorizationMode
   contextBindings: string[]
   steps: AgentStep[]
+  /** Parent run id if this run is a subtask (multi-agent delegation). */
+  parentRunId?: string
   createdAt: string
   updatedAt: string
 }

@@ -39,6 +39,7 @@ export interface CreateRunInput {
   goal: string
   mode: AgentRunMode
   authorizationMode?: AuthorizationMode
+  parentRunId?: string
 }
 
 export class AgentRunService {
@@ -60,8 +61,9 @@ export class AgentRunService {
       status: 'queued',
       authorizationMode: input.authorizationMode ?? 'workspace_write',
       contextBindings: [],
-      steps: [],
-      createdAt: now,
+     steps: [],
+      parentRunId: input.parentRunId,
+     createdAt: now,
       updatedAt: now,
       subscribers: new Set(),
     }
@@ -136,8 +138,15 @@ export class AgentRunService {
   }
 
   /** 暴露给 server.ts 在 SSE handler 里读取 runId 是否存在。 */
-  hasRun(runId: string): boolean {
-    return this.runs.has(runId)
+ hasRun(runId: string): boolean {
+   return this.runs.has(runId)
+ }
+
+  /** List child runs spawned by a parent (multi-agent subtask delegation). */
+  listChildRuns(parentRunId: string): AgentRun[] {
+    return [...this.runs.values()]
+      .filter((s) => s.parentRunId === parentRunId)
+      .map((s) => this.toAgentRun(s))
   }
 
   /** 透传到 store 的回放（供测试 + 后续 cold-restart 场景使用）。 */

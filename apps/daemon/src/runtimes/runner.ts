@@ -84,9 +84,6 @@ export async function executeRun(
       return
     }
 
-    // Fallback run_started in case the CLI emits no system/init line.
-    service.appendEvent(input.runId, makeEvent('run_started', meta, JSON.stringify({ message: `${def.name} run started` })))
-
     // Feed the prompt via stdin per the def's framing, then close stdin.
     const framed =
       def.promptInputFormat === 'stream-json'
@@ -128,8 +125,13 @@ export async function executeRun(
       resolve({ exitCode: null, ok: false })
     })
 
-    child.on('close', (code) => {
-      if (buffer.trim()) {
+   child.on('close', (code) => {
+      // If the CLI emitted no system/init line (some adapters don't),
+      // synthesize a run_started now so the run leaves the queued state.
+      if (!parser.hasStarted()) {
+        service.appendEvent(input.runId, makeEvent('run_started', meta, JSON.stringify({ message: `${def.name} run started` })))
+      }
+     if (buffer.trim()) {
         for (const ev of parser.parseLine(buffer)) {
           service.appendEvent(input.runId, ev)
         }

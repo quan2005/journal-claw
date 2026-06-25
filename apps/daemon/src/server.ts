@@ -127,9 +127,18 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       const run = service.createRun({ goal, mode })
       res.status(201).json(run)
       // Fire-and-forget: spawn the agent and stream its events into the run.
+      // The promise must never reject — an unhandled rejection would crash the
+      // daemon. executeRun already records run_failed on its known failure
+      // paths; this catch is a belt-and-suspenders guard for anything thrown
+      // synchronously before the inner Promise is constructed.
       const prompt = typeof body.prompt === 'string' ? body.prompt : goal
       const model = typeof body.model === 'string' && body.model ? body.model : null
-      void executeRun(service, { runId: run.id, agentId, prompt, model })
+      executeRun(service, { runId: run.id, agentId, prompt, model }).catch((err) => {
+        service.appendEvent(
+          run.id,
+          { type: 'run_failed', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), timestamp: new Date().toISOString() },
+        )
+      })
     })
 
     // GET /agents — list registered adapters with installed/authed status.

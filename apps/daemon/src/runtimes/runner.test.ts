@@ -104,3 +104,41 @@ describe('executeRun', () => {
     expect(captured).toContain('--model')
   })
 })
+
+describe('executeRun run_started dedup (regression)', () => {
+  let dir: string
+  beforeEach(() => {
+    dir = join(tmpdir(), 'rd-' + Math.random().toString(36).slice(2))
+    __resetRegistryForTests()
+  })
+  afterEach(() => {
+    try {
+      rmSync(dir, { recursive: true, force: true })
+    } catch {}
+  })
+
+  it('emits exactly one run_started when the CLI emits a system/init line', async () => {
+    const service = new AgentRunService(dir)
+    const run = service.createRun({ goal: 'g', mode: 'agent' })
+    const lines = [
+      '{"type":"system","subtype":"init","session_id":"' + run.sessionId + '","model":"sonnet"}',
+      '{"type":"result","subtype":"result","result":"ok"}',
+    ]
+    await executeRun(service, { runId: run.id, agentId: 'claude', prompt: 'x' }, {
+      spawnChild: () => mockChild(lines, 0) as any,
+    })
+    const starts = service.readEvents(run.id).filter((e) => e.type === 'run_started')
+    expect(starts).toHaveLength(1)
+  })
+
+  it('synthesizes a fallback run_started when the CLI emits no init line', async () => {
+    const service = new AgentRunService(dir)
+    const run = service.createRun({ goal: 'g', mode: 'agent' })
+    // No init line — only a result. The close handler must emit run_started.
+    await executeRun(service, { runId: run.id, agentId: 'claude', prompt: 'x' }, {
+      spawnChild: () => mockChild(['{"type":"result","subtype":"result","result":"ok"}'], 0) as any,
+    })
+    const starts = service.readEvents(run.id).filter((e) => e.type === 'run_started')
+    expect(starts).toHaveLength(1)
+  })
+})

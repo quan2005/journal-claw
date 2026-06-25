@@ -120,3 +120,5 @@ export function isAgentRunEvent(value: unknown): value is AgentRunEvent {
 export * from './runtime.js'
 
 export * from './artifact.js'
+
+export * from './memory.js'

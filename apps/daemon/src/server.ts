@@ -13,6 +13,7 @@ import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
 import { executeRun } from './runtimes/runner.js'
 import { ChangeSetService } from './changeset/service.js'
 import { ArtifactIndexService } from './artifacts/index.js'
+import { SedimentationService } from './sediment/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -78,6 +79,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
    const service = opts.runService ?? new AgentRunService(resolveDataDir())
     const changeSetService = new ChangeSetService(process.cwd())
     const artifactIndex = new ArtifactIndexService()
+    const sedimentService = new SedimentationService()
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
@@ -141,7 +143,25 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       // synchronously before the inner Promise is constructed.
     const prompt = typeof body.prompt === 'string' ? body.prompt : goal
     const model = typeof body.model === 'string' && body.model ? body.model : null
-      executeRun(service, { runId: run.id, agentId, prompt, model, authorizationMode }).catch((err) => {
+      executeRun(service, { runId: run.id, agentId, prompt, model, authorizationMode })
+        .then((result) => {
+          // G14 auto-sedimentation: when a run succeeds, capture its artifacts
+          // and derive durable memory (summary + preferences/facts/rules),
+          // completing the core loop's final step. Each record is traceable
+          // to this run.
+          if (!result.ok) return
+          const events = service.readEvents(run.id)
+          const assistantText = events
+            .filter((e) => e.type === 'text_delta')
+            .map((e) => { try { return (JSON.parse(e.data) as { text?: string }).text ?? '' } catch { return '' } })
+            .join('')
+          service.appendEvent(run.id, { type: 'sedimentation_started', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ message: 'sedimenting run' }), timestamp: new Date().toISOString() })
+          const artifacts = artifactIndex.captureFromRun(run.id, assistantText)
+          const changeSets = changeSetService.listChangeSets(run.id)
+          const sed = sedimentService.sediment(run.id, events, artifacts, changeSets)
+          service.appendEvent(run.id, { type: 'sedimentation_recorded', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ memoryCount: sed.all.length, artifactCount: artifacts.length }), timestamp: new Date().toISOString() })
+        })
+        .catch((err) => {
         service.appendEvent(
           run.id,
           { type: 'run_failed', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), timestamp: new Date().toISOString() },
@@ -222,10 +242,21 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       res.json({ artifacts: artifactIndex.listByRun(req.params.id) })
     })
 
-    // GET /artifacts — list all indexed artifacts (optionally ?type=)
-    app.get('/artifacts', (req, res) => {
-      const type = typeof req.query.type === 'string' ? req.query.type : null
-      res.json({ artifacts: type ? artifactIndex.listByType(type) : artifactIndex.listAll() })
+   // GET /artifacts — list all indexed artifacts (optionally ?type=)
+   app.get('/artifacts', (req, res) => {
+     const type = typeof req.query.type === 'string' ? req.query.type : null
+     res.json({ artifacts: type ? artifactIndex.listByType(type) : artifactIndex.listAll() })
+   })
+
+    // GET /runs/:id/memory — sedimented memory records for a run
+    app.get('/runs/:id/memory', (req, res) => {
+      res.json({ memory: sedimentService.listByRun(req.params.id) })
+    })
+
+    // GET /memory — all sedimented memory (optionally ?kind=)
+    app.get('/memory', (req, res) => {
+      const kind = typeof req.query.kind === 'string' ? req.query.kind : null
+      res.json({ memory: kind ? sedimentService.listByKind(kind as never) : sedimentService.listAll() })
     })
 
     // Bind to loopback only: the daemon is a local runtime, not a network

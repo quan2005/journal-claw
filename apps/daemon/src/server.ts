@@ -9,7 +9,13 @@
 import express from 'express'
 import type { Server } from 'node:http'
 import { AgentRunService } from './runs/service.js'
+import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
+import { executeRun } from './runtimes/runner.js'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
+
+const execFileAsync = promisify(execFile)
 
 export interface DaemonOptions {
   port: number
@@ -26,6 +32,37 @@ export interface DaemonHandle {
 }
 
 const VALID_MODES: ReadonlySet<AgentRunMode> = new Set(['chat', 'agent', 'observe'])
+
+function detectAgent(
+  bin: string,
+  versionArgs: string[],
+  timeoutMs = 5000,
+): Promise<{ installed: boolean; version: string | null }> {
+  return new Promise((resolve) => {
+    execFile(bin, versionArgs, { timeout: timeoutMs }, (err, stdout) => {
+      if (err) return resolve({ installed: false, version: null })
+      resolve({ installed: true, version: stdout.trim().split('\n')[0] || null })
+    })
+  })
+}
+
+async function detectAuth(
+  bin: string,
+  args: string[],
+  timeoutMs = 5000,
+): Promise<{ authed: boolean; authMethod?: string; apiProvider?: string }> {
+  try {
+    const { stdout } = await execFileAsync(bin, args, { timeout: timeoutMs })
+    const parsed = JSON.parse(stdout) as Record<string, unknown>
+    return {
+      authed: parsed.loggedIn === true,
+      authMethod: typeof parsed.authMethod === 'string' ? parsed.authMethod : undefined,
+      apiProvider: typeof parsed.apiProvider === 'string' ? parsed.apiProvider : undefined,
+    }
+  } catch {
+    return { authed: false }
+  }
+}
 
 function resolveDataDir(): string {
   return process.env.JOURNAL_DAEMON_DATA_DIR ?? '.journal-daemon-data'
@@ -67,10 +104,10 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       })
     })
 
-    // ── AgentRun routes ──────────────────────────────────────────────────────
-    // POST /runs — 创建一个 run，返回 { id, status: 'queued', ... }
-    app.post('/runs', (req, res) => {
-      const body = (req.body ?? {}) as { goal?: unknown; mode?: unknown }
+   // ── AgentRun routes ──────────────────────────────────────────────────────
+   // POST /runs — 创建一个 run，返回 { id, status: 'queued', ... }
+   app.post('/runs', (req, res) => {
+      const body = (req.body ?? {}) as { goal?: unknown; mode?: unknown; agentId?: unknown; prompt?: unknown; model?: unknown }
       const goal = typeof body.goal === 'string' ? body.goal : ''
       const mode = typeof body.mode === 'string' ? (body.mode as AgentRunMode) : 'agent'
       if (!goal.trim()) {
@@ -81,8 +118,44 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: `invalid mode: ${String(body.mode)}` })
         return
       }
+      const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
+      const def = getAgentDef(agentId)
+      if (!def) {
+        res.status(400).json({ error: `unknown agent: ${agentId}` })
+        return
+      }
       const run = service.createRun({ goal, mode })
       res.status(201).json(run)
+      // Fire-and-forget: spawn the agent and stream its events into the run.
+      const prompt = typeof body.prompt === 'string' ? body.prompt : goal
+      const model = typeof body.model === 'string' && body.model ? body.model : null
+      void executeRun(service, { runId: run.id, agentId, prompt, model })
+    })
+
+    // GET /agents — list registered adapters with installed/authed status.
+    app.get('/agents', async (_req, res) => {
+      const defs = listAgentDefs()
+      const out = await Promise.all(
+        defs.map(async (d) => {
+          const det = await detectAgent(d.bin, d.version.args, d.version.timeoutMs)
+          const auth =
+            det.installed && d.authProbe
+              ? await detectAuth(d.bin, d.authProbe.args, d.authProbe.timeoutMs)
+              : { authed: false }
+          return {
+            id: d.id,
+            name: d.name,
+            bin: d.bin,
+            streamFormat: d.streamFormat,
+            installed: det.installed,
+            version: det.version,
+            authed: auth.authed,
+            authMethod: auth.authMethod ?? null,
+            apiProvider: auth.apiProvider ?? null,
+          }
+        }),
+      )
+      res.json({ agents: out })
     })
 
     // GET /runs/:id/events — SSE：先回放已有事件，再推送后续新增事件
@@ -122,7 +195,10 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       res.json(run)
     })
 
-    const server: Server = app.listen(opts.port, () => {
+    // Bind to loopback only: the daemon is a local runtime, not a network
+    // service. Binding 0.0.0.0 would be both a sandbox EPERM and a needless
+    // exposure of the workspace API.
+    const server: Server = app.listen(opts.port, '127.0.0.1', () => {
       const url = `http://127.0.0.1:${opts.port}`
       resolve({
         url,

@@ -14,6 +14,7 @@ import { executeRun } from './runtimes/runner.js'
 import { ChangeSetService } from './changeset/service.js'
 import { ArtifactIndexService } from './artifacts/index.js'
 import { SedimentationService } from './sediment/service.js'
+import { SourceBindingService } from './sources/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -80,6 +81,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const changeSetService = new ChangeSetService(process.cwd())
     const artifactIndex = new ArtifactIndexService()
     const sedimentService = new SedimentationService()
+    const sourceBindingService = new SourceBindingService()
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
@@ -156,10 +158,13 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
             .map((e) => { try { return (JSON.parse(e.data) as { text?: string }).text ?? '' } catch { return '' } })
             .join('')
           service.appendEvent(run.id, { type: 'sedimentation_started', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ message: 'sedimenting run' }), timestamp: new Date().toISOString() })
-          const artifacts = artifactIndex.captureFromRun(run.id, assistantText)
-          const changeSets = changeSetService.listChangeSets(run.id)
-          const sed = sedimentService.sediment(run.id, events, artifacts, changeSets)
-          service.appendEvent(run.id, { type: 'sedimentation_recorded', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ memoryCount: sed.all.length, artifactCount: artifacts.length }), timestamp: new Date().toISOString() })
+         const artifacts = artifactIndex.captureFromRun(run.id, assistantText)
+          // G6: capture which local files the Run used as evidence (Sources),
+          // inferred from its file-touching tool calls.
+          const sourceBindings = sourceBindingService.captureFromRun(run.id, events)
+         const changeSets = changeSetService.listChangeSets(run.id)
+         const sed = sedimentService.sediment(run.id, events, artifacts, changeSets)
+          service.appendEvent(run.id, { type: 'sedimentation_recorded', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ memoryCount: sed.all.length, artifactCount: artifacts.length, sourceCount: sourceBindings.length }), timestamp: new Date().toISOString() })
         })
         .catch((err) => {
         service.appendEvent(
@@ -253,10 +258,15 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       res.json({ memory: sedimentService.listByRun(req.params.id) })
     })
 
-    // GET /memory — all sedimented memory (optionally ?kind=)
-    app.get('/memory', (req, res) => {
-      const kind = typeof req.query.kind === 'string' ? req.query.kind : null
-      res.json({ memory: kind ? sedimentService.listByKind(kind as never) : sedimentService.listAll() })
+   // GET /memory — all sedimented memory (optionally ?kind=)
+   app.get('/memory', (req, res) => {
+     const kind = typeof req.query.kind === 'string' ? req.query.kind : null
+     res.json({ memory: kind ? sedimentService.listByKind(kind as never) : sedimentService.listAll() })
+   })
+
+    // GET /runs/:id/sources — source bindings (which files the run used)
+    app.get('/runs/:id/sources', (req, res) => {
+      res.json({ sources: sourceBindingService.listByRun(req.params.id) })
     })
 
     // Bind to loopback only: the daemon is a local runtime, not a network

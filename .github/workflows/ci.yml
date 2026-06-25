@@ -11,15 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm test
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @journal/web typecheck
+      - run: pnpm --filter @journal/web lint
+      - run: pnpm format:check
+      - run: pnpm --filter @journal/web test
+      - run: pnpm --filter @journal/contracts typecheck
+      - run: pnpm --filter @journal/contracts test
+      - run: pnpm --filter @journal/daemon typecheck
+      - run: pnpm --filter @journal/daemon test
 
   rust:
     runs-on: macos-15
@@ -28,7 +35,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
-      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
+          workspaces: apps/web/src-tauri
+      - run: cargo fmt --manifest-path apps/web/src-tauri/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path apps/web/src-tauri/Cargo.toml -- -D warnings
+      - run: cargo test --manifest-path apps/web/src-tauri/Cargo.toml

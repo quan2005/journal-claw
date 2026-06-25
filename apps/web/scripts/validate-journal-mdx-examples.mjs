@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptPath = fileURLToPath(import.meta.url)
-const defaultRepoRoot = path.resolve(path.dirname(scriptPath), '..')
+const defaultRepoRoot = path.resolve(path.dirname(scriptPath), '../..')
 
 const OWNED_FILES = [
   '.agents/skills/journal/references/component-catalog.md',
@@ -51,7 +51,7 @@ function collectOwnedFiles(repoRoot) {
 }
 
 function readManifest(repoRoot) {
-  const manifestPath = path.join(repoRoot, 'src/components/mdx/component-manifest.json')
+  const manifestPath = path.join(repoRoot, 'apps/web/src/components/mdx/component-manifest.json')
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
   return manifest
     .filter((component) => component.public !== false)

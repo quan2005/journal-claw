@@ -3,14 +3,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { extractPascalCaseJsxTags } from './validate-journal-mdx-examples.mjs'
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const workspaceRoot = '/Users/yanwu/Documents/journal'
 const manualRoot = path.join(workspaceRoot, 'topics/mdx-support-manual')
 const componentRoot = path.join(manualRoot, 'components')
 const templateRoot = path.join(manualRoot, 'templates')
 const skillExampleRoot = path.join(repoRoot, '.agents/skills/journal/references/template-examples')
 const catalogPath = path.join(repoRoot, '.agents/skills/journal/references/component-catalog.md')
-const manifestPath = path.join(repoRoot, 'src/components/mdx/component-manifest.json')
+const manifestPath = path.join(repoRoot, 'apps/web/src/components/mdx/component-manifest.json')
 const imagePath = '/Users/yanwu/Projects/github/journal/src/assets/wechat-qrcode.png'
 
 const projectSource = (relativePath) => `../../Projects/github/journal/${relativePath}`
@@ -56,75 +56,75 @@ const catalog = parseCatalog()
 const sourceGroups = [
   {
     names: ['Toc', 'Cards', 'Card'],
-    source: 'src/components/mdx/layout/opening.tsx',
+    source: 'apps/web/src/components/mdx/layout/opening.tsx',
   },
   {
     names: ['Metrics', 'Steps', 'Timeline'],
-    source: 'src/components/mdx/layout/infographic.tsx',
+    source: 'apps/web/src/components/mdx/layout/infographic.tsx',
   },
   {
     names: ['Verdict', 'MythFact'],
-    source: 'src/components/mdx/layout/judgment.tsx',
+    source: 'apps/web/src/components/mdx/layout/judgment.tsx',
   },
   {
     names: ['Quote', 'ImageText', 'ImageSteps'],
-    source: 'src/components/mdx/layout/evidence.tsx',
+    source: 'apps/web/src/components/mdx/layout/evidence.tsx',
   },
   {
     names: ['Cta', 'Faq', 'Checklist', 'Cases', 'Summary', 'Toolbox'],
-    source: 'src/components/mdx/layout/conversion.tsx',
+    source: 'apps/web/src/components/mdx/layout/conversion.tsx',
   },
   {
     names: ['AuthorCard', 'Subscribe'],
-    source: 'src/components/mdx/layout/brand.tsx',
+    source: 'apps/web/src/components/mdx/layout/brand.tsx',
   },
   {
     names: ['Callout', 'Definition', 'ResourceList', 'ComparisonTable'],
-    source: 'src/components/mdx/layout/enhanced.tsx',
+    source: 'apps/web/src/components/mdx/layout/enhanced.tsx',
   },
   {
     names: ['Columns', 'Column'],
-    source: 'src/components/mdx/layout.tsx',
+    source: 'apps/web/src/components/mdx/layout.tsx',
   },
   {
     names: ['ProsCons', 'Stat', 'StatGroup', 'Table', 'TagList'],
-    source: 'src/components/mdx/display.tsx',
+    source: 'apps/web/src/components/mdx/display.tsx',
   },
   {
     names: ['RelatedEntry', 'RelatedIdentity'],
-    source: 'src/components/mdx/callout.tsx',
+    source: 'apps/web/src/components/mdx/callout.tsx',
   },
   {
     names: ['Kanban', 'Counter', 'RatingBar', 'Stack'],
-    source: 'src/components/mdx/cards.tsx',
+    source: 'apps/web/src/components/mdx/cards.tsx',
   },
   {
     names: ['ImageViewer', 'FileCard'],
-    source: 'src/components/mdx/media.tsx',
+    source: 'apps/web/src/components/mdx/media.tsx',
   },
   {
     names: ['BarChart', 'LineChart', 'PieChart', 'RadarChart'],
-    source: 'src/components/mdx/charts.tsx',
+    source: 'apps/web/src/components/mdx/charts.tsx',
   },
   {
     names: ['Mermaid'],
-    source: 'src/components/mdx/mermaid.tsx',
+    source: 'apps/web/src/components/mdx/mermaid.tsx',
   },
   {
     names: ['InlineMath', 'BlockMath'],
-    source: 'src/components/mdx/math.tsx',
+    source: 'apps/web/src/components/mdx/math.tsx',
   },
   {
     names: ['Section', 'Subtitle', 'Label', 'Divider'],
-    source: 'src/components/mdx/typography.tsx',
+    source: 'apps/web/src/components/mdx/typography.tsx',
   },
   {
     names: ['HtmlPreview'],
-    source: 'src/components/mdx/html-preview.tsx',
+    source: 'apps/web/src/components/mdx/html-preview.tsx',
   },
   {
     names: ['Grid', 'Flow'],
-    source: 'src/components/mdx/grid.tsx',
+    source: 'apps/web/src/components/mdx/grid.tsx',
   },
   {
     names: [
@@ -135,11 +135,11 @@ const sourceGroups = [
       'MilestoneTimeline',
       'InsightCard',
     ],
-    source: 'src/components/mdx/semantic.tsx',
+    source: 'apps/web/src/components/mdx/semantic.tsx',
   },
   {
     names: ['SourceCard', 'ReferenceList', 'CopyButton'],
-    source: 'src/components/mdx/source.tsx',
+    source: 'apps/web/src/components/mdx/source.tsx',
   },
 ]
 
@@ -280,7 +280,7 @@ function componentPage(component) {
     summary: `${name} 的实时渲染、核心 props、适用场景和使用边界。`,
     sources: [
       sourcePath,
-      projectSource('src/components/mdx/index.ts'),
+      projectSource('apps/web/src/components/mdx/index.ts'),
       projectSource('.agents/skills/journal/references/component-catalog.md'),
     ],
   })}# ${name}
@@ -311,7 +311,7 @@ ${codeFence(example)}
 <ReferenceList
   sources={[
     { path: ${JSON.stringify(sourcePath)}, label: ${JSON.stringify(path.basename(source))}, type: 'file' },
-    { path: ${JSON.stringify(projectSource('src/components/mdx/index.ts'))}, label: 'MDX registry', type: 'file' },
+    { path: ${JSON.stringify(projectSource('apps/web/src/components/mdx/index.ts'))}, label: 'MDX registry', type: 'file' },
   ]}
 />
 `
@@ -349,7 +349,7 @@ function rootPages(templatePaths) {
       tags: ['journal', 'mdx-manual', 'index'],
       summary: `MDX 支持手册覆盖 ${manifest.length} 个公共组件和 ${templatePaths.length} 个 subtype 示例。`,
       sources: [
-        projectSource('src/components/mdx/component-manifest.json'),
+        projectSource('apps/web/src/components/mdx/component-manifest.json'),
         projectSource('.agents/skills/journal/references/template-examples'),
       ],
     })}# MDX Support Manual
@@ -384,7 +384,7 @@ function rootPages(templatePaths) {
       sources: [
         projectSource('src-tauri/src/mdx.rs'),
         projectSource('src/components/MdxRenderer.tsx'),
-        projectSource('src/components/mdx/index.ts'),
+        projectSource('apps/web/src/components/mdx/index.ts'),
       ],
     })}# Runtime And Syntax
 
@@ -457,7 +457,7 @@ function rootPages(templatePaths) {
     '99-coverage-manifest.mdx': `${frontmatter({
       tags: ['journal', 'mdx-manual', 'coverage'],
       summary: '覆盖页记录组件、模板和家族数量，便于生成后核对。',
-      sources: [projectSource('src/components/mdx/component-manifest.json')],
+      sources: [projectSource('apps/web/src/components/mdx/component-manifest.json')],
     })}# Coverage Manifest
 
 <Metrics

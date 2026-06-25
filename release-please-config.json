@@ -5,13 +5,28 @@
       "release-type": "node",
       "extra-files": [
         {
+          "type": "json",
+          "path": "apps/web/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "apps/daemon/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/contracts/package.json",
+          "jsonpath": "$.version"
+        },
+        {
           "type": "toml",
-          "path": "src-tauri/Cargo.toml",
+          "path": "apps/web/src-tauri/Cargo.toml",
           "jsonpath": "$.package.version"
         },
         {
           "type": "json",
-          "path": "src-tauri/tauri.conf.json",
+          "path": "apps/web/src-tauri/tauri.conf.json",
           "jsonpath": "$.version"
         }
       ]

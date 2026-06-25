@@ -35,4 +35,4 @@ src-tauri/binaries/
 src-tauri/resources/workspace-template/.claude/scripts/__pycache__/
 
 # Swift build artifacts
-src-tauri/swift-cli/.build/
+apps/web/src-tauri/swift-cli/.build/

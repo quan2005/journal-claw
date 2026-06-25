@@ -1,0 +1,24 @@
+{
+  "name": "@journal/daemon",
+  "version": "0.16.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/cli.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "pnpm run build && node dist/cli.js --no-open",
+    "start": "pnpm run build && node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@journal/contracts": "workspace:*",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.19.0",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.0"
+  }
+}

@@ -17,9 +17,6 @@ jobs:
 
       - name: Select latest Xcode (macOS 26 SDK required for SpeechAnalyzer)
         run: |
-          # Pick the highest-versioned Xcode available on this runner.
-          # SpeechTranscriber / SpeechAnalyzer / AssetInventory require the macOS 26 SDK
-          # which ships with Xcode 17+.
           LATEST=$(ls -1d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
           echo "Using Xcode: $LATEST"
           sudo xcode-select -s "$LATEST"
@@ -31,33 +28,38 @@ jobs:
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: apps/web/src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build Swift CLI (journal-speech sidecar)
         run: |
-          cd src-tauri/swift-cli
+          cd apps/web/src-tauri/swift-cli
           swift build --configuration release --arch arm64
           cp .build/arm64-apple-macosx/release/journal-speech \
              ../binaries/journal-speech-aarch64-apple-darwin
           chmod +x ../binaries/journal-speech-aarch64-apple-darwin
 
       - name: Build Tauri app
-        run: npm run tauri build
+        run: pnpm --filter @journal/web tauri build
 
       - name: Upload release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: src-tauri/target/release/bundle/dmg/*.dmg
+          files: apps/web/src-tauri/target/release/bundle/dmg/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

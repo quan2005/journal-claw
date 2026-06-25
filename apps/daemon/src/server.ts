@@ -11,6 +11,7 @@ import type { Server } from 'node:http'
 import { AgentRunService } from './runs/service.js'
 import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
 import { executeRun } from './runtimes/runner.js'
+import { assembleContext } from './context/assemble.js'
 import { ChangeSetService } from './changeset/service.js'
 import { ArtifactIndexService } from './artifacts/index.js'
 import { SedimentationService } from './sediment/service.js'
@@ -182,9 +183,19 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       // daemon. executeRun already records run_failed on its known failure
       // paths; this catch is a belt-and-suspenders guard for anything thrown
       // synchronously before the inner Promise is constructed.
-    const prompt = typeof body.prompt === 'string' ? body.prompt : goal
-    const model = typeof body.model === 'string' && body.model ? body.model : null
-      executeRun(service, { runId: run.id, agentId, prompt, model, authorizationMode })
+   const prompt = typeof body.prompt === 'string' ? body.prompt : goal
+   const model = typeof body.model === 'string' && body.model ? body.model : null
+      // G15+G14: assemble context before execution — the core loop's
+      // "Agent 组装上下文" step. Wraps the user's goal with workspace
+      // metadata (goals, active sources) and sedimented memory (preferences,
+      // facts, rules) so the Agent starts with the workspace's accumulated
+      // state.
+      const assembledPrompt = assembleContext(
+        prompt,
+        workspaceService.getMeta(),
+        sedimentService.listAll(),
+      )
+      executeRun(service, { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode })
         .then((result) => {
           // G14 auto-sedimentation: when a run succeeds, capture its artifacts
           // and derive durable memory (summary + preferences/facts/rules),

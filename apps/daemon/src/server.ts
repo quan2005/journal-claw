@@ -12,6 +12,7 @@ import { AgentRunService } from './runs/service.js'
 import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
 import { executeRun } from './runtimes/runner.js'
 import { ChangeSetService } from './changeset/service.js'
+import { ArtifactIndexService } from './artifacts/index.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -76,6 +77,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
    const service = opts.runService ?? new AgentRunService(resolveDataDir())
     const changeSetService = new ChangeSetService(process.cwd())
+    const artifactIndex = new ArtifactIndexService()
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
@@ -212,7 +214,18 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
     // GET /runs/:id/changesets — list the recorded file changes for a run
     app.get('/runs/:id/changesets', (req, res) => {
-      res.json({ changeSets: changeSetService.listChangeSets(req.params.id) })
+     res.json({ changeSets: changeSetService.listChangeSets(req.params.id) })
+   })
+
+    // GET /runs/:id/artifacts — list the artifacts produced by a run
+    app.get('/runs/:id/artifacts', (req, res) => {
+      res.json({ artifacts: artifactIndex.listByRun(req.params.id) })
+    })
+
+    // GET /artifacts — list all indexed artifacts (optionally ?type=)
+    app.get('/artifacts', (req, res) => {
+      const type = typeof req.query.type === 'string' ? req.query.type : null
+      res.json({ artifacts: type ? artifactIndex.listByType(type) : artifactIndex.listAll() })
     })
 
     // Bind to loopback only: the daemon is a local runtime, not a network

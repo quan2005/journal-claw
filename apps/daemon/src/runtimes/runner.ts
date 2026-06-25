@@ -17,7 +17,14 @@ import {
   makeEvent,
   type ClaudeStreamParser,
 } from './stream/claudeStream.js'
+import { createCodexStreamParser, type CodexStreamParser } from './stream/codexStream.js'
 
+type StreamParser = ClaudeStreamParser | CodexStreamParser
+
+function createParser(streamFormat: string, meta: { runId: string; sessionId: string }): StreamParser {
+  if (streamFormat === 'codex-jsonl') return createCodexStreamParser(meta)
+  return createClaudeStreamParser(meta)
+}
 export interface ExecuteRunInput {
   runId: string
   agentId: string
@@ -75,7 +82,7 @@ export async function executeRun(
     ((bin: string, a: string[], opts: { cwd?: string }) =>
       spawn(bin, a, { cwd: opts.cwd, stdio: ['pipe', 'pipe', 'pipe'] }))
 
-  const parser: ClaudeStreamParser = createClaudeStreamParser(meta)
+  const parser = createParser(def.streamFormat, meta)
 
   return new Promise<ExecuteRunResult>((resolve) => {
     let child: ChildProcessWithoutNullStreams
@@ -88,15 +95,18 @@ export async function executeRun(
       return
     }
 
-    // Feed the prompt via stdin per the def's framing, then close stdin.
-    const framed =
-      def.promptInputFormat === 'stream-json'
-        ? framePromptAsStreamJson(input.prompt)
-        : input.prompt + '\n'
-    try {
-      child.stdin.write(framed)
-    } catch {
-      // ignore — child may have exited already
+    // Feed the prompt via stdin only for adapters that use stdin (claude).
+    // Adapters with promptViaStdin=false (codex) embed the prompt in argv.
+    if (def.promptViaStdin) {
+      const framed =
+        def.promptInputFormat === 'stream-json'
+          ? framePromptAsStreamJson(input.prompt)
+          : input.prompt + '\n'
+      try {
+        child.stdin.write(framed)
+      } catch {
+        // ignore — child may have exited already
+      }
     }
     try {
       child.stdin.end()

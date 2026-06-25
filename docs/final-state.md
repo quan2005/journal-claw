@@ -357,4 +357,4 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 - **G6/G7** Sources + Artifacts 一等化（source binding + artifact index）。
 - **G8/G9** ChangeSet + AuthorizationMode（把 `claude --permission-mode` 接进三档授权）。
 - **G12** Agent Run Workbench（右侧面板结构化 timeline）——G5 已铺好前端传输，G12 在其上做 UI。
-- 真实 claude run 的端到端验收：需在非沙盒（可 listen + 可联网）环境跑一次 daemon → curl POST /runs → 看 SSE 事件序列，作为 G11 的"非降级"补证。
+- **真实 claude run 的端到端验收**：✅ 已完成（非沙盒环境）。实测 daemon -> POST /runs（spawn 真 `claude -p`）-> 有序事件 `run_started`/`text_delta{pong}`/`run_finished{result,usage}` 持久化进 JSONL；`GET /agents` 报告 claude installed+authed(oauth)。G11 的"非降级"补证已闭环。同时修复了实测暴露的两个缺陷：重复 `run_started`、未捕获 rejection 导致 daemon 崩溃。

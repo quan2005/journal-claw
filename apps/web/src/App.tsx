@@ -53,6 +53,9 @@ const RightPanel = lazy(() =>
 const ChatPanel = lazy(() =>
   import('./components/ChatPanel').then((m) => ({ default: m.ChatPanel })),
 )
+const AgentRunPanel = lazy(() =>
+  import('./components/AgentRunPanel').then((m) => ({ default: m.AgentRunPanel })),
+)
 import { HistoryFloatingButton } from './components/HistoryFloatingButton'
 import { useConversation } from './hooks/useConversation'
 const OnboardingView = lazy(() => import('./components/OnboardingView'))
@@ -134,14 +137,16 @@ export default function App() {
     sidebarWidth,
     setSidebarWidthView,
     persistSidebarWidth,
-    rightPanelOpen,
-    setRightPanelOpen,
-    rightPanelWidth,
-    setRightPanelWidthView,
-    persistRightPanelWidth,
-    rightPanelPinned,
-    setRightPanelPinned,
-  } = useLayout()
+   rightPanelOpen,
+   setRightPanelOpen,
+    rightPanelMode,
+    setRightPanelMode,
+   rightPanelWidth,
+   setRightPanelWidthView,
+   persistRightPanelWidth,
+   rightPanelPinned,
+   setRightPanelPinned,
+ } = useLayout()
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -1236,13 +1241,38 @@ export default function App() {
             borderLeft: rightPanelOpen ? '0.5px solid var(--divider)' : '0.5px solid transparent',
             opacity: rightPanelOpen ? 1 : 0,
             pointerEvents: rightPanelOpen ? 'auto' : 'none',
-            transition: SIDEBAR_PANEL_TRANSITION,
-            willChange: 'width, opacity',
-          }}
-        >
-          <Suspense fallback={null}>
-            <RightPanel
-              chatContent={
+           transition: SIDEBAR_PANEL_TRANSITION,
+           willChange: 'width, opacity',
+         }}
+       >
+        {/* Mode toggle: Chat ↔ Agent Run. Rendered above the Suspense boundary
+            so it is always present (the user's "right side = Agent Run panel"). */}
+        <div style={{ display: 'flex', gap: 0, padding: '6px 10px 0', borderBottom: '0.5px solid var(--divider)', flexShrink: 0 }}>
+          {(['chat', 'run'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setRightPanelMode(m)}
+              style={{
+                padding: '4px 10px',
+                fontSize: 12,
+                fontWeight: 600,
+                border: 'none',
+                borderBottom: rightPanelMode === m ? '2px solid var(--accent)' : '2px solid transparent',
+                background: 'transparent',
+                color: rightPanelMode === m ? 'var(--accent)' : 'var(--text-tertiary)',
+                cursor: 'pointer',
+              }}
+            >
+              {m === 'chat' ? 'Chat' : 'Agent Run'}
+            </button>
+          ))}
+        </div>
+        <Suspense fallback={null}>
+           <RightPanel
+             chatContent={
+                rightPanelMode === 'run' ? (
+                  <AgentRunPanel />
+                ) : (
                 <ChatPanel
                   sessionId={sessionId}
                   messages={messages}
@@ -1262,11 +1292,12 @@ export default function App() {
                       activeSessionId={sessionId}
                       onSelect={(id: string) => openChatPanel(id)}
                     />
-                  }
-                />
-              }
-            />
-          </Suspense>
+                 }
+               />
+                )
+             }
+           />
+         </Suspense>
         </div>
       </div>
 

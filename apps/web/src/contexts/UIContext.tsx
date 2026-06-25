@@ -139,9 +139,11 @@ interface LayoutContextValue {
   persistRightPanelWidth: (w: number) => void
   setRightPanelWidth: (w: number) => void
 
-  rightPanelOpen: boolean
-  setRightPanelOpen: Dispatch<SetStateAction<boolean>>
-  rightPanelPinned: boolean
+ rightPanelOpen: boolean
+ setRightPanelOpen: Dispatch<SetStateAction<boolean>>
+  rightPanelMode: 'chat' | 'run'
+  setRightPanelMode: Dispatch<SetStateAction<'chat' | 'run'>>
+ rightPanelPinned: boolean
   setRightPanelPinned: (p: boolean) => void
 }
 
@@ -201,8 +203,10 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   // ── Layout dimensions (moved to LayoutContext below) ──
   const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim(SIDEBAR_WIDTH_KEY, 320))
-  const [rightPanelOpen, setRightPanelOpen] = useState(false)
-  const [rightPanelWidth, setRightPanelWidthState] = useState(() =>
+ const [rightPanelOpen, setRightPanelOpen] = useState(false)
+  // Right panel content mode: 'chat' (default) or 'run' (Agent Run panel).
+  const [rightPanelMode, setRightPanelMode] = useState<'chat' | 'run'>('chat')
+ const [rightPanelWidth, setRightPanelWidthState] = useState(() =>
     loadDim(RIGHT_PANEL_WIDTH_KEY, 320),
   )
   const [rightPanelPinned, setRightPanelPinnedState] = useState(() =>
@@ -303,9 +307,11 @@ export function UIProvider({ children }: { children: ReactNode }) {
       setRightPanelWidthView,
       persistRightPanelWidth,
       setRightPanelWidth,
-      rightPanelOpen,
-      setRightPanelOpen,
-      rightPanelPinned,
+     rightPanelOpen,
+     setRightPanelOpen,
+      rightPanelMode,
+      setRightPanelMode,
+     rightPanelPinned,
       setRightPanelPinned,
     }),
     [
@@ -317,11 +323,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
       setRightPanelWidthView,
       persistRightPanelWidth,
       setRightPanelWidth,
-      rightPanelOpen,
-      rightPanelPinned,
-      setRightPanelPinned,
-    ],
-  )
+     rightPanelOpen,
+      rightPanelMode,
+     rightPanelPinned,
+     setRightPanelPinned,
+   ],
+ )
 
   return (
     <LayoutContext.Provider value={layoutValue}>

@@ -675,22 +675,76 @@ describe('App', () => {
     expect(identityBtn.getAttribute('aria-current')).toBe('page')
   })
 
-  it('toggles todo sidebar with Cmd+T', async () => {
+ it('toggles todo sidebar with Cmd+T', async () => {
+   await act(async () => {
+     renderApp()
+   })
+   await act(async () => {})
+
+   // Open todo sidebar
+   await act(async () => {
+     fireEvent.keyDown(window, { key: 't', metaKey: true })
+   })
+
+   // Todo sidebar should appear (has 待办 heading or add button)
+   expect(
+     document.querySelector('[data-testid="todo-sidebar"]') ||
+       screen.queryAllByText('待办').length > 0 ||
+       true,
+   ).toBeTruthy()
+ })
+
+  // Helper: open the right panel so the mode toggle renders.
+  async function openRightPanel() {
+    // Click the TitleBar expand toggle (always rendered). When already open it
+    // reads '折叠右侧栏'; when closed '展开右侧栏' — click the expand one.
+    const expand = screen.queryByRole('button', { name: '展开右侧栏 (⌘T)' })
+    if (expand) {
+      await act(async () => {
+        fireEvent.click(expand)
+      })
+    }
+  }
+
+  // ── G13: Agent Run panel integration ──────────────────────────────────
+  it('renders the Chat/Agent Run mode toggle and defaults to chat', async () => {
     await act(async () => {
       renderApp()
     })
     await act(async () => {})
+    await openRightPanel()
+    expect(screen.getByRole('button', { name: 'Chat' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Agent Run' })).toBeTruthy()
+    // Default chat mode: the run goal form must be absent (no regression).
+    expect(screen.queryByPlaceholderText('What should the agent do?')).toBeNull()
+  })
 
-    // Open todo sidebar
+  it('switching to Agent Run renders the structured run surface', async () => {
     await act(async () => {
-      fireEvent.keyDown(window, { key: 't', metaKey: true })
+      renderApp()
     })
-
-    // Todo sidebar should appear (has 待办 heading or add button)
-    expect(
-      document.querySelector('[data-testid="todo-sidebar"]') ||
-        screen.queryAllByText('待办').length > 0 ||
-        true,
-    ).toBeTruthy()
+    await act(async () => {})
+    await openRightPanel()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Agent Run' }))
+    })
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('What should the agent do?')).toBeTruthy()
+    })
+    // The Agent Run header is present.
+    expect(screen.getAllByText('Agent Run').length).toBeGreaterThan(0)
   })
 })
+
+  it('DEBUG right panel buttons', async () => {
+    await act(async () => { renderApp() })
+    await act(async () => {})
+    const buttons = screen.getAllByRole('button')
+    // eslint-disable-next-line no-console
+    console.log('ALL_BUTTON_NAMES:', JSON.stringify(buttons.map((b) => b.getAttribute('aria-label') || b.textContent).slice(0, 40)))
+    const rightPanel = document.querySelector('[data-sidebar-panel="right"]') as HTMLElement
+    // eslint-disable-next-line no-console
+    console.log('RIGHT_PANEL_WIDTH:', rightPanel?.style.width, 'ARIA:', rightPanel?.getAttribute('aria-hidden'))
+    expect(true).toBe(true)
+  })
+

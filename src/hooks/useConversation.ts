@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { listen } from '@tauri-apps/api/event'
+import { defaultRuntimeClient } from '../lib/runtimeClient'
 import type { ConversationMessage, ConversationStreamPayload, MessageBlock } from '../types'
 import type { ImageAttachment } from '../lib/tauri'
 import {
@@ -140,8 +140,8 @@ export function useConversation() {
 
   // ── Event listener — processes ALL sessions ────────────
   useEffect(() => {
-    const unlisten = listen<ConversationStreamPayload>('conversation-stream', (event) => {
-      const { session_id: sid, event: evt, data } = event.payload
+    const off = defaultRuntimeClient.subscribe<ConversationStreamPayload>('conversation-stream', (payload) => {
+      const { session_id: sid, event: evt, data } = payload
 
       switch (evt) {
         case 'turn_start':
@@ -589,7 +589,7 @@ export function useConversation() {
     })
 
     return () => {
-      unlisten.then((fn) => fn())
+      off()
     }
   }, [
     updateTabMessages,

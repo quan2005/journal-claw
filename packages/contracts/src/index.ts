@@ -124,3 +124,5 @@ export * from './artifact.js'
 export * from './memory.js'
 
 export * from './source.js'
+
+export * from './workspace.js'

@@ -15,6 +15,7 @@ import { ChangeSetService } from './changeset/service.js'
 import { ArtifactIndexService } from './artifacts/index.js'
 import { SedimentationService } from './sediment/service.js'
 import { SourceBindingService } from './sources/service.js'
+import { WorkspaceService } from './workspace/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -82,16 +83,54 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const artifactIndex = new ArtifactIndexService()
     const sedimentService = new SedimentationService()
     const sourceBindingService = new SourceBindingService()
+    const workspaceService = new WorkspaceService(process.cwd())
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
     })
 
-    app.get('/workspace', (_req, res) => {
-      res.json({
-        path: process.cwd(),
-        available: true,
-      })
+   app.get('/workspace', (_req, res) => {
+     res.json({
+       path: process.cwd(),
+       available: true,
+     })
+   })
+
+    // GET /workspace/meta — workspace context boundary metadata (G15)
+    app.get('/workspace/meta', (_req, res) => {
+      res.json(workspaceService.getMeta())
+    })
+
+    // PUT /workspace/meta — update workspace metadata (partial merge)
+    app.put('/workspace/meta', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      const patch: Record<string, unknown> = {}
+      if (typeof body.name === 'string') patch.name = body.name
+      if (typeof body.type === 'string') patch.type = body.type
+      if (typeof body.description === 'string') patch.description = body.description
+      if (Array.isArray(body.goals)) patch.goals = body.goals.filter((g) => typeof g === 'string')
+      if (Array.isArray(body.activeSources)) patch.activeSources = body.activeSources.filter((s) => typeof s === 'string')
+      res.json(workspaceService.updateMeta(patch))
+    })
+
+    // POST /workspace/goals — add a goal
+    app.post('/workspace/goals', (req, res) => {
+      const goal = (req.body ?? {}) as { goal?: unknown }
+      if (typeof goal.goal !== 'string' || !goal.goal.trim()) {
+        res.status(400).json({ error: 'goal is required' })
+        return
+      }
+      res.json(workspaceService.addGoal(goal.goal))
+    })
+
+    // POST /workspace/sources — mark a file as an active source
+    app.post('/workspace/sources', (req, res) => {
+      const body = (req.body ?? {}) as { source?: unknown }
+      if (typeof body.source !== 'string' || !body.source.trim()) {
+        res.status(400).json({ error: 'source is required' })
+        return
+      }
+      res.json(workspaceService.addActiveSource(body.source))
     })
 
     // SSE event stream — 推送 mock 心跳事件，验证通道可用

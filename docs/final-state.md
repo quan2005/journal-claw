@@ -402,3 +402,26 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 | **Artifacts** | ✅ ArtifactIndex（G7）；前端浏览器待做 |
 | **Runs** | ✅ 一等化全链路：可创建/流式/取消/JSONL 回放（G4）+ 真 claude -p 执行（G10/G11）+ 右侧面板 UI（G12/G13） |
 | **Rules/Memory** | 自动沉淀管线（G14）待做 |
+
+### 2026-06-25 增补：G14 落地 — 核心循环闭环
+
+| G | 内容 | 证据 | commit |
+|---|---|---|---|
+| **G14** | 自动沉淀管线 — Run 完成后自动生成 summary note + 抽取 preference/project_fact/writing_rule/tool_rule，每条带 sourceRunId + evidence | 9 service tests green；live claude -p run JSONL 显示 run_finished → sedimentation_started → sedimentation_recorded；GET /runs/:id/memory 返回可溯源记录 | dd6038 |
+
+**核心循环现已完整闭环（实测）：**
+```
+用户提目标 → POST /runs（spawn claude -p）→ 流式事件 → run_finished
+→ 自动捕获 artifacts（captureFromRun）→ 自动沉淀 memory（sediment）
+→ sedimentation_recorded → memory 可查询（GET /runs/:id/memory、GET /memory）
+```
+
+### 五个一等对象当前状态（G14 后更新）
+
+| 对象 | 落地情况 | 实测证据 |
+|---|---|---|
+| **Workspace** | 已有（get/set/list + workspace prompt）；元数据化（G15）待做 | Rust 侧 |
+| **Sources** | ✅ ChangeSet（可追踪/可恢复）+ AuthorizationMode 三档（G8/G9）；source binding（G6）待做 | daemon tests + live |
+| **Artifacts** | ✅ ArtifactIndex（G7）；captureFromRun 在 sedimentation 中实测调用 | GET /runs/:id/artifacts |
+| **Runs** | ✅ 全链路：创建/流式/取消/JSONL 回放（G4）+ 真 claude -p（G10/G11）+ 右侧面板（G12/G13） | live claude pong run |
+| **Rules/Memory** | ✅ 自动沉淀（G14）；summary + preference/fact/rule 抽取 | live sedimentation_recorded event |

@@ -425,3 +425,22 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 | **Artifacts** | ✅ ArtifactIndex（G7）；captureFromRun 在 sedimentation 中实测调用 | GET /runs/:id/artifacts |
 | **Runs** | ✅ 全链路：创建/流式/取消/JSONL 回放（G4）+ 真 claude -p（G10/G11）+ 右侧面板（G12/G13） | live claude pong run |
 | **Rules/Memory** | ✅ 自动沉淀（G14）；summary + preference/fact/rule 抽取 | live sedimentation_recorded event |
+
+### 2026-06-25 增补：G6 落地 — Sources 一等化（证据链输入侧）
+
+| G | 内容 | 证据 | commit |
+|---|---|---|---|
+| **G6** | Source Binding — Run 声明引用了哪些本地文件作为证据；captureFromRun 从 tool_call 推断 read/search 绑定 | 7 service tests green（含 Read/Bash 路径提取、去重、非文件工具忽略）；GET /runs/:id/sources 路由 | d55ab7 |
+
+- 证据链现已两侧闭合：Sources（G6，输入侧）→ Run（G4/G10/G11）→ Artifacts/Memory（G7/G14，输出侧）。
+- `captureFromRun` 在 post-run 管线中与 artifacts/sedimentation 一起触发；`sedimentation_recorded` 事件携带 `sourceCount`。
+
+### 五个一等对象当前状态（G6 后更新）
+
+| 对象 | 落地 | 实测 |
+|---|---|---|
+| **Workspace** | 已有；元数据化（G15）待做 | Rust 侧 |
+| **Sources** | ✅ ChangeSet（G8/G9）+ Source Binding（G6） | daemon tests + GET /runs/:id/sources |
+| **Artifacts** | ✅ ArtifactIndex（G7） | GET /runs/:id/artifacts |
+| **Runs** | ✅ 全链路 + 真 claude -p + 右侧面板 | live pong run |
+| **Rules/Memory** | ✅ 自动沉淀（G14） | live sedimentation_recorded |

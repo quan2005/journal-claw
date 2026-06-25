@@ -56,10 +56,12 @@ Rust 侧 `llm/tool_loop.rs` 已有完整 agentic tool loop：bash tool + fs_tool
 ## 0.1 任务拆解原则（✅ 已定）
 
 每个子目标必须：
-1. **可验收**——有明确的 Given-When-Then，Codex 能只读检核。
+1. **可验收**——有明确的 Given-When-Then + 检查命令。验收标准遵循 [`docs/verification-standard.md`](./verification-standard.md)。
 2. **对齐五个对象**——每个任务要说明它服务于哪个对象的"一等化"。
 3. **小而独占**——单 agent 单目标，冲突热点文件不并发。
 4. **不破坏默认路径**——Tauri/Rust 默认路径在替代完成前保持可用。
+
+> **验收方式（✅ 已定）**：见 `docs/verification-standard.md`。核心：验收方用 Codex `workspace-write` 沙盒（能跑 build/test），实现方先 commit 提供干净基线，验收后 `git diff` 越界核查。连续两次 read-only 假 FAIL 的教训已沉淀进标准。
 
 ---
 
@@ -89,7 +91,7 @@ Portable Runtime Boundary（跨平台 Node/Electron 能力）
 |---|---|---|---|
 | **0** 需求门禁 + ADR | story + ADR + Rust 删除 gate | 契约 | ✅ **verified** |
 | **1** 前端运行时保护层 | JournalRuntimeClient | 全对象基础设施 | ✅ **verified** |
-| **2** 旁路 TS daemon | daemon 骨架 | 全对象基础设施 | 🔲 D1/D2 已定 |
+| **2** 旁路 TS daemon | daemon 骨架 | 全对象基础设施 | ✅ **verified** | G1/G2/G3 完成：pnpm monorepo + apps/daemon(Express) + packages/contracts |
 | **3** AgentRun 一等化 | Run 从"对话流事件"升级为可回看对象 | **Runs** | 🔲 |
 | **4** Sources + Artifacts 一等化 | source binding + artifact index | **Sources / Artifacts** | 🔲 |
 | **5** ChangeSet + AuthorizationMode | 文件操作可追踪可撤销 + 三档授权 | **Sources**（安全操作） | 🔲 |
@@ -316,3 +318,43 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 1. 等 Phase 1 执行完成通知 → 触发 Codex 验收 → 翻 verified。
 2. 与你逐个过 §3 的 D1-D7，每定一个就解锁对应 phase 的 story 派发。
 3. Phase 1 verified 后，若 §3 D1/D2 已定，即可派 Phase 2 daemon 骨架。
+
+---
+
+## 7. 落地记录（实现 + 验收，2026-06-25）
+
+> 本轮以"编排者 + 实现 + 独立验证"三角色推进，按 verification-standard.md。
+> 两个 Agent Team 并行落地，文件互不冲突。
+
+### 已 verified / 已落地
+
+| G | 内容 | 证据 | commit |
+|---|---|---|---|
+| **G3** | AgentRun 契约（AgentRun/AgentRunEvent/AuthorizationMode/ChangeSet） | contracts 8 tests green | 6d66228 |
+| **G4** | AgentRunService（POST /runs + SSE + JSONL + cancel + 状态机） | daemon 38→55→77 tests green | 289255b |
+| **G10** | RuntimeAgentDef 契约 + 去重 registry（claude 内建） | contracts runtime.test + registry.test green | ba9dde2 |
+| **G11** | claude adapter（buildArgs/authProbe）+ stream parser + runner + POST /runs agentId + GET /agents | claudeStream.test（真实 schema fixture）+ runner.test（mock spawn）+ routes.test green | ba9dde2 |
+| **G5** | HttpRuntimeClient + JOURNAL_RUNTIME flag + useConversation 解耦 | 17 runtime tests + 5 useConversation tests green，web typecheck clean | e601530 |
+
+### 本轮修复的潜伏基建问题
+
+- contracts `main`/`exports` 原指向 TS 源（`./src/index.ts`），plain node ESM 无法加载 → 改为编译产物 `./dist/index.js`（对齐 open-design）。
+- daemon 原监听 `0.0.0.0`（沙盒 EPERM + 不必要的网络暴露）→ 改为 `127.0.0.1` loopback only。
+
+### 真实 claude -p 流式 schema（本机实测，G11 解析器依据）
+
+- `system/init` → run_started；`assistant{text|tool_use}` → text_delta/tool_call；`result` → run_finished；`system/api_retry|hook_*` 吞掉。
+- `claude -p --input-format stream-json --output-format stream-json --verbose`，prompt 走 stdin（stream-json framing）。
+
+### 当前能力底盘（实测可达）
+
+1. **daemon 可创建 Run、流式订阅、取消、JSONL 回放**（G4）。
+2. **daemon 可 spawn `claude -p`**，把它的流式输出解析为统一 AgentRunEvent 喂进 Run（G10/G11）。注入式 spawner 已测；真实 spawn 受沙盒 listen/network 限制，降级为 fixture + 单元行为契约验证（见 verification-standard §4/§7）。
+3. **前端可用 HttpRuntimeClient 走 daemon 传输**，feature flag 开关，Tauri 路径不回退（G5）。
+
+### 下一步候选（按 §2 排序）
+
+- **G6/G7** Sources + Artifacts 一等化（source binding + artifact index）。
+- **G8/G9** ChangeSet + AuthorizationMode（把 `claude --permission-mode` 接进三档授权）。
+- **G12** Agent Run Workbench（右侧面板结构化 timeline）——G5 已铺好前端传输，G12 在其上做 UI。
+- 真实 claude run 的端到端验收：需在非沙盒（可 listen + 可联网）环境跑一次 daemon → curl POST /runs → 看 SSE 事件序列，作为 G11 的"非降级"补证。

@@ -507,3 +507,36 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 **测试**: contracts 16 + daemon 178 = 194 green；web panel/integration 19 passed
 
 **Live 验证**: 真 claude -p run → run_started/text_delta{pong}/run_finished → sedimentation_started/sedimentation_recorded → memory 可查
+
+### 2026-06-25 最终：G15 + Context Assembly + Multi-Agent — 全对象闭环
+
+| 内容 | 证据 | commit |
+|---|---|---|
+| **G15** Workspace 元数据（context boundary：name/type/goals/activeSources） | WorkspaceService 4 tests green；live: PUT → GET 持久化 | b4c397a |
+| **Context Assembly** Agent 组装上下文（workspace meta + memory 注入 prompt） | assembleContext 5 tests green；live claude 收到 workspace 名字/目标 | fca21f1 |
+| **Multi-Agent** codex adapter + subtask delegation（Agent Teams） | GET /agents live: claude+codex both installed；registry [claude,codex]；POST /runs/:id/subtasks parent-child | 3ab3067 |
+
+**核心循环每一步都有实现且实测可达：**
+```
+用户提目标 → [assembleContext: workspace goals + memory 注入 prompt]
+→ [claude -p / codex exec 执行]
+→ [text_delta / tool_call 流式事件]
+→ [captureFromRun: artifacts + source bindings]
+→ [sediment: summary note + preferences/facts/rules]
+→ sedimentation_recorded → 可查询
+```
+
+**多 Agent Team：**
+- Registry: [claude, codex]，通过 agentId 选择
+- Subtask delegation: POST /runs/:id/subtasks（parentRunId → child run）
+- AgentRunService.listChildRuns(parentId)
+- 每家 adapter 有自己的 streamFormat + parser（claude-stream-json / codex-jsonl）
+
+**五个一等对象全部有 contracts + daemon service + HTTP routes + 前端渲染：**
+| 对象 | Contract | Daemon | HTTP | Frontend |
+|---|---|---|---|---|
+| Workspace | WorkspaceMeta | WorkspaceService | GET/PUT /workspace/meta + goals + sources | — |
+| Sources | SourceBinding | SourceBindingService + ChangeSet | GET /runs/:id/sources + changesets | Sources section ✅ |
+| Artifacts | Artifact | ArtifactIndexService | GET /runs/:id/artifacts + /artifacts | Artifacts section ✅ |
+| Runs | AgentRun + AgentRunEvent | AgentRunService + runner | POST /runs + SSE + cancel + subtasks | Agent Run panel ✅ |
+| Rules/Memory | MemoryRecord | SedimentationService | GET /runs/:id/memory + /memory | Memory section ✅ |

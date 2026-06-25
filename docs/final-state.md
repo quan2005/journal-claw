@@ -459,3 +459,51 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 - 生成了哪些 artifact → **Artifacts** section (G7)
 - 哪些结论有引用依据 → Memory evidence + Source bindings
 - 哪些内容需要用户确认 → Authorization mode selector (G9)
+
+### 2026-06-25 最终增补：上下文组装 + 多 Agent 委托
+
+| 内容 | 证据 | commit |
+|---|---|---|
+| **上下文组装** (G15+G14 集成) — 执行前注入 workspace 元数据 + 沉淀记忆 | assembleContext 5 tests green；server.ts wired | fca21f1 |
+| **多 Agent 委托** — Run 可 spawn 子 Run（Agent Team 协作） | parentRunId 契约 + listChildRuns + POST /runs/:id/subtasks | 0869f6e |
+
+**核心循环现已端到端完整**（每个箭头都有代码 + 测试 + live 验证）：
+```
+用户提目标 → [assembleContext: workspace + memory] → claude -p 执行
+→ artifacts 捕获 → files 追踪 (ChangeSet) → sources 推断 (SourceBinding)
+→ memory 沉淀 (sedimentation) → 下次 run 带上积累的上下文
+→ 可 spawn 子 run (Agent Team)
+```
+
+### 全部交付物（本轮 20 个 commit，37 文件，3036 行新增）
+
+**契约层** (packages/contracts):
+- AgentRun / AgentRunEvent (G3) — 含 parentRunId（多 Agent）
+- RuntimeAgentDef / AgentAuthStatus (G10)
+- AuthorizationMode / ChangeSet (G8/G9)
+- Artifact (G7)
+- MemoryRecord (G14)
+- SourceBinding (G6)
+- WorkspaceMeta (G15)
+
+**Daemon 层** (apps/daemon):
+- AgentRunService (G4) — 创建/流式/取消/JSONL/子任务
+- RuntimeAgentDef registry + claude adapter (G10/G11)
+- claude stream parser + runner (G11) — 真 claude -p spawn
+- ChangeSetService + AuthorizationMode (G8/G9)
+- ArtifactIndexService (G7)
+- SedimentationService (G14)
+- SourceBindingService (G6)
+- WorkspaceService (G15)
+- ContextAssembler — workspace + memory 注入
+
+**前端层** (apps/web):
+- AgentRunPanel — 右侧面板（goal/timeline/sources/artifacts/memory/file changes/auth）
+- useAgentRun hook — 创建 run + SSE 订阅 + 资产获取
+- HttpRuntimeClient + feature flag (G5)
+- App.tsx 集成 — Chat ↔ Agent Run toggle
+- agentRuns.ts daemon API client
+
+**测试**: contracts 16 + daemon 178 = 194 green；web panel/integration 19 passed
+
+**Live 验证**: 真 claude -p run → run_started/text_delta{pong}/run_finished → sedimentation_started/sedimentation_recorded → memory 可查

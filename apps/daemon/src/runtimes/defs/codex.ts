@@ -26,7 +26,14 @@ export const codexAgentDef: RuntimeAgentDef = {
   name: 'Codex CLI',
   bin: 'codex',
   version: { args: ['--version'], timeoutMs: 5000 },
-  authProbe: { args: [], timeoutMs: 3000 },
+  // `codex login status` reports real login state (the previous empty argv
+  // just ran `codex` with no args, which prints help text and makes
+  // server.ts detectAuth throw on JSON.parse -> always authed=false). The
+  // real probe mirrors open-design runtimes/defs/codex.ts and the claude
+  // adapter pattern: `codex login status` exits 0 + emits
+  // `{loggedIn, authMethod, apiProvider}` JSON when authed, non-zero
+  // otherwise; detectAuth already speaks that shape.
+  authProbe: { args: ['login', 'status'], timeoutMs: 5000 },
   buildArgs: (
     prompt: string,
     _imagePaths: string[],

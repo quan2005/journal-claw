@@ -18,11 +18,16 @@ import {
   type ClaudeStreamParser,
 } from './stream/claudeStream.js'
 import { createCodexStreamParser, type CodexStreamParser } from './stream/codexStream.js'
+import { createOpenCodeStreamParser, type OpenCodeStreamParser } from './stream/opencodeStream.js'
 
-type StreamParser = ClaudeStreamParser | CodexStreamParser
+type StreamParser = ClaudeStreamParser | CodexStreamParser | OpenCodeStreamParser
 
-function createParser(streamFormat: string, meta: { runId: string; sessionId: string }): StreamParser {
+function createParser(
+  streamFormat: string,
+  meta: { runId: string; sessionId: string },
+): StreamParser {
   if (streamFormat === 'codex-jsonl') return createCodexStreamParser(meta)
+  if (streamFormat === 'opencode-json') return createOpenCodeStreamParser(meta)
   return createClaudeStreamParser(meta)
 }
 export interface ExecuteRunInput {
@@ -36,7 +41,11 @@ export interface ExecuteRunInput {
 
 export interface ExecuteRunOptions {
   /** Inject a custom spawner (tests). Defaults to node child_process.spawn. */
-  spawnChild?: (bin: string, args: string[], opts: { cwd?: string }) => ChildProcessWithoutNullStreams
+  spawnChild?: (
+    bin: string,
+    args: string[],
+    opts: { cwd?: string },
+  ) => ChildProcessWithoutNullStreams
   /** Optional signal to abort the run (closes the child). */
   signal?: AbortSignal
 }
@@ -69,7 +78,10 @@ export async function executeRun(
   const def = getAgentDef(input.agentId)
   const meta = runMeta(service, input.runId)
   if (!def) {
-    service.appendEvent(input.runId, makeEvent('run_failed', meta, JSON.stringify({ error: `unknown agent: ${input.agentId}` })))
+    service.appendEvent(
+      input.runId,
+      makeEvent('run_failed', meta, JSON.stringify({ error: `unknown agent: ${input.agentId}` })),
+    )
     return { exitCode: null, ok: false }
   }
 
@@ -90,7 +102,10 @@ export async function executeRun(
       child = spawnChild(def.bin, args, { cwd: input.cwd })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      service.appendEvent(input.runId, makeEvent('run_failed', meta, JSON.stringify({ error: message })))
+      service.appendEvent(
+        input.runId,
+        makeEvent('run_failed', meta, JSON.stringify({ error: message })),
+      )
       resolve({ exitCode: null, ok: false })
       return
     }
@@ -135,24 +150,54 @@ export async function executeRun(
     })
 
     child.on('error', (err) => {
-      service.appendEvent(input.runId, makeEvent('run_failed', meta, JSON.stringify({ error: err.message })))
+      service.appendEvent(
+        input.runId,
+        makeEvent('run_failed', meta, JSON.stringify({ error: err.message })),
+      )
       resolve({ exitCode: null, ok: false })
     })
 
-   child.on('close', (code) => {
+    child.on('close', (code) => {
       // If the CLI emitted no system/init line (some adapters don't),
       // synthesize a run_started now so the run leaves the queued state.
       if (!parser.hasStarted()) {
-        service.appendEvent(input.runId, makeEvent('run_started', meta, JSON.stringify({ message: `${def.name} run started` })))
+        service.appendEvent(
+          input.runId,
+          makeEvent('run_started', meta, JSON.stringify({ message: `${def.name} run started` })),
+        )
       }
-     if (buffer.trim()) {
+      if (buffer.trim()) {
         for (const ev of parser.parseLine(buffer)) {
           service.appendEvent(input.runId, ev)
         }
       }
       const run = service.getRun(input.runId)
       if (code !== 0 && run && run.status !== 'succeeded' && run.status !== 'canceled') {
-        service.appendEvent(input.runId, makeEvent('run_failed', meta, JSON.stringify({ error: `claude exited ${code}`, stderr: stderrText.slice(0, 4000) })))
+        service.appendEvent(
+          input.runId,
+          makeEvent(
+            'run_failed',
+            meta,
+            JSON.stringify({
+              error: `${def.bin} exited ${code}`,
+              stderr: stderrText.slice(0, 4000),
+            }),
+          ),
+        )
+      } else if (code === 0 && run && run.status === 'running') {
+        // Some adapters (notably opencode) exit 0 without emitting an
+        // explicit terminal event frame, leaving the run stuck in
+        // 'running'. Synthesize run_finished so the run transitions to
+        // 'succeeded' exactly once (run.status guard prevents double
+        // emission when the parser already emitted run_finished).
+        service.appendEvent(
+          input.runId,
+          makeEvent(
+            'run_finished',
+            meta,
+            JSON.stringify({ message: `${def.name} run finished (exit 0)` }),
+          ),
+        )
       }
       resolve({ exitCode: code, ok: code === 0 })
     })

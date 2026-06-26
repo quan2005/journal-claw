@@ -8,8 +8,9 @@
 import type { RuntimeAgentDef } from '@journal/contracts'
 import { claudeAgentDef } from './defs/claude.js'
 import { codexAgentDef } from './defs/codex.js'
+import { opencodeAgentDef } from './defs/opencode.js'
 
-const BUILT_IN: RuntimeAgentDef[] = [claudeAgentDef, codexAgentDef]
+const BUILT_IN: RuntimeAgentDef[] = [claudeAgentDef, codexAgentDef, opencodeAgentDef]
 
 const defs = new Map<string, RuntimeAgentDef>()
 

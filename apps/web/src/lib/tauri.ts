@@ -1,4 +1,11 @@
 import { invoke } from '@tauri-apps/api/core'
+import {
+  hostOpenWithSystem,
+  hostOpenPrivacySettings,
+  hostOpenSettings,
+  hostRevealInFileManager,
+  pickHostFolder,
+} from './hostBridge'
 import { selectRuntimeClient } from './runtimeClient'
 import type {
   JournalEntry,
@@ -19,9 +26,9 @@ import type {
 export type { CreateRoutineRequest, UpdateRoutineRequest } from '../types'
 
 export const revealInFileManager = (path: string): Promise<void> =>
-  invoke('reveal_in_file_manager', { path })
+  hostRevealInFileManager(path)
 
-export const openSettings = (): Promise<void> => invoke('open_settings')
+export const openSettings = (): Promise<void> => hostOpenSettings()
 
 export const getApiKey = (): Promise<string | null> =>
   selectRuntimeClient().invoke<string | null>('get_api_key')
@@ -136,9 +143,9 @@ export const setWorkspacePrompt = (content: string) =>
 export const resetWorkspacePrompt = () =>
   selectRuntimeClient().invoke<string>('reset_workspace_prompt')
 
-export const openFile = (path: string): Promise<void> => invoke('open_with_system', { path })
+export const openFile = (path: string): Promise<void> => hostOpenWithSystem(path)
 
-export const openUrl = (url: string): Promise<void> => invoke('open_with_system', { path: url })
+export const openUrl = (url: string): Promise<void> => hostOpenWithSystem(url)
 
 export const cancelAiProcessing = () => selectRuntimeClient().invoke<void>('cancel_ai_processing')
 
@@ -153,9 +160,7 @@ export const importAudioFile = (srcPath: string) =>
 
 // Folder picker
 export const pickFolder = (): Promise<string | null> => {
-  return import('@tauri-apps/plugin-dialog').then(
-    ({ open }) => open({ directory: true, multiple: false }) as Promise<string | null>,
-  )
+  return pickHostFolder()
 }
 
 // App version
@@ -295,7 +300,7 @@ export const checkAppPermissions = (): Promise<AppPermissions> =>
   selectRuntimeClient().invoke<AppPermissions>('check_app_permissions')
 
 export const openPrivacySettings = (pane: 'speech_recognition'): Promise<void> =>
-  selectRuntimeClient().invoke<void>('open_privacy_settings', { pane })
+  hostOpenPrivacySettings(pane)
 
 // Identity library (身份档案)
 export const listIdentities = (): Promise<IdentityEntry[]> =>

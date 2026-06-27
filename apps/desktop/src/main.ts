@@ -23,6 +23,7 @@ import {
   spawnDaemon,
   waitForHealth,
 } from './daemon.js'
+import { registerHostIpc } from './hostIpc.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
@@ -74,6 +75,7 @@ function windowOptions(): BrowserWindowConstructorOptions {
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#FFFFFF',
     webPreferences: {
+      preload: join(__dirname, 'preload.cjs'),
       // Keep the main world free of Node; the renderer talks to the daemon
       // over HTTP like any other client (apps/web is unchanged by M7-a).
       contextIsolation: true,
@@ -106,6 +108,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  registerHostIpc()
   buildApplicationMenu()
 
   // Daemon is best-effort: a failure to start must not block the window.

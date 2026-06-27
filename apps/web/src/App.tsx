@@ -8,8 +8,12 @@ import {
   Suspense,
   type CSSProperties,
 } from 'react'
-import { getCurrentWebview } from '@tauri-apps/api/webview'
-import { listen } from '@tauri-apps/api/event'
+import { selectRuntimeClient } from './lib/runtimeClient'
+import {
+  subscribeHostEvent,
+  setHostZoom,
+  onHostFileDrop,
+} from './lib/hostBridge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
@@ -441,32 +445,23 @@ export default function App() {
     setView,
   ])
 
-  // Open settings from Rust menu (Cmd+,) or keyboard shortcut
+  // Open settings from host menu (Cmd+,) or keyboard shortcut. Host-only event:
+  // Tauri menu under the Tauri runtime; no-op on daemon (keyboard parity keeps it).
   useEffect(() => {
-    let unlisten: (() => void) | null = null
-    listen('open-settings', () => {
+    const off = subscribeHostEvent('open-settings', () => {
       setSettingsInitialSection(undefined)
       setView('settings')
-    }).then((fn) => {
-      unlisten = fn
     })
-    return () => {
-      unlisten?.()
-    }
+    return () => off()
   }, [setSettingsInitialSection, setView])
 
-  // Open settings -> about section from Rust menu
+  // Open settings -> about section from host menu
   useEffect(() => {
-    let unlisten: (() => void) | null = null
-    listen('open-settings-about', () => {
+    const off = subscribeHostEvent('open-settings-about', () => {
       setSettingsInitialSection('about')
       setView('settings')
-    }).then((fn) => {
-      unlisten = fn
     })
-    return () => {
-      unlisten?.()
-    }
+    return () => off()
   }, [setSettingsInitialSection, setView])
 
   // useConversation hook (multi-session)
@@ -507,20 +502,17 @@ export default function App() {
     [create, load, newTab, setChatInitialText, setRightPanelOpen],
   )
 
-  // Track conversation session when work queue creates one
+  // Track conversation session when work queue creates one (domain event via daemon SSE)
   useEffect(() => {
-    let unlisten: (() => void) | null = null
-    listen<{ item_id: string; session_id: string; prompt?: string }>(
-      'work-item-session-created',
-      (event) => {
-        const { session_id } = event.payload
-        openChatPanel(session_id)
-      },
-    ).then((fn) => {
-      unlisten = fn
+    const off = selectRuntimeClient().subscribe<{
+      item_id: string
+      session_id: string
+      prompt?: string
+    }>('work-item-session-created', ({ session_id }) => {
+      openChatPanel(session_id)
     })
     return () => {
-      unlisten?.()
+      off()
     }
   }, [openChatPanel])
 
@@ -561,15 +553,15 @@ export default function App() {
       if (e.key === '=' || e.key === '+') {
         e.preventDefault()
         zoom = Math.min(2, zoom + 0.1)
-        getCurrentWebview().setZoom(zoom)
+        setHostZoom(zoom)
       } else if (e.key === '-') {
         e.preventDefault()
         zoom = Math.max(0.5, zoom - 0.1)
-        getCurrentWebview().setZoom(zoom)
+        setHostZoom(zoom)
       } else if (e.key === '0') {
         e.preventDefault()
         zoom = 1
-        getCurrentWebview().setZoom(1)
+        setHostZoom(1)
       }
     }
     window.addEventListener('keydown', handler)
@@ -616,29 +608,21 @@ export default function App() {
     [handleFilesSubmit],
   )
 
-  // Tauri native file drop listener
+  // Host native file drop listener (Tauri webview; no-op on daemon runtime)
   useEffect(() => {
-    let unlisten: (() => void) | null = null
-    getCurrentWebview()
-      .onDragDropEvent((event) => {
-        if (event.payload.type === 'drop') {
-          setIsDragOver(false)
-          const paths: string[] = (event.payload as { paths: string[] }).paths ?? []
-          if (paths.length > 0) {
-            handleDropFiles(paths)
-          }
-        } else if (event.payload.type === 'enter' || event.payload.type === 'over') {
-          setIsDragOver(true)
-        } else if (event.payload.type === 'leave') {
-          setIsDragOver(false)
+    const off = onHostFileDrop((event) => {
+      if (event.type === 'drop') {
+        setIsDragOver(false)
+        if (event.paths.length > 0) {
+          handleDropFiles(event.paths)
         }
-      })
-      .then((fn) => {
-        unlisten = fn
-      })
-    return () => {
-      unlisten?.()
-    }
+      } else if (event.type === 'enter' || event.type === 'over') {
+        setIsDragOver(true)
+      } else if (event.type === 'leave') {
+        setIsDragOver(false)
+      }
+    })
+    return () => off()
   }, [handleDropFiles, setIsDragOver])
 
   const handleDeselect = useCallback(() => {

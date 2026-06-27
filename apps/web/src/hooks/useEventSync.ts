@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { listen } from '@tauri-apps/api/event'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { getEventsSince } from '../lib/tauri'
 
 /**
@@ -38,15 +38,16 @@ export function useEventSync(eventKinds: string[], onEvent: (payload: unknown) =
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Subscribe to live events
+  // Subscribe to live events (daemon SSE when runtime=http, Tauri listen otherwise).
   useEffect(() => {
-    const unlistens: Promise<() => void>[] = eventKinds.map((eventName) =>
-      listen(eventName, (event) => {
-        onEventRef.current(event.payload)
+    const client = selectRuntimeClient()
+    const offs = eventKinds.map((eventName) =>
+      client.subscribe<unknown>(eventName, (payload) => {
+        onEventRef.current(payload)
       }),
     )
     return () => {
-      Promise.all(unlistens).then((fns) => fns.forEach((fn) => fn()))
+      offs.forEach((off) => off())
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 }

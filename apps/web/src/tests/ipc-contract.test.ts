@@ -93,6 +93,7 @@ import {
 } from '../lib/tauri'
 
 beforeEach(() => {
+  ;(globalThis as Record<string, unknown>).__JOURNAL_RUNTIME = 'tauri'
   vi.clearAllMocks()
   mockInvoke.mockResolvedValue(undefined)
 })

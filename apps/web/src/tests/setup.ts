@@ -32,6 +32,70 @@ Object.defineProperty(globalThis, 'Highlight', {
   configurable: true,
 })
 
+// jsdom does not provide EventSource. The app's daemon runtime uses SSE in
+// production (browser/Electron), so tests need a lightweight compatible global.
+type MockEventSourceHandler = (event: Event | MessageEvent) => void
+
+class MockEventSource {
+  static readonly CONNECTING = 0
+  static readonly OPEN = 1
+  static readonly CLOSED = 2
+
+  readonly CONNECTING = 0
+  readonly OPEN = 1
+  readonly CLOSED = 2
+
+  readonly url: string
+  readonly withCredentials: boolean
+  readyState = MockEventSource.CONNECTING
+  onopen: MockEventSourceHandler | null = null
+  onmessage: MockEventSourceHandler | null = null
+  onerror: MockEventSourceHandler | null = null
+
+  private listeners = new Map<string, Set<EventListenerOrEventListenerObject>>()
+
+  constructor(url: string | URL, init?: EventSourceInit) {
+    this.url = String(url)
+    this.withCredentials = init?.withCredentials ?? false
+  }
+
+  close() {
+    this.readyState = MockEventSource.CLOSED
+  }
+
+  addEventListener(type: string, listener: EventListenerOrEventListenerObject | null) {
+    if (!listener) return
+    const listeners = this.listeners.get(type) ?? new Set<EventListenerOrEventListenerObject>()
+    listeners.add(listener)
+    this.listeners.set(type, listeners)
+  }
+
+  removeEventListener(type: string, listener: EventListenerOrEventListenerObject | null) {
+    if (!listener) return
+    this.listeners.get(type)?.delete(listener)
+  }
+
+  dispatchEvent(event: Event): boolean {
+    if (event.type === 'open') this.readyState = MockEventSource.OPEN
+    const propertyHandler = this[`on${event.type}` as 'onopen' | 'onmessage' | 'onerror']
+    propertyHandler?.(event)
+    for (const listener of this.listeners.get(event.type) ?? []) {
+      if (typeof listener === 'function') {
+        listener.call(this, event)
+      } else {
+        listener.handleEvent(event)
+      }
+    }
+    return true
+  }
+}
+
+Object.defineProperty(globalThis, 'EventSource', {
+  value: MockEventSource,
+  configurable: true,
+  writable: true,
+})
+
 if (!Range.prototype.getBoundingClientRect) {
   Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
     value: () => ({

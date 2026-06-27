@@ -57,6 +57,7 @@ function fireEvent(name: string, payload: unknown) {
 
 describe('useJournal', () => {
   beforeEach(() => {
+    ;(globalThis as Record<string, unknown>).__JOURNAL_RUNTIME = 'tauri'
     vi.useRealTimers()
     vi.clearAllMocks()
     listenerMap.clear()
@@ -82,6 +83,7 @@ describe('useJournal', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    delete (globalThis as Record<string, unknown>).__JOURNAL_RUNTIME
   })
 
   it('loads entries on mount', async () => {

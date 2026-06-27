@@ -1,4 +1,4 @@
-import { listen } from '@tauri-apps/api/event'
+import { selectRuntimeClient } from '../../lib/runtimeClient'
 import { isAppEvent, type AppEvent } from '../protocol/appEvent'
 
 export interface AppEventSubscription {
@@ -7,22 +7,19 @@ export interface AppEventSubscription {
 }
 
 export function subscribeAppEvents(onEvent: (event: AppEvent) => void): AppEventSubscription {
-  let unlisten: (() => void) | null = null
-
-  const ready = listen<unknown>('app-event', (event) => {
-    if (isAppEvent(event.payload)) {
-      onEvent(event.payload)
+  // Transport-agnostic: daemon runtime subscribes over SSE (GET /events/app-event),
+  // Tauri runtime via listen(). Either surfaces the parsed payload directly.
+  const off = selectRuntimeClient().subscribe<unknown>('app-event', (payload) => {
+    if (isAppEvent(payload)) {
+      onEvent(payload)
     }
-  }).then((fn) => {
-    unlisten = fn
   })
-
+  // SSE/listen open synchronously (the underlying EventSource connects async),
+  // so there is no ready gate to await. Kept for API compatibility.
   return {
-    ready,
-    async unsubscribe() {
-      await ready
-      unlisten?.()
-      unlisten = null
+    ready: Promise.resolve(),
+    unsubscribe: async () => {
+      off()
     },
   }
 }

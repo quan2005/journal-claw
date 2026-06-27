@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { listen } from '@tauri-apps/api/event'
 import type { QueueItem } from '../types'
 import { fileKindFromName } from '../lib/fileKind'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { Spinner } from './Spinner'
 import { useTranslation } from '../contexts/I18nContext'
 
@@ -216,20 +216,21 @@ export function ProcessingQueue({
   }, [items, confirmingId])
 
   useEffect(() => {
-    const unlisten = listen<{ material_path: string; level: string; message: string }>(
-      'ai-log',
-      (event) => {
-        if (event.payload.level === 'phase') {
-          setPhases((prev) => {
-            const next = new Map(prev)
-            next.set(event.payload.material_path, event.payload.message)
-            return next
-          })
-        }
-      },
-    )
+    const off = selectRuntimeClient().subscribe<{
+      material_path: string
+      level: string
+      message: string
+    }>('ai-log', ({ level, material_path, message }) => {
+      if (level === 'phase') {
+        setPhases((prev) => {
+          const next = new Map(prev)
+          next.set(material_path, message)
+          return next
+        })
+      }
+    })
     return () => {
-      unlisten.then((fn) => fn())
+      off()
     }
   }, [])
 

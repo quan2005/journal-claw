@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { listen } from '@tauri-apps/api/event'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { conversationList, conversationDelete, type SessionSummary } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
 
@@ -34,20 +34,20 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
   }, [refresh])
 
   useEffect(() => {
-    const unlisten = listen<{ session_id: string; event: string; data: string }>(
-      'conversation-stream',
-      (event) => {
-        const { session_id, event: evt, data } = event.payload
-        if (evt === 'title') {
-          setSessions((prev) => prev.map((s) => (s.id === session_id ? { ...s, title: data } : s)))
-        }
-        if (evt === 'done') {
-          refresh()
-        }
-      },
-    )
+    const off = selectRuntimeClient().subscribe<{
+      session_id: string
+      event: string
+      data: string
+    }>('conversation-stream', ({ session_id, event: evt, data }) => {
+      if (evt === 'title') {
+        setSessions((prev) => prev.map((s) => (s.id === session_id ? { ...s, title: data } : s)))
+      }
+      if (evt === 'done') {
+        refresh()
+      }
+    })
     return () => {
-      unlisten.then((fn) => fn())
+      off()
     }
   }, [refresh])
 

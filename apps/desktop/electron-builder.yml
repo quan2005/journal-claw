@@ -1,0 +1,21 @@
+# Minimal packaging config. The renderer (apps/web build output) is wired into
+# the packaged app in M7-b/c; for the skeleton we package only the Electron
+# main process so the pipeline is exercisable end to end.
+appId: io.earendil.journal.desktop
+productName: JournalClaw
+directories:
+  output: release
+files:
+  - dist/**/*
+mac:
+  category: public.app-category.productivity
+  target:
+    - dmg
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications

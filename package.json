@@ -5,8 +5,10 @@
   "type": "module",
   "description": "JournalClaw — 本地优先的个人 Agentic Knowledge Workspace",
   "scripts": {
-    "dev": "pnpm --filter @journal/web dev",
-    "build": "pnpm -r build",
+   "dev": "pnpm --filter @journal/web dev",
+    "desktop:dev": "pnpm --filter @journal/desktop dev",
+    "desktop:build": "pnpm --filter @journal/desktop build",
+   "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",

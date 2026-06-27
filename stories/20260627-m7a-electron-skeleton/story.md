@@ -1,5 +1,5 @@
 ---
-status: approved
+status: verified
 phase: M7-a
 created: 2026-06-27
 ---

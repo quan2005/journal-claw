@@ -169,5 +169,5 @@
 | M4 AI/queue | ✅ |
 | M5 conversation | ✅ |
 | M6 automation | ✅ |
-| M7 Electron host | 🔲 |
+| M7 Electron host | 🔄 M7-a ✅ · M7-b/c 待启 |
 | M8 删 Rust | 🔲 |

@@ -167,13 +167,6 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         )
         return undefined as T
       }
-      case 'compile_mdx': {
-        return (await this.postText(
-          '/mdx/compile',
-          { source: args?.source, filepath: args?.filepath },
-          'daemon compile mdx',
-        )) as T
-      }
       case 'get_onboarding_status': {
         return (await this.getJson('/onboarding/status', 'daemon onboarding status')) as T
       }
@@ -219,20 +212,6 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         return (await this.getJson(
           `/event-log/events?sinceSeq=${encodeURIComponent(String(args?.sinceSeq ?? 0))}`,
           'daemon event log',
-        )) as T
-      }
-      case 'scan_legacy_directive_files': {
-        return (await this.getJson(
-          '/directive-migration/legacy-files',
-          'daemon legacy directives',
-        )) as T
-      }
-      case 'apply_directive_migration': {
-        const request = args?.request as Record<string, unknown> | undefined
-        return (await this.postJson(
-          '/directive-migration/apply',
-          request ?? {},
-          'daemon apply directive migration',
         )) as T
       }
       case 'list_workspace_dir': {

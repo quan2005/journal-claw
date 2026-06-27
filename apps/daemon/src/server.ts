@@ -32,8 +32,6 @@ import { OnboardingService } from './onboarding/service.js'
 import { PermissionsService } from './permissions/service.js'
 import { AutoLintService } from './auto_lint/service.js'
 import { EventLogService } from './event_log/service.js'
-import { compileMdx } from './mdx/service.js'
-import { DirectiveMigrationService } from './directive_migration/service.js'
 import { AiProcessorService } from './ai_processor/service.js'
 import { WorkQueueService, buildWorkItemPrompt } from './work_queue/service.js'
 import { ConversationService } from './conversation/service.js'
@@ -267,8 +265,6 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const autoLintService = (): AutoLintService =>
       new AutoLintService(workspaceRoot(), settingsService())
     const eventLogService = new EventLogService()
-    const directiveMigrationService = (): DirectiveMigrationService =>
-      new DirectiveMigrationService(workspaceRoot())
     const namedEventSubscribers = new Map<string, Set<(payload: unknown) => void>>()
     const publishEvent = (event: string, payload: unknown): void => {
       for (const subscriber of namedEventSubscribers.get(event) ?? []) {
@@ -507,7 +503,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       }
     })
 
-    // ── M3: skills / MDX / onboarding / permissions / misc ───────────────
+    // ── M3: skills / onboarding / permissions / misc ───────────────
     app.get('/skills', (_req, res) => {
       try {
         res.json(skillsService().listSkills())
@@ -560,21 +556,6 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         const body = (req.body ?? {}) as Record<string, unknown>
         skillsService().setGlobalSkillEnabled(String(body.skillId ?? ''), body.enabled === true)
         res.status(204).end()
-      } catch (err) {
-        handleFsError(res, err)
-      }
-    })
-
-    app.post('/mdx/compile', (req, res) => {
-      try {
-        const body = (req.body ?? {}) as Record<string, unknown>
-        if (typeof body.source !== 'string') {
-          res.status(400).json({ error: { code: 'invalid_mdx_request' } })
-          return
-        }
-        res
-          .type('text/plain')
-          .send(compileMdx(body.source, typeof body.filepath === 'string' ? body.filepath : null))
       } catch (err) {
         handleFsError(res, err)
       }
@@ -643,30 +624,6 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     app.get('/event-log/events', (req, res) => {
       const sinceSeq = Number.parseInt(String(req.query.sinceSeq ?? '0'), 10)
       res.json(eventLogService.eventsSince(Number.isFinite(sinceSeq) ? sinceSeq : 0))
-    })
-
-    app.get('/directive-migration/legacy-files', (_req, res) => {
-      try {
-        res.json(directiveMigrationService().scanLegacyDirectiveFiles())
-      } catch (err) {
-        handleFsError(res, err)
-      }
-    })
-
-    app.post('/directive-migration/apply', (req, res) => {
-      try {
-        const body = (req.body ?? {}) as Record<string, unknown>
-        res.json(
-          directiveMigrationService().applyDirectiveMigration({
-            source_path: String(body.source_path ?? ''),
-            destination_path: String(body.destination_path ?? ''),
-            content: String(body.content ?? ''),
-          }),
-        )
-        eventLogService.record('journal-updated', null)
-      } catch (err) {
-        handleFsError(res, err)
-      }
     })
 
     const handleFsError = (res: express.Response, err: unknown): void => {

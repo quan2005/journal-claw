@@ -177,18 +177,6 @@ export const en = {
   generalSubtitle: 'Choose where JournalClaw keeps journals, raw materials, identities, and todos.',
   workspaceFolder: 'Workspace folder',
   workspaceSaveHint: 'Changing this path moves the app to another journal library.',
-  legacyMigrationTitle: 'Migrate legacy note syntax',
-  legacyMigrationDescription:
-    'Convert old directive blocks to JSX. Preview validates every file; migration creates backups before writing.',
-  legacyMigrationScanning: 'Scanning the workspace…',
-  legacyMigrationNone: 'No legacy syntax found',
-  legacyMigrationCandidates: '{count} files use legacy syntax',
-  legacyMigrationPreview: 'Preview migration',
-  legacyMigrationPreviewResult: '{valid} ready to migrate · {failed} need attention',
-  legacyMigrationApply: 'Migrate {count} files',
-  legacyMigrationApplying: 'Validating, backing up, and migrating…',
-  legacyMigrationDone: 'Migrated {converted} files · {failed} failed',
-  legacyMigrationBackup: 'Backups: {path}',
 
   // Settings: AI Engine
   aiEngineSection: 'Model',

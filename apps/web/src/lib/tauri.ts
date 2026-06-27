@@ -17,9 +17,6 @@ import type {
   AutomationRun,
   CreateRoutineRequest,
   UpdateRoutineRequest,
-  LegacyDirectiveFile,
-  ApplyDirectiveMigrationRequest,
-  ApplyDirectiveMigrationResult,
   DomainEvent,
 } from '../types'
 
@@ -71,17 +68,6 @@ export const getJournalEntryContent = (path: string) =>
 
 export const saveJournalEntryContent = (path: string, content: string): Promise<void> =>
   selectRuntimeClient().invoke<void>('save_journal_entry_content', { path, content })
-
-export const compileMdx = (source: string, filepath?: string) =>
-  selectRuntimeClient().invoke<string>('compile_mdx', { source, filepath: filepath ?? null })
-
-export const scanLegacyDirectiveFiles = () =>
-  selectRuntimeClient().invoke<LegacyDirectiveFile[]>('scan_legacy_directive_files')
-
-export const applyDirectiveMigration = (request: ApplyDirectiveMigrationRequest) =>
-  selectRuntimeClient().invoke<ApplyDirectiveMigrationResult>('apply_directive_migration', {
-    request,
-  })
 
 // Materials
 export const importFile = (srcPath: string) =>

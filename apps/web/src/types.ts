@@ -25,23 +25,6 @@ export interface JournalEntry {
   materials: RawMaterial[]
 }
 
-export interface LegacyDirectiveFile {
-  path: string
-  relative_path: string
-  extension: 'md' | 'mdx'
-}
-
-export interface ApplyDirectiveMigrationRequest {
-  source_path: string
-  destination_path: string
-  content: string
-}
-
-export interface ApplyDirectiveMigrationResult {
-  destination_path: string
-  backup_path: string
-}
-
 export interface ProcessingUpdate {
   material_path: string
   status: 'queued' | 'processing' | 'completed' | 'failed'

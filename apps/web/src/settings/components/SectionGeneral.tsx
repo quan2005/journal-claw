@@ -1,22 +1,10 @@
 import { useState, useEffect } from 'react'
-import { ArrowRight, FileCode2, FolderOpen, LoaderCircle } from 'lucide-react'
-import {
-  getWorkspacePath,
-  setWorkspacePath,
-  pickFolder,
-  scanLegacyDirectiveFiles,
-} from '../../lib/tauri'
-import {
-  applyDirectiveMigrationPreview,
-  previewDirectiveMigration,
-  type DirectiveMigrationApplyResult,
-  type DirectiveMigrationPreview,
-} from '../../lib/directiveMigration'
+import { FolderOpen } from 'lucide-react'
+import { getWorkspacePath, setWorkspacePath, pickFolder } from '../../lib/tauri'
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
-type MigrationStatus = 'idle' | 'scanning' | 'preview' | 'applying' | 'done' | 'error'
 
 const sectionStyle: React.CSSProperties = {
   padding: '34px 40px 44px',
@@ -70,11 +58,6 @@ export default function SectionGeneral() {
   const [persistedWorkspacePath, setPersistedWorkspacePath] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [loading, setLoading] = useState(true)
-  const [migrationStatus, setMigrationStatus] = useState<MigrationStatus>('scanning')
-  const [candidateCount, setCandidateCount] = useState(0)
-  const [migrationPreview, setMigrationPreview] = useState<DirectiveMigrationPreview | null>(null)
-  const [migrationResult, setMigrationResult] = useState<DirectiveMigrationApplyResult | null>(null)
-  const [migrationError, setMigrationError] = useState('')
 
   useEffect(() => {
     getWorkspacePath().then((path) => {
@@ -82,16 +65,6 @@ export default function SectionGeneral() {
       setPersistedWorkspacePath(path)
       setLoading(false)
     })
-    scanLegacyDirectiveFiles()
-      .then((files) => {
-        setCandidateCount(files.length)
-        setMigrationStatus('idle')
-      })
-      .catch((error) => {
-        console.error('[settings/general] legacy syntax scan failed', error)
-        setMigrationStatus('error')
-        setMigrationError(String(error))
-      })
   }, [])
 
   const handlePickFolder = async () => {
@@ -127,61 +100,6 @@ export default function SectionGeneral() {
           : hasUnsavedChanges
             ? t('unsavedChanges')
             : ''
-
-  const handlePreviewMigration = async () => {
-    setMigrationStatus('scanning')
-    setMigrationError('')
-    setMigrationResult(null)
-    try {
-      const preview = await previewDirectiveMigration()
-      setMigrationPreview(preview)
-      setCandidateCount(preview.candidates.length)
-      setMigrationStatus('preview')
-    } catch (error) {
-      console.error('[settings/general] migration preview failed', error)
-      setMigrationStatus('error')
-      setMigrationError(String(error))
-    }
-  }
-
-  const handleApplyMigration = async () => {
-    if (!migrationPreview || migrationPreview.valid.length === 0) return
-    setMigrationStatus('applying')
-    setMigrationError('')
-    try {
-      const result = await applyDirectiveMigrationPreview(migrationPreview)
-      setMigrationResult(result)
-      setCandidateCount(result.failed.length)
-      setMigrationStatus('done')
-    } catch (error) {
-      console.error('[settings/general] migration apply failed', error)
-      setMigrationStatus('error')
-      setMigrationError(String(error))
-    }
-  }
-
-  const migrationStatusText =
-    migrationStatus === 'scanning'
-      ? t('legacyMigrationScanning')
-      : migrationStatus === 'applying'
-        ? t('legacyMigrationApplying')
-        : migrationStatus === 'preview' && migrationPreview
-          ? t('legacyMigrationPreviewResult', {
-              valid: migrationPreview.valid.length,
-              failed: migrationPreview.failed.length,
-            })
-          : migrationStatus === 'done' && migrationResult
-            ? t('legacyMigrationDone', {
-                converted: migrationResult.converted.length,
-                failed: migrationResult.failed.length,
-              })
-            : candidateCount === 0
-              ? t('legacyMigrationNone')
-              : t('legacyMigrationCandidates', { count: candidateCount })
-
-  const backupPath = migrationResult?.converted[0]?.backup_path
-    ? migrationResult.converted[0].backup_path.replace(/\/[^/]+$/, '')
-    : ''
 
   return (
     <div style={sectionStyle}>
@@ -302,138 +220,6 @@ export default function SectionGeneral() {
             </div>
           </div>
 
-          <div
-            style={{
-              maxWidth: 820,
-              marginTop: 32,
-              paddingTop: 28,
-              borderTop: '1px solid var(--divider)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'start',
-                gap: 24,
-              }}
-            >
-              <div style={{ flex: '1 1 440px', minWidth: 0 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    color: 'var(--item-text)',
-                  }}
-                >
-                  <FileCode2 size={16} strokeWidth={1.6} />
-                  <span style={{ fontSize: 15, fontWeight: 600 }}>{t('legacyMigrationTitle')}</span>
-                </div>
-                <div style={{ ...subtitleStyle, marginTop: 6 }}>
-                  {t('legacyMigrationDescription')}
-                </div>
-                <div
-                  style={{
-                    marginTop: 10,
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                    color:
-                      migrationStatus === 'error'
-                        ? 'var(--status-warning)'
-                        : 'var(--duration-text)',
-                  }}
-                >
-                  {migrationStatus === 'error' ? migrationError : migrationStatusText}
-                </div>
-                {backupPath && (
-                  <div style={{ ...hintStyle, overflowWrap: 'anywhere' }}>
-                    {t('legacyMigrationBackup', { path: backupPath })}
-                  </div>
-                )}
-                {migrationPreview && migrationPreview.failed.length > 0 && (
-                  <div style={{ marginTop: 12, display: 'grid', gap: 6 }}>
-                    {migrationPreview.failed.map((failure) => (
-                      <div
-                        key={failure.path}
-                        style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--item-meta)' }}
-                      >
-                        <span style={{ color: 'var(--item-text)' }}>{failure.relativePath}</span>
-                        {' · '}
-                        {failure.error}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {migrationResult && migrationResult.failed.length > 0 && (
-                  <div style={{ marginTop: 12, display: 'grid', gap: 6 }}>
-                    {migrationResult.failed.map((failure) => (
-                      <div
-                        key={failure.path}
-                        style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--item-meta)' }}
-                      >
-                        {failure.path} · {failure.error}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  onClick={handlePreviewMigration}
-                  disabled={migrationStatus === 'scanning' || migrationStatus === 'applying'}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--divider)',
-                    borderRadius: 6,
-                    padding: '7px 12px',
-                    fontSize: 13,
-                    color: 'var(--item-meta)',
-                    cursor:
-                      migrationStatus === 'scanning' || migrationStatus === 'applying'
-                        ? 'not-allowed'
-                        : 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {migrationStatus === 'scanning' ? (
-                    <LoaderCircle size={14} strokeWidth={1.6} />
-                  ) : (
-                    <FileCode2 size={14} strokeWidth={1.6} />
-                  )}
-                  {t('legacyMigrationPreview')}
-                </button>
-                {migrationStatus === 'preview' &&
-                  migrationPreview &&
-                  migrationPreview.valid.length > 0 && (
-                    <button
-                      onClick={handleApplyMigration}
-                      style={{
-                        background: 'var(--record-btn)',
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '7px 12px',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: 'var(--record-btn-icon)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {t('legacyMigrationApply', { count: migrationPreview.valid.length })}
-                      <ArrowRight size={14} strokeWidth={1.8} />
-                    </button>
-                  )}
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>

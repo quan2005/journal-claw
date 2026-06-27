@@ -78,11 +78,19 @@
 
 ---
 
-## M4 · AI 处理 + work queue
+## ME · 引擎集成（pi）⭐ 关键路径（决策 1 = A′，用户 2026-06-27 定）
 
-- **ai_processor**(7) + `ai_plan`：触发/取消 AI 处理 → 复用 AgentRun 基础设施
+采用 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT）作 daemon 内建引擎。插在 M4 前，M4/M5/M6 都建于其上。3 子单元：
+- **ME-a**：加 pi 依赖（锁版本）+ 引擎 service 骨架 + vendor/model 配置（anthropic/openai 原生；volcengine/zhipu/dashscope 走 openai-completions provider + 自定义 baseURL；接 ConfigService 加密 key + engine config）+ 用 pi `faux` provider 写测试（无需真 key）。
+- **ME-b**：AgentTools（bash / fs 经 ChangeSet / subtask）+ 授权钩子（beforeToolCall→AuthorizationMode 门，afterToolCall→ChangeSet 记录）。
+- **ME-c**：pi 事件 → AgentRunEvent 映射；接入 AgentRunService（Run 可用 pi 引擎）；prompt 组装 + skills 加载（从 Rust 移植，systemPrompt + transformContext）。
+- **真实 vendor 验证**：用户提供 zhipu/dashscope/volcengine 任一 key 后冒烟 chat + tool_call。CLI adapter 保留作 Agent Team 委派。
+
+## M4 · AI 处理 + work queue（建于 ME 引擎，整体在 ME 后做）
+
+- **ai_processor**(7) + `ai_plan`：触发/取消 AI 处理 → 走 ME 的 pi 引擎
 - **work_queue**(5)：enqueue/list/cancel/retry/dismiss
-- **digest / compact**
+- **digest / compact**（compact 可复用 pi transformContext）
 
 ---
 
@@ -147,8 +155,9 @@
 | M0 下线音频 | ✅ 264581d |
 | M1 地基 | ✅ M1a f04ca1d · M1b+c 882b87f · M1a-2 1ec5152 |
 | M2 CRUD | ✅ |
-| M3 skills/杂项 | ✅ |
-| M4 AI/queue | 🔲 |
+| M3 skills/杂项 | ✅ 0664f00 |
+| ME 引擎集成(pi) | 🔄 ME-a ✅ · ME-b 待启 |
+| M4 AI/queue | 🔲（待 ME） |
 | M5 conversation | 🔲 |
 | M6 automation | 🔲 |
 | M7 Electron host | 🔲 |

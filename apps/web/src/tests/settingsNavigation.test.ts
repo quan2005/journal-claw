@@ -5,9 +5,8 @@ describe('resolveActiveNav', () => {
   const sectionTops = {
     general: 0,
     ai: 120,
-    voice: 180,
-    guide: 220,
-    im: 320,
+    permissions: 220,
+    automation: 320,
     about: 520,
   } as const
 
@@ -15,11 +14,11 @@ describe('resolveActiveNav', () => {
     expect(resolveActiveNav(sectionTops, 0)).toBe('general')
     expect(resolveActiveNav(sectionTops, 89)).toBe('general')
     expect(resolveActiveNav(sectionTops, 90)).toBe('ai')
-    expect(resolveActiveNav(sectionTops, 150)).toBe('voice')
+    expect(resolveActiveNav(sectionTops, 190)).toBe('permissions')
   })
 
   it('activates short trailing sections at the bottom', () => {
-    expect(resolveActiveNav(sectionTops, 350)).toBe('im')
+    expect(resolveActiveNav(sectionTops, 350)).toBe('automation')
     expect(resolveActiveNav(sectionTops, 490)).toBe('about')
   })
 })

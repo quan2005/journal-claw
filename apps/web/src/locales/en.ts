@@ -24,7 +24,6 @@ export const en = {
   // Settings nav
   general: 'General',
   aiEngine: 'Model',
-  voice: 'Voice',
   permissions: 'Permissions',
   plugins: 'Plugins',
   about: 'About',
@@ -43,9 +42,7 @@ export const en = {
   submitted: 'Submitted — JournalClaw is processing…',
   submitFailed: 'Submit failed',
   openFileFailed: 'Unable to open file',
-  audioRejected: 'Voice transcription not configured, audio ignored',
   settingsTooltip: 'Settings (⌘,)',
-  voiceNotReady: 'Voice transcription not ready — go to Settings → Voice',
 
   // ErrorBoundary
   somethingWentWrong: 'Something went wrong',
@@ -235,42 +232,6 @@ export const en = {
   loadingModels: 'Loading models…',
   defaultModel: 'default',
 
-  // Settings: Voice
-  voiceSection: 'Voice',
-  downloading: 'Downloading',
-  downloaded: 'Downloaded',
-  downloadFailed: 'Download failed',
-  whisperNotFound: 'whisperkit-cli not detected',
-  reDetect: 'Re-detect',
-  installingDots: 'Installing…',
-  installBtn: 'Install',
-  transcriptionModel: 'Transcription model',
-  downloadBtn: 'Download',
-  downloadingBtn: 'Downloading',
-  alreadyDownloaded: 'Downloaded',
-  downloadInBackground:
-    "Download continues in background — switching models or scrolling won't interrupt it.",
-  modelDownloadTask: 'Model download task',
-  latestStatus: 'Latest status',
-  recentLogs: 'Recent logs',
-  reDownload: 'Re-download',
-  openModelDir: 'Open model directory',
-  retryHint: 'You can retry directly after failure — no need to re-select the model.',
-  switchModelHint: "Switching models won't interrupt the current download.",
-  modelStoreDir: 'Model storage directory',
-  openInFileManager: 'Open in File Manager',
-  baseModelBundled:
-    'Base model is bundled with the app. The directory above is for additionally downloaded Small/Large models.',
-  downloadFromHF:
-    'Click Download to fetch automatically from HuggingFace. You can also place model files manually into the directory above.',
-  dashscopeHint:
-    'When configured, audio files are automatically uploaded to Alibaba Cloud for transcription',
-  asrModel: 'ASR Model',
-  asrModelHint: 'Flash for real-time recognition; File Trans for async transcription of long audio',
-  speakerEmbedderUnavailable: 'Speaker recognition unavailable',
-  speakerEmbedderHint:
-    'SpeakerEmbedder model not found — speaker IDs cannot be generated during transcription. Ensure the speakerkit-models resource is included in the app bundle.',
-
   // Settings: Permissions
   permissionsSection: 'Permissions',
   permissionsDesc:
@@ -295,25 +256,7 @@ export const en = {
   requestFailed: 'Request failed: {err}',
   authError: 'Authorization error: {err}',
 
-  // Settings: Speakers
-  speakersSection: 'Speaker Profiles',
-  speakersDesc:
-    'Speakers are automatically identified after importing audio. Name them here — AI will use your names when organizing notes.',
-  noSpeakers: 'No speakers detected yet',
-  noSpeakersHint: 'Import audio with speakers and detected speakers will appear here',
-  speakerCount: 'Speaker profiles ({count})',
-  unnamed: 'Unnamed',
-  appearsIn: 'Appears in {count} audio file(s)',
-  nameTooltip: 'Rename',
-  mergeTooltip: 'Merge to…',
-  deleteTooltip: 'Delete',
   confirmDelete: 'Confirm delete',
-  mergeVoice: 'Merge voice',
-  mergeVoiceDesc:
-    'Merge {name} into another speaker. The source profile will be deleted after merging.',
-  noOtherSpeakers: 'No other speaker profiles available to merge.',
-  selectTargetSpeaker: 'Select target speaker…',
-  merge: 'Merge',
 
   // Settings: Plugins (skills)
   pluginsSection: 'Skill Plugins',
@@ -361,35 +304,6 @@ export const en = {
 
   // App confirm dialog
   confirmDeleteIdentity: 'Delete "{name}"\'s profile?',
-  // SectionVoice: model hints
-  baseModelHint: 'Default model, stable transcription for daily notes',
-  smallModelHint: 'Better accuracy, great for meeting notes',
-  largeModelHint: 'Best accuracy, slower initial download',
-
-  // SectionVoice: dynamic messages
-  downloadingModel: 'Downloading {model} model…',
-  downloadSuccess: '{model} downloaded, available offline',
-  downloadErrorFallback: 'Download failed, check network and retry',
-  downloadConflict: 'Downloading {model}, please wait',
-  installError: 'Error: {err}',
-
-  // SectionVoice: engine labels + vendors
-  appleEngineLabel: 'Apple Voice',
-  appleVendorSpeechAnalyzer: 'Built-in · SpeechAnalyzer',
-  appleVendorDefault: 'Built-in · Zero config',
-  whisperkitVendor: 'Argmax · On-device',
-  dashscopeVendor: 'Alibaba Cloud · Remote',
-  siliconflowEngineLabel: 'SiliconFlow',
-  siliconflowVendor: 'SiliconFlow · Remote',
-  siliconflowApiKeyLabel: 'SiliconFlow API Key',
-  siliconflowApiKeyHint: 'Register and get API Key at cloud.siliconflow.cn/i/X2F1HvEc',
-  siliconflowModelLabel: 'Recognition Model',
-  siliconflowModelHint: 'Choose a preset or enter a custom model name',
-  zhipuEngineLabel: 'Zhipu AI',
-  zhipuVendor: 'Zhipu · Remote',
-  zhipuApiKeyLabel: 'Zhipu API Key',
-  zhipuApiKeyHint: 'Get your API Key from the Zhipu Open Platform',
-  zhipuLimitHint: 'Max 30s per request — long audio is automatically chunked',
 
   // SectionAiEngine
   qwenVendor: 'OpenAI Compatible',

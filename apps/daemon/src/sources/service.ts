@@ -81,6 +81,7 @@ export class SourceBindingService {
   captureFromRun(runId: string, events: AgentRunEvent[]): SourceBinding[] {
     const seen = new Set(this.listByRun(runId).map((b) => `${b.path}|${b.kind}`))
     const recorded: SourceBinding[] = []
+    const resultsBySpan = collectToolResultsBySpan(events)
     for (const ev of events) {
       if (ev.type !== 'tool_call') continue
       let name: string
@@ -105,12 +106,49 @@ export class SourceBindingService {
             path,
             kind,
             sourceSpanId: ev.spanId,
+            excerpt: excerptFromResult(resultsBySpan.get(ev.spanId ?? '')),
             note: `inferred from ${name} tool call`,
           }),
         )
       }
     }
     return recorded
+  }
+}
+
+function collectToolResultsBySpan(events: AgentRunEvent[]): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const ev of events) {
+    if (ev.type !== 'tool_result' || !ev.spanId) continue
+    const text = extractResultText(ev.data)
+    if (text) out.set(ev.spanId, text)
+  }
+  return out
+}
+
+function extractResultText(data: string): string {
+  try {
+    const parsed = JSON.parse(data) as { content?: unknown; result?: unknown; text?: unknown }
+    const candidate = parsed.content ?? parsed.result ?? parsed.text
+    return stringify(candidate)
+  } catch {
+    return data
+  }
+}
+
+function excerptFromResult(text: string | undefined): string | undefined {
+  const trimmed = text?.replace(/\s+/g, ' ').trim()
+  if (!trimmed) return undefined
+  return trimmed.slice(0, 240)
+}
+
+function stringify(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (value == null) return ''
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
   }
 }
 

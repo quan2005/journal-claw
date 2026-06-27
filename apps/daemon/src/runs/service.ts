@@ -38,6 +38,7 @@ interface RunState extends AgentRun {
 export interface CreateRunInput {
   goal: string
   mode: AgentRunMode
+  agentId?: string
   authorizationMode?: AuthorizationMode
   parentRunId?: string
 }
@@ -59,11 +60,12 @@ export class AgentRunService {
       goal: input.goal,
       mode: input.mode,
       status: 'queued',
+      agentId: input.agentId,
       authorizationMode: input.authorizationMode ?? 'workspace_write',
       contextBindings: [],
-     steps: [],
+      steps: [],
       parentRunId: input.parentRunId,
-     createdAt: now,
+      createdAt: now,
       updatedAt: now,
       subscribers: new Set(),
     }

@@ -1,7 +1,7 @@
 ---
 id: STORY-20260625-ts-daemon-agent-runtime-migration
 title: "TypeScript daemon 与 Coding Agent Runtime 迁移"
-status: approved
+status: verified
 source: gate
 level: L3
 hypothesis_basis: intuition
@@ -42,7 +42,7 @@ related:
 - **平台绑定**：运行时边界与前端事件流强绑在 Tauri/Rust 上，旧架构还包含 macOS 专属事实（Swift sidecar、Apple Speech、AVFoundation、权限 FFI）。[证据：README.cn.md；docs/ARCH.md §技术债；AGENTS.md §关键约束 #5]
 - **单一运行时主干**：内置 LLM 引擎和 tool loop 直接写在 Rust 后端；继续把 Claude Code、Codex CLI、OpenCode 的差异写进业务逻辑会扩大维护成本。[证据：AGENTS.md §关键约束 #4；src-tauri/src/llm/tool_loop.rs]
 - **前端迁移缺少保护层**：前端调用虽然集中在 `src/lib/tauri.ts`，但 `useConversation` 仍直接监听 Tauri event `conversation-stream`。[证据：src/lib/tauri.ts；src/hooks/useConversation.ts]
-- **权限过早细化会拖慢主线**：用户已确认初期默认宽授权并审计，等 Coding Agent CLI 接入稳定后再复用只读、文件夹内读写、全放开三档授权。[推测：基于 handoff/final-state.md]
+- **权限默认值必须保守且可审计**：初期需要跑通本地 Agent 工作流，但默认不应直接全放开；默认采用 `workspace_write`，同时保留 `wide_with_audit` 作为显式迁移/审计模式，避免 Agent 默认越界写入。[推测：基于 handoff/final-state.md 与 2026-06-26 验收裁决]
 
 ## 成功标准（脊柱 Q4）
 
@@ -53,7 +53,7 @@ related:
 - **把 Agent 任务交给本地 TS/Node 主干**：从当前 0 条 TS daemon 主路径，变成至少 1 条可验收的 TS daemon 运行路径，而不是继续依赖 Rust 后端主干。
 - **在同一产品语义下选择不同 Coding Agent CLI**：从当前没有统一 adapter 语义，变成首批 Claude Code、Codex CLI、OpenCode 具备 detect/version/auth 基础探测和统一 run event 输出。
 - **让 Run 自动沉淀为长期资产**：从当前 run lifecycle 没有默认沉淀阶段，变成 run 完成后自动写 summary、artifact index、memory/rule 记录。
-- **用三档授权理解 Agent 权限**：从当前权限边界未统一，变成支持 `read_only`、`workspace_write`、`full_access` 三档语义，并保留初期 `wide_with_audit` 迁移模式。
+- **用授权模式理解 Agent 权限**：从当前权限边界未统一，变成默认 `workspace_write`，并支持 `read_only`、`workspace_write`、`full_access` 三档语义；`wide_with_audit` 作为显式迁移/审计模式保留。
 
 假设依据：以上基于用户明确方向与当前代码结构判断（intuition）。验证方式是 story approved 后进入 design.md 与分阶段实现验收。
 
@@ -76,8 +76,9 @@ related:
 ### AC-3 — 授权策略符合用户当前取向
 - **Given** 高权限 Agent 需要先跑通本地工作流
 - **When** 第一阶段实现 TS daemon 和 Agent run
-- **Then** 默认策略是 `wide_with_audit`：所有工具调用和文件变更可追踪、可审计
-- **And** Coding Agent CLI 接入稳定后，支持 `read_only`、`workspace_write`、`full_access` 三档授权
+- **Then** 默认策略是 `workspace_write`：仅允许 workspace root 内写入，并记录工具调用和文件变更
+- **And** 系统支持 `read_only`、`workspace_write`、`full_access` 三档授权
+- **And** `wide_with_audit` 仅作为显式迁移/审计模式，不作为默认值
 
 ### AC-4 — Run 面板不被过度重做
 - **Given** 用户认为当前 Run 面板中计划、工具调用、diff、输出的视觉优先级已经可用
@@ -111,7 +112,7 @@ related:
 | R1 | 迁移期双主干（Rust + TS daemon）并行，维护与一致性成本高 | 高 | 分阶段迁移，每阶段单能力验收后再并轨；明确退出条件（AC-5） |
 | R2 | 平台能力被误带进默认路径（Apple Speech/Whisper/ffmpeg/Trash） | 高 | story/ADR 明确禁项；验收以“多平台一致 + 只本地”为硬条件（AC-1） |
 | R3 | Coding Agent CLI 差异渗入产品层，adapter 失效 | 中 | adapter 边界写进 AC-2；统一 AgentRun event / ChangeSet / AuthorizationMode |
-| R4 | 初期宽授权（`wide_with_audit`）带来安全敞口 | 中 | 全量审计先行；三档授权作为 CLI 稳定后的硬性收口（AC-3） |
+| R4 | 默认 `workspace_write` 仍可能误写 workspace 内文件 | 中 | 默认限制在 workspace root 内，并记录工具调用与文件变更；`wide_with_audit` 仅作为显式迁移/审计模式（AC-3） |
 | R5 | `src/lib/tauri.ts` 导出 API 形变波及前端 | 中 | `JournalRuntimeClient` 保持现有导出不变（交棒清单） |
 | R6 | 删除 Rust 缺测试/回滚记录导致不可逆 | 高 | AC-5 强制要求回滚记录 + 迁移说明 + 测试覆盖 |
 | R7 | 大迁移整体偏大，单 story 难以 1-2 sprint 完成 | 中 | 须按 design phase 拆分为可开发子 story；本 story 先承载产品边界与分阶段总契约 |

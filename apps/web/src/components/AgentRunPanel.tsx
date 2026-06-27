@@ -12,8 +12,8 @@
  */
 import { useState, type ReactNode } from 'react'
 import { useAgentRun, AUTHORIZATION_MODES, type TimelineEntry } from '../hooks/useAgentRun'
-  import type { AuthorizationMode, ChangeSet } from '../types/agentRun'
-  import type { Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
+import type { AuthorizationMode, ChangeSet } from '../types/agentRun'
+import type { Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   queued: { label: 'Queued', color: 'var(--status-warning)' },
@@ -28,11 +28,22 @@ const MODE_LABEL: Record<AuthorizationMode, string> = {
   read_only: 'Read-only',
   workspace_write: 'Workspace write',
   full_access: 'Full access',
-  wide_with_audit: 'Audit',
+  wide_with_audit: 'Wide (audited)',
 }
 
 export function AgentRunPanel() {
-  const { run, timeline, changeSets, artifacts, memory, sources, assistantText, isRunning, error, start } = useAgentRun()
+  const {
+    run,
+    timeline,
+    changeSets,
+    artifacts,
+    memory,
+    sources,
+    assistantText,
+    isRunning,
+    error,
+    start,
+  } = useAgentRun()
   const [goal, setGoal] = useState('')
   const [mode, setMode] = useState<AuthorizationMode>('workspace_write')
 
@@ -43,7 +54,10 @@ export function AgentRunPanel() {
     setGoal('')
   }
 
-  const statusMeta = run ? STATUS_META[run.status] ?? STATUS_META.queued : null
+  // Look up status metadata directly; if the status is unrecognized (e.g. a
+  // future "rejected"), statusMeta stays undefined so the header badge falls
+  // back to the raw status string instead of mislabeling it as "Queued".
+  const statusMeta = run ? STATUS_META[run.status] : null
 
   return (
     <div style={panelStyle}>
@@ -116,16 +130,16 @@ export function AgentRunPanel() {
             </section>
           )}
 
-         {changeSets.length > 0 && (
-           <section style={sectionStyle}>
-             <div style={eyebrowStyle}>File changes ({changeSets.length})</div>
-             <ul style={changeListStyle}>
-               {changeSets.map((cs) => (
-                 <ChangeSetRow key={cs.id} cs={cs} />
-               ))}
-             </ul>
-           </section>
-         )}
+          {changeSets.length > 0 && (
+            <section style={sectionStyle}>
+              <div style={eyebrowStyle}>File changes ({changeSets.length})</div>
+              <ul style={changeListStyle}>
+                {changeSets.map((cs) => (
+                  <ChangeSetRow key={cs.id} cs={cs} />
+                ))}
+              </ul>
+            </section>
+          )}
 
           {sources.length > 0 && (
             <section style={sectionStyle}>
@@ -159,8 +173,8 @@ export function AgentRunPanel() {
               </ul>
             </section>
           )}
-       </>
-     )}
+        </>
+      )}
     </div>
   )
 }
@@ -177,7 +191,9 @@ function TimelineRow({ entry }: { entry: TimelineEntry }): ReactNode {
   if (entry.kind === 'tool_call') {
     return (
       <li style={timelineItemStyle}>
-        <span style={toolIcon} aria-hidden>⚙</span>
+        <span style={toolIcon} aria-hidden>
+          ⚙
+        </span>
         <div>
           <div style={toolNameStyle}>{entry.toolName}</div>
           {entry.text && <div style={toolInputStyle}>{entry.text}</div>}
@@ -188,7 +204,9 @@ function TimelineRow({ entry }: { entry: TimelineEntry }): ReactNode {
   if (entry.kind === 'thinking') {
     return (
       <li style={timelineItemStyle}>
-        <span style={thinkIcon} aria-hidden>···</span>
+        <span style={thinkIcon} aria-hidden>
+          ···
+        </span>
         <span style={thinkingStyle}>{entry.text}</span>
       </li>
     )
@@ -198,12 +216,33 @@ function TimelineRow({ entry }: { entry: TimelineEntry }): ReactNode {
 
 function ChangeSetRow({ cs }: { cs: ChangeSet }): ReactNode {
   const opColor =
-    cs.operation === 'remove' ? 'var(--status-danger)' : cs.operation === 'create' ? 'var(--status-success, #16a34a)' : 'var(--accent)'
+    cs.operation === 'remove'
+      ? 'var(--status-danger)'
+      : cs.operation === 'create'
+        ? 'var(--status-success, #16a34a)'
+        : 'var(--accent)'
+  // Blocked/failed changesets are surfaced at full opacity with a danger tint
+  // so the user can see what the agent was stopped from doing. Applied/reverted/
+  // recorded stay muted as ordinary history.
+  const statusColor =
+    cs.status === 'blocked' || cs.status === 'failed'
+      ? 'var(--status-danger)'
+      : cs.status === 'reverted'
+        ? 'var(--text-tertiary, #999)'
+        : 'var(--text-tertiary, #999)'
   return (
     <li style={changeItemStyle}>
       <span style={{ ...opTag, color: opColor }}>{cs.operation}</span>
       <code style={pathStyle}>{cs.path}</code>
-      <span style={{ ...statusTag, opacity: cs.status === 'blocked' ? 1 : 0.6 }}>{cs.status}</span>
+      <span
+        style={{
+          ...statusTag,
+          color: statusColor,
+          opacity: cs.status === 'blocked' || cs.status === 'failed' ? 1 : 0.7,
+        }}
+      >
+        {cs.status}
+      </span>
     </li>
   )
 }
@@ -323,7 +362,12 @@ const statusDot: React.CSSProperties = {
   flexShrink: 0,
 }
 const statusTextStyle: React.CSSProperties = { color: 'var(--text-secondary, #555)', paddingTop: 2 }
-const toolIcon: React.CSSProperties = { color: 'var(--accent)', marginTop: 1, fontSize: 12, flexShrink: 0 }
+const toolIcon: React.CSSProperties = {
+  color: 'var(--accent)',
+  marginTop: 1,
+  fontSize: 12,
+  flexShrink: 0,
+}
 const toolNameStyle: React.CSSProperties = {
   fontFamily: 'var(--font-mono, monospace)',
   fontSize: 12,
@@ -337,15 +381,29 @@ const toolInputStyle: React.CSSProperties = {
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-all',
 }
-const thinkIcon: React.CSSProperties = { color: 'var(--text-tertiary, #999)', flexShrink: 0, letterSpacing: -2 }
-const thinkingStyle: React.CSSProperties = { color: 'var(--text-tertiary, #999)', fontStyle: 'italic' }
+const thinkIcon: React.CSSProperties = {
+  color: 'var(--text-tertiary, #999)',
+  flexShrink: 0,
+  letterSpacing: -2,
+}
+const thinkingStyle: React.CSSProperties = {
+  color: 'var(--text-tertiary, #999)',
+  fontStyle: 'italic',
+}
 const outputStyle: React.CSSProperties = {
   fontSize: 14,
   lineHeight: 1.6,
   color: 'var(--text-primary, #111827)',
   whiteSpace: 'pre-wrap',
 }
-const changeListStyle: React.CSSProperties = { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }
+const changeListStyle: React.CSSProperties = {
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+}
 const changeItemStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -353,21 +411,34 @@ const changeItemStyle: React.CSSProperties = {
   fontSize: 12,
   padding: '4px 0',
 }
- const opTag: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', minWidth: 48 }
- const pathStyle: React.CSSProperties = {
-   fontFamily: 'var(--font-mono, monospace)',
-   fontSize: 12,
-   color: 'var(--text-secondary, #555)',
-   flex: 1,
-   overflow: 'hidden',
-   textOverflow: 'ellipsis',
-   whiteSpace: 'nowrap',
- }
- const statusTag: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', color: 'var(--text-tertiary, #999)' }
+const opTag: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  minWidth: 48,
+}
+const pathStyle: React.CSSProperties = {
+  fontFamily: 'var(--font-mono, monospace)',
+  fontSize: 12,
+  color: 'var(--text-secondary, #555)',
+  flex: 1,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+const statusTag: React.CSSProperties = {
+  fontSize: 10,
+  textTransform: 'uppercase',
+  color: 'var(--text-tertiary, #999)',
+}
 
 function SourceRow({ source }: { source: SourceBinding }): ReactNode {
   const kindColor =
-    source.kind === 'cite' ? 'var(--accent)' : source.kind === 'read' ? 'var(--status-success, #16a34a)' : 'var(--text-tertiary, #999)'
+    source.kind === 'cite'
+      ? 'var(--accent)'
+      : source.kind === 'read'
+        ? 'var(--status-success, #16a34a)'
+        : 'var(--text-tertiary, #999)'
   return (
     <li style={changeItemStyle}>
       <span style={{ ...opTag, color: kindColor }}>{source.kind}</span>
@@ -381,10 +452,24 @@ function ArtifactRow({ artifact }: { artifact: Artifact }): ReactNode {
     <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
         <span style={{ ...opTag, color: 'var(--accent)' }}>{artifact.type}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #111827)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{artifact.title}</span>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-primary, #111827)',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {artifact.title}
+        </span>
       </div>
       {artifact.content && (
-        <code style={{ ...pathStyle, whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>{artifact.content.slice(0, 200)}</code>
+        <code style={{ ...pathStyle, whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>
+          {artifact.content.slice(0, 200)}
+        </code>
       )}
     </li>
   )
@@ -402,11 +487,34 @@ function MemoryRow({ record }: { record: MemoryRecord }): ReactNode {
   return (
     <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-        <span style={{ ...opTag, color: 'var(--accent)' }}>{MEMORY_KIND_LABEL[record.kind] ?? record.kind}</span>
-        <span style={{ fontSize: 12, color: 'var(--text-secondary, #555)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{record.summary}</span>
+        <span style={{ ...opTag, color: 'var(--accent)' }}>
+          {MEMORY_KIND_LABEL[record.kind] ?? record.kind}
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            color: 'var(--text-secondary, #555)',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {record.summary}
+        </span>
       </div>
       {record.evidence.length > 0 && (
-        <code style={{ ...pathStyle, whiteSpace: 'pre-wrap', maxHeight: 40, overflow: 'hidden', fontStyle: 'italic' }}>{record.evidence[0].slice(0, 160)}</code>
+        <code
+          style={{
+            ...pathStyle,
+            whiteSpace: 'pre-wrap',
+            maxHeight: 40,
+            overflow: 'hidden',
+            fontStyle: 'italic',
+          }}
+        >
+          {record.evidence[0].slice(0, 160)}
+        </code>
       )}
     </li>
   )

@@ -16,6 +16,15 @@
  */
 export type MemoryKind = 'preference' | 'project_fact' | 'writing_rule' | 'tool_rule' | 'note'
 
+/**
+ * Review lifecycle of a sedimented record.
+ *   auto_recorded — produced by the deterministic extractor, not yet reviewed
+ *   edited        — a human (or the user) has revised the record's content
+ *   rejected      — the user rejected this record; it must NOT be returned for
+ *                   durable context assembly, only for audit/history
+ */
+export type MemoryRecordStatus = 'auto_recorded' | 'edited' | 'rejected'
+
 export interface MemoryRecord {
   id: string
   /** Run that produced this memory (provenance). */
@@ -29,7 +38,15 @@ export interface MemoryRecord {
   evidence: string[]
   /** Artifact ids cited as evidence, if any. */
   sourceArtifactIds?: string[]
+  /** ChangeSet ids cited as evidence, if any (provenance: Run → ChangeSet). */
+  changeSetIds?: string[]
+  /** Workspace-relative path of the sedimented note (e.g. summary.md path). */
+  path?: string
+  /** Review lifecycle status; defaults to 'auto_recorded'. */
+  status?: MemoryRecordStatus
   createdAt: string
+  /** Last edit timestamp, if reviewed/edited. */
+  updatedAt?: string
 }
 
 export function isMemoryRecord(value: unknown): value is MemoryRecord {

@@ -95,7 +95,7 @@ Portable Runtime Boundary（跨平台 Node/Electron 能力）
 | **3** AgentRun 一等化 | Run 从"对话流事件"升级为可回看对象 | **Runs** | 🔲 |
 | **4** Sources + Artifacts 一等化 | source binding + artifact index | **Sources / Artifacts** | 🔲 |
 | **5** ChangeSet + AuthorizationMode | 文件操作可追踪可撤销 + 三档授权 | **Sources**（安全操作） | 🔲 |
-| **6** Coding Agent registry | Claude/Codex/OpenCode adapter | **Runs**（执行引擎） | 🔲 |
+| **6** Coding Agent registry | Claude/Codex/OpenCode adapter | **Runs**（执行引擎） | 🔄 |
 | **7** Agent Run Workbench | 右侧面板升级为 Run 工作现场 | **Runs**（UI） | 🔲 |
 | **8** 自动沉淀管线 | Run 默认沉淀为长期资产 | **Rules/Memory** | 🔲 |
 | **9** Workspace 元数据化 | 从"文件夹路径"升级为上下文边界 | **Workspace** | 🔲 |
@@ -271,7 +271,7 @@ open-design codex adapter 实测的 sandbox 映射（`codexNeedsDangerFullAccess
 - Windows/WSL：`danger-full-access`（Codex 无可用 OS 沙盒）
 - 可用 `OD_CODEX_SANDBOX=danger-full-access` 环境变量覆盖
 
-→ journal 三档授权 `read_only` / `workspace_write` / `full_access` 映射表（待补 claude + opencode）：
+→ journal 授权默认值统一为 `workspace_write`；`read_only` / `workspace_write` / `full_access` 为用户可理解三档，`wide_with_audit` 是显式迁移/审计模式。CLI 映射表：
 - `codex -s`：`read-only` / `workspace-write` / `danger-full-access` ✅ 已知
 - `claude --permission-mode`：`plan` / `acceptEdits` / `bypassPermissions`（待实测确认）
 - `opencode`：`--dangerously-skip-permissions`？（待实测确认）

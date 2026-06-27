@@ -1,6 +1,16 @@
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  lazy,
+  Suspense,
+  type CSSProperties,
+} from 'react'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 const DetailView = lazy(() =>
@@ -27,23 +37,17 @@ import { NavRail } from './components/NavRail'
 import { useTodoContext } from './contexts/TodoContext'
 import {
   importFile,
-  importAudioFile,
   getEngineConfig,
-  getAsrConfig,
-  checkWhisperkitCliInstalled,
-  checkWhisperkitModelDownloaded,
   createSampleEntryIfNeeded,
   createSampleEntry,
   listAllJournalEntries,
   enqueueWork as invokeEnqueueWork,
   cancelWorkItem,
   retryWorkItem,
-  prepareAudioForAi,
   getWorkspacePath,
   getOnboardingStatus,
   completeOnboarding,
 } from './lib/tauri'
-import { fileKindFromName } from './lib/fileKind'
 import { fileBasename, type JournalFileOpenDetail } from './lib/fileNavigation'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import { useTranslation } from './contexts/I18nContext'
@@ -66,6 +70,30 @@ const HIDE_RIGHT_PANEL_BELOW = 960
 const HIDE_LEFT_SIDEBAR_BELOW = 720
 const SIDEBAR_PANEL_TRANSITION =
   'width 220ms var(--ease-out), opacity 160ms var(--ease-out), border-color 160ms var(--ease-out)'
+const PANEL_TOGGLE_TOP = 'clamp(88px, 12vh, 120px)'
+
+function sidebarToggleStyle(): CSSProperties {
+  return {
+    ['--panel-toggle-top' as string]: PANEL_TOGGLE_TOP,
+    position: 'absolute',
+    top: 'var(--panel-toggle-top)',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 3,
+    width: 22,
+    height: 34,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '0.5px solid var(--divider)',
+    borderRadius: 'var(--radius-pill)',
+    background: 'var(--sidebar-bg)',
+    color: 'var(--item-meta)',
+    cursor: 'pointer',
+    padding: 0,
+    boxShadow: 'var(--shadow-overlay)',
+  } as CSSProperties
+}
 
 interface DetailReturnTarget {
   selection: TreeSelection
@@ -103,9 +131,6 @@ export default function App() {
     queueItems,
     isProcessing,
     dismissQueueItem,
-    addConvertingItem,
-    markItemFailed,
-    retryQueueItem,
     refresh,
   } = useJournal()
   const { theme, setTheme } = useTheme()
@@ -137,22 +162,24 @@ export default function App() {
     sidebarWidth,
     setSidebarWidthView,
     persistSidebarWidth,
-   rightPanelOpen,
-   setRightPanelOpen,
+    rightPanelOpen,
+    setRightPanelOpen,
     rightPanelMode,
     setRightPanelMode,
-   rightPanelWidth,
-   setRightPanelWidthView,
-   persistRightPanelWidth,
-   rightPanelPinned,
-   setRightPanelPinned,
- } = useLayout()
+    rightPanelWidth,
+    setRightPanelWidthView,
+    persistRightPanelWidth,
+    rightPanelPinned,
+    setRightPanelPinned,
+  } = useLayout()
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingLoading, setOnboardingLoading] = useState(true)
   const [defaultWsPath, setDefaultWsPath] = useState('')
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(
+    () => window.innerWidth >= HIDE_LEFT_SIDEBAR_BELOW,
+  )
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
 
   useEffect(() => {
@@ -212,42 +239,6 @@ export default function App() {
       })
       .catch(() => {})
   }, [view]) // re-check after user closes settings
-
-  // Check ASR readiness on mount and after settings are closed
-  useEffect(() => {
-    getAsrConfig()
-      .then(async (cfg) => {
-        switch (cfg.asr_engine) {
-          case 'apple':
-            return
-          case 'whisperkit': {
-            const [cliOk, modelOk] = await Promise.all([
-              checkWhisperkitCliInstalled(),
-              checkWhisperkitModelDownloaded(cfg.whisperkit_model),
-            ])
-            if (!cliOk || !modelOk) {
-              console.warn('[App] WhisperKit not ready')
-            }
-            return
-          }
-          case 'dashscope':
-            if (cfg.dashscope_api_key.trim().length === 0) {
-              console.warn('[App] ASR not configured')
-            }
-            return
-          case 'siliconflow':
-            if (cfg.siliconflow_asr_api_key.trim().length === 0) {
-              console.warn('[App] ASR not configured')
-            }
-            return
-          case 'zhipu':
-            if (cfg.zhipu_asr_api_key.trim().length === 0) {
-              console.warn('[App] ASR not configured')
-            }
-        }
-      })
-      .catch(() => {})
-  }, [view]) // re-check after settings closed
 
   // Divider drag (left sidebar) — rAF-batched view updates, persist on mouseup (AC-1,3)
   const onDividerMouseDown = (e: React.MouseEvent) => {
@@ -441,7 +432,14 @@ export default function App() {
     }
     window.addEventListener('journal-file-open', handler)
     return () => window.removeEventListener('journal-file-open', handler)
-  }, [rememberReturnTarget, setActiveCategory, setSelectedEntry, setShowIdeas, setTreeSelection, setView])
+  }, [
+    rememberReturnTarget,
+    setActiveCategory,
+    setSelectedEntry,
+    setShowIdeas,
+    setTreeSelection,
+    setView,
+  ])
 
   // Open settings from Rust menu (Cmd+,) or keyboard shortcut
   useEffect(() => {
@@ -585,42 +583,28 @@ export default function App() {
       const importedPaths: string[] = []
       for (const path of paths) {
         try {
-          const kind = fileKindFromName(path.split(/[\\/]/).pop() ?? path)
-          if (kind === 'audio') {
-            const result = await importAudioFile(path)
-            importedPaths.push(result.path)
-            addConvertingItem(result.path, result.filename)
-            try {
-              await prepareAudioForAi(result.path, result.year_month)
-            } catch (audioErr) {
-              console.error('[file-submit] audio prepare error:', String(audioErr))
-              markItemFailed(result.path, String(audioErr))
-            }
-          } else {
-            const result = await importFile(path)
-            importedPaths.push(result.path)
-          }
+          const result = await importFile(path)
+          importedPaths.push(result.path)
         } catch (err) {
           console.error('[file-submit] error:', String(err))
         }
       }
-      // Non-audio files: enqueue in Rust work queue
-      const nonAudioPaths = importedPaths.filter((p) => {
+      const processablePaths = importedPaths.filter((p) => {
         const ext = p.split('.').pop()?.toLowerCase() ?? ''
         return !['m4a', 'wav', 'mp3', 'aac', 'ogg', 'flac'].includes(ext)
       })
-      if (nonAudioPaths.length > 0) {
+      if (processablePaths.length > 0) {
         const prompt = '分析并处理这些文件'
-        const displayName = nonAudioPaths.map((p) => p.split(/[\\/]/).pop()).join(', ')
+        const displayName = processablePaths.map((p) => p.split(/[\\/]/).pop()).join(', ')
         try {
-          await invokeEnqueueWork({ files: nonAudioPaths, prompt, displayName })
+          await invokeEnqueueWork({ files: processablePaths, prompt, displayName })
         } catch (err) {
           console.error('[file-submit] enqueue error:', String(err))
         }
       }
       refresh()
     },
-    [addConvertingItem, markItemFailed, refresh],
+    [refresh],
   )
 
   const handleDropFiles = useCallback(
@@ -880,7 +864,6 @@ export default function App() {
   }
 
   const handleRetryQueueItem = async (item: QueueItem) => {
-    // Rust work queue items: retry via Rust
     if (item.id.startsWith('wq-')) {
       try {
         await retryWorkItem(item.id)
@@ -889,16 +872,7 @@ export default function App() {
       }
       return
     }
-    // Local items (audio pipeline)
-    const parts = item.path.split(/[\\/]/)
-    const rawIdx = parts.lastIndexOf('raw')
-    const yearMonth = rawIdx > 0 ? parts[rawIdx - 1] : (parts.slice(-2, -1)[0] ?? '')
-    retryQueueItem(item.path, 'converting')
-    try {
-      await prepareAudioForAi(item.path, yearMonth)
-    } catch (err) {
-      console.error('[retry] audio error:', String(err))
-    }
+    dismissQueueItem(item.id)
   }
 
   const processingItem = queueItems.find((i) => i.status === 'processing')
@@ -1005,7 +979,6 @@ export default function App() {
           setRightPanelOpen((prev) => !prev)
         }}
         rightPanelOpen={rightPanelOpen}
-        onToggleRightPanel={() => setRightPanelOpen((prev) => !prev)}
         rightPanelPinned={rightPanelPinned}
         onToggleRightPanelPin={() => setRightPanelPinned(!rightPanelPinned)}
       />
@@ -1154,7 +1127,22 @@ export default function App() {
             userSelect: 'none' as const,
             cursor: leftSidebarOpen ? 'col-resize' : 'default',
           }}
-        ></div>
+        >
+          <button
+            type="button"
+            aria-label={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
+            title={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setLeftSidebarOpen((prev) => !prev)}
+            style={sidebarToggleStyle()}
+          >
+            {leftSidebarOpen ? (
+              <ChevronLeft size={15} strokeWidth={1.8} />
+            ) : (
+              <ChevronRight size={15} strokeWidth={1.8} />
+            )}
+          </button>
+        </div>
 
         {/* Center: Detail panel */}
         <div
@@ -1226,7 +1214,22 @@ export default function App() {
             cursor: rightPanelOpen ? 'col-resize' : 'default',
             transition: 'background-color 0.15s var(--ease-out)',
           }}
-        ></div>
+        >
+          <button
+            type="button"
+            aria-label={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
+            title={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setRightPanelOpen((prev) => !prev)}
+            style={sidebarToggleStyle()}
+          >
+            {rightPanelOpen ? (
+              <ChevronRight size={15} strokeWidth={1.8} />
+            ) : (
+              <ChevronLeft size={15} strokeWidth={1.8} />
+            )}
+          </button>
+        </div>
         <div
           className="app-sidebar-panel"
           data-sidebar-panel="right"
@@ -1241,63 +1244,72 @@ export default function App() {
             borderLeft: rightPanelOpen ? '0.5px solid var(--divider)' : '0.5px solid transparent',
             opacity: rightPanelOpen ? 1 : 0,
             pointerEvents: rightPanelOpen ? 'auto' : 'none',
-           transition: SIDEBAR_PANEL_TRANSITION,
-           willChange: 'width, opacity',
-         }}
-       >
-        {/* Mode toggle: Chat ↔ Agent Run. Rendered above the Suspense boundary
+            transition: SIDEBAR_PANEL_TRANSITION,
+            willChange: 'width, opacity',
+          }}
+        >
+          {/* Mode toggle: Chat ↔ Agent Run. Rendered above the Suspense boundary
             so it is always present (the user's "right side = Agent Run panel"). */}
-        <div style={{ display: 'flex', gap: 0, padding: '6px 10px 0', borderBottom: '0.5px solid var(--divider)', flexShrink: 0 }}>
-          {(['chat', 'run'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setRightPanelMode(m)}
-              style={{
-                padding: '4px 10px',
-                fontSize: 12,
-                fontWeight: 600,
-                border: 'none',
-                borderBottom: rightPanelMode === m ? '2px solid var(--accent)' : '2px solid transparent',
-                background: 'transparent',
-                color: rightPanelMode === m ? 'var(--accent)' : 'var(--text-tertiary)',
-                cursor: 'pointer',
-              }}
-            >
-              {m === 'chat' ? 'Chat' : 'Agent Run'}
-            </button>
-          ))}
-        </div>
-        <Suspense fallback={null}>
-           <RightPanel
-             chatContent={
+          <div
+            style={{
+              display: 'flex',
+              gap: 0,
+              padding: '6px 10px 0',
+              borderBottom: '0.5px solid var(--divider)',
+              flexShrink: 0,
+            }}
+          >
+            {(['chat', 'run'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setRightPanelMode(m)}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: 'none',
+                  borderBottom:
+                    rightPanelMode === m ? '2px solid var(--accent)' : '2px solid transparent',
+                  background: 'transparent',
+                  color: rightPanelMode === m ? 'var(--accent)' : 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                }}
+              >
+                {m === 'chat' ? 'Chat' : 'Agent Run'}
+              </button>
+            ))}
+          </div>
+          <Suspense fallback={null}>
+            <RightPanel
+              chatContent={
                 rightPanelMode === 'run' ? (
                   <AgentRunPanel />
                 ) : (
-                <ChatPanel
-                  sessionId={sessionId}
-                  messages={messages}
-                  isStreaming={isStreaming}
-                  usage={usage}
-                  stats={stats}
-                  pendingQueue={pendingQueue}
-                  initialInput={chatInitialText}
-                  onSend={send}
-                  onCancel={cancel}
-                  onRetry={retry}
-                  onEditAndResend={editAndResend}
-                  onRemovePendingItem={removePendingItem}
-                  onContinue={() => send('请继续')}
-                  historyControl={
-                    <HistoryFloatingButton
-                      activeSessionId={sessionId}
-                      onSelect={(id: string) => openChatPanel(id)}
-                    />
-                 }
-               />
+                  <ChatPanel
+                    sessionId={sessionId}
+                    messages={messages}
+                    isStreaming={isStreaming}
+                    usage={usage}
+                    stats={stats}
+                    pendingQueue={pendingQueue}
+                    initialInput={chatInitialText}
+                    onSend={send}
+                    onCancel={cancel}
+                    onRetry={retry}
+                    onEditAndResend={editAndResend}
+                    onRemovePendingItem={removePendingItem}
+                    onContinue={() => send('请继续')}
+                    historyControl={
+                      <HistoryFloatingButton
+                        activeSessionId={sessionId}
+                        onSelect={(id: string) => openChatPanel(id)}
+                      />
+                    }
+                  />
                 )
-             }
-           />
-         </Suspense>
+              }
+            />
+          </Suspense>
         </div>
       </div>
 

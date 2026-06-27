@@ -6,22 +6,31 @@
  *
  * Today's extraction is deterministic + structural (it reads the Run's events,
  * artifacts, and change sets for signals). The shape is the product value:
- * records carry source run + evidence + linked artifact ids, so the user can
- * audit and revert what the Agent "learned". An LLM-based extractor can drop
- * into extractFromRun() later without changing the MemoryRecord contract.
+ * records carry source run + evidence + linked artifact/changeSet ids + a
+ * review status, so the user can audit and reject what the Agent "learned".
+ * An LLM-based extractor can drop into extractFromRun() later without
+ * changing the MemoryRecord contract.
  *
  * Outputs (all traceable to the source run):
- *   - a run summary note (what the run did, in prose)
+ *   - a run summary note persisted to <workspace>/.journal/runs/<runId>/summary.md
  *   - preference/project_fact/writing_rule/tool_rule records extracted from
  *     the run's assistant text and tool calls
+ *
+ * Review lifecycle (status field):
+ *   auto_recorded -> edited | rejected. Rejected records are kept for audit
+ *   but excluded from durable context assembly (see listDurable()).
  */
 import { randomUUID } from 'node:crypto'
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
 import type {
   AgentRunEvent,
   Artifact,
   ChangeSet,
+  AuthorizationMode,
   MemoryKind,
   MemoryRecord,
+  MemoryRecordStatus,
 } from '@journal/contracts'
 
 export interface SedimentationResult {
@@ -35,6 +44,14 @@ export interface SedimentationResult {
 
 export class SedimentationService {
   private readonly byRun = new Map<string, MemoryRecord[]>()
+  private readonly byId = new Map<string, MemoryRecord>()
+
+  /**
+   * @param workspaceRoot Absolute workspace root. Used to persist the run
+   * summary note to `<root>/.journal/runs/<runId>/summary.md`. May be omitted
+   * in pure-unit test scenarios; the summary file is then skipped.
+   */
+  constructor(private readonly workspaceRoot?: string) {}
 
   /**
    * Run sedimentation over a completed run's events + artifacts + changes.
@@ -46,23 +63,41 @@ export class SedimentationService {
     events: AgentRunEvent[],
     artifacts: Artifact[],
     changeSets: ChangeSet[],
+    options: { authorizationMode?: AuthorizationMode } = {},
   ): SedimentationResult {
     const records: MemoryRecord[] = []
     const assistantText = collectAssistantText(events)
     const toolCalls = collectToolCalls(events)
+    const changeSetIds = changeSets.map((c) => c.id)
 
-    // 1. Run summary note — always produced.
+    // 1. Run summary note — always produced; persisted to disk so the
+    // workspace carries a human-readable account of what each run did.
     const summaryDetail = buildRunSummary(runId, assistantText, artifacts, changeSets, toolCalls)
-    const summary: MemoryRecord = this.make(runId, 'note', `Run ${shortId(runId)} summary`, summaryDetail, [assistantText.slice(0, 400)])
+    const summaryPath =
+      options.authorizationMode === 'read_only' ? undefined : this.persistSummary(runId, summaryDetail)
+    const summary: MemoryRecord = this.make(
+      runId,
+      'note',
+      `Run ${shortId(runId)} summary`,
+      summaryDetail,
+      [assistantText.slice(0, 400)],
+      undefined,
+      changeSetIds,
+      summaryPath,
+    )
 
     // 2. Preferences — detect explicit preference phrasing in assistant text.
     for (const p of extractPreferences(assistantText)) {
-      records.push(this.make(runId, 'preference', p.summary, p.detail, p.evidence, artifactIds(artifacts)))
+      records.push(
+        this.make(runId, 'preference', p.summary, p.detail, p.evidence, artifactIds(artifacts)),
+      )
     }
 
     // 3. Project facts — detect factual assertions about the project.
     for (const f of extractFacts(assistantText)) {
-      records.push(this.make(runId, 'project_fact', f.summary, f.detail, f.evidence))
+      records.push(
+        this.make(runId, 'project_fact', f.summary, f.detail, f.evidence, undefined, changeSetIds),
+      )
     }
 
     // 4. Writing rules — detect style/format guidance.
@@ -76,9 +111,44 @@ export class SedimentationService {
     }
 
     const all = [summary, ...records]
+    // refresh the id index for this run
+    for (const r of all) this.byId.set(r.id, r)
     this.byRun.set(runId, all)
     return { summary, records, all }
   }
+
+  // ── review lifecycle (status) ────────────────────────────────────────────
+
+  /** Edit a record's summary/detail (status -> 'edited'). */
+  editRecord(id: string, patch: { summary?: string; detail?: string }): MemoryRecord | undefined {
+    const rec = this.byId.get(id)
+    if (!rec) return undefined
+    if (typeof patch.summary === 'string') rec.summary = patch.summary
+    if (typeof patch.detail === 'string') rec.detail = patch.detail
+    rec.status = 'edited'
+    rec.updatedAt = new Date().toISOString()
+    return rec
+  }
+
+  /** Reject a record (status -> 'rejected'); it is kept for audit but excluded from durable context. */
+  rejectRecord(id: string): MemoryRecord | undefined {
+    const rec = this.byId.get(id)
+    if (!rec) return undefined
+    rec.status = 'rejected'
+    rec.updatedAt = new Date().toISOString()
+    return rec
+  }
+
+  /** Restore a rejected/edited record to auto_recorded (undo a reject). */
+  restoreRecord(id: string): MemoryRecord | undefined {
+    const rec = this.byId.get(id)
+    if (!rec) return undefined
+    rec.status = 'auto_recorded'
+    rec.updatedAt = new Date().toISOString()
+    return rec
+  }
+
+  // ── queries ───────────────────────────────────────────────────────────────
 
   listByRun(runId: string): MemoryRecord[] {
     return this.byRun.get(runId) ?? []
@@ -88,8 +158,39 @@ export class SedimentationService {
     return [...this.byRun.values()].flat().filter((r) => r.kind === kind)
   }
 
+  /** All records regardless of status (audit view). */
   listAll(): MemoryRecord[] {
     return [...this.byRun.values()].flat()
+  }
+
+  /**
+   * Durable records usable for context assembly: excludes rejected records
+   * (the user has decided these should not influence future runs) and run
+   * summary notes (ephemeral, not reusable knowledge).
+   */
+  listDurable(): MemoryRecord[] {
+    return [...this.byRun.values()]
+      .flat()
+      .filter((r) => r.kind !== 'note' && r.status !== 'rejected')
+  }
+
+  getRecord(id: string): MemoryRecord | undefined {
+    return this.byId.get(id)
+  }
+
+  // ── internal ──────────────────────────────────────────────────────────────
+
+  private persistSummary(runId: string, detail: string): string | undefined {
+    if (!this.workspaceRoot) return undefined
+    try {
+      const dir = join(this.workspaceRoot, '.journal', 'runs', runId)
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+      const file = join(dir, 'summary.md')
+      writeFileSync(file, detail, 'utf8')
+      return `.journal/runs/${runId}/summary.md`
+    } catch {
+      return undefined
+    }
   }
 
   private make(
@@ -99,7 +200,10 @@ export class SedimentationService {
     detail: string,
     evidence: string[],
     sourceArtifactIds?: string[],
+    changeSetIds?: string[],
+    path?: string,
   ): MemoryRecord {
+    const status: MemoryRecordStatus = 'auto_recorded'
     return {
       id: `mem-${randomUUID()}`,
       sourceRunId,
@@ -108,6 +212,9 @@ export class SedimentationService {
       detail,
       evidence,
       sourceArtifactIds,
+      changeSetIds,
+      path,
+      status,
       createdAt: new Date().toISOString(),
     }
   }
@@ -261,7 +368,9 @@ function buildRunSummary(
   lines.push('')
   lines.push(`**Artifacts produced:** ${artifacts.length}`)
   lines.push(`**Files changed:** ${changeSets.length}`)
-  lines.push(`**Tool calls:** ${toolCalls.length} (${[...new Set(toolCalls.map((t) => t.name))].join(', ') || 'none'})`)
+  lines.push(
+    `**Tool calls:** ${toolCalls.length} (${[...new Set(toolCalls.map((t) => t.name))].join(', ') || 'none'})`,
+  )
   if (artifacts.length > 0) {
     lines.push('')
     lines.push('## Artifacts')

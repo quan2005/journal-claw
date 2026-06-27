@@ -1,7 +1,7 @@
 ---
 id: STORY-20260625-http-runtime-client-pilot
 title: "HttpRuntimeClient + 前端 Run 试点"
-status: approved
+status: verified
 source: orchestrator
 level: L2
 hypothesis_basis: reference

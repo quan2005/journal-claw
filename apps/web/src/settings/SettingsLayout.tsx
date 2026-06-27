@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Settings2,
   Cpu,
-  Mic,
   ShieldCheck,
   Timer,
   Info,
@@ -11,7 +10,6 @@ import {
 } from 'lucide-react'
 import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
-import SectionVoice from './components/SectionVoice'
 import SectionPermissions from './components/SectionPermissions'
 import SectionAutomation from './components/SectionAutomation'
 import SectionAbout from './components/SectionAbout'
@@ -52,8 +50,6 @@ function renderActiveSection(id: NavId) {
       return <SectionGeneral />
     case 'ai':
       return <SectionAiEngine />
-    case 'voice':
-      return <SectionVoice />
     case 'permissions':
       return <SectionPermissions />
     case 'automation':
@@ -74,7 +70,6 @@ export function SettingsLayout({
     { id: 'general', label: t('general'), icon: Settings2 },
 
     { id: 'ai', label: t('aiEngine'), icon: Cpu },
-    { id: 'voice', label: t('voice'), icon: Mic },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
     { id: 'about', label: t('about'), icon: Info },

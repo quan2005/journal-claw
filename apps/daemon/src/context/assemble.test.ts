@@ -3,7 +3,9 @@ import { assembleContext } from './assemble.js'
 import type { WorkspaceMeta, MemoryRecord } from '@journal/contracts'
 
 const ws: WorkspaceMeta = {
-  path: '/ws', name: 'Journal R&D', type: 'project',
+  path: '/ws',
+  name: 'Journal R&D',
+  type: 'project',
   goals: ['ship agent workspace', 'add multi-agent'],
   activeSources: ['docs/', 'stories/'],
   description: 'Personal knowledge workbench',
@@ -11,10 +13,42 @@ const ws: WorkspaceMeta = {
 }
 
 const mem: MemoryRecord[] = [
-  { id: 'm1', sourceRunId: 'r1', kind: 'preference', summary: 'I prefer concise writing', detail: 'd', evidence: ['e'], createdAt: '2026-06-25T12:00:00Z' },
-  { id: 'm2', sourceRunId: 'r1', kind: 'project_fact', summary: 'The project uses Rust', detail: 'd', evidence: ['e'], createdAt: '2026-06-25T12:00:00Z' },
-  { id: 'm3', sourceRunId: 'r1', kind: 'writing_rule', summary: 'Write in a professional tone', detail: 'd', evidence: ['e'], createdAt: '2026-06-25T12:00:00Z' },
-  { id: 'm4', sourceRunId: 'r1', kind: 'note', summary: 'run summary (should be excluded)', detail: 'd', evidence: ['e'], createdAt: '2026-06-25T12:00:00Z' },
+  {
+    id: 'm1',
+    sourceRunId: 'r1',
+    kind: 'preference',
+    summary: 'I prefer concise writing',
+    detail: 'd',
+    evidence: ['e'],
+    createdAt: '2026-06-25T12:00:00Z',
+  },
+  {
+    id: 'm2',
+    sourceRunId: 'r1',
+    kind: 'project_fact',
+    summary: 'The project uses Rust',
+    detail: 'd',
+    evidence: ['e'],
+    createdAt: '2026-06-25T12:00:00Z',
+  },
+  {
+    id: 'm3',
+    sourceRunId: 'r1',
+    kind: 'writing_rule',
+    summary: 'Write in a professional tone',
+    detail: 'd',
+    evidence: ['e'],
+    createdAt: '2026-06-25T12:00:00Z',
+  },
+  {
+    id: 'm4',
+    sourceRunId: 'r1',
+    kind: 'note',
+    summary: 'run summary (should be excluded)',
+    detail: 'd',
+    evidence: ['e'],
+    createdAt: '2026-06-25T12:00:00Z',
+  },
 ]
 
 describe('assembleContext', () => {
@@ -47,9 +81,26 @@ describe('assembleContext', () => {
   })
 
   it('limits memory to 20 records', () => {
-    const many = Array.from({ length: 30 }, (_, i) => ({ ...mem[0], id: `m${i}`, summary: `pref ${i}` }))
+    const many = Array.from({ length: 30 }, (_, i) => ({
+      ...mem[0],
+      id: `m${i}`,
+      summary: `pref ${i}`,
+    }))
     const result = assembleContext('g', ws, many)
     const count = (result.match(/^\- \[preference\]/gm) || []).length
     expect(count).toBeLessThanOrEqual(20)
+  })
+
+  it('excludes rejected memory records from durable context', () => {
+    const rejected: MemoryRecord = {
+      ...mem[0],
+      id: 'm-rej',
+      summary: 'rejected preference (must NOT appear)',
+      status: 'rejected',
+    }
+    const result = assembleContext('do something', ws, [...mem, rejected])
+    expect(result).not.toContain('must NOT appear')
+    // a non-rejected preference still appears
+    expect(result).toContain('concise writing')
   })
 })

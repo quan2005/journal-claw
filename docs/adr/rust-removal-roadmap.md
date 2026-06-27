@@ -1,0 +1,148 @@
+# Rust 退出总路线图（Phase 10 施工计划）
+
+日期：2026-06-26 · 编排者：Claude（Leader）
+
+> 依据：`rust-api-parity.md`（134 命令，blocked ≈133）+ `rust-removal-acceptance.md`（Gate A–J）。
+> 已定产品决策（用户 2026-06-26）：
+> 1. **音频/语音/转写 → 下线（retire）**，不迁移、不进默认跨平台主干。
+> 2. **宿主 → 迁移到 Electron**，目标彻底删除 Rust（不保留 Tauri shell）。
+> 3. **顺序 → 地基优先**：settings/FS → CRUD → AI/会话 → 自动化 → host → 删 Rust。
+> 4. **节奏 → 全自主连续推进**，仅分叉决策或验收失败时打断用户。
+
+---
+
+## 总览：9 个迁移阶段（M0–M8）
+
+| 阶段 | 内容 | blocked 消化 | 依赖 | 风险 |
+|---|---|---|---|---|
+| **M0** | 下线音频/语音/转写 | ~18 | — | 低（纯移除） |
+| **M1** | 地基：Settings + Config + Workspace FS | ~28 | M0 | 中 |
+| **M2** | 本地数据 CRUD：journal/todos/topics/identity/materials | ~35 | M1 | 低 |
+| **M3** | Skills + MDX + onboarding + 杂项 | ~18 | M1 | 低 |
+| **M4** | AI 处理 + work queue | ~12 | M1,M2 | 中 |
+| **M5** | Conversation（LLM 引擎，核心最难） | 13 | M1,M4 | 高 |
+| **M6** | Automation / routines | ~10 | M5 | 中 |
+| **M7** | Electron host（去 Tauri） | Gate A | M1–M6 | 高 |
+| **M8** | 删除 Rust + Gate A–J 收尾 | 归零 | 全部 | 中 |
+
+每个 M 阶段进入编码前走 `requirements-gate` 产 story，完成走 `verification-gate` 由我独立验收，按 Leader 模式派 codex 执行。
+
+---
+
+## M0 · 下线音频/语音/转写（先做，最大幅简化）
+
+**目标**：从默认跨平台主干移除录音/转写/说话人识别，UI + 文档明确下线，直接扫清 Gate H 一票否决项。
+
+**涉及命令**（标 `retired`）：
+- `transcription.rs`(2)、`speaker_profiles.rs`(5)、`audio_files.rs`(1)、`audio_pipeline.rs`(1)、`audio_process`
+- config 内：`get/set_asr_config`、`get_apple_stt_variant`、`check_whisperkit_cli_installed`、`install_whisperkit_cli`、`download_whisperkit_model`、`get_whisperkit_models_dir`、`check_whisperkit_model_downloaded`、`check_speaker_embedder`、`prepare_audio_for_ai`
+
+**验收**：前端无录音/转写入口；`rg` 默认 build/test 不依赖 Apple Speech/WhisperKit/ffmpeg；parity 矩阵对应行翻 `retired`；用户可读下线说明。
+
+**为何先做**：纯移除、零迁移成本，砍掉最难啃的平台绑定块，blocked 一次降 ~18，Gate H 否决项清除。
+
+**用户可见变化**：设置中不再提供语音转写与声纹管理入口；导入音频不会再触发转写、模型下载或说话人识别。
+
+---
+
+## M1 · 地基：Settings + Config + Workspace FS
+
+被几乎所有功能依赖，必须先行。拆 3 个可独立验收子单元：
+
+- **M1a · Settings 服务**：workspace path、theme、AI engine config、API keys、skills 开关、auto_lint config、feishu config、platform capabilities、app version → daemon `/settings/*`。注意 API key 安全存储（不落明文到 workspace）。
+- **M1b · Workspace FS 读**：`list_workspace_dir`、`list_at_mention_candidates` → `/files`（树/候选）。
+- **M1c · Workspace FS 写**：`workspace_duplicate/rename/move/delete_file`、`import_file/text/image` → **复用现有 `ChangeSetService`（G8）**，delete 走 `.journal-trash`。
+
+**验收**：设置读写经 daemon 持久化；文件树/导入/移动/删除可用且可恢复；前端切到 daemon 路径不回退 Tauri。
+
+---
+
+## M2 · 本地数据 CRUD（低风险，可并行）
+
+文件型 CRUD，各自独立、可并行派发：
+- **journal**(10)：list months/by-month/all/paginated、get/save/delete content、sample entry
+- **todos**(9)：list/add/toggle/delete/set due/set path/set session/remove path/update text
+- **topics**(4)：list/create/delete/import file
+- **identity**(8)：list/get/save/delete/archive/unarchive/create/merge
+- **materials**(4)
+
+**验收**：每类 daemon service + 路由 + 前端接入 + 测试；现有 workspace 文件格式保持可读（Gate G）。
+
+---
+
+## M3 · Skills + MDX + onboarding + 杂项
+
+- **skills**(10)：list/get content/enabled 开关/dirs
+- **mdx**(1)：`compile_mdx`（MDX→HTML，纯 TS 可做）
+- **onboarding**(4)、**permissions**(3，去掉 Apple 权限后多为 noop/下线)、**auto_lint**(2)、**event_log**(1)、**directive_migration**(2)
+
+---
+
+## M4 · AI 处理 + work queue
+
+- **ai_processor**(7) + `ai_plan`：触发/取消 AI 处理 → 复用 AgentRun 基础设施
+- **work_queue**(5)：enqueue/list/cancel/retry/dismiss
+- **digest / compact**
+
+---
+
+## M5 · Conversation（核心，最难）⭐
+
+`conversation.rs`(13)：create/send/cancel/close/inject/truncate/retry/list/rename/delete/get_messages/get_stats/load。
+
+**关键架构决策（M5 启动前的子分叉，届时再过用户）**：Rust 现用**内建 LLM 引擎**（Anthropic Messages API 直连 + `llm/tool_loop.rs`，CLAUDE.md 约束4），daemon 现走 **CLI adapter**。两条路：
+- (A) 把内建 tool loop 移植到 daemon（TS），保留 4 vendor 直连；
+- (B) conversation 改走 CLI adapter 统一到 AgentRun。
+
+需在 M5 启动时决策。conversation 多轮 session 模型需在 AgentRun 之上加 session 层。
+
+**为何最后**：依赖地基 + AI 引擎稳定，是迁移最大风险点。
+
+---
+
+## M6 · Automation / routines
+
+`automation_commands.rs`(10) + runner/store/schedule/templates。依赖 M5 的 run 引擎。
+
+---
+
+## M7 · Electron host（去 Tauri）
+
+- 新建 `apps/desktop`（Electron）：仅窗口、菜单、daemon 生命周期，不承载业务语义。
+- 前端停止 import `@tauri-apps/api/*`；`src/lib/tauri.ts` 降为 shim，默认指向 `HttpRuntimeClient`。
+- package scripts 移除 `tauri dev/build` 默认依赖。
+- **过 Gate A**：应用无 Tauri/Rust 可启动主窗口 + 设置。
+
+---
+
+## M8 · 删除 Rust + Gate 收尾
+
+- 确认 blocked = 0（全部 replaced/retired）。
+- 删除 `apps/web/src-tauri`；`rg "src-tauri|@tauri-apps|tauri::"` 仅余历史/迁移说明。
+- Gate A–J 全过：测试矩阵（macOS/Win/Linux）、回滚说明、迁移 ADR、release note。
+- 临时分支 dry-run 删 Rust 跑完整测试矩阵。
+
+---
+
+## 跨阶段约束（每单元都遵守）
+
+- **Gate G**：现有 workspace 文件格式保持可读，不要求用户重新导入。
+- **不破坏默认路径**：每单元前端切 daemon 后，Tauri 路径在该能力上不回退（feature flag 渐进）。
+- **安全闸门在验收**：codex 执行用 workspace-write 沙盒，我（Leader）逐单元独立验收（重跑 test/build + 越界核查 + 真实行为验证）。
+- **codex 后台派发用 stdin 管道喂 prompt**（见教训沉淀），不用 argv。
+
+---
+
+## 执行状态看板
+
+| 阶段 | 状态 |
+|---|---|
+| M0 下线音频 | ✅ |
+| M1 地基 | 🔲 |
+| M2 CRUD | 🔲 |
+| M3 skills/杂项 | 🔲 |
+| M4 AI/queue | 🔲 |
+| M5 conversation | 🔲 |
+| M6 automation | 🔲 |
+| M7 Electron host | 🔲 |
+| M8 删 Rust | 🔲 |

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setAsrConfig, setEngineConfig, type AsrConfig, type EngineConfig } from '../lib/tauri'
+import { setEngineConfig, type EngineConfig } from '../lib/tauri'
 
 const mockInvoke = vi.fn()
 
@@ -35,29 +35,4 @@ describe('tauri config commands', () => {
     })
   })
 
-  it('sends asr config with camelCase command args', async () => {
-    const cfg: AsrConfig = {
-      asr_engine: 'whisperkit',
-      dashscope_api_key: 'sk-dashscope-test',
-      whisperkit_model: 'large-v3-turbo',
-      dashscope_asr_model: 'qwen3-asr-flash',
-      volcengine_asr_api_key: '',
-      volcengine_asr_resource_id: 'volc.seedasr.auc',
-      siliconflow_asr_api_key: '',
-      siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
-      zhipu_asr_api_key: '',
-    }
-
-    await setAsrConfig(cfg)
-
-    expect(mockInvoke).toHaveBeenCalledWith('set_asr_config', {
-      asrEngine: 'whisperkit',
-      dashscopeApiKey: 'sk-dashscope-test',
-      whisperkitModel: 'large-v3-turbo',
-      dashscopeAsrModel: 'qwen3-asr-flash',
-      siliconflowAsrApiKey: '',
-      siliconflowAsrModel: 'FunAudioLLM/SenseVoiceSmall',
-      zhipuAsrApiKey: '',
-    })
-  })
 })

@@ -1,7 +1,7 @@
 ---
 id: STORY-20260625-changeset-authorization
 title: "ChangeSet + AuthorizationMode — trackable/reversible file ops (Sources safe operation)"
-status: approved
+status: verified
 source: orchestrator
 level: L2
 hypothesis_basis: reference

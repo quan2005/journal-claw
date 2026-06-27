@@ -37,10 +37,11 @@ export function assembleContext(
     }
   }
 
-  // Memory block: only durable, reusable knowledge (not run summaries)
-  const durable = memory.filter(
-    (m) => m.kind === 'preference' || m.kind === 'project_fact' || m.kind === 'writing_rule' || m.kind === 'tool_rule',
-  )
+  // Memory block: only durable, reusable knowledge — not run-summary notes,
+  // and not records the user has rejected (rejected records are audit-only
+  // and must not influence future context).
+  const durableKinds = new Set(['preference', 'project_fact', 'writing_rule', 'tool_rule'])
+  const durable = memory.filter((m) => durableKinds.has(m.kind) && m.status !== 'rejected')
   if (durable.length > 0) {
     parts.push('## Known preferences, facts, and rules')
     for (const m of durable.slice(0, 20)) {

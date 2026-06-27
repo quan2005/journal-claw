@@ -5,10 +5,13 @@
   "type": "module",
   "main": "./dist/cli.js",
   "scripts": {
+    "prebuild": "pnpm --filter @journal/contracts build",
     "build": "tsc -p tsconfig.json",
     "dev": "pnpm run build && node dist/cli.js --no-open",
     "start": "pnpm run build && node dist/cli.js",
+    "pretypecheck": "pnpm --filter @journal/contracts build",
     "typecheck": "tsc --noEmit",
+    "pretest": "pnpm --filter @journal/contracts build",
     "test": "vitest run"
   },
   "dependencies": {

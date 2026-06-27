@@ -2,7 +2,7 @@ import type { Theme } from '../types'
 import { ThemeToggle } from './ThemeToggle'
 import { AiStatusPill } from './AiStatusPill'
 import { useTranslation } from '../contexts/I18nContext'
-import { PanelRight, Pin, PinOff } from 'lucide-react'
+import { Pin, PinOff } from 'lucide-react'
 import type { CSSProperties } from 'react'
 
 interface TitleBarProps {
@@ -14,7 +14,6 @@ interface TitleBarProps {
   onOpenChat?: () => void
   // Panel visibility controls (rendered beside ThemeToggle)
   rightPanelOpen: boolean
-  onToggleRightPanel: () => void
   rightPanelPinned: boolean
   onToggleRightPanelPin: () => void
 }
@@ -46,7 +45,6 @@ export function TitleBar({
   view,
   onOpenChat,
   rightPanelOpen,
-  onToggleRightPanel,
   rightPanelPinned,
   onToggleRightPanelPin,
 }: TitleBarProps) {
@@ -99,27 +97,6 @@ export function TitleBar({
         {view !== 'settings' && (
           <>
             <ThemeToggle theme={theme} onChange={onThemeChange} />
-            <button
-              type="button"
-              aria-label={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
-              aria-pressed={rightPanelOpen}
-              title={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
-              onClick={onToggleRightPanel}
-              style={{
-                ...iconButtonStyle,
-                color: rightPanelOpen ? 'var(--record-btn)' : 'var(--item-meta)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--item-hover-bg)'
-                e.currentTarget.style.borderColor = 'var(--divider-hover)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.borderColor = 'var(--divider)'
-              }}
-            >
-              <PanelRight size={13} strokeWidth={1.6} />
-            </button>
             {/* Pin is meaningful only while the right panel is open */}
             <button
               type="button"

@@ -41,6 +41,7 @@ describe('AgentRunService', () => {
       expect(run.goal).toBe('write tests')
       expect(run.mode).toBe('agent')
       expect(run.status).toBe('queued')
+      expect(run.agentId).toBeUndefined()
       expect(run.authorizationMode).toBe('workspace_write')
       expect(run.contextBindings).toEqual([])
       expect(run.steps).toEqual([])
@@ -53,6 +54,18 @@ describe('AgentRunService', () => {
       const b = service.createRun({ goal: 'b', mode: 'chat' })
       expect(a.id).not.toBe(b.id)
       expect(a.sessionId).not.toBe(b.sessionId)
+    })
+
+    it('stores the selected runtime adapter for audit and child-run listing', () => {
+      const parent = service.createRun({ goal: 'parent', mode: 'agent', agentId: 'claude' })
+      const child = service.createRun({
+        goal: 'child',
+        mode: 'agent',
+        agentId: 'opencode',
+        parentRunId: parent.id,
+      })
+      expect(child.agentId).toBe('opencode')
+      expect(service.listChildRuns(parent.id)[0].agentId).toBe('opencode')
     })
   })
 

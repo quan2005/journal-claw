@@ -26,7 +26,6 @@ export const zh: Strings = {
   // Settings nav
   general: '通用',
   aiEngine: '模型配置',
-  voice: '语音转写',
   permissions: '授权管理',
   plugins: '技能插件',
   about: '关于',
@@ -45,9 +44,7 @@ export const zh: Strings = {
   submitted: '已提交，谨迹整理中…',
   submitFailed: '提交失败',
   openFileFailed: '无法打开文件',
-  audioRejected: '语音转写未配置，音频文件已忽略',
   settingsTooltip: '设置 (⌘,)',
-  voiceNotReady: '语音转写未就绪，请前往设置 → 语音转写',
 
   // ErrorBoundary
   somethingWentWrong: '出了点问题',
@@ -261,39 +258,6 @@ export const zh: Strings = {
   loadingModels: '加载模型列表…',
   defaultModel: '默认',
 
-  // Settings: Voice
-  voiceSection: '语音转写',
-  downloading: '下载中',
-  downloaded: '已下载',
-  downloadFailed: '下载失败',
-  whisperNotFound: '未检测到 whisperkit-cli',
-  reDetect: '重新检测',
-  installingDots: '安装中…',
-  installBtn: '一键安装',
-  transcriptionModel: '转写模型',
-  downloadBtn: '下载',
-  downloadingBtn: '下载中',
-  alreadyDownloaded: '已下载',
-  downloadInBackground: '下载已在后台继续，切换模型或滚动页面都不会中断。',
-  modelDownloadTask: '模型下载任务',
-  latestStatus: '最新状态',
-  recentLogs: '最近日志',
-  reDownload: '重新下载',
-  openModelDir: '打开模型目录',
-  retryHint: '失败后可直接重试，不用重新选模型。',
-  switchModelHint: '切换模型不会打断当前下载任务。',
-  modelStoreDir: '模型存放目录',
-  openInFileManager: '在文件管理器中打开',
-  baseModelBundled: 'Base 模型已内置在应用包中。上方目录用于存放额外下载的 Small / Large 模型。',
-  downloadFromHF:
-    '点击下载按钮自动从 HuggingFace 下载，之后离线可用。也可手动将模型文件放入上方目录。',
-  dashscopeHint: '配置后，音频文件将自动上传至阿里云转写',
-  asrModel: '语音识别模型',
-  asrModelHint: 'Flash 为实时识别，File Trans 适合长音频异步转写',
-  speakerEmbedderUnavailable: '声纹识别不可用',
-  speakerEmbedderHint:
-    '未检测到 SpeakerEmbedder 模型，音频转写时无法生成说话人 ID。请确认应用包中包含 speakerkit-models 资源。',
-
   // Settings: Permissions
   permissionsSection: '授权管理',
   permissionsDesc:
@@ -317,24 +281,7 @@ export const zh: Strings = {
   requestFailed: '请求授权失败: {err}',
   authError: '授权过程出错: {err}',
 
-  // Settings: Speakers
-  speakersSection: '声纹管理',
-  speakersDesc:
-    '导入音频后自动识别说话人并注册声纹档案。在此处为说话人命名，AI 整理时将使用您设置的名称。',
-  noSpeakers: '暂未检测到说话人',
-  noSpeakersHint: '导入一份带说话人的音频后，系统将在此处显示识别结果',
-  speakerCount: '说话人档案（共 {count} 人）',
-  unnamed: '未命名',
-  appearsIn: '出现在 {count} 份音频中',
-  nameTooltip: '命名',
-  mergeTooltip: '合并到…',
-  deleteTooltip: '删除',
   confirmDelete: '确认删除',
-  mergeVoice: '合并声纹',
-  mergeVoiceDesc: '将 {name} 合并到另一个说话人，合并后原档案将被删除。',
-  noOtherSpeakers: '没有其他说话人档案可以合并。',
-  selectTargetSpeaker: '选择目标说话人…',
-  merge: '合并',
 
   // Settings: Plugins (skills)
   pluginsSection: '技能插件',
@@ -380,35 +327,6 @@ export const zh: Strings = {
 
   // App confirm dialog
   confirmDeleteIdentity: '确认删除「{name}」的档案？',
-  // SectionVoice: model hints
-  baseModelHint: '默认模型，中文效果稳定，适合日常会议记录',
-  smallModelHint: '中文效果更好，适合会议记录',
-  largeModelHint: '最佳中文效果，首次下载较慢',
-
-  // SectionVoice: dynamic messages
-  downloadingModel: '正在下载 {model} 模型…',
-  downloadSuccess: '{model} 模型已下载，可离线使用',
-  downloadErrorFallback: '下载失败，请检查网络连接后重试',
-  downloadConflict: '正在下载 {model}，请稍候',
-  installError: '错误: {err}',
-
-  // SectionVoice: engine labels + vendors
-  appleEngineLabel: 'Apple 语音识别',
-  appleVendorSpeechAnalyzer: '系统内置 · SpeechAnalyzer',
-  appleVendorDefault: '系统内置 · 零配置',
-  whisperkitVendor: 'Argmax · 本地',
-  dashscopeVendor: '阿里云 · 云端',
-  siliconflowEngineLabel: '硅基流动',
-  siliconflowVendor: '硅基流动 · 云端',
-  siliconflowApiKeyLabel: '硅基流动 API Key',
-  siliconflowApiKeyHint: '在 cloud.siliconflow.cn/i/X2F1HvEc 注册并获取 API Key',
-  siliconflowModelLabel: '识别模型',
-  siliconflowModelHint: '可选预设或输入自定义模型名',
-  zhipuEngineLabel: '智谱 AI',
-  zhipuVendor: '智谱 · 云端',
-  zhipuApiKeyLabel: '智谱 API Key',
-  zhipuApiKeyHint: '在智谱开放平台获取 API Key',
-  zhipuLimitHint: '单次请求限制 30 秒，长音频将自动分片处理',
 
   // SectionAiEngine
   qwenVendor: 'OpenAI 兼容',

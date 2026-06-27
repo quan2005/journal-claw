@@ -1,7 +1,7 @@
 ---
 id: STORY-20260625-artifact-index
 title: "Artifact index — promote Agent output to first-class asset (G7)"
-status: approved
+status: verified
 source: orchestrator
 level: L2
 hypothesis_basis: reference

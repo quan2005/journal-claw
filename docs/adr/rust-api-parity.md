@@ -19,9 +19,9 @@
 | 状态 | 数量 |
 |---|---:|
 | replaced | 1 |
-| retired | 0 |
+| retired | 16 |
 | removed | 0 |
-| blocked | 133 |
+| blocked | 117 |
 | 总计 | 134 |
 
 ## daemon 已有但不构成旧 API parity 的主要证据
@@ -53,7 +53,7 @@
 
 | Rust command | 模块文件 | TS daemon route/service | 前端调用点 | 测试文件 | 状态 |
 |---|---|---|---|---|---|
-| `prepare_audio_for_ai` | `apps/web/src-tauri/src/audio_pipeline.rs` | 无同等 daemon route；音频/转写 pipeline 未迁到 daemon | `apps/web/src/lib/tauri.ts:124`, `apps/web/src/App.tsx:637`, `apps/web/src/App.tsx:941` | `apps/web/src/tests/ipc-contract.test.ts:267`（仅验证 Tauri IPC） | blocked |
+| `prepare_audio_for_ai` | `apps/web/src-tauri/src/audio_pipeline.rs` | M0 下线 | — | — | retired |
 
 ## apps/web/src-tauri/src/auto_lint.rs
 
@@ -81,8 +81,8 @@
 
 | Rust command | 模块文件 | TS daemon route/service | 前端调用点 | 测试文件 | 状态 |
 |---|---|---|---|---|---|
-| `check_whisperkit_cli_installed` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route；WhisperKit 仍在设置 UI 可触达 | `apps/web/src/lib/tauri.ts:270`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
-| `install_whisperkit_cli` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:273`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
+| `check_whisperkit_cli_installed` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
+| `install_whisperkit_cli` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
 | `get_api_key` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:33` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
 | `set_api_key` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:35` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
 | `open_settings` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route；仍是 host/window 能力 | `apps/web/src/lib/tauri.ts:25`, `apps/web/src/App.tsx:172` | `apps/web/src/tests/ipc-contract.test.ts:108`（仅验证 Tauri IPC） | blocked |
@@ -92,12 +92,12 @@
 | `set_engine_config` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:228`, `apps/web/src/settings/components/SectionAiEngine.tsx` | `apps/web/src/tests/tauri.test.ts:2`; `apps/web/src/tests/SectionAiEngine.test.tsx` | blocked |
 | `get_app_version` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:135`, `apps/web/src/settings/components/SectionAbout.tsx:2` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
 | `get_platform_capabilities` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:145`, `apps/web/src/settings/components/SectionPermissions.tsx` | `apps/web/src/tests/SettingsLayout.test.tsx`（settings mock） | blocked |
-| `get_asr_config` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:246`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
-| `get_apple_stt_variant` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route；Apple STT 平台能力未下线且设置可触达 | `apps/web/src/lib/tauri.ts:248`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
-| `set_asr_config` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:250`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/tauri.test.ts:2`; `apps/web/src/tests/SectionVoice.test.tsx` | blocked |
-| `get_whisperkit_models_dir` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:261`, `apps/web/src/settings/components/SectionVoice.tsx:353` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
-| `check_whisperkit_model_downloaded` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:264`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
-| `download_whisperkit_model` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:267`, `apps/web/src/settings/components/SectionVoice.tsx` | `apps/web/src/tests/SectionVoice.test.tsx`（mock Tauri） | blocked |
+| `get_asr_config` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
+| `get_apple_stt_variant` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
+| `set_asr_config` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
+| `get_whisperkit_models_dir` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
+| `check_whisperkit_model_downloaded` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
+| `download_whisperkit_model` | `apps/web/src-tauri/src/config.rs` | M0 下线 | — | — | retired |
 | `get_feishu_config` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:488` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
 | `set_feishu_config` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:491` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
 | `get_feishu_status` | `apps/web/src-tauri/src/config.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:494` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
@@ -166,7 +166,7 @@
 
 | Rust command | 模块文件 | TS daemon route/service | 前端调用点 | 测试文件 | 状态 |
 |---|---|---|---|---|---|
-| `open_with_system` | `apps/web/src-tauri/src/main.rs` | 无同等 daemon route；仍是 host/system open 能力 | `apps/web/src/lib/tauri.ts:112`, `apps/web/src/settings/components/SectionVoice.tsx:353`, `apps/web/src/components/MarkdownRenderer.tsx:478` | `apps/web/src/tests/ipc-contract.test.ts:302`; `apps/web/src/tests/MdxRenderer.test.tsx:297` | blocked |
+| `open_with_system` | `apps/web/src-tauri/src/main.rs` | 无同等 daemon route；仍是 host/system open 能力 | `apps/web/src/lib/tauri.ts:112`, `apps/web/src/components/MarkdownRenderer.tsx:478` | `apps/web/src/tests/ipc-contract.test.ts:302`; `apps/web/src/tests/MdxRenderer.test.tsx:297` | blocked |
 
 ## apps/web/src-tauri/src/materials.rs
 
@@ -219,11 +219,11 @@
 
 | Rust command | 模块文件 | TS daemon route/service | 前端调用点 | 测试文件 | 状态 |
 |---|---|---|---|---|---|
-| `check_speaker_embedder` | `apps/web/src-tauri/src/speaker_profiles.rs` | 无同等 daemon route；speaker UI 仍可触达 | `apps/web/src/lib/tauri.ts:309`, `apps/web/src/settings/components/SectionVoice.tsx:231` | `apps/web/src/tests/ipc-contract.test.ts:127`; `apps/web/src/tests/SectionVoice.test.tsx:31` | blocked |
-| `get_speaker_profiles` | `apps/web/src-tauri/src/speaker_profiles.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:297`, `apps/web/src/settings/components/SectionSpeakers.tsx:428` | `apps/web/src/tests/ipc-contract.test.ts:126`; `apps/web/src/tests/SectionVoice.test.tsx:27` | blocked |
-| `update_speaker_name` | `apps/web/src-tauri/src/speaker_profiles.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:300`, `apps/web/src/settings/components/SectionSpeakers.tsx:199` | `apps/web/src/tests/ipc-contract.test.ts:376`; `apps/web/src/tests/SectionVoice.test.tsx:28` | blocked |
-| `delete_speaker_profile` | `apps/web/src-tauri/src/speaker_profiles.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:303`, `apps/web/src/settings/components/SectionSpeakers.tsx:221` | `apps/web/src/tests/ipc-contract.test.ts:381`; `apps/web/src/tests/SectionVoice.test.tsx:29` | blocked |
-| `merge_speaker_profiles` | `apps/web/src-tauri/src/speaker_profiles.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:306`, `apps/web/src/settings/components/SectionSpeakers.tsx:232` | `apps/web/src/tests/ipc-contract.test.ts:386`; `apps/web/src/tests/SectionVoice.test.tsx:30` | blocked |
+| `check_speaker_embedder` | `apps/web/src-tauri/src/speaker_profiles.rs` | M0 下线 | — | — | retired |
+| `get_speaker_profiles` | `apps/web/src-tauri/src/speaker_profiles.rs` | M0 下线 | — | — | retired |
+| `update_speaker_name` | `apps/web/src-tauri/src/speaker_profiles.rs` | M0 下线 | — | — | retired |
+| `delete_speaker_profile` | `apps/web/src-tauri/src/speaker_profiles.rs` | M0 下线 | — | — | retired |
+| `merge_speaker_profiles` | `apps/web/src-tauri/src/speaker_profiles.rs` | M0 下线 | — | — | retired |
 
 ## apps/web/src-tauri/src/todos.rs
 
@@ -252,8 +252,8 @@
 
 | Rust command | 模块文件 | TS daemon route/service | 前端调用点 | 测试文件 | 状态 |
 |---|---|---|---|---|---|
-| `get_transcript` | `apps/web/src-tauri/src/transcription.rs` | 无同等 daemon route；transcription UI/API 未迁移 | `apps/web/src/lib/tauri.ts:27` | `apps/web/src/tests/ipc-contract.test.ts:163`（仅验证 Tauri IPC） | blocked |
-| `retry_transcription` | `apps/web/src-tauri/src/transcription.rs` | 无同等 daemon route | `apps/web/src/lib/tauri.ts:30` | `apps/web/src/tests/ipc-contract.test.ts`（legacy wrapper 覆盖不完整） | blocked |
+| `get_transcript` | `apps/web/src-tauri/src/transcription.rs` | M0 下线 | — | — | retired |
+| `retry_transcription` | `apps/web/src-tauri/src/transcription.rs` | M0 下线 | — | — | retired |
 
 ## apps/web/src-tauri/src/work_queue.rs
 
@@ -282,9 +282,9 @@
 
 ## blocked 列表
 
-blocked 共 133 个：
+blocked 共 117 个：
 
-`trigger_ai_processing`, `get_workspace_prompt`, `set_workspace_prompt`, `reset_workspace_prompt`, `cancel_ai_processing`, `cancel_queued_item`, `trigger_ai_prompt`, `reveal_in_file_manager`, `prepare_audio_for_ai`, `get_auto_lint_status`, `trigger_lint_now`, `list_automation_templates`, `list_routines`, `create_routine`, `update_routine`, `delete_routine`, `pause_routine`, `resume_routine`, `run_routine_now`, `list_routine_runs`, `get_automation_run`, `check_whisperkit_cli_installed`, `install_whisperkit_cli`, `get_api_key`, `set_api_key`, `open_settings`, `set_workspace_path`, `get_engine_config`, `set_engine_config`, `get_app_version`, `get_platform_capabilities`, `get_asr_config`, `get_apple_stt_variant`, `set_asr_config`, `get_whisperkit_models_dir`, `check_whisperkit_model_downloaded`, `download_whisperkit_model`, `get_feishu_config`, `set_feishu_config`, `get_feishu_status`, `list_models`, `conversation_create`, `conversation_send`, `conversation_cancel`, `conversation_close`, `conversation_inject`, `conversation_truncate`, `conversation_retry`, `conversation_get_stats`, `conversation_list`, `conversation_rename`, `conversation_delete`, `conversation_get_messages`, `conversation_load`, `scan_legacy_directive_files`, `apply_directive_migration`, `get_events_since`, `list_identities`, `get_identity_content`, `save_identity_content`, `delete_identity`, `archive_identity`, `unarchive_identity`, `create_identity`, `merge_identity`, `list_journal_entries`, `list_all_journal_entries`, `list_available_months`, `list_journal_entries_by_months`, `list_journal_entries_paginated`, `get_journal_entry_content`, `save_journal_entry_content`, `delete_journal_entry`, `create_sample_entry`, `create_sample_entry_if_needed`, `open_with_system`, `import_file`, `import_text_temp`, `import_image_temp`, `import_text`, `compile_mdx`, `get_onboarding_status`, `complete_onboarding`, `set_onboarding_step`, `reset_onboarding`, `check_app_permissions`, `request_permission`, `open_privacy_settings`, `list_skills`, `get_skill_content`, `open_skills_dir`, `open_skill_dir`, `list_workspace_dir`, `list_at_mention_candidates`, `workspace_duplicate_file`, `workspace_rename_file`, `workspace_move_file`, `workspace_delete_file`, `check_speaker_embedder`, `get_speaker_profiles`, `update_speaker_name`, `delete_speaker_profile`, `merge_speaker_profiles`, `list_todos`, `add_todo`, `toggle_todo`, `delete_todo`, `set_todo_due`, `set_todo_path`, `set_todo_session_id`, `remove_todo_path`, `update_todo_text`, `list_topics_dir`, `create_topic`, `delete_topic`, `import_file_to_topic`, `get_transcript`, `retry_transcription`, `enqueue_work`, `list_work_queue`, `cancel_work_item`, `retry_work_item`, `dismiss_work_item`, `get_workspace_theme`, `set_workspace_theme`, `get_auto_lint_config`, `set_auto_lint_config`, `get_global_skills_enabled`, `set_global_skills_enabled`, `set_skill_enabled`, `set_global_skill_enabled`, `get_pinned_items`, `set_pinned_items`。
+`trigger_ai_processing`, `get_workspace_prompt`, `set_workspace_prompt`, `reset_workspace_prompt`, `cancel_ai_processing`, `cancel_queued_item`, `trigger_ai_prompt`, `reveal_in_file_manager`, `get_auto_lint_status`, `trigger_lint_now`, `list_automation_templates`, `list_routines`, `create_routine`, `update_routine`, `delete_routine`, `pause_routine`, `resume_routine`, `run_routine_now`, `list_routine_runs`, `get_automation_run`, `get_api_key`, `set_api_key`, `open_settings`, `set_workspace_path`, `get_engine_config`, `set_engine_config`, `get_app_version`, `get_platform_capabilities`, `get_feishu_config`, `set_feishu_config`, `get_feishu_status`, `list_models`, `conversation_create`, `conversation_send`, `conversation_cancel`, `conversation_close`, `conversation_inject`, `conversation_truncate`, `conversation_retry`, `conversation_get_stats`, `conversation_list`, `conversation_rename`, `conversation_delete`, `conversation_get_messages`, `conversation_load`, `scan_legacy_directive_files`, `apply_directive_migration`, `get_events_since`, `list_identities`, `get_identity_content`, `save_identity_content`, `delete_identity`, `archive_identity`, `unarchive_identity`, `create_identity`, `merge_identity`, `list_journal_entries`, `list_all_journal_entries`, `list_available_months`, `list_journal_entries_by_months`, `list_journal_entries_paginated`, `get_journal_entry_content`, `save_journal_entry_content`, `delete_journal_entry`, `create_sample_entry`, `create_sample_entry_if_needed`, `open_with_system`, `import_file`, `import_text_temp`, `import_image_temp`, `import_text`, `compile_mdx`, `get_onboarding_status`, `complete_onboarding`, `set_onboarding_step`, `reset_onboarding`, `check_app_permissions`, `request_permission`, `open_privacy_settings`, `list_skills`, `get_skill_content`, `open_skills_dir`, `open_skill_dir`, `list_workspace_dir`, `list_at_mention_candidates`, `workspace_duplicate_file`, `workspace_rename_file`, `workspace_move_file`, `workspace_delete_file`, `list_todos`, `add_todo`, `toggle_todo`, `delete_todo`, `set_todo_due`, `set_todo_path`, `set_todo_session_id`, `remove_todo_path`, `update_todo_text`, `list_topics_dir`, `create_topic`, `delete_topic`, `import_file_to_topic`, `enqueue_work`, `list_work_queue`, `cancel_work_item`, `retry_work_item`, `dismiss_work_item`, `get_workspace_theme`, `set_workspace_theme`, `get_auto_lint_config`, `set_auto_lint_config`, `get_global_skills_enabled`, `set_global_skills_enabled`, `set_skill_enabled`, `set_global_skill_enabled`, `get_pinned_items`, `set_pinned_items`。
 
 ## 对照 §12 一票否决项
 

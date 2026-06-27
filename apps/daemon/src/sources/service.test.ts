@@ -7,6 +7,9 @@ const ts = '2026-06-25T12:00:00Z'
 function toolCall(runId: string, name: string, input: unknown, spanId = 'tu1'): AgentRunEvent {
   return { type: 'tool_call', runId, sessionId: 's1', spanId, data: JSON.stringify({ name, input }), timestamp: ts }
 }
+function toolResult(runId: string, content: string, spanId = 'tu1'): AgentRunEvent {
+  return { type: 'tool_result', runId, sessionId: 's1', spanId, data: JSON.stringify({ content }), timestamp: ts }
+}
 
 describe('SourceBindingService', () => {
   it('records and retrieves a binding', () => {
@@ -27,11 +30,15 @@ describe('SourceBindingService', () => {
 
   it('captureFromRun infers bindings from Read tool calls', () => {
     const svc = new SourceBindingService()
-    const events = [toolCall('r1', 'Read', { file_path: 'meetings/standup.md' })]
+    const events = [
+      toolCall('r1', 'Read', { file_path: 'meetings/standup.md' }),
+      toolResult('r1', 'Decision: ship the adapter layer this week.'),
+    ]
     const recorded = svc.captureFromRun('r1', events)
     expect(recorded.length).toBeGreaterThanOrEqual(1)
     expect(recorded[0].kind).toBe('read')
     expect(recorded[0].sourceSpanId).toBe('tu1')
+    expect(recorded[0].excerpt).toContain('Decision')
     expect(svc.listByRun('r1')).toHaveLength(recorded.length)
   })
 

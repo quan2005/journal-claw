@@ -79,23 +79,27 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const app = express()
     app.use(express.json({ limit: '1mb' }))
 
-   const service = opts.runService ?? new AgentRunService(resolveDataDir())
+    const service = opts.runService ?? new AgentRunService(resolveDataDir())
     const changeSetService = new ChangeSetService(process.cwd())
     const artifactIndex = new ArtifactIndexService()
-    const sedimentService = new SedimentationService()
+    const sedimentService = new SedimentationService(process.cwd())
     const sourceBindingService = new SourceBindingService()
     const workspaceService = new WorkspaceService(process.cwd())
+
+    // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
+    // running executeRun child (SIGTERM the spawned CLI), not just flip status.
+    const runAbortControllers = new Map<string, AbortController>()
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
     })
 
-   app.get('/workspace', (_req, res) => {
-     res.json({
-       path: process.cwd(),
-       available: true,
-     })
-   })
+    app.get('/workspace', (_req, res) => {
+      res.json({
+        path: process.cwd(),
+        available: true,
+      })
+    })
 
     // GET /workspace/meta — workspace context boundary metadata (G15)
     app.get('/workspace/meta', (_req, res) => {
@@ -110,7 +114,8 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       if (typeof body.type === 'string') patch.type = body.type
       if (typeof body.description === 'string') patch.description = body.description
       if (Array.isArray(body.goals)) patch.goals = body.goals.filter((g) => typeof g === 'string')
-      if (Array.isArray(body.activeSources)) patch.activeSources = body.activeSources.filter((s) => typeof s === 'string')
+      if (Array.isArray(body.activeSources))
+        patch.activeSources = body.activeSources.filter((s) => typeof s === 'string')
       res.json(workspaceService.updateMeta(patch))
     })
 
@@ -141,10 +146,14 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
       })
-      res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`)
+      res.write(
+        `data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`,
+      )
 
       const interval = setInterval(() => {
-        res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() })}\n\n`)
+        res.write(
+          `data: ${JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() })}\n\n`,
+        )
       }, 5000)
 
       req.on('close', () => {
@@ -152,10 +161,17 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       })
     })
 
-   // ── AgentRun routes ──────────────────────────────────────────────────────
-   // POST /runs — 创建一个 run，返回 { id, status: 'queued', ... }
-   app.post('/runs', (req, res) => {
-      const body = (req.body ?? {}) as { goal?: unknown; mode?: unknown; agentId?: unknown; prompt?: unknown; model?: unknown; authorizationMode?: unknown }
+    // ── AgentRun routes ──────────────────────────────────────────────────────
+    // POST /runs — 创建一个 run，返回 { id, status: 'queued', ... }
+    app.post('/runs', (req, res) => {
+      const body = (req.body ?? {}) as {
+        goal?: unknown
+        mode?: unknown
+        agentId?: unknown
+        prompt?: unknown
+        model?: unknown
+        authorizationMode?: unknown
+      }
       const goal = typeof body.goal === 'string' ? body.goal : ''
       const mode = typeof body.mode === 'string' ? (body.mode as AgentRunMode) : 'agent'
       if (!goal.trim()) {
@@ -167,24 +183,33 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         return
       }
       const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
-     const def = getAgentDef(agentId)
-     if (!def) {
-       res.status(400).json({ error: `unknown agent: ${agentId}` })
-       return
-     }
-      const VALID_AUTH_MODES = new Set(['wide_with_audit', 'read_only', 'workspace_write', 'full_access'])
+      const def = getAgentDef(agentId)
+      if (!def) {
+        res.status(400).json({ error: `unknown agent: ${agentId}` })
+        return
+      }
+      const VALID_AUTH_MODES = new Set([
+        'wide_with_audit',
+        'read_only',
+        'workspace_write',
+        'full_access',
+      ])
       const authorizationMode = VALID_AUTH_MODES.has(body.authorizationMode as string)
-        ? (body.authorizationMode as 'wide_with_audit' | 'read_only' | 'workspace_write' | 'full_access')
+        ? (body.authorizationMode as
+            | 'wide_with_audit'
+            | 'read_only'
+            | 'workspace_write'
+            | 'full_access')
         : 'workspace_write'
-     const run = service.createRun({ goal, mode, authorizationMode })
-     res.status(201).json(run)
+      const run = service.createRun({ goal, mode, agentId, authorizationMode })
+      res.status(201).json(run)
       // Fire-and-forget: spawn the agent and stream its events into the run.
       // The promise must never reject — an unhandled rejection would crash the
       // daemon. executeRun already records run_failed on its known failure
       // paths; this catch is a belt-and-suspenders guard for anything thrown
       // synchronously before the inner Promise is constructed.
-   const prompt = typeof body.prompt === 'string' ? body.prompt : goal
-   const model = typeof body.model === 'string' && body.model ? body.model : null
+      const prompt = typeof body.prompt === 'string' ? body.prompt : goal
+      const model = typeof body.model === 'string' && body.model ? body.model : null
       // G15+G14: assemble context before execution — the core loop's
       // "Agent 组装上下文" step. Wraps the user's goal with workspace
       // metadata (goals, active sources) and sedimented memory (preferences,
@@ -193,10 +218,34 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       const assembledPrompt = assembleContext(
         prompt,
         workspaceService.getMeta(),
-        sedimentService.listAll(),
+        sedimentService.listDurable(),
       )
-      executeRun(service, { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode })
+      // Snapshot the workspace BEFORE the run so its real file changes can be
+      // captured as ChangeSets after it finishes (no CLI internals intercepted).
+      // Under read_only the CLI cannot write, so the diff is naturally empty.
+      const beforeSnapshot = changeSetService.snapshotWorkspace()
+      // Register an AbortController for this run so cancel can SIGTERM the
+      // spawned child instead of merely flipping status.
+      const abortController = new AbortController()
+      runAbortControllers.set(run.id, abortController)
+      executeRun(
+        service,
+        { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode },
+        { signal: abortController.signal },
+      )
         .then((result) => {
+          runAbortControllers.delete(run.id)
+          // Capture real filesystem changes the Agent performed (create/edit/
+          // remove) by diffing the post-run snapshot against the pre-run one.
+          // This is the feasible capture path that does not intercept CLI
+          // internals. Existing explicit ChangeSets are preserved.
+          const afterSnapshot = changeSetService.snapshotWorkspace()
+          changeSetService.captureSnapshotDiff(
+            run.id,
+            beforeSnapshot,
+            afterSnapshot,
+            authorizationMode,
+          )
           // G14 auto-sedimentation: when a run succeeds, capture its artifacts
           // and derive durable memory (summary + preferences/facts/rules),
           // completing the core loop's final step. Each record is traceable
@@ -205,23 +254,51 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           const events = service.readEvents(run.id)
           const assistantText = events
             .filter((e) => e.type === 'text_delta')
-            .map((e) => { try { return (JSON.parse(e.data) as { text?: string }).text ?? '' } catch { return '' } })
+            .map((e) => {
+              try {
+                return (JSON.parse(e.data) as { text?: string }).text ?? ''
+              } catch {
+                return ''
+              }
+            })
             .join('')
-          service.appendEvent(run.id, { type: 'sedimentation_started', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ message: 'sedimenting run' }), timestamp: new Date().toISOString() })
-         const artifacts = artifactIndex.captureFromRun(run.id, assistantText)
+          service.appendEvent(run.id, {
+            type: 'sedimentation_started',
+            runId: run.id,
+            sessionId: run.sessionId,
+            data: JSON.stringify({ message: 'sedimenting run' }),
+            timestamp: new Date().toISOString(),
+          })
+          const artifacts = artifactIndex.captureFromRun(run.id, assistantText)
           // G6: capture which local files the Run used as evidence (Sources),
           // inferred from its file-touching tool calls.
           const sourceBindings = sourceBindingService.captureFromRun(run.id, events)
-         const changeSets = changeSetService.listChangeSets(run.id)
-         const sed = sedimentService.sediment(run.id, events, artifacts, changeSets)
-          service.appendEvent(run.id, { type: 'sedimentation_recorded', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ memoryCount: sed.all.length, artifactCount: artifacts.length, sourceCount: sourceBindings.length }), timestamp: new Date().toISOString() })
+          const changeSets = changeSetService.listChangeSets(run.id)
+          const sed = sedimentService.sediment(run.id, events, artifacts, changeSets, {
+            authorizationMode,
+          })
+          service.appendEvent(run.id, {
+            type: 'sedimentation_recorded',
+            runId: run.id,
+            sessionId: run.sessionId,
+            data: JSON.stringify({
+              memoryCount: sed.all.length,
+              artifactCount: artifacts.length,
+              sourceCount: sourceBindings.length,
+            }),
+            timestamp: new Date().toISOString(),
+          })
         })
         .catch((err) => {
-        service.appendEvent(
-          run.id,
-          { type: 'run_failed', runId: run.id, sessionId: run.sessionId, data: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), timestamp: new Date().toISOString() },
-        )
-      })
+          runAbortControllers.delete(run.id)
+          service.appendEvent(run.id, {
+            type: 'run_failed',
+            runId: run.id,
+            sessionId: run.sessionId,
+            data: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+            timestamp: new Date().toISOString(),
+          })
+        })
     })
 
     // GET /agents — list registered adapters with installed/authed status.
@@ -284,40 +361,119 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(404).json({ error: 'run not found' })
         return
       }
-     res.json(run)
-   })
+      // Actually abort the running executeRun child: aborting the controller
+      // SIGTERMs the spawned CLI (see runner.ts), rather than only marking the
+      // status. A missing/already-aborted controller is a harmless no-op.
+      const controller = runAbortControllers.get(runId)
+      if (controller) {
+        try {
+          controller.abort()
+        } catch {
+          // ignore — abort is best-effort
+        }
+        runAbortControllers.delete(runId)
+      }
+      res.json(run)
+    })
 
     // GET /runs/:id/changesets — list the recorded file changes for a run
     app.get('/runs/:id/changesets', (req, res) => {
-     res.json({ changeSets: changeSetService.listChangeSets(req.params.id) })
-   })
+      res.json({ changeSets: changeSetService.listChangeSets(req.params.id) })
+    })
 
     // GET /runs/:id/artifacts — list the artifacts produced by a run
     app.get('/runs/:id/artifacts', (req, res) => {
       res.json({ artifacts: artifactIndex.listByRun(req.params.id) })
     })
 
-   // GET /artifacts — list all indexed artifacts (optionally ?type=)
-   app.get('/artifacts', (req, res) => {
-     const type = typeof req.query.type === 'string' ? req.query.type : null
-     res.json({ artifacts: type ? artifactIndex.listByType(type) : artifactIndex.listAll() })
-   })
+    // GET /artifacts — list all indexed artifacts (optionally ?type=)
+    app.get('/artifacts', (req, res) => {
+      const type = typeof req.query.type === 'string' ? req.query.type : null
+      res.json({ artifacts: type ? artifactIndex.listByType(type) : artifactIndex.listAll() })
+    })
 
     // GET /runs/:id/memory — sedimented memory records for a run
     app.get('/runs/:id/memory', (req, res) => {
       res.json({ memory: sedimentService.listByRun(req.params.id) })
     })
 
-   // GET /memory — all sedimented memory (optionally ?kind=)
-   app.get('/memory', (req, res) => {
-     const kind = typeof req.query.kind === 'string' ? req.query.kind : null
-     res.json({ memory: kind ? sedimentService.listByKind(kind as never) : sedimentService.listAll() })
-   })
+    // GET /memory — all sedimented memory (optionally ?kind=)
+    app.get('/memory', (req, res) => {
+      const kind = typeof req.query.kind === 'string' ? req.query.kind : null
+      const onlyDurable = req.query.durable === '1' || req.query.durable === 'true'
+      if (onlyDurable) {
+        res.json({ memory: sedimentService.listDurable() })
+        return
+      }
+      res.json({
+        memory: kind ? sedimentService.listByKind(kind as never) : sedimentService.listAll(),
+      })
+    })
+
+    // ── sedimentation review lifecycle (G14 auditability) ───────────────────
+    // The user can audit what the Agent "learned": edit a record's wording,
+    // reject one that is wrong, or restore a rejected record. Rejected records
+    // are excluded from durable context assembly (see assembleContext).
+
+    // GET /memory/:id — fetch a single memory record
+    app.get('/memory/:id', (req, res) => {
+      const rec = sedimentService.getRecord(req.params.id)
+      if (!rec) {
+        res.status(404).json({ error: 'memory record not found' })
+        return
+      }
+      res.json({ memory: rec })
+    })
+
+    // PATCH /memory/:id — edit summary/detail (status -> 'edited')
+    app.patch('/memory/:id', (req, res) => {
+      const body = (req.body ?? {}) as { summary?: unknown; detail?: unknown }
+      const patch: { summary?: string; detail?: string } = {}
+      if (typeof body.summary === 'string') patch.summary = body.summary
+      if (typeof body.detail === 'string') patch.detail = body.detail
+      const rec = sedimentService.editRecord(req.params.id, patch)
+      if (!rec) {
+        res.status(404).json({ error: 'memory record not found' })
+        return
+      }
+      res.json({ memory: rec })
+    })
+
+    // POST /memory/:id/reject — reject a record (excluded from durable context)
+    app.post('/memory/:id/reject', (req, res) => {
+      const rec = sedimentService.rejectRecord(req.params.id)
+      if (!rec) {
+        res.status(404).json({ error: 'memory record not found' })
+        return
+      }
+      res.json({ memory: rec })
+    })
+
+    // POST /memory/:id/restore — restore a rejected/edited record
+    app.post('/memory/:id/restore', (req, res) => {
+      const rec = sedimentService.restoreRecord(req.params.id)
+      if (!rec) {
+        res.status(404).json({ error: 'memory record not found' })
+        return
+      }
+      res.json({ memory: rec })
+    })
+
+    // POST /runs/:id/changesets/:csId/revert — rollback a file change (restore stashed original)
+    app.post('/runs/:id/changesets/:csId/revert', (req, res) => {
+      const cs = changeSetService.getChangeSet(req.params.csId)
+      if (!cs || cs.runId !== req.params.id) {
+        res.status(404).json({ error: 'change set not found' })
+        return
+      }
+      const reverted = changeSetService.revertChangeSet(req.params.csId)
+      res.json({ changeSet: reverted })
+    })
 
     // GET /runs/:id/sources — source bindings (which files the run used)
     app.get('/runs/:id/sources', (req, res) => {
-     res.json({ sources: sourceBindingService.listByRun(req.params.id) })
-   })
+      res.json({ sources: sourceBindingService.listByRun(req.params.id) })
+    })
 
     // GET /runs/:id/subtasks — list child runs (multi-agent delegation)
     app.get('/runs/:id/subtasks', (req, res) => {
@@ -343,22 +499,35 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: `unknown agent: ${agentId}` })
         return
       }
-      const childRun = service.createRun({ goal, mode: 'agent', parentRunId: parentId })
+      const childRun = service.createRun({ goal, mode: 'agent', agentId, parentRunId: parentId })
       res.status(201).json(childRun)
       const prompt = typeof body.prompt === 'string' ? body.prompt : goal
-      executeRun(service, { runId: childRun.id, agentId, prompt })
+      const childAbort = new AbortController()
+      runAbortControllers.set(childRun.id, childAbort)
+      executeRun(service, { runId: childRun.id, agentId, prompt }, { signal: childAbort.signal })
         .then((result) => {
+          runAbortControllers.delete(childRun.id)
           if (!result.ok) return
           const events = service.readEvents(childRun.id)
           const assistantText = events
             .filter((e) => e.type === 'text_delta')
-            .map((e) => { try { return (JSON.parse(e.data) as { text?: string }).text ?? '' } catch { return '' } })
+            .map((e) => {
+              try {
+                return (JSON.parse(e.data) as { text?: string }).text ?? ''
+              } catch {
+                return ''
+              }
+            })
             .join('')
           artifactIndex.captureFromRun(childRun.id, assistantText)
           const changeSets = changeSetService.listChangeSets(childRun.id)
-          sedimentService.sediment(childRun.id, events, [], changeSets)
+          sedimentService.sediment(childRun.id, events, [], changeSets, {
+            authorizationMode: childRun.authorizationMode,
+          })
         })
-        .catch(() => {})
+        .catch(() => {
+          runAbortControllers.delete(childRun.id)
+        })
     })
 
     // Bind to loopback only: the daemon is a local runtime, not a network

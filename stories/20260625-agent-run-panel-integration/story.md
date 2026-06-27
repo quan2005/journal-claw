@@ -1,7 +1,7 @@
 ---
 id: STORY-20260625-agent-run-panel-integration
 title: "AgentRunPanel integration into right panel (G13)"
-status: approved
+status: verified
 source: orchestrator
 level: L2
 hypothesis_basis: reference

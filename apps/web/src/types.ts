@@ -1,22 +1,6 @@
 // ── UI 主题 ────────────────────────────────────────────
 export type Theme = 'light' | 'dark' | 'system'
 
-// ── 转写类型（用于导入音频的 transcript sidecar）──────────
-export type TranscriptionProgress = 'uploading' | 'transcribing' | 'completed' | 'failed'
-
-export interface TranscriptSegment {
-  speaker: string | null
-  start: number
-  end: number
-  text: string
-}
-
-export interface Transcript {
-  status: TranscriptionProgress
-  text: string
-  segments?: TranscriptSegment[]
-}
-
 // ── 新类型（日志平台）────────────────────────────────────
 export interface RawMaterial {
   filename: string
@@ -86,18 +70,6 @@ export interface AiLogLine {
   material_path: string
   level: 'info' | 'error'
   message: string
-}
-
-// ── 声纹档案 ─────────────────────────────────────────────
-export interface SpeakerProfile {
-  id: string
-  /** 用户命名，空字符串表示未命名，显示时用 auto_name 代替 */
-  name: string
-  /** 自动生成的名称，如"说话人 1" */
-  auto_name: string
-  audio_count: number
-  created_at: number
-  last_seen_at: number
 }
 
 // ── 身份档案 ─────────────────────────────────────────────

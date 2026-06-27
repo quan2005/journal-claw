@@ -20,7 +20,7 @@
 - 适配多个 Coding Agent CLI，而不是绑定单一内置模型循环。
 - 保持本地-only、多平台一致，不把云同步或远端运行时作为默认路径。
 - 不把 Apple Speech、Whisper、ffmpeg、系统 Trash 或平台专属 API 放入默认主干。
-- 初期默认宽授权并完整审计；CLI 接入稳定后统一到 `read_only`、`workspace_write`、`full_access` 三档授权。
+- 初期默认 `workspace_write` 并完整审计；`wide_with_audit` 保留为显式迁移/审计模式。
 - 首批只支持 Claude Code、Codex CLI、OpenCode。
 - Agent Run 结束后默认自动沉淀运行摘要、输出产物、memory/rule 记录。
 
@@ -168,9 +168,9 @@ type AuthorizationMode =
   | 'full_access'
 ```
 
-- `wide_with_audit`：迁移期默认。允许执行，但记录工具调用、文件访问、ChangeSet、artifact 和错误。
+- `wide_with_audit`：显式迁移/审计模式。允许执行，但记录工具调用、文件访问、ChangeSet、artifact 和错误。
 - `read_only`：不允许写、改、移动、删除或破坏性命令。
-- `workspace_write`：允许 workspace root 内读写，禁止越界路径。
+- `workspace_write`：默认模式。允许 workspace root 内读写，禁止越界路径。
 - `full_access`：交给 CLI 的全放开模式，但仍保留产品侧审计事件。
 
 不同 CLI 的授权 flag 只在 adapter 层映射，产品 UI 面向统一三档语义。
@@ -248,4 +248,3 @@ type SedimentationRecord = {
 - run 完成后自动写 summary、artifact index、memory/rule 记录，并保留 source run 与 ChangeSet 证据链。
 - 默认 build/test 不依赖 Apple Speech、Whisper、ffmpeg、系统 Trash 或平台专属二进制。
 - 删除 Rust 前必须通过 `docs/adr/rust-removal-acceptance.md`。
-

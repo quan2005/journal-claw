@@ -16,7 +16,15 @@ import {
   listSources,
   type CreateRunInput,
 } from '../lib/agentRuns'
-import type { AgentRun, AgentRunEvent, ChangeSet, Artifact, MemoryRecord, SourceBinding, AuthorizationMode } from '../types/agentRun'
+import type {
+  AgentRun,
+  AgentRunEvent,
+  ChangeSet,
+  Artifact,
+  MemoryRecord,
+  SourceBinding,
+  AuthorizationMode,
+} from '../types/agentRun'
 
 export interface TimelineEntry {
   id: string
@@ -43,12 +51,12 @@ export interface UseAgentRunResult {
 export function useAgentRun(): UseAgentRunResult {
   const [run, setRun] = useState<AgentRun | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
- const [changeSets, setChangeSets] = useState<ChangeSet[]>([])
+  const [changeSets, setChangeSets] = useState<ChangeSet[]>([])
   const [artifacts, setArtifacts] = useState<Artifact[]>([])
   const [memory, setMemory] = useState<MemoryRecord[]>([])
   const [sources, setSources] = useState<SourceBinding[]>([])
- const [assistantText, setAssistantText] = useState('')
- const [isRunning, setIsRunning] = useState(false)
+  const [assistantText, setAssistantText] = useState('')
+  const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
@@ -60,13 +68,13 @@ export function useAgentRun(): UseAgentRunResult {
 
   const start = useCallback(async (input: CreateRunInput) => {
     setError(null)
-   setTimeline([])
-   setAssistantText('')
-   setChangeSets([])
+    setTimeline([])
+    setAssistantText('')
+    setChangeSets([])
     setArtifacts([])
     setMemory([])
     setSources([])
-   try {
+    try {
       const created = await createRun(input)
       setRun(created)
       setIsRunning(true)
@@ -83,53 +91,84 @@ export function useAgentRun(): UseAgentRunResult {
 
   const applyEvent = useCallback(
     (ev: AgentRunEvent) => {
-     setRun((prev) => (prev ? { ...prev, updatedAt: ev.timestamp } : prev))
+      setRun((prev) => (prev ? { ...prev, updatedAt: ev.timestamp } : prev))
       const nextStatus = statusAfterEvent(ev.type)
       if (nextStatus) {
         setRun((prev) => (prev ? { ...prev, status: nextStatus, updatedAt: ev.timestamp } : prev))
       }
-     switch (ev.type) {
+      switch (ev.type) {
         case 'run_started':
-          setTimeline((t) => [...t, { id: ev.spanId ?? ev.timestamp, kind: 'status', label: 'Run started', timestamp: ev.timestamp }])
+          setTimeline((t) => [
+            ...t,
+            {
+              id: ev.spanId ?? ev.timestamp,
+              kind: 'status',
+              label: 'Run started',
+              timestamp: ev.timestamp,
+            },
+          ])
           break
-       case 'thinking_delta': {
-         const d = safeParse(ev.data)
+        case 'thinking_delta': {
+          const d = safeParse(ev.data)
           const text = typeof d?.text === 'string' ? d.text : ''
-          setTimeline((t) => [...t, { id: ev.spanId ?? ev.timestamp, kind: 'thinking', text, timestamp: ev.timestamp }])
-         break
-       }
-       case 'text_delta': {
-         const d = safeParse(ev.data)
+          setTimeline((t) => [
+            ...t,
+            { id: ev.spanId ?? ev.timestamp, kind: 'thinking', text, timestamp: ev.timestamp },
+          ])
+          break
+        }
+        case 'text_delta': {
+          const d = safeParse(ev.data)
           const text = typeof d?.text === 'string' ? d.text : ''
-         setAssistantText((prev) => prev + text)
-         break
-       }
-       case 'tool_call': {
-         const d = safeParse(ev.data)
+          setAssistantText((prev) => prev + text)
+          break
+        }
+        case 'tool_call': {
+          const d = safeParse(ev.data)
           const name = typeof d?.name === 'string' ? d.name : 'tool'
           const inputText = d?.input ? JSON.stringify(d.input).slice(0, 200) : ''
-         setTimeline((t) => [
-           ...t,
-            { id: ev.spanId ?? ev.timestamp, kind: 'tool_call', toolName: name, text: inputText, timestamp: ev.timestamp },
-         ])
-         break
-       }
-      case 'run_finished':
-        setTimeline((t) => [...t, { id: ev.timestamp, kind: 'status', label: 'Run finished', timestamp: ev.timestamp }])
-        setIsRunning(false)
+          setTimeline((t) => [
+            ...t,
+            {
+              id: ev.spanId ?? ev.timestamp,
+              kind: 'tool_call',
+              toolName: name,
+              text: inputText,
+              timestamp: ev.timestamp,
+            },
+          ])
+          break
+        }
+        case 'run_finished':
+          setTimeline((t) => [
+            ...t,
+            { id: ev.timestamp, kind: 'status', label: 'Run finished', timestamp: ev.timestamp },
+          ])
+          setIsRunning(false)
           // Fetch the post-run assets: file changes, artifacts, memory,
           // sources. Use ev.runId directly (the closure's `run` may be stale
           // if the subscribe callback was captured before setState settled).
           const rid = ev.runId
           if (rid) {
-            listChangeSets(rid).then(setChangeSets).catch(() => {})
-            listArtifacts(rid).then(setArtifacts).catch(() => {})
-            listMemory(rid).then(setMemory).catch(() => {})
-            listSources(rid).then(setSources).catch(() => {})
-         }
-         break
+            listChangeSets(rid)
+              .then(setChangeSets)
+              .catch(() => {})
+            listArtifacts(rid)
+              .then(setArtifacts)
+              .catch(() => {})
+            listMemory(rid)
+              .then(setMemory)
+              .catch(() => {})
+            listSources(rid)
+              .then(setSources)
+              .catch(() => {})
+          }
+          break
         case 'run_failed':
-          setTimeline((t) => [...t, { id: ev.timestamp, kind: 'status', label: 'Run failed', timestamp: ev.timestamp }])
+          setTimeline((t) => [
+            ...t,
+            { id: ev.timestamp, kind: 'status', label: 'Run failed', timestamp: ev.timestamp },
+          ])
           setIsRunning(false)
           break
       }
@@ -137,7 +176,18 @@ export function useAgentRun(): UseAgentRunResult {
     [run],
   )
 
-  return { run, timeline, changeSets, artifacts, memory, sources, assistantText, isRunning, error, start }
+  return {
+    run,
+    timeline,
+    changeSets,
+    artifacts,
+    memory,
+    sources,
+    assistantText,
+    isRunning,
+    error,
+    start,
+  }
 }
 
 function safeParse(data: string): Record<string, unknown> | null {
@@ -148,7 +198,15 @@ function safeParse(data: string): Record<string, unknown> | null {
   }
 }
 
-export const AUTHORIZATION_MODES: AuthorizationMode[] = ['read_only', 'workspace_write', 'full_access']
+// Selectable authorization modes. workspace_write is the product default
+// (set in AgentRunPanel); wide_with_audit is offered explicitly for agents
+// whose CLI supports it, per the Authorization spec.
+export const AUTHORIZATION_MODES: AuthorizationMode[] = [
+  'read_only',
+  'workspace_write',
+  'full_access',
+  'wide_with_audit',
+]
 
 function statusAfterEvent(type: AgentRunEvent['type']): AgentRun['status'] | null {
   switch (type) {

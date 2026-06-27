@@ -11,10 +11,6 @@ vi.mock('../settings/components/SectionAiEngine', () => ({
   default: () => <div>Model panel</div>,
 }))
 
-vi.mock('../settings/components/SectionVoice', () => ({
-  default: () => <div>Voice panel</div>,
-}))
-
 vi.mock('../settings/components/SectionPermissions', () => ({
   default: () => <div>Permissions panel</div>,
 }))
@@ -32,11 +28,11 @@ describe('SettingsLayout', () => {
     render(<SettingsLayout height="600px" />)
 
     expect(screen.getByText('General panel')).toBeTruthy()
-    expect(screen.queryByText('Voice panel')).toBeNull()
+    expect(screen.queryByText('Permissions panel')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: '语音转写' }))
+    fireEvent.click(screen.getByRole('button', { name: '授权管理' }))
 
-    expect(screen.getByText('Voice panel')).toBeTruthy()
+    expect(screen.getByText('Permissions panel')).toBeTruthy()
     expect(screen.queryByText('General panel')).toBeNull()
   })
 

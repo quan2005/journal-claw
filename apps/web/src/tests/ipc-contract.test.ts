@@ -9,8 +9,6 @@ vi.mock('@tauri-apps/api/core', () => ({
 import {
   revealInFileManager,
   openSettings,
-  getTranscript,
-  retryTranscription,
   getApiKey,
   setApiKey,
   getWorkspacePath,
@@ -28,7 +26,6 @@ import {
   triggerAiPrompt,
   cancelAiProcessing,
   cancelQueuedItem,
-  prepareAudioForAi,
   submitPasteText,
   getWorkspacePrompt,
   setWorkspacePrompt,
@@ -38,21 +35,8 @@ import {
   getPlatformCapabilities,
   getEngineConfig,
   setEngineConfig,
-  getAsrConfig,
-  getAppleSttVariant,
-  setAsrConfig,
-  getWhisperkitModelsDir,
-  checkWhisperkitModelDownloaded,
-  downloadWhisperkitModel,
-  checkWhisperkitCliInstalled,
-  installWhisperkitCli,
   createSampleEntryIfNeeded,
   createSampleEntry,
-  getSpeakerProfiles,
-  updateSpeakerName,
-  deleteSpeakerProfile,
-  mergeSpeakerProfiles,
-  checkSpeakerEmbedder,
   requestPermission,
   checkAppPermissions,
   openPrivacySettings,
@@ -90,7 +74,6 @@ import {
   listSkills,
   openSkillsDir,
   type EngineConfig,
-  type AsrConfig,
   type AutoLintConfig,
   type FeishuConfig,
   type CreateRoutineRequest,
@@ -116,15 +99,8 @@ const noParamCases: [string, () => Promise<unknown>, string][] = [
   ['getAppVersion', getAppVersion, 'get_app_version'],
   ['getPlatformCapabilities', getPlatformCapabilities, 'get_platform_capabilities'],
   ['getEngineConfig', getEngineConfig, 'get_engine_config'],
-  ['getAsrConfig', getAsrConfig, 'get_asr_config'],
-  ['getAppleSttVariant', getAppleSttVariant, 'get_apple_stt_variant'],
-  ['getWhisperkitModelsDir', getWhisperkitModelsDir, 'get_whisperkit_models_dir'],
-  ['checkWhisperkitCliInstalled', checkWhisperkitCliInstalled, 'check_whisperkit_cli_installed'],
-  ['installWhisperkitCli', installWhisperkitCli, 'install_whisperkit_cli'],
   ['createSampleEntryIfNeeded', createSampleEntryIfNeeded, 'create_sample_entry_if_needed'],
   ['createSampleEntry', createSampleEntry, 'create_sample_entry'],
-  ['getSpeakerProfiles', getSpeakerProfiles, 'get_speaker_profiles'],
-  ['checkSpeakerEmbedder', checkSpeakerEmbedder, 'check_speaker_embedder'],
   ['checkAppPermissions', checkAppPermissions, 'check_app_permissions'],
   ['listIdentities', listIdentities, 'list_identities'],
   ['listTodos', listTodos, 'list_todos'],
@@ -160,16 +136,6 @@ describe('Files', () => {
 // Settings / Config
 // ---------------------------------------------------------------------------
 describe('Settings / Config', () => {
-  it('getTranscript passes { path }', async () => {
-    await getTranscript('/tmp/t.json')
-    expect(mockInvoke).toHaveBeenCalledWith('get_transcript', { path: '/tmp/t.json' })
-  })
-
-  it('retryTranscription passes { path }', async () => {
-    await retryTranscription('/tmp/t.json')
-    expect(mockInvoke).toHaveBeenCalledWith('retry_transcription', { path: '/tmp/t.json' })
-  })
-
   it('setApiKey passes { key }', async () => {
     await setApiKey('sk-test')
     expect(mockInvoke).toHaveBeenCalledWith('set_api_key', { key: 'sk-test' })
@@ -264,15 +230,6 @@ describe('AI Processing', () => {
     })
   })
 
-  it('prepareAudioForAi defaults note to null', async () => {
-    await prepareAudioForAi('/tmp/a.m4a', '2604')
-    expect(mockInvoke).toHaveBeenCalledWith('prepare_audio_for_ai', {
-      audioPath: '/tmp/a.m4a',
-      yearMonth: '2604',
-      note: null,
-    })
-  })
-
   it('submitPasteText calls import_text then trigger_ai_processing', async () => {
     mockInvoke
       .mockResolvedValueOnce({ path: '/ws/raw/p.txt', filename: 'p.txt', year_month: '2604' })
@@ -328,71 +285,6 @@ describe('Engine', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// ASR
-// ---------------------------------------------------------------------------
-describe('ASR', () => {
-  it('setAsrConfig maps snake_case to camelCase args', async () => {
-    const cfg: AsrConfig = {
-      asr_engine: 'dashscope',
-      dashscope_api_key: 'sk-ds',
-      whisperkit_model: 'base',
-      dashscope_asr_model: 'qwen3-asr-flash',
-      volcengine_asr_api_key: '',
-      volcengine_asr_resource_id: 'volc.seedasr.auc',
-      siliconflow_asr_api_key: '',
-      siliconflow_asr_model: 'FunAudioLLM/SenseVoiceSmall',
-      zhipu_asr_api_key: '',
-    }
-    await setAsrConfig(cfg)
-    expect(mockInvoke).toHaveBeenCalledWith('set_asr_config', {
-      asrEngine: 'dashscope',
-      dashscopeApiKey: 'sk-ds',
-      whisperkitModel: 'base',
-      dashscopeAsrModel: 'qwen3-asr-flash',
-      siliconflowAsrApiKey: '',
-      siliconflowAsrModel: 'FunAudioLLM/SenseVoiceSmall',
-      zhipuAsrApiKey: '',
-    })
-  })
-
-  it('checkWhisperkitModelDownloaded passes { model }', async () => {
-    await checkWhisperkitModelDownloaded('large-v3-turbo')
-    expect(mockInvoke).toHaveBeenCalledWith('check_whisperkit_model_downloaded', {
-      model: 'large-v3-turbo',
-    })
-  })
-
-  it('downloadWhisperkitModel passes { model }', async () => {
-    await downloadWhisperkitModel('small')
-    expect(mockInvoke).toHaveBeenCalledWith('download_whisperkit_model', { model: 'small' })
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Speakers
-// ---------------------------------------------------------------------------
-describe('Speakers', () => {
-  it('updateSpeakerName passes { id, name }', async () => {
-    await updateSpeakerName('spk-1', 'Alice')
-    expect(mockInvoke).toHaveBeenCalledWith('update_speaker_name', { id: 'spk-1', name: 'Alice' })
-  })
-
-  it('deleteSpeakerProfile passes { id }', async () => {
-    await deleteSpeakerProfile('spk-1')
-    expect(mockInvoke).toHaveBeenCalledWith('delete_speaker_profile', { id: 'spk-1' })
-  })
-
-  it('mergeSpeakerProfiles passes { sourceId, targetId }', async () => {
-    await mergeSpeakerProfiles('spk-1', 'spk-2')
-    expect(mockInvoke).toHaveBeenCalledWith('merge_speaker_profiles', {
-      sourceId: 'spk-1',
-      targetId: 'spk-2',
-    })
-  })
-})
-
-// ---------------------------------------------------------------------------
 // Permissions
 // ---------------------------------------------------------------------------
 describe('Permissions', () => {

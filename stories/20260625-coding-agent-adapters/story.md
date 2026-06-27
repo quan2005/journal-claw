@@ -1,7 +1,7 @@
 ---
 id: STORY-20260625-coding-agent-adapters
-title: "Coding Agent Registry + claude -p adapter (Runs execution engine)"
-status: approved
+title: "Coding Agent Registry + three CLI adapters (Runs execution engine)"
+status: verified
 source: orchestrator
 level: L2
 hypothesis_basis: reference
@@ -12,9 +12,9 @@ related:
   - docs/verification-standard.md
 ---
 
-# Coding Agent Registry + claude -p adapter
+# Coding Agent Registry + three CLI adapters
 
-> Goal: let journal daemon spawn `claude -p`, parse its stream into unified AgentRunEvent, feed into AgentRunService. This is the Runs object's execution engine, and the user's explicit "use claude -p" ask.
+> Goal: let journal daemon spawn Claude Code, Codex CLI, and OpenCode, parse each structured stream into unified AgentRunEvent, and feed AgentRunService. This is the Runs object's execution engine.
 
 ## 服务对象 / Object served
 
@@ -25,6 +25,8 @@ related:
 - G1-G4 verified: monorepo + daemon + contracts(AgentRun/AgentRunEvent) + AgentRunService(POST /runs + SSE + JSONL + cancel).
 - open-design has a mature form: RuntimeAgentDef + dedup registry + 25+ defs. This task replicates claude first, leaves registry extension points.
 - Real `claude -p --output-format stream-json --verbose` schema captured on this machine.
+- Codex uses `codex exec --json`.
+- OpenCode uses `opencode run --format json`.
 
 ### claude stream schema (measured)
 - `{"type":"system","subtype":"init", cwd, session_id, tools[], model, permissionMode}`
@@ -41,32 +43,38 @@ related:
 1. `packages/contracts/src/runtime.ts` — RuntimeAgentDef + AgentAuthStatus
 2. `apps/daemon/src/runtimes/registry.ts` — dedup registry
 3. `apps/daemon/src/runtimes/defs/claude.ts` — claude adapter def
-4. `apps/daemon/src/runtimes/stream/claudeStream.ts` — claude stream -> AgentRunEvent parser
-5. `apps/daemon/src/runtimes/runner.ts` — spawn bridge
-6. `POST /runs` upgrade — agentId (default 'claude') + prompt; async executeRun after create
-7. `GET /agents` — list registered adapters
+4. `apps/daemon/src/runtimes/defs/codex.ts` — codex adapter def
+5. `apps/daemon/src/runtimes/defs/opencode.ts` — opencode adapter def
+6. `apps/daemon/src/runtimes/stream/*` — three structured streams -> AgentRunEvent parsers
+7. `apps/daemon/src/runtimes/runner.ts` — spawn bridge
+8. `POST /runs` upgrade — agentId (default 'claude') + prompt; async executeRun after create
+9. `GET /agents` — list registered adapters
 
 ### 独占文件
 - `packages/contracts/src/runtime.ts` + `index.ts` re-export (additive) + `runtime.test.ts`
 - `apps/daemon/src/runtimes/registry.ts` + `.test.ts`
 - `apps/daemon/src/runtimes/defs/claude.ts`
+- `apps/daemon/src/runtimes/defs/codex.ts`
+- `apps/daemon/src/runtimes/defs/opencode.ts`
 - `apps/daemon/src/runtimes/stream/claudeStream.ts` + `.test.ts`
+- `apps/daemon/src/runtimes/stream/codexStream.ts` + `.test.ts`
+- `apps/daemon/src/runtimes/stream/opencodeStream.ts` + `.test.ts`
 - `apps/daemon/src/runtimes/runner.ts` + `.test.ts`
 - `apps/daemon/src/server.ts` (change: POST /runs agentId + GET /agents)
 
 ## 验收标准 (AC)
 
 AC-1 contracts export RuntimeAgentDef/AgentAuthStatus; typecheck+test exit 0
-AC-2 registry dedups (dup id throws); getAgentDef('claude') non-null; listAgentDefs>=1
+AC-2 registry dedups (dup id throws); getAgentDef('claude'/'codex'/'opencode') non-null; listAgentDefs contains all three
 AC-3 claude buildArgs has -p/--output-format stream-json/--verbose; promptViaStdin=true
 AC-4 claudeStream on real-schema fixture -> run_started/text_delta/tool_call/run_finished; isAgentRunEvent true
 AC-5 runner with mock spawn -> service.readEvents(runId) full sequence; run terminal succeeded
-AC-6 POST /runs with agentId -> 201; GET /agents contains claude; default claude
+AC-6 POST /runs with agentId -> 201; GET /agents contains claude/codex/opencode; default claude
 AC-7 diff only allowed files; daemon typecheck+test exit 0; existing 38 tests no regression
 
 ## 不做项
 
-- no codex/opencode real run (claude only; registry extensible)
+- no full production-grade CLI parity beyond detect/version/auth/run structured event basics
 - no ChangeSet/AuthorizationMode (G8/G9)
 - no frontend Workbench (G12)
 - no run summary/sedimentation (G14)

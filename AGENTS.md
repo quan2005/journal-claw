@@ -51,7 +51,9 @@ npm run tauri build
 
 ## 技术架构
 
-**Tauri v2 + React 19 + TypeScript + Rust**，macOS 桌面应用。
+**Tauri v2 + React 19 + TypeScript + Rust**，macOS 桌面应用（迁移中，见下）。
+
+**迁移中（Phase 10 / ME / M7，2026-06-27）**：桌面宿主正从 Tauri 迁到 Electron——`apps/desktop`（Electron 主进程，仅窗口/菜单/daemon 生命周期，零业务语义）已就绪（M7-a）；业务后端正从 Rust 迁到 TS daemon（`apps/daemon`，含 pi 内建引擎）。逐能力切换完成后删除 Rust/Tauri。详见 `docs/adr/rust-removal-roadmap.md`。
 
 完整架构详见 `docs/ARCH.md`（含系统分层、设计决策、前后端架构、数据流、IPC 约定）。
 

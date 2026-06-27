@@ -132,6 +132,15 @@
 
 ---
 
+## 决策 · 下线 MDX（用户 2026-06-27，选 b 彻底移除）
+
+后续不再支持 MDX，所有 MDX 支持彻底清理。执行排在 M6 之后（避免与 M5/M6 的 tauri.ts 改动冲突）：
+- **删**：daemon mdx/（M3 迁的 compile_mdx）+ 前端 MdxRenderer + components/mdx/*（20+ 文件）+ journal-blocks/ + styles mdx.css/mdx-errors.css + 前端 tauri.ts 的 compile_mdx 封装 + MDX 相关依赖（@mdx-js 等）。
+- **保留**：Rust mdx.rs 留 M8 删；markdown.css（纯 Markdown 样式）。
+- **渲染替代**：日志详情改用 MarkdownRenderer（纯 Markdown）。
+- **Gate G**：现有 MDX 笔记降级为纯 Markdown 渲染（MDX 特有 `<Component>` 块退化为文本/忽略，frontmatter + 正文保留可读），不做迁移脚本。
+- **已知代价**：图表/mermaid/公式/callout 块消失，阅读体验退化（用户接受）。
+
 ## 补充决策（用户 2026-06-27）
 
 - **决策 1 · LLM 引擎（🟡 暂定 A′，待国产 vendor 冒烟确认）**：评估采用第三方 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT、纯 TS、可嵌入）作为 daemon 内建引擎，替代从零移植 Rust `tool_loop.rs`。pi 覆盖 agentic 循环/多轮 session/transformContext/多 vendor（含 OpenAI-compatible baseURL → volcengine/zhipu/dashscope）/before-afterToolCall 授权钩子。**采用前必须实测国产三家 chat+tool_call 兼容性**。CLI adapter 保留作 Agent Team 委派。
@@ -158,7 +167,7 @@
 | M3 skills/杂项 | ✅ 0664f00 |
 | ME 引擎集成(pi) | ✅ ME-a 16d2673 · ME-b 919a03c · ME-c |
 | M4 AI/queue | ✅ |
-| M5 conversation | 🔲 |
+| M5 conversation | ✅ |
 | M6 automation | 🔲 |
 | M7 Electron host | 🔲 |
 | M8 删 Rust | 🔲 |

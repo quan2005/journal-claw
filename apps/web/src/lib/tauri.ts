@@ -522,7 +522,7 @@ export const getSkillContent = (skillId: string): Promise<string> =>
 
 // Conversation
 export const conversationCreate = (context?: string, contextFiles?: string[]): Promise<string> =>
-  invoke<string>('conversation_create', {
+  selectRuntimeClient().invoke<string>('conversation_create', {
     context: context ?? null,
     contextFiles: contextFiles ?? null,
   })
@@ -537,22 +537,26 @@ export const conversationSend = (
   message: string,
   images?: ImageAttachment[],
 ): Promise<void> =>
-  invoke<void>('conversation_send', { sessionId, message, images: images ?? null })
+  selectRuntimeClient().invoke<void>('conversation_send', {
+    sessionId,
+    message,
+    images: images ?? null,
+  })
 
 export const conversationCancel = (sessionId: string): Promise<void> =>
-  invoke<void>('conversation_cancel', { sessionId })
+  selectRuntimeClient().invoke<void>('conversation_cancel', { sessionId })
 
 export const conversationClose = (sessionId: string): Promise<void> =>
-  invoke<void>('conversation_close', { sessionId })
+  selectRuntimeClient().invoke<void>('conversation_close', { sessionId })
 
 export const conversationInject = (sessionId: string, message: string): Promise<void> =>
-  invoke<void>('conversation_inject', { sessionId, message })
+  selectRuntimeClient().invoke<void>('conversation_inject', { sessionId, message })
 
 export const conversationTruncate = (sessionId: string, keepCount: number): Promise<void> =>
-  invoke<void>('conversation_truncate', { sessionId, keepCount })
+  selectRuntimeClient().invoke<void>('conversation_truncate', { sessionId, keepCount })
 
 export const conversationRetry = (sessionId: string): Promise<void> =>
-  invoke<void>('conversation_retry', { sessionId })
+  selectRuntimeClient().invoke<void>('conversation_retry', { sessionId })
 
 export interface SessionSummary {
   id: string
@@ -564,13 +568,13 @@ export interface SessionSummary {
 }
 
 export const conversationList = (): Promise<SessionSummary[]> =>
-  invoke<SessionSummary[]>('conversation_list')
+  selectRuntimeClient().invoke<SessionSummary[]>('conversation_list')
 
 export const conversationRename = (sessionId: string, title: string): Promise<void> =>
-  invoke<void>('conversation_rename', { sessionId, title })
+  selectRuntimeClient().invoke<void>('conversation_rename', { sessionId, title })
 
 export const conversationDelete = (sessionId: string): Promise<void> =>
-  invoke<void>('conversation_delete', { sessionId })
+  selectRuntimeClient().invoke<void>('conversation_delete', { sessionId })
 
 export interface LoadedMessage {
   role: string
@@ -580,10 +584,10 @@ export interface LoadedMessage {
 }
 
 export const conversationLoad = (sessionId: string): Promise<LoadedMessage[]> =>
-  invoke<LoadedMessage[]>('conversation_load', { sessionId })
+  selectRuntimeClient().invoke<LoadedMessage[]>('conversation_load', { sessionId })
 
 export const conversationGetMessages = (sessionId: string): Promise<LoadedMessage[]> =>
-  invoke<LoadedMessage[]>('conversation_get_messages', { sessionId })
+  selectRuntimeClient().invoke<LoadedMessage[]>('conversation_get_messages', { sessionId })
 
 export interface SessionStats {
   elapsed_secs: number
@@ -592,7 +596,7 @@ export interface SessionStats {
 }
 
 export const conversationGetStats = (sessionId: string): Promise<SessionStats> =>
-  invoke<SessionStats>('conversation_get_stats', { sessionId })
+  selectRuntimeClient().invoke<SessionStats>('conversation_get_stats', { sessionId })
 
 // Models
 export const listModels = (

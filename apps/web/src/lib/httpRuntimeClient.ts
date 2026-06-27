@@ -603,6 +603,98 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         )
         return undefined as T
       }
+      case 'conversation_create': {
+        return (await this.postJson(
+          '/conversation/create',
+          { context: args?.context, contextFiles: args?.contextFiles },
+          'daemon conversation create',
+        )) as T
+      }
+      case 'conversation_send': {
+        await this.postJson(
+          '/conversation/send',
+          { sessionId: args?.sessionId, message: args?.message, images: args?.images },
+          'daemon conversation send',
+        )
+        return undefined as T
+      }
+      case 'conversation_cancel': {
+        await this.postJson(
+          '/conversation/cancel',
+          { sessionId: args?.sessionId },
+          'daemon conversation cancel',
+        )
+        return undefined as T
+      }
+      case 'conversation_close': {
+        await this.postJson(
+          '/conversation/close',
+          { sessionId: args?.sessionId },
+          'daemon conversation close',
+        )
+        return undefined as T
+      }
+      case 'conversation_inject': {
+        await this.postJson(
+          '/conversation/inject',
+          { sessionId: args?.sessionId, message: args?.message },
+          'daemon conversation inject',
+        )
+        return undefined as T
+      }
+      case 'conversation_truncate': {
+        await this.postJson(
+          '/conversation/truncate',
+          { sessionId: args?.sessionId, keepCount: args?.keepCount },
+          'daemon conversation truncate',
+        )
+        return undefined as T
+      }
+      case 'conversation_retry': {
+        await this.postJson(
+          '/conversation/retry',
+          { sessionId: args?.sessionId },
+          'daemon conversation retry',
+        )
+        return undefined as T
+      }
+      case 'conversation_list': {
+        return (await this.getJson('/conversation/list', 'daemon conversation list')) as T
+      }
+      case 'conversation_rename': {
+        await this.postJson(
+          '/conversation/rename',
+          { sessionId: args?.sessionId, title: args?.title },
+          'daemon conversation rename',
+        )
+        return undefined as T
+      }
+      case 'conversation_delete': {
+        await this.postJson(
+          '/conversation/delete',
+          { sessionId: args?.sessionId },
+          'daemon conversation delete',
+        )
+        return undefined as T
+      }
+      case 'conversation_load': {
+        return (await this.getJson(
+          `/conversation/load?sessionId=${encodeURIComponent(typeof args?.sessionId === 'string' ? args.sessionId : '')}`,
+          'daemon conversation load',
+        )) as T
+      }
+      case 'conversation_get_messages': {
+        return (await this.getJson(
+          `/conversation/messages?sessionId=${encodeURIComponent(typeof args?.sessionId === 'string' ? args.sessionId : '')}`,
+          'daemon conversation messages',
+        )) as T
+      }
+      case 'conversation_get_stats': {
+        return (await this.getJson(
+          `/conversation/stats?sessionId=${encodeURIComponent(typeof args?.sessionId === 'string' ? args.sessionId : '')}`,
+          'daemon conversation stats',
+        )) as T
+      }
       default:
         throw new Error(`HttpRuntimeClient: unsupported command "${command}"`)
     }
@@ -726,13 +818,9 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
   }
 
   subscribe<T>(event: string, handler: (payload: T) => void): () => void {
-    // The daemon exposes a global /events stream and per-run /runs/:id/events.
-    // For the conversation-stream pilot we subscribe to the global stream; the
-    // SSE data line carries a JSON payload we surface directly.
-    const route =
-      event === 'conversation-stream' || event === 'agent-run'
-        ? '/events'
-        : `/events/${encodeURIComponent(event)}`
+    // The daemon exposes a global /events heartbeat stream and named event
+    // streams under /events/:event. Conversation streaming is a named stream.
+    const route = event === 'agent-run' ? '/events' : `/events/${encodeURIComponent(event)}`
     const es = new EventSource(`${this.baseUrl}${route}`)
     es.onmessage = (msg) => {
       try {

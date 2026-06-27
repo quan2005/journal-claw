@@ -6,6 +6,9 @@ import {
   listIdentities,
   listTopicsDir,
   setEngineConfig,
+  conversationCreate,
+  conversationSend,
+  conversationRetry,
   type EngineConfig,
 } from '../lib/tauri'
 
@@ -69,5 +72,24 @@ describe('tauri config commands', () => {
     })
     expect(mockInvoke).toHaveBeenNthCalledWith(4, 'list_topics_dir', { relativePath: '' })
     expect(mockInvoke).toHaveBeenNthCalledWith(5, 'list_identities')
+  })
+
+  it('routes conversation wrappers through the runtime client command boundary', async () => {
+    mockInvoke.mockResolvedValueOnce('s1').mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined)
+
+    await conversationCreate('ctx', ['a.md'])
+    await conversationSend('s1', 'hello', [{ media_type: 'image/png', data: 'base64' }])
+    await conversationRetry('s1')
+
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, 'conversation_create', {
+      context: 'ctx',
+      contextFiles: ['a.md'],
+    })
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'conversation_send', {
+      sessionId: 's1',
+      message: 'hello',
+      images: [{ media_type: 'image/png', data: 'base64' }],
+    })
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, 'conversation_retry', { sessionId: 's1' })
   })
 })

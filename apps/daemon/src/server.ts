@@ -36,6 +36,7 @@ import { compileMdx } from './mdx/service.js'
 import { DirectiveMigrationService } from './directive_migration/service.js'
 import { AiProcessorService } from './ai_processor/service.js'
 import { WorkQueueService, buildWorkItemPrompt } from './work_queue/service.js'
+import { ConversationService } from './conversation/service.js'
 import { LocalCrudError } from './local/service.js'
 import { execFile } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -150,6 +151,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     }
     const aiProcessorServices = new Map<string, AiProcessorService>()
     const workQueueServices = new Map<string, WorkQueueService>()
+    const conversationServices = new Map<string, ConversationService>()
     const aiProcessorService = (): AiProcessorService => {
       const root = workspaceRoot()
       const existing = aiProcessorServices.get(root)
@@ -210,6 +212,22 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       })
       created.subscribe(() => publishEvent('work-queue-updated', null))
       workQueueServices.set(root, created)
+      return created
+    }
+    const conversationService = (): ConversationService => {
+      const root = workspaceRoot()
+      const existing = conversationServices.get(root)
+      if (existing) return existing
+      const created = new ConversationService({
+        workspaceRoot: root,
+        configService,
+        runService: service,
+        providers: opts.builtinProviders,
+        changeSetService: workspaceChangeSets(),
+        skillsService: skillsService(),
+        publishEvent,
+      })
+      conversationServices.set(root, created)
       return created
     }
 
@@ -1221,6 +1239,153 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         }),
       )
     })
+
+    // ── Conversation session layer (M5) ───────────────────────────────────
+    app.post('/conversation/create', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        const context = typeof body.context === 'string' ? body.context : null
+        const contextFiles = Array.isArray(body.contextFiles)
+          ? body.contextFiles.filter((file): file is string => typeof file === 'string')
+          : null
+        res.json(conversationService().create(context, contextFiles))
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/send', async (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.sessionId !== 'string' || typeof body.message !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_conversation_send' } })
+          return
+        }
+        const images = Array.isArray(body.images) ? body.images : null
+        await conversationService().send(
+          body.sessionId,
+          body.message,
+          images?.filter(
+            (image): image is { media_type: string; data: string } =>
+              typeof image === 'object' &&
+              image !== null &&
+              typeof (image as Record<string, unknown>).media_type === 'string' &&
+              typeof (image as Record<string, unknown>).data === 'string',
+          ) ?? null,
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/cancel', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        conversationService().cancel(String(body.sessionId ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/close', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        conversationService().close(String(body.sessionId ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/inject', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        conversationService().inject(String(body.sessionId ?? ''), String(body.message ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/truncate', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        conversationService().truncate(String(body.sessionId ?? ''), Number(body.keepCount ?? 0))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/retry', async (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        await conversationService().retry(String(body.sessionId ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.get('/conversation/list', (_req, res) => {
+      try {
+        res.json(conversationService().list())
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/rename', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        conversationService().rename(String(body.sessionId ?? ''), String(body.title ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.post('/conversation/delete', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        conversationService().delete(String(body.sessionId ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.get('/conversation/load', (req, res) => {
+      try {
+        res.json(conversationService().load(String(req.query.sessionId ?? '')))
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.get('/conversation/messages', (req, res) => {
+      try {
+        res.json(conversationService().getMessages(String(req.query.sessionId ?? '')))
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    app.get('/conversation/stats', (req, res) => {
+      try {
+        res.json(conversationService().getStats(String(req.query.sessionId ?? '')))
+      } catch (err) {
+        handleConversationError(res, err)
+      }
+    })
+
+    const handleConversationError = (res: express.Response, err: unknown): void => {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message.includes('not found') || message.includes('failed to read') ? 404 : 400
+      res.status(status).json({ error: { code: 'conversation_error', message } })
+    }
 
     app.post('/work-queue/:id/cancel', (req, res) => {
       try {

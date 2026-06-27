@@ -145,30 +145,21 @@ describe('HttpRuntimeClient', () => {
     })
   })
 
-  it('invoke updates skill enabled lists through /settings', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          theme: 'system',
-          auto_lint: {},
-          global_skills_enabled: false,
-          disabled_skills: ['project:a'],
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ theme: 'system', auto_lint: {}, global_skills_enabled: false }),
-      })
+  it('invoke maps skill enabled updates to /skills/enabled', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: async () => undefined,
+    })
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
     const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
 
     await client.invoke('set_skill_enabled', { skillId: 'project:b', enabled: false })
 
-    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/skills/enabled', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ disabled_skills: ['project:a', 'project:b'] }),
+      body: JSON.stringify({ skillId: 'project:b', enabled: false }),
     })
   })
 
@@ -297,30 +288,21 @@ describe('HttpRuntimeClient', () => {
     })
   })
 
-  it('invoke clears skill lists with null when the last disabled skill is re-enabled', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          theme: 'system',
-          auto_lint: {},
-          global_skills_enabled: false,
-          disabled_skills: ['project:a'],
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ theme: 'system', auto_lint: {}, global_skills_enabled: false }),
-      })
+  it('invoke maps global skill enabled updates to /skills/global-enabled', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: async () => undefined,
+    })
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
     const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
 
-    await client.invoke('set_skill_enabled', { skillId: 'project:a', enabled: true })
+    await client.invoke('set_global_skill_enabled', { skillId: 'global:a', enabled: true })
 
-    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/skills/global-enabled', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ disabled_skills: null }),
+      body: JSON.stringify({ skillId: 'global:a', enabled: true }),
     })
   })
 
@@ -330,6 +312,47 @@ describe('HttpRuntimeClient', () => {
     await expect(client.invoke('nope')).rejects.toThrow(/unsupported command/)
   })
 
+  it('invoke maps conversation commands to daemon conversation routes', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => 's1' })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => undefined })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 's1' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ role: 'user', content: 'hi' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ elapsed_secs: 1 }) })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await expect(client.invoke('conversation_create', { context: null })).resolves.toBe('s1')
+    await client.invoke('conversation_send', { sessionId: 's1', message: 'hi', images: null })
+    await expect(client.invoke('conversation_list')).resolves.toEqual([{ id: 's1' }])
+    await expect(client.invoke('conversation_get_messages', { sessionId: 's1' })).resolves.toEqual([
+      { role: 'user', content: 'hi' },
+    ])
+    await expect(client.invoke('conversation_get_stats', { sessionId: 's1' })).resolves.toEqual({
+      elapsed_secs: 1,
+    })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/conversation/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: null }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/conversation/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 's1', message: 'hi', images: null }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(3, 'http://127.0.0.1:1/conversation/list')
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      4,
+      'http://127.0.0.1:1/conversation/messages?sessionId=s1',
+    )
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      5,
+      'http://127.0.0.1:1/conversation/stats?sessionId=s1',
+    )
+  })
+
   it('invoke rejects on non-ok response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
@@ -337,12 +360,12 @@ describe('HttpRuntimeClient', () => {
     await expect(client.invoke('get_workspace_path')).rejects.toThrow(/500/)
   })
 
-  it('subscribe opens EventSource on /events and surfaces parsed payloads', async () => {
+  it('subscribe opens EventSource on named conversation stream and surfaces parsed payloads', async () => {
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
     const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
     const received: unknown[] = []
     const off = client.subscribe('conversation-stream', (p) => received.push(p))
-    expect(MockEventSource.last?.url).toBe('http://127.0.0.1:1/events')
+    expect(MockEventSource.last?.url).toBe('http://127.0.0.1:1/events/conversation-stream')
     MockEventSource.last!.emit({ session_id: 's1', event: 'text_delta', data: 'hi' })
     expect(received[0]).toEqual({ session_id: 's1', event: 'text_delta', data: 'hi' })
     off()

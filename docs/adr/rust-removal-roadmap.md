@@ -168,6 +168,6 @@
 | ME 引擎集成(pi) | ✅ ME-a 16d2673 · ME-b 919a03c · ME-c |
 | M4 AI/queue | ✅ |
 | M5 conversation | ✅ |
-| M6 automation | 🔲 |
+| M6 automation | ✅ |
 | M7 Electron host | 🔲 |
 | M8 删 Rust | 🔲 |

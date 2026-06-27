@@ -418,35 +418,37 @@ export const triggerLintNow = (): Promise<void> =>
 
 // Automation workbench
 export const listAutomationTemplates = (): Promise<AutomationTemplate[]> =>
-  invoke<AutomationTemplate[]>('list_automation_templates')
+  selectRuntimeClient().invoke<AutomationTemplate[]>('list_automation_templates')
 
 export const listRoutines = (): Promise<AutomationRoutine[]> =>
-  invoke<AutomationRoutine[]>('list_routines')
+  selectRuntimeClient().invoke<AutomationRoutine[]>('list_routines')
 
 export const createRoutine = (request: CreateRoutineRequest): Promise<AutomationRoutine> =>
-  invoke<AutomationRoutine>('create_routine', { request })
+  selectRuntimeClient().invoke<AutomationRoutine>('create_routine', { request })
 
 export const updateRoutine = (
   id: string,
   patch: UpdateRoutineRequest,
-): Promise<AutomationRoutine> => invoke<AutomationRoutine>('update_routine', { id, patch })
+): Promise<AutomationRoutine> =>
+  selectRuntimeClient().invoke<AutomationRoutine>('update_routine', { id, patch })
 
-export const deleteRoutine = (id: string): Promise<void> => invoke<void>('delete_routine', { id })
+export const deleteRoutine = (id: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('delete_routine', { id })
 
 export const pauseRoutine = (id: string): Promise<AutomationRoutine> =>
-  invoke<AutomationRoutine>('pause_routine', { id })
+  selectRuntimeClient().invoke<AutomationRoutine>('pause_routine', { id })
 
 export const resumeRoutine = (id: string): Promise<AutomationRoutine> =>
-  invoke<AutomationRoutine>('resume_routine', { id })
+  selectRuntimeClient().invoke<AutomationRoutine>('resume_routine', { id })
 
 export const runRoutineNow = (id: string): Promise<AutomationRun> =>
-  invoke<AutomationRun>('run_routine_now', { id })
+  selectRuntimeClient().invoke<AutomationRun>('run_routine_now', { id })
 
 export const listRoutineRuns = (id: string): Promise<AutomationRun[]> =>
-  invoke<AutomationRun[]>('list_routine_runs', { id })
+  selectRuntimeClient().invoke<AutomationRun[]>('list_routine_runs', { id })
 
 export const getAutomationRun = (id: string): Promise<AutomationRun> =>
-  invoke<AutomationRun>('get_automation_run', { id })
+  selectRuntimeClient().invoke<AutomationRun>('get_automation_run', { id })
 
 // Global skills setting
 export const getGlobalSkillsEnabled = (): Promise<boolean> =>

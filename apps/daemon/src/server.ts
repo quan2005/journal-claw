@@ -37,6 +37,8 @@ import { DirectiveMigrationService } from './directive_migration/service.js'
 import { AiProcessorService } from './ai_processor/service.js'
 import { WorkQueueService, buildWorkItemPrompt } from './work_queue/service.js'
 import { ConversationService } from './conversation/service.js'
+import { AutomationService } from './automation/service.js'
+import { builtInTemplates } from './automation/templates.js'
 import { LocalCrudError } from './local/service.js'
 import { execFile } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -102,6 +104,134 @@ function defaultWorkspacePrompt(): string {
   return 'You are JournalClaw. Help maintain this knowledge workspace and write journal entries in Markdown/MDX.\n'
 }
 
+type AutomationScheduleLike =
+  | { kind: 'daily'; time: string; timezone: string }
+  | { kind: 'weekdays'; time: string; timezone: string }
+  | { kind: 'weekly'; weekday: number; time: string; timezone: string }
+  | { kind: 'monthly'; day: number; time: string; timezone: string }
+
+type AutomationScopeLike =
+  | { kind: 'relative'; range: string }
+  | { kind: 'recent_days'; days: number }
+  | { kind: 'month'; year_month: string }
+  | { kind: 'tags'; tags: string[]; range?: AutomationScopeLike }
+  | { kind: 'identities'; identity_ids: string[]; range?: AutomationScopeLike }
+  | { kind: 'keyword'; query: string; range?: AutomationScopeLike }
+  | { kind: 'workspace' }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseSchedule(body: unknown): AutomationScheduleLike {
+  if (!isRecord(body)) throw new Error('schedule must be an object')
+  const kind = body.kind
+  switch (kind) {
+    case 'daily':
+    case 'weekdays':
+      return {
+        kind,
+        time: String(body.time ?? ''),
+        timezone: String(body.timezone ?? ''),
+      }
+    case 'weekly':
+      return {
+        kind,
+        weekday: Number(body.weekday ?? 0),
+        time: String(body.time ?? ''),
+        timezone: String(body.timezone ?? ''),
+      }
+    case 'monthly':
+      return {
+        kind,
+        day: Number(body.day ?? 1),
+        time: String(body.time ?? ''),
+        timezone: String(body.timezone ?? ''),
+      }
+    default:
+      throw new Error(`invalid schedule kind: ${String(kind)}`)
+  }
+}
+
+function parseScope(body: unknown): AutomationScopeLike {
+  if (!isRecord(body)) throw new Error('scope must be an object')
+  const kind = body.kind
+  switch (kind) {
+    case 'relative':
+      return { kind, range: String(body.range ?? '') }
+    case 'recent_days':
+      return { kind, days: Number(body.days ?? 0) }
+    case 'month':
+      return { kind, year_month: String(body.year_month ?? '') }
+    case 'workspace':
+      return { kind }
+    case 'tags':
+    case 'identities':
+    case 'keyword': {
+      if (kind === 'tags') return { kind, tags: parseStringList(body.tags), range: parseOptionalScope(body.range) }
+      if (kind === 'identities')
+        return {
+          kind,
+          identity_ids: parseStringList(body.identity_ids),
+          range: parseOptionalScope(body.range),
+        }
+      return { kind, query: String(body.query ?? ''), range: parseOptionalScope(body.range) }
+    }
+    default:
+      throw new Error(`invalid scope kind: ${String(kind)}`)
+  }
+}
+
+function parseOptionalScope(body: unknown): AutomationScopeLike | undefined {
+  return body === undefined || body === null ? undefined : parseScope(body)
+}
+
+function parseStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function parseCreateRoutineRequest(body: unknown): {
+  title: string
+  template_id: string | null
+  prompt: string
+  schedule: AutomationScheduleLike
+  scope: AutomationScopeLike
+  enabled: boolean
+} {
+  const record = isRecord(body) ? body : {}
+  return {
+    title: String(record.title ?? ''),
+    template_id: typeof record.template_id === 'string' ? record.template_id : null,
+    prompt: String(record.prompt ?? ''),
+    schedule: parseSchedule(record.schedule),
+    scope: parseScope(record.scope),
+    enabled: record.enabled !== false,
+  }
+}
+
+function parseUpdateRoutineRequest(body: unknown): {
+  title?: string
+  prompt?: string
+  schedule?: AutomationScheduleLike
+  scope?: AutomationScopeLike
+  enabled?: boolean
+} {
+  const record = isRecord(body) ? body : {}
+  const patch: {
+    title?: string
+    prompt?: string
+    schedule?: AutomationScheduleLike
+    scope?: AutomationScopeLike
+    enabled?: boolean
+  } = {}
+  if (typeof record.title === 'string') patch.title = record.title
+  if (typeof record.prompt === 'string') patch.prompt = record.prompt
+  if (record.schedule !== undefined) patch.schedule = parseSchedule(record.schedule)
+  if (record.scope !== undefined) patch.scope = parseScope(record.scope)
+  if (typeof record.enabled === 'boolean') patch.enabled = record.enabled
+  return patch
+}
+
 export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
   return new Promise((resolve, reject) => {
     const app = express()
@@ -152,6 +282,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const aiProcessorServices = new Map<string, AiProcessorService>()
     const workQueueServices = new Map<string, WorkQueueService>()
     const conversationServices = new Map<string, ConversationService>()
+    const automationServices = new Map<string, AutomationService>()
     const aiProcessorService = (): AiProcessorService => {
       const root = workspaceRoot()
       const existing = aiProcessorServices.get(root)
@@ -228,6 +359,20 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         publishEvent,
       })
       conversationServices.set(root, created)
+      return created
+    }
+
+    const automationService = (): AutomationService => {
+      const root = workspaceRoot()
+      const existing = automationServices.get(root)
+      if (existing) return existing
+      const created = new AutomationService(root, {
+        conversationService: () => conversationService(),
+        providers: opts.builtinProviders,
+        now: () => new Date(),
+      })
+      automationServices.set(root, created)
+      created.start()
       return created
     }
 
@@ -1386,6 +1531,89 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       const status = message.includes('not found') || message.includes('failed to read') ? 404 : 400
       res.status(status).json({ error: { code: 'conversation_error', message } })
     }
+
+    // ── Automation / routines layer (M6) ──────────────────────────────────
+    const handleAutomationError = (res: express.Response, err: unknown): void => {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message.includes('not found') ? 404 : 400
+      res.status(status).json({ error: { code: 'automation_error', message } })
+    }
+
+    app.get('/automation/templates', (_req, res) => {
+      res.json(builtInTemplates())
+    })
+
+    app.get('/automation/routines', (_req, res) => {
+      res.json(automationService().listRoutines())
+    })
+
+    app.post('/automation/routines', (req, res) => {
+      try {
+        const request = parseCreateRoutineRequest(req.body)
+        res.status(201).json(automationService().createRoutine(request))
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.patch('/automation/routines/:id', (req, res) => {
+      try {
+        const patch = parseUpdateRoutineRequest(req.body)
+        res.json(automationService().updateRoutine(req.params.id, patch))
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.delete('/automation/routines/:id', (req, res) => {
+      try {
+        automationService().deleteRoutine(req.params.id)
+        res.status(204).end()
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.post('/automation/routines/:id/pause', (req, res) => {
+      try {
+        res.json(automationService().pauseRoutine(req.params.id))
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.post('/automation/routines/:id/resume', (req, res) => {
+      try {
+        res.json(automationService().resumeRoutine(req.params.id))
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.post('/automation/routines/:id/run', async (req, res) => {
+      try {
+        const run = await automationService().runNow(req.params.id)
+        res.status(201).json(run)
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.get('/automation/routines/:id/runs', (req, res) => {
+      try {
+        res.json(automationService().listRuns(req.params.id))
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
+
+    app.get('/automation/runs/:id', (req, res) => {
+      try {
+        res.json(automationService().getRun(req.params.id))
+      } catch (err) {
+        handleAutomationError(res, err)
+      }
+    })
 
     app.post('/work-queue/:id/cancel', (req, res) => {
       try {

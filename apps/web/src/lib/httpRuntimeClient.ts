@@ -695,6 +695,66 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
           'daemon conversation stats',
         )) as T
       }
+      case 'list_automation_templates': {
+        return (await this.getJson('/automation/templates', 'daemon automation templates')) as T
+      }
+      case 'list_routines': {
+        return (await this.getJson('/automation/routines', 'daemon automation routines')) as T
+      }
+      case 'create_routine': {
+        return (await this.postJson(
+          '/automation/routines',
+          (args?.request ?? {}) as Record<string, unknown>,
+          'daemon create routine',
+        )) as T
+      }
+      case 'update_routine': {
+        return (await this.patchJson(
+          `/automation/routines/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}`,
+          (args?.patch ?? {}) as Record<string, unknown>,
+          'daemon update routine',
+        )) as T
+      }
+      case 'delete_routine': {
+        await this.deleteJson(
+          `/automation/routines/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}`,
+          'daemon delete routine',
+        )
+        return undefined as T
+      }
+      case 'pause_routine': {
+        return (await this.postJson(
+          `/automation/routines/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}/pause`,
+          {},
+          'daemon pause routine',
+        )) as T
+      }
+      case 'resume_routine': {
+        return (await this.postJson(
+          `/automation/routines/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}/resume`,
+          {},
+          'daemon resume routine',
+        )) as T
+      }
+      case 'run_routine_now': {
+        return (await this.postJson(
+          `/automation/routines/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}/run`,
+          {},
+          'daemon run routine',
+        )) as T
+      }
+      case 'list_routine_runs': {
+        return (await this.getJson(
+          `/automation/routines/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}/runs`,
+          'daemon routine runs',
+        )) as T
+      }
+      case 'get_automation_run': {
+        return (await this.getJson(
+          `/automation/runs/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}`,
+          'daemon automation run',
+        )) as T
+      }
       default:
         throw new Error(`HttpRuntimeClient: unsupported command "${command}"`)
     }
@@ -757,13 +817,35 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     return res.text()
   }
 
-  private async putJson(
+ private async putJson(
+   path: string,
+   body: Record<string, unknown>,
+   label: string,
+ ): Promise<unknown> {
+   const res = await fetch(`${this.baseUrl}${path}`, {
+     method: 'PUT',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify(body),
+   })
+   if (!res.ok) {
+     let detail = ''
+     try {
+       detail = ` ${JSON.stringify(await res.json())}`
+     } catch {
+       // ignore
+     }
+     throw new Error(`${label}: ${res.status}${detail}`)
+   }
+   if (res.status === 204) return undefined
+   return res.json()
+ }
+  private async patchJson(
     path: string,
     body: Record<string, unknown>,
     label: string,
   ): Promise<unknown> {
     const res = await fetch(`${this.baseUrl}${path}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })

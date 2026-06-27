@@ -23,6 +23,7 @@ import {
   importFile,
   importTextTemp,
   importText,
+  importImageTemp,
   importAudioFile,
   triggerAiProcessing,
   triggerAiPrompt,
@@ -79,6 +80,12 @@ import {
   openSkillsDir,
   setSkillEnabled,
   setGlobalSkillEnabled,
+  listWorkspaceDir,
+  listAtMentionCandidates,
+  workspaceDuplicateFile,
+  workspaceRenameFile,
+  workspaceMoveFile,
+  workspaceDeleteFile,
   type EngineConfig,
   type AutoLintConfig,
   type FeishuConfig,
@@ -203,6 +210,14 @@ describe('Materials', () => {
     expect(mockInvoke).toHaveBeenCalledWith('import_text', { text: 'hello' })
   })
 
+  it('importImageTemp passes { data, mediaType }', async () => {
+    await importImageTemp('abc123', 'image/png')
+    expect(mockInvoke).toHaveBeenCalledWith('import_image_temp', {
+      data: 'abc123',
+      mediaType: 'image/png',
+    })
+  })
+
   it('importAudioFile is alias for import_file', async () => {
     await importAudioFile('/tmp/audio.m4a')
     expect(mockInvoke).toHaveBeenCalledWith('import_file', { srcPath: '/tmp/audio.m4a' })
@@ -272,6 +287,45 @@ describe('Workspace', () => {
   it('openFile invokes open_with_system', async () => {
     await openFile('/tmp/f.md')
     expect(mockInvoke).toHaveBeenCalledWith('open_with_system', { path: '/tmp/f.md' })
+  })
+
+  it('listWorkspaceDir passes { relativePath }', async () => {
+    await listWorkspaceDir('notes')
+    expect(mockInvoke).toHaveBeenCalledWith('list_workspace_dir', { relativePath: 'notes' })
+  })
+
+  it('listAtMentionCandidates passes { relativePath, query }', async () => {
+    await listAtMentionCandidates('', 'ai')
+    expect(mockInvoke).toHaveBeenCalledWith('list_at_mention_candidates', {
+      relativePath: '',
+      query: 'ai',
+    })
+  })
+
+  it('workspaceDuplicateFile passes { relativePath }', async () => {
+    await workspaceDuplicateFile('note.md')
+    expect(mockInvoke).toHaveBeenCalledWith('workspace_duplicate_file', { relativePath: 'note.md' })
+  })
+
+  it('workspaceRenameFile passes { relativePath, newName }', async () => {
+    await workspaceRenameFile('note.md', 'renamed.md')
+    expect(mockInvoke).toHaveBeenCalledWith('workspace_rename_file', {
+      relativePath: 'note.md',
+      newName: 'renamed.md',
+    })
+  })
+
+  it('workspaceMoveFile passes { relativePath, destDir }', async () => {
+    await workspaceMoveFile('note.md', 'dest')
+    expect(mockInvoke).toHaveBeenCalledWith('workspace_move_file', {
+      relativePath: 'note.md',
+      destDir: 'dest',
+    })
+  })
+
+  it('workspaceDeleteFile passes { relativePath }', async () => {
+    await workspaceDeleteFile('note.md')
+    expect(mockInvoke).toHaveBeenCalledWith('workspace_delete_file', { relativePath: 'note.md' })
   })
 })
 

@@ -18,6 +18,7 @@ import { SedimentationService } from './sediment/service.js'
 import { SourceBindingService } from './sources/service.js'
 import { WorkspaceService } from './workspace/service.js'
 import { SettingsService, SettingsValidationError } from './settings/service.js'
+import { FilesService, WorkspaceFsError } from './files/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -78,7 +79,7 @@ function resolveDataDir(): string {
 export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
   return new Promise((resolve, reject) => {
     const app = express()
-    app.use(express.json({ limit: '1mb' }))
+    app.use(express.json({ limit: '25mb' }))
 
     const service = opts.runService ?? new AgentRunService(resolveDataDir())
     const changeSetService = new ChangeSetService(process.cwd())
@@ -87,6 +88,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const sourceBindingService = new SourceBindingService()
     const workspaceService = new WorkspaceService(process.cwd())
     const settingsService = new SettingsService(process.cwd())
+    const filesService = new FilesService(process.cwd(), changeSetService)
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
     // running executeRun child (SIGTERM the spawned CLI), not just flip status.
@@ -150,6 +152,164 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           return
         }
         throw err
+      }
+    })
+
+    const handleFsError = (res: express.Response, err: unknown): void => {
+      if (err instanceof WorkspaceFsError) {
+        res.status(err.status).json({
+          error: { code: err.code, message: err.message, ...(err.detail ?? {}) },
+        })
+        return
+      }
+      res.status(500).json({
+        error: {
+          code: 'workspace_fs_error',
+          message: err instanceof Error ? err.message : String(err),
+        },
+      })
+    }
+
+    // GET /files — Rust-compatible workspace directory listing.
+    app.get('/files', (req, res) => {
+      try {
+        const relativePath =
+          typeof req.query.relativePath === 'string' ? req.query.relativePath : ''
+        res.json(filesService.listWorkspaceDir(relativePath))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    // GET /files/at-mention-candidates — file/expert mention candidates.
+    app.get('/files/at-mention-candidates', (req, res) => {
+      try {
+        const relativePath =
+          typeof req.query.relativePath === 'string' ? req.query.relativePath : ''
+        const query = typeof req.query.query === 'string' ? req.query.query : ''
+        res.json(filesService.listAtMentionCandidates(relativePath, query))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/files/import', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        const kind = typeof body.kind === 'string' ? body.kind : 'file'
+        if (kind === 'file' && typeof body.srcPath === 'string') {
+          res.json(filesService.importFile(body.srcPath).result)
+          return
+        }
+        if (kind === 'text' && typeof body.text === 'string') {
+          res.json(filesService.importText(body.text).result)
+          return
+        }
+        if (kind === 'text_temp' && typeof body.text === 'string') {
+          res.json(filesService.importTextTemp(body.text))
+          return
+        }
+        if (
+          kind === 'image_temp' &&
+          typeof body.data === 'string' &&
+          typeof body.mediaType === 'string'
+        ) {
+          res.json(filesService.importImageTemp(body.data, body.mediaType))
+          return
+        }
+        res.status(400).json({
+          error: { code: 'invalid_import_request', message: 'invalid import request' },
+        })
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/files/duplicate', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.relativePath !== 'string') {
+          res
+            .status(400)
+            .json({ error: { code: 'invalid_path', message: 'relativePath is required' } })
+          return
+        }
+        res.json(filesService.duplicate(body.relativePath).result)
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/files/rename', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.relativePath !== 'string' || typeof body.newName !== 'string') {
+          res.status(400).json({
+            error: {
+              code: 'invalid_rename_request',
+              message: 'relativePath and newName are required',
+            },
+          })
+          return
+        }
+        res.json(filesService.rename(body.relativePath, body.newName).result)
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/files/move', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.relativePath !== 'string' || typeof body.destDir !== 'string') {
+          res.status(400).json({
+            error: {
+              code: 'invalid_move_request',
+              message: 'relativePath and destDir are required',
+            },
+          })
+          return
+        }
+        res.json(filesService.move(body.relativePath, body.destDir).result)
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.delete('/files', (req, res) => {
+      try {
+        const relativePath =
+          typeof req.query.relativePath === 'string'
+            ? req.query.relativePath
+            : typeof (req.body as Record<string, unknown> | undefined)?.relativePath === 'string'
+              ? ((req.body as Record<string, unknown>).relativePath as string)
+              : ''
+        if (!relativePath) {
+          res
+            .status(400)
+            .json({ error: { code: 'invalid_path', message: 'relativePath is required' } })
+          return
+        }
+        filesService.delete(relativePath)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/files/delete', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.relativePath !== 'string') {
+          res
+            .status(400)
+            .json({ error: { code: 'invalid_path', message: 'relativePath is required' } })
+          return
+        }
+        filesService.delete(body.relativePath)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
       }
     })
 

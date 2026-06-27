@@ -116,6 +116,75 @@ describe('HttpRuntimeClient', () => {
     })
   })
 
+  it('invoke maps workspace FS reads to /files routes', async () => {
+    const entries = [{ name: 'notes', is_dir: true, path: 'notes', mtime_secs: 1 }]
+    const candidates = [{ ...entries[0], kind: 'directory', tags: [] }]
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => entries })
+      .mockResolvedValueOnce({ ok: true, json: async () => candidates })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await expect(client.invoke('list_workspace_dir', { relativePath: 'a b' })).resolves.toEqual(
+      entries,
+    )
+    await expect(
+      client.invoke('list_at_mention_candidates', { relativePath: '', query: 'ai' }),
+    ).resolves.toEqual(candidates)
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/files?relativePath=a%20b')
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'http://127.0.0.1:1/files/at-mention-candidates?relativePath=&query=ai',
+    )
+  })
+
+  it('invoke maps workspace FS writes to /files routes', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ path: '2606/raw/p.txt' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => 'note copy.md' })
+      .mockResolvedValueOnce({ ok: true, json: async () => 'renamed.md' })
+      .mockResolvedValueOnce({ ok: true, json: async () => 'dest/renamed.md' })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => undefined })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await client.invoke('import_text', { text: 'hello' })
+    await client.invoke('workspace_duplicate_file', { relativePath: 'note.md' })
+    await client.invoke('workspace_rename_file', {
+      relativePath: 'note copy.md',
+      newName: 'renamed.md',
+    })
+    await client.invoke('workspace_move_file', { relativePath: 'renamed.md', destDir: 'dest' })
+    await client.invoke('workspace_delete_file', { relativePath: 'dest/renamed.md' })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/files/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'text', text: 'hello' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/files/duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relativePath: 'note.md' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(3, 'http://127.0.0.1:1/files/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relativePath: 'note copy.md', newName: 'renamed.md' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(4, 'http://127.0.0.1:1/files/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relativePath: 'renamed.md', destDir: 'dest' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      5,
+      'http://127.0.0.1:1/files?relativePath=dest%2Frenamed.md',
+      { method: 'DELETE' },
+    )
+  })
+
   it('invoke clears skill lists with null when the last disabled skill is re-enabled', async () => {
     mockFetch
       .mockResolvedValueOnce({

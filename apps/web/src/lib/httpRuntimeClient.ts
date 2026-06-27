@@ -51,9 +51,8 @@ function resolveBaseUrl(opts?: HttpRuntimeClientOptions): string {
     // ignore
   }
   return (
-    ((globalThis as Record<string, unknown>).process as Record<string, unknown> | undefined)?.JOURNAL_DAEMON_URL as
-      | string
-      | undefined ?? DEFAULT_BASE_URL
+    (((globalThis as Record<string, unknown>).process as Record<string, unknown> | undefined)
+      ?.JOURNAL_DAEMON_URL as string | undefined) ?? DEFAULT_BASE_URL
   )
 }
 
@@ -120,8 +119,121 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         await this.updateSettings({ enabled_global_skills: next.length > 0 ? next : null })
         return undefined as T
       }
+      case 'list_workspace_dir': {
+        const relativePath = typeof args?.relativePath === 'string' ? args.relativePath : ''
+        return (await this.getJson(
+          `/files?relativePath=${encodeURIComponent(relativePath)}`,
+          'daemon files',
+        )) as T
+      }
+      case 'list_at_mention_candidates': {
+        const relativePath = typeof args?.relativePath === 'string' ? args.relativePath : ''
+        const query = typeof args?.query === 'string' ? args.query : ''
+        return (await this.getJson(
+          `/files/at-mention-candidates?relativePath=${encodeURIComponent(relativePath)}&query=${encodeURIComponent(query)}`,
+          'daemon at-mention candidates',
+        )) as T
+      }
+      case 'import_file': {
+        return (await this.postJson(
+          '/files/import',
+          { kind: 'file', srcPath: args?.srcPath },
+          'daemon import file',
+        )) as T
+      }
+      case 'import_text': {
+        return (await this.postJson(
+          '/files/import',
+          { kind: 'text', text: args?.text },
+          'daemon import text',
+        )) as T
+      }
+      case 'import_text_temp': {
+        return (await this.postJson(
+          '/files/import',
+          { kind: 'text_temp', text: args?.text },
+          'daemon import text temp',
+        )) as T
+      }
+      case 'import_image_temp': {
+        return (await this.postJson(
+          '/files/import',
+          { kind: 'image_temp', data: args?.data, mediaType: args?.mediaType },
+          'daemon import image temp',
+        )) as T
+      }
+      case 'workspace_duplicate_file': {
+        return (await this.postJson(
+          '/files/duplicate',
+          { relativePath: args?.relativePath },
+          'daemon duplicate file',
+        )) as T
+      }
+      case 'workspace_rename_file': {
+        return (await this.postJson(
+          '/files/rename',
+          { relativePath: args?.relativePath, newName: args?.newName },
+          'daemon rename file',
+        )) as T
+      }
+      case 'workspace_move_file': {
+        return (await this.postJson(
+          '/files/move',
+          { relativePath: args?.relativePath, destDir: args?.destDir },
+          'daemon move file',
+        )) as T
+      }
+      case 'workspace_delete_file': {
+        await this.deleteJson(
+          `/files?relativePath=${encodeURIComponent(typeof args?.relativePath === 'string' ? args.relativePath : '')}`,
+          'daemon delete file',
+        )
+        return undefined as T
+      }
       default:
         throw new Error(`HttpRuntimeClient: unsupported command "${command}"`)
+    }
+  }
+
+  private async getJson(path: string, label: string): Promise<unknown> {
+    const res = await fetch(`${this.baseUrl}${path}`)
+    if (!res.ok) throw new Error(`${label}: ${res.status}`)
+    return res.json()
+  }
+
+  private async postJson(
+    path: string,
+    body: Record<string, unknown>,
+    label: string,
+  ): Promise<unknown> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      let detail = ''
+      try {
+        detail = ` ${JSON.stringify(await res.json())}`
+      } catch {
+        // ignore
+      }
+      throw new Error(`${label}: ${res.status}${detail}`)
+    }
+    if (res.status === 204) return undefined
+    return res.json()
+  }
+
+  private async deleteJson(path: string, label: string): Promise<void> {
+    const res = await fetch(`${this.baseUrl}${path}`, { method: 'DELETE' })
+    if (!res.ok) {
+      let detail = ''
+      try {
+        detail = ` ${JSON.stringify(await res.json())}`
+      } catch {
+        // ignore
+      }
+      throw new Error(`${label}: ${res.status}${detail}`)
     }
   }
 

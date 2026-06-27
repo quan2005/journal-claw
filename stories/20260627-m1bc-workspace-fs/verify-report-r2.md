@@ -1,0 +1,51 @@
+---
+story: ./story.md
+design: N/A
+date: 2026-06-27
+round: 2
+result: pass
+scope: "核对范围：git diff -- apps/daemon/src/files/service.ts apps/daemon/src/files/service.test.ts apps/daemon/src/server.ts apps/web/src/lib/httpRuntimeClient.ts apps/web/src/lib/tauri.ts apps/web/src/tests/httpRuntimeClient.test.ts apps/web/src/tests/ipc-contract.test.ts；另按第 2 轮要求重点复核上一轮 verify-report.md 的 fail 项"
+---
+
+# 验收报告 — M1b+M1c · Workspace FS（daemon）
+
+## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
+
+| AC | 结论 | 证据 |
+|---|---|---|
+| AC-1：Given workspace 有文件，When GET /files，Then 返回树与 Rust 一致（忽略规则/排序） | ✅ pass | daemon 注册 `GET /files` 并委托 `filesService.listWorkspaceDir`：`apps/daemon/src/server.ts:173`、`apps/daemon/src/server.ts:178`。service 跳过隐藏项、返回 `name/is_dir/path/mtime_secs` 并按“目录优先、名称降序”排序：`apps/daemon/src/files/service.ts:176`、`apps/daemon/src/files/service.ts:181`、`apps/daemon/src/files/service.ts:188`。Rust 对照同样跳过 `name.starts_with('.')` 并同样排序：`apps/web/src-tauri/src/skills.rs:775`、`apps/web/src-tauri/src/skills.rs:805`。单测覆盖隐藏项和排序：`apps/daemon/src/files/service.test.ts:24`。 |
+| AC-2：Given delete 一个文件，Then 进 .journal-trash，revert 可还原 | ✅ pass | `FilesService.delete` 使用 `ChangeSetService.recordChangeSet` 记录 `operation: 'remove'`：`apps/daemon/src/files/service.ts:373`、`apps/daemon/src/files/service.ts:378`、`apps/daemon/src/files/service.ts:381`。`ChangeSetService` 对 remove/move 将原文件移动到 `<workspace>/.journal-trash/<id>/`：`apps/daemon/src/changeset/service.ts:113`、`apps/daemon/src/changeset/service.ts:116`、`apps/daemon/src/changeset/service.ts:117`、`apps/daemon/src/changeset/service.ts:120`。revert 将 `beforePath` 还原到原路径：`apps/daemon/src/changeset/service.ts:161`、`apps/daemon/src/changeset/service.ts:165`、`apps/daemon/src/changeset/service.ts:168`。单测验证删除、trash 存在、revert 后内容恢复：`apps/daemon/src/files/service.test.ts:79`。 |
+| AC-3：Given workspace 外路径/.. /symlink 写入，Then 结构化拒绝 | ✅ pass | `..` / 绝对路径由 `resolveInsideRoot` 和 `normalizeRelative` 结构化拒绝：`apps/daemon/src/files/service.ts:471`、`apps/daemon/src/files/service.ts:476`、`apps/daemon/src/files/service.ts:477`、`apps/daemon/src/files/service.ts:487`、`apps/daemon/src/files/service.ts:488`。第 1 轮 fail 的 import symlink traversal 已修复：`importFile` 与 `importText` 写入前调用 `assertCreatableTarget`：`apps/daemon/src/files/service.ts:240`、`apps/daemon/src/files/service.ts:259`；该函数校验授权、确认目标父路径仍在 workspace 内，并逐段拒绝已有 symlink：`apps/daemon/src/files/service.ts:514`、`apps/daemon/src/files/service.ts:520`、`apps/daemon/src/files/service.ts:523`、`apps/daemon/src/files/service.ts:527`、`apps/daemon/src/files/service.ts:531`、`apps/daemon/src/files/service.ts:532`。单测新增 raw 目录为 symlink 时 `importText` 抛出且不记录 ChangeSet：`apps/daemon/src/files/service.test.ts:109`、`apps/daemon/src/files/service.test.ts:116`、`apps/daemon/src/files/service.test.ts:117`。目标测试命令 `pnpm --filter @journal/daemon test -- src/files/service.test.ts` 输出 `Tests  8 passed (8)`。 |
+| AC-4：Given daemon 测试，Then 全绿且 ≥288 不回退；web tsc clean | ✅ pass | 完整 daemon 测试命令 `pnpm --filter @journal/daemon test` 输出 `Test Files  44 passed (44)`、`Tests  325 passed (325)`，满足全绿且 ≥288。web 构建/tsc 命令 `pnpm --filter @journal/web build` 成功，输出包含 `tsc && npm run build:magicui && vite build` 和最终 `✓ built in 7.03s`。相关 web 测试命令 `pnpm --filter @journal/web test -- src/tests/httpRuntimeClient.test.ts src/tests/ipc-contract.test.ts` 输出 `Test Files  2 passed (2)`、`Tests  95 passed (95)`。 |
+
+## 范围完整性（不少，对照 story.md 范围）
+
+- ✅ daemon `FilesService` 覆盖目录树、at-mention、import、duplicate、rename、move、delete：`apps/daemon/src/files/service.ts:167`、`apps/daemon/src/files/service.ts:194`、`apps/daemon/src/files/service.ts:224`、`apps/daemon/src/files/service.ts:250`、`apps/daemon/src/files/service.ts:269`、`apps/daemon/src/files/service.ts:276`、`apps/daemon/src/files/service.ts:291`、`apps/daemon/src/files/service.ts:317`、`apps/daemon/src/files/service.ts:349`、`apps/daemon/src/files/service.ts:373`。
+- ✅ daemon HTTP 路由覆盖 `/files`、`/files/at-mention-candidates`、`/files/import`、`/files/duplicate`、`/files/rename`、`/files/move`、delete：`apps/daemon/src/server.ts:173`、`apps/daemon/src/server.ts:184`、`apps/daemon/src/server.ts:196`、`apps/daemon/src/server.ts:228`、`apps/daemon/src/server.ts:243`、`apps/daemon/src/server.ts:261`、`apps/daemon/src/server.ts:279`、`apps/daemon/src/server.ts:300`。
+- ✅ 写操作复用 `ChangeSetService`，默认 `workspace_write`：各写方法默认 mode 见 `apps/daemon/src/files/service.ts:226`、`apps/daemon/src/files/service.ts:252`、`apps/daemon/src/files/service.ts:293`、`apps/daemon/src/files/service.ts:320`、`apps/daemon/src/files/service.ts:352`、`apps/daemon/src/files/service.ts:375`；create 类写入通过 `recordWritableChange`：`apps/daemon/src/files/service.ts:241`、`apps/daemon/src/files/service.ts:260`、`apps/daemon/src/files/service.ts:309`、`apps/daemon/src/files/service.ts:336`、`apps/daemon/src/files/service.ts:360`；delete 直接走 `recordChangeSet`：`apps/daemon/src/files/service.ts:378`。`ChangeSetService` 生成 `beforeHash/afterHash/diffPreview/authorizationMode/status`：`apps/daemon/src/changeset/service.ts:110`、`apps/daemon/src/changeset/service.ts:124`、`apps/daemon/src/changeset/service.ts:133`、`apps/daemon/src/changeset/service.ts:139`、`apps/daemon/src/changeset/service.ts:140`。
+- ✅ 前端 `tauri.ts` FS 封装走 runtime flag：材料导入和 workspace FS wrapper 均使用 `selectRuntimeClient().invoke`：`apps/web/src/lib/tauri.ts:67`、`apps/web/src/lib/tauri.ts:80`、`apps/web/src/lib/tauri.ts:87`、`apps/web/src/lib/tauri.ts:94`、`apps/web/src/lib/tauri.ts:129`、`apps/web/src/lib/tauri.ts:612`、`apps/web/src/lib/tauri.ts:632`、`apps/web/src/lib/tauri.ts:637`、`apps/web/src/lib/tauri.ts:640`、`apps/web/src/lib/tauri.ts:643`、`apps/web/src/lib/tauri.ts:646`。HTTP runtime client 映射对应 daemon 路由：`apps/web/src/lib/httpRuntimeClient.ts:122`、`apps/web/src/lib/httpRuntimeClient.ts:129`、`apps/web/src/lib/httpRuntimeClient.ts:137`、`apps/web/src/lib/httpRuntimeClient.ts:144`、`apps/web/src/lib/httpRuntimeClient.ts:151`、`apps/web/src/lib/httpRuntimeClient.ts:158`、`apps/web/src/lib/httpRuntimeClient.ts:165`、`apps/web/src/lib/httpRuntimeClient.ts:172`、`apps/web/src/lib/httpRuntimeClient.ts:179`、`apps/web/src/lib/httpRuntimeClient.ts:186`。
+
+## 方案落实（不偏，对照 design.md）
+
+N/A。本任务无 design.md。
+
+## 越界检查（不多，对照 story 非目标 + design 范围）
+
+- ✅ 未实现非目标 `import_file_to_topic`。核对命令 `rg -n "import_file_to_topic" apps/daemon/src/files apps/daemon/src/server.ts apps/web/src/lib/httpRuntimeClient.ts apps/web/src/lib/tauri.ts` 仅返回既有前端 wrapper：`apps/web/src/lib/tauri.ts:669`，未在 daemon files/server 或 HTTP runtime 中新增 topic 导入。
+- ✅ 未改 `skills/main.rs` 中对 FS 的间接引用。核对范围限定在 `apps/daemon/src/files/service.ts`、`apps/daemon/src/files/service.test.ts`、`apps/daemon/src/server.ts`、`apps/web/src/lib/httpRuntimeClient.ts`、`apps/web/src/lib/tauri.ts`、`apps/web/src/tests/httpRuntimeClient.test.ts`、`apps/web/src/tests/ipc-contract.test.ts`；`git diff --numstat -- ...` 输出仅列 `apps/daemon/src/server.ts`、`apps/web/src/lib/httpRuntimeClient.ts`、`apps/web/src/lib/tauri.ts`、`apps/web/src/tests/httpRuntimeClient.test.ts`、`apps/web/src/tests/ipc-contract.test.ts`，未包含 `skills/main.rs`。
+- ✅ `apps/daemon/src/server.ts` 将 JSON body limit 调整到 `25mb`：`apps/daemon/src/server.ts:82`。该改动可归属到本 story 范围内的 HTTP import，尤其 `/files/import` 的 `image_temp` base64 请求体：`apps/daemon/src/server.ts:212`、`apps/daemon/src/server.ts:217`，不计越界。
+
+## 冗余（不重，对照 story.md）
+
+- ✅ 未发现同一 AC 的多套并行实现。daemon 路由集中委托同一个 `FilesService` 实例：`apps/daemon/src/server.ts:91`、`apps/daemon/src/server.ts:178`、`apps/daemon/src/server.ts:190`、`apps/daemon/src/server.ts:201`、`apps/daemon/src/server.ts:205`、`apps/daemon/src/server.ts:209`、`apps/daemon/src/server.ts:217`、`apps/daemon/src/server.ts:237`、`apps/daemon/src/server.ts:255`、`apps/daemon/src/server.ts:273`、`apps/daemon/src/server.ts:293`、`apps/daemon/src/server.ts:309`。HTTP runtime client 对每个 IPC command 映射单一路由：`apps/web/src/lib/httpRuntimeClient.ts:122`、`apps/web/src/lib/httpRuntimeClient.ts:129`、`apps/web/src/lib/httpRuntimeClient.ts:137`、`apps/web/src/lib/httpRuntimeClient.ts:144`、`apps/web/src/lib/httpRuntimeClient.ts:151`、`apps/web/src/lib/httpRuntimeClient.ts:158`、`apps/web/src/lib/httpRuntimeClient.ts:165`、`apps/web/src/lib/httpRuntimeClient.ts:172`、`apps/web/src/lib/httpRuntimeClient.ts:179`、`apps/web/src/lib/httpRuntimeClient.ts:186`。
+- ✅ 未发现本范围内 TODO/stub 式半成品。核对命令 `rg -n "TODO|stub|unsupported command|unsupported" apps/daemon/src/files/service.ts apps/daemon/src/server.ts apps/web/src/lib/httpRuntimeClient.ts apps/web/src/lib/tauri.ts` 仅返回默认分支错误 `apps/web/src/lib/httpRuntimeClient.ts:194`，这是未知命令拒绝路径，不属于本 story 已承诺 FS command 的占位。
+
+## 结论
+
+result: pass。
+
+第 1 轮 fail 项“import 写入可经 workspace 内 symlink 穿透到 workspace 外”已修复并有红/绿测试覆盖：`assertCreatableTarget` 在 `importFile` / `importText` 写入前拒绝已有 symlink 父路径，相关 daemon 测试通过。六字标准核对未发现漏做、重复实现、行为偏差、范围越界或范围不足。
+
+## 待用户裁决
+
+无。

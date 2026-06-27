@@ -65,7 +65,10 @@ export const applyDirectiveMigration = (request: ApplyDirectiveMigrationRequest)
 
 // Materials
 export const importFile = (srcPath: string) =>
-  invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })
+  selectRuntimeClient().invoke<{ path: string; filename: string; year_month: string }>(
+    'import_file',
+    { srcPath },
+  )
 
 // AI Processing
 export const triggerAiProcessing = (materialPath: string, yearMonth: string, note?: string) =>
@@ -75,18 +78,27 @@ export const deleteJournalEntry = (path: string) => invoke<void>('delete_journal
 
 // 粘贴文本 → 写入系统 temp 目录 → 返回路径（不自动触发 AI，OS 自动清理）
 export const importTextTemp = (text: string) =>
-  invoke<{ path: string; filename: string; year_month: string }>('import_text_temp', { text })
+  selectRuntimeClient().invoke<{ path: string; filename: string; year_month: string }>(
+    'import_text_temp',
+    { text },
+  )
 
 // 粘贴文本 → 保存为 raw 文件 → 返回路径（不自动触发 AI）
 export const importText = (text: string) =>
-  invoke<{ path: string; filename: string; year_month: string }>('import_text', { text })
+  selectRuntimeClient().invoke<{ path: string; filename: string; year_month: string }>(
+    'import_text',
+    { text },
+  )
 
 // Paste image → write to temp dir → return path
 export const importImageTemp = (data: string, mediaType: string) =>
-  invoke<{ path: string; filename: string; year_month: string }>('import_image_temp', {
-    data,
-    mediaType,
-  })
+  selectRuntimeClient().invoke<{ path: string; filename: string; year_month: string }>(
+    'import_image_temp',
+    {
+      data,
+      mediaType,
+    },
+  )
 
 // Pure prompt → send text directly (no file written)
 export const triggerAiPrompt = (prompt: string): Promise<void> =>
@@ -94,10 +106,7 @@ export const triggerAiPrompt = (prompt: string): Promise<void> =>
 
 // Paste text → save as raw material → trigger AI processing
 export const submitPasteText = async (text: string): Promise<void> => {
-  const result = await invoke<{ path: string; filename: string; year_month: string }>(
-    'import_text',
-    { text },
-  )
+  const result = await importText(text)
   await triggerAiProcessing(result.path, result.year_month)
 }
 
@@ -118,7 +127,10 @@ export const cancelQueuedItem = (materialPath: string) =>
   invoke<void>('cancel_queued_item', { materialPath })
 
 export const importAudioFile = (srcPath: string) =>
-  invoke<{ path: string; filename: string; year_month: string }>('import_file', { srcPath })
+  selectRuntimeClient().invoke<{ path: string; filename: string; year_month: string }>(
+    'import_file',
+    { srcPath },
+  )
 
 // Folder picker
 export const pickFolder = (): Promise<string | null> => {
@@ -458,8 +470,10 @@ export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_
 export const openSkillsDir = (scope: 'builtin' | 'project' | 'global'): Promise<void> =>
   invoke<void>('open_skills_dir', { scope })
 
-export const openSkillDir = (scope: 'builtin' | 'project' | 'global', dirName: string): Promise<void> =>
-  invoke<void>('open_skill_dir', { scope, dirName })
+export const openSkillDir = (
+  scope: 'builtin' | 'project' | 'global',
+  dirName: string,
+): Promise<void> => invoke<void>('open_skill_dir', { scope, dirName })
 
 export const setSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
   selectRuntimeClient().invoke<void>('set_skill_enabled', { skillId, enabled })
@@ -596,7 +610,7 @@ export interface WorkspaceDirEntry {
   mtime_secs: number
 }
 export const listWorkspaceDir = (relativePath: string): Promise<WorkspaceDirEntry[]> =>
-  invoke<WorkspaceDirEntry[]>('list_workspace_dir', { relativePath })
+  selectRuntimeClient().invoke<WorkspaceDirEntry[]>('list_workspace_dir', { relativePath })
 
 export type AtMentionKind = 'file' | 'directory' | 'expert'
 
@@ -615,19 +629,22 @@ export const listAtMentionCandidates = (
   relativePath: string,
   query = '',
 ): Promise<AtMentionCandidate[]> =>
-  invoke<AtMentionCandidate[]>('list_at_mention_candidates', { relativePath, query })
+  selectRuntimeClient().invoke<AtMentionCandidate[]>('list_at_mention_candidates', {
+    relativePath,
+    query,
+  })
 
 export const workspaceDuplicateFile = (relativePath: string): Promise<string> =>
-  invoke<string>('workspace_duplicate_file', { relativePath })
+  selectRuntimeClient().invoke<string>('workspace_duplicate_file', { relativePath })
 
 export const workspaceRenameFile = (relativePath: string, newName: string): Promise<string> =>
-  invoke<string>('workspace_rename_file', { relativePath, newName })
+  selectRuntimeClient().invoke<string>('workspace_rename_file', { relativePath, newName })
 
 export const workspaceMoveFile = (relativePath: string, destDir: string): Promise<string> =>
-  invoke<string>('workspace_move_file', { relativePath, destDir })
+  selectRuntimeClient().invoke<string>('workspace_move_file', { relativePath, destDir })
 
 export const workspaceDeleteFile = (relativePath: string): Promise<void> =>
-  invoke<void>('workspace_delete_file', { relativePath })
+  selectRuntimeClient().invoke<void>('workspace_delete_file', { relativePath })
 
 // ── Topics ──────────────────────────────────────────────────
 

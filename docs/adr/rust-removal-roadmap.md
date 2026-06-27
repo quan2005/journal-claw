@@ -156,7 +156,7 @@
 | M1 地基 | ✅ M1a f04ca1d · M1b+c 882b87f · M1a-2 1ec5152 |
 | M2 CRUD | ✅ |
 | M3 skills/杂项 | ✅ 0664f00 |
-| ME 引擎集成(pi) | 🔄 ME-a ✅ · ME-b 待启 |
+| ME 引擎集成(pi) | ✅ ME-a 16d2673 · ME-b 919a03c · ME-c |
 | M4 AI/queue | 🔲（待 ME） |
 | M5 conversation | 🔲 |
 | M6 automation | 🔲 |

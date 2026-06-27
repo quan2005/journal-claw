@@ -45,11 +45,23 @@ function makePostRuns(service: AgentRunService, runSpy: ExecuteRunInput[] = []) 
     if (!goal.trim()) return res.status(400).json({ error: 'goal is required' })
     const VALID = new Set(['chat', 'agent', 'observe'])
     if (!VALID.has(mode)) return res.status(400).json({ error: `invalid mode: ${mode}` })
-    const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
-    if (!getAgentDef(agentId)) return res.status(400).json({ error: `unknown agent: ${agentId}` })
+    const engine = body.engine === 'builtin' ? 'builtin' : 'cli'
+    const agentId =
+      engine === 'builtin'
+        ? 'builtin'
+        : typeof body.agentId === 'string' && body.agentId
+          ? body.agentId
+          : 'claude'
+    if (engine === 'cli' && !getAgentDef(agentId))
+      return res.status(400).json({ error: `unknown agent: ${agentId}` })
     const run = service.createRun({ goal, mode: mode as any })
     res.status(201).json(run)
-    runSpy.push({ runId: run.id, agentId, prompt: typeof body.prompt === 'string' ? body.prompt : goal, model: null })
+    runSpy.push({
+      runId: run.id,
+      agentId,
+      prompt: typeof body.prompt === 'string' ? body.prompt : goal,
+      model: null,
+    })
   }
 }
 
@@ -82,7 +94,10 @@ describe('POST /runs route logic', () => {
   it('honors an explicit agentId', () => {
     const service = new AgentRunService(dir)
     const spy: ExecuteRunInput[] = []
-    makePostRuns(service, spy)(mockReq({ goal: 'g', mode: 'agent', agentId: 'claude', prompt: 'p' }), mockRes())
+    makePostRuns(service, spy)(
+      mockReq({ goal: 'g', mode: 'agent', agentId: 'claude', prompt: 'p' }),
+      mockRes(),
+    )
     expect(spy[0].agentId).toBe('claude')
   })
 
@@ -92,6 +107,15 @@ describe('POST /runs route logic', () => {
     makePostRuns(service)(mockReq({ goal: 'g', mode: 'agent', agentId: 'ghost' }), res)
     expect(res.statusCode).toBe(400)
     expect((res.bodyVal as any).error).toMatch(/unknown agent/)
+  })
+
+  it('accepts engine=builtin without requiring a CLI adapter', () => {
+    const service = new AgentRunService(dir)
+    const spy: ExecuteRunInput[] = []
+    const res = mockRes()
+    makePostRuns(service, spy)(mockReq({ goal: 'g', mode: 'agent', engine: 'builtin' }), res)
+    expect(res.statusCode).toBe(201)
+    expect(spy[0].agentId).toBe('builtin')
   })
 
   it('rejects missing goal (400)', () => {

@@ -11,6 +11,7 @@ import type { Server } from 'node:http'
 import { AgentRunService } from './runs/service.js'
 import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
 import { executeRun } from './runtimes/runner.js'
+import { executeBuiltinRun } from './engine/run.js'
 import { assembleContext } from './context/assemble.js'
 import { ChangeSetService } from './changeset/service.js'
 import { ArtifactIndexService } from './artifacts/index.js'
@@ -131,7 +132,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
     // running executeRun child (SIGTERM the spawned CLI), not just flip status.
-    const runAbortControllers = new Map<string, AbortController>()
+    const runAbortControllers = new Map<string, { abort: () => void }>()
 
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok', service: '@journal/daemon' })
@@ -1032,6 +1033,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         agentId?: unknown
         prompt?: unknown
         model?: unknown
+        engine?: unknown
         authorizationMode?: unknown
       }
       const goal = typeof body.goal === 'string' ? body.goal : ''
@@ -1044,9 +1046,15 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: `invalid mode: ${String(body.mode)}` })
         return
       }
-      const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
-      const def = getAgentDef(agentId)
-      if (!def) {
+      const engine = body.engine === 'builtin' ? 'builtin' : 'cli'
+      const agentId =
+        engine === 'builtin'
+          ? 'builtin'
+          : typeof body.agentId === 'string' && body.agentId
+            ? body.agentId
+            : 'claude'
+      const def = engine === 'cli' ? getAgentDef(agentId) : undefined
+      if (engine === 'cli' && !def) {
         res.status(400).json({ error: `unknown agent: ${agentId}` })
         return
       }
@@ -1085,24 +1093,44 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       // Snapshot the workspace BEFORE the run so its real file changes can be
       // captured as ChangeSets after it finishes (no CLI internals intercepted).
       // Under read_only the CLI cannot write, so the diff is naturally empty.
-      const beforeSnapshot = changeSetService.snapshotWorkspace()
+      const runChangeSetService = engine === 'builtin' ? workspaceChangeSets() : changeSetService
+      const beforeSnapshot = runChangeSetService.snapshotWorkspace()
       // Register an AbortController for this run so cancel can SIGTERM the
       // spawned child instead of merely flipping status.
       const abortController = new AbortController()
       runAbortControllers.set(run.id, abortController)
-      executeRun(
-        service,
-        { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode },
-        { signal: abortController.signal },
-      )
+      const execution =
+        engine === 'builtin'
+          ? executeBuiltinRun(
+              service,
+              configService,
+              {
+                runId: run.id,
+                prompt,
+                systemPrompt: assembledPrompt,
+                workspaceRoot: workspaceRoot(),
+                authorizationMode,
+              },
+              {
+                signal: abortController.signal,
+                changeSetService: runChangeSetService,
+                skillsService: skillsService(),
+              },
+            )
+          : executeRun(
+              service,
+              { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode },
+              { signal: abortController.signal },
+            )
+      execution
         .then((result) => {
           runAbortControllers.delete(run.id)
           // Capture real filesystem changes the Agent performed (create/edit/
           // remove) by diffing the post-run snapshot against the pre-run one.
           // This is the feasible capture path that does not intercept CLI
           // internals. Existing explicit ChangeSets are preserved.
-          const afterSnapshot = changeSetService.snapshotWorkspace()
-          changeSetService.captureSnapshotDiff(
+          const afterSnapshot = runChangeSetService.snapshotWorkspace()
+          runChangeSetService.captureSnapshotDiff(
             run.id,
             beforeSnapshot,
             afterSnapshot,
@@ -1135,7 +1163,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           // G6: capture which local files the Run used as evidence (Sources),
           // inferred from its file-touching tool calls.
           const sourceBindings = sourceBindingService.captureFromRun(run.id, events)
-          const changeSets = changeSetService.listChangeSets(run.id)
+          const changeSets = runChangeSetService.listChangeSets(run.id)
           const sed = sedimentService.sediment(run.id, events, artifacts, changeSets, {
             authorizationMode,
           })

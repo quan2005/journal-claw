@@ -68,10 +68,43 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     // the pilot needs is wired; unknown commands reject so callers fall back.
     switch (command) {
       case 'get_workspace_path': {
-        const res = await fetch(`${this.baseUrl}/workspace`)
-        if (!res.ok) throw new Error(`daemon workspace: ${res.status}`)
-        const body = (await res.json()) as { path?: string }
+        const body = (await this.getJson('/config/workspace-path', 'daemon workspace path')) as {
+          path?: string
+        }
         return body.path as unknown as T
+      }
+      case 'set_workspace_path': {
+        await this.putJson('/config/workspace-path', { path: args?.path }, 'daemon workspace path')
+        return undefined as T
+      }
+      case 'get_api_key': {
+        const body = (await this.getJson('/config/api-key', 'daemon api key')) as {
+          key?: string | null
+        }
+        return (body.key ?? null) as unknown as T
+      }
+      case 'set_api_key': {
+        await this.putJson('/config/api-key', { key: args?.key }, 'daemon api key')
+        return undefined as T
+      }
+      case 'get_engine_config': {
+        return (await this.getJson('/config/engine', 'daemon engine config')) as T
+      }
+      case 'set_engine_config': {
+        await this.putJson('/config/engine', { config: args?.config }, 'daemon engine config')
+        return undefined as T
+      }
+      case 'get_app_version': {
+        const body = (await this.getJson('/config/app-version', 'daemon app version')) as {
+          version?: string
+        }
+        return body.version as unknown as T
+      }
+      case 'get_platform_capabilities': {
+        return (await this.getJson(
+          '/config/platform-capabilities',
+          'daemon platform capabilities',
+        )) as T
       }
       case 'get_workspace_theme': {
         const settings = await this.getSettings()
@@ -208,6 +241,29 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
   ): Promise<unknown> {
     const res = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      let detail = ''
+      try {
+        detail = ` ${JSON.stringify(await res.json())}`
+      } catch {
+        // ignore
+      }
+      throw new Error(`${label}: ${res.status}${detail}`)
+    }
+    if (res.status === 204) return undefined
+    return res.json()
+  }
+
+  private async putJson(
+    path: string,
+    body: Record<string, unknown>,
+    label: string,
+  ): Promise<unknown> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })

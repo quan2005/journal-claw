@@ -23,13 +23,16 @@ export const revealInFileManager = (path: string): Promise<void> =>
 
 export const openSettings = (): Promise<void> => invoke('open_settings')
 
-export const getApiKey = (): Promise<string | null> => invoke<string | null>('get_api_key')
+export const getApiKey = (): Promise<string | null> =>
+  selectRuntimeClient().invoke<string | null>('get_api_key')
 
-export const setApiKey = (key: string): Promise<void> => invoke('set_api_key', { key })
+export const setApiKey = (key: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_api_key', { key })
 
-export const getWorkspacePath = () => invoke<string>('get_workspace_path')
+export const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
 
-export const setWorkspacePath = (path: string) => invoke<void>('set_workspace_path', { path })
+export const setWorkspacePath = (path: string) =>
+  selectRuntimeClient().invoke<void>('set_workspace_path', { path })
 
 export const getWorkspaceTheme = (): Promise<'light' | 'dark' | 'system'> =>
   selectRuntimeClient().invoke<'light' | 'dark' | 'system'>('get_workspace_theme')
@@ -140,7 +143,8 @@ export const pickFolder = (): Promise<string | null> => {
 }
 
 // App version
-export const getAppVersion = (): Promise<string> => invoke<string>('get_app_version')
+export const getAppVersion = (): Promise<string> =>
+  selectRuntimeClient().invoke<string>('get_app_version')
 
 export interface PlatformCapabilities {
   os: 'macos' | 'windows' | 'linux' | string
@@ -151,7 +155,7 @@ export interface PlatformCapabilities {
 }
 
 export const getPlatformCapabilities = (): Promise<PlatformCapabilities> =>
-  invoke<PlatformCapabilities>('get_platform_capabilities')
+  selectRuntimeClient().invoke<PlatformCapabilities>('get_platform_capabilities')
 
 // Engine config — provider list (v3)
 export interface ProviderEntry {
@@ -231,10 +235,10 @@ export function newProviderId(): string {
 }
 
 export const getEngineConfig = (): Promise<EngineConfig> =>
-  invoke<EngineConfig>('get_engine_config')
+  selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
 
 export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
-  invoke<void>('set_engine_config', {
+  selectRuntimeClient().invoke<void>('set_engine_config', {
     config: cfg,
   })
 

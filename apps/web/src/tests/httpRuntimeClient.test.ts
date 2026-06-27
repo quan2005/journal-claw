@@ -29,16 +29,72 @@ describe('HttpRuntimeClient', () => {
     vi.resetModules()
   })
 
-  it('invoke maps get_workspace_path to GET /workspace', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ path: '/home/me/journal', available: true }),
-    })
+  it('invoke maps workspace path reads and writes to /config/workspace-path', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ path: '/home/me/journal' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: async () => undefined,
+      })
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
     const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
     const path = await client.invoke<string>('get_workspace_path')
     expect(path).toBe('/home/me/journal')
-    expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:1/workspace')
+    await client.invoke('set_workspace_path', { path: '/home/me/next' })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/config/workspace-path')
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/config/workspace-path', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/home/me/next' }),
+    })
+  })
+
+  it('invoke maps config commands to /config routes', async () => {
+    const engine = { active_provider: 'deepseek', providers: [] }
+    const capabilities = {
+      os: 'macos',
+      apple_stt: false,
+      whisperkit: false,
+      speaker_diarization: false,
+      native_permissions: true,
+    }
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ key: 'sk-test' }) })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => undefined })
+      .mockResolvedValueOnce({ ok: true, json: async () => engine })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => undefined })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: '0.16.0' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => capabilities })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await expect(client.invoke('get_api_key')).resolves.toBe('sk-test')
+    await client.invoke('set_api_key', { key: 'sk-next' })
+    await expect(client.invoke('get_engine_config')).resolves.toEqual(engine)
+    await client.invoke('set_engine_config', { config: engine })
+    await expect(client.invoke('get_app_version')).resolves.toBe('0.16.0')
+    await expect(client.invoke('get_platform_capabilities')).resolves.toEqual(capabilities)
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/config/api-key')
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/config/api-key', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'sk-next' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(3, 'http://127.0.0.1:1/config/engine')
+    expect(mockFetch).toHaveBeenNthCalledWith(4, 'http://127.0.0.1:1/config/engine', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: engine }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(5, 'http://127.0.0.1:1/config/app-version')
+    expect(mockFetch).toHaveBeenNthCalledWith(6, 'http://127.0.0.1:1/config/platform-capabilities')
   })
 
   it('invoke maps workspace theme reads and writes to /settings', async () => {

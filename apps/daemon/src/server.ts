@@ -18,6 +18,7 @@ import { SedimentationService } from './sediment/service.js'
 import { SourceBindingService } from './sources/service.js'
 import { WorkspaceService } from './workspace/service.js'
 import { SettingsService, SettingsValidationError } from './settings/service.js'
+import { ConfigService, ConfigValidationError } from './config/service.js'
 import { FilesService, WorkspaceFsError } from './files/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -32,6 +33,7 @@ export interface DaemonOptions {
    * 默认用 JOURNAL_DAEMON_DATA_DIR 或 .journal-daemon-data（daemon cwd 下）。
    */
   runService?: AgentRunService
+  configService?: ConfigService
 }
 
 export interface DaemonHandle {
@@ -88,6 +90,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const sourceBindingService = new SourceBindingService()
     const workspaceService = new WorkspaceService(process.cwd())
     const settingsService = new SettingsService(process.cwd())
+    const configService = opts.configService ?? new ConfigService()
     const filesService = new FilesService(process.cwd(), changeSetService)
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
@@ -103,6 +106,72 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         path: process.cwd(),
         available: true,
       })
+    })
+
+    app.get('/config/api-key', (_req, res) => {
+      res.json({ key: configService.getApiKey() })
+    })
+
+    app.put('/config/api-key', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.key !== 'string') {
+        res
+          .status(400)
+          .json({ error: { code: 'invalid_api_key', message: 'key must be a string' } })
+        return
+      }
+      configService.setApiKey(body.key)
+      res.status(204).end()
+    })
+
+    app.get('/config/engine', (_req, res) => {
+      res.json(configService.getEngineConfig())
+    })
+
+    app.put('/config/engine', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      const config = body.config ?? body
+      try {
+        configService.setEngineConfig(config as never)
+        res.status(204).end()
+      } catch (err) {
+        if (err instanceof ConfigValidationError) {
+          res.status(400).json({
+            error: {
+              code: 'invalid_engine_config',
+              field: err.field,
+              value: err.value,
+              message: err.message,
+            },
+          })
+          return
+        }
+        throw err
+      }
+    })
+
+    app.get('/config/workspace-path', (_req, res) => {
+      res.json({ path: configService.getWorkspacePath() })
+    })
+
+    app.put('/config/workspace-path', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.path !== 'string') {
+        res
+          .status(400)
+          .json({ error: { code: 'invalid_workspace_path', message: 'path must be a string' } })
+        return
+      }
+      configService.setWorkspacePath(body.path)
+      res.status(204).end()
+    })
+
+    app.get('/config/app-version', (_req, res) => {
+      res.json({ version: configService.getAppVersion() })
+    })
+
+    app.get('/config/platform-capabilities', (_req, res) => {
+      res.json(configService.getPlatformCapabilities())
     })
 
     // GET /workspace/meta — workspace context boundary metadata (G15)

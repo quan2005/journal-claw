@@ -1,0 +1,132 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { ConfigService, secretFileMode, type EngineConfig } from './service.js'
+
+describe('ConfigService', () => {
+  let dir: string
+
+  beforeEach(() => {
+    dir = join(tmpdir(), `journal-config-${Math.random().toString(36).slice(2)}`)
+    mkdirSync(dir, { recursive: true })
+  })
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('encrypts API key at rest and decrypts it on read', () => {
+    const service = new ConfigService({ configDir: dir })
+
+    service.setApiKey('sk-secret-value')
+
+    expect(service.getApiKey()).toBe('sk-secret-value')
+    const raw = readFileSync(join(dir, 'config.json'), 'utf8')
+    expect(raw).not.toContain('sk-secret-value')
+    expect(JSON.parse(raw)).toMatchObject({
+      api_key: {
+        alg: 'aes-256-gcm',
+        iv: expect.any(String),
+        tag: expect.any(String),
+        ciphertext: expect.any(String),
+      },
+    })
+    expect(secretFileMode(join(dir, 'secret.key'))).toBe(0o600)
+  })
+
+  it('returns null when API key is missing or cannot be decrypted', () => {
+    const service = new ConfigService({ configDir: dir })
+    expect(service.getApiKey()).toBeNull()
+
+    service.setApiKey('sk-secret-value')
+    writeFileSync(join(dir, 'secret.key'), Buffer.alloc(32, 7).toString('base64'), {
+      encoding: 'utf8',
+      mode: 0o600,
+    })
+
+    expect(service.getApiKey()).toBeNull()
+  })
+
+  it('reads and writes engine config', () => {
+    const service = new ConfigService({ configDir: dir })
+    const config: EngineConfig = {
+      active_provider: 'deepseek',
+      providers: [
+        {
+          protocol: 'openai',
+          id: 'deepseek',
+          label: 'DeepSeek',
+          api_key: '',
+          base_url: 'https://api.deepseek.com/v1',
+          model: 'deepseek-chat',
+        },
+      ],
+    }
+
+    expect(service.getEngineConfig()).toEqual({ active_provider: 'deepseek', providers: [] })
+    service.setEngineConfig(config)
+    expect(service.getEngineConfig()).toEqual(config)
+  })
+
+  it('rejects invalid engine config when active provider is absent', () => {
+    const service = new ConfigService({ configDir: dir })
+
+    expect(() =>
+      service.setEngineConfig({
+        active_provider: 'missing',
+        providers: [
+          {
+            protocol: 'openai',
+            id: 'deepseek',
+            label: 'DeepSeek',
+            api_key: '',
+            base_url: '',
+            model: '',
+          },
+        ],
+      }),
+    ).toThrow(/invalid active_provider/)
+  })
+
+  it('migrates workspace_path from legacy Rust config without modifying it', () => {
+    const legacyPath = join(dir, 'legacy', 'config.json')
+    mkdirSync(join(dir, 'legacy'), { recursive: true })
+    writeFileSync(legacyPath, JSON.stringify({ workspace_path: '/tmp/legacy-journal' }, null, 2))
+    const before = readFileSync(legacyPath, 'utf8')
+
+    const service = new ConfigService({
+      configDir: join(dir, 'daemon'),
+      legacyConfigPath: legacyPath,
+    })
+
+    expect(service.getWorkspacePath()).toBe('/tmp/legacy-journal')
+    expect(readFileSync(legacyPath, 'utf8')).toBe(before)
+    expect(JSON.parse(readFileSync(join(dir, 'daemon', 'config.json'), 'utf8'))).toMatchObject({
+      workspace_path: '/tmp/legacy-journal',
+    })
+  })
+
+  it('persists workspace_path in daemon user config', () => {
+    const service = new ConfigService({ configDir: dir })
+    const workspace = join(dir, 'workspace')
+
+    service.setWorkspacePath(workspace)
+
+    expect(existsSync(workspace)).toBe(true)
+    expect(service.getWorkspacePath()).toBe(workspace)
+  })
+
+  it('reads app version from package.json and disables removed audio capabilities', () => {
+    const pkg = join(dir, 'package.json')
+    writeFileSync(pkg, JSON.stringify({ version: '9.8.7' }))
+    const service = new ConfigService({ configDir: dir, packageJsonPath: pkg })
+
+    expect(service.getAppVersion()).toBe('9.8.7')
+    expect(service.getPlatformCapabilities()).toMatchObject({
+      apple_stt: false,
+      whisperkit: false,
+      speaker_diarization: false,
+    })
+  })
+})

@@ -131,26 +131,109 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         return undefined as T
       }
       case 'set_skill_enabled': {
-        const skillId = typeof args?.skillId === 'string' ? args.skillId : ''
-        const enabled = args?.enabled === true
-        const settings = await this.getSettings()
-        const current = settings.disabled_skills ?? []
-        const next = enabled
-          ? current.filter((id) => id !== skillId)
-          : Array.from(new Set([...current, skillId]))
-        await this.updateSettings({ disabled_skills: next.length > 0 ? next : null })
+        await this.putJson(
+          '/skills/enabled',
+          { skillId: args?.skillId, enabled: args?.enabled },
+          'daemon skill enabled',
+        )
         return undefined as T
       }
       case 'set_global_skill_enabled': {
-        const skillId = typeof args?.skillId === 'string' ? args.skillId : ''
-        const enabled = args?.enabled === true
-        const settings = await this.getSettings()
-        const current = settings.enabled_global_skills ?? []
-        const next = enabled
-          ? Array.from(new Set([...current, skillId]))
-          : current.filter((id) => id !== skillId)
-        await this.updateSettings({ enabled_global_skills: next.length > 0 ? next : null })
+        await this.putJson(
+          '/skills/global-enabled',
+          { skillId: args?.skillId, enabled: args?.enabled },
+          'daemon global skill enabled',
+        )
         return undefined as T
+      }
+      case 'list_skills': {
+        return (await this.getJson('/skills', 'daemon skills')) as T
+      }
+      case 'get_skill_content': {
+        return (await this.getText(
+          `/skills/content?skillId=${encodeURIComponent(typeof args?.skillId === 'string' ? args.skillId : '')}`,
+          'daemon skill content',
+        )) as T
+      }
+      case 'open_skills_dir': {
+        await this.postJson('/skills/open-dir', { scope: args?.scope }, 'daemon open skills dir')
+        return undefined as T
+      }
+      case 'open_skill_dir': {
+        await this.postJson(
+          '/skills/open-skill-dir',
+          { scope: args?.scope, dirName: args?.dirName },
+          'daemon open skill dir',
+        )
+        return undefined as T
+      }
+      case 'compile_mdx': {
+        return (await this.postText(
+          '/mdx/compile',
+          { source: args?.source, filepath: args?.filepath },
+          'daemon compile mdx',
+        )) as T
+      }
+      case 'get_onboarding_status': {
+        return (await this.getJson('/onboarding/status', 'daemon onboarding status')) as T
+      }
+      case 'complete_onboarding': {
+        await this.postJson('/onboarding/complete', {}, 'daemon complete onboarding')
+        return undefined as T
+      }
+      case 'set_onboarding_step': {
+        await this.putJson('/onboarding/step', { step: args?.step }, 'daemon onboarding step')
+        return undefined as T
+      }
+      case 'reset_onboarding': {
+        await this.postJson('/onboarding/reset', {}, 'daemon reset onboarding')
+        return undefined as T
+      }
+      case 'check_app_permissions': {
+        return (await this.getJson('/permissions', 'daemon permissions')) as T
+      }
+      case 'request_permission': {
+        const body = (await this.postJson(
+          '/permissions/request',
+          { perm: args?.perm },
+          'daemon request permission',
+        )) as { status?: string }
+        return body.status as T
+      }
+      case 'open_privacy_settings': {
+        await this.postJson(
+          '/permissions/open-privacy-settings',
+          { pane: args?.pane },
+          'daemon open privacy settings',
+        )
+        return undefined as T
+      }
+      case 'get_auto_lint_status': {
+        return (await this.getJson('/auto-lint/status', 'daemon auto lint status')) as T
+      }
+      case 'trigger_lint_now': {
+        await this.postJson('/auto-lint/trigger', {}, 'daemon trigger lint')
+        return undefined as T
+      }
+      case 'get_events_since': {
+        return (await this.getJson(
+          `/event-log/events?sinceSeq=${encodeURIComponent(String(args?.sinceSeq ?? 0))}`,
+          'daemon event log',
+        )) as T
+      }
+      case 'scan_legacy_directive_files': {
+        return (await this.getJson(
+          '/directive-migration/legacy-files',
+          'daemon legacy directives',
+        )) as T
+      }
+      case 'apply_directive_migration': {
+        const request = args?.request as Record<string, unknown> | undefined
+        return (await this.postJson(
+          '/directive-migration/apply',
+          request ?? {},
+          'daemon apply directive migration',
+        )) as T
       }
       case 'list_workspace_dir': {
         const relativePath = typeof args?.relativePath === 'string' ? args.relativePath : ''
@@ -471,6 +554,28 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     }
     if (res.status === 204) return undefined
     return res.json()
+  }
+
+  private async postText(
+    path: string,
+    body: Record<string, unknown>,
+    label: string,
+  ): Promise<string> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      let detail = ''
+      try {
+        detail = ` ${JSON.stringify(await res.json())}`
+      } catch {
+        // ignore
+      }
+      throw new Error(`${label}: ${res.status}${detail}`)
+    }
+    return res.text()
   }
 
   private async putJson(

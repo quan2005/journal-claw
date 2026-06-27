@@ -37,7 +37,14 @@ interface StoredConfig {
   engine_config?: EngineConfig
   workspace_path?: string
   sample_entry_created?: boolean
+  onboarding_completed?: boolean
+  onboarding_last_step?: number | null
   [key: string]: unknown
+}
+
+export interface OnboardingStatus {
+  completed: boolean
+  last_step: number | null
 }
 
 export interface ConfigServiceOptions {
@@ -133,6 +140,23 @@ export class ConfigService {
 
   setSampleEntryCreated(created: boolean): void {
     this.persist({ ...this.load(), sample_entry_created: created })
+  }
+
+  getOnboardingStatus(): OnboardingStatus {
+    const current = this.load()
+    return {
+      completed: current.onboarding_completed === true,
+      last_step:
+        typeof current.onboarding_last_step === 'number' ? current.onboarding_last_step : null,
+    }
+  }
+
+  setOnboardingStatus(status: OnboardingStatus): void {
+    this.persist({
+      ...this.load(),
+      onboarding_completed: status.completed,
+      onboarding_last_step: status.last_step,
+    })
   }
 
   getAppVersion(): string {

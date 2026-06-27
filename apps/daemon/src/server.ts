@@ -25,6 +25,13 @@ import { TodosService } from './todos/service.js'
 import { TopicsService } from './topics/service.js'
 import { IdentityService } from './identity/service.js'
 import { MaterialsService } from './materials/service.js'
+import { SkillsService } from './skills/service.js'
+import { OnboardingService } from './onboarding/service.js'
+import { PermissionsService } from './permissions/service.js'
+import { AutoLintService } from './auto_lint/service.js'
+import { EventLogService } from './event_log/service.js'
+import { compileMdx } from './mdx/service.js'
+import { DirectiveMigrationService } from './directive_migration/service.js'
 import { LocalCrudError } from './local/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -95,10 +102,10 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const sedimentService = new SedimentationService(process.cwd())
     const sourceBindingService = new SourceBindingService()
     const workspaceService = new WorkspaceService(process.cwd())
-    const settingsService = new SettingsService(process.cwd())
     const configService = opts.configService ?? new ConfigService()
     const filesService = new FilesService(process.cwd(), changeSetService)
     const workspaceRoot = (): string => configService.getWorkspacePath()
+    const settingsService = (): SettingsService => new SettingsService(workspaceRoot())
     const workspaceChangeSets = (): ChangeSetService => new ChangeSetService(workspaceRoot())
     const journalService = (): JournalService =>
       new JournalService(workspaceRoot(), workspaceChangeSets(), () => new Date(), {
@@ -113,6 +120,14 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       new IdentityService(workspaceRoot(), workspaceChangeSets())
     const materialsService = (): MaterialsService =>
       new MaterialsService(workspaceRoot(), workspaceChangeSets())
+    const skillsService = (): SkillsService => new SkillsService(workspaceRoot(), settingsService())
+    const onboardingService = new OnboardingService(configService)
+    const permissionsService = new PermissionsService()
+    const autoLintService = (): AutoLintService =>
+      new AutoLintService(workspaceRoot(), settingsService())
+    const eventLogService = new EventLogService()
+    const directiveMigrationService = (): DirectiveMigrationService =>
+      new DirectiveMigrationService(workspaceRoot())
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
     // running executeRun child (SIGTERM the spawned CLI), not just flip status.
@@ -215,7 +230,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
     // GET /settings — Rust-compatible workspace settings from <workspace>/.setting.json
     app.get('/settings', (_req, res) => {
-      res.json(settingsService.load())
+      res.json(settingsService().load())
     })
 
     // PUT /settings — partial update; validates known fields and preserves unknown fields.
@@ -228,7 +243,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         return
       }
       try {
-        res.json(settingsService.update(body as Record<string, unknown>))
+        res.json(settingsService().update(body as Record<string, unknown>))
       } catch (err) {
         if (err instanceof SettingsValidationError) {
           res.status(400).json({
@@ -242,6 +257,168 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           return
         }
         throw err
+      }
+    })
+
+    // ── M3: skills / MDX / onboarding / permissions / misc ───────────────
+    app.get('/skills', (_req, res) => {
+      try {
+        res.json(skillsService().listSkills())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/skills/content', (req, res) => {
+      try {
+        const skillId = typeof req.query.skillId === 'string' ? req.query.skillId : ''
+        res.type('text/plain').send(skillsService().getSkillContent(skillId))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/skills/open-dir', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        skillsService().openSkillsDir(String(body.scope ?? 'project'))
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/skills/open-skill-dir', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        skillsService().openSkillDir(String(body.scope ?? 'project'), String(body.dirName ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/skills/enabled', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        skillsService().setSkillEnabled(String(body.skillId ?? ''), body.enabled === true)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/skills/global-enabled', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        skillsService().setGlobalSkillEnabled(String(body.skillId ?? ''), body.enabled === true)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/mdx/compile', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.source !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_mdx_request' } })
+          return
+        }
+        res
+          .type('text/plain')
+          .send(compileMdx(body.source, typeof body.filepath === 'string' ? body.filepath : null))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/onboarding/status', (_req, res) => {
+      res.json(onboardingService.getStatus())
+    })
+
+    app.post('/onboarding/complete', (_req, res) => {
+      onboardingService.complete()
+      res.status(204).end()
+    })
+
+    app.put('/onboarding/step', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      onboardingService.setStep(Number(body.step))
+      res.status(204).end()
+    })
+
+    app.post('/onboarding/reset', (_req, res) => {
+      onboardingService.reset()
+      res.status(204).end()
+    })
+
+    app.get('/permissions', (_req, res) => {
+      res.json(permissionsService.checkAppPermissions())
+    })
+
+    app.post('/permissions/request', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        res.json({ status: permissionsService.requestPermission(String(body.perm ?? '')) })
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/permissions/open-privacy-settings', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        permissionsService.openPrivacySettings(String(body.pane ?? ''))
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/auto-lint/status', (_req, res) => {
+      try {
+        res.json(autoLintService().getStatus())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/auto-lint/trigger', (_req, res) => {
+      try {
+        autoLintService().triggerLintNow()
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/event-log/events', (req, res) => {
+      const sinceSeq = Number.parseInt(String(req.query.sinceSeq ?? '0'), 10)
+      res.json(eventLogService.eventsSince(Number.isFinite(sinceSeq) ? sinceSeq : 0))
+    })
+
+    app.get('/directive-migration/legacy-files', (_req, res) => {
+      try {
+        res.json(directiveMigrationService().scanLegacyDirectiveFiles())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/directive-migration/apply', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        res.json(
+          directiveMigrationService().applyDirectiveMigration({
+            source_path: String(body.source_path ?? ''),
+            destination_path: String(body.destination_path ?? ''),
+            content: String(body.content ?? ''),
+          }),
+        )
+        eventLogService.record('journal-updated', null)
+      } catch (err) {
+        handleFsError(res, err)
       }
     })
 

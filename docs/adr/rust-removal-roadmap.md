@@ -147,7 +147,7 @@
 | M0 下线音频 | ✅ 264581d |
 | M1 地基 | ✅ M1a f04ca1d · M1b+c 882b87f · M1a-2 1ec5152 |
 | M2 CRUD | ✅ |
-| M3 skills/杂项 | 🔲 |
+| M3 skills/杂项 | ✅ |
 | M4 AI/queue | 🔲 |
 | M5 conversation | 🔲 |
 | M6 automation | 🔲 |

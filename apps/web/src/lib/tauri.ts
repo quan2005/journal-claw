@@ -66,13 +66,15 @@ export const saveJournalEntryContent = (path: string, content: string): Promise<
   selectRuntimeClient().invoke<void>('save_journal_entry_content', { path, content })
 
 export const compileMdx = (source: string, filepath?: string) =>
-  invoke<string>('compile_mdx', { source, filepath: filepath ?? null })
+  selectRuntimeClient().invoke<string>('compile_mdx', { source, filepath: filepath ?? null })
 
 export const scanLegacyDirectiveFiles = () =>
-  invoke<LegacyDirectiveFile[]>('scan_legacy_directive_files')
+  selectRuntimeClient().invoke<LegacyDirectiveFile[]>('scan_legacy_directive_files')
 
 export const applyDirectiveMigration = (request: ApplyDirectiveMigrationRequest) =>
-  invoke<ApplyDirectiveMigrationResult>('apply_directive_migration', { request })
+  selectRuntimeClient().invoke<ApplyDirectiveMigrationResult>('apply_directive_migration', {
+    request,
+  })
 
 // Materials
 export const importFile = (srcPath: string) =>
@@ -264,29 +266,31 @@ export interface OnboardingStatus {
 }
 
 export const getOnboardingStatus = (): Promise<OnboardingStatus> =>
-  invoke<OnboardingStatus>('get_onboarding_status')
+  selectRuntimeClient().invoke<OnboardingStatus>('get_onboarding_status')
 
-export const completeOnboarding = (): Promise<void> => invoke<void>('complete_onboarding')
+export const completeOnboarding = (): Promise<void> =>
+  selectRuntimeClient().invoke<void>('complete_onboarding')
 
 export const setOnboardingStep = (step: number): Promise<void> =>
-  invoke<void>('set_onboarding_step', { step })
+  selectRuntimeClient().invoke<void>('set_onboarding_step', { step })
 
-export const resetOnboarding = (): Promise<void> => invoke<void>('reset_onboarding')
+export const resetOnboarding = (): Promise<void> =>
+  selectRuntimeClient().invoke<void>('reset_onboarding')
 
 // Permissions
 export type PermStatus = 'granted' | 'denied' | 'not_determined' | 'restricted' | 'unknown'
 
 export const requestPermission = (perm: 'speech_recognition'): Promise<PermStatus> =>
-  invoke<PermStatus>('request_permission', { perm })
+  selectRuntimeClient().invoke<PermStatus>('request_permission', { perm })
 export interface AppPermissions {
   speech_recognition: PermStatus
 }
 
 export const checkAppPermissions = (): Promise<AppPermissions> =>
-  invoke<AppPermissions>('check_app_permissions')
+  selectRuntimeClient().invoke<AppPermissions>('check_app_permissions')
 
 export const openPrivacySettings = (pane: 'speech_recognition'): Promise<void> =>
-  invoke<void>('open_privacy_settings', { pane })
+  selectRuntimeClient().invoke<void>('open_privacy_settings', { pane })
 
 // Identity library (身份档案)
 export const listIdentities = (): Promise<IdentityEntry[]> =>
@@ -402,9 +406,10 @@ export const setAutoLintConfig = (config: AutoLintConfig): Promise<void> =>
   selectRuntimeClient().invoke<void>('set_auto_lint_config', { config })
 
 export const getAutoLintStatus = (): Promise<AutoLintStatus> =>
-  invoke<AutoLintStatus>('get_auto_lint_status')
+  selectRuntimeClient().invoke<AutoLintStatus>('get_auto_lint_status')
 
-export const triggerLintNow = (): Promise<void> => invoke<void>('trigger_lint_now')
+export const triggerLintNow = (): Promise<void> =>
+  selectRuntimeClient().invoke<void>('trigger_lint_now')
 
 // Automation workbench
 export const listAutomationTemplates = (): Promise<AutomationTemplate[]> =>
@@ -490,15 +495,16 @@ export interface SkillInfo {
   shadowed_by?: string | null
 }
 
-export const listSkills = (): Promise<SkillInfo[]> => invoke<SkillInfo[]>('list_skills')
+export const listSkills = (): Promise<SkillInfo[]> =>
+  selectRuntimeClient().invoke<SkillInfo[]>('list_skills')
 
 export const openSkillsDir = (scope: 'builtin' | 'project' | 'global'): Promise<void> =>
-  invoke<void>('open_skills_dir', { scope })
+  selectRuntimeClient().invoke<void>('open_skills_dir', { scope })
 
 export const openSkillDir = (
   scope: 'builtin' | 'project' | 'global',
   dirName: string,
-): Promise<void> => invoke<void>('open_skill_dir', { scope, dirName })
+): Promise<void> => selectRuntimeClient().invoke<void>('open_skill_dir', { scope, dirName })
 
 export const setSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
   selectRuntimeClient().invoke<void>('set_skill_enabled', { skillId, enabled })
@@ -507,7 +513,7 @@ export const setGlobalSkillEnabled = (skillId: string, enabled: boolean): Promis
   selectRuntimeClient().invoke<void>('set_global_skill_enabled', { skillId, enabled })
 
 export const getSkillContent = (skillId: string): Promise<string> =>
-  invoke<string>('get_skill_content', { skillId })
+  selectRuntimeClient().invoke<string>('get_skill_content', { skillId })
 
 // Conversation
 export const conversationCreate = (context?: string, contextFiles?: string[]): Promise<string> =>
@@ -708,4 +714,4 @@ export const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
 
 // ── Event Log (catch-up mechanism) ──────────────────────────
 export const getEventsSince = (sinceSeq: number): Promise<DomainEvent[]> =>
-  invoke<DomainEvent[]>('get_events_since', { sinceSeq })
+  selectRuntimeClient().invoke<DomainEvent[]>('get_events_since', { sinceSeq })

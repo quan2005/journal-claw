@@ -3,7 +3,6 @@ import React from 'react'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { MarkdownLi } from '../lib/markdownLi'
 import { resolveRelativePath, extractCodeText } from './markdownUtils'
-import { BlockMath, InlineMath } from '../components/mdx/math'
 
 function CodeBlock({
   className,
@@ -103,14 +102,6 @@ function CodeBlock({
 export interface MarkdownComponentsOptions {
   entryPath: string
   imgResolver?: (src: string, baseDir: string) => string
-}
-
-function isMathClassName(className?: string): boolean {
-  return Boolean(className && /\blanguage-math\b/.test(className))
-}
-
-function isDisplayMathClassName(className?: string): boolean {
-  return Boolean(className && /\bmath-display\b/.test(className))
 }
 
 export function createMarkdownComponents(opts: string | MarkdownComponentsOptions) {
@@ -248,15 +239,6 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
       <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>
     ),
     code: ({ className, children }: { className?: string; children?: React.ReactNode }) => {
-      if (isMathClassName(className)) {
-        const math = extractCodeText(children)
-        return isDisplayMathClassName(className) ? (
-          <BlockMath math={math} />
-        ) : (
-          <InlineMath math={math} />
-        )
-      }
-
       return (
         <code
           className={className}
@@ -272,14 +254,6 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
         children?: React.ReactNode
       }>
       const rawText = extractCodeText(codeEl?.props?.children)
-
-      if (isMathClassName(codeEl?.props?.className)) {
-        return isDisplayMathClassName(codeEl?.props?.className) ? (
-          <BlockMath math={rawText} />
-        ) : (
-          <InlineMath math={rawText} />
-        )
-      }
 
       return (
         <CodeBlock className={codeEl?.props?.className} rawText={rawText}>

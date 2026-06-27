@@ -44,4 +44,3 @@ This file indexes the project's documentation for Agent consumption. All paths a
 
 - [Superpowers Plans](docs/superpowers/plans/): Implementation plans for feature development (historical, not authoritative).
 - [Superpowers Specs](docs/superpowers/specs/): Design specs for features (historical, not authoritative).
-- [MDX Examples](docs/superpowers/examples/): MDX component usage examples and showcases.

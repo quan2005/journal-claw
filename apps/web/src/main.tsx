@@ -1,6 +1,5 @@
 import './styles/globals.css'
 import './styles/animations.css'
-import './styles/mdx-errors.css'
 import './styles/skills-workbench.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'

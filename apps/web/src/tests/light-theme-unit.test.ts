@@ -4,12 +4,10 @@ import * as path from 'node:path'
 
 const GLOBALS_CSS_PATH = path.resolve(__dirname, '../styles/globals.css')
 const MARKDOWN_CSS_PATH = path.resolve(__dirname, '../styles/markdown.css')
-const MDX_CSS_PATH = path.resolve(__dirname, '../styles/mdx.css')
 const DETAIL_VIEW_PATH = path.resolve(__dirname, '../components/DetailView.tsx')
 const CHAT_PANEL_PATH = path.resolve(__dirname, '../components/ChatPanel.tsx')
 const css = fs.readFileSync(GLOBALS_CSS_PATH, 'utf-8')
 const markdownCss = fs.readFileSync(MARKDOWN_CSS_PATH, 'utf-8')
-const mdxCss = fs.readFileSync(MDX_CSS_PATH, 'utf-8')
 const detailViewSource = fs.readFileSync(DETAIL_VIEW_PATH, 'utf-8')
 const chatPanelSource = fs.readFileSync(CHAT_PANEL_PATH, 'utf-8')
 
@@ -238,12 +236,9 @@ describe('Journal content frame contract', () => {
     expect(rootVars.get('--detail-content-max')).toBe('var(--journal-readable-max)')
   })
 
-  it('aligns markdown, mdx, and detail read mode to the readable frame', () => {
+  it('aligns markdown and detail read mode to the readable frame', () => {
     const mdContentRule = markdownCss.match(/\.md-content\s*\{[^}]*\}/)?.[0] ?? ''
     const mdProseRule = markdownCss.match(/\.md-content > :where\([^)]*\)\s*\{[^}]*\}/)?.[0] ?? ''
-    const mdxContentRule = mdxCss.match(/\.mdx-content\s*\{[^}]*\}/)?.[0] ?? ''
-    const mdxWideRule =
-      mdxCss.match(/\.mdx-content\s+:where\(\s*\.mdx-chart[\s\S]*?\)\s*\{[^}]*\}/)?.[0] ?? ''
     const mdBodyRule = css.match(/\.md-body\s*\{[^}]*\}/)?.[0] ?? ''
 
     expect(mdContentRule).toContain('width: 100%')
@@ -252,9 +247,6 @@ describe('Journal content frame contract', () => {
     expect(mdContentRule).toContain('hanging-punctuation: none')
     expect(mdProseRule).toContain('max-width: 100%')
     expect(mdProseRule).toContain('text-align: left')
-    expect(mdxContentRule).toContain('max-width: var(--journal-readable-max)')
-    expect(mdxContentRule).toContain('hanging-punctuation: none')
-    expect(mdxWideRule).toContain('max-width: 100%')
     expect(mdBodyRule).toContain('max-width: 100%')
     expect(detailViewSource).toContain(
       "isHtmlContent || isStandardDetailSourceMode ? 0 : 'var(--journal-detail-padding)'",
@@ -312,22 +304,6 @@ describe('Journal content frame contract', () => {
     expect(statItemRule).toContain('justify-content: center')
     expect(statItemRule).toContain('padding: 0 20px')
     expect(statValueRule).toContain('font-size: var(--text-lg)')
-  })
-})
-
-describe('MDX table rendering contract', () => {
-  it('keeps the header as the first visible table band', () => {
-    const tableWrapRule = mdxCss.match(/\.mdx-table-wrap\s*\{[^}]*\}/)?.[0] ?? ''
-    const tableRule = mdxCss.match(/\.mdx-table\s*\{[^}]*\}/)?.[0] ?? ''
-
-    expect(tableWrapRule).not.toContain('border:')
-    expect(mdxCss).not.toContain('.mdx-table-wrap::after')
-    expect(tableRule).toContain('border-spacing: 0')
-    expect(mdxCss).toContain('.mdx-table thead th')
-    expect(mdxCss).toContain('border-top: 1px solid var(--mdx-border)')
-    expect(mdxCss).toContain('.mdx-table--plain tbody tr:first-child td')
-    expect(mdxCss).toContain('.mdx-table th + th')
-    expect(mdxCss).not.toContain('.mdx-table tbody tr:hover td')
   })
 })
 

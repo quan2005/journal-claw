@@ -36,7 +36,7 @@
 │  App.tsx (根布局)                                               │
 │  ├─ TitleBar        自定义标题栏                                │
 │  ├─ TreeSidebar     左侧树导航（日志/画像/主题）                │
-│  ├─ DetailView      中心内容区（MDX 渲染）                      │
+│  ├─ DetailView      中心内容区（Markdown 渲染）                 │
 │  ├─ RightPanel      右侧面板（AI 聊天）                         │
 │  └─ SettingsPanel   设置覆盖层（React.lazy 懒加载）             │
 ├──────────────────────────────────────────────────────────────────┤
@@ -62,7 +62,7 @@
 | **文件系统即数据库** | 所有用户数据存为 Markdown + YAML frontmatter，无 SQLite/IndexedDB | 无全文索引，列表性能依赖文件系统扫描 |
 | **事件驱动同步** | Rust 后端 `emit()` 事件，前端 hooks 监听后 `refresh()`，不轮询 | 事件丢失时无补偿机制 |
 | **IPC 单一入口** | 所有 `invoke()` 集中在 `tauri.ts`，铁律执行 | 新命令须同步两处（Rust 注册 + TS 封装） |
-| **自定义 MDX 引擎** | 轻量解析器 0.5–5ms，替代 `@mdx-js/mdx`（500ms–2s） | 需自行维护解析器，不支持完整 MDX 规范 |
+| **纯 Markdown 渲染** | ReactMarkdown + Marked 双路径（大文件虚拟化），无 MDX/JSX 组件 | 不支持 MDX 富组件块，旧 .mdx 笔记降级为纯文本 |
 | **无路由器** | 状态机导航：`view` + `treeSelection`，无 React Router | 无浏览器历史/URL 映射 |
 | **纯 Context 状态** | 无 Redux/Zustand，4 个 Context + 13 个 Hooks | 复杂状态交互需手动协调 |
 | **内联样式** | 无 CSS-in-JS / Tailwind，CSS 变量做主题 | 无类名复用，样式分散在组件中 |
@@ -91,7 +91,7 @@ main.tsx
               │ 分割线 (7px，可拖拽) │
               ┌─ 中栏 ──────────────────────────────────┐
               │  DetailView                               │
-              │    journal → MDX/Markdown 渲染            │
+              │    journal → Markdown 渲染                │
               │    identity → 画像内容                    │
               │    topic-file → 代码/文本预览             │
               │    ideas → TodoSidebar                    │
@@ -134,35 +134,17 @@ main.tsx
 | `ToastContext` | showToast(level, message), 自动 4s 消失 |
 | `TodoContext` | useTodos() 的透传包装，避免 prop drilling |
 
-### MDX 渲染管线
+### Markdown 渲染管线
 
 ```
 content string
   │
   └─ stripFrontmatter()
       │
-      ├─ .mdx 文件 → MdxRenderer
-      │     parseMdx() → MdxNode[] (0.5–5ms)
-      │       markdown 块 → ReactMarkdown + markdownComponents
-      │       component 块 → createElement(40+ 自定义组件)
-      │
-      ├─ >100KB → MarkdownRenderer (Marked + highlight.js + DOMPurify)
+      ├─ >100KB → MarkdownRenderer (Marked + highlight.js + DOMPurify, 虚拟化分批)
       │
       └─ 默认 → ReactMarkdown + markdownComponents
 ```
-
-MDX 组件分 8 类（`src/components/mdx/`）：
-
-| 类别 | 组件 |
-|---|---|
-| Layout | Split, Columns, Column, Mockup, Placeholder, DeviceShowcase |
-| Display | ProsCons, Pros, Cons, Stat, StatGroup, Table, Timeline, TagList, Progress, Avatar, AvatarGroup |
-| Callout | Callout, Quote, RelatedEntry, RelatedIdentity |
-| Cards | Cards, Card, Options, Option, Kanban, Checklist, Counter, RatingBar, Stack |
-| Media | AudioCard, VideoCard, ImageViewer, FileCard |
-| Charts | BarChart, LineChart, PieChart, RadarChart (懒加载) |
-| Canvas | CanvasDiagram, Mermaid (懒加载) |
-| Typography | Section, Subtitle, Label, Divider, Grid, Col, Flow |
 
 ### 设置面板
 

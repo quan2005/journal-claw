@@ -1,5 +1,5 @@
 ---
-status: approved
+status: verified
 phase: MDX-retire
 created: 2026-06-27
 ---
@@ -28,3 +28,17 @@ created: 2026-06-27
 - Given 一篇含 MDX 块的旧笔记，Then 降级渲染（不崩、frontmatter+正文可读、MDX 块退化）。
 - Given rg "mdx|Mdx|compile_mdx|journal-blocks"，Then apps/web/src 与 apps/daemon/src 仅余历史注释或为零。
 - web tsc clean；web vitest 不新增失败（基线对比）；daemon vitest 不回退。
+
+## 验收结论（Leader 独立验收，2026-06-27）：PASS（核心目标达成）+ 一项遗留决策
+
+### 已达成
+- 前端 MDX 渲染链彻底移除：删 75 文件（MdxRenderer + components/mdx/* 44 + journal-blocks/* + lib/mdx/* + mdxRuntime + mdx.css/mdx-errors.css + 19 MDX 测试）
+- 调用点改纯 Markdown：markdown.tsx 去 .mdx 分支 → ReactMarkdown/MarkdownRenderer；DetailView 等 10 处
+- AGENTS.md 约束7 同步（渲染链改 renderMarkdown/MarkdownRenderer）
+- web tsc clean；vitest 失败均为基线子集（9 failed，无新增）；测试数 548→340 因删 MDX 测试（预期）
+
+### 遗留决策（directiveMigration，待用户定）
+compile_mdx 残留被 directiveMigration 依赖（apps/web/src/lib/directiveMigration.ts + SectionGeneral 设置入口 + daemon directive_migration/）。
+directiveMigration 把旧 directive 格式 → MDX。既然彻底去 MDX，此工具的"→MDX"目标失效。
+选项：① directiveMigration 改输出纯 Markdown（去 compile_mdx 依赖，保留迁移能力）；② 整体下线 directiveMigration。
+用户已在自行写 .md 迁移脚本，倾向 ②。待确认。

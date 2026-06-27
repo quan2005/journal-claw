@@ -4,11 +4,9 @@ import { convertFileSrc } from '@tauri-apps/api/core'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
-import { resolveRelativePath, stripFrontmatter } from '../lib/markdownUtils'
-import { MdxRenderer } from './MdxRenderer'
+import { resolveRelativePath } from '../lib/markdownUtils'
 import hljs from 'highlight.js/lib/core'
 import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
-import { getMermaidErrorMessage, renderMermaidToElement } from './mdx/mermaidRuntime'
 import '../styles/markdown.css'
 
 // AC-17: lazy-load highlight.js language definitions on first use instead of
@@ -83,34 +81,6 @@ const marked = new Marked({ gfm: true, breaks: true })
 const FILE_PATH_RE =
   /(?<![/\w])(\d{4}\/(?:raw\/)?[^\s<>]+\.(?:txt|md|m4a|pdf|docx|wav|mp3|json|xlsx|csv|png|jpg|jpeg|webp))(?=[\s,;:)}\]。，；：）】]|$)/g
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-function encodeMermaidSource(value: string): string {
-  return encodeURIComponent(value)
-}
-
-function decodeMermaidSource(value: string): string {
-  try {
-    return decodeURIComponent(value)
-  } catch {
-    return value
-  }
-}
-
-function isMermaidLanguage(lang?: string): boolean {
-  return Boolean(lang && /^(mermaid|mmd)$/i.test(lang.trim().split(/\s+/)[0]))
-}
-
-function renderMermaidPlaceholder(source: string): string {
-  return `<div class="mdx-diagram-frame"><div class="mdx-diagram-body"><div class="mdx-mermaid-svg" data-mermaid-chart="${escapeHtml(encodeMermaidSource(source))}"></div><div class="mdx-mermaid-error"></div></div></div>`
-}
-
 marked.use({
   renderer: {
     text({ text }: { text: string }) {
@@ -125,10 +95,6 @@ marked.use({
       return `<code>${text}</code>`
     },
     code({ text, lang }: { text: string; lang?: string }) {
-      if (isMermaidLanguage(lang)) {
-        return renderMermaidPlaceholder(text)
-      }
-
       const language = lang && hljs.getLanguage(lang) ? lang : null
       const highlighted = language
         ? hljs.highlight(text, { language }).value
@@ -164,75 +130,8 @@ function postProcessHtml(raw: string, entryPath?: string): string {
     )
   }
   return DOMPurify.sanitize(html, {
-    ADD_ATTR: ['data-filepath', 'data-md-link', 'data-mermaid-chart', 'data-mermaid-rendered'],
+    ADD_ATTR: ['data-filepath', 'data-md-link'],
   })
-}
-
-function setMarkdownMermaidError(errorEl: HTMLElement, error: unknown, source: string) {
-  const wrapper = document.createElement('div')
-  wrapper.className = 'mdx-diagram-error'
-
-  const title = document.createElement('div')
-  title.className = 'mdx-diagram-error-title'
-  title.textContent = 'Diagram render failed'
-  wrapper.appendChild(title)
-
-  const message = document.createElement('div')
-  message.className = 'mdx-diagram-error-message'
-  message.textContent = getMermaidErrorMessage(error)
-  wrapper.appendChild(message)
-
-  const details = document.createElement('details')
-  details.className = 'mdx-diagram-error-source'
-
-  const summary = document.createElement('summary')
-  summary.textContent = 'View Mermaid source'
-  details.appendChild(summary)
-
-  const pre = document.createElement('pre')
-  pre.textContent = source
-  details.appendChild(pre)
-
-  wrapper.appendChild(details)
-  errorEl.replaceChildren(wrapper)
-}
-
-function hydrateMermaidDiagrams(root: HTMLElement | null) {
-  if (!root) return
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  const nodes = root.querySelectorAll<HTMLElement>('[data-mermaid-chart]')
-
-  nodes.forEach((node) => {
-    const encoded = node.getAttribute('data-mermaid-chart') ?? ''
-    if (node.getAttribute('data-mermaid-rendered') === encoded) return
-
-    const source = decodeMermaidSource(encoded)
-    const errorEl = node.parentElement?.querySelector<HTMLElement>('.mdx-mermaid-error')
-    node.setAttribute('data-mermaid-rendered', encoded)
-    node.innerHTML = ''
-    errorEl?.replaceChildren()
-
-    void renderMermaidToElement({ element: node, source, isDark }).catch((error) => {
-      node.innerHTML = ''
-      node.removeAttribute('data-mermaid-rendered')
-      if (errorEl) setMarkdownMermaidError(errorEl, error, source)
-    })
-  })
-}
-
-function useThemeMutationTick() {
-  const [themeTick, setThemeTick] = useState(0)
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => setThemeTick((n) => n + 1))
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
-    return () => observer.disconnect()
-  }, [])
-
-  return themeTick
 }
 
 // ── Batch splitting ─────────────────────────────────────────────────────────
@@ -281,7 +180,6 @@ function VirtualizedMarkdown({
   const heightsRef = useRef<number[]>([])
   const htmlCacheRef = useRef<Map<number, string>>(new Map())
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 3])
-  const themeTick = useThemeMutationTick()
 
   const batches = useMemo(() => {
     const normalized = normalizeNestedFences(content)
@@ -336,10 +234,6 @@ function VirtualizedMarkdown({
       }
     })
   }, [visibleRange])
-
-  useEffect(() => {
-    hydrateMermaidDiagrams(containerRef.current)
-  }, [visibleRange, themeTick])
 
   // Scroll handler: determine which sections should be visible
   useEffect(() => {
@@ -426,10 +320,8 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) {
-  const isMdx = entryPath?.endsWith('.mdx')
   const isLarge = content.length > LARGE_THRESHOLD
   const containerRef = useRef<HTMLDivElement>(null)
-  const themeTick = useThemeMutationTick()
 
   // Small files: synchronous parse
   const smallHtml = useMemo(() => {
@@ -480,14 +372,6 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
     },
     [entryPath],
   )
-
-  useEffect(() => {
-    if (!isMdx && !isLarge) hydrateMermaidDiagrams(containerRef.current)
-  }, [isMdx, isLarge, smallHtml, themeTick])
-
-  if (isMdx) {
-    return <MdxRenderer content={stripFrontmatter(content)} entryPath={entryPath} />
-  }
 
   if (isLarge) {
     return <VirtualizedMarkdown content={content} entryPath={entryPath} onClick={handleClick} />

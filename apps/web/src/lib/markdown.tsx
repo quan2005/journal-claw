@@ -2,7 +2,6 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
-import { MdxRenderer } from '../components/MdxRenderer'
 import { createMarkdownComponents, type MarkdownComponentsOptions } from './markdownComponents'
 import { stripFrontmatter } from './markdownUtils'
 
@@ -29,16 +28,6 @@ export function renderMarkdown(
 ): React.JSX.Element {
   const cleaned = stripFrontmatter(content)
   const isLarge = content.length > LARGE_FILE_THRESHOLD
-  const isMdx = absolutePath?.endsWith('.mdx')
-
-  // Route .mdx files to runtime MDX compiler (frontmatter stripped, MDX handles the rest)
-  if (isMdx) {
-    return (
-      <div className="md-body">
-        <MdxRenderer content={cleaned} entryPath={absolutePath} />
-      </div>
-    )
-  }
 
   const componentsOpts: MarkdownComponentsOptions = {
     entryPath: absolutePath,

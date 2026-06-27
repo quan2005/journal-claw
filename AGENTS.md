@@ -100,7 +100,7 @@ Commit message 遵循 **Conventional Commits**：
 1. **视觉一致性**：`JournalList` ↔ `IdentityList`、`DetailPanel` ↔ `IdentityDetail` 表现保持一致。修改其中一个时同步修改另一个。
 2. **Context menu**：使用 Tauri v2 `@tauri-apps/api/menu`（`Menu`, `MenuItem`）。`tauri-plugin-context-menu` 是 v1 专用，不要使用。
 3. **Theme**：通过 `workspace_settings` Rust 命令持久化，不用 localStorage（面板宽度除外）。
-4. **AI 引擎**：内置 LLM 引擎通过 Anthropic Messages API 直接调用（`src-tauri/src/llm/`），不再使用 Codex CLI。支持 4 个 vendor：volcengine、zhipu、dashscope、anthropic。
+4. **AI 引擎**：① 当前默认路径仍是 Rust 内置 LLM 引擎（`apps/web/src-tauri/src/llm/`，Anthropic Messages API 直连，4 vendor：volcengine、zhipu、dashscope、anthropic）。② **迁移中（ME 阶段 2026-06-27）**：daemon 已集成 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`）作为新内建引擎（`apps/daemon/src/engine/`），多 vendor 经 OpenAI 兼容 + 自定义 baseURL（国产三家已配置），工具/授权/事件映射/prompt-skills 组装就绪，经 `POST /runs engine=builtin` 走 AgentRunService。逐能力切换完成后取代 Rust 引擎。详见 `docs/adr/rust-removal-roadmap.md`。
 5. **Swift sidecar（已下线 · M0 2026-06-27）**：音频/语音/转写能力（`journal-speech` 二进制、Apple SpeechAnalyzer、WhisperKit、speaker profiles）已从默认跨平台主干**下线**，前端入口移除。Rust 侧残余代码待 Phase 10 M8 删除。详见 `docs/adr/rust-removal-roadmap.md`。
 6. **IPC 单一入口**：所有前端 → Rust 调用必须经过 `src/lib/tauri.ts`，不允许在组件中直接 `invoke()`。
 7. **视觉修复必须验证真实渲染链**：MDX/日志详情里的样式问题不要只看孤立组件、源码 CSS 或普通 Vite probe。真实链路通常是 `MdxRenderer` → `.md-content.mdx-content` → `JournalBlockRenderer` → `journal-blocks.css`，还会叠加 `markdown.css` / `mdx.css` 的全局规则。修复前先确认真实 DOM、CSS 加载顺序、specificity、继承变量和 computed style；尤其留意 `max-width` / `max-inline-size`、`line-height`、`margin`、`text-wrap: balance` 这类会让”看似改了但界面没变”的属性。把用户指出的具体视觉问题写成红/绿测试；如需浏览器验证，尽量验证包含 `.md-content.mdx-content` 和真实 CSS cascade 的场景，普通 Vite 页面不能替代 Tauri 真实窗口。

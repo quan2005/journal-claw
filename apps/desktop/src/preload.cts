@@ -6,18 +6,60 @@ const HOST_IPC_CHANNELS = {
   openExternal: 'journal:host:open-external',
   pickFolder: 'journal:host:pick-folder',
   setZoom: 'journal:host:set-zoom',
+  setWindowTheme: 'journal:host:set-window-theme',
+  ask: 'journal:host:ask',
+  openDialog: 'journal:host:open-dialog',
 } as const
 
 type FileDropType = 'enter' | 'over' | 'drop' | 'leave'
+type HostDialogKind = 'info' | 'warning' | 'error'
+type HostWindowTheme = 'light' | 'dark'
 
 interface FileDropEvent {
   type: FileDropType
   paths: string[]
 }
 
+interface HostAskOptions {
+  title?: string
+  kind?: HostDialogKind
+  okLabel?: string
+  cancelLabel?: string
+}
+
+interface HostDialogFilter {
+  name: string
+  extensions: string[]
+}
+
+interface HostOpenDialogOptions {
+  title?: string
+  defaultPath?: string
+  directory?: boolean
+  multiple?: boolean
+  filters?: HostDialogFilter[]
+}
+
 type FileDropHandler = (event: FileDropEvent) => void
 
 const fileDropHandlers = new Set<FileDropHandler>()
+
+function encodePath(path: string): string {
+  return path
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/')
+}
+
+function convertFileSrc(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  if (/^[a-zA-Z]:\//.test(normalized)) {
+    return `file:///${normalized[0]}:${encodePath(normalized.slice(2))}`
+  }
+  if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(path)) return path
+  if (normalized.startsWith('/')) return `file://${encodePath(normalized)}`
+  return path
+}
 
 function pathsFromDrop(event: DragEvent): string[] {
   const files = Array.from(event.dataTransfer?.files ?? [])
@@ -50,6 +92,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setZoom: (zoom: number) => {
     void ipcRenderer.invoke(HOST_IPC_CHANNELS.setZoom, zoom)
   },
+  setWindowTheme: (theme: HostWindowTheme) => {
+    void ipcRenderer.invoke(HOST_IPC_CHANNELS.setWindowTheme, theme)
+  },
+  convertFileSrc,
+  ask: (message: string, options?: HostAskOptions) =>
+    ipcRenderer.invoke(HOST_IPC_CHANNELS.ask, message, options),
+  openDialog: (options?: HostOpenDialogOptions) =>
+    ipcRenderer.invoke(HOST_IPC_CHANNELS.openDialog, options),
   onFileDrop: (handler: FileDropHandler) => {
     fileDropHandlers.add(handler)
     return () => {

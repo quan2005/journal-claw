@@ -1,11 +1,8 @@
 /**
  * HttpRuntimeClient — the daemon-backed JournalRuntimeClient implementation.
  *
- * Phase 1 shipped TauriRuntimeClient as the only transport. This is the
- * second implementation: when JOURNAL_RUNTIME=http (or workspace_settings
- * selects it), the frontend talks to the TS daemon over HTTP + SSE instead
- * of Tauri IPC. Both satisfy the same JournalRuntimeClient interface, so
- * callers (hooks) stay transport-agnostic.
+ * The frontend talks to the TS daemon over HTTP + SSE. It satisfies the
+ * JournalRuntimeClient interface so callers (hooks) stay transport-agnostic.
  *
  * invoke()  -> fetch(<baseUrl>/...). The command name is mapped to an HTTP
  *   route. Unknown commands reject — only the daemon surface is supported.
@@ -796,28 +793,28 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     return res.text()
   }
 
- private async putJson(
-   path: string,
-   body: Record<string, unknown>,
-   label: string,
- ): Promise<unknown> {
-   const res = await fetch(`${this.baseUrl}${path}`, {
-     method: 'PUT',
-     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify(body),
-   })
-   if (!res.ok) {
-     let detail = ''
-     try {
-       detail = ` ${JSON.stringify(await res.json())}`
-     } catch {
-       // ignore
-     }
-     throw new Error(`${label}: ${res.status}${detail}`)
-   }
-   if (res.status === 204) return undefined
-   return res.json()
- }
+  private async putJson(
+    path: string,
+    body: Record<string, unknown>,
+    label: string,
+  ): Promise<unknown> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      let detail = ''
+      try {
+        detail = ` ${JSON.stringify(await res.json())}`
+      } catch {
+        // ignore
+      }
+      throw new Error(`${label}: ${res.status}${detail}`)
+    }
+    if (res.status === 204) return undefined
+    return res.json()
+  }
   private async patchJson(
     path: string,
     body: Record<string, unknown>,

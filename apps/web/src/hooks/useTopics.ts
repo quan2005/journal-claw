@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { listen } from '@tauri-apps/api/event'
 import { listTopicsDir, type TopicEntry } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 
 const TOPICS_REFRESH_DEBOUNCE_MS = 250
 const TOPIC_EXPANDED_DIRS_STORAGE_KEY = 'journal_topics_expanded_dirs_v1'
@@ -130,8 +130,6 @@ export function useTopics() {
   }, [])
 
   useEffect(() => {
-    let disposed = false
-    let unlisten: (() => void) | undefined
     let refreshTimer: number | undefined
 
     const scheduleRefresh = () => {
@@ -144,20 +142,13 @@ export function useTopics() {
       }, TOPICS_REFRESH_DEBOUNCE_MS)
     }
 
-    void listen('topics-updated', scheduleRefresh).then((cleanup) => {
-      if (disposed) {
-        cleanup()
-      } else {
-        unlisten = cleanup
-      }
-    })
+    const unlisten = selectRuntimeClient().subscribe('topics-updated', scheduleRefresh)
 
     return () => {
-      disposed = true
       if (refreshTimer !== undefined) {
         window.clearTimeout(refreshTimer)
       }
-      unlisten?.()
+      unlisten()
     }
   }, [refreshLoadedDirs])
 

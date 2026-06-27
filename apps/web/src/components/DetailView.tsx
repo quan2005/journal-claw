@@ -17,9 +17,8 @@ import { EXT_TO_LANG } from '../lib/extToLang'
 import { Spinner } from './Spinner'
 import { IdeasWorkbench, type IdeaConversationRequest } from './IdeasWorkbench'
 import { FindBar } from './FindBar'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { createTranslator, detectLang } from '../lib/i18n'
-import { ask } from '@tauri-apps/plugin-dialog'
+import { hostAsk, hostConvertFileSrc } from '../lib/hostBridge'
 import { SandboxPreview } from './SandboxPreview'
 import { ArrowLeft, Check, Code2, Copy, Eye, Maximize2, Minimize2 } from 'lucide-react'
 import { isAbsoluteFilePath } from '../lib/fileNavigation'
@@ -1627,9 +1626,7 @@ export const DetailView = React.memo(function DetailView({
             >
               在左侧选择一个人物，查看 AI 自动归纳的画像档案。
               <br />
-              <span style={{ opacity: 0.6 }}>
-                画像来源于日志中提及的人物和对话。
-              </span>
+              <span style={{ opacity: 0.6 }}>画像来源于日志中提及的人物和对话。</span>
             </div>
           </div>
         )}
@@ -1672,9 +1669,7 @@ export const DetailView = React.memo(function DetailView({
             >
               在左侧选择一个专题文件夹或文档进行阅读。
               <br />
-              <span style={{ opacity: 0.6 }}>
-                专题是围绕特定主题组织的笔记和资料集合。
-              </span>
+              <span style={{ opacity: 0.6 }}>专题是围绕特定主题组织的笔记和资料集合。</span>
             </div>
           </div>
         )}
@@ -1746,7 +1741,7 @@ export const DetailView = React.memo(function DetailView({
 
     // Image
     if (fileKind === 'image') {
-      const src = convertFileSrc(fileAbsolutePath)
+      const src = hostConvertFileSrc(fileAbsolutePath)
       return renderTopicFileShell(
         <div
           style={{
@@ -1784,7 +1779,7 @@ export const DetailView = React.memo(function DetailView({
 
     // PDF
     if (fileKind === 'pdf') {
-      const src = convertFileSrc(fileAbsolutePath)
+      const src = hostConvertFileSrc(fileAbsolutePath)
       return renderTopicFileShell(
         <div
           style={{
@@ -2206,7 +2201,7 @@ export const DetailView = React.memo(function DetailView({
               onClick={() => {
                 if (resetCooldown) return
                 setResetCooldown(true)
-                ask('确认重置助手提示词？', {
+                hostAsk('确认重置助手提示词？', {
                   title: '重置助手提示词',
                   kind: 'warning',
                   okLabel: '重置',

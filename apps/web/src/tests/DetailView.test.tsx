@@ -3,12 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
 import { DetailView } from '../components/DetailView'
 
-vi.mock('@tauri-apps/api/core', () => ({
-  convertFileSrc: (path: string) => `asset://${path}`,
-}))
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  ask: vi.fn().mockResolvedValue(false),
+vi.mock('../lib/hostBridge', () => ({
+  hostConvertFileSrc: (path: string) => `asset://${path}`,
+  hostAsk: vi.fn().mockResolvedValue(false),
 }))
 
 vi.mock('../lib/tauri', async () => {

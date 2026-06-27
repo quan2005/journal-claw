@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { revealInFileManager, openFile } from '../lib/tauri'
-import { ask } from '@tauri-apps/plugin-dialog'
+import { hostAsk } from '../lib/hostBridge'
 
 export interface TreeContextMenuState {
   x: number
@@ -93,7 +93,12 @@ export function TreeContextMenu({
   }
 
   function handlePin() {
-    const pinType = itemType === 'identity' ? 'identity' : itemType === 'topic-file' || itemType === 'topic-folder' ? 'topic' : 'journal'
+    const pinType =
+      itemType === 'identity'
+        ? 'identity'
+        : itemType === 'topic-file' || itemType === 'topic-folder'
+          ? 'topic'
+          : 'journal'
     onPin(pinType, path)
     onClose()
   }
@@ -111,7 +116,10 @@ export function TreeContextMenu({
   }
   async function handleDelete() {
     onClose()
-    const confirmed = await ask(`确认删除「${name}」？`, { title: '删除确认', kind: 'warning' })
+    const confirmed = await hostAsk(`确认删除「${name}」？`, {
+      title: '删除确认',
+      kind: 'warning',
+    })
     if (confirmed) onDelete(itemType, path)
   }
 

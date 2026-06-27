@@ -39,25 +39,30 @@ vi.mock('../lib/tauri', () => ({
   dismissWorkItem: vi.fn().mockResolvedValue(undefined),
 }))
 
-type EventCallback = (event: { payload: unknown }) => void
-const listenerMap = new Map<string, EventCallback>()
+type EventCallback = (payload: unknown) => void
+const listenerMap = new Map<string, Set<EventCallback>>()
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn((eventName: string, cb: EventCallback) => {
-    listenerMap.set(eventName, cb)
-    return Promise.resolve(() => {
-      listenerMap.delete(eventName)
-    })
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: vi.fn(),
+    subscribe: (eventName: string, cb: EventCallback) => {
+      const listeners = listenerMap.get(eventName) ?? new Set<EventCallback>()
+      listeners.add(cb)
+      listenerMap.set(eventName, listeners)
+      return () => {
+        listeners.delete(cb)
+        if (listeners.size === 0) listenerMap.delete(eventName)
+      }
+    },
   }),
 }))
 
 function fireEvent(name: string, payload: unknown) {
-  listenerMap.get(name)?.({ payload })
+  listenerMap.get(name)?.forEach((listener) => listener(payload))
 }
 
 describe('useJournal', () => {
   beforeEach(() => {
-    ;(globalThis as Record<string, unknown>).__JOURNAL_RUNTIME = 'tauri'
     vi.useRealTimers()
     vi.clearAllMocks()
     listenerMap.clear()
@@ -83,7 +88,6 @@ describe('useJournal', () => {
 
   afterEach(() => {
     vi.useRealTimers()
-    delete (globalThis as Record<string, unknown>).__JOURNAL_RUNTIME
   })
 
   it('loads entries on mount', async () => {

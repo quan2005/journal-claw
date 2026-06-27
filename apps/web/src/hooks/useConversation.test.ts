@@ -7,24 +7,23 @@ import { join } from 'node:path'
 let capturedHandler: ((payload: unknown) => void) | null = null
 const offSpy = vi.fn()
 
-const subscribeMock = vi.fn(
-  (event: string, handler: (payload: unknown) => void) => {
-    expect(event).toBe('conversation-stream')
-    capturedHandler = handler
-    return offSpy
-  },
-)
+const subscribeMock = vi.fn((event: string, handler: (payload: unknown) => void) => {
+  expect(event).toBe('conversation-stream')
+  capturedHandler = handler
+  return offSpy
+})
 
 vi.mock('../lib/runtimeClient', () => ({
   defaultRuntimeClient: {
     invoke: vi.fn(),
-    subscribe: (...args: unknown[]) => subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
+    subscribe: (...args: unknown[]) =>
+      subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
   },
   selectRuntimeClient: () => ({
     invoke: vi.fn(),
-    subscribe: (...args: unknown[]) => subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
+    subscribe: (...args: unknown[]) =>
+      subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
   }),
-  TauriRuntimeClient: class {},
 }))
 
 // Stash the tauri commands the hook calls into on mount/send paths.
@@ -52,10 +51,7 @@ describe('useConversation runtime client wiring', () => {
 
   it('does not import @tauri-apps/api/event', () => {
     // AC-2a: static source assertion.
-    const src = readFileSync(
-      join(process.cwd(), 'src/hooks/useConversation.ts'),
-      'utf8',
-    )
+    const src = readFileSync(join(process.cwd(), 'src/hooks/useConversation.ts'), 'utf8')
     expect(src).not.toContain('@tauri-apps/api/event')
   })
 

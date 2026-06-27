@@ -59,11 +59,15 @@ describe('preload electronAPI', () => {
 
     expect(electron.exposeInMainWorld).toHaveBeenCalledWith('electronAPI', expect.any(Object))
     expect(Object.keys(api).sort()).toEqual([
+      'ask',
+      'convertFileSrc',
       'onFileDrop',
+      'openDialog',
       'openExternal',
       'openPath',
       'pickFolder',
       'reveal',
+      'setWindowTheme',
       'setZoom',
     ])
     expect(api.ipcRenderer).toBeUndefined()
@@ -78,6 +82,10 @@ describe('preload electronAPI', () => {
     await api.openExternal('https://example.com')
     await api.pickFolder()
     api.setZoom(1.25)
+    api.setWindowTheme('dark')
+    expect(api.convertFileSrc('/tmp/a b.png')).toBe('file:///tmp/a%20b.png')
+    await api.ask('Delete?', { kind: 'warning' })
+    await api.openDialog({ multiple: true })
 
     expect(electron.invoke).toHaveBeenNthCalledWith(1, 'journal:host:reveal', '/tmp/a.md')
     expect(electron.invoke).toHaveBeenNthCalledWith(2, 'journal:host:open-path', '/tmp/a.md')
@@ -88,6 +96,13 @@ describe('preload electronAPI', () => {
     )
     expect(electron.invoke).toHaveBeenNthCalledWith(4, 'journal:host:pick-folder')
     expect(electron.invoke).toHaveBeenNthCalledWith(5, 'journal:host:set-zoom', 1.25)
+    expect(electron.invoke).toHaveBeenNthCalledWith(6, 'journal:host:set-window-theme', 'dark')
+    expect(electron.invoke).toHaveBeenNthCalledWith(7, 'journal:host:ask', 'Delete?', {
+      kind: 'warning',
+    })
+    expect(electron.invoke).toHaveBeenNthCalledWith(8, 'journal:host:open-dialog', {
+      multiple: true,
+    })
   })
 
   it('forwards file drop paths without exposing ipcRenderer', async () => {

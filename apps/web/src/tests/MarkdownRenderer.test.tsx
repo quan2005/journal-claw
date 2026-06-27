@@ -2,8 +2,8 @@ import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { renderMarkdown } from '../lib/markdown'
 
-vi.mock('@tauri-apps/api/core', () => ({
-  convertFileSrc: (p: string) => `asset://${p}`,
+vi.mock('../lib/hostBridge', () => ({
+  hostConvertFileSrc: (p: string) => `asset://${p}`,
 }))
 
 vi.mock('../lib/tauri', async () => {

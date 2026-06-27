@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getWorkspacePath, openFile } from '../lib/tauri'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { hostConvertFileSrc } from '../lib/hostBridge'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
@@ -117,7 +117,7 @@ function postProcessHtml(raw: string, entryPath?: string): string {
         const abs = src.startsWith('/')
           ? src
           : resolveRelativePath(entryDir, decodeURIComponent(src))
-        return pre + convertFileSrc(abs) + post
+        return pre + hostConvertFileSrc(abs) + post
       },
     )
     html = html.replace(

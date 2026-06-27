@@ -418,16 +418,16 @@ describe('runtime flag selection', () => {
     expect(readRuntimeKind()).toBe('http')
   })
 
-  it('selectRuntimeClient returns Tauri when JOURNAL_RUNTIME=tauri', async () => {
+  it('selectRuntimeClient ignores retired JOURNAL_RUNTIME=tauri override', async () => {
     vi.resetModules()
     const g = globalThis as Record<string, unknown>
     const prev = g.__JOURNAL_RUNTIME
     g.__JOURNAL_RUNTIME = 'tauri'
     try {
       const { selectRuntimeClient, readRuntimeKind } = await import('../lib/runtimeClient')
-      expect(readRuntimeKind()).toBe('tauri')
+      expect(readRuntimeKind()).toBe('http')
       const c = selectRuntimeClient()
-      expect(c.constructor.name).toBe('TauriRuntimeClient')
+      expect(c.constructor.name).toBe('HttpRuntimeClient')
     } finally {
       if (prev === undefined) delete g.__JOURNAL_RUNTIME
       else g.__JOURNAL_RUNTIME = prev

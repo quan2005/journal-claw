@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  hostAsk,
+  hostConvertFileSrc,
+  hostOpenDialog,
   hostOpenPrivacySettings,
   hostOpenSettings,
   hostOpenWithSystem,
@@ -7,6 +10,7 @@ import {
   onHostFileDrop,
   pickHostFolder,
   setHostZoom,
+  setHostWindowTheme,
   subscribeHostEvent,
   type ElectronHostAPI,
 } from '../lib/hostBridge'
@@ -18,6 +22,10 @@ function installElectronAPI(overrides: Partial<ElectronHostAPI> = {}): ElectronH
     openExternal: vi.fn().mockResolvedValue(undefined),
     pickFolder: vi.fn().mockResolvedValue('/picked'),
     setZoom: vi.fn(),
+    setWindowTheme: vi.fn(),
+    convertFileSrc: vi.fn((path: string) => `file://${path}`),
+    ask: vi.fn().mockResolvedValue(true),
+    openDialog: vi.fn().mockResolvedValue(['/tmp/a.md']),
     onFileDrop: vi.fn(() => vi.fn()),
     ...overrides,
   }
@@ -49,6 +57,10 @@ describe('hostBridge Electron routing', () => {
     await hostOpenWithSystem('https://example.com')
     const picked = await pickHostFolder()
     setHostZoom(1.25)
+    setHostWindowTheme('dark')
+    const src = hostConvertFileSrc('/tmp/a.png')
+    const confirmed = await hostAsk('Delete?', { title: 'Confirm', kind: 'warning' })
+    const selected = await hostOpenDialog({ multiple: true })
 
     expect(api.reveal).toHaveBeenCalledWith('/tmp/a.md')
     expect(api.openPath).toHaveBeenCalledWith('/tmp/a.md')
@@ -56,6 +68,12 @@ describe('hostBridge Electron routing', () => {
     expect(picked).toBe('/picked')
     expect(api.pickFolder).toHaveBeenCalledOnce()
     expect(api.setZoom).toHaveBeenCalledWith(1.25)
+    expect(api.setWindowTheme).toHaveBeenCalledWith('dark')
+    expect(src).toBe('file:///tmp/a.png')
+    expect(confirmed).toBe(true)
+    expect(api.ask).toHaveBeenCalledWith('Delete?', { title: 'Confirm', kind: 'warning' })
+    expect(selected).toEqual(['/tmp/a.md'])
+    expect(api.openDialog).toHaveBeenCalledWith({ multiple: true })
 
     const handler = vi.fn()
     const off = onHostFileDrop(handler)
@@ -68,7 +86,11 @@ describe('hostBridge Electron routing', () => {
     await expect(hostRevealInFileManager('/tmp/a.md')).resolves.toBeUndefined()
     await expect(hostOpenWithSystem('/tmp/a.md')).resolves.toBeUndefined()
     await expect(pickHostFolder()).resolves.toBeNull()
+    await expect(hostAsk('Delete?')).resolves.toBe(false)
+    await expect(hostOpenDialog({ multiple: true })).resolves.toBeNull()
+    expect(hostConvertFileSrc('/tmp/a.png')).toBe('/tmp/a.png')
     expect(() => setHostZoom(1.1)).not.toThrow()
+    expect(() => setHostWindowTheme('light')).not.toThrow()
 
     const handler = vi.fn()
     const off = onHostFileDrop(handler)

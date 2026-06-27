@@ -32,7 +32,7 @@ import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
 import { dispatchJournalFileOpen } from '../lib/fileNavigation'
 import clipboard from 'tauri-plugin-clipboard-api'
-import { open } from '@tauri-apps/plugin-dialog'
+import { hostOpenDialog } from '../lib/hostBridge'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
 
@@ -326,7 +326,7 @@ export function ChatPanel({
   )
 
   const handleAddFile = useCallback(async () => {
-    const selected = await open({ multiple: true })
+    const selected = await hostOpenDialog({ multiple: true })
     if (selected) {
       const paths = Array.isArray(selected) ? selected : [selected]
       addFiles(paths.filter((p): p is string => typeof p === 'string'))

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { listen } from '@tauri-apps/api/event'
 import {
   createRoutine,
   deleteRoutine,
@@ -11,6 +10,7 @@ import {
   runRoutineNow,
   updateRoutine,
 } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import type {
   AutomationRoutine,
   AutomationRun,
@@ -47,21 +47,22 @@ export function useAutomation() {
   }, [refresh])
 
   useEffect(() => {
-    const unlisten = listen<AutomationRun>('automation-run-updated', (event) => {
-      refresh()
-      setRunsByRoutine((prev) => {
-        if (!prev[event.payload.routine_id]) {
-          return prev
-        }
-        const existing = prev[event.payload.routine_id]
-        const next = [event.payload, ...existing.filter((run) => run.id !== event.payload.id)]
-        return { ...prev, [event.payload.routine_id]: next }
-      })
-    })
+    const unlisten = selectRuntimeClient().subscribe<AutomationRun>(
+      'automation-run-updated',
+      (run) => {
+        refresh()
+        setRunsByRoutine((prev) => {
+          if (!prev[run.routine_id]) {
+            return prev
+          }
+          const existing = prev[run.routine_id]
+          const next = [run, ...existing.filter((item) => item.id !== run.id)]
+          return { ...prev, [run.routine_id]: next }
+        })
+      },
+    )
 
-    return () => {
-      unlisten.then((fn) => fn())
-    }
+    return unlisten
   }, [refresh])
 
   const loadRuns = useCallback(async (routineId: string) => {

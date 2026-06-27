@@ -7,8 +7,8 @@ export interface AppEventSubscription {
 }
 
 export function subscribeAppEvents(onEvent: (event: AppEvent) => void): AppEventSubscription {
-  // Transport-agnostic: daemon runtime subscribes over SSE (GET /events/app-event),
-  // Tauri runtime via listen(). Either surfaces the parsed payload directly.
+  // Daemon runtime subscribes over SSE (GET /events/app-event) and surfaces the
+  // parsed payload directly.
   const off = selectRuntimeClient().subscribe<unknown>('app-event', (payload) => {
     if (isAppEvent(payload)) {
       onEvent(payload)

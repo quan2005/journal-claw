@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { Theme } from '../types'
 import { getWorkspaceTheme, setWorkspaceTheme } from '../lib/tauri'
+import { setHostWindowTheme } from '../lib/hostBridge'
 
 function applyTheme(theme: Theme) {
   const resolved =
@@ -12,7 +12,7 @@ function applyTheme(theme: Theme) {
       : theme
   document.documentElement.setAttribute('data-theme', resolved)
   // Sync macOS native chrome (traffic light buttons) with the webview theme
-  getCurrentWindow().setTheme(resolved).catch(console.error)
+  setHostWindowTheme(resolved)
 }
 
 export function useTheme() {

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { listen } from '@tauri-apps/api/event'
 import {
   listAvailableMonths,
   listJournalEntriesByMonths,
@@ -7,6 +6,7 @@ import {
   enqueueWork as invokeEnqueueWork,
   dismissWorkItem as invokeDismissWork,
 } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { useEventSync } from './useEventSync'
 import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
 import type { WorkItem } from '../lib/tauri'
@@ -247,16 +247,17 @@ export function useJournal() {
   useEffect(() => {
     refresh()
     refreshWorkQueue()
+    const client = selectRuntimeClient()
 
     // Work queue updates from Rust — also refresh journal entries (may have changed)
-    const unlistenWorkQueue = listen('work-queue-updated', () => {
+    const unlistenWorkQueue = client.subscribe('work-queue-updated', () => {
       refreshWorkQueue()
       refresh()
     })
 
     // Audio pipeline events (local items)
-    const unlistenProcessing = listen<ProcessingUpdate>('ai-processing', (event) => {
-      const { material_path, status, error, structured_error } = event.payload
+    const unlistenProcessing = client.subscribe<ProcessingUpdate>('ai-processing', (payload) => {
+      const { material_path, status, error, structured_error } = payload
       if (status === 'queued') {
         setLocalItems((prev) => {
           if (prev.some((i) => i.path === material_path)) return prev
@@ -311,8 +312,8 @@ export function useJournal() {
       }
     })
 
-    const unlistenLog = listen<AiLogLine>('ai-log', (event) => {
-      const { material_path, message } = event.payload
+    const unlistenLog = client.subscribe<AiLogLine>('ai-log', (payload) => {
+      const { material_path, message } = payload
       setLocalItems((prev) =>
         prev.map((i) =>
           i.path === material_path ? { ...i, logs: [...(i.logs ?? []), message] } : i,
@@ -320,12 +321,12 @@ export function useJournal() {
       )
     })
 
-    const unlistenAudioReady = listen<{
+    const unlistenAudioReady = client.subscribe<{
       source_path: string
       material_path: string
       filename: string
-    }>('audio-ai-material-ready', (event) => {
-      const { source_path, material_path, filename } = event.payload
+    }>('audio-ai-material-ready', (payload) => {
+      const { source_path, material_path, filename } = payload
       invokeEnqueueWork({
         files: [material_path],
         prompt: '请根据这份音频转写材料，生成日志条目。',
@@ -348,65 +349,67 @@ export function useJournal() {
         })
     })
 
-    const unlistenAudioFailed = listen<{ source_path: string; filename: string; error: string }>(
-      'audio-ai-material-failed',
-      (event) => {
-        const { source_path, filename, error } = event.payload
-        setLocalItems((prev) => {
-          if (prev.some((i) => i.path === source_path)) {
-            return prev.map((i) =>
-              i.path === source_path ? { ...i, filename, status: 'failed' as const, error } : i,
-            )
-          }
-          return [
-            {
-              id: source_path,
-              path: source_path,
-              filename,
-              status: 'failed' as const,
-              error,
-              addedAt: Date.now(),
-              logs: [],
-            },
-            ...prev,
-          ]
-        })
-      },
-    )
+    const unlistenAudioFailed = client.subscribe<{
+      source_path: string
+      filename: string
+      error: string
+    }>('audio-ai-material-failed', (payload) => {
+      const { source_path, filename, error } = payload
+      setLocalItems((prev) => {
+        if (prev.some((i) => i.path === source_path)) {
+          return prev.map((i) =>
+            i.path === source_path ? { ...i, filename, status: 'failed' as const, error } : i,
+          )
+        }
+        return [
+          {
+            id: source_path,
+            path: source_path,
+            filename,
+            status: 'failed' as const,
+            error,
+            addedAt: Date.now(),
+            logs: [],
+          },
+          ...prev,
+        ]
+      })
+    })
 
-    const unlistenPipelineFailed = listen<{ filename: string; stage: string; error: string }>(
-      'audio-pipeline-failed',
-      (event) => {
-        const { filename, error } = event.payload
-        setLocalItems((prev) => {
-          const match = prev.find((i) => i.filename === filename)
-          if (match) {
-            return prev.map((i) =>
-              i.filename === filename ? { ...i, status: 'failed' as const, error } : i,
-            )
-          }
-          return [
-            {
-              id: filename,
-              path: filename,
-              filename,
-              status: 'failed' as const,
-              error,
-              addedAt: Date.now(),
-              logs: [],
-            },
-            ...prev,
-          ]
-        })
-      },
-    )
+    const unlistenPipelineFailed = client.subscribe<{
+      filename: string
+      stage: string
+      error: string
+    }>('audio-pipeline-failed', (payload) => {
+      const { filename, error } = payload
+      setLocalItems((prev) => {
+        const match = prev.find((i) => i.filename === filename)
+        if (match) {
+          return prev.map((i) =>
+            i.filename === filename ? { ...i, status: 'failed' as const, error } : i,
+          )
+        }
+        return [
+          {
+            id: filename,
+            path: filename,
+            filename,
+            status: 'failed' as const,
+            error,
+            addedAt: Date.now(),
+            logs: [],
+          },
+          ...prev,
+        ]
+      })
+    })
 
-    const unlistenTranscriptionProgress = listen<{
+    const unlistenTranscriptionProgress = client.subscribe<{
       filename: string
       status: string
       message?: string
-    }>('transcription-progress', (event) => {
-      const { filename, status, message } = event.payload
+    }>('transcription-progress', (payload) => {
+      const { filename, status, message } = payload
       if (status === 'failed') {
         setLocalItems((prev) =>
           prev.map((i) =>
@@ -428,13 +431,13 @@ export function useJournal() {
 
     return () => {
       refreshing.current = false
-      unlistenWorkQueue.then((fn) => fn())
-      unlistenProcessing.then((fn) => fn())
-      unlistenLog.then((fn) => fn())
-      unlistenAudioReady.then((fn) => fn())
-      unlistenAudioFailed.then((fn) => fn())
-      unlistenPipelineFailed.then((fn) => fn())
-      unlistenTranscriptionProgress.then((fn) => fn())
+      unlistenWorkQueue()
+      unlistenProcessing()
+      unlistenLog()
+      unlistenAudioReady()
+      unlistenAudioFailed()
+      unlistenPipelineFailed()
+      unlistenTranscriptionProgress()
       timers.forEach((t) => clearTimeout(t))
       timers.clear()
     }

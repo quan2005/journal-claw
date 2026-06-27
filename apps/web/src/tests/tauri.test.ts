@@ -12,15 +12,17 @@ import {
   type EngineConfig,
 } from '../lib/tauri'
 
-const mockInvoke = vi.fn()
+const mockInvoke = vi.hoisted(() => vi.fn())
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: (...args: unknown[]) => mockInvoke(...args),
+    subscribe: vi.fn(() => () => {}),
+  }),
 }))
 
 describe('tauri config commands', () => {
   beforeEach(() => {
-    ;(globalThis as Record<string, unknown>).__JOURNAL_RUNTIME = 'tauri'
     vi.clearAllMocks()
     mockInvoke.mockResolvedValue(undefined)
   })
@@ -76,7 +78,10 @@ describe('tauri config commands', () => {
   })
 
   it('routes conversation wrappers through the runtime client command boundary', async () => {
-    mockInvoke.mockResolvedValueOnce('s1').mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined)
+    mockInvoke
+      .mockResolvedValueOnce('s1')
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
 
     await conversationCreate('ctx', ['a.md'])
     await conversationSend('s1', 'hello', [{ media_type: 'image/png', data: 'base64' }])

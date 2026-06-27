@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React from 'react'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { hostConvertFileSrc } from './hostBridge'
 import { MarkdownLi } from '../lib/markdownLi'
 import { resolveRelativePath, extractCodeText } from './markdownUtils'
 
@@ -300,7 +300,7 @@ export function createMarkdownComponents(opts: string | MarkdownComponentsOption
           const absPath = src.startsWith('/')
             ? src
             : resolveRelativePath(entryDir, decodeURIComponent(src))
-          resolvedSrc = convertFileSrc(absPath)
+          resolvedSrc = hostConvertFileSrc(absPath)
         }
       }
       return (

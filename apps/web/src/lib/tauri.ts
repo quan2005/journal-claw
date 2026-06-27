@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core'
 import {
   hostOpenWithSystem,
   hostOpenPrivacySettings,
@@ -22,8 +21,7 @@ import type {
 
 export type { CreateRoutineRequest, UpdateRoutineRequest } from '../types'
 
-export const revealInFileManager = (path: string): Promise<void> =>
-  hostRevealInFileManager(path)
+export const revealInFileManager = (path: string): Promise<void> => hostRevealInFileManager(path)
 
 export const openSettings = (): Promise<void> => hostOpenSettings()
 
@@ -461,13 +459,13 @@ export interface FeishuStatus {
 }
 
 export const getFeishuConfig = (): Promise<FeishuConfig> =>
-  invoke<FeishuConfig>('get_feishu_config')
+  selectRuntimeClient().invoke<FeishuConfig>('get_feishu_config')
 
 export const setFeishuConfig = (config: FeishuConfig): Promise<void> =>
-  invoke<void>('set_feishu_config', { config })
+  selectRuntimeClient().invoke<void>('set_feishu_config', { config })
 
 export const getFeishuStatus = (): Promise<FeishuStatus> =>
-  invoke<FeishuStatus>('get_feishu_status')
+  selectRuntimeClient().invoke<FeishuStatus>('get_feishu_status')
 
 // Skills (技能插件)
 export interface SkillTrigger {
@@ -597,7 +595,8 @@ export const listModels = (
   apiKey: string,
   baseUrl: string,
   protocol?: string,
-): Promise<string[]> => invoke<string[]>('list_models', { engine, apiKey, baseUrl, protocol })
+): Promise<string[]> =>
+  selectRuntimeClient().invoke<string[]>('list_models', { engine, apiKey, baseUrl, protocol })
 
 // Work Queue
 export interface WorkItem {
@@ -711,10 +710,11 @@ export interface PinnedItem {
   order: number
 }
 
-export const getPinnedItems = (): Promise<PinnedItem[]> => invoke<PinnedItem[]>('get_pinned_items')
+export const getPinnedItems = (): Promise<PinnedItem[]> =>
+  selectRuntimeClient().invoke<PinnedItem[]>('get_pinned_items')
 
 export const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
-  invoke<void>('set_pinned_items', { items })
+  selectRuntimeClient().invoke<void>('set_pinned_items', { items })
 
 // ── Event Log (catch-up mechanism) ──────────────────────────
 export const getEventsSince = (sinceSeq: number): Promise<DomainEvent[]> =>

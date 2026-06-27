@@ -21,8 +21,8 @@ vi.mock('tauri-plugin-clipboard-api', () => ({
   },
 }))
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  open: mocks.open,
+vi.mock('../lib/hostBridge', () => ({
+  hostOpenDialog: mocks.open,
 }))
 
 function renderChatPanel(props?: Partial<React.ComponentProps<typeof ChatPanel>>) {
@@ -98,9 +98,7 @@ describe('ChatPanel', () => {
       }),
     )
 
-    await waitFor(() =>
-      expect(textarea.value).toBe('请看 @identities/研究-犀利教授.md'),
-    )
+    await waitFor(() => expect(textarea.value).toBe('请看 @identities/研究-犀利教授.md'))
     expect(onSend).not.toHaveBeenCalled()
 
     fireEvent.change(textarea, {

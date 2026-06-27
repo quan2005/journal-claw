@@ -4,12 +4,21 @@ import { useEffect } from 'react'
 import { useTopics } from '../hooks/useTopics'
 import { listTopicsDir } from '../lib/tauri'
 
-const eventListeners = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>())
+type EventCallback = (payload: unknown) => void
+const eventListeners = vi.hoisted(() => new Map<string, Set<EventCallback>>())
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn((name: string, cb: (event: { payload: unknown }) => void) => {
-    eventListeners.set(name, cb)
-    return Promise.resolve(() => eventListeners.delete(name))
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: vi.fn(),
+    subscribe: (name: string, cb: EventCallback) => {
+      const listeners = eventListeners.get(name) ?? new Set<EventCallback>()
+      listeners.add(cb)
+      eventListeners.set(name, listeners)
+      return () => {
+        listeners.delete(cb)
+        if (listeners.size === 0) eventListeners.delete(name)
+      }
+    },
   }),
 }))
 
@@ -52,6 +61,10 @@ function TopicDirsProbe() {
       )}
     </div>
   )
+}
+
+function emitEvent(name: string, payload: unknown) {
+  eventListeners.get(name)?.forEach((listener) => listener(payload))
 }
 
 describe('useTopics', () => {
@@ -139,7 +152,7 @@ describe('useTopics', () => {
 
     expect(vi.mocked(listTopicsDir)).toHaveBeenCalledWith('')
 
-    eventListeners.get('topics-updated')?.({ payload: null })
+    emitEvent('topics-updated', null)
 
     await act(async () => {
       vi.advanceTimersByTime(250)
@@ -164,9 +177,9 @@ describe('useTopics', () => {
     })
 
     const listener = eventListeners.get('topics-updated')
-    listener?.({ payload: null })
-    listener?.({ payload: null })
-    listener?.({ payload: null })
+    listener?.forEach((cb) => cb(null))
+    listener?.forEach((cb) => cb(null))
+    listener?.forEach((cb) => cb(null))
 
     await act(async () => {
       vi.advanceTimersByTime(250)
@@ -193,7 +206,7 @@ describe('useTopics', () => {
 
     const rendersAfterInitialLoad = onRender.mock.calls.length
 
-    eventListeners.get('topics-updated')?.({ payload: null })
+    emitEvent('topics-updated', null)
 
     await act(async () => {
       vi.advanceTimersByTime(250)

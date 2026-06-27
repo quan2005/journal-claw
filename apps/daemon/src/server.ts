@@ -20,6 +20,12 @@ import { WorkspaceService } from './workspace/service.js'
 import { SettingsService, SettingsValidationError } from './settings/service.js'
 import { ConfigService, ConfigValidationError } from './config/service.js'
 import { FilesService, WorkspaceFsError } from './files/service.js'
+import { JournalService } from './journal/service.js'
+import { TodosService } from './todos/service.js'
+import { TopicsService } from './topics/service.js'
+import { IdentityService } from './identity/service.js'
+import { MaterialsService } from './materials/service.js'
+import { LocalCrudError } from './local/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -92,6 +98,21 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const settingsService = new SettingsService(process.cwd())
     const configService = opts.configService ?? new ConfigService()
     const filesService = new FilesService(process.cwd(), changeSetService)
+    const workspaceRoot = (): string => configService.getWorkspacePath()
+    const workspaceChangeSets = (): ChangeSetService => new ChangeSetService(workspaceRoot())
+    const journalService = (): JournalService =>
+      new JournalService(workspaceRoot(), workspaceChangeSets(), () => new Date(), {
+        sampleEntryCreated: () => configService.getSampleEntryCreated(),
+        setSampleEntryCreated: (created) => configService.setSampleEntryCreated(created),
+      })
+    const todosService = (): TodosService =>
+      new TodosService(workspaceRoot(), workspaceChangeSets())
+    const topicsService = (): TopicsService =>
+      new TopicsService(workspaceRoot(), workspaceChangeSets())
+    const identityService = (): IdentityService =>
+      new IdentityService(workspaceRoot(), workspaceChangeSets())
+    const materialsService = (): MaterialsService =>
+      new MaterialsService(workspaceRoot(), workspaceChangeSets())
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
     // running executeRun child (SIGTERM the spawned CLI), not just flip status.
@@ -231,6 +252,12 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         })
         return
       }
+      if (err instanceof LocalCrudError) {
+        res.status(err.status).json({
+          error: { code: err.code, message: err.message, ...(err.detail ?? {}) },
+        })
+        return
+      }
       res.status(500).json({
         error: {
           code: 'workspace_fs_error',
@@ -238,6 +265,401 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         },
       })
     }
+
+    // ── Journal local CRUD ────────────────────────────────────────────────
+    app.get('/journal/months', (_req, res) => {
+      try {
+        res.json(journalService().listMonths())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/journal/entries', (req, res) => {
+      try {
+        const yearMonth = typeof req.query.yearMonth === 'string' ? req.query.yearMonth : ''
+        const months = typeof req.query.months === 'string' ? req.query.months : ''
+        if (months) {
+          res.json(journalService().listByMonths(months.split(',').filter(Boolean)))
+        } else if (yearMonth) {
+          res.json(journalService().list(yearMonth))
+        } else {
+          res.json(journalService().listAll())
+        }
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/journal/entries/paginated', (req, res) => {
+      try {
+        const offset = Number.parseInt(String(req.query.offset ?? '0'), 10)
+        const limit = Number.parseInt(String(req.query.limit ?? '50'), 10)
+        res.json(journalService().listPaginated(offset, limit))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/journal/content', (req, res) => {
+      try {
+        const path = typeof req.query.path === 'string' ? req.query.path : ''
+        res.type('text/plain').send(journalService().getContent(path))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/journal/content', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.path !== 'string' || typeof body.content !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_journal_content_request' } })
+          return
+        }
+        journalService().saveContent(body.path, body.content)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.delete('/journal/entry', (req, res) => {
+      try {
+        const path = typeof req.query.path === 'string' ? req.query.path : ''
+        journalService().delete(path)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/journal/sample', (_req, res) => {
+      try {
+        journalService().createSampleEntry()
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/journal/sample-if-needed', (_req, res) => {
+      try {
+        res.json(journalService().createSampleEntryIfNeeded())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    // ── Todos local CRUD ──────────────────────────────────────────────────
+    app.get('/todos', (_req, res) => {
+      try {
+        res.json(todosService().list())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/todos', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.text !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_todo_request' } })
+          return
+        }
+        res.json(
+          todosService().add(
+            body.text,
+            typeof body.due === 'string' ? body.due : null,
+            typeof body.source === 'string' ? body.source : null,
+            typeof body.path === 'string' ? body.path : null,
+          ),
+        )
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/todos/toggle', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        todosService().toggle(Number(body.lineIndex), body.checked === true, body.doneFile === true)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.delete('/todos', (req, res) => {
+      try {
+        todosService().delete(Number(req.query.lineIndex), req.query.doneFile === 'true')
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/todos/due', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        todosService().setDue(
+          Number(body.lineIndex),
+          typeof body.due === 'string' ? body.due : null,
+          body.doneFile === true,
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/todos/path', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        todosService().setPath(
+          Number(body.lineIndex),
+          typeof body.path === 'string' ? body.path : null,
+          body.doneFile === true,
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.delete('/todos/path', (req, res) => {
+      try {
+        todosService().removePath(Number(req.query.lineIndex), req.query.doneFile === 'true')
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/todos/session', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        todosService().setSessionId(
+          Number(body.lineIndex),
+          typeof body.sessionId === 'string' ? body.sessionId : null,
+          body.doneFile === true,
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/todos/text', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.text !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_todo_text_request' } })
+          return
+        }
+        todosService().updateText(Number(body.lineIndex), body.text, body.doneFile === true)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    // ── Topics local CRUD ─────────────────────────────────────────────────
+    app.get('/topics', (req, res) => {
+      try {
+        res.json(
+          topicsService().listDir(
+            typeof req.query.relativePath === 'string' ? req.query.relativePath : '',
+          ),
+        )
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/topics', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.name !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_topic_request' } })
+          return
+        }
+        topicsService().create(
+          body.name,
+          typeof body.parentPath === 'string' ? body.parentPath : null,
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.delete('/topics', (req, res) => {
+      try {
+        topicsService().delete(
+          typeof req.query.relativePath === 'string' ? req.query.relativePath : '',
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/topics/import', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.source !== 'string' || typeof body.topicPath !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_topic_import_request' } })
+          return
+        }
+        res.json(topicsService().importFile(body.source, body.topicPath))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    // ── Identity local CRUD ───────────────────────────────────────────────
+    app.get('/identity', (_req, res) => {
+      try {
+        res.json(identityService().list())
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.get('/identity/content', (req, res) => {
+      try {
+        res
+          .type('text/plain')
+          .send(
+            identityService().getContent(typeof req.query.path === 'string' ? req.query.path : ''),
+          )
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.put('/identity/content', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.path !== 'string' || typeof body.content !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_identity_content_request' } })
+          return
+        }
+        identityService().saveContent(body.path, body.content)
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.delete('/identity', (req, res) => {
+      try {
+        identityService().delete(typeof req.query.path === 'string' ? req.query.path : '')
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/identity/archive', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        identityService().archive(typeof body.path === 'string' ? body.path : '')
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/identity/unarchive', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        identityService().unarchive(typeof body.path === 'string' ? body.path : '')
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/identity', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        res.json(
+          identityService().create(
+            String(body.region ?? ''),
+            String(body.name ?? ''),
+            String(body.summary ?? ''),
+            Array.isArray(body.tags)
+              ? body.tags.filter((tag): tag is string => typeof tag === 'string')
+              : [],
+            String(body.speakerId ?? ''),
+          ),
+        )
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/identity/merge', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        identityService().merge(
+          String(body.sourcePath ?? ''),
+          String(body.targetPath ?? ''),
+          body.mode === 'full' ? 'full' : 'voice_only',
+        )
+        res.status(204).end()
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    // ── Materials local CRUD ──────────────────────────────────────────────
+    app.post('/materials/import-file', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (typeof body.srcPath !== 'string') {
+          res.status(400).json({ error: { code: 'invalid_material_import_request' } })
+          return
+        }
+        res.json(materialsService().importFile(body.srcPath))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/materials/import-text', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        res.json(materialsService().importText(String(body.text ?? '')))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/materials/import-text-temp', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        res.json(materialsService().importTextTemp(String(body.text ?? '')))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    app.post('/materials/import-image-temp', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        res.json(
+          materialsService().importImageTemp(
+            String(body.data ?? ''),
+            String(body.mediaType ?? 'image/png'),
+          ),
+        )
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
 
     // GET /files — Rust-compatible workspace directory listing.
     app.get('/files', (req, res) => {
@@ -267,15 +689,15 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         const body = (req.body ?? {}) as Record<string, unknown>
         const kind = typeof body.kind === 'string' ? body.kind : 'file'
         if (kind === 'file' && typeof body.srcPath === 'string') {
-          res.json(filesService.importFile(body.srcPath).result)
+          res.json(materialsService().importFile(body.srcPath))
           return
         }
         if (kind === 'text' && typeof body.text === 'string') {
-          res.json(filesService.importText(body.text).result)
+          res.json(materialsService().importText(body.text))
           return
         }
         if (kind === 'text_temp' && typeof body.text === 'string') {
-          res.json(filesService.importTextTemp(body.text))
+          res.json(materialsService().importTextTemp(body.text))
           return
         }
         if (
@@ -283,7 +705,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           typeof body.data === 'string' &&
           typeof body.mediaType === 'string'
         ) {
-          res.json(filesService.importImageTemp(body.data, body.mediaType))
+          res.json(materialsService().importImageTemp(body.data, body.mediaType))
           return
         }
         res.status(400).json({

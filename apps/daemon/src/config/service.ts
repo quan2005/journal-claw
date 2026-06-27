@@ -36,6 +36,7 @@ interface StoredConfig {
   api_key?: EncryptedSecret
   engine_config?: EngineConfig
   workspace_path?: string
+  sample_entry_created?: boolean
   [key: string]: unknown
 }
 
@@ -124,6 +125,14 @@ export class ConfigService {
     if (typeof path !== 'string') throw invalid('workspace_path', path)
     mkdirSync(path, { recursive: true })
     this.persist({ ...this.load(), workspace_path: path })
+  }
+
+  getSampleEntryCreated(): boolean {
+    return this.load().sample_entry_created === true
+  }
+
+  setSampleEntryCreated(created: boolean): void {
+    this.persist({ ...this.load(), sample_entry_created: created })
   }
 
   getAppVersion(): string {

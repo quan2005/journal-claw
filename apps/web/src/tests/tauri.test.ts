@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setEngineConfig, type EngineConfig } from '../lib/tauri'
+import {
+  addTodo,
+  deleteJournalEntry,
+  listAvailableMonths,
+  listIdentities,
+  listTopicsDir,
+  setEngineConfig,
+  type EngineConfig,
+} from '../lib/tauri'
 
 const mockInvoke = vi.fn()
 
@@ -35,4 +43,31 @@ describe('tauri config commands', () => {
     })
   })
 
+  it('routes local CRUD wrappers through the runtime client command boundary', async () => {
+    mockInvoke
+      .mockResolvedValueOnce(['2606'])
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ text: 'todo' })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    await listAvailableMonths()
+    await deleteJournalEntry('/ws/2606/27-a.md')
+    await addTodo('todo')
+    await listTopicsDir('')
+    await listIdentities()
+
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, 'list_available_months')
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'delete_journal_entry', {
+      path: '/ws/2606/27-a.md',
+    })
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, 'add_todo', {
+      text: 'todo',
+      due: null,
+      source: null,
+      path: null,
+    })
+    expect(mockInvoke).toHaveBeenNthCalledWith(4, 'list_topics_dir', { relativePath: '' })
+    expect(mockInvoke).toHaveBeenNthCalledWith(5, 'list_identities')
+  })
 })

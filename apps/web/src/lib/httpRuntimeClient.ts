@@ -169,31 +169,241 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
       }
       case 'import_file': {
         return (await this.postJson(
-          '/files/import',
-          { kind: 'file', srcPath: args?.srcPath },
+          '/materials/import-file',
+          { srcPath: args?.srcPath },
           'daemon import file',
         )) as T
       }
       case 'import_text': {
         return (await this.postJson(
-          '/files/import',
-          { kind: 'text', text: args?.text },
+          '/materials/import-text',
+          { text: args?.text },
           'daemon import text',
         )) as T
       }
       case 'import_text_temp': {
         return (await this.postJson(
-          '/files/import',
-          { kind: 'text_temp', text: args?.text },
+          '/materials/import-text-temp',
+          { text: args?.text },
           'daemon import text temp',
         )) as T
       }
       case 'import_image_temp': {
         return (await this.postJson(
-          '/files/import',
-          { kind: 'image_temp', data: args?.data, mediaType: args?.mediaType },
+          '/materials/import-image-temp',
+          { data: args?.data, mediaType: args?.mediaType },
           'daemon import image temp',
         )) as T
+      }
+      case 'list_available_months': {
+        return (await this.getJson('/journal/months', 'daemon journal months')) as T
+      }
+      case 'list_journal_entries': {
+        const yearMonth = typeof args?.yearMonth === 'string' ? args.yearMonth : ''
+        return (await this.getJson(
+          `/journal/entries?yearMonth=${encodeURIComponent(yearMonth)}`,
+          'daemon journal entries',
+        )) as T
+      }
+      case 'list_journal_entries_by_months': {
+        const months = Array.isArray(args?.months)
+          ? args.months.filter((m): m is string => typeof m === 'string')
+          : []
+        return (await this.getJson(
+          `/journal/entries?months=${encodeURIComponent(months.join(','))}`,
+          'daemon journal entries by months',
+        )) as T
+      }
+      case 'list_all_journal_entries': {
+        return (await this.getJson('/journal/entries', 'daemon all journal entries')) as T
+      }
+      case 'list_journal_entries_paginated': {
+        return (await this.getJson(
+          `/journal/entries/paginated?offset=${encodeURIComponent(String(args?.offset ?? 0))}&limit=${encodeURIComponent(String(args?.limit ?? 50))}`,
+          'daemon paginated journal entries',
+        )) as T
+      }
+      case 'get_journal_entry_content': {
+        return (await this.getText(
+          `/journal/content?path=${encodeURIComponent(typeof args?.path === 'string' ? args.path : '')}`,
+          'daemon journal content',
+        )) as T
+      }
+      case 'save_journal_entry_content': {
+        await this.putJson(
+          '/journal/content',
+          { path: args?.path, content: args?.content },
+          'daemon save journal content',
+        )
+        return undefined as T
+      }
+      case 'delete_journal_entry': {
+        await this.deleteJson(
+          `/journal/entry?path=${encodeURIComponent(typeof args?.path === 'string' ? args.path : '')}`,
+          'daemon delete journal entry',
+        )
+        return undefined as T
+      }
+      case 'create_sample_entry': {
+        await this.postJson('/journal/sample', {}, 'daemon create sample entry')
+        return undefined as T
+      }
+      case 'create_sample_entry_if_needed': {
+        return (await this.postJson(
+          '/journal/sample-if-needed',
+          {},
+          'daemon create sample entry if needed',
+        )) as T
+      }
+      case 'list_todos': {
+        return (await this.getJson('/todos', 'daemon todos')) as T
+      }
+      case 'add_todo': {
+        return (await this.postJson(
+          '/todos',
+          { text: args?.text, due: args?.due, source: args?.source, path: args?.path },
+          'daemon add todo',
+        )) as T
+      }
+      case 'toggle_todo': {
+        await this.postJson(
+          '/todos/toggle',
+          { lineIndex: args?.lineIndex, checked: args?.checked, doneFile: args?.doneFile },
+          'daemon toggle todo',
+        )
+        return undefined as T
+      }
+      case 'delete_todo': {
+        await this.deleteJson(
+          `/todos?lineIndex=${encodeURIComponent(String(args?.lineIndex ?? 0))}&doneFile=${encodeURIComponent(String(args?.doneFile === true))}`,
+          'daemon delete todo',
+        )
+        return undefined as T
+      }
+      case 'set_todo_due': {
+        await this.putJson(
+          '/todos/due',
+          { lineIndex: args?.lineIndex, due: args?.due, doneFile: args?.doneFile },
+          'daemon set todo due',
+        )
+        return undefined as T
+      }
+      case 'set_todo_path': {
+        await this.putJson(
+          '/todos/path',
+          { lineIndex: args?.lineIndex, path: args?.path, doneFile: args?.doneFile },
+          'daemon set todo path',
+        )
+        return undefined as T
+      }
+      case 'remove_todo_path': {
+        await this.deleteJson(
+          `/todos/path?lineIndex=${encodeURIComponent(String(args?.lineIndex ?? 0))}&doneFile=${encodeURIComponent(String(args?.doneFile === true))}`,
+          'daemon remove todo path',
+        )
+        return undefined as T
+      }
+      case 'set_todo_session_id': {
+        await this.putJson(
+          '/todos/session',
+          { lineIndex: args?.lineIndex, sessionId: args?.sessionId, doneFile: args?.doneFile },
+          'daemon set todo session',
+        )
+        return undefined as T
+      }
+      case 'update_todo_text': {
+        await this.putJson(
+          '/todos/text',
+          { lineIndex: args?.lineIndex, text: args?.text, doneFile: args?.doneFile },
+          'daemon update todo text',
+        )
+        return undefined as T
+      }
+      case 'list_topics_dir': {
+        const relativePath = typeof args?.relativePath === 'string' ? args.relativePath : ''
+        return (await this.getJson(
+          `/topics?relativePath=${encodeURIComponent(relativePath)}`,
+          'daemon topics',
+        )) as T
+      }
+      case 'create_topic': {
+        await this.postJson(
+          '/topics',
+          { name: args?.name, parentPath: args?.parentPath },
+          'daemon create topic',
+        )
+        return undefined as T
+      }
+      case 'delete_topic': {
+        await this.deleteJson(
+          `/topics?relativePath=${encodeURIComponent(typeof args?.relativePath === 'string' ? args.relativePath : '')}`,
+          'daemon delete topic',
+        )
+        return undefined as T
+      }
+      case 'import_file_to_topic': {
+        return (await this.postJson(
+          '/topics/import',
+          { source: args?.source, topicPath: args?.topicPath },
+          'daemon import file to topic',
+        )) as T
+      }
+      case 'list_identities': {
+        return (await this.getJson('/identity', 'daemon identities')) as T
+      }
+      case 'get_identity_content': {
+        return (await this.getText(
+          `/identity/content?path=${encodeURIComponent(typeof args?.path === 'string' ? args.path : '')}`,
+          'daemon identity content',
+        )) as T
+      }
+      case 'save_identity_content': {
+        await this.putJson(
+          '/identity/content',
+          { path: args?.path, content: args?.content },
+          'daemon save identity content',
+        )
+        return undefined as T
+      }
+      case 'delete_identity': {
+        await this.deleteJson(
+          `/identity?path=${encodeURIComponent(typeof args?.path === 'string' ? args.path : '')}`,
+          'daemon delete identity',
+        )
+        return undefined as T
+      }
+      case 'archive_identity': {
+        await this.postJson('/identity/archive', { path: args?.path }, 'daemon archive identity')
+        return undefined as T
+      }
+      case 'unarchive_identity': {
+        await this.postJson(
+          '/identity/unarchive',
+          { path: args?.path },
+          'daemon unarchive identity',
+        )
+        return undefined as T
+      }
+      case 'create_identity': {
+        return (await this.postJson(
+          '/identity',
+          {
+            region: args?.region,
+            name: args?.name,
+            summary: args?.summary,
+            tags: args?.tags,
+            speakerId: args?.speakerId,
+          },
+          'daemon create identity',
+        )) as T
+      }
+      case 'merge_identity': {
+        await this.postJson(
+          '/identity/merge',
+          { sourcePath: args?.sourcePath, targetPath: args?.targetPath, mode: args?.mode },
+          'daemon merge identity',
+        )
+        return undefined as T
       }
       case 'workspace_duplicate_file': {
         return (await this.postJson(
@@ -232,6 +442,12 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     const res = await fetch(`${this.baseUrl}${path}`)
     if (!res.ok) throw new Error(`${label}: ${res.status}`)
     return res.json()
+  }
+
+  private async getText(path: string, label: string): Promise<string> {
+    const res = await fetch(`${this.baseUrl}${path}`)
+    if (!res.ok) throw new Error(`${label}: ${res.status}`)
+    return res.text()
   }
 
   private async postJson(

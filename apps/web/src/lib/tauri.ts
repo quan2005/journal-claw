@@ -41,21 +41,29 @@ export const setWorkspaceTheme = (theme: 'light' | 'dark' | 'system'): Promise<v
   selectRuntimeClient().invoke<void>('set_workspace_theme', { theme })
 
 // Journal
-export const listAvailableMonths = () => invoke<string[]>('list_available_months')
+export const listAvailableMonths = () =>
+  selectRuntimeClient().invoke<string[]>('list_available_months')
 
 export const listJournalEntriesByMonths = (months: string[]) =>
-  invoke<JournalEntry[]>('list_journal_entries_by_months', { months })
+  selectRuntimeClient().invoke<JournalEntry[]>('list_journal_entries_by_months', { months })
 
-export const listAllJournalEntries = () => invoke<JournalEntry[]>('list_all_journal_entries')
+export const listAllJournalEntries = () =>
+  selectRuntimeClient().invoke<JournalEntry[]>('list_all_journal_entries')
 
 export const listJournalEntriesPaginated = (
   offset: number,
   limit: number,
 ): Promise<[JournalEntry[], number]> =>
-  invoke<[JournalEntry[], number]>('list_journal_entries_paginated', { offset, limit })
+  selectRuntimeClient().invoke<[JournalEntry[], number]>('list_journal_entries_paginated', {
+    offset,
+    limit,
+  })
 
 export const getJournalEntryContent = (path: string) =>
-  invoke<string>('get_journal_entry_content', { path })
+  selectRuntimeClient().invoke<string>('get_journal_entry_content', { path })
+
+export const saveJournalEntryContent = (path: string, content: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('save_journal_entry_content', { path, content })
 
 export const compileMdx = (source: string, filepath?: string) =>
   invoke<string>('compile_mdx', { source, filepath: filepath ?? null })
@@ -77,7 +85,8 @@ export const importFile = (srcPath: string) =>
 export const triggerAiProcessing = (materialPath: string, yearMonth: string, note?: string) =>
   invoke<void>('trigger_ai_processing', { materialPath, yearMonth, note: note ?? null })
 
-export const deleteJournalEntry = (path: string) => invoke<void>('delete_journal_entry', { path })
+export const deleteJournalEntry = (path: string) =>
+  selectRuntimeClient().invoke<void>('delete_journal_entry', { path })
 
 // 粘贴文本 → 写入系统 temp 目录 → 返回路径（不自动触发 AI，OS 自动清理）
 export const importTextTemp = (text: string) =>
@@ -243,9 +252,10 @@ export const setEngineConfig = (cfg: EngineConfig): Promise<void> =>
   })
 
 export const createSampleEntryIfNeeded = (): Promise<boolean> =>
-  invoke<boolean>('create_sample_entry_if_needed')
+  selectRuntimeClient().invoke<boolean>('create_sample_entry_if_needed')
 
-export const createSampleEntry = (): Promise<void> => invoke<void>('create_sample_entry')
+export const createSampleEntry = (): Promise<void> =>
+  selectRuntimeClient().invoke<void>('create_sample_entry')
 
 // Onboarding
 export interface OnboardingStatus {
@@ -280,22 +290,22 @@ export const openPrivacySettings = (pane: 'speech_recognition'): Promise<void> =
 
 // Identity library (身份档案)
 export const listIdentities = (): Promise<IdentityEntry[]> =>
-  invoke<IdentityEntry[]>('list_identities')
+  selectRuntimeClient().invoke<IdentityEntry[]>('list_identities')
 
 export const getIdentityContent = (path: string): Promise<string> =>
-  invoke<string>('get_identity_content', { path })
+  selectRuntimeClient().invoke<string>('get_identity_content', { path })
 
 export const saveIdentityContent = (path: string, content: string): Promise<void> =>
-  invoke<void>('save_identity_content', { path, content })
+  selectRuntimeClient().invoke<void>('save_identity_content', { path, content })
 
 export const deleteIdentity = (path: string): Promise<void> =>
-  invoke<void>('delete_identity', { path })
+  selectRuntimeClient().invoke<void>('delete_identity', { path })
 
 export const archiveIdentity = (path: string): Promise<void> =>
-  invoke<void>('archive_identity', { path })
+  selectRuntimeClient().invoke<void>('archive_identity', { path })
 
 export const unarchiveIdentity = (path: string): Promise<void> =>
-  invoke<void>('unarchive_identity', { path })
+  selectRuntimeClient().invoke<void>('unarchive_identity', { path })
 
 export const createIdentity = (
   region: string,
@@ -303,16 +313,25 @@ export const createIdentity = (
   summary: string,
   tags: string[],
   speakerId: string,
-): Promise<string> => invoke<string>('create_identity', { region, name, summary, tags, speakerId })
+): Promise<string> =>
+  selectRuntimeClient().invoke<string>('create_identity', {
+    region,
+    name,
+    summary,
+    tags,
+    speakerId,
+  })
 
 export const mergeIdentity = (
   sourcePath: string,
   targetPath: string,
   mode: MergeMode,
-): Promise<void> => invoke<void>('merge_identity', { sourcePath, targetPath, mode })
+): Promise<void> =>
+  selectRuntimeClient().invoke<void>('merge_identity', { sourcePath, targetPath, mode })
 
 // Todos (待办事项)
-export const listTodos = (): Promise<TodoItem[]> => invoke<TodoItem[]>('list_todos')
+export const listTodos = (): Promise<TodoItem[]> =>
+  selectRuntimeClient().invoke<TodoItem[]>('list_todos')
 
 export const addTodo = (
   text: string,
@@ -320,7 +339,7 @@ export const addTodo = (
   source?: string,
   path?: string,
 ): Promise<TodoItem> =>
-  invoke<TodoItem>('add_todo', {
+  selectRuntimeClient().invoke<TodoItem>('add_todo', {
     text,
     due: due ?? null,
     source: source ?? null,
@@ -328,34 +347,36 @@ export const addTodo = (
   })
 
 export const toggleTodo = (lineIndex: number, checked: boolean, doneFile: boolean): Promise<void> =>
-  invoke<void>('toggle_todo', { lineIndex, checked, doneFile })
+  selectRuntimeClient().invoke<void>('toggle_todo', { lineIndex, checked, doneFile })
 
 export const deleteTodo = (lineIndex: number, doneFile: boolean): Promise<void> =>
-  invoke<void>('delete_todo', { lineIndex, doneFile })
+  selectRuntimeClient().invoke<void>('delete_todo', { lineIndex, doneFile })
 
 export const setTodoDue = (
   lineIndex: number,
   due: string | null,
   doneFile: boolean,
-): Promise<void> => invoke<void>('set_todo_due', { lineIndex, due, doneFile })
+): Promise<void> => selectRuntimeClient().invoke<void>('set_todo_due', { lineIndex, due, doneFile })
 
 export const setTodoPath = (
   lineIndex: number,
   path: string | null,
   doneFile: boolean,
-): Promise<void> => invoke<void>('set_todo_path', { lineIndex, path, doneFile })
+): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_todo_path', { lineIndex, path, doneFile })
 
 export const removeTodoPath = (lineIndex: number, doneFile: boolean): Promise<void> =>
-  invoke<void>('remove_todo_path', { lineIndex, doneFile })
+  selectRuntimeClient().invoke<void>('remove_todo_path', { lineIndex, doneFile })
 
 export const setTodoSessionId = (
   lineIndex: number,
   sessionId: string | null,
   doneFile: boolean,
-): Promise<void> => invoke<void>('set_todo_session_id', { lineIndex, sessionId, doneFile })
+): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_todo_session_id', { lineIndex, sessionId, doneFile })
 
 export const updateTodoText = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
-  invoke<void>('update_todo_text', { lineIndex, text, doneFile })
+  selectRuntimeClient().invoke<void>('update_todo_text', { lineIndex, text, doneFile })
 
 // Auto lint (自动整理)
 export interface AutoLintConfig {
@@ -661,16 +682,16 @@ export interface TopicEntry {
 }
 
 export const listTopicsDir = (relativePath: string): Promise<TopicEntry[]> =>
-  invoke<TopicEntry[]>('list_topics_dir', { relativePath })
+  selectRuntimeClient().invoke<TopicEntry[]>('list_topics_dir', { relativePath })
 
 export const createTopic = (name: string, parentPath?: string): Promise<void> =>
-  invoke<void>('create_topic', { name, parentPath: parentPath ?? null })
+  selectRuntimeClient().invoke<void>('create_topic', { name, parentPath: parentPath ?? null })
 
 export const deleteTopic = (relativePath: string): Promise<void> =>
-  invoke<void>('delete_topic', { relativePath })
+  selectRuntimeClient().invoke<void>('delete_topic', { relativePath })
 
 export const importFileToTopic = (source: string, topicPath: string): Promise<string> =>
-  invoke<string>('import_file_to_topic', { source, topicPath })
+  selectRuntimeClient().invoke<string>('import_file_to_topic', { source, topicPath })
 
 // ── Pinned ───────────────────────────────────────────────────
 

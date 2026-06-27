@@ -62,6 +62,15 @@ describe('config HTTP routes', () => {
     })
   })
 
+  it('local CRUD routes use the configured workspace path', async () => {
+    if (!handle) return
+    const workspace = join(dir, 'workspace')
+    mkdirSync(join(workspace, '2606'), { recursive: true })
+    await put('/config/workspace-path', { path: workspace })
+
+    await expect(get('/journal/months')).resolves.toEqual(['2606'])
+  })
+
   it('returns structured 400 for invalid engine config', async () => {
     if (!handle) return
     const res = await fetch(`${handle.url}/config/engine`, {

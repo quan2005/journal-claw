@@ -214,10 +214,10 @@ describe('HttpRuntimeClient', () => {
     await client.invoke('workspace_move_file', { relativePath: 'renamed.md', destDir: 'dest' })
     await client.invoke('workspace_delete_file', { relativePath: 'dest/renamed.md' })
 
-    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/files/import', {
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/materials/import-text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: 'text', text: 'hello' }),
+      body: JSON.stringify({ text: 'hello' }),
     })
     expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/files/duplicate', {
       method: 'POST',
@@ -239,6 +239,62 @@ describe('HttpRuntimeClient', () => {
       'http://127.0.0.1:1/files?relativePath=dest%2Frenamed.md',
       { method: 'DELETE' },
     )
+  })
+
+  it('invoke maps local CRUD commands to daemon module routes', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ['2606'] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ filename: '27-a.md' }] })
+      .mockResolvedValueOnce({ ok: true, text: async () => 'body' })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => undefined })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ text: 'todo' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ text: 'todo' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ name: 'A' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => 'A/a.md' })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ name: '关于我' }] })
+      .mockResolvedValueOnce({ ok: true, text: async () => '# me' })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => undefined })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await client.invoke('list_available_months')
+    await client.invoke('list_journal_entries_by_months', { months: ['2606'] })
+    await expect(
+      client.invoke('get_journal_entry_content', { path: '/ws/2606/27-a.md' }),
+    ).resolves.toBe('body')
+    await client.invoke('save_journal_entry_content', { path: '/ws/2606/27-a.md', content: 'next' })
+    await client.invoke('list_todos')
+    await client.invoke('add_todo', { text: 'todo' })
+    await client.invoke('list_topics_dir', { relativePath: '' })
+    await client.invoke('import_file_to_topic', { source: '/tmp/a.md', topicPath: 'A' })
+    await client.invoke('list_identities')
+    await expect(
+      client.invoke('get_identity_content', { path: '/ws/identity/README.md' }),
+    ).resolves.toBe('# me')
+    await client.invoke('merge_identity', { sourcePath: 'a', targetPath: 'b', mode: 'voice_only' })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/journal/months')
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/journal/entries?months=2606')
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      3,
+      'http://127.0.0.1:1/journal/content?path=%2Fws%2F2606%2F27-a.md',
+    )
+    expect(mockFetch).toHaveBeenNthCalledWith(4, 'http://127.0.0.1:1/journal/content', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/ws/2606/27-a.md', content: 'next' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(7, 'http://127.0.0.1:1/topics?relativePath=')
+    expect(mockFetch).toHaveBeenNthCalledWith(8, 'http://127.0.0.1:1/topics/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: '/tmp/a.md', topicPath: 'A' }),
+    })
+    expect(mockFetch).toHaveBeenNthCalledWith(11, 'http://127.0.0.1:1/identity/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourcePath: 'a', targetPath: 'b', mode: 'voice_only' }),
+    })
   })
 
   it('invoke clears skill lists with null when the last disabled skill is re-enabled', async () => {

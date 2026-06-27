@@ -117,6 +117,18 @@ describe('ConfigService', () => {
     expect(service.getWorkspacePath()).toBe(workspace)
   })
 
+  it('persists sample_entry_created in daemon user config', () => {
+    const service = new ConfigService({ configDir: dir })
+
+    expect(service.getSampleEntryCreated()).toBe(false)
+    service.setSampleEntryCreated(true)
+
+    expect(service.getSampleEntryCreated()).toBe(true)
+    expect(JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8'))).toMatchObject({
+      sample_entry_created: true,
+    })
+  })
+
   it('reads app version from package.json and disables removed audio capabilities', () => {
     const pkg = join(dir, 'package.json')
     writeFileSync(pkg, JSON.stringify({ version: '9.8.7' }))

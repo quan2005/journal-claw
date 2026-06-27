@@ -1,0 +1,67 @@
+---
+story: ./story.md
+design: N/A
+date: 2026-06-27
+round: 2
+result: fail
+scope: "实现文件清单：apps/daemon/src/local/service.ts, apps/daemon/src/journal/service.ts, apps/daemon/src/journal/service.test.ts, apps/daemon/src/todos/service.ts, apps/daemon/src/todos/service.test.ts, apps/daemon/src/topics/service.ts, apps/daemon/src/topics/service.test.ts, apps/daemon/src/identity/service.ts, apps/daemon/src/identity/service.test.ts, apps/daemon/src/materials/service.ts, apps/daemon/src/materials/service.test.ts, apps/daemon/src/server.ts, apps/web/src/lib/httpRuntimeClient.ts, apps/web/src/lib/tauri.ts, apps/web/src/tests/httpRuntimeClient.test.ts, apps/web/src/tests/tauri.test.ts"
+---
+
+# 验收报告 — M2 · 本地数据 CRUD（daemon）
+
+## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
+
+| AC | 结论 | 证据 |
+|---|---|---|
+| AC-1 每模块：daemon service + 路由 + 前端封装 + 测试；读已有 workspace 文件与 Rust 行为一致 | ❌ fail | 覆盖面存在：server 为 5 模块创建 service（`apps/daemon/src/server.ts:101`-`apps/daemon/src/server.ts:110`），路由覆盖 journal/todos/topics/identity/materials（`apps/daemon/src/server.ts:264`-`apps/daemon/src/server.ts:657`），HTTP runtime 覆盖对应 command（`apps/web/src/lib/httpRuntimeClient.ts:170`-`apps/web/src/lib/httpRuntimeClient.ts:407`），前端封装经 `selectRuntimeClient()`（`apps/web/src/lib/tauri.ts:43`-`apps/web/src/lib/tauri.ts:113`、`apps/web/src/lib/tauri.ts:254`-`apps/web/src/lib/tauri.ts:379`、`apps/web/src/lib/tauri.ts:684`-`apps/web/src/lib/tauri.ts:694`）。但“读已有 workspace 文件与 Rust 行为一致”失败：Rust journal/identity/materials 均从 `config::load_config(&app)?.workspace_path` 取 workspace（`apps/web/src-tauri/src/journal.rs:388`-`apps/web/src-tauri/src/journal.rs:392`、`apps/web/src-tauri/src/identity.rs:241`-`apps/web/src-tauri/src/identity.rs:247`、`apps/web/src-tauri/src/materials.rs:63`-`apps/web/src-tauri/src/materials.rs:69`），daemon CRUD services 固定绑定 `process.cwd()`（`apps/daemon/src/server.ts:101`-`apps/daemon/src/server.ts:110`）；同时 HTTP `set_workspace_path` 只写 config route（`apps/web/src/lib/httpRuntimeClient.ts:76`-`apps/web/src/lib/httpRuntimeClient.ts:79`，`apps/daemon/src/server.ts:173`-`apps/daemon/src/server.ts:182`），未影响已创建的 CRUD services。上一轮 fail 项部分已修复：YAML block array 有解析（`apps/daemon/src/local/service.ts:134`-`apps/daemon/src/local/service.ts:142`，测试 `apps/daemon/src/journal/service.test.ts:26`-`apps/daemon/src/journal/service.test.ts:45`、`apps/daemon/src/identity/service.test.ts:46`-`apps/daemon/src/identity/service.test.ts:60`）；materials hash 已改为 Rust DefaultHasher 兼容实现（`apps/daemon/src/materials/service.ts:77`-`apps/daemon/src/materials/service.ts:140`，测试 `apps/daemon/src/materials/service.test.ts:13`-`apps/daemon/src/materials/service.test.ts:16`）。但 frontmatter 仍不是完整 Rust `gray_matter` 等价：Rust 使用 YAML parser（`apps/web/src-tauri/src/journal.rs:311`-`apps/web/src-tauri/src/journal.rs:315`、`apps/web/src-tauri/src/identity.rs:207`-`apps/web/src-tauri/src/identity.rs:212`），daemon 是自写 Yamlish parser（`apps/daemon/src/local/service.ts:116`-`apps/daemon/src/local/service.ts:154`），例如空值只按 block list 处理（`apps/daemon/src/local/service.ts:134`-`apps/daemon/src/local/service.ts:140`）。 |
+| AC-2 delete 类操作可恢复或符合 Rust 语义 | ✅ pass | journal delete 经 `removeTracked` 记录 remove 后删除（`apps/daemon/src/journal/service.ts:103`-`apps/daemon/src/journal/service.ts:105`，`apps/daemon/src/local/service.ts:281`-`apps/daemon/src/local/service.ts:292`），Rust journal 是 `remove_file`（`apps/web/src-tauri/src/journal.rs:543`-`apps/web/src-tauri/src/journal.rs:546`）。todos delete 按行删除并写回（`apps/daemon/src/todos/service.ts:84`-`apps/daemon/src/todos/service.ts:88`）；topics/identity delete 通过 `removeTracked`（`apps/daemon/src/topics/service.ts:55`-`apps/daemon/src/topics/service.ts:60`、`apps/daemon/src/identity/service.ts:66`-`apps/daemon/src/identity/service.ts:74`）。 |
+| AC-3 daemon 测试全绿 ≥334 不回退；web tsc clean | ✅ pass | 命令 `pnpm --filter @journal/daemon test` 退出码 0，输出 `Test Files 58 passed (58)`、`Tests 376 passed (376)`，满足 ≥334。命令 `npm run build` 退出码 0，输出包含 `apps/web build$ tsc && npm run build:magicui && vite build` 和 `apps/web build: Done`。命令 `pnpm --filter @journal/web exec vitest run src/tests/httpRuntimeClient.test.ts src/tests/tauri.test.ts` 退出码 0，输出 `Test Files 2 passed (2)`、`Tests 18 passed (18)`。 |
+| AC-4 越界核查：仅各模块 daemon service + server.ts + 前端 tauri.ts + 测试 + story | ❌ fail | `git status --short` 输出仍包含 `M docs/adr/rust-removal-roadmap.md`，该文件不在 story 允许范围（`stories/20260627-m2-local-crud/story.md:31`）和本轮实现文件清单内；diff 内容是更新 M0/M1 状态（`git diff -- docs/adr/rust-removal-roadmap.md` 显示修改表格阶段状态），需用户裁决是否纳入本任务。 |
+
+## 范围完整性（不少，对照 story.md 范围）
+
+- ❌ journal：list months / list by months / list all / paginated / get content / save content / delete / create sample entry / if_needed 均有 service 与路由（`apps/daemon/src/journal/service.ts:56`-`apps/daemon/src/journal/service.ts:119`，`apps/daemon/src/server.ts:264`-`apps/daemon/src/server.ts:347`），但 workspace 根与 Rust 配置不一致（`apps/daemon/src/server.ts:101`-`apps/daemon/src/server.ts:110` vs `apps/web/src-tauri/src/journal.rs:388`-`apps/web/src-tauri/src/journal.rs:392`）。`if_needed` 已有持久化状态（`apps/daemon/src/journal/service.ts:139`-`apps/daemon/src/journal/service.ts:159`），但 Rust 字段是 config 中的 `sample_entry_created`（`apps/web/src-tauri/src/config.rs:199`-`apps/web/src-tauri/src/config.rs:201`，`apps/web/src-tauri/src/journal.rs:652`-`apps/web/src-tauri/src/journal.rs:668`），daemon 写独立 `journal-state.json`（`apps/daemon/src/journal/service.ts:149`-`apps/daemon/src/journal/service.ts:159`），是否接受为等价见待裁决。
+- ✅ todos：list / add / toggle / delete / set due / set path / set session / remove path / update text 在 service 中覆盖（`apps/daemon/src/todos/service.ts:27`-`apps/daemon/src/todos/service.ts:139`），路由覆盖（`apps/daemon/src/server.ts:349`-`apps/daemon/src/server.ts:460`），前端封装覆盖（`apps/web/src/lib/tauri.ts:332`-`apps/web/src/lib/tauri.ts:379`），测试覆盖解析、增改、toggle、排序（`apps/daemon/src/todos/service.test.ts:13`-`apps/daemon/src/todos/service.test.ts:58`）。
+- ✅ topics：list dir / create / delete / import file 在 service 中覆盖（`apps/daemon/src/topics/service.ts:29`-`apps/daemon/src/topics/service.ts:73`），路由覆盖（`apps/daemon/src/server.ts:462`-`apps/daemon/src/server.ts:514`），前端封装覆盖（`apps/web/src/lib/tauri.ts:684`-`apps/web/src/lib/tauri.ts:694`），测试覆盖排序/隐藏文件和 import（`apps/daemon/src/topics/service.test.ts:13`-`apps/daemon/src/topics/service.test.ts:35`）。
+- ✅ identity：list / get content / save content / delete / archive / unarchive / create / merge 在 service 中覆盖（`apps/daemon/src/identity/service.ts:42`-`apps/daemon/src/identity/service.ts:113`），路由覆盖（`apps/daemon/src/server.ts:516`-`apps/daemon/src/server.ts:611`），前端封装覆盖（`apps/web/src/lib/tauri.ts:291`-`apps/web/src/lib/tauri.ts:330`）；`speaker_id` 字段保留（`apps/daemon/src/identity/service.ts:29`、`apps/daemon/src/identity/service.ts:84`-`apps/daemon/src/identity/service.ts:90`），测试覆盖（`apps/daemon/src/identity/service.test.ts:28`-`apps/daemon/src/identity/service.test.ts:74`）。
+- ✅ materials：4 命令 import file / import text / import text temp / import image temp 在 service 与路由中覆盖（`apps/daemon/src/materials/service.ts:29`-`apps/daemon/src/materials/service.ts:74`，`apps/daemon/src/server.ts:613`-`apps/daemon/src/server.ts:657`），前端封装覆盖（`apps/web/src/lib/tauri.ts:77`-`apps/web/src/lib/tauri.ts:113`）；上一轮 hash fail 已修复为 Rust DefaultHasher 兼容（`apps/daemon/src/materials/service.ts:77`-`apps/daemon/src/materials/service.ts:140`，Rust 对照 `apps/web/src-tauri/src/materials.rs:14`-`apps/web/src-tauri/src/materials.rs:30`）。
+
+## 方案落实（不偏，对照 design.md）
+
+N/A。本任务无 design.md。
+
+## 越界检查（不多，对照 story 非目标 + design 范围）
+
+- ❌ 范围外工作区修改仍存在：`git status --short` 输出 `M docs/adr/rust-removal-roadmap.md`；story 只允许“各模块 daemon service + server.ts + 前端 tauri.ts + 测试 + story”（`stories/20260627-m2-local-crud/story.md:31`）。
+- ✅ 实现文件清单内未发现新增音频 service/路由；`importAudioFile` 仍是既有前端封装调用 `import_file`（`apps/web/src/lib/tauri.ts:141`-`apps/web/src/lib/tauri.ts:145`），本轮未据此判定新增音频范围。
+
+## 冗余（不重，对照 story.md）
+
+- ✅ 未发现同一 AC 的两套并行 daemon service 实现。5 个模块 service 在 server 中各实例化一次（`apps/daemon/src/server.ts:101`-`apps/daemon/src/server.ts:110`），HTTP command 在一个 `HttpRuntimeClient.invoke` switch 中映射（`apps/web/src/lib/httpRuntimeClient.ts:66`-`apps/web/src/lib/httpRuntimeClient.ts:438`）。
+- ✅ `/files/import` 改为复用 `MaterialsService`（`apps/daemon/src/server.ts:682`-`apps/daemon/src/server.ts:703`），与 materials 4 命令共享实现，未构成第二套材料导入逻辑。
+
+## 结论
+
+result: fail。
+
+主要修复建议（按风险排序）：
+
+1. 让 daemon local CRUD services 使用与 HTTP workspace config 一致的 workspace 根，或在契约中明确 daemon 运行目录就是 workspace。当前 `set_workspace_path` 不影响 CRUD，无法证明“读已有 workspace 文件与 Rust 行为一致”。
+2. 明确并修正 `create_sample_entry_if_needed` 状态位置：若要求 Rust 兼容，应读写同一 config 字段 `sample_entry_created`；若 daemon 独立状态可接受，需要回写 story。
+3. 若“严格对齐 Rust frontmatter”要求完整 YAML 语义，应使用 YAML parser 或补齐等价范围；当前自写 Yamlish parser 只能证明覆盖简单标量、inline list、block list、bool。
+4. 处理 `docs/adr/rust-removal-roadmap.md` 范围外修改：接受则回写契约或进入 docs-maintenance；不接受则隔离出本任务交付。
+
+## 待用户裁决
+
+1. daemon CRUD 是否允许以 `process.cwd()` 作为 workspace，而不是使用 `set_workspace_path` / Rust config 的 workspace_path？
+   - 接受：需要回写 story，明确 daemon 启动目录即 workspace，且 HTTP workspace path config 不驱动 CRUD。
+   - 不接受：需要修复 server/service 构造，使 CRUD 根与配置 workspace 一致。
+   - 保守结论：计入 fail。
+2. `create_sample_entry_if_needed` 的状态是否允许写 daemon 私有 `journal-state.json`，而不是 Rust config 的 `sample_entry_created` 字段？
+   - 接受：需要回写 story，说明 daemon 与 Tauri 的 sample 状态不共享。
+   - 不接受：需要改为读写 Rust config 字段。
+   - 保守结论：计入 fail。
+3. `docs/adr/rust-removal-roadmap.md` 修改是否属于本任务？
+   - 接受：需要把 docs 维护纳入契约或后续 docs-maintenance 流程。
+   - 不接受：该修改不得作为本任务交付的一部分。
+   - 保守结论：计入 fail。

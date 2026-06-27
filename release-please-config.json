@@ -16,17 +16,12 @@
         },
         {
           "type": "json",
-          "path": "packages/contracts/package.json",
+          "path": "apps/desktop/package.json",
           "jsonpath": "$.version"
         },
         {
-          "type": "toml",
-          "path": "apps/web/src-tauri/Cargo.toml",
-          "jsonpath": "$.package.version"
-        },
-        {
           "type": "json",
-          "path": "apps/web/src-tauri/tauri.conf.json",
+          "path": "packages/contracts/package.json",
           "jsonpath": "$.version"
         }
       ]

@@ -31,7 +31,6 @@ import { FileAttachments } from './FileAttachments'
 import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
 import { dispatchJournalFileOpen } from '../lib/fileNavigation'
-import clipboard from 'tauri-plugin-clipboard-api'
 import { hostOpenDialog } from '../lib/hostBridge'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
@@ -383,30 +382,9 @@ export function ChatPanel({
               showToast('warning', t('submitFailed'))
             })
 
-        clipboard
-          .readFiles()
-          .then((files) => {
-            if (files && files.length > 0) {
-              addFiles(files)
-            } else {
-              importPastedText()
-            }
-          })
-          .catch(() => {
-            importPastedText()
-          })
+        importPastedText()
         return
       }
-
-      clipboard
-        .readFiles()
-        .then((files) => {
-          if (files && files.length > 0) {
-            e.preventDefault()
-            addFiles(files)
-          }
-        })
-        .catch(() => {})
     },
     [addFiles, showToast, t],
   )

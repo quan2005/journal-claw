@@ -130,6 +130,8 @@
 - Gate A–J 全过：测试矩阵（macOS/Win/Linux）、回滚说明、迁移 ADR、release note。
 - 临时分支 dry-run 删 Rust 跑完整测试矩阵。
 
+**M8-b 终局（2026-06-27）**：`apps/web/src-tauri/` 已删除，`@tauri-apps/*` npm 依赖已移除，默认 runtime 固定为 daemon HTTP/SSE + Electron host bridge。验收记录见 `docs/adr/rust-removal-acceptance.md`，回滚说明见 `docs/adr/rust-removal-rollback.md`，用户可读说明见 `docs/adr/rust-removal-release-note.md`。
+
 ---
 
 ## 决策 · 下线 MDX（用户 2026-06-27，选 b 彻底移除）
@@ -170,4 +172,4 @@
 | M5 conversation | ✅ |
 | M6 automation | ✅ |
 | M7 Electron host | ✅ a+b+c |
-| M8 删 Rust | 🔲 |
+| M8 删 Rust | ✅ M8-b |

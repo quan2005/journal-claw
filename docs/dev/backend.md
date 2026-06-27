@@ -1,173 +1,52 @@
 ---
 title: 后端开发
-description: JournalClaw Rust 后端开发指南：Tauri 命令注册、LLM 引擎、模块详解。
+description: JournalClaw daemon 开发指南，包括 services、routes、Agent Run、ChangeSet 与测试。
 ---
 
 # 后端开发
 
-## 技术栈
+JournalClaw 的业务后端是 `apps/daemon` TypeScript 进程，通过 HTTP + SSE 服务前端和 Electron host。
 
-- Rust 2021 edition
-- Tauri v2（桌面框架）
-- reqwest（HTTP 客户端，LLM API 调用）
-- cpal（音频采集）
-- nnnoiseless + rubato（音频处理）
-- serde / serde_json（序列化）
-- tokio（异步运行时）
-- tokio-tungstenite（WebSocket 客户端，飞书桥接）
+## 目录
 
-## 命令注册
+| 目录 | 职责 |
+|---|---|
+| `server.ts` | Express routes 与 SSE 入口 |
+| `engine/` | pi 内建引擎封装、事件映射、prompt 组装 |
+| `runs/` | Agent Run 生命周期、事件存储、cancel |
+| `runtimes/` | Claude Code、Codex CLI、OpenCode adapters |
+| `changeset/` | 文件变更记录、diff/hash、revert |
+| `journal/`, `todos/`, `topics/`, `identity/` | 本地知识库 CRUD |
+| `settings/`, `config/`, `workspace/` | 工作区与应用配置 |
+| `automation/`, `work_queue/`, `ai_processor/` | 自动化、队列与 AI 处理 |
 
-所有 IPC 命令在 `src-tauri/src/main.rs` 中注册：
+## 新增业务能力
 
-```rust
-#[tauri::command]
-async fn start_recording(state: tauri::State<'_, AppState>) -> Result<(), String> {
-    // ...
-}
+1. 在对应 service 中实现纯业务逻辑，并写 vitest。
+2. 在 `server.ts` 暴露 route，必要时补 route test。
+3. 在 `apps/web/src/lib/httpRuntimeClient.ts` 增加旧 command 名到 HTTP route 的映射。
+4. 前端通过 `runtimeClient` / `lib/tauri.ts` 调用，不绕过统一入口。
 
-fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            start_recording,
-            stop_recording,
-            get_journal_entries,
-            // ... 50+ 命令
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-}
-```
+## Agent Run
 
-### 添加新命令
-
-```rust
-// 1. 在对应模块中实现逻辑
-// 2. 在 main.rs 中封装为 #[tauri::command] 函数
-// 3. 添加到 invoke_handler! 宏中
-// 4. 前端在 lib/tauri.ts 中添加封装
-```
-
-## LLM 引擎
-
-`src-tauri/src/llm/` 是谨迹的核心。一个内置的 Anthropic Messages API 客户端，支持多厂商：
+Agent Run 的主路径是：
 
 ```
-llm/
-  mod.rs       # API 客户端：构造请求、解析响应、流式输出
-  tool_loop.rs # Tool use 循环：AI 调用工具 → 获取结果 → 继续推理
+POST /runs
+GET /runs/:id/events
+POST /runs/:id/cancel
 ```
 
-### 支持的厂商
+事件统一为 `AgentRunEvent`，由 daemon 负责把 pi engine 或 CLI adapter 输出归一化。前端只消费统一事件，不感知具体 adapter 原始格式。
 
-通过统一的 Messages API 协议抽象：
+## ChangeSet
 
-```rust
-enum LlmVendor {
-    Anthropic,
-    Volcengine,
-    Zhipu,
-    DashScope,
-}
-```
+所有文件写入、移动、删除都应生成 ChangeSet，并保留 revert 所需信息。`read_only`、`workspace_write`、`full_access` 的授权语义在 daemon 层执行。
 
-不同厂商的差异（endpoint URL、认证 header、模型 ID 映射）在 `config.rs` 中配置，`llm/mod.rs` 根据配置动态选择。
+## 测试
 
-### Tool Use 循环
-
-内置 LLM 引擎支持 tool use（工具调用）循环：
-
-1. LLM 返回 tool use 请求（如读文件、更新条目）
-2. `tool_loop.rs` 执行工具调用并收集结果
-3. 结果作为新的 user message 返回给 LLM
-4. LLM 继续推理，直到不再请求工具
-
-## 音频管线
-
-```
-cpal 采集（recorder.rs）
-  → WAV 写入
-  → nnnoiseless 降噪（audio_process.rs）
-  → rubato 重采样（audio_process.rs）
-  → 静默检测 + 去除（audio_process.rs）
-  → afconvert 转码为 M4A（audio_pipeline.rs）
-  → STT 引擎转写（transcription.rs）
-  → LLM 编译（llm/）
-```
-
-## STT 引擎
-
-`transcription.rs` 定义 STT 引擎 trait：
-
-```rust
-trait SpeechToText {
-    async fn transcribe(&self, audio_path: &Path) -> Result<String>;
-}
-```
-
-三种实现：
-- **AppleSpeechAnalyzer** — 通过 Swift sidecar 调用 macOS SpeechAnalyzer
-- **WhisperKit** — 通过 Swift sidecar 调用 Apple WhisperKit
-- **DashScope** — HTTP API 调用阿里云百炼
-
-## AI 处理队列
-
-`ai_processor.rs` 实现异步 FIFO 队列：
-
-- 素材提交 → 入队
-- 单线程处理（一次编译一个素材，避免 rate limit）
-- 处理完成后发出 `ai-processing-done` 事件
-- 失败时记录错误并可重试
-
-## 关键数据结构
-
-### AppConfig
-
-```rust
-struct AppConfig {
-    vendor: LlmVendor,
-    api_key: String,
-    endpoint_id: Option<String>,
-    model: String,
-    compile_temperature: f32,
-    chat_temperature: f32,
-    // ...
-}
-```
-
-### JournalEntry
-
-```rust
-struct JournalEntry {
-    path: PathBuf,
-    title: String,
-    tags: Vec<String>,
-    date: NaiveDate,
-    sources: Vec<Source>,
-    summary: String,
-}
-```
-
-## 模块依赖关系
-
-```
-main.rs
-  ├── config.rs
-  ├── llm/
-  ├── conversation.rs → llm/
-  ├── ai_processor.rs → llm/, journal.rs, materials.rs
-  ├── recorder.rs → audio_pipeline.rs
-  ├── audio_pipeline.rs → audio_process.rs, transcription.rs
-  ├── transcription.rs
-  ├── journal.rs
-  ├── identity.rs
-  ├── speaker_profiles.rs → identity.rs
-  ├── todos.rs
-  ├── auto_lint.rs → journal.rs, identity.rs
-  ├── skills.rs
-  ├── feishu_bridge.rs → ai_processor.rs
-  ├── materials.rs → ai_processor.rs
-  ├── permissions.rs
-  ├── workspace.rs
-  └── workspace_settings.rs
+```bash
+cd apps/daemon
+npx vitest run
+npx tsc --noEmit
 ```

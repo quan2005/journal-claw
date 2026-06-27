@@ -54,7 +54,7 @@ git diff --name-only | grep -vE "verify-report|dist/|\.vite-temp|node_modules" |
 
 **规则**：
 - 验收方只能写 `verify-report*.md` + `.gitignore` 内的构建产物
-- 任何**源码改动**（src/、src-tauri/、apps/*/src/）= 验收方越界 → 判违规，撤销验收，重派
+- 任何**源码改动**（src/、apps/*/src/）= 验收方越界 → 判违规，撤销验收，重派
 - 构建产物（dist/、.vite-temp/）在 `.gitignore` 内，不构成越界
 
 ### 验收前置条件

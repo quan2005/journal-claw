@@ -63,72 +63,55 @@ Your questions answered
 
 | Layer | Technology |
 |---|---|
-| Desktop framework | Tauri v2 |
+| Desktop framework | Electron |
 | Frontend | React 19 + TypeScript + Vite 7 |
-| Audio capture | cpal 0.17 |
-| Audio processing | nnnoiseless (denoising) + rubato (resampling) + afconvert (M4A) |
-| Speech-to-text | Apple SpeechAnalyzer / SFSpeechRecognizer (Swift sidecar), WhisperKit, DashScope |
-| AI engine | Built-in Anthropic Messages API client (Rust, supports multiple vendors) |
-| IM integration | Feishu WebSocket bridge |
-| Serialization | serde / serde_json |
+| Backend | TypeScript daemon (HTTP + SSE) |
+| AI engine | daemon pi built-in engine + CLI adapters |
+| File changes | ChangeSet service |
+| Host capabilities | Electron preload host bridge |
 
 ## Architecture
 
 ```
-User action (record / drop / paste / Feishu message)
-  → Frontend invoke() → src/lib/tauri.ts
-  → Rust command → workspace/yyMM/raw/ (raw materials)
-  → Built-in LLM engine (src-tauri/src/llm/) → Anthropic Messages API
-  → Writes workspace/yyMM/DD-title.md
-  → Emits journal-updated event
-  → Frontend useJournal hook reloads entries
+User action (drop / paste / Agent Run)
+  → React frontend → runtimeClient / hostBridge
+  → TypeScript daemon services (HTTP + SSE)
+  → workspace files / ChangeSet / AgentRunEvent
+  → frontend hooks subscribe to events and refresh views
 ```
 
 ```
-src/                     # Frontend
-  components/            # React components (30+)
-  hooks/                 # useJournal, useRecorder, useTheme, useIdentity, useTodos, useConversation
-  lib/tauri.ts           # All IPC calls (single entry point)
-  types.ts               # Shared types
-  contexts/              # I18nContext (zh/en)
-  settings/              # Settings panel (9 sections)
-src-tauri/src/           # Rust backend
-  main.rs                # Tauri setup, menu, 50+ invoke_handler commands
-  config.rs              # App config (vendors, ASR, Feishu, WhisperKit)
-  llm/                   # Built-in LLM engine (Anthropic Messages API, tool loop)
-  conversation.rs        # Chat/agent sessions with streaming
-  ai_processor.rs        # AI processing queue, event emission
-  recorder.rs            # Audio capture (cpal → WAV → M4A)
-  audio_pipeline.rs      # Audio preparation pipeline for AI
-  audio_process.rs       # Denoising / resampling / silence removal
-  transcription.rs       # STT (Apple / DashScope / WhisperKit)
-  journal.rs             # Journal entry scanning and YAML frontmatter parsing
-  identity.rs            # Profile management (people, projects, concepts)
-  speaker_profiles.rs    # On-device speaker identification
-  todos.rs               # Todo items with path grouping and due dates
-  auto_lint.rs           # Scheduled knowledge base maintenance
-  skills.rs              # Skill plugin discovery (SKILL.md)
-  feishu_bridge.rs       # Feishu WebSocket client
-  materials.rs           # File import and text paste handling
-  permissions.rs         # macOS microphone/speech permission checks
-  workspace.rs           # Workspace path helpers
-  workspace_settings.rs  # Per-workspace settings (theme, auto-lint)
+apps/web/src/            # React frontend
+  components/            # React components
+  hooks/                 # useJournal, useTheme, useIdentity, useTodos, useConversation
+  lib/tauri.ts           # Compatibility shim delegating to runtime/host bridge
+  lib/runtimeClient.ts   # daemon runtime abstraction
+  lib/hostBridge.ts      # Electron host capabilities
+apps/daemon/src/         # TypeScript daemon
+  server.ts              # HTTP/SSE routes
+  engine/                # pi built-in engine
+  runs/                  # Agent Run lifecycle
+  changeset/             # file change records and recovery
+  journal/ todos/ topics/ identity/
+apps/desktop/src/        # Electron host
+  main.ts                # window and app lifecycle
+  daemon.ts              # daemon child-process lifecycle
+  hostIpc.ts             # preload IPC whitelist
 ```
 
 ## Development
 
-**Prerequisites:** Rust stable, Node.js 18+, macOS 12+ (macOS 26+ for SpeechAnalyzer)
+**Prerequisites:** Node.js 20+, pnpm 9
 
 ```bash
-npm install
-npm run tauri dev        # Dev mode (Vite + Tauri hot reload)
+pnpm install
+npm run desktop:dev      # Dev mode (Vite + Electron)
 npm test                 # Frontend tests (vitest)
-cd src-tauri && cargo test   # Rust unit tests
+cd apps/daemon && npx vitest run
+cd apps/desktop && npx vitest run
 npm run test:e2e         # E2E tests (Playwright)
-npm run tauri build      # Build → src-tauri/target/release/bundle/
+npm run desktop:build    # Electron production build
 ```
-
-First run requires microphone permission: System Settings → Privacy & Security → Microphone.
 
 ## Documentation
 

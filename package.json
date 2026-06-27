@@ -13,7 +13,6 @@
     "lint": "pnpm -r lint",
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "tauri": "pnpm --filter @journal/web tauri",
     "daemon:dev": "pnpm --filter @journal/daemon dev",
     "postinstall": "lefthook install"
   },

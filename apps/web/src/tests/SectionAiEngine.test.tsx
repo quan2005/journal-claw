@@ -16,10 +16,6 @@ vi.mock('../lib/tauri', async () => {
   }
 })
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-}))
-
 describe('SectionAiEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -382,7 +382,7 @@ function rootPages(templatePaths) {
       tags: ['journal', 'mdx-manual', 'runtime'],
       summary: 'MDX 经过 Rust 编译后由 React 白名单运行时渲染，未知组件只影响局部。',
       sources: [
-        projectSource('src-tauri/src/mdx.rs'),
+        projectSource('apps/web/src/components/MarkdownRenderer.tsx'),
         projectSource('src/components/MdxRenderer.tsx'),
         projectSource('apps/web/src/components/mdx/index.ts'),
       ],

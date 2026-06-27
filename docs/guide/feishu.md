@@ -12,7 +12,7 @@ description: 通过 WebSocket 连接飞书，接收消息并作为 JournalClaw �
 ```
 飞书客户端 / 服务端
   → WebSocket 推送消息到谨迹
-  → 谨迹飞书桥接模块接收（src-tauri/src/feishu_bridge.rs）
+  → daemon 飞书桥接服务接收
   → 消息按类型预处理（文本 / 文档 / 图片）
   → 提交到 AI 编译管线
   → 生成知识条目
@@ -64,7 +64,7 @@ description: 通过 WebSocket 连接飞书，接收消息并作为 JournalClaw �
 ## 隐私与安全
 
 - WebSocket 连接使用加密传输
-- App Secret 安全存储在 macOS Keychain
+- App Secret 由本地配置服务安全保存
 - 素材处理遵循与手动输入相同的隐私策略
 - 可在设置中随时关闭桥接
 

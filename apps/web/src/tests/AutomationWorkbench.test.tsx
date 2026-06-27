@@ -64,10 +64,6 @@ vi.mock('../hooks/useAutomation', () => ({
   useAutomation: () => automationMock,
 }))
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn().mockResolvedValue(() => {}),
-}))
-
 describe('AutomationWorkbench', () => {
   beforeEach(() => {
     vi.clearAllMocks()

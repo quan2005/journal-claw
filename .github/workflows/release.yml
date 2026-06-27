@@ -15,21 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select latest Xcode (macOS 26 SDK required for SpeechAnalyzer)
-        run: |
-          LATEST=$(ls -1d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-          echo "Using Xcode: $LATEST"
-          sudo xcode-select -s "$LATEST"
-          xcodebuild -version
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: apps/web/src-tauri
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -44,22 +29,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Swift CLI (journal-speech sidecar)
-        run: |
-          cd apps/web/src-tauri/swift-cli
-          swift build --configuration release --arch arm64
-          cp .build/arm64-apple-macosx/release/journal-speech \
-             ../binaries/journal-speech-aarch64-apple-darwin
-          chmod +x ../binaries/journal-speech-aarch64-apple-darwin
+      - name: Build web renderer
+        run: pnpm --filter @journal/web build
 
-      - name: Build Tauri app
-        run: pnpm --filter @journal/web tauri build
+      - name: Build daemon
+        run: pnpm --filter @journal/daemon build
+
+      - name: Build Electron app
+        run: pnpm --filter @journal/desktop build
 
       - name: Upload release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: apps/web/src-tauri/target/release/bundle/dmg/*.dmg
+          files: apps/desktop/release/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

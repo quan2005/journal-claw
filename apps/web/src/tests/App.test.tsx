@@ -16,29 +16,7 @@ function renderApp() {
   )
 }
 
-// ── Tauri API mocks ──────────────────────────────────────
-
 const listenerMap = new Map<string, (event: { payload: unknown }) => void>()
-
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn((name: string, cb: (event: { payload: unknown }) => void) => {
-    listenerMap.set(name, cb)
-    return Promise.resolve(() => listenerMap.delete(name))
-  }),
-}))
-
-vi.mock('@tauri-apps/api/window', () => ({
-  getCurrentWindow: () => ({
-    setTheme: vi.fn().mockResolvedValue(undefined),
-  }),
-}))
-
-vi.mock('@tauri-apps/api/webview', () => ({
-  getCurrentWebview: () => ({
-    onDragDropEvent: vi.fn().mockResolvedValue(() => {}),
-    setZoom: vi.fn(),
-  }),
-}))
 
 vi.mock('../lib/tauri', async () => {
   const actual = await vi.importActual('../lib/tauri')

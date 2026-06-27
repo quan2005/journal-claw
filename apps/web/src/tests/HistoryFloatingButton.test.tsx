@@ -3,10 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
 import { HistoryFloatingButton } from '../components/HistoryFloatingButton'
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn().mockResolvedValue(() => {}),
-}))
-
 vi.mock('../lib/tauri', () => ({
   conversationList: vi.fn().mockResolvedValue([]),
   conversationDelete: vi.fn().mockResolvedValue(undefined),

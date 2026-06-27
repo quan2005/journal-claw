@@ -9,7 +9,6 @@
     "build": "tsc && npm run build:magicui && vite build",
     "build:magicui": "vite build --config magicui.vite.config.ts && npx tailwindcss -i src/lib/sandbox/magicui/tailwind.css -o src/lib/sandbox/magicui/dist/magicui.bundle.css --minify",
     "preview": "vite preview",
-    "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -24,9 +23,6 @@
     "@journal/contracts": "workspace:*",
     "@picocss/pico": "^2.1.1",
     "@tabler/icons-webfont": "^3.36.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "^2.7.0",
-    "@tauri-apps/plugin-opener": "^2",
     "concrete.css": "^3.1.0",
     "dompurify": "^3.4.0",
     "highlight.js": "^11.11.1",
@@ -39,7 +35,6 @@
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
-    "tauri-plugin-clipboard-api": "^2.1.11",
     "water.css": "^2.1.1"
   },
   "devDependencies": {
@@ -47,7 +42,6 @@
     "@playwright/test": "^1.59.1",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/cli": "^4.3.0",
-    "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/dompurify": "^3.0.5",

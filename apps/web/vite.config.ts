@@ -91,7 +91,7 @@ export default defineConfig(async () => ({
     pure: ['console.log', 'console.debug'],
     drop: ['debugger'],
   },
-  // 2. tauri expects a fixed port, fail if that port is not available
+  // 2. Electron host expects a fixed renderer port, fail if that port is not available
   server: {
     port: 1420,
     strictPort: true,
@@ -104,8 +104,8 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri` and `.claude`
-      ignored: ["**/src-tauri/**", "**/.claude/**"],
+      // 3. tell Vite to ignore generated workspace skill folders
+      ignored: ["**/.claude/**"],
     },
   },
 }));

@@ -6,19 +6,12 @@ import { ChatPanel } from '../components/ChatPanel'
 const mocks = vi.hoisted(() => ({
   importText: vi.fn(),
   openFile: vi.fn(),
-  readFiles: vi.fn(),
   open: vi.fn(),
 }))
 
 vi.mock('../lib/tauri', () => ({
   importText: mocks.importText,
   openFile: mocks.openFile,
-}))
-
-vi.mock('tauri-plugin-clipboard-api', () => ({
-  default: {
-    readFiles: mocks.readFiles,
-  },
 }))
 
 vi.mock('../lib/hostBridge', () => ({
@@ -48,7 +41,6 @@ function renderChatPanel(props?: Partial<React.ComponentProps<typeof ChatPanel>>
 describe('ChatPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.readFiles.mockResolvedValue([])
     mocks.importText.mockResolvedValue({
       path: '/workspace/2606/raw/05-paste-20260605-120000.txt',
       filename: '05-paste-20260605-120000.txt',

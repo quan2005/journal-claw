@@ -7,102 +7,72 @@ description: JournalClaw 开发环境搭建指南，包括依赖安装、开发�
 
 ## 系统要求
 
-- macOS 12（Monterey）及以上
-- macOS 26+ 可获得 Apple SpeechAnalyzer 支持（开发/调试时需要）
-- Rust stable（通过 rustup 安装）
-- Node.js 18+
-- Xcode Command Line Tools（包含 macOS SDK）
+- Node.js 20+
+- pnpm 9（仓库声明为 `pnpm@9.15.0`）
+- macOS / Windows / Linux 桌面开发环境
+
+默认开发与测试不需要 Rust toolchain、Xcode、Swift sidecar、WhisperKit 或 ffmpeg。
 
 ## 安装依赖
 
 ```bash
-# 克隆仓库
 git clone https://github.com/quan2005/journal.git
 cd journal
-
-# 安装前端依赖
-npm install
-
-# Rust 依赖会自动在首次构建时安装
+pnpm install
 ```
 
 ## 开发模式
 
 ```bash
-# 全栈开发（Vite 热重载 + Tauri 热重载）
-npm run tauri dev
+# 桌面开发：Vite + Electron
+npm run desktop:dev
 
-# 仅前端开发（不启动 Rust 后端，适合 UI 调试）
+# 仅前端：Vite at localhost:1420
 npm run dev
+
+# daemon CLI
+npm run daemon:dev
 ```
 
-`npm run tauri dev` 会同时启动：
-- Vite 开发服务器（前端 HMR）
-- Tauri 开发窗口（Rust 后端 + WebView）
-
-修改 Rust 代码后，Tauri 会自动重新编译并重启窗口。
+`npm run desktop:dev` 会先构建 Electron main/preload，再并行启动 Vite 与 Electron。业务 API 由 daemon 提供，Electron 只负责宿主能力。
 
 ## 运行测试
 
 ```bash
-# 前端测试（vitest）
+# 前端测试
 npm test
-
-# 前端测试（监听模式）
 npm run test:watch
 
-# Rust 单元测试
-cd src-tauri && cargo test
+# daemon 测试
+cd apps/daemon && npx vitest run
 
-# E2E 测试（Playwright）
+# desktop 测试
+cd apps/desktop && npx vitest run
+
+# E2E 测试
 npm run test:e2e
 ```
 
 ## 代码检查
 
 ```bash
-# ESLint
 npm run lint
-
-# Rust 格式
-cd src-tauri && cargo fmt --check
-
-# Rust lint
-cd src-tauri && cargo clippy
+npm run format:check
+cd apps/web && npx tsc --noEmit
+cd apps/daemon && npx tsc --noEmit
+cd apps/desktop && npx tsc --noEmit
 ```
 
 ## 调试
 
-### Rust 后端
-
-1. 在 `Cargo.toml` 中设置 `[profile.dev]` 优化级别为 0
-2. 使用 `println!` / `dbg!` 宏输出到终端
-3. Rust 端日志通过 `env_logger` 输出，可设置 `RUST_LOG=debug` 环境变量
-
 ### 前端
 
-1. macOS WebView 调试：`Safari → 开发 → 你的 Mac → WebView 页面`
-2. React DevTools 可连接到 Tauri WebView
-3. `console.log` 输出到 Safari 检查器
+Electron DevTools 与普通浏览器 DevTools 均可调试 Vite 页面。UI 调试优先使用 `npm run dev`，宿主能力调试使用 `npm run desktop:dev`。
 
-### Tauri 配置
+### Daemon
 
-`src-tauri/tauri.conf.json` 控制窗口大小、权限、安全策略等。
+daemon 是普通 Node.js 进程。routes 在 `apps/daemon/src/server.ts`，业务逻辑在各 service 目录。可通过 vitest 单测或 `npm run daemon:dev` 调试。
 
-## 常见问题
+### Electron Host
 
-### 首次构建很慢
-
-首次 `cargo build` 需要编译所有 Rust 依赖（包括 tauri、cpal、reqwest 等）。后续增量编译会快很多。
-
-### 麦克风权限
-
-开发模式下，首次调用录音功能需要授权麦克风权限。测试中可以通过 `permissions.rs` 中的模拟逻辑绕过。
-
-### Swift sidecar 编译
-
-声纹识别依赖 Swift sidecar 组件。如果不需要此功能，可以在 `Cargo.toml` 中排除相关 feature。
-
-### 飞书桥接调试
-
-飞书 WebSocket 调试需要真实的飞书开放平台应用凭据。可使用 `RUST_LOG=debug` 查看 WebSocket 通信日志。
+宿主能力通过 `apps/web/src/lib/hostBridge.ts` 调用 `window.electronAPI`。主进程白名单在 `apps/desktop/src/hostIpc.ts` 和 `apps/desktop/src/preload.cts`。

@@ -278,6 +278,55 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
           'daemon import image temp',
         )) as T
       }
+      case 'trigger_ai_processing': {
+        await this.postJson(
+          '/ai-processing/trigger',
+          { materialPath: args?.materialPath, yearMonth: args?.yearMonth, note: args?.note },
+          'daemon trigger ai processing',
+        )
+        return undefined as T
+      }
+      case 'trigger_ai_prompt': {
+        await this.postJson(
+          '/ai-processing/prompt',
+          { prompt: args?.prompt },
+          'daemon trigger ai prompt',
+        )
+        return undefined as T
+      }
+      case 'cancel_ai_processing': {
+        await this.postJson('/ai-processing/cancel', {}, 'daemon cancel ai processing')
+        return undefined as T
+      }
+      case 'cancel_queued_item': {
+        await this.postJson(
+          '/ai-processing/cancel-queued',
+          { materialPath: args?.materialPath },
+          'daemon cancel queued ai item',
+        )
+        return undefined as T
+      }
+      case 'get_workspace_prompt': {
+        return (await this.getText(
+          '/ai-processing/workspace-prompt',
+          'daemon workspace prompt',
+        )) as T
+      }
+      case 'set_workspace_prompt': {
+        await this.putJson(
+          '/ai-processing/workspace-prompt',
+          { content: args?.content },
+          'daemon set workspace prompt',
+        )
+        return undefined as T
+      }
+      case 'reset_workspace_prompt': {
+        return (await this.postText(
+          '/ai-processing/workspace-prompt/reset',
+          {},
+          'daemon reset workspace prompt',
+        )) as T
+      }
       case 'list_available_months': {
         return (await this.getJson('/journal/months', 'daemon journal months')) as T
       }
@@ -513,6 +562,44 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         await this.deleteJson(
           `/files?relativePath=${encodeURIComponent(typeof args?.relativePath === 'string' ? args.relativePath : '')}`,
           'daemon delete file',
+        )
+        return undefined as T
+      }
+      case 'enqueue_work': {
+        return (await this.postJson(
+          '/work-queue',
+          {
+            text: args?.text,
+            files: args?.files,
+            prompt: args?.prompt,
+            displayName: args?.displayName,
+          },
+          'daemon enqueue work',
+        )) as T
+      }
+      case 'list_work_queue': {
+        return (await this.getJson('/work-queue', 'daemon work queue')) as T
+      }
+      case 'cancel_work_item': {
+        await this.postJson(
+          `/work-queue/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}/cancel`,
+          {},
+          'daemon cancel work item',
+        )
+        return undefined as T
+      }
+      case 'retry_work_item': {
+        await this.postJson(
+          `/work-queue/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}/retry`,
+          {},
+          'daemon retry work item',
+        )
+        return undefined as T
+      }
+      case 'dismiss_work_item': {
+        await this.deleteJson(
+          `/work-queue/${encodeURIComponent(typeof args?.id === 'string' ? args.id : '')}`,
+          'daemon dismiss work item',
         )
         return undefined as T
       }

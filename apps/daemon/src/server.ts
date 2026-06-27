@@ -8,6 +8,7 @@
 
 import express from 'express'
 import type { Server } from 'node:http'
+import type { Provider } from '@earendil-works/pi-ai'
 import { AgentRunService } from './runs/service.js'
 import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
 import { executeRun } from './runtimes/runner.js'
@@ -33,8 +34,11 @@ import { AutoLintService } from './auto_lint/service.js'
 import { EventLogService } from './event_log/service.js'
 import { compileMdx } from './mdx/service.js'
 import { DirectiveMigrationService } from './directive_migration/service.js'
+import { AiProcessorService } from './ai_processor/service.js'
+import { WorkQueueService, buildWorkItemPrompt } from './work_queue/service.js'
 import { LocalCrudError } from './local/service.js'
 import { execFile } from 'node:child_process'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
 
@@ -48,6 +52,7 @@ export interface DaemonOptions {
    */
   runService?: AgentRunService
   configService?: ConfigService
+  builtinProviders?: Provider[]
 }
 
 export interface DaemonHandle {
@@ -92,6 +97,10 @@ function resolveDataDir(): string {
   return process.env.JOURNAL_DAEMON_DATA_DIR ?? '.journal-daemon-data'
 }
 
+function defaultWorkspacePrompt(): string {
+  return 'You are JournalClaw. Help maintain this knowledge workspace and write journal entries in Markdown/MDX.\n'
+}
+
 export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
   return new Promise((resolve, reject) => {
     const app = express()
@@ -129,6 +138,80 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const eventLogService = new EventLogService()
     const directiveMigrationService = (): DirectiveMigrationService =>
       new DirectiveMigrationService(workspaceRoot())
+    const namedEventSubscribers = new Map<string, Set<(payload: unknown) => void>>()
+    const publishEvent = (event: string, payload: unknown): void => {
+      for (const subscriber of namedEventSubscribers.get(event) ?? []) {
+        try {
+          subscriber(payload)
+        } catch {
+          // Ignore one broken SSE client.
+        }
+      }
+    }
+    const aiProcessorServices = new Map<string, AiProcessorService>()
+    const workQueueServices = new Map<string, WorkQueueService>()
+    const aiProcessorService = (): AiProcessorService => {
+      const root = workspaceRoot()
+      const existing = aiProcessorServices.get(root)
+      if (existing) return existing
+      const created = new AiProcessorService(root, service, configService, {
+        providers: opts.builtinProviders,
+        changeSetService: () => workspaceChangeSets(),
+        skillsService: () => skillsService(),
+        events: {
+          processing: (event) => publishEvent('ai-processing', event),
+          log: (event) => publishEvent('ai-log', event),
+          journalUpdated: (yearMonth) => {
+            publishEvent('journal-updated', yearMonth)
+            eventLogService.record('journal-updated', yearMonth)
+          },
+          todosUpdated: () => {
+            publishEvent('todos-updated', null)
+            eventLogService.record('todos-updated', null)
+          },
+        },
+      })
+      aiProcessorServices.set(root, created)
+      return created
+    }
+    const workQueueService = (): WorkQueueService => {
+      const root = workspaceRoot()
+      const existing = workQueueServices.get(root)
+      if (existing) return existing
+      const created = new WorkQueueService(root, {
+        async run(item, signal) {
+          const prompt = buildWorkItemPrompt(root, item)
+          const run = service.createRun({
+            goal: prompt,
+            mode: 'agent',
+            agentId: 'builtin',
+            authorizationMode: 'workspace_write',
+          })
+          const result = await executeBuiltinRun(
+            service,
+            configService,
+            {
+              runId: run.id,
+              prompt,
+              systemPrompt: `Workspace: ${root}`,
+              workspaceRoot: root,
+              authorizationMode: 'workspace_write',
+            },
+            {
+              providers: opts.builtinProviders,
+              signal,
+              changeSetService: workspaceChangeSets(),
+              skillsService: skillsService(),
+            },
+          )
+          if (!result.ok) throw new Error(signal.aborted ? 'cancelled' : 'work item failed')
+          return run.id
+        },
+      })
+      created.subscribe(() => publishEvent('work-queue-updated', null))
+      workQueueServices.set(root, created)
+      return created
+    }
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
     // running executeRun child (SIGTERM the spawned CLI), not just flip status.
@@ -1022,6 +1105,144 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       req.on('close', () => {
         clearInterval(interval)
       })
+    })
+
+    app.get('/events/:event', (req, res) => {
+      const eventName = req.params.event
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      })
+      res.write(
+        `data: ${JSON.stringify({ type: 'subscribed', event: eventName, timestamp: new Date().toISOString() })}\n\n`,
+      )
+      const subscriber = (payload: unknown): void => {
+        res.write(`data: ${JSON.stringify(payload)}\n\n`)
+      }
+      const set = namedEventSubscribers.get(eventName) ?? new Set<(payload: unknown) => void>()
+      set.add(subscriber)
+      namedEventSubscribers.set(eventName, set)
+      req.on('close', () => {
+        set.delete(subscriber)
+        if (set.size === 0) namedEventSubscribers.delete(eventName)
+      })
+    })
+
+    app.post('/ai-processing/trigger', async (req, res, next) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.materialPath !== 'string' || typeof body.yearMonth !== 'string') {
+        res.status(400).json({ error: 'materialPath and yearMonth are required' })
+        return
+      }
+      try {
+        await aiProcessorService().trigger({
+          materialPath: body.materialPath,
+          yearMonth: body.yearMonth,
+          note: typeof body.note === 'string' ? body.note : null,
+        })
+        res.status(204).end()
+      } catch (err) {
+        next(err)
+      }
+    })
+
+    app.post('/ai-processing/prompt', async (req, res, next) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.prompt !== 'string') {
+        res.status(400).json({ error: 'prompt is required' })
+        return
+      }
+      try {
+        await aiProcessorService().triggerPrompt(body.prompt)
+        res.status(204).end()
+      } catch (err) {
+        next(err)
+      }
+    })
+
+    app.post('/ai-processing/cancel', (_req, res) => {
+      aiProcessorService().cancel()
+      res.status(204).end()
+    })
+
+    app.post('/ai-processing/cancel-queued', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.materialPath !== 'string') {
+        res.status(400).json({ error: 'materialPath is required' })
+        return
+      }
+      aiProcessorService().cancelQueued(body.materialPath)
+      res.status(204).end()
+    })
+
+    app.get('/ai-processing/workspace-prompt', (_req, res) => {
+      const promptPath = `${workspaceRoot()}/CLAUDE.md`
+      res
+        .type('text/plain')
+        .send(existsSync(promptPath) ? readFileSync(promptPath, 'utf8') : defaultWorkspacePrompt())
+    })
+
+    app.put('/ai-processing/workspace-prompt', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.content !== 'string') {
+        res.status(400).json({ error: 'content is required' })
+        return
+      }
+      writeFileSync(`${workspaceRoot()}/CLAUDE.md`, body.content, 'utf8')
+      res.status(204).end()
+    })
+
+    app.post('/ai-processing/workspace-prompt/reset', (_req, res) => {
+      const content = defaultWorkspacePrompt()
+      writeFileSync(`${workspaceRoot()}/CLAUDE.md`, content, 'utf8')
+      res.type('text/plain').send(content)
+    })
+
+    app.get('/work-queue', (_req, res) => {
+      res.json(workQueueService().list())
+    })
+
+    app.post('/work-queue', (req, res) => {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      if (typeof body.displayName !== 'string') {
+        res.status(400).json({ error: 'displayName is required' })
+        return
+      }
+      const files = Array.isArray(body.files)
+        ? body.files.filter((file): file is string => typeof file === 'string')
+        : null
+      res.status(201).json(
+        workQueueService().enqueue({
+          text: typeof body.text === 'string' ? body.text : null,
+          files,
+          prompt: typeof body.prompt === 'string' ? body.prompt : null,
+          displayName: body.displayName,
+        }),
+      )
+    })
+
+    app.post('/work-queue/:id/cancel', (req, res) => {
+      try {
+        workQueueService().cancel(req.params.id)
+        res.status(204).end()
+      } catch (err) {
+        res.status(404).json({ error: err instanceof Error ? err.message : String(err) })
+      }
+    })
+
+    app.post('/work-queue/:id/retry', (req, res) => {
+      try {
+        workQueueService().retry(req.params.id)
+        res.status(204).end()
+      } catch (err) {
+        res.status(400).json({ error: err instanceof Error ? err.message : String(err) })
+      }
+    })
+
+    app.delete('/work-queue/:id', (req, res) => {
+      workQueueService().dismiss(req.params.id)
+      res.status(204).end()
     })
 
     // ── AgentRun routes ──────────────────────────────────────────────────────

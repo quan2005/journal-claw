@@ -84,7 +84,7 @@
 - **ME-a**：加 pi 依赖（锁版本）+ 引擎 service 骨架 + vendor/model 配置（anthropic/openai 原生；volcengine/zhipu/dashscope 走 openai-completions provider + 自定义 baseURL；接 ConfigService 加密 key + engine config）+ 用 pi `faux` provider 写测试（无需真 key）。
 - **ME-b**：AgentTools（bash / fs 经 ChangeSet / subtask）+ 授权钩子（beforeToolCall→AuthorizationMode 门，afterToolCall→ChangeSet 记录）。
 - **ME-c**：pi 事件 → AgentRunEvent 映射；接入 AgentRunService（Run 可用 pi 引擎）；prompt 组装 + skills 加载（从 Rust 移植，systemPrompt + transformContext）。
-- **真实 vendor 验证**：用户提供 zhipu/dashscope/volcengine 任一 key 后冒烟 chat + tool_call。CLI adapter 保留作 Agent Team 委派。
+- **真实 vendor 验证（用户自测，2026-06-27）**：国产三家 chat+tool_call 由用户自行验证；配置面已就绪。CLI adapter 保留作 Agent Team 委派。
 
 ## M4 · AI 处理 + work queue（建于 ME 引擎，整体在 ME 后做）
 
@@ -157,7 +157,7 @@
 | M2 CRUD | ✅ |
 | M3 skills/杂项 | ✅ 0664f00 |
 | ME 引擎集成(pi) | ✅ ME-a 16d2673 · ME-b 919a03c · ME-c |
-| M4 AI/queue | 🔲（待 ME） |
+| M4 AI/queue | ✅ |
 | M5 conversation | 🔲 |
 | M6 automation | 🔲 |
 | M7 Electron host | 🔲 |

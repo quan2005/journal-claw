@@ -85,7 +85,11 @@ export const importFile = (srcPath: string) =>
 
 // AI Processing
 export const triggerAiProcessing = (materialPath: string, yearMonth: string, note?: string) =>
-  invoke<void>('trigger_ai_processing', { materialPath, yearMonth, note: note ?? null })
+  selectRuntimeClient().invoke<void>('trigger_ai_processing', {
+    materialPath,
+    yearMonth,
+    note: note ?? null,
+  })
 
 export const deleteJournalEntry = (path: string) =>
   selectRuntimeClient().invoke<void>('delete_journal_entry', { path })
@@ -116,7 +120,7 @@ export const importImageTemp = (data: string, mediaType: string) =>
 
 // Pure prompt → send text directly (no file written)
 export const triggerAiPrompt = (prompt: string): Promise<void> =>
-  invoke<void>('trigger_ai_prompt', { prompt })
+  selectRuntimeClient().invoke<void>('trigger_ai_prompt', { prompt })
 
 // Paste text → save as raw material → trigger AI processing
 export const submitPasteText = async (text: string): Promise<void> => {
@@ -124,21 +128,22 @@ export const submitPasteText = async (text: string): Promise<void> => {
   await triggerAiProcessing(result.path, result.year_month)
 }
 
-export const getWorkspacePrompt = () => invoke<string>('get_workspace_prompt')
+export const getWorkspacePrompt = () => selectRuntimeClient().invoke<string>('get_workspace_prompt')
 
 export const setWorkspacePrompt = (content: string) =>
-  invoke<void>('set_workspace_prompt', { content })
+  selectRuntimeClient().invoke<void>('set_workspace_prompt', { content })
 
-export const resetWorkspacePrompt = () => invoke<string>('reset_workspace_prompt')
+export const resetWorkspacePrompt = () =>
+  selectRuntimeClient().invoke<string>('reset_workspace_prompt')
 
 export const openFile = (path: string): Promise<void> => invoke('open_with_system', { path })
 
 export const openUrl = (url: string): Promise<void> => invoke('open_with_system', { path: url })
 
-export const cancelAiProcessing = () => invoke<void>('cancel_ai_processing')
+export const cancelAiProcessing = () => selectRuntimeClient().invoke<void>('cancel_ai_processing')
 
 export const cancelQueuedItem = (materialPath: string) =>
-  invoke<void>('cancel_queued_item', { materialPath })
+  selectRuntimeClient().invoke<void>('cancel_queued_item', { materialPath })
 
 export const importAudioFile = (srcPath: string) =>
   selectRuntimeClient().invoke<{ path: string; filename: string; year_month: string }>(
@@ -616,22 +621,24 @@ export const enqueueWork = (params: {
   prompt?: string
   displayName: string
 }): Promise<WorkItem> =>
-  invoke<WorkItem>('enqueue_work', {
+  selectRuntimeClient().invoke<WorkItem>('enqueue_work', {
     text: params.text ?? null,
     files: params.files ?? null,
     prompt: params.prompt ?? null,
     displayName: params.displayName,
   })
 
-export const listWorkQueue = (): Promise<WorkItem[]> => invoke<WorkItem[]>('list_work_queue')
+export const listWorkQueue = (): Promise<WorkItem[]> =>
+  selectRuntimeClient().invoke<WorkItem[]>('list_work_queue')
 
 export const cancelWorkItem = (id: string): Promise<void> =>
-  invoke<void>('cancel_work_item', { id })
+  selectRuntimeClient().invoke<void>('cancel_work_item', { id })
 
-export const retryWorkItem = (id: string): Promise<void> => invoke<void>('retry_work_item', { id })
+export const retryWorkItem = (id: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('retry_work_item', { id })
 
 export const dismissWorkItem = (id: string): Promise<void> =>
-  invoke<void>('dismiss_work_item', { id })
+  selectRuntimeClient().invoke<void>('dismiss_work_item', { id })
 
 export interface WorkspaceDirEntry {
   name: string

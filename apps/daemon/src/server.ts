@@ -17,6 +17,7 @@ import { ArtifactIndexService } from './artifacts/index.js'
 import { SedimentationService } from './sediment/service.js'
 import { SourceBindingService } from './sources/service.js'
 import { WorkspaceService } from './workspace/service.js'
+import { SettingsService, SettingsValidationError } from './settings/service.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
@@ -85,6 +86,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const sedimentService = new SedimentationService(process.cwd())
     const sourceBindingService = new SourceBindingService()
     const workspaceService = new WorkspaceService(process.cwd())
+    const settingsService = new SettingsService(process.cwd())
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
     // running executeRun child (SIGTERM the spawned CLI), not just flip status.
@@ -117,6 +119,38 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       if (Array.isArray(body.activeSources))
         patch.activeSources = body.activeSources.filter((s) => typeof s === 'string')
       res.json(workspaceService.updateMeta(patch))
+    })
+
+    // GET /settings — Rust-compatible workspace settings from <workspace>/.setting.json
+    app.get('/settings', (_req, res) => {
+      res.json(settingsService.load())
+    })
+
+    // PUT /settings — partial update; validates known fields and preserves unknown fields.
+    app.put('/settings', (req, res) => {
+      const body = (req.body ?? {}) as unknown
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        res.status(400).json({
+          error: { code: 'invalid_settings_patch', message: 'settings patch must be an object' },
+        })
+        return
+      }
+      try {
+        res.json(settingsService.update(body as Record<string, unknown>))
+      } catch (err) {
+        if (err instanceof SettingsValidationError) {
+          res.status(400).json({
+            error: {
+              code: 'invalid_settings_value',
+              field: err.field,
+              value: err.value,
+              message: err.message,
+            },
+          })
+          return
+        }
+        throw err
+      }
     })
 
     // POST /workspace/goals — add a goal

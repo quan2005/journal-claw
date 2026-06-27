@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { selectRuntimeClient } from './runtimeClient'
 import type {
   JournalEntry,
   IdentityEntry,
@@ -29,6 +30,12 @@ export const setApiKey = (key: string): Promise<void> => invoke('set_api_key', {
 export const getWorkspacePath = () => invoke<string>('get_workspace_path')
 
 export const setWorkspacePath = (path: string) => invoke<void>('set_workspace_path', { path })
+
+export const getWorkspaceTheme = (): Promise<'light' | 'dark' | 'system'> =>
+  selectRuntimeClient().invoke<'light' | 'dark' | 'system'>('get_workspace_theme')
+
+export const setWorkspaceTheme = (theme: 'light' | 'dark' | 'system'): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_workspace_theme', { theme })
 
 // Journal
 export const listAvailableMonths = () => invoke<string[]>('list_available_months')
@@ -352,10 +359,10 @@ export interface AutoLintStatus {
 }
 
 export const getAutoLintConfig = (): Promise<AutoLintConfig> =>
-  invoke<AutoLintConfig>('get_auto_lint_config')
+  selectRuntimeClient().invoke<AutoLintConfig>('get_auto_lint_config')
 
 export const setAutoLintConfig = (config: AutoLintConfig): Promise<void> =>
-  invoke<void>('set_auto_lint_config', { config })
+  selectRuntimeClient().invoke<void>('set_auto_lint_config', { config })
 
 export const getAutoLintStatus = (): Promise<AutoLintStatus> =>
   invoke<AutoLintStatus>('get_auto_lint_status')
@@ -396,10 +403,10 @@ export const getAutomationRun = (id: string): Promise<AutomationRun> =>
 
 // Global skills setting
 export const getGlobalSkillsEnabled = (): Promise<boolean> =>
-  invoke<boolean>('get_global_skills_enabled')
+  selectRuntimeClient().invoke<boolean>('get_global_skills_enabled')
 
 export const setGlobalSkillsEnabled = (enabled: boolean): Promise<void> =>
-  invoke<void>('set_global_skills_enabled', { enabled })
+  selectRuntimeClient().invoke<void>('set_global_skills_enabled', { enabled })
 
 // Feishu bridge
 export interface FeishuConfig {
@@ -455,10 +462,10 @@ export const openSkillDir = (scope: 'builtin' | 'project' | 'global', dirName: s
   invoke<void>('open_skill_dir', { scope, dirName })
 
 export const setSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
-  invoke<void>('set_skill_enabled', { skillId, enabled })
+  selectRuntimeClient().invoke<void>('set_skill_enabled', { skillId, enabled })
 
 export const setGlobalSkillEnabled = (skillId: string, enabled: boolean): Promise<void> =>
-  invoke<void>('set_global_skill_enabled', { skillId, enabled })
+  selectRuntimeClient().invoke<void>('set_global_skill_enabled', { skillId, enabled })
 
 export const getSkillContent = (skillId: string): Promise<string> =>
   invoke<string>('get_skill_content', { skillId })

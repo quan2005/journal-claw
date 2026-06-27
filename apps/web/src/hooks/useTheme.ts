@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { Theme } from '../types'
+import { getWorkspaceTheme, setWorkspaceTheme } from '../lib/tauri'
 
 function applyTheme(theme: Theme) {
   const resolved =
@@ -20,7 +20,7 @@ export function useTheme() {
 
   useEffect(() => {
     let cancelled = false
-    invoke<string>('get_workspace_theme')
+    getWorkspaceTheme()
       .then((saved) => {
         if (cancelled) return
         const valid: Theme[] = ['light', 'dark', 'system']
@@ -50,7 +50,7 @@ export function useTheme() {
   function setTheme(t: Theme) {
     setThemeState(t)
     applyTheme(t)
-    invoke('set_workspace_theme', { theme: t }).catch(console.error)
+    setWorkspaceTheme(t).catch(console.error)
   }
 
   return { theme, setTheme }

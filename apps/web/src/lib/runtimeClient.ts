@@ -22,7 +22,7 @@ type UnlistenFn = () => void
 
 export class TauriRuntimeClient implements JournalRuntimeClient {
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-    return invoke<T>(command, args)
+    return args === undefined ? invoke<T>(command) : invoke<T>(command, args)
   }
 
   subscribe<T>(event: string, handler: (payload: T) => void): () => void {

@@ -41,6 +41,108 @@ describe('HttpRuntimeClient', () => {
     expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:1/workspace')
   })
 
+  it('invoke maps workspace theme reads and writes to /settings', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'dark', auto_lint: {}, global_skills_enabled: false }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'light', auto_lint: {}, global_skills_enabled: false }),
+      })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await expect(client.invoke('get_workspace_theme')).resolves.toBe('dark')
+    await client.invoke('set_workspace_theme', { theme: 'light' })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/settings')
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: 'light' }),
+    })
+  })
+
+  it('invoke maps auto lint config to /settings auto_lint', async () => {
+    const config = { enabled: true, frequency: 'weekly', time: '12:00', min_entries: 20 }
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'system', auto_lint: config, global_skills_enabled: false }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'system', auto_lint: config, global_skills_enabled: false }),
+      })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await expect(client.invoke('get_auto_lint_config')).resolves.toEqual(config)
+    await client.invoke('set_auto_lint_config', { config })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ auto_lint: config }),
+    })
+  })
+
+  it('invoke updates skill enabled lists through /settings', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          theme: 'system',
+          auto_lint: {},
+          global_skills_enabled: false,
+          disabled_skills: ['project:a'],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'system', auto_lint: {}, global_skills_enabled: false }),
+      })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await client.invoke('set_skill_enabled', { skillId: 'project:b', enabled: false })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disabled_skills: ['project:a', 'project:b'] }),
+    })
+  })
+
+  it('invoke clears skill lists with null when the last disabled skill is re-enabled', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          theme: 'system',
+          auto_lint: {},
+          global_skills_enabled: false,
+          disabled_skills: ['project:a'],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'system', auto_lint: {}, global_skills_enabled: false }),
+      })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await client.invoke('set_skill_enabled', { skillId: 'project:a', enabled: true })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disabled_skills: null }),
+    })
+  })
+
   it('invoke rejects unsupported commands', async () => {
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
     const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })

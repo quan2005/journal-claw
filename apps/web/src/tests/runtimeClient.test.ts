@@ -28,7 +28,7 @@ describe('TauriRuntimeClient', async () => {
   it('forwards invoke command and args to tauri invoke', async () => {
     const client = new TauriRuntimeClient()
     await client.invoke('get_workspace_path')
-    expect(mockInvoke).toHaveBeenCalledWith('get_workspace_path', undefined)
+    expect(mockInvoke).toHaveBeenCalledWith('get_workspace_path')
 
     await client.invoke('set_workspace_path', { path: '/x' })
     expect(mockInvoke).toHaveBeenCalledWith('set_workspace_path', { path: '/x' })

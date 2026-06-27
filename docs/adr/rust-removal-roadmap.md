@@ -124,10 +124,17 @@
 
 ---
 
+## 补充决策（用户 2026-06-27）
+
+- **决策 1 · LLM 引擎（🟡 暂定 A′，待国产 vendor 冒烟确认）**：评估采用第三方 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT、纯 TS、可嵌入）作为 daemon 内建引擎，替代从零移植 Rust `tool_loop.rs`。pi 覆盖 agentic 循环/多轮 session/transformContext/多 vendor（含 OpenAI-compatible baseURL → volcengine/zhipu/dashscope）/before-afterToolCall 授权钩子。**采用前必须实测国产三家 chat+tool_call 兼容性**。CLI adapter 保留作 Agent Team 委派。
+- **决策 2 · API key 存储**：简单加密存储（用户配置目录，非 workspace，纯 TS 跨平台），不落明文。M1a-2 落地。
+- **决策 3 · 切换节奏**：逐能力 feature flag 渐进（便于验证），某能力 Tauri 路径空转后即删该路径；全部空转 → M7/M8 删 Tauri。
+- **决策 4 · CI 矩阵**：M1–M6 保持 macOS CI；M7/M8 补 Win/Linux 三平台矩阵。
+
 ## 跨阶段约束（每单元都遵守）
 
 - **Gate G**：现有 workspace 文件格式保持可读，不要求用户重新导入。
-- **不破坏默认路径**：每单元前端切 daemon 后，Tauri 路径在该能力上不回退（feature flag 渐进）。
+- **不破坏默认路径**：每单元前端切 daemon 后，Tauri 路径在该能力上不回退（feature flag 渐进）；空转后删除该 Tauri 路径。
 - **安全闸门在验收**：codex 执行用 workspace-write 沙盒，我（Leader）逐单元独立验收（重跑 test/build + 越界核查 + 真实行为验证）。
 - **codex 后台派发用 stdin 管道喂 prompt**（见教训沉淀），不用 argv。
 

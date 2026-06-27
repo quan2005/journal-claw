@@ -13,6 +13,8 @@ import {
   setApiKey,
   getWorkspacePath,
   setWorkspacePath,
+  getWorkspaceTheme,
+  setWorkspaceTheme,
   listAvailableMonths,
   listJournalEntriesByMonths,
   listAllJournalEntries,
@@ -58,6 +60,8 @@ import {
   setAutoLintConfig,
   getAutoLintStatus,
   triggerLintNow,
+  getGlobalSkillsEnabled,
+  setGlobalSkillsEnabled,
   listAutomationTemplates,
   listRoutines,
   createRoutine,
@@ -73,6 +77,8 @@ import {
   getFeishuStatus,
   listSkills,
   openSkillsDir,
+  setSkillEnabled,
+  setGlobalSkillEnabled,
   type EngineConfig,
   type AutoLintConfig,
   type FeishuConfig,
@@ -91,6 +97,7 @@ const noParamCases: [string, () => Promise<unknown>, string][] = [
   ['openSettings', openSettings, 'open_settings'],
   ['getApiKey', getApiKey, 'get_api_key'],
   ['getWorkspacePath', getWorkspacePath, 'get_workspace_path'],
+  ['getWorkspaceTheme', getWorkspaceTheme, 'get_workspace_theme'],
   ['listAvailableMonths', listAvailableMonths, 'list_available_months'],
   ['listAllJournalEntries', listAllJournalEntries, 'list_all_journal_entries'],
   ['getWorkspacePrompt', getWorkspacePrompt, 'get_workspace_prompt'],
@@ -112,6 +119,7 @@ const noParamCases: [string, () => Promise<unknown>, string][] = [
   ['getFeishuConfig', getFeishuConfig, 'get_feishu_config'],
   ['getFeishuStatus', getFeishuStatus, 'get_feishu_status'],
   ['listSkills', listSkills, 'list_skills'],
+  ['getGlobalSkillsEnabled', getGlobalSkillsEnabled, 'get_global_skills_enabled'],
 ]
 
 describe('no-param commands', () => {
@@ -144,6 +152,11 @@ describe('Settings / Config', () => {
   it('setWorkspacePath passes { path }', async () => {
     await setWorkspacePath('/tmp/ws')
     expect(mockInvoke).toHaveBeenCalledWith('set_workspace_path', { path: '/tmp/ws' })
+  })
+
+  it('setWorkspaceTheme passes { theme }', async () => {
+    await setWorkspaceTheme('dark')
+    expect(mockInvoke).toHaveBeenCalledWith('set_workspace_theme', { theme: 'dark' })
   })
 })
 
@@ -507,5 +520,26 @@ describe('Skills', () => {
   it('openSkillsDir passes { scope }', async () => {
     await openSkillsDir('project')
     expect(mockInvoke).toHaveBeenCalledWith('open_skills_dir', { scope: 'project' })
+  })
+
+  it('setGlobalSkillsEnabled passes { enabled }', async () => {
+    await setGlobalSkillsEnabled(true)
+    expect(mockInvoke).toHaveBeenCalledWith('set_global_skills_enabled', { enabled: true })
+  })
+
+  it('setSkillEnabled passes { skillId, enabled }', async () => {
+    await setSkillEnabled('project:journal', false)
+    expect(mockInvoke).toHaveBeenCalledWith('set_skill_enabled', {
+      skillId: 'project:journal',
+      enabled: false,
+    })
+  })
+
+  it('setGlobalSkillEnabled passes { skillId, enabled }', async () => {
+    await setGlobalSkillEnabled('global:writer', true)
+    expect(mockInvoke).toHaveBeenCalledWith('set_global_skill_enabled', {
+      skillId: 'global:writer',
+      enabled: true,
+    })
   })
 })

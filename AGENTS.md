@@ -101,7 +101,7 @@ Commit message 遵循 **Conventional Commits**：
 2. **Context menu**：使用 Tauri v2 `@tauri-apps/api/menu`（`Menu`, `MenuItem`）。`tauri-plugin-context-menu` 是 v1 专用，不要使用。
 3. **Theme**：通过 `workspace_settings` Rust 命令持久化，不用 localStorage（面板宽度除外）。
 4. **AI 引擎**：内置 LLM 引擎通过 Anthropic Messages API 直接调用（`src-tauri/src/llm/`），不再使用 Codex CLI。支持 4 个 vendor：volcengine、zhipu、dashscope、anthropic。
-5. **Swift sidecar**：`journal-speech` 二进制处理 Apple SpeechAnalyzer API（macOS 26+）和 SFSpeechRecognizer（旧版）。
+5. **Swift sidecar（已下线 · M0 2026-06-27）**：音频/语音/转写能力（`journal-speech` 二进制、Apple SpeechAnalyzer、WhisperKit、speaker profiles）已从默认跨平台主干**下线**，前端入口移除。Rust 侧残余代码待 Phase 10 M8 删除。详见 `docs/adr/rust-removal-roadmap.md`。
 6. **IPC 单一入口**：所有前端 → Rust 调用必须经过 `src/lib/tauri.ts`，不允许在组件中直接 `invoke()`。
 7. **视觉修复必须验证真实渲染链**：MDX/日志详情里的样式问题不要只看孤立组件、源码 CSS 或普通 Vite probe。真实链路通常是 `MdxRenderer` → `.md-content.mdx-content` → `JournalBlockRenderer` → `journal-blocks.css`，还会叠加 `markdown.css` / `mdx.css` 的全局规则。修复前先确认真实 DOM、CSS 加载顺序、specificity、继承变量和 computed style；尤其留意 `max-width` / `max-inline-size`、`line-height`、`margin`、`text-wrap: balance` 这类会让”看似改了但界面没变”的属性。把用户指出的具体视觉问题写成红/绿测试；如需浏览器验证，尽量验证包含 `.md-content.mdx-content` 和真实 CSS cascade 的场景，普通 Vite 页面不能替代 Tauri 真实窗口。
 8. **优先使用 HTML mockup 澄清视觉效果**：讨论布局、组件外观、交互动效等视觉相关需求时，优先生成可在浏览器中打开的 HTML mockup 来展示和确认效果，而非仅用文字或 ASCII 描述。

@@ -218,12 +218,6 @@ spacing:
 - **滑块：** 浅色 `#D1D5DB` / 暗色 `rgba(255,255,255,0.12)`。悬停：浅色 `#9CA3AF` / 暗色 `rgba(255,255,255,0.2)`。
 - **圆角：** 2px。
 
-### Browse 页眉（专题 / 画像 / Timeline）
-浏览类页面（以扫读为主）用**紧凑单行页眉**，区别于 Hub 页（技能/想法/自动化）的 Playfair 巨标题——为列表让出垂直空间。
-
-- **结构：** 单行 = 橙色小图标（`--record-btn`，唯一身份点）+ 页名标签（`--font-body`、`--text-xs`、`--font-semibold`、字距 0.05em）。`min-height` 30px，底部 `--border-menu` 细分隔线。无 Playfair 标题、无副标题段落。
-- **组件：** 三页共用 `BrowsePaneHeader`（`icon` + `label` 两个 prop），仅图标/文案不同（专题=archive、画像=users、Timeline=scroll）。
-
 ## 6. 该做与不该做
 
 ### 该做：

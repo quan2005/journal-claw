@@ -8,11 +8,6 @@ export const en = {
   journal: 'Journal',
   files: 'Files',
 
-  // Browse panes — compact header labels (Plan A single-row label)
-  browseTopicsLabel: 'Topics',
-  browseProfilesLabel: 'Profiles',
-  browseTimelineLabel: 'Timeline',
-
   // Right panel tabs
   ideas: 'Ideas',
   chat: 'Chat',

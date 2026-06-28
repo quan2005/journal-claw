@@ -10,11 +10,6 @@ export const zh: Strings = {
   journal: '流水',
   files: '文件',
 
-  // Browse panes — compact header labels (Plan A single-row label)
-  browseTopicsLabel: '专题',
-  browseProfilesLabel: '画像',
-  browseTimelineLabel: 'Timeline',
-
   // Right panel tabs
   ideas: '想法',
   chat: '探讨',

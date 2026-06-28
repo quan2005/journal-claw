@@ -307,34 +307,6 @@ describe('Journal content frame contract', () => {
 })
 
 describe('Ideas workbench surface contract', () => {
-  it('renders browse pane headers as compact single-row Plan A labels', () => {
-    const headerRule = css.match(/\.browse-pane-header\s*\{[^}]*\}/)?.[0] ?? ''
-    const iconRule = css.match(/\.browse-pane-header__icon\s*\{[^}]*\}/)?.[0] ?? ''
-    const labelRule = css.match(/\.browse-pane-header__label\s*\{[^}]*\}/)?.[0] ?? ''
-
-    // single row, flex, compact height, 1px bottom divider
-    expect(headerRule).toContain('display: flex')
-    expect(headerRule).toContain('align-items: center')
-    expect(headerRule).toMatch(/min-height:\s*3[02]px/)
-    expect(headerRule).toContain('border-bottom: var(--border-menu)')
-
-    // orange icon is the single identity point
-    expect(iconRule).toContain('color: var(--record-btn)')
-
-    // body font (NOT display), 12px, semibold, slightly tracked, item text color
-    expect(labelRule).toContain('font-family: var(--font-body)')
-    expect(labelRule).toContain('font-size: var(--text-xs)')
-    expect(labelRule).toContain('font-weight: var(--font-semibold)')
-    expect(labelRule).toContain('color: var(--item-text)')
-
-    // Plan A removed the Playfair title, eyebrow, and description entirely;
-    // the header label uses the body font, never the display font
-    expect(css).not.toContain('.browse-pane-header__title')
-    expect(css).not.toContain('.browse-pane-header__description')
-    expect(css).not.toContain('.browse-pane-header__eyebrow')
-    expect(labelRule).not.toContain('font-family: var(--font-display)')
-  })
-
   it('defines ideas workbench classes and semantic tokens', () => {
     expect(css).toContain('.ideas-workbench')
     expect(css).toContain('--ideas-surface:')

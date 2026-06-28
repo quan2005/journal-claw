@@ -1250,34 +1250,6 @@ body,
   -webkit-app-region: no-drag;
 }
 
-/* ── Browse pane header (Plan A — compact single-row label) ─── */
-.browse-pane-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 30px;
-  margin-bottom: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: var(--border-menu);
-}
-
-/* orange icon = single identity point */
-.browse-pane-header__icon {
-  display: inline-flex;
-  align-items: center;
-  color: var(--record-btn);
-}
-
-/* page name label — body font, 12px, semibold, slightly tracked */
-.browse-pane-header__label {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  letter-spacing: 0.05em;
-  line-height: 1;
-  color: var(--item-text);
-}
-
 /* ── Ideas workbench ───────────────────────────── */
 .ideas-workbench {
   --ideas-surface: var(--detail-case-bg);

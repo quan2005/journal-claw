@@ -111,36 +111,20 @@ beforeEach(() => {
 })
 
 describe('TreeSidebar', () => {
-  it('renders compact single-row Plan A browse headers (icon + label, no title/description)', () => {
-    // Topics pane: Archive icon + 专题 label
+  it('renders browse panes as bare lists', () => {
     const topics = renderTreeSidebar({ category: 'topics' })
-
-    const topicsHeader = topics.container.querySelector('.browse-pane-header')
-    expect(topicsHeader).not.toBeNull()
-    expect(topicsHeader!.querySelector('.browse-pane-header__icon svg')).not.toBeNull()
-    expect(topicsHeader!.querySelector('.browse-pane-header__label')?.textContent).toBe('专题')
-    // Plan A: no eyebrow, no Playfair heading, no description paragraph
-    expect(topicsHeader!.querySelector('.browse-pane-header__title')).toBeNull()
-    expect(topicsHeader!.querySelector('.browse-pane-header__description')).toBeNull()
-    expect(screen.queryByText('围绕一个主题浏览笔记、资料与文件。')).toBeNull()
+    expect(screen.getByRole('button', { name: '折叠专题' })).toBeTruthy()
     topics.unmount()
 
-    // Identity pane: Users icon + 画像 label
     const profiles = renderTreeSidebar({ category: 'identity' })
-
-    const profilesHeader = profiles.container.querySelector('.browse-pane-header')
-    expect(profilesHeader!.querySelector('.browse-pane-header__icon svg')).not.toBeNull()
-    expect(profilesHeader!.querySelector('.browse-pane-header__label')?.textContent).toBe('画像')
-    expect(screen.queryByText('浏览工作中反复出现的人物与长期身份线索。')).toBeNull()
+    expect(screen.getByText('张三')).toBeTruthy()
     profiles.unmount()
 
-    // Journal pane: ScrollText icon + Timeline label
-    renderTreeSidebar({ category: 'journal' })
-
-    const journalHeader = document.querySelector('.browse-pane-header')
-    expect(journalHeader!.querySelector('.browse-pane-header__icon svg')).not.toBeNull()
-    expect(journalHeader!.querySelector('.browse-pane-header__label')?.textContent).toBe('Timeline')
-    expect(screen.queryByText('按时间扫描日志，回到最近一次整理的上下文。')).toBeNull()
+    renderTreeSidebar({
+      category: 'journal',
+      entries: [journalEntry({ title: '六月日志' })],
+    })
+    expect(screen.getByText('六月日志')).toBeTruthy()
   })
 
   it('renders identities in identity category', () => {

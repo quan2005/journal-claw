@@ -6,10 +6,12 @@ import {
   Timer,
   Info,
   ChevronLeft,
+  Terminal,
   type LucideIcon,
 } from 'lucide-react'
 import SectionGeneral from './components/SectionGeneral'
 import SectionAiEngine from './components/SectionAiEngine'
+import SectionLocalAgents from './components/SectionLocalAgents'
 import SectionPermissions from './components/SectionPermissions'
 import SectionAutomation from './components/SectionAutomation'
 import SectionAbout from './components/SectionAbout'
@@ -50,6 +52,8 @@ function renderActiveSection(id: NavId) {
       return <SectionGeneral />
     case 'ai':
       return <SectionAiEngine />
+    case 'localAgents':
+      return <SectionLocalAgents />
     case 'permissions':
       return <SectionPermissions />
     case 'automation':
@@ -70,6 +74,7 @@ export function SettingsLayout({
     { id: 'general', label: t('general'), icon: Settings2 },
 
     { id: 'ai', label: t('aiEngine'), icon: Cpu },
+    { id: 'localAgents', label: t('localAgents'), icon: Terminal },
     { id: 'permissions', label: t('permissions'), icon: ShieldCheck },
     { id: 'automation', label: t('automation'), icon: Timer },
     { id: 'about', label: t('about'), icon: Info },

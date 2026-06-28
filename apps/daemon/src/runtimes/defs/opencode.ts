@@ -33,4 +33,6 @@ export const opencodeAgentDef: RuntimeAgentDef = {
     { id: 'openai/gpt-5', label: 'openai/gpt-5' },
     { id: 'google/gemini-2.5-pro', label: 'google/gemini-2.5-pro' },
   ],
+  installUrl: 'https://opencode.ai/docs/',
+  docsUrl: 'https://opencode.ai/docs/',
 }

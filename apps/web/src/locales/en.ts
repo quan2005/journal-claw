@@ -433,6 +433,50 @@ export const en = {
   'onboarding.provider.custom': 'Custom...',
   resetOnboarding: 'Re-run Onboarding',
   resetOnboardingDone: 'Reset. Restart app to see it.',
+
+  // Settings → Local Agent engines (P1: detect + display)
+  localAgents: 'Local Agent Engines',
+  localAgentsSubtitle:
+    'Auto-detects installed CLI coding agents (Claude Code / Codex / OpenCode) and shows availability, version, and sign-in status.',
+  rescan: 'Rescan',
+  rescanning: 'Detecting…',
+  agentAvailable: 'Available',
+  agentUnavailable: 'Unavailable',
+  agentVersionLabel: 'Version',
+  agentAuthStatus: 'Sign-in',
+  agentPathLabel: 'Path',
+  agentAuthOk: 'Signed in',
+  agentAuthMissing: 'Not signed in',
+  agentAuthUnknown: 'Sign-in unknown',
+  agentAuthNotProbed: '—',
+  agentInstall: 'Open install page',
+  agentDocs: 'Open docs',
+  agentSetEnv: 'Set binary path',
+  agentClearEnv: 'Clear override',
+  agentSetEnvHint:
+    'Set the {envKey} environment variable to your binary before launching JournalClaw, then rescan.',
+  agentClearEnvHint:
+    'Remove the {envKey} environment variable and restart JournalClaw, then rescan.',
+  localAgentsEmpty: 'No agents registered.',
+  localAgentsLoadFailed: 'Detection failed. Please retry.',
+  localAgentsSearchedDirs: 'Searched directories',
+  diagNotOnPath: '{name} ({bin}) was not found on your PATH.',
+  diagNotExecutable:
+    '{name} was found but is not executable. Restore its execute permission or choose a different binary, then rescan.',
+  diagShimBroken:
+    '{name} was found but could not be launched — its wrapper or shim points at a missing target.',
+  diagConfiguredBinInvalid:
+    "{name}'s configured binary ({envKey}) was not found or is not executable.",
+  diagAuthMissing: '{name} is installed but not authenticated.',
+  diagAuthUnknown: '{name} authentication status could not be verified.',
+
+  // Pre-existing keys left dangling after the Swift sidecar removal (M8-b).
+  // Re-added so t() resolves; the host surfaces referenced here still render.
+  voiceOnly: 'Voice only',
+  voiceOnlyDesc: 'Merge voice profile without touching the text fields.',
+  whisperCredit: 'Whisper speech recognition runs locally; model credits may apply.',
+  permSpeech: 'Speech Recognition',
+  permSpeechDesc: 'Required to transcribe audio materials on-device.',
 }
 
 export type Strings = typeof en

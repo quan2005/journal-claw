@@ -1,8 +1,9 @@
-export type NavId = 'general' | 'ai' | 'permissions' | 'automation' | 'about'
+export type NavId = 'general' | 'ai' | 'localAgents' | 'permissions' | 'automation' | 'about'
 
 export const ALL_NAV_IDS: NavId[] = [
   'general',
   'ai',
+  'localAgents',
   'permissions',
   'automation',
   'about',

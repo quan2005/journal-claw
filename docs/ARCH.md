@@ -74,6 +74,19 @@ Agent Run 主路径：
 
 事件至少覆盖 run lifecycle、thinking/text delta、tool call/result、change proposed、artifact、sedimentation、finish/fail。
 
+### 对话面与引擎切换（P2）
+
+右侧面板是单一的 **`UnifiedChatShell`**（不再是 Chat / Agent Run 两个 tab）。顶栏常驻 `EngineSwitcher` chip，在「内置 pi 引擎」与「外部 CLI agent」之间切换：
+
+- 内置 pi → `useConversation` → `/conversation`；外部 agent → `useAgentRun` → `POST /runs {engine:'cli', agentId, authorizationMode}`。
+- **渲染层融合**：`ChatPanel` 常驻挂载，CLI run 的 timeline / changeset 经 `RunStreamEntries` 作为 `streamExtras` 注入同一对话流，与 chat 气泡共存连续滚动（数据数组不合并）。
+- composer 共享：CLI 时 textarea 兼作 goal 输入，授权选择器内联。
+- 引擎/agent 选择经 `useAgentEngine` → runtime client → daemon `/settings` 持久化，不用 localStorage。
+
+### 本地 Agent 检测（P1）
+
+`GET /agents` 返回机器上受支持 CLI agent（Claude Code / Codex / OpenCode 等）的 `AgentInfo{ available, version, authStatus, diagnostics[] }`，检测逻辑在 `apps/daemon/src/runtimes/`（仿 open-design）。`EngineSwitcher` 与设置页「本地 Agent 引擎」分区均消费此列表；不可用 agent 灰显并附诊断与修复动作。
+
 ## Electron Host
 
 `apps/desktop` 负责：

@@ -1388,7 +1388,7 @@ export const DetailView = React.memo(function DetailView({
         {/* Watermark */}
         <span
           style={{
-            fontSize: '84vh',
+            fontSize: '60vh',
             fontWeight: 900,
             letterSpacing: '0.06em',
             color: 'var(--item-text)',
@@ -2399,7 +2399,7 @@ export const DetailView = React.memo(function DetailView({
           </div>
         )}
 
-        {/* Header: summary + tags + speaker (identity) */}
+        {/* Header: summary + tags (identity) */}
         {isIdentityMode && identity && !isStandardDetailSourceMode && (
           <div
             style={{
@@ -2415,50 +2415,14 @@ export const DetailView = React.memo(function DetailView({
                   color: 'var(--detail-summary)',
                   lineHeight: 1.8,
                   marginBottom:
-                    identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0
-                      ? 10
-                      : 0,
+                    pickDisplayTags(identity.tags, Infinity).length > 0 ? 10 : 0,
                 }}
               >
                 {identity.summary}
               </div>
             )}
-            {(identity.speaker_id || pickDisplayTags(identity.tags, Infinity).length > 0) && (
+            {pickDisplayTags(identity.tags, Infinity).length > 0 && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                {identity.speaker_id && (
-                  <span
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      padding: '2px 9px',
-                      borderRadius: 4,
-                      fontWeight: 'var(--font-medium)',
-                      color: 'var(--item-meta)',
-                      background: 'var(--item-icon-bg)',
-                      fontFamily: 'var(--font-mono)',
-                      whiteSpace: 'nowrap',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
-                    </svg>
-                    {identity.speaker_id}
-                  </span>
-                )}
                 {pickDisplayTags(identity.tags, Infinity).map((cfg, i) => (
                   <span
                     key={i}

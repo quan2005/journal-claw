@@ -1,6 +1,7 @@
 // src/components/TopicTree.tsx
 import { type TopicEntry } from '../lib/tauri'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
+import { displayTopicName, filterCuration } from '../lib/topicCuration'
 import { FileTypeIcon } from './FileTypeIcon'
 
 interface TopicTreeProps {
@@ -40,7 +41,7 @@ export function TopicTree({
     fontFamily: 'inherit',
   }
 
-  return entries.map((entry) => {
+  return filterCuration(entries).map((entry) => {
     const isDir = entry.is_dir
     const childState = dirs.get(entry.path)
     const isExpanded = childState?.expanded ?? false
@@ -48,6 +49,7 @@ export function TopicTree({
     const isSelected = entry.path === selectedPath
     const rowIndent = 8 + indent * 16
     const iconKind = isDir ? 'folder' : fileTypeIconKindFromName(entry.name)
+    const displayName = displayTopicName(entry)
 
     return (
       <div key={entry.path}>
@@ -106,8 +108,11 @@ export function TopicTree({
           <FileTypeIcon kind={iconKind} selected={isSelected} />
 
           {/* Name */}
-          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {entry.name}
+          <span
+            style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}
+            title={displayName}
+          >
+            {displayName}
           </span>
 
           {/* Action buttons: @ and … */}

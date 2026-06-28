@@ -32,9 +32,9 @@
   padding: 5px 12px;
   border-radius: 999px;
   margin-bottom: 22px;
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.06));
+  background: var(--workbench-eyebrow-bg);
   border: 1px solid var(--divider, #e5e7eb);
-  color: var(--accent, #FF5701);
+  color: var(--record-btn);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -114,8 +114,8 @@
   color: var(--text-tertiary, #9ca3af);
 }
 .sk-tab-pill.is-active .sk-tab-count {
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.15));
-  color: var(--accent, #FF5701);
+  background: var(--workbench-eyebrow-bg);
+  color: var(--record-btn);
 }
 
 /* ── Search ──────────────────────────── */
@@ -133,7 +133,7 @@
   transition: border-color 140ms ease;
 }
 .sk-search:focus-within {
-  border-color: var(--accent, #FF5701);
+  border-color: var(--record-btn);
 }
 .sk-search input {
   flex: 1;
@@ -187,28 +187,29 @@
   transition: all 140ms ease;
 }
 .sk-btn-secondary:hover {
-  border-color: var(--accent, #FF5701);
-  color: var(--accent, #FF5701);
+  border-color: var(--record-btn);
+  color: var(--record-btn);
 }
 
 .sk-btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 14px;
-  border: none;
-  border-radius: var(--radius-md, 8px);
-  background: var(--accent, #FF5701);
-  color: #fff;
+  height: var(--workbench-btn-h);
+  padding: 0 var(--workbench-btn-px);
+  border: 1px solid var(--workbench-btn-primary-bg);
+  border-radius: var(--workbench-btn-radius, var(--radius-md));
+  background: var(--workbench-btn-primary-bg);
+  color: var(--workbench-btn-primary-color);
   font-family: var(--font-body);
   font-size: var(--text-sm, 0.8125rem);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 140ms ease;
+  transition: background var(--workbench-item-transition), opacity 140ms ease;
 }
 .sk-btn-primary:hover {
-  opacity: 0.88;
+  background: var(--workbench-btn-primary-bg-hover);
+  border-color: var(--workbench-btn-primary-bg-hover);
 }
 
 /* ── Grid ────────────────────────────── */
@@ -216,6 +217,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
   gap: 18px;
+}
+
+.sk-favorites-hint {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-menu);
+  border-radius: var(--radius-lg);
+  background: var(--workbench-eyebrow-bg);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--journal-summary-line-height);
 }
 
 /* ── Card ────────────────────────────── */
@@ -251,8 +263,8 @@
   height: 38px;
   flex-shrink: 0;
   border-radius: var(--radius-md, 8px);
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.06));
-  color: var(--accent, #FF5701);
+  background: var(--workbench-eyebrow-bg);
+  color: var(--record-btn);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -348,7 +360,7 @@
   transition: background 160ms ease;
 }
 .sk-switch.is-on {
-  background: var(--accent, #FF5701);
+  background: var(--record-btn);
 }
 .sk-switch-knob {
   width: 18px;
@@ -379,10 +391,10 @@
   transition: color 140ms ease;
 }
 .sk-star-btn:hover {
-  color: var(--accent, #FF5701);
+  color: var(--record-btn);
 }
 .sk-star-btn.is-active {
-  color: var(--accent, #FF5701);
+  color: var(--record-btn);
 }
 
 /* ── Slash button ────────────────────── */
@@ -401,7 +413,7 @@
   transition: color 140ms ease;
 }
 .sk-slash-btn:hover {
-  color: var(--accent, #FF5701);
+  color: var(--record-btn);
 }
 
 /* ── Scope chip ──────────────────────── */
@@ -415,8 +427,8 @@
   padding: 2px 8px;
   border-radius: var(--radius-sm, 6px);
   white-space: nowrap;
-  color: var(--accent, #FF5701);
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.06));
+  color: var(--record-btn);
+  background: var(--workbench-eyebrow-bg);
 }
 .sk-scope-chip.scope-builtin {
   color: var(--text-tertiary, #9ca3af);
@@ -444,8 +456,8 @@
 }
 .sk-trigger-chip.is-cmd {
   font-family: var(--font-mono);
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.06));
-  color: var(--accent, #FF5701);
+  background: var(--workbench-eyebrow-bg);
+  color: var(--record-btn);
   border-color: transparent;
 }
 
@@ -511,8 +523,8 @@
   height: 44px;
   flex-shrink: 0;
   border-radius: var(--radius-md, 8px);
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.06));
-  color: var(--accent, #FF5701);
+  background: var(--workbench-eyebrow-bg);
+  color: var(--record-btn);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -575,7 +587,7 @@
   font-weight: 500;
 }
 .sk-drawer-status.is-on {
-  color: var(--accent, #FF5701);
+  color: var(--record-btn);
 }
 
 .sk-drawer-body {
@@ -622,10 +634,10 @@
   gap: 8px;
   padding: 6px 12px;
   border-radius: var(--radius-sm, 6px);
-  background: var(--file-tile-bg, rgba(255, 87, 1, 0.06));
+  background: var(--workbench-eyebrow-bg);
   font-family: var(--font-mono);
   font-size: var(--text-sm, 0.8125rem);
-  color: var(--accent, #FF5701);
+  color: var(--record-btn);
 }
 
 .sk-drawer-footer {

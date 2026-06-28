@@ -8,6 +8,11 @@ export const en = {
   journal: 'Journal',
   files: 'Files',
 
+  // Browse panes — compact header labels (Plan A single-row label)
+  browseTopicsLabel: 'Topics',
+  browseProfilesLabel: 'Profiles',
+  browseTimelineLabel: 'Timeline',
+
   // Right panel tabs
   ideas: 'Ideas',
   chat: 'Chat',
@@ -138,10 +143,8 @@ export const en = {
   mergeFrom: 'Merge "{name}" into',
   selectTarget: '— Select target profile —',
   mergeMode: 'Merge mode',
-  voiceOnly: 'Voice only',
-  voiceOnlyDesc: 'Link the voice ID to the target profile without merging text content',
   fullMerge: 'Full merge',
-  fullMergeDesc: 'Merge voice ID, tags, and content',
+  fullMergeDesc: 'Merge tags, summary, and content into the target profile',
   mergingDots: 'Merging…',
   confirmMerge: 'Confirm merge',
 
@@ -230,9 +233,6 @@ export const en = {
   grantAll: 'Grant all',
   allGranted: 'All permissions granted',
   clickToCheck: 'Click "Check permissions" to view authorization status',
-  permSpeech: 'Speech recognition',
-  permSpeechDesc:
-    'Required when using Apple speech recognition engine (not needed for DashScope / WhisperKit).',
   statusGranted: 'Granted',
   statusDenied: 'Denied',
   statusRestricted: 'Restricted',
@@ -252,14 +252,13 @@ export const en = {
   pluginScopeGlobal: 'Global',
   noSkillsFound: 'No skills found',
   noSkillsHint: 'Add skills to .claude/skills/ in your project or ~/.claude/skills/ globally',
+  skillsFavoriteEmptyHint: 'No favorites yet. Use the star on a skill card to keep it here.',
   openSkillDir: 'Open directory',
 
   // Settings: About
   version: 'Version {version}',
   addWeChat: 'Add on WeChat',
   wechatQr: 'WeChat QR',
-  whisperCredit:
-    'Includes WhisperKit (MIT License) by Argmax, Inc. — on-device speech recognition engine',
   docs: 'Documentation',
   docsUserGuide: 'User Guide',
   docsDevGuide: 'Developer Guide',
@@ -384,6 +383,20 @@ export const en = {
     'Anthropic for Claude models, OpenAI Compatible for other providers (DashScope, DeepSeek, etc.)',
   addProvider: 'Add Provider',
   customProvider: 'Custom Provider',
+
+  // Agent Run panel
+  agentRunTitle: 'Agent Run',
+  agentRunGoalLabel: 'Goal',
+  agentRunGoalPlaceholder: 'What should the agent do?',
+  agentRunAuthLabel: 'Authorization',
+  agentRunModeReadOnly: 'Read-only',
+  agentRunModeWorkspaceWrite: 'Workspace write',
+  agentRunModeFullAccess: 'Full access',
+  agentRunModeWideAudited: 'Wide (audited)',
+  agentRunStart: 'Start run',
+
+  // Automation template count
+  automationTemplateCount: '{shown} of {total}',
 
   // Onboarding
   'onboarding.welcome.title': 'Welcome to JournalClaw',

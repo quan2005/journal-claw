@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { renderWithProviders as render } from './setup'
 
 // Mock the daemon client so the panel is testable without a live server.
 const mockCreateRun = vi.fn()
@@ -50,15 +51,15 @@ describe('AgentRunPanel', () => {
 
   it('renders the goal form before a run starts', () => {
     render(<AgentRunPanel />)
-    expect(screen.getByText('Agent Run')).toBeTruthy()
-    expect(screen.getByPlaceholderText('What should the agent do?')).toBeTruthy()
+    expect(screen.getByText('Agent 任务')).toBeTruthy()
+    expect(screen.getByPlaceholderText('想让 Agent 做什么？')).toBeTruthy()
   })
 
   it('creates a run and shows the timeline + output from streamed events', async () => {
     render(<AgentRunPanel />)
-    const input = screen.getByPlaceholderText('What should the agent do?')
+    const input = screen.getByPlaceholderText('想让 Agent 做什么？')
     fireEvent.change(input, { target: { value: 'reply pong' } })
-    fireEvent.click(screen.getByText('Start run'))
+    fireEvent.click(screen.getByText('开始执行'))
 
     await waitFor(() => expect(mockCreateRun).toHaveBeenCalled())
     expect(mockCreateRun.mock.calls[0][0]).toMatchObject({
@@ -106,13 +107,13 @@ describe('AgentRunPanel', () => {
 
   it('shows an authorization mode selector', () => {
     render(<AgentRunPanel />)
-    expect(screen.getByText('Workspace write')).toBeTruthy()
+    expect(screen.getByText('工作区可写')).toBeTruthy()
   })
 
   it('offers wide_with_audit as an explicit selectable authorization option', () => {
     render(<AgentRunPanel />)
     // The option is rendered inside a <select>; getByText finds the option label.
-    expect(screen.getByText('Wide (audited)')).toBeTruthy()
+    expect(screen.getByText('宽松（带审计）')).toBeTruthy()
     // The product default remains workspace_write.
     const select = screen.getByRole('combobox')
     expect((select as HTMLSelectElement).value).toBe('workspace_write')
@@ -120,10 +121,10 @@ describe('AgentRunPanel', () => {
 
   it('defaults the authorization mode to workspace_write when creating a run', async () => {
     render(<AgentRunPanel />)
-    fireEvent.change(screen.getByPlaceholderText('What should the agent do?'), {
+    fireEvent.change(screen.getByPlaceholderText('想让 Agent 做什么？'), {
       target: { value: 'do stuff' },
     })
-    fireEvent.click(screen.getByText('Start run'))
+    fireEvent.click(screen.getByText('开始执行'))
     await waitFor(() => expect(mockCreateRun).toHaveBeenCalled())
     expect(mockCreateRun.mock.calls[0][0]).toMatchObject({
       authorizationMode: 'workspace_write',
@@ -155,10 +156,10 @@ describe('AgentRunPanel', () => {
     ])
 
     render(<AgentRunPanel />)
-    fireEvent.change(screen.getByPlaceholderText('What should the agent do?'), {
+    fireEvent.change(screen.getByPlaceholderText('想让 Agent 做什么？'), {
       target: { value: 'edit things' },
     })
-    fireEvent.click(screen.getByText('Start run'))
+    fireEvent.click(screen.getByText('开始执行'))
     await waitFor(() => expect(mockCreateRun).toHaveBeenCalled())
 
     act(() => {
@@ -221,10 +222,10 @@ describe('AgentRunPanel', () => {
     ])
 
     render(<AgentRunPanel />)
-    fireEvent.change(screen.getByPlaceholderText('What should the agent do?'), {
+    fireEvent.change(screen.getByPlaceholderText('想让 Agent 做什么？'), {
       target: { value: 'test' },
     })
-    fireEvent.click(screen.getByText('Start run'))
+    fireEvent.click(screen.getByText('开始执行'))
     await waitFor(() => expect(mockCreateRun).toHaveBeenCalled())
 
     act(() => {
@@ -268,10 +269,10 @@ describe('AgentRunPanel', () => {
     })
 
     render(<AgentRunPanel />)
-    fireEvent.change(screen.getByPlaceholderText('What should the agent do?'), {
+    fireEvent.change(screen.getByPlaceholderText('想让 Agent 做什么？'), {
       target: { value: 'risky' },
     })
-    fireEvent.click(screen.getByText('Start run'))
+    fireEvent.click(screen.getByText('开始执行'))
     await waitFor(() => expect(mockCreateRun).toHaveBeenCalled())
 
     // The header badge surfaces the raw status string instead of throwing.

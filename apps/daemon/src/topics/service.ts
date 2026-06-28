@@ -1,11 +1,13 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join, relative, resolve } from 'node:path'
 import { ChangeSetService } from '../changeset/service.js'
 import {
   assertInsideRoot,
   createdSecs,
+  fieldString,
   LocalCrudError,
   mtimeSecs,
+  parseYamlishFields,
   recordWrite,
   removeTracked,
 } from '../local/service.js'
@@ -16,6 +18,8 @@ export interface TopicEntry {
   path: string
   created_secs: number
   mtime_secs: number
+  /** frontmatter title for .md/.mdx notes; undefined when absent or not a note. */
+  title?: string
 }
 
 const RUN_ID = 'topics-manual'
@@ -35,12 +39,15 @@ export class TopicsService {
       .map((entry) => {
         const full = join(dir, entry.name)
         const rel = relativePath ? `${relativePath}/${entry.name}` : entry.name
+        const isDir = entry.isDirectory()
+        const title = isDir ? undefined : readNoteTitle(full, entry.name)
         return {
           name: entry.name,
-          is_dir: entry.isDirectory(),
+          is_dir: isDir,
           path: rel,
           created_secs: createdSecs(full),
           mtime_secs: mtimeSecs(full),
+          ...(title ? { title } : {}),
         }
       })
       .sort((a, b) => Number(b.is_dir) - Number(a.is_dir) || a.name.localeCompare(b.name))
@@ -85,4 +92,25 @@ export class TopicsService {
     }
     return full
   }
+}
+
+const NOTE_EXTENSIONS = ['.md', '.mdx']
+
+/**
+ * AC-2 · 从 .md/.mdx 笔记的 frontmatter 读取 title 字段。
+ * 复用项目现有 parseYamlishFields（与 journal/identity 一致），不引入新依赖。
+ * 非笔记或无 title / frontmatter 解析失败时返回 undefined。
+ */
+function readNoteTitle(fullPath: string, name: string): string | undefined {
+  if (!NOTE_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext))) return undefined
+  let content: string
+  try {
+    content = readFileSync(fullPath, 'utf8')
+  } catch {
+    return undefined
+  }
+  const { fields, hasFrontmatter } = parseYamlishFields(content)
+  if (!hasFrontmatter) return undefined
+  const title = fieldString(fields, 'title').trim()
+  return title || undefined
 }

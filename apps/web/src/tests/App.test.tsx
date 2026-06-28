@@ -298,7 +298,7 @@ describe('App', () => {
       fireEvent.click(screen.getByRole('button', { name: '专题' }))
     })
 
-    const topicFile = await screen.findByText('guide.mdx')
+    const topicFile = await screen.findByText('guide')
 
     await act(async () => {
       fireEvent.click(topicFile)
@@ -335,7 +335,7 @@ describe('App', () => {
       fireEvent.click(screen.getByRole('button', { name: '专题' }))
     })
 
-    const topicFile = await screen.findByText('guide.mdx')
+    const topicFile = await screen.findByText('guide')
 
     await act(async () => {
       fireEvent.click(topicFile)
@@ -377,7 +377,7 @@ describe('App', () => {
     })
 
     await act(async () => {
-      fireEvent.click(await screen.findByText('guide.mdx'))
+      fireEvent.click(await screen.findByText('guide'))
       await Promise.resolve()
       await Promise.resolve()
     })
@@ -444,7 +444,7 @@ describe('App', () => {
     })
 
     await act(async () => {
-      fireEvent.click(screen.getByText('guide.mdx'))
+      fireEvent.click(screen.getByText('guide'))
       await Promise.resolve()
       await Promise.resolve()
     })
@@ -668,7 +668,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Chat' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Agent Run' })).toBeTruthy()
     // Default chat mode: the run goal form must be absent (no regression).
-    expect(screen.queryByPlaceholderText('What should the agent do?')).toBeNull()
+    expect(screen.queryByPlaceholderText('想让 Agent 做什么？')).toBeNull()
   })
 
   it('switching to Agent Run renders the structured run surface', async () => {
@@ -681,7 +681,7 @@ describe('App', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Agent Run' }))
     })
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('What should the agent do?')).toBeTruthy()
+      expect(screen.getByPlaceholderText('想让 Agent 做什么？')).toBeTruthy()
     })
     // The Agent Run header is present.
     expect(screen.getAllByText('Agent Run').length).toBeGreaterThan(0)

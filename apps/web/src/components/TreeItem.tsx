@@ -192,6 +192,8 @@ export const TreeItem = memo(function TreeItem({
 }: TreeItemProps) {
   injectTreeItemCss()
   const tags = getDisplayTags(itemType, identity, entry)
+  const visibleTags = itemType === 'journal' ? tags.slice(0, 1) : tags
+  const hiddenTagCount = itemType === 'journal' ? tags.length - visibleTags.length : 0
   const displayName = getDisplayName(itemType, identity, entry, topicEntry)
   const description = getDescription(itemType, identity, entry)
   const ref = useRef<HTMLDivElement>(null)
@@ -293,13 +295,15 @@ export const TreeItem = memo(function TreeItem({
 
         {/* Name / Title — shrinks only after tags are hidden */}
         <div
+          className="tree-item-title"
           ref={titleRef}
           title={titleOverflow ? displayName : undefined}
           style={{
             flexGrow: 1,
             flexShrink: 1,
-            flexBasis: 'auto',
+            flexBasis: itemType === 'journal' ? 0 : 'auto',
             minWidth: 0,
+            maxWidth: '100%',
             fontSize: 'var(--text-base, 0.875rem)',
             fontWeight: 'var(--font-semibold, 600)',
             color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
@@ -313,20 +317,46 @@ export const TreeItem = memo(function TreeItem({
         </div>
 
         {/* Tags — hidden first when space is tight (high flex-shrink) */}
-        {tags.length > 0 && (
+        {visibleTags.length > 0 && (
           <div
+            className="tree-item-tags"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              flexShrink: 999,
-              minWidth: 0,
+              flexShrink: itemType === 'journal' ? 1 : 999,
+              minWidth: itemType === 'journal' && hiddenTagCount > 0 ? 28 : 0,
+              maxWidth: itemType === 'journal' ? '45%' : undefined,
               overflow: 'hidden',
             }}
           >
-            {tags.map((tag, i) => (
+            {visibleTags.map((tag, i) => (
               <span
                 key={i}
+                className="tree-item-tag"
+                title={itemType === 'journal' ? tag : undefined}
+                style={{
+                  fontSize: '0.6875rem',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  background: 'var(--tag-bg)',
+                  color: 'var(--item-meta)',
+                  whiteSpace: 'nowrap',
+                  minWidth: itemType === 'journal' ? 0 : undefined,
+                  maxWidth: itemType === 'journal' ? '100%' : undefined,
+                  overflow: itemType === 'journal' ? 'hidden' : undefined,
+                  textOverflow: itemType === 'journal' ? 'ellipsis' : undefined,
+                  flexShrink: itemType === 'journal' ? 1 : 0,
+                  lineHeight: 1.3,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+            {hiddenTagCount > 0 && (
+              <span
+                className="tree-item-tag-overflow"
+                aria-label={`还有 ${hiddenTagCount} 个标签`}
                 style={{
                   fontSize: '0.6875rem',
                   padding: '2px 6px',
@@ -338,9 +368,9 @@ export const TreeItem = memo(function TreeItem({
                   lineHeight: 1.3,
                 }}
               >
-                {tag}
+                +{hiddenTagCount}
               </span>
-            ))}
+            )}
           </div>
         )}
 

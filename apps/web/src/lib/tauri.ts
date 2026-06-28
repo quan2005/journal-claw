@@ -688,6 +688,8 @@ export interface TopicEntry {
   path: string // workspace-relative
   created_secs?: number
   mtime_secs: number
+  /** frontmatter title for .md/.mdx notes (parsed daemon-side); absent otherwise. */
+  title?: string
 }
 
 export const listTopicsDir = (relativePath: string): Promise<TopicEntry[]> =>

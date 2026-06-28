@@ -5,6 +5,7 @@ import type { AutomationRoutine, AutomationTemplate } from '../types'
 import { AutomationEditorDialog } from './AutomationEditorDialog'
 import { AutomationRoutineList } from './AutomationRoutineList'
 import { AutomationTemplateGrid } from './AutomationTemplateGrid'
+import { useTranslation } from '../contexts/I18nContext'
 
 export function AutomationWorkbench({
   onOpenConversation: _onOpenConversation,
@@ -12,6 +13,7 @@ export function AutomationWorkbench({
   onOpenConversation: (sessionId: string) => void
 }) {
   const automation = useAutomation()
+  const { t } = useTranslation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingRoutine, setEditingRoutine] = useState<AutomationRoutine | null>(null)
   const [draftTemplate, setDraftTemplate] = useState<AutomationTemplate | null>(null)
@@ -115,7 +117,10 @@ export function AutomationWorkbench({
                 </div>
               </div>
               <div className="automation-template-count">
-                {visibleTemplates.length} of {automation.templates.length}
+                {t('automationTemplateCount', {
+                  shown: visibleTemplates.length,
+                  total: automation.templates.length,
+                })}
               </div>
             </div>
             <div className="automation-tabs" aria-label="模板分类">

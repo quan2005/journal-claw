@@ -26,6 +26,7 @@ import {
   type SkillInfo,
   type SkillTrigger,
 } from '../lib/tauri'
+import { useTranslation } from '../contexts/I18nContext'
 
 // Map a skill's dir_name to a lucide icon. Falls back to Zap.
 const ICON_BY_NAME: Record<string, typeof Zap> = {
@@ -336,6 +337,7 @@ function SkillDrawer({
 
 // ── Skills page ───────────────────────────────────────────
 export default function SkillsWorkbench() {
+  const { t } = useTranslation()
   const [skills, setSkills] = useState<SkillInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
@@ -398,7 +400,8 @@ export default function SkillsWorkbench() {
         filtered = skills.filter((s) => s.scope === 'global')
         break
       case 'favorites':
-        filtered = skills.filter((s) => favorites.includes(s.id))
+        filtered =
+          favorites.length === 0 ? skills : skills.filter((s) => favorites.includes(s.id))
         break
     }
     if (q.trim()) {
@@ -409,6 +412,8 @@ export default function SkillsWorkbench() {
     }
     return filtered
   }, [skills, tab, q, favorites])
+
+  const showingFavoritesFallback = tab === 'favorites' && favorites.length === 0 && skills.length > 0
 
   if (loading) {
     return <div className="sk-loading">加载中…</div>
@@ -465,6 +470,9 @@ export default function SkillsWorkbench() {
         </div>
 
         {/* ── grid ─────────────────────────────────── */}
+        {showingFavoritesFallback && (
+          <div className="sk-favorites-hint">{t('skillsFavoriteEmptyHint')}</div>
+        )}
         {list.length > 0 ? (
           <div className="sk-grid">
             {list.map((s) => (

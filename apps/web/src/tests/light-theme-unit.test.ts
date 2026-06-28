@@ -71,7 +71,7 @@ describe('Dark theme invariance', () => {
     '--duration-text': '#6b7280',
     '--record-btn': '#ff7a33',
     '--record-btn-hover': '#ff9355',
-    '--record-btn-icon': '#0f0f0f',
+    '--record-btn-icon': '#fff8f0',
     '--item-selected-bg': 'rgba(255, 122, 51, 0.14)',
     '--item-selected-text': '#ff9355',
     '--sidebar-bg': '#141414',
@@ -289,14 +289,11 @@ describe('Journal content frame contract', () => {
     expect(mdHeadingRule).toContain('color: var(--journal-title-color)')
   })
 
-  it('uses one shared status bar contract for ideas and automation headers', () => {
-    const statsRule =
-      css.match(/\.automation-stats,\s*\.ideas-workbench-stats\s*\{[^}]*\}/)?.[0] ?? ''
-    const statItemRule =
-      css.match(/\.automation-stats span,\s*\.ideas-workbench-stats span\s*\{[^}]*\}/)?.[0] ?? ''
-    const statValueRule =
-      css.match(/\.automation-stats strong,\s*\.ideas-workbench-stats strong\s*\{[^}]*\}/)?.[0] ??
-      ''
+  it('keeps the automation status bar contract while ideas relies on filter tabs', () => {
+    const statsRule = css.match(/\.automation-stats\s*\{[^}]*\}/)?.[0] ?? ''
+    const statItemRule = css.match(/\.automation-stats span\s*\{[^}]*\}/)?.[0] ?? ''
+    const statValueRule = css.match(/\.automation-stats strong\s*\{[^}]*\}/)?.[0] ?? ''
+    const ideasTabsRule = css.match(/\.ideas-workbench-tabs\s*\{[^}]*\}/)?.[0] ?? ''
 
     expect(statsRule).toContain('width: min(100%, 676px)')
     expect(statsRule).toContain('min-height: 50px')
@@ -304,16 +301,46 @@ describe('Journal content frame contract', () => {
     expect(statItemRule).toContain('justify-content: center')
     expect(statItemRule).toContain('padding: 0 20px')
     expect(statValueRule).toContain('font-size: var(--text-lg)')
+    expect(ideasTabsRule).toContain('border-bottom: var(--border-menu)')
+    expect(css).not.toContain('.ideas-workbench-stats')
   })
 })
 
 describe('Ideas workbench surface contract', () => {
+  it('renders browse pane headers as compact single-row Plan A labels', () => {
+    const headerRule = css.match(/\.browse-pane-header\s*\{[^}]*\}/)?.[0] ?? ''
+    const iconRule = css.match(/\.browse-pane-header__icon\s*\{[^}]*\}/)?.[0] ?? ''
+    const labelRule = css.match(/\.browse-pane-header__label\s*\{[^}]*\}/)?.[0] ?? ''
+
+    // single row, flex, compact height, 1px bottom divider
+    expect(headerRule).toContain('display: flex')
+    expect(headerRule).toContain('align-items: center')
+    expect(headerRule).toMatch(/min-height:\s*3[02]px/)
+    expect(headerRule).toContain('border-bottom: var(--border-menu)')
+
+    // orange icon is the single identity point
+    expect(iconRule).toContain('color: var(--record-btn)')
+
+    // body font (NOT display), 12px, semibold, slightly tracked, item text color
+    expect(labelRule).toContain('font-family: var(--font-body)')
+    expect(labelRule).toContain('font-size: var(--text-xs)')
+    expect(labelRule).toContain('font-weight: var(--font-semibold)')
+    expect(labelRule).toContain('color: var(--item-text)')
+
+    // Plan A removed the Playfair title, eyebrow, and description entirely;
+    // the header label uses the body font, never the display font
+    expect(css).not.toContain('.browse-pane-header__title')
+    expect(css).not.toContain('.browse-pane-header__description')
+    expect(css).not.toContain('.browse-pane-header__eyebrow')
+    expect(labelRule).not.toContain('font-family: var(--font-display)')
+  })
+
   it('defines ideas workbench classes and semantic tokens', () => {
     expect(css).toContain('.ideas-workbench')
     expect(css).toContain('--ideas-surface:')
     expect(css).toContain('--ideas-text-muted:')
     expect(css).toContain('.ideas-workbench-row')
-    expect(css).toContain('.ideas-workbench-stats')
+    expect(css).toContain('.ideas-workbench-tabs-spacer')
   })
 
   it('keeps ideas workbench aligned with automation tokens instead of one-off palette colors', () => {

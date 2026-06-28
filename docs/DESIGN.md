@@ -177,6 +177,9 @@ spacing:
 - **浮层阴影**：`--shadow-overlay`（浅色 `0 4px 12px rgba(0,0,0,0.15)` / 暗色 `0 4px 12px rgba(0,0,0,0.5)`）——浮层（菜单、对话框、Toast）的唯一阴影值，禁止 `0 24px 80px` 等装饰性深阴影。
 - **菜单边框**：`--border-menu`（`1px solid var(--divider)`）——上下文菜单、对话框的统一边框，禁止 0.5px 等不一致粗细。
 - **聚焦环**：`--focus-ring`（`2px solid color-mix(in srgb, var(--record-btn) 55%, var(--bg))`）——所有 `:focus-visible` 必须用此 token，禁止 `outline: none` 或各自硬编码浓度（22%/60% 等）。
+- **主操作按钮**：`--workbench-btn-primary-bg`（= `--record-btn`）/ `--workbench-btn-primary-bg-hover`（= `--record-btn-hover`）/ `--workbench-btn-primary-color`（`#fff`）——所有 Hub 页主操作（新建技能/想法/自动化等）的实心橙按钮统一消费此组 token，禁止各页硬编码填充色（曾出现技能页浅珊瑚、想法/自动化深 ghost 的不一致）。交互橙永远走 `--record-btn`，**不要**用 `--accent`（已重定义为危险红 `#DC2626`，非交互色）。
+
+> **暗色二级文字对比下限。** 暗色主题正文副文本（`--text-secondary`）≥ 4.5:1，元信息/提示文本（`--text-tertiary`/`--muted-text`/`--muted-icon`，当前 `#747b86`）≥ 3:1（相对其所在表面背景）。低于此阈值的灰度需上调，不得让「上次成功/失败」等关键状态文本沉到不可读。
 
 ### 列表项（日志条目）
 扁平行，无卡片装饰。通过间距、字重和橙色着色建立层级。
@@ -214,6 +217,12 @@ spacing:
 - **宽度：** 4px。轨道：始终透明。
 - **滑块：** 浅色 `#D1D5DB` / 暗色 `rgba(255,255,255,0.12)`。悬停：浅色 `#9CA3AF` / 暗色 `rgba(255,255,255,0.2)`。
 - **圆角：** 2px。
+
+### Browse 页眉（专题 / 画像 / Timeline）
+浏览类页面（以扫读为主）用**紧凑单行页眉**，区别于 Hub 页（技能/想法/自动化）的 Playfair 巨标题——为列表让出垂直空间。
+
+- **结构：** 单行 = 橙色小图标（`--record-btn`，唯一身份点）+ 页名标签（`--font-body`、`--text-xs`、`--font-semibold`、字距 0.05em）。`min-height` 30px，底部 `--border-menu` 细分隔线。无 Playfair 标题、无副标题段落。
+- **组件：** 三页共用 `BrowsePaneHeader`（`icon` + `label` 两个 prop），仅图标/文案不同（专题=archive、画像=users、Timeline=scroll）。
 
 ## 6. 该做与不该做
 

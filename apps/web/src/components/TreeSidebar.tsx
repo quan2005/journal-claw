@@ -4,7 +4,10 @@ import type { Category } from '../contexts/UIContext'
 import { MonthDivider } from './MonthDivider'
 import { TreeItem } from './TreeItem'
 import { TopicTree } from './TopicTree'
+import { BrowsePaneHeader } from './BrowsePaneHeader'
+import { Archive, Users, ScrollText } from 'lucide-react'
 import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
+import { useTranslation } from '../contexts/I18nContext'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
 import { deleteJournalEntry, deleteIdentity, deleteTopic, getWorkspacePath, archiveIdentity, unarchiveIdentity, listTopicsDir, type TopicEntry } from '../lib/tauri'
@@ -336,6 +339,7 @@ export function TreeSidebar({
   todayDay,
   category,
 }: TreeSidebarProps) {
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsedSections)
   const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
   const { items: pinnedItems, pin, unpin, refresh: refreshPinned } = usePinned()
@@ -581,6 +585,10 @@ export function TreeSidebar({
       >
         {category === 'journal' && (
           <>
+            <BrowsePaneHeader
+              icon={<ScrollText size={16} strokeWidth={1.6} />}
+              label={t('browseTimelineLabel')}
+            />
             {/* ════════════════════════════════════════════════════════════════════
                 Journal Pipeline Section (流水)
                 ════════════════════════════════════════════════════════════════════ */}
@@ -655,6 +663,10 @@ export function TreeSidebar({
 
         {category === 'identity' && (
           <>
+            <BrowsePaneHeader
+              icon={<Users size={16} strokeWidth={1.6} />}
+              label={t('browseProfilesLabel')}
+            />
             {/* ════════════════════════════════════════════════════════════════════
                 Core Identities Section (核心画像)
                 ════════════════════════════════════════════════════════════════════ */}
@@ -781,6 +793,10 @@ export function TreeSidebar({
 
         {category === 'topics' && (
           <>
+            <BrowsePaneHeader
+              icon={<Archive size={16} strokeWidth={1.6} />}
+              label={t('browseTopicsLabel')}
+            />
             {/* ════════════════════════════════════════════════════════════════════
                 Pinned Topics Section
                 ════════════════════════════════════════════════════════════════════ */}

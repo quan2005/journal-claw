@@ -139,7 +139,7 @@ export function useAgentRun(): UseAgentRunResult {
           ])
           break
         }
-        case 'run_finished':
+        case 'run_finished': {
           setTimeline((t) => [
             ...t,
             { id: ev.timestamp, kind: 'status', label: 'Run finished', timestamp: ev.timestamp },
@@ -164,6 +164,7 @@ export function useAgentRun(): UseAgentRunResult {
               .catch(() => {})
           }
           break
+        }
         case 'run_failed':
           setTimeline((t) => [
             ...t,

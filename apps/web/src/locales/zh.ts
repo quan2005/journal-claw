@@ -10,6 +10,11 @@ export const zh: Strings = {
   journal: '流水',
   files: '文件',
 
+  // Browse panes — compact header labels (Plan A single-row label)
+  browseTopicsLabel: '专题',
+  browseProfilesLabel: '画像',
+  browseTimelineLabel: 'Timeline',
+
   // Right panel tabs
   ideas: '想法',
   chat: '探讨',
@@ -153,10 +158,8 @@ export const zh: Strings = {
   mergeFrom: '将「{name}」合并到',
   selectTarget: '— 选择目标档案 —',
   mergeMode: '合并方式',
-  voiceOnly: '仅声纹',
-  voiceOnlyDesc: '将声纹 ID 关联到目标档案，不合并文字内容',
   fullMerge: '完整合并',
-  fullMergeDesc: '合并声纹 ID、标签和正文内容',
+  fullMergeDesc: '合并标签、摘要与正文内容到目标档案',
   mergingDots: '合并中…',
   confirmMerge: '确认合并',
 
@@ -256,8 +259,6 @@ export const zh: Strings = {
   grantAll: '一键授权',
   allGranted: '所有权限已就绪',
   clickToCheck: '点击「检测权限」查看各项授权状态',
-  permSpeech: '语音识别',
-  permSpeechDesc: '使用 Apple 语音识别引擎时需要此权限（DashScope / WhisperKit 不需要）。',
   statusGranted: '已授权',
   statusDenied: '已拒绝',
   statusRestricted: '受限制',
@@ -277,13 +278,13 @@ export const zh: Strings = {
   pluginScopeGlobal: '全局',
   noSkillsFound: '未发现技能插件',
   noSkillsHint: '在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能',
+  skillsFavoriteEmptyHint: '还没有收藏。点击技能卡片上的星标即可固定到这里。',
   openSkillDir: '打开目录',
 
   // Settings: About
   version: '版本 {version}',
   addWeChat: '扫码添加微信',
   wechatQr: '微信二维码',
-  whisperCredit: '内置 WhisperKit（MIT License）by Argmax, Inc. — 本地语音识别引擎',
   docs: '文档',
   docsUserGuide: '用户指南',
   docsDevGuide: '开发者指南',
@@ -407,6 +408,20 @@ export const zh: Strings = {
     'Anthropic 协议用于 Claude 模型，OpenAI 兼容协议用于其他供应商（百炼、DeepSeek 等）',
   addProvider: '添加供应商',
   customProvider: '自定义供应商',
+
+  // Agent Run panel
+  agentRunTitle: 'Agent 任务',
+  agentRunGoalLabel: '目标',
+  agentRunGoalPlaceholder: '想让 Agent 做什么？',
+  agentRunAuthLabel: '授权',
+  agentRunModeReadOnly: '只读',
+  agentRunModeWorkspaceWrite: '工作区可写',
+  agentRunModeFullAccess: '完全访问',
+  agentRunModeWideAudited: '宽松（带审计）',
+  agentRunStart: '开始执行',
+
+  // Automation template count
+  automationTemplateCount: '共 {total} 个 · 当前 {shown}',
 
   // Onboarding
   'onboarding.welcome.title': '欢迎使用 JournalClaw',

@@ -14,6 +14,7 @@ import { useState, type ReactNode } from 'react'
 import { useAgentRun, AUTHORIZATION_MODES, type TimelineEntry } from '../hooks/useAgentRun'
 import type { AuthorizationMode, ChangeSet } from '../types/agentRun'
 import type { Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
+import { useTranslation } from '../contexts/I18nContext'
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   queued: { label: 'Queued', color: 'var(--status-warning)' },
@@ -24,14 +25,20 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   waiting_for_confirmation: { label: 'Needs confirmation', color: 'var(--status-warning)' },
 }
 
-const MODE_LABEL: Record<AuthorizationMode, string> = {
-  read_only: 'Read-only',
-  workspace_write: 'Workspace write',
-  full_access: 'Full access',
-  wide_with_audit: 'Wide (audited)',
-}
-
 export function AgentRunPanel() {
+  const { t } = useTranslation()
+  const modeLabel = (m: AuthorizationMode): string => {
+    switch (m) {
+      case 'read_only':
+        return t('agentRunModeReadOnly')
+      case 'workspace_write':
+        return t('agentRunModeWorkspaceWrite')
+      case 'full_access':
+        return t('agentRunModeFullAccess')
+      case 'wide_with_audit':
+        return t('agentRunModeWideAudited')
+    }
+  }
   const {
     run,
     timeline,
@@ -64,7 +71,7 @@ export function AgentRunPanel() {
       <header style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={dotStyle(statusMeta?.color)} aria-hidden />
-          <h2 style={titleStyle}>Agent Run</h2>
+          <h2 style={titleStyle}>{t('agentRunTitle')}</h2>
         </div>
         {run && (
           <span style={statusBadge(statusMeta?.color)}>{statusMeta?.label ?? run.status}</span>
@@ -73,15 +80,15 @@ export function AgentRunPanel() {
 
       {!run && !isRunning && (
         <form onSubmit={onSubmit} style={formStyle}>
-          <label style={fieldLabel}>Goal</label>
+          <label style={fieldLabel}>{t('agentRunGoalLabel')}</label>
           <input
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
-            placeholder="What should the agent do?"
+            placeholder={t('agentRunGoalPlaceholder')}
             style={inputStyle}
             autoFocus
           />
-          <label style={{ ...fieldLabel, marginTop: 12 }}>Authorization</label>
+          <label style={{ ...fieldLabel, marginTop: 12 }}>{t('agentRunAuthLabel')}</label>
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as AuthorizationMode)}
@@ -89,12 +96,12 @@ export function AgentRunPanel() {
           >
             {AUTHORIZATION_MODES.map((m) => (
               <option key={m} value={m}>
-                {MODE_LABEL[m]}
+                {modeLabel(m)}
               </option>
             ))}
           </select>
           <button type="submit" disabled={!goal.trim()} style={primaryButton(!!goal.trim())}>
-            Start run
+            {t('agentRunStart')}
           </button>
         </form>
       )}
@@ -104,10 +111,10 @@ export function AgentRunPanel() {
       {run && (
         <>
           <section style={sectionStyle}>
-            <div style={eyebrowStyle}>Goal</div>
+            <div style={eyebrowStyle}>{t('agentRunGoalLabel')}</div>
             <div style={goalStyle}>{run.goal}</div>
             <div style={metaRowStyle}>
-              <span style={chipStyle}>{MODE_LABEL[run.authorizationMode]}</span>
+              <span style={chipStyle}>{modeLabel(run.authorizationMode)}</span>
               <span style={chipStyle}>claude</span>
             </div>
           </section>

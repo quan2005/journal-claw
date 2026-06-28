@@ -122,14 +122,15 @@ describe('IdeasWorkbench shell', () => {
     mockState.todoContext.loading = false
   })
 
-  it('renders the lightweight workbench header, processing stats, and default unfinished list', () => {
-    renderWithProviders(<IdeasWorkbench />)
+  it('renders the lightweight workbench header, filter tabs, create action, and default unfinished list', () => {
+    const { container } = renderWithProviders(<IdeasWorkbench />)
 
     expect(screen.getByText('IDEAS')).toBeTruthy()
     expect(screen.getByRole('heading', { name: '想法' })).toBeTruthy()
-    expect(screen.getByLabelText('3 未完成')).toBeTruthy()
-    expect(screen.getByLabelText('2 待探讨')).toBeTruthy()
-    expect(screen.getByLabelText('1 有截止日期')).toBeTruthy()
+    expect(container.querySelector('.ideas-workbench-stats')).toBeNull()
+    expect(screen.queryByLabelText('3 未完成')).toBeNull()
+    expect(screen.queryByLabelText('2 待探讨')).toBeNull()
+    expect(screen.queryByLabelText('1 有截止日期')).toBeNull()
     expect(screen.getByRole('button', { name: '全部（未完成） 3' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '待探讨（未完成且未探讨） 2' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '有截止日期（未完成） 1' })).toBeTruthy()
@@ -449,6 +450,7 @@ describe('DetailView ideas route', () => {
 
     expect(screen.getByText('IDEAS')).toBeTruthy()
     expect(screen.getByRole('heading', { name: '想法' })).toBeTruthy()
-    expect(screen.getByLabelText('想法处理状态统计')).toBeTruthy()
+    expect(screen.queryByLabelText('想法处理状态统计')).toBeNull()
+    expect(screen.getByRole('button', { name: '全部（未完成） 3' })).toBeTruthy()
   })
 })

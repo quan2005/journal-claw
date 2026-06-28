@@ -7,7 +7,7 @@
  * daemon HTTP/SSE surface (the runtime flag decides whether the *chat* path
  * uses Tauri or daemon; the Run panel is daemon-native).
  */
-import type { AgentRun, AgentRunEvent, AuthorizationMode, ChangeSet, Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
+import type { AgentRun, AgentRunEvent, AuthorizationMode, ChangeSet, Artifact, MemoryRecord, SourceBinding, RunEngine } from '../types/agentRun'
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:17510'
 
@@ -24,6 +24,8 @@ function baseUrl(): string {
 export interface CreateRunInput {
   goal: string
   mode?: 'chat' | 'agent' | 'observe'
+  /** Backend engine: `builtin` (pi) or `cli` (external agent). Defaults to `cli`. */
+  engine?: RunEngine
   agentId?: string
   prompt?: string
   model?: string
@@ -31,12 +33,14 @@ export interface CreateRunInput {
 }
 
 export async function createRun(input: CreateRunInput): Promise<AgentRun> {
+  const engine: RunEngine = input.engine === 'builtin' ? 'builtin' : 'cli'
   const res = await fetch(`${baseUrl()}/runs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       goal: input.goal,
       mode: input.mode ?? 'agent',
+      engine,
       agentId: input.agentId ?? 'claude',
       prompt: input.prompt ?? input.goal,
       model: input.model,

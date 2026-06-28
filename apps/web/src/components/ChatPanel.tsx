@@ -65,6 +65,21 @@ export interface ChatPanelProps {
   onRemovePendingItem: (index: number) => string | undefined
   onContinue: () => void
   historyControl?: ReactNode
+  /**
+   * Extra entries rendered INSIDE the messages scroll area, after the chat
+   * bubbles (AC-6 render-layer fusion): UnifiedChatShell injects a CLI run's
+   * timeline/changeset here so it shares the same scrollable conversation
+   * surface as the built-in pi chat. Undefined for the pure built-in path.
+   */
+  streamExtras?: ReactNode
+  /**
+   * Extra controls rendered at the TOP of the composer (fused input) container
+   * — UnifiedChatShell injects the CLI authorization selector here so the goal
+   * input + auth live in the composer row, not a separate form block.
+   */
+  composerExtras?: ReactNode
+  /** Overrides the textarea placeholder (CLI engine reuses this as the goal). */
+  inputPlaceholder?: string
 }
 
 export function ChatPanel({
@@ -82,6 +97,9 @@ export function ChatPanel({
   onRemovePendingItem,
   onContinue,
   historyControl,
+  streamExtras,
+  composerExtras,
+  inputPlaceholder,
 }: ChatPanelProps) {
   const { t } = useTranslation()
   const { showToast } = useToast()
@@ -112,7 +130,9 @@ export function ChatPanel({
     setShowScrollBtn(distanceFromBottom > 60)
   }, [])
 
-  // Auto-scroll only if user hasn't scrolled up and no text is selected
+  // Auto-scroll only if user hasn't scrolled up and no text is selected.
+  // streamExtras is a dep so injected run entries (timeline/changeset growth)
+  // also drive the stick-to-bottom behavior in the fused surface (AC-6).
   useEffect(() => {
     const sel = document.getSelection()
     if (sel && sel.type === 'Range') return
@@ -120,7 +140,7 @@ export function ChatPanel({
     if (el && !userScrolledUp.current) {
       el.scrollTop = el.scrollHeight
     }
-  }, [messages])
+  }, [messages, streamExtras])
 
   // Client-side elapsed timer for streaming display
   useEffect(() => {
@@ -409,7 +429,7 @@ export function ChatPanel({
           gap: 16,
         }}
       >
-        {messages.length === 0 && (
+        {messages.length === 0 && !streamExtras && (
           <div
             style={{
               flex: 1,
@@ -547,6 +567,10 @@ export function ChatPanel({
             })()}
           />
         ) : null}
+
+        {/* Fused run entries (CLI timeline/changeset) — same scroll surface
+            as the chat bubbles, rendered after them (AC-6 render-layer fusion). */}
+        {streamExtras}
       </div>
 
       {/* Scroll to bottom button */}
@@ -729,6 +753,10 @@ export function ChatPanel({
             </div>
           )}
 
+          {/* Fused composer extras (CLI authorization selector) — sits above
+              the textarea in the same input row, no separate form block (AC-6). */}
+          {composerExtras}
+
           {/* Attachment chips */}
           {attachments.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 6 }}>
@@ -836,7 +864,7 @@ export function ChatPanel({
             onPaste={handlePaste}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder={t('conversationInputPlaceholder')}
+            placeholder={inputPlaceholder ?? t('conversationInputPlaceholder')}
             rows={1}
             style={{
               display: 'block',

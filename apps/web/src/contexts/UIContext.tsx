@@ -141,8 +141,6 @@ interface LayoutContextValue {
 
   rightPanelOpen: boolean
   setRightPanelOpen: Dispatch<SetStateAction<boolean>>
-  rightPanelMode: 'chat' | 'run'
-  setRightPanelMode: Dispatch<SetStateAction<'chat' | 'run'>>
   rightPanelPinned: boolean
   setRightPanelPinned: (p: boolean) => void
 }
@@ -204,8 +202,6 @@ export function UIProvider({ children }: { children: ReactNode }) {
   // ── Layout dimensions (moved to LayoutContext below) ──
   const [sidebarWidth, setSidebarWidthState] = useState(() => loadDim(SIDEBAR_WIDTH_KEY, 320))
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
-  // Right panel content mode: 'chat' (default) or 'run' (Agent Run panel).
-  const [rightPanelMode, setRightPanelMode] = useState<'chat' | 'run'>('chat')
   const [rightPanelWidth, setRightPanelWidthState] = useState(() =>
     loadDim(RIGHT_PANEL_WIDTH_KEY, 320),
   )
@@ -309,8 +305,6 @@ export function UIProvider({ children }: { children: ReactNode }) {
       setRightPanelWidth,
       rightPanelOpen,
       setRightPanelOpen,
-      rightPanelMode,
-      setRightPanelMode,
       rightPanelPinned,
       setRightPanelPinned,
     }),
@@ -324,7 +318,6 @@ export function UIProvider({ children }: { children: ReactNode }) {
       persistRightPanelWidth,
       setRightPanelWidth,
       rightPanelOpen,
-      rightPanelMode,
       rightPanelPinned,
       setRightPanelPinned,
     ],

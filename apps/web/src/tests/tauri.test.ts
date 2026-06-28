@@ -6,6 +6,8 @@ import {
   listIdentities,
   listTopicsDir,
   setEngineConfig,
+  getAgentEngine,
+  setAgentEngine,
   conversationCreate,
   conversationSend,
   conversationRetry,
@@ -97,5 +99,20 @@ describe('tauri config commands', () => {
       images: [{ media_type: 'image/png', data: 'base64' }],
     })
     expect(mockInvoke).toHaveBeenNthCalledWith(3, 'conversation_retry', { sessionId: 's1' })
+  })
+
+  it('routes agent engine selection through the runtime client command boundary', async () => {
+    mockInvoke.mockResolvedValueOnce({ engine: 'cli', agentId: 'codex' })
+
+    await expect(getAgentEngine()).resolves.toEqual({ engine: 'cli', agentId: 'codex' })
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, 'get_agent_engine')
+
+    // Each patch carries only its own field — switching the engine does not
+    // clobber a previously chosen agent id (and vice versa).
+    await setAgentEngine({ engine: 'builtin' })
+    expect(mockInvoke).toHaveBeenCalledWith('set_agent_engine', { engine: 'builtin' })
+
+    await setAgentEngine({ agentId: 'claude' })
+    expect(mockInvoke).toHaveBeenCalledWith('set_agent_engine', { agentId: 'claude' })
   })
 })

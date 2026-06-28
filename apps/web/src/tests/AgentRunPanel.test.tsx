@@ -102,7 +102,7 @@ describe('AgentRunPanel', () => {
 
     await waitFor(() => expect(screen.getByText('pong')).toBeTruthy())
     expect(screen.getByText('Bash')).toBeTruthy()
-    expect(screen.getByText('Done')).toBeTruthy()
+    expect(screen.getByText('已完成')).toBeTruthy()
   })
 
   it('shows an authorization mode selector', () => {
@@ -179,12 +179,15 @@ describe('AgentRunPanel', () => {
       })
     })
 
-    await waitFor(() => expect(screen.getByText('File changes (2)')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('文件改动 (2)')).toBeTruthy())
     // Both paths render, and both non-muted statuses are surfaced.
     expect(screen.getByText('notes/secret.md')).toBeTruthy()
     expect(screen.getByText('notes/gone.md')).toBeTruthy()
-    const blockedTags = screen.getAllByText('blocked')
-    const failedTags = screen.getAllByText('failed')
+    // Operation/status tags are localized (zh) — no raw backend enum leaks.
+    expect(screen.getAllByText('编辑').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('删除').length).toBeGreaterThanOrEqual(1)
+    const blockedTags = screen.getAllByText('已阻止')
+    const failedTags = screen.getAllByText('已失败')
     expect(blockedTags.length).toBeGreaterThanOrEqual(1)
     expect(failedTags.length).toBeGreaterThanOrEqual(1)
   })
@@ -245,11 +248,14 @@ describe('AgentRunPanel', () => {
       })
     })
 
-    await waitFor(() => expect(screen.getByText('Sources read (1)')).toBeTruthy())
-    expect(screen.getByText('Artifacts (1)')).toBeTruthy()
-    expect(screen.getByText('Memory (1)')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('读取的来源 (1)')).toBeTruthy())
+    expect(screen.getByText('产物 (1)')).toBeTruthy()
+    expect(screen.getByText('记忆 (1)')).toBeTruthy()
     expect(screen.getByText('Q2 Review')).toBeTruthy()
     expect(screen.getByText('meetings/standup.md')).toBeTruthy()
+    // Source kind + artifact type tags are localized (zh), not raw enums.
+    expect(screen.getByText('读取')).toBeTruthy()
+    expect(screen.getByText('摘要')).toBeTruthy()
   })
 
   it('does not crash when the daemon emits an unrecognized run status', async () => {

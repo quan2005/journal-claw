@@ -42,6 +42,18 @@ export const getWorkspaceTheme = (): Promise<'light' | 'dark' | 'system'> =>
 export const setWorkspaceTheme = (theme: 'light' | 'dark' | 'system'): Promise<void> =>
   selectRuntimeClient().invoke<void>('set_workspace_theme', { theme })
 
+// Unified conversation panel engine selection (builtin pi ↔ external CLI agent).
+// Persisted via daemon settings (PUT /settings), never localStorage.
+export const getAgentEngine = (): Promise<{ engine: 'builtin' | 'cli'; agentId: string | null }> =>
+  selectRuntimeClient().invoke<{ engine: 'builtin' | 'cli'; agentId: string | null }>(
+    'get_agent_engine',
+  )
+
+export const setAgentEngine = (patch: {
+  engine?: 'builtin' | 'cli'
+  agentId?: string | null
+}): Promise<void> => selectRuntimeClient().invoke<void>('set_agent_engine', patch)
+
 // Journal
 export const listAvailableMonths = () =>
   selectRuntimeClient().invoke<string[]>('list_available_months')

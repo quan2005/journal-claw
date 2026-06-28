@@ -18,6 +18,13 @@ function renderApp() {
 
 const listenerMap = new Map<string, (event: { payload: unknown }) => void>()
 
+// P2: the unified conversation panel fetches detected agents directly from the
+// daemon. In the App integration test there is no daemon, so stub the list to
+// an empty array (the shell treats a fetch failure the same way — no crash).
+vi.mock('../lib/localAgents', () => ({
+  listLocalAgents: vi.fn().mockResolvedValue([]),
+}))
+
 vi.mock('../lib/tauri', async () => {
   const actual = await vi.importActual('../lib/tauri')
   return {
@@ -72,6 +79,8 @@ vi.mock('../lib/tauri', async () => {
     deleteJournalEntry: vi.fn(),
     getWorkspaceSettings: vi.fn().mockResolvedValue({ theme: 'dark' }),
     setWorkspaceSettings: vi.fn(),
+    getAgentEngine: vi.fn().mockResolvedValue({ engine: 'builtin', agentId: null }),
+    setAgentEngine: vi.fn().mockResolvedValue(undefined),
     listTodos: vi.fn().mockResolvedValue([]),
     addTodo: vi.fn(),
     toggleTodo: vi.fn(),
@@ -658,44 +667,61 @@ describe('App', () => {
     }
   }
 
-  // ── G13: Agent Run panel integration ──────────────────────────────────
-  it('renders the Chat/Agent Run mode toggle and defaults to chat', async () => {
+  // ── P2: unified conversation panel (replaces the Chat/Agent Run tabs) ──
+  it('shows the engine switcher instead of the Chat/Agent Run tabs and defaults to the built-in engine', async () => {
     await act(async () => {
       renderApp()
     })
     await act(async () => {})
     await openRightPanel()
-    expect(screen.getByRole('button', { name: 'Chat' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Agent Run' })).toBeTruthy()
-    // Default chat mode: the run goal form must be absent (no regression).
+
+    // The two-tab toggle is gone (AC-1): neither legacy tab button renders.
+    expect(screen.queryByRole('button', { name: 'Chat' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Agent Run' })).toBeNull()
+
+    // The persistent engine chip is present (AC-2).
+    expect(screen.getByTestId('engine-switcher-chip')).toBeTruthy()
+
+    // Default engine is built-in pi, so the Agent Run goal form is absent and
+    // the conversation surface (no run goal) is what the user sees.
     expect(screen.queryByPlaceholderText('想让 Agent 做什么？')).toBeNull()
   })
 
-  it('switching to Agent Run renders the structured run surface', async () => {
+  it('switching the engine to external renders the inline Agent Run surface', async () => {
+    // Make an external agent available so the switcher can select it.
+    vi.mocked(tauri.getAgentEngine).mockResolvedValueOnce({
+      engine: 'cli',
+      agentId: 'claude',
+    })
+    const { listLocalAgents } = await import('../lib/localAgents')
+    vi.mocked(listLocalAgents).mockResolvedValueOnce([
+      {
+        id: 'claude',
+        name: 'Claude Code',
+        bin: 'claude',
+        available: true,
+        version: '1.0.0',
+      },
+    ])
+
     await act(async () => {
       renderApp()
     })
     await act(async () => {})
     await openRightPanel()
+
+    // Open the switcher popover and select the external (CLI) engine.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Agent Run' }))
+      fireEvent.click(screen.getByTestId('engine-switcher-chip'))
     })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('engine-switcher-mode-cli'))
+    })
+
+    // The inline Agent Run surface renders in the same panel — goal form,
+    // authorization selector and (after a run) the changeset all live here.
     await waitFor(() => {
       expect(screen.getByPlaceholderText('想让 Agent 做什么？')).toBeTruthy()
     })
-    // The Agent Run header is present.
-    expect(screen.getAllByText('Agent Run').length).toBeGreaterThan(0)
   })
 })
-
-  it('DEBUG right panel buttons', async () => {
-    await act(async () => { renderApp() })
-    await act(async () => {})
-    const buttons = screen.getAllByRole('button')
-    // eslint-disable-next-line no-console
-    console.log('ALL_BUTTON_NAMES:', JSON.stringify(buttons.map((b) => b.getAttribute('aria-label') || b.textContent).slice(0, 40)))
-    const rightPanel = document.querySelector('[data-sidebar-panel="right"]') as HTMLElement
-    // eslint-disable-next-line no-console
-    console.log('RIGHT_PANEL_WIDTH:', rightPanel?.style.width, 'ARIA:', rightPanel?.getAttribute('aria-hidden'))
-    expect(true).toBe(true)
-  })

@@ -16,6 +16,7 @@ import {
   listSources,
   type CreateRunInput,
 } from '../lib/agentRuns'
+import { useTranslation } from '../contexts/I18nContext'
 import type {
   AgentRun,
   AgentRunEvent,
@@ -49,6 +50,7 @@ export interface UseAgentRunResult {
 }
 
 export function useAgentRun(): UseAgentRunResult {
+  const { t } = useTranslation()
   const [run, setRun] = useState<AgentRun | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [changeSets, setChangeSets] = useState<ChangeSet[]>([])
@@ -98,12 +100,12 @@ export function useAgentRun(): UseAgentRunResult {
       }
       switch (ev.type) {
         case 'run_started':
-          setTimeline((t) => [
-            ...t,
+          setTimeline((prev) => [
+            ...prev,
             {
               id: ev.spanId ?? ev.timestamp,
               kind: 'status',
-              label: 'Run started',
+              label: t('agentRunEventStarted'),
               timestamp: ev.timestamp,
             },
           ])
@@ -111,8 +113,8 @@ export function useAgentRun(): UseAgentRunResult {
         case 'thinking_delta': {
           const d = safeParse(ev.data)
           const text = typeof d?.text === 'string' ? d.text : ''
-          setTimeline((t) => [
-            ...t,
+          setTimeline((prev) => [
+            ...prev,
             { id: ev.spanId ?? ev.timestamp, kind: 'thinking', text, timestamp: ev.timestamp },
           ])
           break
@@ -127,8 +129,8 @@ export function useAgentRun(): UseAgentRunResult {
           const d = safeParse(ev.data)
           const name = typeof d?.name === 'string' ? d.name : 'tool'
           const inputText = d?.input ? JSON.stringify(d.input).slice(0, 200) : ''
-          setTimeline((t) => [
-            ...t,
+          setTimeline((prev) => [
+            ...prev,
             {
               id: ev.spanId ?? ev.timestamp,
               kind: 'tool_call',
@@ -140,9 +142,14 @@ export function useAgentRun(): UseAgentRunResult {
           break
         }
         case 'run_finished': {
-          setTimeline((t) => [
-            ...t,
-            { id: ev.timestamp, kind: 'status', label: 'Run finished', timestamp: ev.timestamp },
+          setTimeline((prev) => [
+            ...prev,
+            {
+              id: ev.timestamp,
+              kind: 'status',
+              label: t('agentRunEventFinished'),
+              timestamp: ev.timestamp,
+            },
           ])
           setIsRunning(false)
           // Fetch the post-run assets: file changes, artifacts, memory,
@@ -166,15 +173,20 @@ export function useAgentRun(): UseAgentRunResult {
           break
         }
         case 'run_failed':
-          setTimeline((t) => [
-            ...t,
-            { id: ev.timestamp, kind: 'status', label: 'Run failed', timestamp: ev.timestamp },
+          setTimeline((prev) => [
+            ...prev,
+            {
+              id: ev.timestamp,
+              kind: 'status',
+              label: t('agentRunEventFailed'),
+              timestamp: ev.timestamp,
+            },
           ])
           setIsRunning(false)
           break
       }
     },
-    [run],
+    [run, t],
   )
 
   return {

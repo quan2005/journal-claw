@@ -12,33 +12,74 @@
  */
 import { useState, type ReactNode } from 'react'
 import { useAgentRun, AUTHORIZATION_MODES, type TimelineEntry } from '../hooks/useAgentRun'
-import type { AuthorizationMode, ChangeSet } from '../types/agentRun'
+import type { AuthorizationMode, ChangeSet, RunEngine, AgentRun } from '../types/agentRun'
 import type { Artifact, MemoryRecord, SourceBinding } from '../types/agentRun'
-import { useTranslation } from '../contexts/I18nContext'
+import { useTranslation, type TFn } from '../contexts/I18nContext'
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  queued: { label: 'Queued', color: 'var(--status-warning)' },
-  running: { label: 'Running', color: 'var(--record-btn, var(--accent))' },
-  succeeded: { label: 'Done', color: 'var(--status-success, #16a34a)' },
-  failed: { label: 'Failed', color: 'var(--status-danger)' },
-  canceled: { label: 'Canceled', color: 'var(--text-tertiary, #999)' },
-  waiting_for_confirmation: { label: 'Needs confirmation', color: 'var(--status-warning)' },
+// Run-status → signal color. Kept as a pure color map so the label can be
+// resolved through i18n (statusLabel) without re-deriving colors per render.
+// Signal accent is always --record-btn (never bare --accent, which is danger
+// red) — see AGENTS.md §5 / FIX-4.
+const STATUS_COLOR: Record<string, string> = {
+  queued: 'var(--status-warning)',
+  running: 'var(--record-btn)',
+  succeeded: 'var(--status-success, #16a34a)',
+  failed: 'var(--status-danger)',
+  canceled: 'var(--text-tertiary, #999)',
+  waiting_for_confirmation: 'var(--status-warning)',
 }
 
-export function AgentRunPanel() {
-  const { t } = useTranslation()
-  const modeLabel = (m: AuthorizationMode): string => {
-    switch (m) {
-      case 'read_only':
-        return t('agentRunModeReadOnly')
-      case 'workspace_write':
-        return t('agentRunModeWorkspaceWrite')
-      case 'full_access':
-        return t('agentRunModeFullAccess')
-      case 'wide_with_audit':
-        return t('agentRunModeWideAudited')
-    }
+/** Resolve a localized run-status label; unknown statuses fall back to the
+ *  raw status string so a future contract value surfaces instead of being
+ *  mislabeled. */
+function statusLabel(status: string, t: TFn): string {
+  switch (status) {
+    case 'queued':
+      return t('agentRunStatusQueued')
+    case 'running':
+      return t('agentRunStatusRunning')
+    case 'succeeded':
+      return t('agentRunStatusDone')
+    case 'failed':
+      return t('agentRunStatusFailed')
+    case 'canceled':
+      return t('agentRunStatusCanceled')
+    case 'waiting_for_confirmation':
+      return t('agentRunStatusNeedsConfirmation')
+    default:
+      return status
   }
+}
+
+export interface AgentRunPanelProps {
+  /**
+   * Backend engine + agent id chosen by the top-bar engine switcher. Defaults
+   * to `cli` / `claude` so a standalone mount (e.g. the panel test) behaves
+   * exactly as before. When wired from the UnifiedChatShell these carry the
+   * user's persisted selection so POST /runs is created against the right agent.
+   */
+  engine?: RunEngine
+  agentId?: string | null
+}
+
+/** Shared authorization-mode label resolver (used by both the standalone
+ *  AgentRunPanel form and the inline RunStreamEntries). */
+export function authorizationModeLabel(m: AuthorizationMode, t: TFn): string {
+  switch (m) {
+    case 'read_only':
+      return t('agentRunModeReadOnly')
+    case 'workspace_write':
+      return t('agentRunModeWorkspaceWrite')
+    case 'full_access':
+      return t('agentRunModeFullAccess')
+    case 'wide_with_audit':
+      return t('agentRunModeWideAudited')
+  }
+}
+
+export function AgentRunPanel({ engine = 'cli', agentId }: AgentRunPanelProps) {
+  const { t } = useTranslation()
+  const modeLabel = (m: AuthorizationMode): string => authorizationModeLabel(m, t)
   const {
     run,
     timeline,
@@ -57,25 +98,28 @@ export function AgentRunPanel() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!goal.trim() || isRunning) return
-    void start({ goal: goal.trim(), prompt: goal.trim(), authorizationMode: mode })
+    void start({
+      goal: goal.trim(),
+      prompt: goal.trim(),
+      engine,
+      agentId: agentId ?? 'claude',
+      authorizationMode: mode,
+    })
     setGoal('')
   }
 
-  // Look up status metadata directly; if the status is unrecognized (e.g. a
-  // future "rejected"), statusMeta stays undefined so the header badge falls
-  // back to the raw status string instead of mislabeling it as "Queued".
-  const statusMeta = run ? STATUS_META[run.status] : null
+  // Resolve the status signal color directly; an unrecognized status leaves
+  // statusColor undefined so the header badge dot falls back to the neutral
+  // default instead of mislabeling it as "Queued".
+  const statusColor = run ? STATUS_COLOR[run.status] : undefined
 
   return (
     <div style={panelStyle}>
       <header style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={dotStyle(statusMeta?.color)} aria-hidden />
+          <span style={dotStyle(statusColor)} aria-hidden />
           <h2 style={titleStyle}>{t('agentRunTitle')}</h2>
         </div>
-        {run && (
-          <span style={statusBadge(statusMeta?.color)}>{statusMeta?.label ?? run.status}</span>
-        )}
       </header>
 
       {!run && !isRunning && (
@@ -108,80 +152,17 @@ export function AgentRunPanel() {
 
       {error && <div style={errorStyle}>{error}</div>}
 
-      {run && (
-        <>
-          <section style={sectionStyle}>
-            <div style={eyebrowStyle}>{t('agentRunGoalLabel')}</div>
-            <div style={goalStyle}>{run.goal}</div>
-            <div style={metaRowStyle}>
-              <span style={chipStyle}>{modeLabel(run.authorizationMode)}</span>
-              <span style={chipStyle}>claude</span>
-            </div>
-          </section>
-
-          {timeline.length > 0 && (
-            <section style={sectionStyle}>
-              <div style={eyebrowStyle}>Timeline</div>
-              <ol style={timelineListStyle}>
-                {timeline.map((entry) => (
-                  <TimelineRow key={entry.id} entry={entry} />
-                ))}
-              </ol>
-            </section>
-          )}
-
-          {assistantText && (
-            <section style={sectionStyle}>
-              <div style={eyebrowStyle}>Output</div>
-              <div style={outputStyle}>{assistantText}</div>
-            </section>
-          )}
-
-          {changeSets.length > 0 && (
-            <section style={sectionStyle}>
-              <div style={eyebrowStyle}>File changes ({changeSets.length})</div>
-              <ul style={changeListStyle}>
-                {changeSets.map((cs) => (
-                  <ChangeSetRow key={cs.id} cs={cs} />
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {sources.length > 0 && (
-            <section style={sectionStyle}>
-              <div style={eyebrowStyle}>Sources read ({sources.length})</div>
-              <ul style={changeListStyle}>
-                {sources.map((s) => (
-                  <SourceRow key={s.id} source={s} />
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {artifacts.length > 0 && (
-            <section style={sectionStyle}>
-              <div style={eyebrowStyle}>Artifacts ({artifacts.length})</div>
-              <ul style={changeListStyle}>
-                {artifacts.map((a) => (
-                  <ArtifactRow key={a.id} artifact={a} />
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {memory.length > 0 && (
-            <section style={sectionStyle}>
-              <div style={eyebrowStyle}>Memory ({memory.length})</div>
-              <ul style={changeListStyle}>
-                {memory.map((m) => (
-                  <MemoryRow key={m.id} record={m} />
-                ))}
-              </ul>
-            </section>
-          )}
-        </>
-      )}
+      <RunStreamEntries
+        run={run}
+        timeline={timeline}
+        changeSets={changeSets}
+        artifacts={artifacts}
+        memory={memory}
+        sources={sources}
+        assistantText={assistantText}
+        isRunning={isRunning}
+        agentId={agentId}
+      />
     </div>
   )
 }
@@ -221,13 +202,51 @@ function TimelineRow({ entry }: { entry: TimelineEntry }): ReactNode {
   return null
 }
 
+/** Resolve a localized changeset-operation label; unknown ops fall back to
+ *  the raw operation string so a future contract value surfaces instead of
+ *  being mislabeled. */
+function changeOperationLabel(op: string, t: TFn): string {
+  switch (op) {
+    case 'create':
+      return t('agentRunChangeOpCreate')
+    case 'edit':
+      return t('agentRunChangeOpEdit')
+    case 'move':
+      return t('agentRunChangeOpMove')
+    case 'remove':
+      return t('agentRunChangeOpRemove')
+    default:
+      return op
+  }
+}
+
+/** Resolve a localized changeset-status label; unknown statuses fall back to
+ *  the raw status string. */
+function changeStatusLabel(status: string, t: TFn): string {
+  switch (status) {
+    case 'applied':
+      return t('agentRunChangeStatusApplied')
+    case 'blocked':
+      return t('agentRunChangeStatusBlocked')
+    case 'failed':
+      return t('agentRunChangeStatusFailed')
+    case 'reverted':
+      return t('agentRunChangeStatusReverted')
+    case 'recorded':
+      return t('agentRunChangeStatusRecorded')
+    default:
+      return status
+  }
+}
+
 function ChangeSetRow({ cs }: { cs: ChangeSet }): ReactNode {
+  const { t } = useTranslation()
   const opColor =
     cs.operation === 'remove'
       ? 'var(--status-danger)'
       : cs.operation === 'create'
         ? 'var(--status-success, #16a34a)'
-        : 'var(--accent)'
+        : 'var(--record-btn)'
   // Blocked/failed changesets are surfaced at full opacity with a danger tint
   // so the user can see what the agent was stopped from doing. Applied/reverted/
   // recorded stay muted as ordinary history.
@@ -239,7 +258,7 @@ function ChangeSetRow({ cs }: { cs: ChangeSet }): ReactNode {
         : 'var(--text-tertiary, #999)'
   return (
     <li style={changeItemStyle}>
-      <span style={{ ...opTag, color: opColor }}>{cs.operation}</span>
+      <span style={{ ...opTag, color: opColor }}>{changeOperationLabel(cs.operation, t)}</span>
       <code style={pathStyle}>{cs.path}</code>
       <span
         style={{
@@ -248,7 +267,7 @@ function ChangeSetRow({ cs }: { cs: ChangeSet }): ReactNode {
           opacity: cs.status === 'blocked' || cs.status === 'failed' ? 1 : 0.7,
         }}
       >
-        {cs.status}
+        {changeStatusLabel(cs.status, t)}
       </span>
     </li>
   )
@@ -288,7 +307,7 @@ const statusBadge = (color?: string): React.CSSProperties => ({
   color: color ?? 'var(--text-secondary)',
   padding: '2px 8px',
   borderRadius: 'var(--radius-pill, 999px)',
-  background: 'color-mix(in srgb, ' + (color ?? 'var(--accent)') + ' 14%, transparent)',
+  background: 'color-mix(in srgb, ' + (color ?? 'var(--record-btn)') + ' 14%, transparent)',
 })
 const formStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const fieldLabel: React.CSSProperties = {
@@ -313,7 +332,7 @@ const primaryButton = (enabled: boolean): React.CSSProperties => ({
   padding: '8px 14px',
   border: 'none',
   borderRadius: 'var(--radius-md, 6px)',
-  background: enabled ? 'var(--accent)' : 'var(--border, #e5e7eb)',
+  background: enabled ? 'var(--record-btn)' : 'var(--border, #e5e7eb)',
   color: enabled ? '#fff' : 'var(--text-tertiary, #999)',
   fontWeight: 600,
   fontSize: 14,
@@ -338,7 +357,6 @@ const goalStyle: React.CSSProperties = {
   color: 'var(--text-primary, #111827)',
   lineHeight: 1.5,
 }
-const metaRowStyle: React.CSSProperties = { display: 'flex', gap: 6, flexWrap: 'wrap' }
 const chipStyle: React.CSSProperties = {
   fontSize: 11,
   padding: '2px 8px',
@@ -370,7 +388,7 @@ const statusDot: React.CSSProperties = {
 }
 const statusTextStyle: React.CSSProperties = { color: 'var(--text-secondary, #555)', paddingTop: 2 }
 const toolIcon: React.CSSProperties = {
-  color: 'var(--accent)',
+  color: 'var(--record-btn)',
   marginTop: 1,
   fontSize: 12,
   flexShrink: 0,
@@ -439,26 +457,72 @@ const statusTag: React.CSSProperties = {
   color: 'var(--text-tertiary, #999)',
 }
 
+/** Resolve a localized source-binding kind label; unknown kinds fall back to
+ *  the raw kind string. */
+function sourceKindLabel(kind: string, t: TFn): string {
+  switch (kind) {
+    case 'read':
+      return t('agentRunSourceKindRead')
+    case 'reference':
+      return t('agentRunSourceKindReference')
+    case 'search':
+      return t('agentRunSourceKindSearch')
+    case 'cite':
+      return t('agentRunSourceKindCite')
+    default:
+      return kind
+  }
+}
+
 function SourceRow({ source }: { source: SourceBinding }): ReactNode {
+  const { t } = useTranslation()
   const kindColor =
     source.kind === 'cite'
-      ? 'var(--accent)'
+      ? 'var(--record-btn)'
       : source.kind === 'read'
         ? 'var(--status-success, #16a34a)'
         : 'var(--text-tertiary, #999)'
   return (
     <li style={changeItemStyle}>
-      <span style={{ ...opTag, color: kindColor }}>{source.kind}</span>
+      <span style={{ ...opTag, color: kindColor }}>{sourceKindLabel(source.kind, t)}</span>
       <code style={pathStyle}>{source.path}</code>
     </li>
   )
 }
 
+/** Resolve a localized artifact-type label; unknown types fall back to the
+ *  raw type string. */
+function artifactTypeLabel(type: string, t: TFn): string {
+  switch (type) {
+    case 'article':
+      return t('agentRunArtifactTypeArticle')
+    case 'outline':
+      return t('agentRunArtifactTypeOutline')
+    case 'report':
+      return t('agentRunArtifactTypeReport')
+    case 'summary':
+      return t('agentRunArtifactTypeSummary')
+    case 'plan':
+      return t('agentRunArtifactTypePlan')
+    case 'todo':
+      return t('agentRunArtifactTypeTodo')
+    case 'index':
+      return t('agentRunArtifactTypeIndex')
+    case 'card':
+      return t('agentRunArtifactTypeCard')
+    case 'note':
+      return t('agentRunArtifactTypeNote')
+    default:
+      return type
+  }
+}
+
 function ArtifactRow({ artifact }: { artifact: Artifact }): ReactNode {
+  const { t } = useTranslation()
   return (
     <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-        <span style={{ ...opTag, color: 'var(--accent)' }}>{artifact.type}</span>
+        <span style={{ ...opTag, color: 'var(--record-btn)' }}>{artifactTypeLabel(artifact.type, t)}</span>
         <span
           style={{
             fontSize: 13,
@@ -482,20 +546,32 @@ function ArtifactRow({ artifact }: { artifact: Artifact }): ReactNode {
   )
 }
 
-const MEMORY_KIND_LABEL: Record<string, string> = {
-  preference: 'Pref',
-  project_fact: 'Fact',
-  writing_rule: 'Rule',
-  tool_rule: 'Tool',
-  note: 'Note',
+/** Resolve a localized memory-kind label; unknown kinds fall back to the raw
+ *  kind string. */
+function memoryKindLabel(kind: string, t: TFn): string {
+  switch (kind) {
+    case 'preference':
+      return t('agentRunMemoryPref')
+    case 'project_fact':
+      return t('agentRunMemoryFact')
+    case 'writing_rule':
+      return t('agentRunMemoryRule')
+    case 'tool_rule':
+      return t('agentRunMemoryTool')
+    case 'note':
+      return t('agentRunMemoryNote')
+    default:
+      return kind
+  }
 }
 
 function MemoryRow({ record }: { record: MemoryRecord }): ReactNode {
+  const { t } = useTranslation()
   return (
     <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-        <span style={{ ...opTag, color: 'var(--accent)' }}>
-          {MEMORY_KIND_LABEL[record.kind] ?? record.kind}
+        <span style={{ ...opTag, color: 'var(--record-btn)' }}>
+          {memoryKindLabel(record.kind, t)}
         </span>
         <span
           style={{
@@ -525,4 +601,139 @@ function MemoryRow({ record }: { record: MemoryRecord }): ReactNode {
       )}
     </li>
   )
+}
+
+// ── RunStreamEntries ────────────────────────────────────────────────────────
+// Presentational: renders a Run's artifacts (status badge, goal, timeline,
+// output, changesets, sources, artifacts, memory) as a self-contained block.
+// Used in two places:
+//   1. AgentRunPanel — the standalone full panel delegates its run body here.
+//   2. UnifiedChatShell — injected into ChatPanel's scroll area (streamExtras)
+//      so a CLI run's changeset/timeline appear inline in the SAME conversation
+//      stream as the built-in pi chat bubbles (AC-6 render-layer fusion).
+// It owns no data hook — callers pass the useAgentRun result in.
+export interface RunStreamEntriesProps {
+  run: AgentRun | null
+  timeline: TimelineEntry[]
+  changeSets: ChangeSet[]
+  artifacts: Artifact[]
+  memory: MemoryRecord[]
+  sources: SourceBinding[]
+  assistantText: string
+  isRunning: boolean
+  agentId?: string | null
+}
+
+export function RunStreamEntries({
+  run,
+  timeline,
+  changeSets,
+  artifacts,
+  memory,
+  sources,
+  assistantText,
+  isRunning,
+  agentId,
+}: RunStreamEntriesProps): ReactNode {
+  const { t } = useTranslation()
+  // Idle state (before any run / not running) renders nothing — the host
+  // surface's own empty state shows through.
+  if (!run && !isRunning) return null
+
+  const statusColor = run ? STATUS_COLOR[run.status] : STATUS_COLOR.running
+  const statusLabelText = run ? statusLabel(run.status, t) : t('agentRunStatusRunning')
+  const modeLabel = (m: AuthorizationMode): string => authorizationModeLabel(m, t)
+
+  return (
+    <div style={runBlockStyle}>
+      <div style={runHeaderRowStyle}>
+        <span style={statusBadge(statusColor)}>{statusLabelText}</span>
+        {run && (
+          <span style={chipStyle}>{modeLabel(run.authorizationMode)}</span>
+        )}
+        {run && (
+          <span style={chipStyle}>{run.agentId ?? agentId ?? 'claude'}</span>
+        )}
+      </div>
+
+      {run && <div style={goalStyle}>{run.goal}</div>}
+
+      {timeline.length > 0 && (
+        <section style={sectionStyle}>
+          <div style={eyebrowStyle}>{t('agentRunSectionTimeline')}</div>
+          <ol style={timelineListStyle}>
+            {timeline.map((entry) => (
+              <TimelineRow key={entry.id} entry={entry} />
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {assistantText && (
+        <section style={sectionStyle}>
+          <div style={eyebrowStyle}>{t('agentRunSectionOutput')}</div>
+          <div style={outputStyle}>{assistantText}</div>
+        </section>
+      )}
+
+      {changeSets.length > 0 && (
+        <section style={sectionStyle}>
+          <div style={eyebrowStyle}>{t('agentRunSectionFileChanges', { count: changeSets.length })}</div>
+          <ul style={changeListStyle}>
+            {changeSets.map((cs) => (
+              <ChangeSetRow key={cs.id} cs={cs} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {sources.length > 0 && (
+        <section style={sectionStyle}>
+          <div style={eyebrowStyle}>{t('agentRunSectionSourcesRead', { count: sources.length })}</div>
+          <ul style={changeListStyle}>
+            {sources.map((s) => (
+              <SourceRow key={s.id} source={s} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {artifacts.length > 0 && (
+        <section style={sectionStyle}>
+          <div style={eyebrowStyle}>{t('agentRunSectionArtifacts', { count: artifacts.length })}</div>
+          <ul style={changeListStyle}>
+            {artifacts.map((a) => (
+              <ArtifactRow key={a.id} artifact={a} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {memory.length > 0 && (
+        <section style={sectionStyle}>
+          <div style={eyebrowStyle}>{t('agentRunSectionMemory', { count: memory.length })}</div>
+          <ul style={changeListStyle}>
+            {memory.map((m) => (
+              <MemoryRow key={m.id} record={m} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+}
+
+const runBlockStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  gap: 8,
+  width: '100%',
+  paddingTop: 4,
+}
+const runHeaderRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  flexWrap: 'wrap',
 }

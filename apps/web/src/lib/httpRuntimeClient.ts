@@ -34,6 +34,11 @@ interface WorkspaceSettings {
   global_skills_enabled: boolean
   disabled_skills?: string[]
   enabled_global_skills?: string[]
+  /** Selected chat engine for the unified conversation panel ('builtin'|'cli'). */
+  agent_engine?: string
+  /** Selected external CLI agent id (when agent_engine === 'cli'). */
+  agent_id?: string | null
+  [key: string]: unknown
 }
 
 function resolveBaseUrl(opts?: HttpRuntimeClientOptions): string {
@@ -109,6 +114,26 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
       }
       case 'set_workspace_theme': {
         await this.updateSettings({ theme: args?.theme })
+        return undefined as T
+      }
+      case 'get_agent_engine': {
+        const settings = await this.getSettings()
+        const engine =
+          settings.agent_engine === 'cli' ? 'cli' : 'builtin'
+        const agentId =
+          typeof settings.agent_id === 'string' && settings.agent_id
+            ? settings.agent_id
+            : null
+        return { engine, agentId } as unknown as T
+      }
+      case 'set_agent_engine': {
+        // Partial patch: only the provided field is written so switching the
+        // engine does not clobber a previously chosen agent id (and vice
+        // versa). The daemon's generic merge preserves the other key.
+        const patch: Record<string, unknown> = {}
+        if (args?.engine !== undefined) patch.agent_engine = args.engine
+        if (args?.agentId !== undefined) patch.agent_id = args.agentId
+        if (Object.keys(patch).length > 0) await this.updateSettings(patch)
         return undefined as T
       }
       case 'get_auto_lint_config': {

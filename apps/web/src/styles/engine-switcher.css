@@ -1,0 +1,309 @@
+/* ── EngineSwitcher (unified conversation panel top-bar chip) ────────────
+ * Token-driven (AGENTS.md §5): accent is --record-btn (never --accent),
+ * corners via --radius-*, shadow via --shadow-overlay, menu border via
+ * --border-menu, focus via --focus-ring. */
+
+.engine-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.engine-switcher__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 10px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--item-text);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease-out),
+    background-color 140ms var(--ease-out);
+}
+
+.engine-switcher__chip:hover {
+  border-color: var(--divider-hover);
+  background: var(--item-hover-bg);
+}
+
+.engine-switcher__chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.engine-switcher__chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--record-btn);
+  flex-shrink: 0;
+}
+
+.engine-switcher__chip-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.engine-switcher__chip-mode {
+  color: var(--record-btn);
+  font-weight: var(--font-bold);
+}
+
+.engine-switcher__chip-sep {
+  color: var(--text-tertiary);
+}
+
+.engine-switcher__chip-primary {
+  color: var(--item-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The current model name (AC-2). Mono since model ids are code-like tokens. */
+.engine-switcher__chip-model {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--item-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.engine-switcher__chip-chevron {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Popover ─────────────────────────────────────────────── */
+
+.engine-switcher__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 248px;
+  max-width: min(320px, 90vw);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+  border: var(--border-menu);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.engine-switcher__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.engine-switcher__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  font-family: var(--font-body);
+}
+
+.engine-switcher__rescan {
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--item-meta);
+  font-size: 11px;
+  padding: 1px 8px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--font-medium);
+  transition:
+    color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out);
+}
+
+.engine-switcher__rescan:hover:not(:disabled) {
+  color: var(--record-btn);
+  border-color: var(--divider-hover);
+}
+
+.engine-switcher__rescan:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Segmented control (builtin / cli) */
+.engine-switcher__seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--segment-bg);
+  border-radius: var(--radius-md);
+}
+
+.engine-switcher__seg-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--segment-text);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 4px 10px;
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+  transition:
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
+}
+
+.engine-switcher__seg-btn:hover {
+  color: var(--item-text);
+}
+
+.engine-switcher__seg-btn.is-active {
+  background: var(--bg);
+  color: var(--segment-active-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.engine-switcher__seg-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.engine-switcher__hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-body);
+}
+
+.engine-switcher__builtin-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+/* Agent list */
+.engine-switcher__agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.engine-switcher__agent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+}
+
+.engine-switcher__agent-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--item-text);
+  font-family: var(--font-body);
+  transition:
+    background-color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out);
+}
+
+.engine-switcher__agent-btn:hover:not(:disabled) {
+  background: var(--item-hover-bg);
+}
+
+.engine-switcher__agent-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.engine-switcher__agent.is-active .engine-switcher__agent-btn {
+  border-color: var(--divider-hover);
+  background: var(--segment-active-bg);
+}
+
+.engine-switcher__agent.is-unavailable .engine-switcher__agent-btn {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.engine-switcher__agent-btn:disabled {
+  cursor: not-allowed;
+}
+
+.engine-switcher__agent-glyph {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--record-btn) 14%, transparent);
+  color: var(--record-btn);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+}
+
+.engine-switcher__agent.is-active .engine-switcher__agent-glyph {
+  background: var(--record-btn);
+  color: var(--record-btn-icon);
+}
+
+.engine-switcher__agent-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.engine-switcher__agent-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--item-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.engine-switcher__agent-status {
+  font-size: 11px;
+  color: var(--item-meta);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

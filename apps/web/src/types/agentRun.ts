@@ -13,6 +13,15 @@
  * (multi-agent delegation), AgentRunEventType lifecycle events, and the
  * MemoryRecord / AgentRunStatus / ChangeSetStatus unions.
  */
+/**
+ * Which backend executes a run. `builtin` routes through the daemon's
+ * in-process pi engine; `cli` spawns a local external CLI agent
+ * (Claude Code / Codex / OpenCode …) detected via GET /agents.
+ *
+ * Mirrors the daemon's POST /runs `engine` field (server.ts ~1586).
+ */
+export type RunEngine = 'builtin' | 'cli'
+
 export type AgentRunMode = 'chat' | 'agent' | 'observe'
 export type AgentRunStatus =
   | 'queued'

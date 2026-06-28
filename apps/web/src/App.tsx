@@ -58,11 +58,8 @@ import { useTranslation } from './contexts/I18nContext'
 const RightPanel = lazy(() =>
   import('./components/RightPanel').then((m) => ({ default: m.RightPanel })),
 )
-const ChatPanel = lazy(() =>
-  import('./components/ChatPanel').then((m) => ({ default: m.ChatPanel })),
-)
-const AgentRunPanel = lazy(() =>
-  import('./components/AgentRunPanel').then((m) => ({ default: m.AgentRunPanel })),
+const UnifiedChatShell = lazy(() =>
+  import('./components/UnifiedChatShell').then((m) => ({ default: m.UnifiedChatShell })),
 )
 import { HistoryFloatingButton } from './components/HistoryFloatingButton'
 import { useConversation } from './hooks/useConversation'
@@ -168,8 +165,6 @@ export default function App() {
     persistSidebarWidth,
     rightPanelOpen,
     setRightPanelOpen,
-    rightPanelMode,
-    setRightPanelMode,
     rightPanelWidth,
     setRightPanelWidthView,
     persistRightPanelWidth,
@@ -1232,65 +1227,35 @@ export default function App() {
             willChange: 'width, opacity',
           }}
         >
-          {/* Mode toggle: Chat ↔ Agent Run. Rendered above the Suspense boundary
-            so it is always present (the user's "right side = Agent Run panel"). */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 0,
-              padding: '6px 10px 0',
-              borderBottom: '0.5px solid var(--divider)',
-              flexShrink: 0,
-            }}
-          >
-            {(['chat', 'run'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setRightPanelMode(m)}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  border: 'none',
-                  borderBottom:
-                    rightPanelMode === m ? '2px solid var(--accent)' : '2px solid transparent',
-                  background: 'transparent',
-                  color: rightPanelMode === m ? 'var(--accent)' : 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                }}
-              >
-                {m === 'chat' ? 'Chat' : 'Agent Run'}
-              </button>
-            ))}
-          </div>
+          {/* Unified conversation surface (P2): one panel, no Chat/Agent Run
+            tabs. A persistent engine switcher chip in the shell's top bar
+            routes sends to either the built-in pi engine (useConversation) or
+            a detected external CLI agent (useAgentRun), with the Agent Run
+            goal/auth/timeline/changeset rendered inline. */}
           <Suspense fallback={null}>
             <RightPanel
               chatContent={
-                rightPanelMode === 'run' ? (
-                  <AgentRunPanel />
-                ) : (
-                  <ChatPanel
-                    sessionId={sessionId}
-                    messages={messages}
-                    isStreaming={isStreaming}
-                    usage={usage}
-                    stats={stats}
-                    pendingQueue={pendingQueue}
-                    initialInput={chatInitialText}
-                    onSend={send}
-                    onCancel={cancel}
-                    onRetry={retry}
-                    onEditAndResend={editAndResend}
-                    onRemovePendingItem={removePendingItem}
-                    onContinue={() => send('请继续')}
-                    historyControl={
-                      <HistoryFloatingButton
-                        activeSessionId={sessionId}
-                        onSelect={(id: string) => openChatPanel(id)}
-                      />
-                    }
-                  />
-                )
+                <UnifiedChatShell
+                  sessionId={sessionId}
+                  messages={messages}
+                  isStreaming={isStreaming}
+                  usage={usage}
+                  stats={stats}
+                  pendingQueue={pendingQueue}
+                  initialInput={chatInitialText}
+                  onSend={send}
+                  onCancel={cancel}
+                  onRetry={retry}
+                  onEditAndResend={editAndResend}
+                  onRemovePendingItem={removePendingItem}
+                  onContinue={() => send('请继续')}
+                  historyControl={
+                    <HistoryFloatingButton
+                      activeSessionId={sessionId}
+                      onSelect={(id: string) => openChatPanel(id)}
+                    />
+                  }
+                />
               }
             />
           </Suspense>

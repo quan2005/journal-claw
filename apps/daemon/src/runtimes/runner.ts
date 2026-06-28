@@ -19,6 +19,8 @@ import {
 } from './stream/claudeStream.js'
 import { createCodexStreamParser, type CodexStreamParser } from './stream/codexStream.js'
 import { createOpenCodeStreamParser, type OpenCodeStreamParser } from './stream/opencodeStream.js'
+import { agentBinEnvKey } from './executables.js'
+import { applyAgentLaunchEnv, resolveAgentLaunch } from './launch.js'
 
 type StreamParser = ClaudeStreamParser | CodexStreamParser | OpenCodeStreamParser
 
@@ -44,7 +46,7 @@ export interface ExecuteRunOptions {
   spawnChild?: (
     bin: string,
     args: string[],
-    opts: { cwd?: string },
+    opts: { cwd?: string; env?: NodeJS.ProcessEnv },
   ) => ChildProcessWithoutNullStreams
   /** Optional signal to abort the run (closes the child). */
   signal?: AbortSignal
@@ -89,17 +91,39 @@ export async function executeRun(
     model: input.model ?? null,
     authorizationMode: input.authorizationMode,
   })
+
+  // Resolve the launch path + child PATH the SAME way detection does so the
+  // two layers never disagree about whether an agent is invocable. A GUI-
+  // launched daemon often runs with a stripped PATH; without this symmetry a
+  // CLI that detection reports healthy would fail at spawn because its
+  // shebang interpreter lives in a toolchain dir the spawn PATH lacks.
+  const configuredEnv: Record<string, string> = {}
+  const binKey = agentBinEnvKey(def.id)
+  if (binKey && typeof process.env[binKey] === 'string' && process.env[binKey]) {
+    configuredEnv[binKey] = process.env[binKey] as string
+  }
+  const launch = resolveAgentLaunch(def, configuredEnv)
+  const launchPath = launch.launchPath ?? def.bin
+  const childEnv = applyAgentLaunchEnv(
+    { ...process.env, ...configuredEnv },
+    launch,
+  )
+
   const spawnChild =
     options.spawnChild ??
-    ((bin: string, a: string[], opts: { cwd?: string }) =>
-      spawn(bin, a, { cwd: opts.cwd, stdio: ['pipe', 'pipe', 'pipe'] }))
+    ((bin: string, a: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv }) =>
+      spawn(bin, a, {
+        cwd: opts.cwd,
+        env: opts.env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }))
 
   const parser = createParser(def.streamFormat, meta)
 
   return new Promise<ExecuteRunResult>((resolve) => {
     let child: ChildProcessWithoutNullStreams
     try {
-      child = spawnChild(def.bin, args, { cwd: input.cwd })
+      child = spawnChild(launchPath, args, { cwd: input.cwd, env: childEnv })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       service.appendEvent(

@@ -51,7 +51,6 @@ export const codexAgentDef: RuntimeAgentDef = {
     args.push(prompt)
     return args
   },
-  // Codex takes the prompt via argv, not stdin
   promptViaStdin: false,
   promptInputFormat: 'text',
   streamFormat: 'codex-jsonl',
@@ -60,4 +59,6 @@ export const codexAgentDef: RuntimeAgentDef = {
     { id: 'o3', label: 'o3' },
     { id: 'gpt-5.5', label: 'GPT-5.5' },
   ],
+  installUrl: 'https://github.com/openai/codex',
+  docsUrl: 'https://github.com/openai/codex/blob/main/docs/authentication.md',
 }

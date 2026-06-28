@@ -63,6 +63,8 @@ export const claudeAgentDef: RuntimeAgentDef = {
   promptInputFormat: 'stream-json',
   streamFormat: 'claude-stream-json',
   fallbackModels: FALLBACK_MODELS,
+  installUrl: 'https://docs.claude.com/en/docs/claude-code/setup',
+  docsUrl: 'https://docs.claude.com/en/docs/claude-code/cli-reference',
 }
 
 const CLAUDE_PERMISSION_MODE: Record<string, string> = {

@@ -10,7 +10,8 @@ import express from 'express'
 import type { Server } from 'node:http'
 import type { Provider } from '@earendil-works/pi-ai'
 import { AgentRunService } from './runs/service.js'
-import { listAgentDefs, getAgentDef } from './runtimes/registry.js'
+import { getAgentDef } from './runtimes/registry.js'
+import { detectAgents } from './runtimes/detection.js'
 import { executeRun } from './runtimes/runner.js'
 import { executeBuiltinRun } from './engine/run.js'
 import { assembleContext } from './context/assemble.js'
@@ -38,12 +39,8 @@ import { ConversationService } from './conversation/service.js'
 import { AutomationService } from './automation/service.js'
 import { builtInTemplates } from './automation/templates.js'
 import { LocalCrudError } from './local/service.js'
-import { execFile } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { promisify } from 'node:util'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
-
-const execFileAsync = promisify(execFile)
 
 export interface DaemonOptions {
   port: number
@@ -62,37 +59,6 @@ export interface DaemonHandle {
 }
 
 const VALID_MODES: ReadonlySet<AgentRunMode> = new Set(['chat', 'agent', 'observe'])
-
-function detectAgent(
-  bin: string,
-  versionArgs: string[],
-  timeoutMs = 5000,
-): Promise<{ installed: boolean; version: string | null }> {
-  return new Promise((resolve) => {
-    execFile(bin, versionArgs, { timeout: timeoutMs }, (err, stdout) => {
-      if (err) return resolve({ installed: false, version: null })
-      resolve({ installed: true, version: stdout.trim().split('\n')[0] || null })
-    })
-  })
-}
-
-async function detectAuth(
-  bin: string,
-  args: string[],
-  timeoutMs = 5000,
-): Promise<{ authed: boolean; authMethod?: string; apiProvider?: string }> {
-  try {
-    const { stdout } = await execFileAsync(bin, args, { timeout: timeoutMs })
-    const parsed = JSON.parse(stdout) as Record<string, unknown>
-    return {
-      authed: parsed.loggedIn === true,
-      authMethod: typeof parsed.authMethod === 'string' ? parsed.authMethod : undefined,
-      apiProvider: typeof parsed.apiProvider === 'string' ? parsed.apiProvider : undefined,
-    }
-  } catch {
-    return { authed: false }
-  }
-}
 
 function resolveDataDir(): string {
   return process.env.JOURNAL_DAEMON_DATA_DIR ?? '.journal-daemon-data'
@@ -1762,30 +1728,22 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         })
     })
 
-    // GET /agents — list registered adapters with installed/authed status.
-    app.get('/agents', async (_req, res) => {
-      const defs = listAgentDefs()
-      const out = await Promise.all(
-        defs.map(async (d) => {
-          const det = await detectAgent(d.bin, d.version.args, d.version.timeoutMs)
-          const auth =
-            det.installed && d.authProbe
-              ? await detectAuth(d.bin, d.authProbe.args, d.authProbe.timeoutMs)
-              : { authed: false }
-          return {
-            id: d.id,
-            name: d.name,
-            bin: d.bin,
-            streamFormat: d.streamFormat,
-            installed: det.installed,
-            version: det.version,
-            authed: auth.authed,
-            authMethod: auth.authMethod ?? null,
-            apiProvider: auth.apiProvider ?? null,
-          }
-        }),
-      )
-      res.json({ agents: out })
+    // GET /agents — list registered CLI adapters with detection diagnostics.
+    // Probes each adapter (PATH resolution + version + optional auth) and
+    // returns the AgentInfo[] contract. `?rescan=1` bypasses the short-lived
+    // detection cache so the Settings "重新扫描" button always sees fresh state.
+    // The try/catch isolates registry / cache level exceptions (safeProbe
+    // already isolates per-adapter probe faults) into a JSON error envelope
+    // instead of letting Express emit a default 500 HTML page.
+    app.get('/agents', async (req, res) => {
+      try {
+        const forceRefresh = req.query.rescan === '1' || req.query.rescan === 'true'
+        const agents = await detectAgents({ forceRefresh })
+        res.json({ agents })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        res.status(500).json({ error: 'agent detection failed', detail: message })
+      }
     })
 
     // GET /runs/:id/events — SSE：先回放已有事件，再推送后续新增事件

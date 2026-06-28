@@ -67,6 +67,10 @@ export interface RuntimeAgentDef {
   promptInputFormat?: 'text' | 'stream-json'
   streamFormat: RuntimeStreamFormat
   fallbackModels?: { id: string; label: string }[]
+  /** HTTPS URL to install / download the CLI (vendor docs, GitHub README, npm). */
+  installUrl?: string
+  /** HTTPS URL for configuration / auth / usage docs. */
+  docsUrl?: string
 }
 
 export function isRuntimeAgentDef(value: unknown): value is RuntimeAgentDef {

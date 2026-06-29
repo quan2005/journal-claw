@@ -722,8 +722,12 @@ export function ChatPanel({
           />
         )}
 
-        {/* Fused container */}
+        {/* Fused container — the bordered composer input box. The composerExtras
+         * slot (CLI authorization pill) now lives INSIDE this box, fused into the
+         * bottom toolbar row alongside add-file / stop / send, instead of on a
+         * separate row below the box. */}
         <div
+          data-testid="chat-composer-fused"
           style={{
             border: dragOver
               ? '1.5px dashed var(--record-btn)'
@@ -918,6 +922,11 @@ export function ChatPanel({
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {/* composerExtras (CLI authorization pill) fused into the toolbar
+               * row, right-aligned before stop/send. Undefined for built-in pi
+               * → nothing renders here (AC-3). */}
+              {composerExtras}
+
               {isStreaming && (
                 <button
                   onClick={onCancel}
@@ -970,19 +979,6 @@ export function ChatPanel({
           </div>
         </div>
 
-        {/* Composer extras row — a dedicated row BELOW the bordered input box
-         * (P2 polish · AC-2). Mirrors open-design's `.composer-row` pattern:
-         * flex + a spacer that pushes the controls to the right, with a subtle
-         * top border separating it from the input card. UnifiedChatShell
-         * injects the CLI authorization pill here so it no longer crowds the
-         * textarea inside the input box. */}
-        {composerExtras && (
-          <div style={composerExtrasRowStyle} data-testid="chat-composer-extras-row">
-            <span style={composerExtrasSpacerStyle} />
-            {composerExtras}
-          </div>
-        )}
-
         {/* Image lightbox */}
         {previewSrc && (
           <div
@@ -1008,21 +1004,6 @@ export function ChatPanel({
       </div>
     </>
   )
-}
-
-// Composer extras row — sits below the bordered input box (P2 polish · AC-2).
-// Mirrors open-design's `.composer-row`: flex + spacer pushes controls to the
-// right; a subtle top border separates it from the input card.
-const composerExtrasRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  marginTop: 6,
-  paddingTop: 6,
-  borderTop: '0.5px solid var(--divider)',
-}
-const composerExtrasSpacerStyle: React.CSSProperties = {
-  flex: 1,
 }
 
 const MessageBubble = memo(function MessageBubble({

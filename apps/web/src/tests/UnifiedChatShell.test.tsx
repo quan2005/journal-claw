@@ -143,9 +143,14 @@ describe('UnifiedChatShell', () => {
       // on click — exercised in AuthModeToggle.test.tsx).
       expect(screen.getByTestId('auth-mode-toggle')).toBeTruthy()
       expect(screen.getByTestId('auth-mode-toggle-trigger').textContent).toContain('工作区可写')
-      // The pill lives in the composer extras row BELOW the bordered input
-      // box, not inside it.
-      expect(screen.getByTestId('chat-composer-extras-row')).toBeTruthy()
+      // The pill now lives INSIDE the bordered composer box, fused into the
+      // bottom toolbar row alongside add-file / send — not on a separate row
+      // below the box.
+      const fused = screen.getByTestId('chat-composer-fused')
+      const pill = screen.getByTestId('auth-mode-toggle')
+      expect(fused.contains(pill)).toBe(true)
+      // The old standalone extras row below the box is gone.
+      expect(screen.queryByTestId('chat-composer-extras-row')).toBeNull()
       // No native <select> anymore.
       expect(document.querySelector('select')).toBeNull()
     })
@@ -259,12 +264,14 @@ describe('UnifiedChatShell', () => {
     })
 
     it('AC-3: does not render the auth pill for the built-in pi engine', () => {
-      // pi has no authorization concept → the composer extras row (and the
-      // AuthModeToggle inside it) must not be mounted at all.
+      // pi has no authorization concept → the AuthModeToggle must not be
+      // mounted at all. The pill's slot inside the fused composer box stays
+      // empty.
       mockEngine = 'builtin'
       render(<UnifiedChatShell {...CONV_PROPS} messages={[]} />)
       expect(screen.queryByTestId('auth-mode-toggle')).toBeNull()
-      expect(screen.queryByTestId('chat-composer-extras-row')).toBeNull()
+      const fused = screen.getByTestId('chat-composer-fused')
+      expect(fused.querySelector('[data-testid="auth-mode-toggle"]')).toBeNull()
     })
 
     it('AC-3: renders the auth pill only after switching to the external CLI engine', () => {

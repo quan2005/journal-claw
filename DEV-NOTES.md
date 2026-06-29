@@ -74,3 +74,37 @@ Executor: opencode (glm-5.2)
 
 ## 未 commit
 按 Leader 指令，未执行 `git add` / `git commit`。等待验收。
+
+---
+
+# 增补 · AuthModeToggle 位置调整（pill 融入输入框）
+
+Date: 2026-06-29（同日，P2 polish 之后的位置微调小任务）
+Executor: opencode (glm-5.2)
+
+## 背景
+上一轮 P2 polish 把授权 pill 放在 composer bordered box **下方独立行**（spacer 推右 + borderTop 分隔）。Leader 验收后认为视觉上不够融合，要求把 pill **移回 bordered box 内部**的底部工具行，与 add-file / stop / send 同行，融合进输入框，不再另起一行。
+
+## 改了什么
+
+| 文件 | 改动 |
+|---|---|
+| `apps/web/src/components/ChatPanel.tsx` | 1) 给 Fused container（bordered input box）加 `data-testid="chat-composer-fused"`。<br>2) 把 `composerExtras` 渲染**移进** Fused container 内部底部工具行的右侧控制组，顺序为 `[auth pill][stop?][send]`（pill 在 send 之前、右对齐、与 send 同基线），仿 open-design `composer-row` 右侧布局。<br>3) 删除 Fused container 之外那个独立 extras 行（`composerExtrasRowStyle` / `composerExtrasSpacerStyle` 及其渲染块 + JSDoc）。<br>未改 `AuthModeToggle` 组件本身、`UnifiedChatShell`、toolbar 左侧 add-file。 |
+| `apps/web/src/tests/UnifiedChatShell.test.tsx` | 把「pill 在 `chat-composer-extras-row`（输入框下方独立行）」的断言改为「pill 在 `chat-composer-fused`（输入框内部）」：用 `fused.contains(pill)` 验证 pill 与 send 同一 bordered 容器；并断言旧的 `chat-composer-extras-row` 不存在。AC-3 内置 pi 不渲染 pill 的用例改为断言 fused 容器内 `querySelector('[data-testid=auth-mode-toggle]')` 为 null。 |
+
+## pill 现在的位置
+- 坐落在 composer **bordered input box 内部**底部工具行（与 add-file 同一行，`justify-content: space-between` 把 `[auth pill][stop?][send]` 组推到右侧）。
+- pill 紧凑、右对齐、与 send 同基线，不挤占 textarea 空间（textarea 仍是 100% 宽，pill 在其下方的工具行里）。
+- 内置 pi 时 `composerExtras` 为 undefined → 工具行该位置不渲染任何东西（AC-3 保持）。
+- `AuthModeToggle` 的 popover 仍向上开（组件未改），pill 现在贴着输入框底部，向上展开合理。
+
+## 测试结果
+
+| 命令 | 结果 |
+|---|---|
+| `npm run build`（apps/web: tsc + vite build） | ✅ Done |
+| `pnpm exec vitest run src/tests/UnifiedChatShell.test.tsx` | ✅ 9 passed / 9 |
+| `pnpm exec vitest run`（apps/web 全量） | 375 passed / 2 failed（`HistoryFloatingButton` + `SandboxPreview`，均为 spec 豁免的 pre-existing，与本次改动无关） |
+
+## 未 commit
+按 Leader 指令，未执行 `git add` / `git commit`。等待验收。

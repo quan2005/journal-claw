@@ -131,15 +131,23 @@ describe('UnifiedChatShell', () => {
       expect(screen.queryByText('工作区可写')).toBeNull()
     })
 
-    it('adapts the shared composer to the external engine (goal input + auth selector)', () => {
+    it('adapts the shared composer to the external engine (goal input + auth pill)', () => {
       mockEngine = 'cli'
       mockAgentId = 'claude'
       render(<UnifiedChatShell {...CONV_PROPS} messages={CHAT_MESSAGES} />)
       // The same textarea now serves as the CLI goal input.
       expect(screen.getByPlaceholderText('想让 Agent 做什么？')).toBeTruthy()
-      // The authorization selector renders inline in the composer row.
-      expect(screen.getByText('工作区可写')).toBeTruthy()
-      expect(screen.getByText('宽松（带审计）')).toBeTruthy()
+      // AC-2 (P2 polish): the authorization control is now a compact pill
+      // (not a full-width native <select>). The pill shows the current mode
+      // label on its trigger; the other modes are inside its popover (opened
+      // on click — exercised in AuthModeToggle.test.tsx).
+      expect(screen.getByTestId('auth-mode-toggle')).toBeTruthy()
+      expect(screen.getByTestId('auth-mode-toggle-trigger').textContent).toContain('工作区可写')
+      // The pill lives in the composer extras row BELOW the bordered input
+      // box, not inside it.
+      expect(screen.getByTestId('chat-composer-extras-row')).toBeTruthy()
+      // No native <select> anymore.
+      expect(document.querySelector('select')).toBeNull()
     })
   })
 
@@ -229,6 +237,45 @@ describe('UnifiedChatShell', () => {
       await waitFor(() =>
         expect(screen.getByTestId('engine-switcher-chip-model').textContent).toBe('qwen-max'),
       )
+    })
+  })
+
+  describe('P2 polish: overlap fix + auth pill (AC-1, AC-2, AC-3)', () => {
+    it('AC-1: establishes a positioning context for HistoryFloatingButton on the content container', () => {
+      // HistoryFloatingButton uses position:absolute; top:8; left:8; zIndex:20
+      // and anchors to its nearest *positioned* ancestor. Before the P2 fix
+      // the content container had no `position`, so the button escaped upward
+      // and overlapped the EngineSwitcher chip. With position:relative on the
+      // content container, the button is anchored inside the conversation
+      // area (below the top bar). Asserting the computed position directly is
+      // the contract — the internal positioning values of HistoryFloatingButton
+      // itself are deliberately left untouched (Won't).
+      mockEngine = 'builtin'
+      render(<UnifiedChatShell {...CONV_PROPS} messages={[]} />)
+      const content = screen.getByTestId('unified-chat-content')
+      expect(content).toBeTruthy()
+      const pos = window.getComputedStyle(content).position
+      expect(pos).toBe('relative')
+    })
+
+    it('AC-3: does not render the auth pill for the built-in pi engine', () => {
+      // pi has no authorization concept → the composer extras row (and the
+      // AuthModeToggle inside it) must not be mounted at all.
+      mockEngine = 'builtin'
+      render(<UnifiedChatShell {...CONV_PROPS} messages={[]} />)
+      expect(screen.queryByTestId('auth-mode-toggle')).toBeNull()
+      expect(screen.queryByTestId('chat-composer-extras-row')).toBeNull()
+    })
+
+    it('AC-3: renders the auth pill only after switching to the external CLI engine', () => {
+      mockEngine = 'builtin'
+      const { rerender } = render(<UnifiedChatShell {...CONV_PROPS} messages={[]} />)
+      expect(screen.queryByTestId('auth-mode-toggle')).toBeNull()
+
+      mockEngine = 'cli'
+      mockAgentId = 'claude'
+      rerender(<UnifiedChatShell {...CONV_PROPS} messages={[]} />)
+      expect(screen.getByTestId('auth-mode-toggle')).toBeTruthy()
     })
   })
 })

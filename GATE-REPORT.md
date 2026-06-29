@@ -1,169 +1,85 @@
-# P2 Unified Chat + Engine Switch Gate Report - Round 2
+---
+date: 2026-06-29
+story: stories/20260629-unified-chat-layout-polish/spec.md
+verdict: PASS
+scope: "AC-1..AC-5 for unified chat layout polish; implementation files, tests, DEV-NOTES, and open-design blueprint"
+---
 
-Date: 2026-06-28
-Role: independent gatekeeper (codex)
-Scope: `stories/20260628-unified-chat-engine-switch/spec.md`, previous `GATE-REPORT.md`, `DEV-NOTES.md` round-2a/2b, P2 implementation files and tests.
+# GATE-REPORT — P2 polish 统一对话面布局修复
 
-## Verdict: NEEDS-FIX
+## Verdict
 
-Round-2 fixed the structural AC-6 blocker, the model chip, token usage, and test hygiene. One blocker remains:
+PASS.
 
-1. **FIX-3 FAIL**: `AgentRunPanel` / `RunStreamEntries` still expose user-visible English backend tokens in the zh UI: `cs.operation`, `cs.status`, `source.kind`, `artifact.type`. The test suite still asserts `blocked` / `failed` English strings. This violates the requested "AgentRunPanel zero English hardcode / zh+en aligned" cleanup.
+实现满足 AC-1..AC-5。`npm test` 仍以 exit 1 结束，但仅包含 spec 明确豁免的两个既有失败：`HistoryFloatingButton.test.tsx` 的 `left: 24px` 旧断言和 `SandboxPreview.test.ts` 的 Tabler Icons 路径断言；未发现本次新增失败。
 
-Important caveat, not counted as the blocker above: AC-6 is now real render-layer fusion, not the old shell-level child swap. However, run entries are gated by `isCli`, so switching back to builtin hides prior run output. That is weaker than open-design's "past execution remains in one conversation history", but it does not invalidate the specific round-2a fix because ChatPanel is now permanently mounted and CLI run output coexists with chat bubbles while the CLI engine is active.
+我同时派发了两个只读 `opencode run` 子验收：
+- `gate-layout-readonly`: AC-1 / HistoryFloatingButton 锚定链路，结论 PASS。
+- `gate-auth-readonly`: AC-2..AC-4 / 授权 pill、composer 行、token 与交互，结论 PASS；观察项为 reduced-motion 单独块缺失、极窄屏未做 label 折叠。
 
-## FIX Results
+## AC 核对
 
-### FIX-1 / AC-6: PASS
+| AC | 结论 | 证据 |
+|---|---|---|
+| AC-1 重叠修复 | PASS | spec 要求把历史按钮锚回内容区（`stories/20260629-unified-chat-layout-polish/spec.md:30`）。`UnifiedChatShell` 结构是 top bar 在上、content 容器在下，`ChatPanel` 被包在 content 容器内（`apps/web/src/components/UnifiedChatShell.tsx:176`, `apps/web/src/components/UnifiedChatShell.tsx:190`, `apps/web/src/components/UnifiedChatShell.tsx:204`）。`contentStyle` 真正加了 `position: 'relative'`（`apps/web/src/components/UnifiedChatShell.tsx:244`, `apps/web/src/components/UnifiedChatShell.tsx:255`）。`ChatPanel` 返回 Fragment，`historyControl` 是首个子节点（`apps/web/src/components/ChatPanel.tsx:416`, `apps/web/src/components/ChatPanel.tsx:419`），所以 `HistoryFloatingButton` 的 `position:absolute; top:8; left:8; zIndex:20`（`apps/web/src/components/HistoryFloatingButton.tsx:137`）现在锚定到内容容器而不是顶栏祖先。测试覆盖 content container computed position（`apps/web/src/tests/UnifiedChatShell.test.tsx:244`）。 |
+| AC-2 授权 pill+popover | PASS | spec 要求非 select、紧凑 pill、4 个授权模式、当前项勾选、位于 composer 下方控件行（`stories/20260629-unified-chat-layout-polish/spec.md:31`）。`AuthModeToggle` trigger 是 button，不是 select（`apps/web/src/components/AuthModeToggle.tsx:70`），结构为色点 + 当前模式名 + chevron（`apps/web/src/components/AuthModeToggle.tsx:84`, `apps/web/src/components/AuthModeToggle.tsx:85`, `apps/web/src/components/AuthModeToggle.tsx:86`）。popover 使用 `role="menu"`（`apps/web/src/components/AuthModeToggle.tsx:103`），遍历 `AUTHORIZATION_MODES`（`apps/web/src/components/AuthModeToggle.tsx:108`; 模式定义 `apps/web/src/hooks/useAgentRun.ts:217`），每项是 `menuitemradio` + `aria-checked`（`apps/web/src/components/AuthModeToggle.tsx:114`），当前项渲染 check（`apps/web/src/components/AuthModeToggle.tsx:123`）。`ChatPanel` 在 bordered input box 结束后才渲染 `chat-composer-extras-row`（`apps/web/src/components/ChatPanel.tsx:971`, `apps/web/src/components/ChatPanel.tsx:979`），并用 spacer 推右（`apps/web/src/components/ChatPanel.tsx:981`, `apps/web/src/components/ChatPanel.tsx:1024`）。测试断言无 select、pill 在 extras row（`apps/web/src/tests/UnifiedChatShell.test.tsx:134`），以及 popover 4 项/勾选/选择关闭（`apps/web/src/tests/AuthModeToggle.test.tsx:38`, `apps/web/src/tests/AuthModeToggle.test.tsx:58`, `apps/web/src/tests/AuthModeToggle.test.tsx:71`）。 |
+| AC-3 内置 pi 隐藏 | PASS | `composerExtras` 只在 `isCli` 时渲染 `<AuthModeToggle>`（`apps/web/src/components/UnifiedChatShell.tsx:168`），内置 pi 时为 `undefined`，`ChatPanel` 因短路不挂载 extras row（`apps/web/src/components/ChatPanel.tsx:979`）。测试覆盖 pi 不渲染 pill/row、切到 CLI 才出现（`apps/web/src/tests/UnifiedChatShell.test.tsx:261`, `apps/web/src/tests/UnifiedChatShell.test.tsx:270`）。 |
+| AC-4 谨迹 token | PASS | spec 要求 radius、shadow、menu border、focus ring、`--record-btn`、字体与 pop-in 动效（`stories/20260629-unified-chat-layout-polish/spec.md:33`）。CSS 使用 `--radius-pill`/`--radius-lg`/`--radius-sm`（`apps/web/src/styles/auth-mode-toggle.css:22`, `apps/web/src/styles/auth-mode-toggle.css:95`, `apps/web/src/styles/auth-mode-toggle.css:119`），`--border-menu`（`apps/web/src/styles/auth-mode-toggle.css:94`），`--shadow-overlay`（`apps/web/src/styles/auth-mode-toggle.css:96`），`--focus-ring`（`apps/web/src/styles/auth-mode-toggle.css:43`, `apps/web/src/styles/auth-mode-toggle.css:134`），`--record-btn`（`apps/web/src/styles/auth-mode-toggle.css:58`, `apps/web/src/styles/auth-mode-toggle.css:140`, `apps/web/src/styles/auth-mode-toggle.css:158`），`--font-body`（`apps/web/src/styles/auth-mode-toggle.css:25`, `apps/web/src/styles/auth-mode-toggle.css:122`），以及 `auth-mode-toggle-pop-in`（`apps/web/src/styles/auth-mode-toggle.css:97`, `apps/web/src/styles/auth-mode-toggle.css:100`）。`rg "var\\(--accent\\)" apps/web/src/styles/auth-mode-toggle.css apps/web/src/components/AuthModeToggle.tsx` 无命中。全局 reduced-motion 兜底存在（`apps/web/src/styles/globals.css:2343`）。 |
+| AC-5 不回退/绿 | PASS with allowed exemptions | `npm run build` 通过。`npm test`：desktop 3 files/13 tests passed，contracts 4 files/20 tests passed，daemon 88 files/546 tests passed，web 51 files passed + 2 failed / 375 passed + 2 failed；失败仅为 spec 明确豁免的 `HistoryFloatingButton.test.tsx:23`（expected `24px`, received `8px`）和 `SandboxPreview.test.ts:58`（expected `/assets/tabler-icons.css`）。单独 `cd apps/daemon && npx vitest run` 通过，88 files / 546 tests passed。新增/修改测试覆盖 AC-1、AC-2、AC-3 和 popover 交互（`apps/web/src/tests/UnifiedChatShell.test.tsx:243`, `apps/web/src/tests/AuthModeToggle.test.tsx:25`）。 |
 
-Evidence:
+## Leader 诊断复核
 
-- `useAgentRun` is lifted into `UnifiedChatShell`, not owned only by `AgentRunPanel`: `apps/web/src/components/UnifiedChatShell.tsx:61-67`.
-- `ChatPanel` is mounted unconditionally; there is no `return <AgentRunPanel>` branch in the shell: `apps/web/src/components/UnifiedChatShell.tsx:183-223`.
-- CLI run artifacts are materialized as `streamExtras` with `RunStreamEntries`: `apps/web/src/components/UnifiedChatShell.tsx:142-159`.
-- `streamExtras` is rendered inside ChatPanel's own scroll container, after chat bubbles and stats: `apps/web/src/components/ChatPanel.tsx:420-430`, `apps/web/src/components/ChatPanel.tsx:571-573`.
-- The two data arrays are not merged: conversation `messages` are passed separately at `apps/web/src/components/UnifiedChatShell.tsx:205-220`; run state is passed separately into `RunStreamEntries` at `apps/web/src/components/UnifiedChatShell.tsx:148-158`.
-- `RunStreamEntries` is presentational and owns no hook: `apps/web/src/components/AgentRunPanel.tsx:522-557`.
-- `UnifiedChatShell.test.tsx` no longer mocks `ChatPanel`: `apps/web/src/tests/UnifiedChatShell.test.tsx:32-52`.
-- Continuity tests assert the same chat bubble DOM survives a builtin -> cli switch and that chat bubble + changeset coexist: `apps/web/src/tests/UnifiedChatShell.test.tsx:146-163`, `apps/web/src/tests/UnifiedChatShell.test.tsx:165-214`.
+### 问题 1：历史控件重叠
 
-Judgment against open-design ChatPane: this is now render-layer fusion, not "same shell, swapped child component". It still is not a fully merged chronological message model, which is allowed by the story's Won't item.
+PASS. `position:relative` 没有加错到 shell，而是加在 header 的兄弟 content 容器上（`apps/web/src/components/UnifiedChatShell.tsx:190`, `apps/web/src/components/UnifiedChatShell.tsx:244`）。`HistoryFloatingButton` 仍保持内部 `top:8; left:8`（`apps/web/src/components/HistoryFloatingButton.tsx:137`），符合 Won't：不改按钮定位数值（`stories/20260629-unified-chat-layout-polish/spec.md:39`）。
 
-Residual risk:
+锚定链路为：`UnifiedChatShell content div(position:relative)` -> `ChatPanel Fragment` -> `historyControl` -> `HistoryFloatingButton absolute div`。因为 content div 位于 top bar 下方，按钮 `top:8` 会落在对话内容区内，不会叠到 EngineSwitcher。`streamExtras` 仍在 scroll container 内正常流渲染（`apps/web/src/components/ChatPanel.tsx:572`），父级 relative 不改变滚动容器的 flex/overflow 行为。
 
-- Existing run output is hidden when `engine !== 'cli'` because `streamExtras` is gated by `isCli`: `apps/web/src/components/UnifiedChatShell.tsx:145-159`. If product intent is that prior executions remain visible while the current engine is builtin, this should be promoted into a new AC or fixed in a follow-up.
+### 问题 2：授权选择器
 
-### FIX-2 / AC-2: PASS
+PASS. 统一对话面的授权选择器已从原生 select 改成 `AuthModeToggle` pill+popover（`apps/web/src/components/UnifiedChatShell.tsx:168`）。popover 四项来自 `AUTHORIZATION_MODES`（`apps/web/src/hooks/useAgentRun.ts:217`），标签复用 `authorizationModeLabel(m, t)`（`apps/web/src/components/AuthModeToggle.tsx:21`, `apps/web/src/components/AuthModeToggle.tsx:120`; resolver 在 `apps/web/src/components/AgentRunPanel.tsx:67`）。
 
-Evidence:
+`composerExtras` 的槽位语义从“输入框内部附加控件”更新为“composer extras row”里的任意 ReactNode（`apps/web/src/components/ChatPanel.tsx:75`），当前全仓只有 `UnifiedChatShell` 传入该槽（`rg -n "composerExtras" apps/web/src`），未发现其它调用被破坏。
 
-- The chip renders mode + engine/agent + model in one line: `apps/web/src/components/EngineSwitcher.tsx:122-149`.
-- Unknown model is not blank; it falls back to localized `engineSwitcherModelDefault`: `apps/web/src/components/EngineSwitcher.tsx:97-99`.
-- Builtin pi model is loaded from daemon engine config via `getEngineConfig()`: `apps/web/src/components/UnifiedChatShell.tsx:93-111`.
-- Builtin model is passed into the chip; CLI passes `null`, triggering fallback: `apps/web/src/components/UnifiedChatShell.tsx:186-191`.
-- Engine selection persistence goes through `useAgentEngine -> tauri -> runtimeClient -> /settings`: `apps/web/src/hooks/useAgentEngine.ts:34-66`, `apps/web/src/lib/tauri.ts:45-55`, `apps/web/src/lib/httpRuntimeClient.ts:119-137`.
-- No P2 engine selection localStorage path exists; `rg` only found localStorage in unrelated existing features or daemon URL helpers.
-- Tests cover builtin model and CLI fallback: `apps/web/src/tests/EngineSwitcher.test.tsx:55-69`, `apps/web/src/tests/UnifiedChatShell.test.tsx:224-231`.
+## 找茬发现
 
-Race / offline judgment:
+- PASS: trigger 开关、点外部关闭、Esc 关闭都有实现（`apps/web/src/components/AuthModeToggle.tsx:42`, `apps/web/src/components/AuthModeToggle.tsx:49`, `apps/web/src/components/AuthModeToggle.tsx:79`）和测试（`apps/web/src/tests/AuthModeToggle.test.tsx:89`, `apps/web/src/tests/AuthModeToggle.test.tsx:97`）。
+- PASS: 基础无障碍属性存在：trigger 有 `aria-haspopup="menu"` / `aria-expanded` / `aria-label`（`apps/web/src/components/AuthModeToggle.tsx:75`），popover 有 `role="menu"`（`apps/web/src/components/AuthModeToggle.tsx:105`），选项有 `role="menuitemradio"` / `aria-checked`（`apps/web/src/components/AuthModeToggle.tsx:114`）。
+- Observation: 没有 focus trap。这里是非模态 menu/popover，不是 dialog；AC 未要求 trap，且 menuitemradio 可通过 Tab 到达，不作为 fail。
+- Observation: 色点没有按授权等级区分颜色，全部使用单一 `--record-btn`（`apps/web/src/styles/auth-mode-toggle.css:53`）。这符合本项目单一信号橙和 AC-4 要求；若未来要表达 read-only/full-access 风险等级，需要扩展 spec。
+- Observation: popover 菜单没有描述文案，只有模式名；因此不存在描述双语硬编码问题。模式名走 `authorizationModeLabel` + i18n（`apps/web/src/components/AgentRunPanel.tsx:67`）。
+- Observation: `auth-mode-toggle.css` 没有局部 `@media (prefers-reduced-motion: reduce)`，但全局样式统一将动画/过渡缩短（`apps/web/src/styles/globals.css:2343`）。不作为 AC-4 fail。
+- Observation: 极窄屏没有像 open-design 那样隐藏 label 的 container query；当前 trigger `max-width:160px`、label ellipsis、popover `max-width:min(280px,90vw)`（`apps/web/src/styles/auth-mode-toggle.css:19`, `apps/web/src/styles/auth-mode-toggle.css:62`, `apps/web/src/styles/auth-mode-toggle.css:88`），风险低，不影响发送键，因为 pill 在独立 extras row 而非 toolbar 内。
+- PASS: HistoryFloatingButton 既有测试失败没有因本次修复变化为新增失败。当前失败仍是旧测试期望 `left: 24px` / `bottom: 100%`，实现保持 `top:8; left:8`（`apps/web/src/components/HistoryFloatingButton.tsx:137`），与 spec 的豁免项一致。
 
-- Daemon/config failure is swallowed and the chip falls back to "默认 / Default": `apps/web/src/components/UnifiedChatShell.tsx:97-107`.
-- The model is loaded once on mount. That is acceptable for this AC; live model refresh is not required by the Won't section.
+## 命令与输出摘要
 
-### FIX-3 / i18n: FAIL
+```bash
+npm run build
+```
 
-Passing evidence:
+结果：PASS。workspace build 全部完成；保留 electron-builder author/icon/signing 警告与 Vite chunk size 警告。
 
-- Run status labels are localized through `statusLabel(status, t)`: `apps/web/src/components/AgentRunPanel.tsx:35-51`.
-- Run section titles use locale keys: `apps/web/src/components/AgentRunPanel.tsx:577-630`.
-- Run event labels moved into `useAgentRun` i18n keys: `apps/web/src/hooks/useAgentRun.ts:102-111`, `apps/web/src/hooks/useAgentRun.ts:144-153`, `apps/web/src/hooks/useAgentRun.ts:175-184`.
-- Memory-kind labels moved through `memoryKindLabel(kind, t)`: `apps/web/src/components/AgentRunPanel.tsx:465-491`.
-- Relevant `agentRun*` and `engineSwitcher*` locale key counts match: local node check returned `zh: 40`, `en: 40`, `onlyZh: []`, `onlyEn: []`.
-- Tests now assert many localized zh strings: `apps/web/src/tests/AgentRunPanel.test.tsx:103-110`, `apps/web/src/tests/AgentRunPanel.test.tsx:182`, `apps/web/src/tests/AgentRunPanel.test.tsx:248-250`, `apps/web/src/tests/UnifiedChatShell.test.tsx:211`.
+```bash
+npm test
+```
 
-Failing evidence:
+结果：PASS with allowed exemptions。命令 exit 1，但只有两个 spec 豁免失败：
+- `apps/web/src/tests/HistoryFloatingButton.test.tsx:23`: expected `left` `24px`, received `8px`.
+- `apps/web/src/tests/SandboxPreview.test.ts:58`: expected `/assets/tabler-icons.css`.
 
-- Change operation is rendered raw from the backend enum: `apps/web/src/components/AgentRunPanel.tsx:223`.
-- Changeset status is rendered raw from the backend enum: `apps/web/src/components/AgentRunPanel.tsx:232`.
-- Source kind is rendered raw from the backend enum: `apps/web/src/components/AgentRunPanel.tsx:431`.
-- Artifact type is rendered raw from the backend enum: `apps/web/src/components/AgentRunPanel.tsx:441`.
-- Tests still lock raw English status tokens: `apps/web/src/tests/AgentRunPanel.test.tsx:186-189`.
+通过摘要：
+- `packages/contracts`: 4 files / 20 tests passed.
+- `apps/desktop`: 3 files / 13 tests passed.
+- `apps/daemon`: 88 files / 546 tests passed.
+- `apps/web`: 51 files passed, 2 failed; 375 tests passed, 2 failed.
 
-Required fix:
+```bash
+cd apps/daemon && npx vitest run
+```
 
-- Add localized label resolvers for changeset operation, changeset status, source kind, and artifact type. Unknown future enum values may fall back to raw strings, but known current contract values must not render as English in zh.
-- Update `AgentRunPanel.test.tsx` to assert localized labels instead of `blocked` / `failed`.
+结果：PASS。88 files / 546 tests passed.
 
-### FIX-4 / token: PASS
+## 结论
 
-Evidence:
-
-- `AgentRunPanel` uses `--record-btn` for running status and primary/action accents: `apps/web/src/components/AgentRunPanel.tsx:23-30`, `apps/web/src/components/AgentRunPanel.tsx:292-298`, `apps/web/src/components/AgentRunPanel.tsx:352-354`, `apps/web/src/components/AgentRunPanel.tsx:422-428`, `apps/web/src/components/AgentRunPanel.tsx:437-441`, `apps/web/src/components/AgentRunPanel.tsx:484-490`.
-- `EngineSwitcher` uses `--record-btn`, structured radius/shadow/menu/focus tokens: `apps/web/src/styles/engine-switcher.css:13-46`, `apps/web/src/styles/engine-switcher.css:92-106`.
-- Grep result for `var(--accent)` / `--accent` in P2 surfaces only found comments saying not to use it, not runtime styles.
-
-### FIX-5 / test hygiene: PASS
-
-Evidence:
-
-- The debug-only `App.test.tsx` case is gone; P2 App tests now start at `apps/web/src/tests/App.test.tsx:670`.
-- `useAgentEngine.test.tsx` uses `vi.resetAllMocks()` and reinstalls default mock implementations every `beforeEach`: `apps/web/src/tests/useAgentEngine.test.tsx:14-22`.
-- `httpRuntimeClient.test.ts` covers `get_agent_engine` and partial `set_agent_engine`: `apps/web/src/tests/httpRuntimeClient.test.ts:166-221`.
-- `tauri.test.ts` covers `getAgentEngine` / `setAgentEngine` command boundary: `apps/web/src/tests/tauri.test.ts:104-117`.
-- Grep for `DEBUG right panel`, `expect(true).toBe(true)`, and `console.log` in tests found no P2 debug test. The only `console.log` match is fixture content in `DetailView.test.tsx`, unrelated.
-
-## AC Results
-
-### AC-1: PASS
-
-- `App.tsx` lazy-loads `UnifiedChatShell`: `apps/web/src/App.tsx:60-63`.
-- The right panel renders one `UnifiedChatShell`, not Chat / Agent Run tabs: `apps/web/src/App.tsx:1230-1261`.
-- `rightPanelMode` / `setRightPanelMode` are gone from `UIContext`: no matches in `App.tsx`, `UIContext.tsx`, components, or tests.
-
-### AC-2: PASS
-
-- Engine chip is always in the shell top bar: `apps/web/src/components/UnifiedChatShell.tsx:183-197`.
-- Chip shows engine + model: `apps/web/src/components/EngineSwitcher.tsx:135-149`.
-- Builtin model source is daemon engine config: `apps/web/src/components/UnifiedChatShell.tsx:97-104`.
-- CLI fallback model label exists: `apps/web/src/components/EngineSwitcher.tsx:97-99`.
-- Persistence uses runtimeClient/settings, not localStorage: `apps/web/src/hooks/useAgentEngine.ts:34-66`, `apps/web/src/lib/httpRuntimeClient.ts:119-137`.
-
-### AC-3: PASS
-
-- Builtin sends route through the original conversation `onSend`: `apps/web/src/components/UnifiedChatShell.tsx:127-130`.
-- CLI sends route through `agentRun.start({ engine:'cli', agentId, authorizationMode })`: `apps/web/src/components/UnifiedChatShell.tsx:132-139`.
-- `createRun` includes `engine`, `agentId`, `prompt`, `authorizationMode` in `POST /runs`: `apps/web/src/lib/agentRuns.ts:35-49`.
-- Continuity surface is covered by `UnifiedChatShell.test.tsx`: `apps/web/src/tests/UnifiedChatShell.test.tsx:165-214`.
-
-### AC-4: PASS
-
-- Authorization selector is injected only when `engine === 'cli'`: `apps/web/src/components/UnifiedChatShell.tsx:161-178`.
-- Builtin path has no authorization selector because `composerExtras` is undefined: `apps/web/src/components/UnifiedChatShell.tsx:162-178`.
-- Test coverage asserts builtin absence and CLI presence: `apps/web/src/tests/UnifiedChatShell.test.tsx:122-143`.
-
-### AC-5: PASS WITH BASELINE FAILURES
-
-Commands I ran:
-
-- `npm run build`: passed.
-- `cd apps/web && npx vitest run src/tests/EngineSwitcher.test.tsx src/tests/UnifiedChatShell.test.tsx src/tests/AgentRunPanel.test.tsx src/tests/useAgentEngine.test.tsx src/tests/httpRuntimeClient.test.ts src/tests/tauri.test.ts`: passed, 6 files / 49 tests.
-- `npm test`: failed only the two known web baseline tests; contracts and desktop passed before web failed.
-- `cd apps/web && npx vitest run`: failed only the two known baseline tests; summary `2 failed | 50 passed`, `2 failed | 365 passed`.
-- `cd apps/web && npx vitest run src/tests/App.test.tsx src/tests/useAgentEngine.test.tsx src/tests/UnifiedChatShell.test.tsx --no-isolate`: passed, 3 files / 26 tests.
-- `cd apps/daemon && npx vitest run`: passed, 88 files / 546 tests.
-
-Allowed baseline failures still exactly two:
-
-- `apps/web/src/tests/HistoryFloatingButton.test.tsx:23`: expected left `24px`, got `8px`.
-- `apps/web/src/tests/SandboxPreview.test.ts:58`: missing `/assets/tabler-icons.css` in `srcdoc`.
-
-The previous "P2 isolated green but full-run loading failures" did not reproduce. The hardened `useAgentEngine` mock reset is now adequate.
-
-### AC-6: PASS WITH CAVEAT
-
-- This is no longer a shell-level swap. `ChatPanel` is the single mounted conversation surface, and run output is inserted into its scroll container via `streamExtras`.
-- The test now proves chat bubble survival and chat + run changeset coexistence without mocking `ChatPanel`: `apps/web/src/tests/UnifiedChatShell.test.tsx:32-52`, `apps/web/src/tests/UnifiedChatShell.test.tsx:146-214`.
-- Caveat: prior run output is hidden when switching back to builtin due `isCli && hasRunOutput`: `apps/web/src/components/UnifiedChatShell.tsx:145-159`. If the product definition of "one ChatPane" requires all prior run entries to remain visible regardless of current engine, AC-6 should be tightened and this should become a blocker.
-
-## Adversarial Checks
-
-- State leakage: `UnifiedChatShell` and standalone `AgentRunPanel` use separate `useAgentRun()` instances (`apps/web/src/components/UnifiedChatShell.tsx:67`, `apps/web/src/components/AgentRunPanel.tsx:83-94`); there is no module-level run singleton.
-- Run state retention: starting a new run clears prior run artifacts in `useAgentRun.start`: `apps/web/src/hooks/useAgentRun.ts:71-79`.
-- Empty-state flicker: `streamExtras` is undefined until there is actual run output, and ChatPanel empty state is suppressed only when `streamExtras` exists: `apps/web/src/components/UnifiedChatShell.tsx:145-159`, `apps/web/src/components/ChatPanel.tsx:432-476`.
-- Key collision: chat bubbles use numeric / `run-${startIdx}` keys; run timeline entries are inside a separate subtree and use event ids: `apps/web/src/components/ChatPanel.tsx:478-520`, `apps/web/src/components/AgentRunPanel.tsx:577-584`.
-- Authorization residual: `composerExtras` exists only for CLI, so builtin does not retain the selector: `apps/web/src/components/UnifiedChatShell.tsx:161-178`.
-- Daemon unavailable: engine selection falls back to builtin and model/agent loading failures are swallowed: `apps/web/src/hooks/useAgentEngine.ts:42-48`, `apps/web/src/components/UnifiedChatShell.tsx:79-87`, `apps/web/src/components/UnifiedChatShell.tsx:97-107`.
-- Agent fallback risk: if `agentId` is null and a CLI run is submitted, the payload falls back to `claude`: `apps/web/src/components/UnifiedChatShell.tsx:137`. This is not a current AC blocker because the switcher auto-picks the first available agent when possible (`apps/web/src/components/EngineSwitcher.tsx:101-112`), but it is worth hardening later.
-
-## Required Fix
-
-Blocker:
-
-- Localize current contract enum labels in `RunStreamEntries`: changeset operation, changeset status, source kind, and artifact type. Update tests away from English `blocked` / `failed`.
-
-Suggested implementation:
-
-- Add helpers like `changeOperationLabel(op, t)`, `changeStatusLabel(status, t)`, `sourceKindLabel(kind, t)`, `artifactTypeLabel(type, t)`.
-- Add zh/en keys for current known values (`create`, `edit`/`modify`, `remove`; `applied`, `blocked`, `failed`, `reverted`, `recorded`; `read`, `cite`; known artifact types such as `summary`).
-- Keep raw fallback for unknown future enum values only.
-
+本轮验收结论为 PASS，无 NEEDS-FIX 项。建议后续可考虑补一个局部 reduced-motion 断言和极窄屏 label 折叠策略，但这两项不是当前 AC 的阻断条件。

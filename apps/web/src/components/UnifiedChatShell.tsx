@@ -30,12 +30,13 @@ import type { AgentInfo } from '@journal/contracts'
 import { listLocalAgents } from '../lib/localAgents'
 import { getEngineConfig } from '../lib/tauri'
 import { useAgentEngine } from '../hooks/useAgentEngine'
-import { useAgentRun, AUTHORIZATION_MODES } from '../hooks/useAgentRun'
+import { useAgentRun } from '../hooks/useAgentRun'
 import { useTranslation } from '../contexts/I18nContext'
 import type { AuthorizationMode } from '../types/agentRun'
 import { EngineSwitcher } from './EngineSwitcher'
 import { ChatPanel, type ChatPanelProps } from './ChatPanel'
-import { RunStreamEntries, authorizationModeLabel } from './AgentRunPanel'
+import { RunStreamEntries } from './AgentRunPanel'
+import { AuthModeToggle } from './AuthModeToggle'
 
 /** The conversation slice App.tsx already assembles from useConversation. */
 export type ConversationSlice = Pick<
@@ -158,23 +159,14 @@ export function UnifiedChatShell(props: UnifiedChatShellProps) {
       />
     ) : undefined
 
-  // Authorization selector inline in the composer row (no separate form block).
+  // Authorization selector (P2 polish · AC-2): a compact pill button that
+  // opens a popover of the four authorization modes. Rendered only for the
+  // external CLI engine — the built-in pi engine has no authorization
+  // concept, so composerExtras stays undefined and the row is not mounted
+  // (AC-3). The pill lives in the composer extras row BELOW the textarea
+  // (not inside the bordered input box), pushed right by the row's spacer.
   const composerExtras: ReactNode = isCli ? (
-    <div style={authSelectorRowStyle}>
-      <span style={authLabelStyle}>{t('agentRunAuthLabel')}</span>
-      <select
-        value={authMode}
-        onChange={(e) => setAuthMode(e.target.value as AuthorizationMode)}
-        style={authSelectStyle}
-        aria-label={t('agentRunAuthLabel')}
-      >
-        {AUTHORIZATION_MODES.map((m) => (
-          <option key={m} value={m}>
-            {authorizationModeLabel(m, t)}
-          </option>
-        ))}
-      </select>
-    </div>
+    <AuthModeToggle mode={authMode} onChange={setAuthMode} />
   ) : undefined
 
   // CLI: the textarea doubles as the goal input → goal placeholder.
@@ -195,12 +187,19 @@ export function UnifiedChatShell(props: UnifiedChatShellProps) {
           onRescan={() => refreshAgents(true)}
         />
       </header>
-      <div style={contentStyle}>
+      <div style={contentStyle} data-testid="unified-chat-content">
         {/*
           ChatPanel is mounted UNCONDITIONALLY — switching engines no longer
           unmounts the conversation area, so chat bubbles persist (AC-6).
           streamExtras/composerExtras/inputPlaceholder adapt the same surface
           to the external CLI engine without a panel swap.
+
+          position:relative on this container (set in contentStyle) is the
+          P2 polish overlap fix (AC-1): HistoryFloatingButton uses
+          position:absolute and previously anchored to a higher ancestor,
+          overlapping the EngineSwitcher chip in the top bar. With the content
+          container as its positioned ancestor, the floating button now anchors
+          inside the conversation area (below the top bar).
         */}
         <ChatPanel
           sessionId={props.sessionId}
@@ -248,26 +247,10 @@ const contentStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
-}
-const authSelectorRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  paddingBottom: 6,
-}
-const authLabelStyle: React.CSSProperties = {
-  fontSize: 'var(--text-xs)',
-  color: 'var(--item-meta)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-}
-const authSelectStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '4px 6px',
-  border: '0.5px solid var(--dialog-inset-border)',
-  borderRadius: 'var(--radius-sm, 4px)',
-  fontSize: 'var(--text-xs)',
-  background: 'var(--surface, #fff)',
-  color: 'var(--item-text)',
-  cursor: 'pointer',
+  // AC-1 (P2 polish): establish the positioning context for absolutely-
+  // positioned descendants of ChatPanel (notably HistoryFloatingButton,
+  // which uses position:absolute; top:8; left:8; zIndex:20). Without this,
+  // the floating button anchored to a higher ancestor and overlapped the
+  // EngineSwitcher chip in the top bar.
+  position: 'relative',
 }

@@ -8,6 +8,7 @@ import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
 import { deleteJournalEntry, deleteIdentity, deleteTopic, getWorkspacePath, archiveIdentity, unarchiveIdentity, listTopicsDir, type TopicEntry } from '../lib/tauri'
+import { Search, LayoutGrid } from 'lucide-react'
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -571,6 +572,59 @@ export function TreeSidebar({
         background: 'var(--sidebar-bg)',
       }}
     >
+      {category === 'topics' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 8px 8px',
+            fontSize: 'var(--text-base)',
+            fontWeight: 'var(--font-semibold)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          <span>Workspace</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              type="button"
+              aria-label="Search"
+              style={{
+                width: 28,
+                height: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--item-meta)',
+                cursor: 'pointer',
+              }}
+            >
+              <Search size={16} strokeWidth={1.6} />
+            </button>
+            <button
+              type="button"
+              aria-label="View layout"
+              style={{
+                width: 28,
+                height: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--item-meta)',
+                cursor: 'pointer',
+              }}
+            >
+              <LayoutGrid size={16} strokeWidth={1.6} />
+            </button>
+          </div>
+        </div>
+      )}
       <div
         key={category}
         style={{

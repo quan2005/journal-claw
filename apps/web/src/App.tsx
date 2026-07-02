@@ -6,8 +6,10 @@ import {
   useMemo,
   lazy,
   Suspense,
+  type ComponentProps,
   type CSSProperties,
 } from 'react'
+
 import { selectRuntimeClient } from './lib/runtimeClient'
 import {
   subscribeHostEvent,
@@ -15,12 +17,15 @@ import {
   onHostFileDrop,
 } from './lib/hostBridge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 const DetailView = lazy(() =>
   import('./components/DetailView').then((m) => ({
     // m.DetailView is a React.memo object; lazy() needs a function component as default.
-    default: ((props: any) => <m.DetailView {...props} />) as typeof m.DetailView,
+    default: ((props: ComponentProps<typeof m.DetailView>) => (
+      <m.DetailView {...props} />
+    )) as typeof m.DetailView,
   })),
 )
 import { AutomationWorkbench } from './components/AutomationWorkbench'
@@ -58,11 +63,8 @@ import { useTranslation } from './contexts/I18nContext'
 const RightPanel = lazy(() =>
   import('./components/RightPanel').then((m) => ({ default: m.RightPanel })),
 )
-const UnifiedChatShell = lazy(() =>
-  import('./components/UnifiedChatShell').then((m) => ({ default: m.UnifiedChatShell })),
-)
-import { HistoryFloatingButton } from './components/HistoryFloatingButton'
 import { useConversation } from './hooks/useConversation'
+import { WorkspaceView, WorkspaceChatShell } from './components/WorkspaceView'
 const OnboardingView = lazy(() => import('./components/OnboardingView'))
 
 const SOUL_PATH = '__soul__'
@@ -636,12 +638,30 @@ export default function App() {
     [setShowIdeas, setTreeSelection, setView],
   )
 
+  const handleOpenRecent = useCallback(
+    (path: string) => {
+      const nextSelection: TreeSelection = {
+        type: 'topic-file',
+        path,
+        name: fileBasename(path),
+      }
+      rememberReturnTarget(nextSelection)
+      setView('journal')
+      setShowIdeas(false)
+      setSelectedEntry(null)
+      setTopicFocusSelection(null)
+      setTreeSelection(nextSelection)
+      setLeftSidebarOpen(true)
+    },
+    [rememberReturnTarget, setSelectedEntry, setShowIdeas, setTreeSelection, setView],
+  )
+
   const handleCategoryChange = useCallback(
     (cat: Category) => {
-      const needsSidebar = cat === 'journal' || cat === 'identity' || cat === 'topics'
+      const catNeedsSidebar = cat === 'journal' || cat === 'identity' || cat === 'topics'
 
       // 重复点击当前类别：切换侧栏展开/收起
-      if (cat === activeCategory && needsSidebar) {
+      if (cat === activeCategory && catNeedsSidebar) {
         setLeftSidebarOpen((prev) => !prev)
         return
       }
@@ -660,7 +680,7 @@ export default function App() {
       }
 
       // Auto-hide sidebar for categories that don't need a list
-      setLeftSidebarOpen(needsSidebar)
+      setLeftSidebarOpen(catNeedsSidebar)
 
       setActiveCategory(cat)
     },
@@ -1062,7 +1082,9 @@ export default function App() {
             flexDirection: 'column',
             overflow: 'hidden',
             background: 'var(--sidebar-bg)',
-            borderRight: leftSidebarOpen ? '0.5px solid var(--divider)' : '0.5px solid transparent',
+            borderRight: leftSidebarOpen
+              ? '0.5px solid var(--divider)'
+              : '0.5px solid transparent',
             opacity: leftSidebarOpen ? 1 : 0,
             pointerEvents: leftSidebarOpen ? 'auto' : 'none',
             transition: SIDEBAR_PANEL_TRANSITION,
@@ -1141,6 +1163,8 @@ export default function App() {
                 <SkillsWorkbench />
               </Suspense>
             </div>
+          ) : activeCategory === 'topics' && (!treeSelection || treeSelection.type === 'topic') ? (
+            <WorkspaceView onOpenRecent={handleOpenRecent} />
           ) : (
             <Suspense fallback={null}>
               <DetailView
@@ -1235,7 +1259,7 @@ export default function App() {
           <Suspense fallback={null}>
             <RightPanel
               chatContent={
-                <UnifiedChatShell
+                <WorkspaceChatShell
                   sessionId={sessionId}
                   messages={messages}
                   isStreaming={isStreaming}
@@ -1248,13 +1272,9 @@ export default function App() {
                   onRetry={retry}
                   onEditAndResend={editAndResend}
                   onRemovePendingItem={removePendingItem}
-                  onContinue={() => send('请继续')}
-                  historyControl={
-                    <HistoryFloatingButton
-                      activeSessionId={sessionId}
-                      onSelect={(id: string) => openChatPanel(id)}
-                    />
-                  }
+                  onNewChat={newTab}
+                  onSelectSession={(id: string) => openChatPanel(id)}
+                  activeSessionId={sessionId}
                 />
               }
             />

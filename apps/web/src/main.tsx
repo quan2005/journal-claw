@@ -1,6 +1,7 @@
 import './styles/globals.css'
 import './styles/animations.css'
 import './styles/skills-workbench.css'
+import './styles/workspace.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'

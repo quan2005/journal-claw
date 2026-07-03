@@ -198,7 +198,7 @@ export default function SectionAbout() {
                 letterSpacing: '0.02em',
               }}
             >
-              macOS / Windows · Tauri · React · Rust · Claude
+              macOS · Electron · React · TypeScript · Claude
             </div>
             <button
               onClick={async () => {
@@ -228,11 +228,6 @@ export default function SectionAbout() {
             >
               {resetLabel}
             </button>
-            <div
-              style={{ fontSize: 12, color: 'var(--duration-text)', marginTop: 8, lineHeight: 1.6 }}
-            >
-              {t('whisperCredit')}
-            </div>
           </div>
         </div>
       )}

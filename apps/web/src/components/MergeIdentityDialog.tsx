@@ -14,7 +14,7 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
   const [identities, setIdentities] = useState<IdentityEntry[]>([])
   const [loaded, setLoaded] = useState(false)
   const [targetPath, setTargetPath] = useState<string>('')
-  const [mode, setMode] = useState<MergeMode>(source.speaker_id ? 'voice_only' : 'full')
+  const [mode, setMode] = useState<MergeMode>('full')
   const [merging, setMerging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -156,7 +156,6 @@ export function MergeIdentityDialog({ source, onClose, onMerged }: MergeIdentity
         <div>
           <div style={label}>{t('mergeMode')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {source.speaker_id && modeBtn('voice_only', t('voiceOnly'), t('voiceOnlyDesc'))}
             {modeBtn('full', t('fullMerge'), t('fullMergeDesc'))}
           </div>
         </div>

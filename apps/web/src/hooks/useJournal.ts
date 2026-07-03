@@ -329,7 +329,7 @@ export function useJournal() {
       const { source_path, material_path, filename } = payload
       invokeEnqueueWork({
         files: [material_path],
-        prompt: '请根据这份音频转写材料，生成日志条目。',
+        prompt: '请根据这份素材，生成日志条目。',
         displayName: filename,
       })
         .then(() => {
@@ -414,7 +414,7 @@ export function useJournal() {
         setLocalItems((prev) =>
           prev.map((i) =>
             i.filename === filename
-              ? { ...i, status: 'failed' as const, error: message ?? '转写失败' }
+              ? { ...i, status: 'failed' as const, error: message ?? '处理失败' }
               : i,
           ),
         )

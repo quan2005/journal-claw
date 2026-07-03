@@ -246,21 +246,14 @@ describe('UnifiedChatShell', () => {
   })
 
   describe('P2 polish: overlap fix + auth pill (AC-1, AC-2, AC-3)', () => {
-    it('AC-1: establishes a positioning context for HistoryFloatingButton on the content container', () => {
-      // HistoryFloatingButton uses position:absolute; top:8; left:8; zIndex:20
-      // and anchors to its nearest *positioned* ancestor. Before the P2 fix
-      // the content container had no `position`, so the button escaped upward
-      // and overlapped the EngineSwitcher chip. With position:relative on the
-      // content container, the button is anchored inside the conversation
-      // area (below the top bar). Asserting the computed position directly is
-      // the contract — the internal positioning values of HistoryFloatingButton
-      // itself are deliberately left untouched (Won't).
+    it('AC-1: renders the history control in the top bar and the engine switcher on the right', () => {
       mockEngine = 'builtin'
-      render(<UnifiedChatShell {...CONV_PROPS} messages={[]} />)
-      const content = screen.getByTestId('unified-chat-content')
-      expect(content).toBeTruthy()
-      const pos = window.getComputedStyle(content).position
-      expect(pos).toBe('relative')
+      render(<UnifiedChatShell {...CONV_PROPS} messages={[]} historyControl={<div data-testid="history-control" />} />)
+      const header = screen.getByTestId('unified-chat-header')
+      expect(header).toBeTruthy()
+      expect(header.querySelector('[data-testid="history-control"]')).toBeTruthy()
+      // Engine switcher sits at the end of the header row.
+      expect(screen.getByTestId('engine-switcher-chip')).toBeTruthy()
     })
 
     it('AC-3: does not render the auth pill for the built-in pi engine', () => {

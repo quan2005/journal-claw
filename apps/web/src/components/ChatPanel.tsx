@@ -21,7 +21,7 @@ const MarkdownRenderer = lazy(() =>
 function LazyMD({ content }: { content: string }) {
   return (
     <Suspense fallback={null}>
-      <MarkdownRenderer content={content} />
+      <MarkdownRenderer content={content} className="md-content md-content--chat" />
     </Suspense>
   )
 }
@@ -64,7 +64,6 @@ export interface ChatPanelProps {
   onEditAndResend: (index: number, text: string) => void
   onRemovePendingItem: (index: number) => string | undefined
   onContinue: () => void
-  historyControl?: ReactNode
   /**
    * Extra entries rendered INSIDE the messages scroll area, after the chat
    * bubbles (AC-6 render-layer fusion): UnifiedChatShell injects a CLI run's
@@ -97,7 +96,6 @@ export function ChatPanel({
   onEditAndResend,
   onRemovePendingItem,
   onContinue,
-  historyControl,
   streamExtras,
   composerExtras,
   inputPlaceholder,
@@ -415,8 +413,6 @@ export function ChatPanel({
 
   return (
     <>
-      {/* History control — anchored to top-left of the chat area */}
-      {historyControl}
       {/* Messages */}
       <div
         ref={scrollRef}

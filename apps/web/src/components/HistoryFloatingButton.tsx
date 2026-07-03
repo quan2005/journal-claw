@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { selectRuntimeClient } from '../lib/runtimeClient'
 import { conversationList, conversationDelete, type SessionSummary } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
@@ -13,10 +14,10 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [hovered, setHovered] = useState(false)
-  const [panelVisible, setPanelVisible] = useState(false)
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -51,39 +52,45 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
     }
   }, [refresh])
 
-  // Mouse enter with delay — prevents accidental triggers
-  const handleMouseEnter = useCallback(() => {
-    if (leaveTimerRef.current) {
-      clearTimeout(leaveTimerRef.current)
-      leaveTimerRef.current = null
-    }
-    hoverTimerRef.current = setTimeout(() => {
-      setHovered(true)
-      // Stagger panel visibility for smooth cascade
-      requestAnimationFrame(() => {
-        setPanelVisible(true)
-      })
-    }, 150)
+  // Compute and update the anchor position when opening or on resize/scroll.
+  const updateAnchor = useCallback(() => {
+    if (!buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    setAnchor({ top: rect.bottom + 6, right: window.innerWidth - rect.right })
   }, [])
 
-  const handleMouseLeave = useCallback(() => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current)
-      hoverTimerRef.current = null
-    }
-    setPanelVisible(false)
-    leaveTimerRef.current = setTimeout(() => {
-      setHovered(false)
-    }, 250) // matches CSS transition
-  }, [])
-
-  // Cleanup timers on unmount
   useEffect(() => {
-    return () => {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
-      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
+    if (!open) {
+      setAnchor(null)
+      return
     }
-  }, [])
+    updateAnchor()
+    window.addEventListener('resize', updateAnchor)
+    window.addEventListener('scroll', updateAnchor, true)
+    return () => {
+      window.removeEventListener('resize', updateAnchor)
+      window.removeEventListener('scroll', updateAnchor, true)
+    }
+  }, [open, updateAnchor])
+
+  // Close on outside click / Escape.
+  useEffect(() => {
+    if (!open) return
+    const onPointer = (e: MouseEvent) => {
+      if (!containerRef.current) return
+      if (containerRef.current.contains(e.target as Node)) return
+      setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   // Filter + sort
   const visible = sessions
@@ -125,29 +132,32 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
   }
 
   const panelWidth = 260
-  const btnSize = 32
+  const btnSize = 28
 
   return (
     <div
       className="history-float-container"
-      title={!hovered ? t('history') : undefined}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      ref={containerRef}
       style={{
-        position: 'absolute',
-        top: 8,
-        left: 8,
-        zIndex: 20,
+        position: 'relative',
         width: btnSize,
         height: btnSize,
-        cursor: hovered ? 'default' : 'pointer',
+        flexShrink: 0,
         userSelect: 'none',
       }}
     >
-      {/* Collapsed state: clock icon button (fades out when expanding) */}
+      {/* Embedded top-bar clock button. */}
       <button
+        ref={buttonRef}
         type="button"
         aria-label={t('history')}
+        title={t('history')}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => {
+          updateAnchor()
+          setOpen((v) => !v)
+        }}
         style={{
           width: btnSize,
           height: btnSize,
@@ -155,19 +165,28 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
           placeItems: 'center',
           lineHeight: 0,
           padding: 0,
-          border: 'none',
+          border: '0.5px solid var(--divider)',
           borderRadius: '50%',
-          background: hovered ? 'transparent' : 'var(--item-hover-bg)',
+          background: open ? 'var(--item-hover-bg)' : 'transparent',
           color: 'var(--item-meta)',
           cursor: 'pointer',
-          opacity: hovered ? 0 : 1,
-          transition: 'opacity 0.15s var(--ease-out)',
-          pointerEvents: hovered ? 'none' : 'auto',
+          transition:
+            'background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--item-hover-bg)'
+          e.currentTarget.style.borderColor = 'var(--divider-hover)'
+        }}
+        onMouseLeave={(e) => {
+          if (!open) {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.borderColor = 'var(--divider)'
+          }
         }}
       >
         <svg
-          width="15"
-          height="15"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -181,35 +200,32 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
         </svg>
       </button>
 
-      {/* Expanded panel — fixed size, transform + opacity transition (no layout animation) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: panelWidth,
-          maxHeight: 'min(60vh, 480px)',
-          borderRadius: 'var(--radius-lg)',
-          background: 'var(--detail-case-bg)',
-          border: 'var(--border-menu)',
-          overflow: 'hidden',
-          transform: hovered ? 'scale(1)' : 'scale(0.4)',
-          transformOrigin: 'top left',
-          opacity: hovered ? 1 : 0,
-          transition:
-            'transform 0.25s var(--ease-out), opacity 0.2s var(--ease-out), background 0.2s var(--ease-out)',
-          pointerEvents: hovered ? 'auto' : 'none',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            maxHeight: 'min(60vh, 480px)',
-            opacity: panelVisible ? 1 : 0,
-            transition: 'opacity 0.15s var(--ease-out) 0.08s',
-          }}
-        >
+      {/* Expanded panel — rendered via portal so it is not clipped by the right panel's overflow:hidden. */}
+      {open && anchor
+        ? createPortal(
+            <div
+              className="history-float-container"
+              style={{
+                position: 'fixed',
+                top: anchor.top,
+                right: anchor.right,
+                width: panelWidth,
+                maxHeight: 'min(60vh, 480px)',
+                borderRadius: 'var(--radius-lg)',
+                background: 'var(--detail-case-bg)',
+                border: 'var(--border-menu)',
+                overflow: 'hidden',
+                boxShadow: 'var(--shadow-overlay)',
+                zIndex: 100,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  maxHeight: 'min(60vh, 480px)',
+                }}
+              >
           {/* Search input */}
           <div style={{ padding: '8px 10px 4px', flexShrink: 0 }}>
             <input
@@ -393,7 +409,10 @@ export function HistoryFloatingButton({ activeSessionId, onSelect }: HistoryFloa
             <span>⌘N 新建对话</span>
           </div>
         </div>
-      </div>
+      </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }

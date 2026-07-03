@@ -169,10 +169,12 @@ const ESTIMATED_SECTION_HEIGHT = 2000
 function VirtualizedMarkdown({
   content,
   entryPath,
+  className,
   onClick,
 }: {
   content: string
   entryPath?: string
+  className?: string
   onClick: (e: React.MouseEvent<HTMLDivElement>) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -297,7 +299,7 @@ function VirtualizedMarkdown({
   for (let i = start; i <= end && i < batches.length; i++) visibleIndices.push(i)
 
   return (
-    <div className="md-content" onClick={onClick} ref={containerRef}>
+    <div className={className || 'md-content'} onClick={onClick} ref={containerRef}>
       {topHeight > 0 && <div style={{ height: topHeight }} />}
       {visibleIndices.map((idx) => (
         <section
@@ -317,9 +319,10 @@ function VirtualizedMarkdown({
 interface MarkdownRendererProps {
   content: string
   entryPath?: string
+  className?: string
 }
 
-export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, entryPath, className }: MarkdownRendererProps) {
   const isLarge = content.length > LARGE_THRESHOLD
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -374,13 +377,20 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
   )
 
   if (isLarge) {
-    return <VirtualizedMarkdown content={content} entryPath={entryPath} onClick={handleClick} />
+    return (
+      <VirtualizedMarkdown
+        content={content}
+        entryPath={entryPath}
+        className={className}
+        onClick={handleClick}
+      />
+    )
   }
 
   return (
     <div
       ref={containerRef}
-      className="md-content"
+      className={className || 'md-content'}
       dangerouslySetInnerHTML={{ __html: smallHtml }}
       onClick={handleClick}
     />

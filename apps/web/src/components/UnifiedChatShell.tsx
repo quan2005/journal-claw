@@ -54,10 +54,11 @@ export type ConversationSlice = Pick<
   | 'onEditAndResend'
   | 'onRemovePendingItem'
   | 'onContinue'
-  | 'historyControl'
 >
 
-export type UnifiedChatShellProps = ConversationSlice
+export type UnifiedChatShellProps = ConversationSlice & {
+  historyControl?: ReactNode
+}
 
 export function UnifiedChatShell(props: UnifiedChatShellProps) {
   const { engine, agentId, loading, setEngine, setAgentId } = useAgentEngine()
@@ -174,7 +175,9 @@ export function UnifiedChatShell(props: UnifiedChatShellProps) {
 
   return (
     <div style={shellStyle}>
-      <header style={topBarStyle}>
+      <header data-testid="unified-chat-header" style={topBarStyle}>
+        {props.historyControl}
+        <div style={{ flex: 1 }} />
         <EngineSwitcher
           engine={engine}
           agentId={agentId}
@@ -215,7 +218,6 @@ export function UnifiedChatShell(props: UnifiedChatShellProps) {
           onEditAndResend={props.onEditAndResend}
           onRemovePendingItem={props.onRemovePendingItem}
           onContinue={props.onContinue}
-          historyControl={props.historyControl}
           streamExtras={streamExtras}
           composerExtras={composerExtras}
           inputPlaceholder={inputPlaceholder}

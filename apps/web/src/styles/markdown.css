@@ -13,6 +13,30 @@
   word-break: break-word;
 }
 
+/* Chat variant: tighter size to match the surrounding UI in ChatPanel. */
+.md-content--chat {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+.md-content--chat h1,
+.md-content--chat h2,
+.md-content--chat h3,
+.md-content--chat h4 {
+  font-size: var(--text-sm);
+  margin: 0.85em 0 0.25em;
+}
+.md-content--chat p {
+  margin: 0.35em 0;
+}
+.md-content--chat ul,
+.md-content--chat ol {
+  margin: 0.35em 0;
+  padding-left: 1.25rem;
+}
+.md-content--chat pre {
+  font-size: 0.75rem;
+}
+
 .md-content > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, hr) {
   max-width: 100%;
   box-sizing: border-box;

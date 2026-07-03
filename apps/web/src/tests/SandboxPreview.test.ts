@@ -1,8 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
-
-vi.mock('@tabler/icons-webfont/dist/tabler-icons.min.css?url', () => ({
-  default: '/assets/tabler-icons.css',
-}))
+import { describe, expect, it } from 'vitest'
 
 import { buildSrcdoc } from '../lib/sandbox/buildSrcdoc'
 
@@ -47,15 +43,15 @@ describe('SandboxPreview srcdoc', () => {
     expect(srcdoc).toContain('Custom card')
   })
 
-  it('injects Tabler Icons webfont support for AI-generated ti classes', () => {
+  it('injects inline Tabler Icons webfont support for AI-generated ti classes', () => {
+    // AC-21: tabler icon CSS is inlined as a trimmed (woff2-only) <style> block,
+    // not referenced as an external stylesheet link.
     const srcdoc = buildSrcdoc(
       '<main><i class="ti ti-clock" aria-hidden="true"></i><span>时间流程</span></main>',
       'light',
     )
 
-    expect(srcdoc).toContain('id="journal-preview-tabler-icons"')
-    expect(srcdoc).toContain('rel="stylesheet"')
-    expect(srcdoc).toContain('/assets/tabler-icons.css')
+    expect(srcdoc).toContain('<style id="journal-preview-tabler-icons">')
     expect(srcdoc).toContain('ti ti-clock')
   })
 })

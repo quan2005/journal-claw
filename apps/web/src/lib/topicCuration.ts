@@ -1,4 +1,4 @@
-import type { TopicEntry } from './tauri'
+import type { TopicEntry } from './apiTypes'
 
 /**
  * AC-1 · 基础设施文件过滤（专题浏览视图专用）

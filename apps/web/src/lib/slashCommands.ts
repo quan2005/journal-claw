@@ -1,4 +1,5 @@
-import { listSkills, type SkillInfo } from './tauri'
+import { selectRuntimeClient } from './runtimeClient'
+import type { SkillInfo } from './apiTypes'
 
 export interface SkillItem {
   name: string
@@ -16,7 +17,7 @@ export async function fetchSkills(): Promise<SkillItem[]> {
     return cachedSkills
   }
   try {
-    const skills: SkillInfo[] = await listSkills()
+    const skills: SkillInfo[] = await selectRuntimeClient().invoke<SkillInfo[]>('list_skills')
     cachedSkills = skills.map((s) => ({
       name: s.dir_name,
       description: s.description,

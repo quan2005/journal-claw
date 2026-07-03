@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react'
-import { getAppVersion, openUrl, resetOnboarding } from '../../lib/tauri'
+import { selectRuntimeClient } from '../../lib/runtimeClient'
+import { hostOpenWithSystem } from '../../lib/hostBridge'
+
+const getAppVersion = () => selectRuntimeClient().invoke<string>('get_app_version')
+const resetOnboarding = () => selectRuntimeClient().invoke<void>('reset_onboarding')
 import qrCode from '../../assets/wechat-qrcode.png'
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
@@ -128,7 +132,7 @@ export default function SectionAbout() {
                   },
                   {
                     label: t('docsDesign'),
-                    url: 'https://github.com/quan2005/journal/blob/main/docs/design/index.md',
+                    url: 'https://github.com/quan2005/journal/blob/main/docs/DESIGN.md',
                   },
                   {
                     label: t('docsAi'),
@@ -138,7 +142,7 @@ export default function SectionAbout() {
               ).map(({ label, url }) => (
                 <button
                   key={url}
-                  onClick={() => openUrl(url)}
+                  onClick={() => hostOpenWithSystem(url)}
                   style={{
                     background: 'none',
                     border: 'none',

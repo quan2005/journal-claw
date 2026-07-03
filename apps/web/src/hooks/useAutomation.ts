@@ -1,15 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  createRoutine,
-  deleteRoutine,
-  listAutomationTemplates,
-  listRoutines,
-  listRoutineRuns,
-  pauseRoutine,
-  resumeRoutine,
-  runRoutineNow,
-  updateRoutine,
-} from '../lib/tauri'
 import { selectRuntimeClient } from '../lib/runtimeClient'
 import type {
   AutomationRoutine,
@@ -18,6 +7,33 @@ import type {
   CreateRoutineRequest,
   UpdateRoutineRequest,
 } from '../types'
+
+const listAutomationTemplates = (): Promise<AutomationTemplate[]> =>
+  selectRuntimeClient().invoke<AutomationTemplate[]>('list_automation_templates')
+
+const listRoutines = (): Promise<AutomationRoutine[]> =>
+  selectRuntimeClient().invoke<AutomationRoutine[]>('list_routines')
+
+const listRoutineRuns = (id: string): Promise<AutomationRun[]> =>
+  selectRuntimeClient().invoke<AutomationRun[]>('list_routine_runs', { id })
+
+const createRoutine = (request: CreateRoutineRequest): Promise<AutomationRoutine> =>
+  selectRuntimeClient().invoke<AutomationRoutine>('create_routine', { request })
+
+const updateRoutine = (id: string, patch: UpdateRoutineRequest): Promise<AutomationRoutine> =>
+  selectRuntimeClient().invoke<AutomationRoutine>('update_routine', { id, patch })
+
+const deleteRoutine = (id: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('delete_routine', { id })
+
+const pauseRoutine = (id: string): Promise<AutomationRoutine> =>
+  selectRuntimeClient().invoke<AutomationRoutine>('pause_routine', { id })
+
+const resumeRoutine = (id: string): Promise<AutomationRoutine> =>
+  selectRuntimeClient().invoke<AutomationRoutine>('resume_routine', { id })
+
+const runRoutineNow = (id: string): Promise<AutomationRun> =>
+  selectRuntimeClient().invoke<AutomationRun>('run_routine_now', { id })
 
 export function useAutomation() {
   const [templates, setTemplates] = useState<AutomationTemplate[]>([])

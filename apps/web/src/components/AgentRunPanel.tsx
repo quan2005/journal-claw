@@ -522,7 +522,9 @@ function ArtifactRow({ artifact }: { artifact: Artifact }): ReactNode {
   return (
     <li style={{ ...changeItemStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-        <span style={{ ...opTag, color: 'var(--record-btn)' }}>{artifactTypeLabel(artifact.type, t)}</span>
+        <span style={{ ...opTag, color: 'var(--record-btn)' }}>
+          {artifactTypeLabel(artifact.type, t)}
+        </span>
         <span
           style={{
             fontSize: 13,
@@ -648,12 +650,8 @@ export function RunStreamEntries({
     <div style={runBlockStyle}>
       <div style={runHeaderRowStyle}>
         <span style={statusBadge(statusColor)}>{statusLabelText}</span>
-        {run && (
-          <span style={chipStyle}>{modeLabel(run.authorizationMode)}</span>
-        )}
-        {run && (
-          <span style={chipStyle}>{run.agentId ?? agentId ?? 'claude'}</span>
-        )}
+        {run && <span style={chipStyle}>{modeLabel(run.authorizationMode)}</span>}
+        {run && <span style={chipStyle}>{run.agentId ?? agentId ?? 'claude'}</span>}
       </div>
 
       {run && <div style={goalStyle}>{run.goal}</div>}
@@ -678,7 +676,9 @@ export function RunStreamEntries({
 
       {changeSets.length > 0 && (
         <section style={sectionStyle}>
-          <div style={eyebrowStyle}>{t('agentRunSectionFileChanges', { count: changeSets.length })}</div>
+          <div style={eyebrowStyle}>
+            {t('agentRunSectionFileChanges', { count: changeSets.length })}
+          </div>
           <ul style={changeListStyle}>
             {changeSets.map((cs) => (
               <ChangeSetRow key={cs.id} cs={cs} />
@@ -689,7 +689,9 @@ export function RunStreamEntries({
 
       {sources.length > 0 && (
         <section style={sectionStyle}>
-          <div style={eyebrowStyle}>{t('agentRunSectionSourcesRead', { count: sources.length })}</div>
+          <div style={eyebrowStyle}>
+            {t('agentRunSectionSourcesRead', { count: sources.length })}
+          </div>
           <ul style={changeListStyle}>
             {sources.map((s) => (
               <SourceRow key={s.id} source={s} />
@@ -700,7 +702,9 @@ export function RunStreamEntries({
 
       {artifacts.length > 0 && (
         <section style={sectionStyle}>
-          <div style={eyebrowStyle}>{t('agentRunSectionArtifacts', { count: artifacts.length })}</div>
+          <div style={eyebrowStyle}>
+            {t('agentRunSectionArtifacts', { count: artifacts.length })}
+          </div>
           <ul style={changeListStyle}>
             {artifacts.map((a) => (
               <ArtifactRow key={a.id} artifact={a} />

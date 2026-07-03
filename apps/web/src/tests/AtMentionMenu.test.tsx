@@ -4,11 +4,14 @@ import { AtMentionMenu } from '../components/AtMentionMenu'
 import { renderWithProviders } from './setup'
 
 const mocks = vi.hoisted(() => ({
-  listAtMentionCandidates: vi.fn(),
+  invoke: vi.fn(),
 }))
 
-vi.mock('../lib/tauri', () => ({
-  listAtMentionCandidates: mocks.listAtMentionCandidates,
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: mocks.invoke,
+    subscribe: () => () => {},
+  }),
 }))
 
 describe('AtMentionMenu', () => {
@@ -17,22 +20,27 @@ describe('AtMentionMenu', () => {
     if (!Element.prototype.scrollIntoView) {
       Element.prototype.scrollIntoView = vi.fn()
     }
+    mocks.invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'list_at_mention_candidates') {
+        return [
+          {
+            name: '犀利教授',
+            is_dir: false,
+            path: 'identities/研究-犀利教授.md',
+            mtime_secs: 0,
+            kind: 'expert',
+            insert_text: null,
+            summary: '观点犀利',
+            tags: ['专家'],
+          },
+        ]
+      }
+      return []
+    })
   })
 
   it('shows and selects expert candidates', async () => {
     const onSelect = vi.fn()
-    mocks.listAtMentionCandidates.mockResolvedValue([
-      {
-        name: '犀利教授',
-        is_dir: false,
-        path: 'identities/研究-犀利教授.md',
-        mtime_secs: 0,
-        kind: 'expert',
-        insert_text: null,
-        summary: '观点犀利',
-        tags: ['专家'],
-      },
-    ])
 
     renderWithProviders(<AtMentionMenu query="教授" onSelect={onSelect} onClose={vi.fn()} />)
 
@@ -46,18 +54,23 @@ describe('AtMentionMenu', () => {
 
   it('uses insert_text for the clear expert control', async () => {
     const onSelect = vi.fn()
-    mocks.listAtMentionCandidates.mockResolvedValue([
-      {
-        name: '清除专家视角',
-        is_dir: false,
-        path: '__experts__/clear',
-        mtime_secs: 0,
-        kind: 'expert',
-        insert_text: '清除专家',
-        summary: '发送后移除当前会话里的专家视角',
-        tags: ['专家'],
-      },
-    ])
+    mocks.invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'list_at_mention_candidates') {
+        return [
+          {
+            name: '清除专家视角',
+            is_dir: false,
+            path: '__experts__/clear',
+            mtime_secs: 0,
+            kind: 'expert',
+            insert_text: '清除专家',
+            summary: '发送后移除当前会话里的专家视角',
+            tags: ['专家'],
+          },
+        ]
+      }
+      return []
+    })
 
     renderWithProviders(<AtMentionMenu query="清除" onSelect={onSelect} onClose={vi.fn()} />)
 

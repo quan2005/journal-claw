@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AgentInfo } from '@journal/contracts'
 import { listLocalAgents } from '../../lib/localAgents'
-import { openUrl } from '../../lib/tauri'
+import { hostOpenWithSystem } from '../../lib/hostBridge'
 import { useTranslation } from '../../contexts/I18nContext'
 import { useToast } from '../../contexts/ToastContext'
 import { AgentDiagnosticRow } from '../../components/AgentDiagnosticRow'
@@ -198,9 +198,7 @@ function AgentCard({ agent, onRescan, onSetEnvHint, onClearEnvHint }: CardProps)
       </div>
 
       <div style={{ display: 'grid', gap: 4, marginBottom: 4 }}>
-        {agent.version ? (
-          <MetaLine label={t('agentVersionLabel')} value={agent.version} />
-        ) : null}
+        {agent.version ? <MetaLine label={t('agentVersionLabel')} value={agent.version} /> : null}
         {agent.path ? <MetaLine label={t('agentPathLabel')} value={agent.path} /> : null}
         {agent.authStatus ? <MetaLine label={t('agentAuthStatus')} value={authLabel} /> : null}
       </div>
@@ -217,12 +215,12 @@ function AgentCard({ agent, onRescan, onSetEnvHint, onClearEnvHint }: CardProps)
                 onRescan,
                 onOpenInstall: agent.installUrl
                   ? () => {
-                      void openUrl(agent.installUrl!)
+                      void hostOpenWithSystem(agent.installUrl!)
                     }
                   : undefined,
                 onOpenDocs: agent.docsUrl
                   ? () => {
-                      void openUrl(agent.docsUrl!)
+                      void hostOpenWithSystem(agent.docsUrl!)
                     }
                   : undefined,
                 onSetEnv: onSetEnvHint,

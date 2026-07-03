@@ -1,6 +1,11 @@
 import { useState, useCallback } from 'react'
-import { checkAppPermissions, getPlatformCapabilities } from '../../lib/tauri'
-import type { AppPermissions, PlatformCapabilities } from '../../lib/tauri'
+import { selectRuntimeClient } from '../../lib/runtimeClient'
+import type { PlatformCapabilities, AppPermissions } from '../../lib/apiTypes'
+
+const checkAppPermissions = (): Promise<AppPermissions> =>
+  selectRuntimeClient().invoke<AppPermissions>('check_app_permissions')
+const getPlatformCapabilities = (): Promise<PlatformCapabilities> =>
+  selectRuntimeClient().invoke<PlatformCapabilities>('get_platform_capabilities')
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
 

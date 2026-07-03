@@ -4,16 +4,19 @@ import { renderMarkdown } from '../lib/markdown'
 
 vi.mock('../lib/hostBridge', () => ({
   hostConvertFileSrc: (p: string) => `asset://${p}`,
+  hostOpenWithSystem: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('../lib/tauri', async () => {
-  const actual = await vi.importActual<typeof import('../lib/tauri')>('../lib/tauri')
-  return {
-    ...actual,
-    getWorkspacePath: vi.fn().mockResolvedValue('/tmp/journal'),
-    openFile: vi.fn().mockResolvedValue(undefined),
-  }
-})
+const mocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+}))
+
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: mocks.invoke,
+    subscribe: () => () => {},
+  }),
+}))
 
 describe('renderMarkdown journal detail rendering', () => {
   it('renders plain Markdown with headings and lists', () => {

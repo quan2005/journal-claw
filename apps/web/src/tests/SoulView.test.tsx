@@ -4,26 +4,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SoulView from '../components/SoulView'
 import { renderWithProviders as render } from './setup'
 
-const mockGetWorkspacePrompt = vi.fn()
-const mockSetWorkspacePrompt = vi.fn()
+const mockInvoke = vi.hoisted(() => vi.fn())
 
-vi.mock('../lib/tauri', () => ({
-  getWorkspacePrompt: (...args: unknown[]) => mockGetWorkspacePrompt(...args),
-  setWorkspacePrompt: (...args: unknown[]) => mockSetWorkspacePrompt(...args),
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({ invoke: mockInvoke }),
 }))
 
 describe('SoulView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetWorkspacePrompt.mockResolvedValue('# 谨迹')
-    mockSetWorkspacePrompt.mockResolvedValue(undefined)
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'get_workspace_prompt') return Promise.resolve('# 谨迹')
+      if (cmd === 'set_workspace_prompt') return Promise.resolve(undefined)
+      return Promise.resolve(undefined)
+    })
   })
 
   it('loads workspace prompt on mount', async () => {
     render(<SoulView />)
     const textarea = await screen.findByRole('textbox')
     expect(textarea).toBeTruthy()
-    expect(mockGetWorkspacePrompt).toHaveBeenCalledOnce()
+    const getCalls = mockInvoke.mock.calls.filter((c) => c[0] === 'get_workspace_prompt')
+    expect(getCalls).toHaveLength(1)
     expect((textarea as HTMLTextAreaElement).value).toBe('# 谨迹')
   })
 
@@ -33,18 +35,23 @@ describe('SoulView', () => {
     fireEvent.change(textarea, { target: { value: '# 更新内容' } })
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
     await waitFor(() => {
-      expect(mockSetWorkspacePrompt).toHaveBeenCalledWith('# 更新内容')
+      expect(mockInvoke).toHaveBeenCalledWith('set_workspace_prompt', { content: '# 更新内容' })
     })
   })
 
   it('shows save error when setWorkspacePrompt fails', async () => {
-    mockSetWorkspacePrompt.mockRejectedValue(new Error('write failed'))
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'get_workspace_prompt') return Promise.resolve('# 谨迹')
+      if (cmd === 'set_workspace_prompt') return Promise.reject(new Error('write failed'))
+      return Promise.resolve(undefined)
+    })
     render(<SoulView />)
     const textarea = await screen.findByRole('textbox')
     fireEvent.change(textarea, { target: { value: '# 失败内容' } })
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
     await waitFor(() => {
-      expect(mockSetWorkspacePrompt).toHaveBeenCalled()
+      const setCalls = mockInvoke.mock.calls.filter((c) => c[0] === 'set_workspace_prompt')
+      expect(setCalls.length).toBeGreaterThan(0)
     })
     expect(await screen.findByText('保存失败，请重试')).toBeTruthy()
   })

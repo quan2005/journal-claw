@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { FolderOpen } from 'lucide-react'
-import { getWorkspacePath, setWorkspacePath, pickFolder } from '../../lib/tauri'
+import { selectRuntimeClient } from '../../lib/runtimeClient'
+import { pickHostFolder } from '../../lib/hostBridge'
+
+const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
+const setWorkspacePath = (path: string) =>
+  selectRuntimeClient().invoke<void>('set_workspace_path', { path })
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
 
@@ -68,7 +73,7 @@ export default function SectionGeneral() {
   }, [])
 
   const handlePickFolder = async () => {
-    const picked = await pickFolder()
+    const picked = await pickHostFolder()
     if (picked) {
       setWorkspacePathState(picked)
       setSaveStatus('idle')
@@ -219,7 +224,6 @@ export default function SectionGeneral() {
               </button>
             </div>
           </div>
-
         </div>
       )}
     </div>

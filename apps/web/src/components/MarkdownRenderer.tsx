@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getWorkspacePath, openFile } from '../lib/tauri'
-import { hostConvertFileSrc } from '../lib/hostBridge'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+import { hostConvertFileSrc, hostOpenWithSystem } from '../lib/hostBridge'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
 import { normalizeNestedFences } from '../lib/markdownStream'
@@ -8,6 +8,8 @@ import { resolveRelativePath } from '../lib/markdownUtils'
 import hljs from 'highlight.js/lib/core'
 import { dispatchJournalFileOpen, resolveWorkspaceFilePath } from '../lib/fileNavigation'
 import '../styles/markdown.css'
+
+const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
 
 // AC-17: lazy-load highlight.js language definitions on first use instead of
 // statically importing + registering all 11 languages at module load. This keeps
@@ -370,7 +372,7 @@ export function MarkdownRenderer({ content, entryPath, className }: MarkdownRend
       if (!href) return
       if (/^https?:\/\//i.test(href)) {
         e.preventDefault()
-        openFile(href)
+        hostOpenWithSystem(href)
       }
     },
     [entryPath],

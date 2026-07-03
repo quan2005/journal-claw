@@ -69,10 +69,7 @@ type ResolvedAction = {
 }
 
 function useResolveAction(t: TFn) {
-  return (
-    intent: AgentFixIntent,
-    handlers: AgentFixHandlers,
-  ): ResolvedAction | null => {
+  return (intent: AgentFixIntent, handlers: AgentFixHandlers): ResolvedAction | null => {
     switch (intent.kind) {
       case 'openInstall':
         return handlers.onOpenInstall
@@ -114,12 +111,7 @@ const severityColor: Record<AgentDiagnostic['severity'], string> = {
   info: 'var(--item-meta)',
 }
 
-export function AgentDiagnosticRow({
-  diagnostic,
-  agentName,
-  agentBin,
-  handlers = {},
-}: Props) {
+export function AgentDiagnosticRow({ diagnostic, agentName, agentBin, handlers = {} }: Props) {
   const { t } = useTranslation()
   const resolveAction = useResolveAction(t)
   const actions = (diagnostic.fixActions ?? [])

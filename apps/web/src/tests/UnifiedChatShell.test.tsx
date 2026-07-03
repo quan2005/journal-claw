@@ -33,22 +33,19 @@ vi.mock('../lib/localAgents', () => ({
 // Mock only the daemon / host-bridge touches it pulls in (same as
 // ChatPanel.test.tsx) so it renders cleanly under jsdom.
 const panelMocks = vi.hoisted(() => ({
-  importText: vi.fn(),
+  invoke: vi.fn(),
   openFile: vi.fn(),
   openDialog: vi.fn(),
 }))
-vi.mock('../lib/tauri', () => ({
-  importText: panelMocks.importText,
-  openFile: panelMocks.openFile,
-  // UnifiedChatShell resolves the built-in pi model from daemon engine config
-  // to show it on the chip (AC-2). Provide a mock so the effect resolves.
-  getEngineConfig: vi.fn().mockResolvedValue({
-    active_provider: 'dashscope',
-    providers: [{ id: 'dashscope', model: 'qwen-max' }],
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: panelMocks.invoke,
+    subscribe: () => () => {},
   }),
 }))
 vi.mock('../lib/hostBridge', () => ({
   hostOpenDialog: panelMocks.openDialog,
+  hostOpenWithSystem: panelMocks.openFile,
 }))
 
 // AgentRun daemon client — mirrors AgentRunPanel.test.tsx's mock shape.
@@ -97,6 +94,18 @@ describe('UnifiedChatShell', () => {
     mockEngine = 'builtin'
     mockAgentId = null
     emit = null
+    panelMocks.invoke.mockImplementation(async (cmd: string) => {
+      // UnifiedChatShell resolves the built-in pi model from daemon engine
+      // config to show it on the chip (AC-2). Provide a mock so the effect
+      // resolves.
+      if (cmd === 'get_engine_config') {
+        return {
+          active_provider: 'dashscope',
+          providers: [{ id: 'dashscope', model: 'qwen-max' }],
+        }
+      }
+      return undefined
+    })
     mockCreateRun.mockResolvedValue({
       id: 'r1',
       sessionId: 's1',
@@ -248,7 +257,13 @@ describe('UnifiedChatShell', () => {
   describe('P2 polish: overlap fix + auth pill (AC-1, AC-2, AC-3)', () => {
     it('AC-1: renders the history control in the top bar and the engine switcher on the right', () => {
       mockEngine = 'builtin'
-      render(<UnifiedChatShell {...CONV_PROPS} messages={[]} historyControl={<div data-testid="history-control" />} />)
+      render(
+        <UnifiedChatShell
+          {...CONV_PROPS}
+          messages={[]}
+          historyControl={<div data-testid="history-control" />}
+        />,
+      )
       const header = screen.getByTestId('unified-chat-header')
       expect(header).toBeTruthy()
       expect(header.querySelector('[data-testid="history-control"]')).toBeTruthy()

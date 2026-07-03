@@ -11,7 +11,13 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import type { RunEngine } from '../types/agentRun'
-import { getAgentEngine, setAgentEngine } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+
+const getAgentEngine = (): Promise<{ engine: RunEngine; agentId: string | null }> =>
+  selectRuntimeClient().invoke<{ engine: RunEngine; agentId: string | null }>('get_agent_engine')
+
+const setAgentEngine = (patch: { engine?: RunEngine; agentId?: string | null }): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_agent_engine', patch)
 
 export interface AgentEngineState {
   engine: RunEngine

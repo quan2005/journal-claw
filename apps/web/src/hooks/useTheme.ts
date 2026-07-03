@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import type { Theme } from '../types'
-import { getWorkspaceTheme, setWorkspaceTheme } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { setHostWindowTheme } from '../lib/hostBridge'
+
+const getWorkspaceTheme = (): Promise<Theme> =>
+  selectRuntimeClient().invoke<Theme>('get_workspace_theme')
+
+const setWorkspaceTheme = (theme: Theme): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_workspace_theme', { theme })
 
 function applyTheme(theme: Theme) {
   const resolved =

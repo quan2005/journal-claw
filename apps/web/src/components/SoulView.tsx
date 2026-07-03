@@ -1,7 +1,7 @@
 // src/components/SoulView.tsx
 import React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getWorkspacePrompt, setWorkspacePrompt } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { highlightMarkdown } from '../lib/markdownUtils'
 import { useTranslation } from '../contexts/I18nContext'
 
@@ -14,8 +14,9 @@ export default function SoulView() {
   const backdropRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    getWorkspacePrompt().then(setContent)
-    const onFocus = () => getWorkspacePrompt().then(setContent)
+    selectRuntimeClient().invoke<string>('get_workspace_prompt').then(setContent)
+    const onFocus = () =>
+      selectRuntimeClient().invoke<string>('get_workspace_prompt').then(setContent)
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [])
@@ -23,7 +24,7 @@ export default function SoulView() {
   const save = useCallback(async (text: string) => {
     setSaveStatus('saving')
     try {
-      await setWorkspacePrompt(text)
+      await selectRuntimeClient().invoke<void>('set_workspace_prompt', { content: text })
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus((current) => (current === 'saved' ? 'idle' : current)), 2000)
     } catch (error) {

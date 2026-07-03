@@ -3,14 +3,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
 import { HistoryFloatingButton } from '../components/HistoryFloatingButton'
 
-vi.mock('../lib/tauri', () => ({
-  conversationList: vi.fn().mockResolvedValue([]),
-  conversationDelete: vi.fn().mockResolvedValue(undefined),
+const mocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+}))
+
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: mocks.invoke,
+    subscribe: () => () => {},
+  }),
 }))
 
 describe('HistoryFloatingButton', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.invoke.mockResolvedValue([])
   })
 
   it('renders an embedded history button in the top bar', () => {

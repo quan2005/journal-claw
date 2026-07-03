@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getOnboardingStatus, completeOnboarding, setOnboardingStep } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+import type { OnboardingStatus } from '../lib/apiTypes'
+
+const getOnboardingStatus = (): Promise<OnboardingStatus> =>
+  selectRuntimeClient().invoke<OnboardingStatus>('get_onboarding_status')
+
+const completeOnboarding = (): Promise<void> =>
+  selectRuntimeClient().invoke<void>('complete_onboarding')
+
+const setOnboardingStep = (step: number): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_onboarding_step', { step })
 
 export type OnboardingStep = 0 | 1
 

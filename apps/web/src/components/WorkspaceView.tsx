@@ -20,13 +20,13 @@ import { FileTypeIcon } from './FileTypeIcon'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
 import { useTopics } from '../hooks/useTopics'
 import { listLocalAgents } from '../lib/localAgents'
-import {
-  getEngineConfig,
-  conversationList,
-  conversationDelete,
-  type SessionSummary,
-} from '../lib/tauri'
 import { selectRuntimeClient } from '../lib/runtimeClient'
+import type { TopicEntry, SessionSummary, EngineConfig } from '../lib/apiTypes'
+
+const getEngineConfig = () => selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
+const conversationList = () => selectRuntimeClient().invoke<SessionSummary[]>('conversation_list')
+const conversationDelete = (sessionId: string) =>
+  selectRuntimeClient().invoke<void>('conversation_delete', { sessionId })
 import { useAgentEngine } from '../hooks/useAgentEngine'
 import { useAgentRun } from '../hooks/useAgentRun'
 import type { AuthorizationMode } from '../types/agentRun'
@@ -36,7 +36,6 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import { RunStreamEntries } from './AgentRunPanel'
 import { useTranslation } from '../contexts/I18nContext'
 import type { ConversationMessage } from '../types'
-import type { TopicEntry } from '../lib/tauri'
 import type { ConversationSlice } from './UnifiedChatShell'
 import '../styles/workspace.css'
 
@@ -203,7 +202,9 @@ function buildRecentItems(
         id: entry.path,
         name: entry.name,
         path: entry.path,
-        subtitle: entry.path.includes('/') ? entry.path.split('/').slice(0, -1).join('/') : 'Topics',
+        subtitle: entry.path.includes('/')
+          ? entry.path.split('/').slice(0, -1).join('/')
+          : 'Topics',
         contributorInitial: entry.name.slice(0, 1).toUpperCase() || '?',
         contributorColor: 'var(--record-btn)',
         viewedAt: new Date((entry.mtime_secs ?? 0) * 1000),
@@ -350,7 +351,10 @@ function RecentlyViewed({
           <ChevronDown
             size={14}
             strokeWidth={1.6}
-            style={{ transform: expanded ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s ease-out' }}
+            style={{
+              transform: expanded ? 'rotate(180deg)' : undefined,
+              transition: 'transform 0.15s ease-out',
+            }}
           />
         </button>
       </div>
@@ -453,7 +457,8 @@ function SessionDropdown({
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000
     const yesterdayStart = todayStart - 86400
     const weekStart = todayStart - (now.getDay() || 7) * 86400
-    if (d.getTime() / 1000 >= todayStart) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    if (d.getTime() / 1000 >= todayStart)
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     if (d.getTime() / 1000 >= yesterdayStart) return t('timeYesterday')
     if (d.getTime() / 1000 >= weekStart) {
       const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -477,7 +482,10 @@ function SessionDropdown({
         <ChevronDown
           size={14}
           strokeWidth={1.6}
-          style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s ease-out' }}
+          style={{
+            transform: open ? 'rotate(180deg)' : undefined,
+            transition: 'transform 0.15s ease-out',
+          }}
         />
       </button>
 
@@ -532,7 +540,11 @@ function SessionDropdown({
                     <Clock size={14} strokeWidth={1.6} />
                     <div className="workspace-session-dropdown__meta">
                       <span className="workspace-session-dropdown__title">
-                        {s.title || <span style={{ opacity: 0.5, fontStyle: 'italic' }}>{t('sessionNewChat')}</span>}
+                        {s.title || (
+                          <span style={{ opacity: 0.5, fontStyle: 'italic' }}>
+                            {t('sessionNewChat')}
+                          </span>
+                        )}
                       </span>
                       <span className="workspace-session-dropdown__subtitle">
                         {formatTime(s.updated_at)}
@@ -810,12 +822,20 @@ export function WorkspaceChatShell({
           />
           <div className="workspace-chat__toolbar">
             <div className="workspace-chat__toolbar-left">
-              <button type="button" aria-label="Attach file" onClick={() => placeholderAction('Attach file')}>
+              <button
+                type="button"
+                aria-label="Attach file"
+                onClick={() => placeholderAction('Attach file')}
+              >
                 <Paperclip size={16} strokeWidth={1.6} />
               </button>
             </div>
             <div className="workspace-chat__toolbar-right">
-              <button type="button" aria-label="Voice input" onClick={() => placeholderAction('Voice input')}>
+              <button
+                type="button"
+                aria-label="Voice input"
+                onClick={() => placeholderAction('Voice input')}
+              >
                 <Mic size={16} strokeWidth={1.6} />
               </button>
               {isStreaming || agentRun.isRunning ? (
@@ -939,13 +959,14 @@ function ToolCapsule({
             size={12}
             strokeWidth={1.6}
             className="workspace-chat__tool-chevron"
-            style={{ transform: expanded ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s ease-out' }}
+            style={{
+              transform: expanded ? 'rotate(180deg)' : undefined,
+              transition: 'transform 0.15s ease-out',
+            }}
           />
         )}
       </button>
-      {expanded && tool.output && (
-        <pre className="workspace-chat__tool-output">{tool.output}</pre>
-      )}
+      {expanded && tool.output && <pre className="workspace-chat__tool-output">{tool.output}</pre>}
     </div>
   )
 }

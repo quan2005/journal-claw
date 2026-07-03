@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { JournalEntry, IdentityEntry, TreeSelection } from '../types'
+import type { TopicEntry } from '../lib/apiTypes'
 import type { Category } from '../contexts/UIContext'
 import { MonthDivider } from './MonthDivider'
 import { TreeItem } from './TreeItem'
@@ -7,7 +8,21 @@ import { TopicTree } from './TopicTree'
 import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
-import { deleteJournalEntry, deleteIdentity, deleteTopic, getWorkspacePath, archiveIdentity, unarchiveIdentity, listTopicsDir, type TopicEntry } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+
+const deleteJournalEntry = (path: string) =>
+  selectRuntimeClient().invoke<void>('delete_journal_entry', { path })
+const deleteIdentity = (path: string) =>
+  selectRuntimeClient().invoke<void>('delete_identity', { path })
+const deleteTopic = (relativePath: string) =>
+  selectRuntimeClient().invoke<void>('delete_topic', { relativePath })
+const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
+const archiveIdentity = (path: string) =>
+  selectRuntimeClient().invoke<void>('archive_identity', { path })
+const unarchiveIdentity = (path: string) =>
+  selectRuntimeClient().invoke<void>('unarchive_identity', { path })
+const listTopicsDir = (relativePath: string) =>
+  selectRuntimeClient().invoke<TopicEntry[]>('list_topics_dir', { relativePath })
 import { Search, LayoutGrid } from 'lucide-react'
 
 // ── Props ──────────────────────────────────────────────────────────────────────
@@ -436,10 +451,7 @@ export function TreeSidebar({
   // ── Sorted identities ─────────────────────────────────────────────────────
 
   const coreIdentities = useMemo(
-    () =>
-      identities.filter(
-        (i) => i.path === '__soul__' || i.filename === 'README.md',
-      ),
+    () => identities.filter((i) => i.path === '__soul__' || i.filename === 'README.md'),
     [identities],
   )
 
@@ -469,9 +481,7 @@ export function TreeSidebar({
   const archivedIdentities = useMemo(
     () =>
       identities
-        .filter(
-          (i) => i.archived && i.path !== '__soul__' && i.filename !== 'README.md',
-        )
+        .filter((i) => i.archived && i.path !== '__soul__' && i.filename !== 'README.md')
         .sort((a, b) => a.name.localeCompare(b.name)),
     [identities],
   )
@@ -653,10 +663,7 @@ export function TreeSidebar({
                         itemType="journal"
                         entry={entry}
                         isToday={entry.year_month === todayYearMonth && entry.day === todayDay}
-                        isSelected={isSelected(
-                          'journal',
-                          `${entry.year_month}/${entry.filename}`,
-                        )}
+                        isSelected={isSelected('journal', `${entry.year_month}/${entry.filename}`)}
                         onClick={() =>
                           handleSelect({
                             type: 'journal',
@@ -731,8 +738,17 @@ export function TreeSidebar({
                       onClick={() => handleSelect({ type: 'identity', path: identity.path })}
                       onAt={() => onAtRef(`identities/${identity.filename}`)}
                       onMore={(x, y) =>
-                        handleMore('identity', identity.name, identity.path, false, x, y,
-                          undefined, false, true)
+                        handleMore(
+                          'identity',
+                          identity.name,
+                          identity.path,
+                          false,
+                          x,
+                          y,
+                          undefined,
+                          false,
+                          true,
+                        )
                       }
                     />
                   ))}
@@ -771,8 +787,17 @@ export function TreeSidebar({
                       onClick={() => handleSelect({ type: 'identity', path: identity.path })}
                       onAt={() => onAtRef(`identities/${identity.filename}`)}
                       onMore={(x, y) =>
-                        handleMore('identity', identity.name, identity.path, false, x, y,
-                          undefined, false, false)
+                        handleMore(
+                          'identity',
+                          identity.name,
+                          identity.path,
+                          false,
+                          x,
+                          y,
+                          undefined,
+                          false,
+                          false,
+                        )
                       }
                     />
                   ))}
@@ -811,8 +836,17 @@ export function TreeSidebar({
                         onClick={() => handleSelect({ type: 'identity', path: identity.path })}
                         onAt={() => onAtRef(`identities/${identity.filename}`)}
                         onMore={(x, y) =>
-                          handleMore('identity', identity.name, identity.path, false, x, y,
-                            undefined, true, false)
+                          handleMore(
+                            'identity',
+                            identity.name,
+                            identity.path,
+                            false,
+                            x,
+                            y,
+                            undefined,
+                            true,
+                            false,
+                          )
                         }
                       />
                     ))}
@@ -903,7 +937,9 @@ export function TreeSidebar({
                                     entry.is_dir ? 'topic-folder' : 'topic-file',
                                     entry.name,
                                     entry.path,
-                                    pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
+                                    pinnedItems.some(
+                                      (p) => p.type === 'topic' && p.path === entry.path,
+                                    ),
                                     x,
                                     y,
                                     wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
@@ -950,58 +986,58 @@ export function TreeSidebar({
 
             <div>
               <SectionHeader
-              collapsed={isCollapsed('topics')}
-              onToggle={() => toggleSection('topics')}
-              label="专题"
-              icon={<TopicIcon />}
-            />
-            {!isCollapsed('topics') && (
-              <>
-                {topicsLoading ? (
-                  <div
-                    style={{
-                      padding: '8px 6px',
-                      fontSize: '0.75rem',
-                      color: 'var(--text-tertiary, #9CA3AF)',
-                    }}
-                  >
-                    加载中...
-                  </div>
-                ) : (
-                  <TopicTree
-                    entries={dirs.get('')?.entries ?? []}
-                    dirs={dirs}
-                    selectedPath={
-                      selected?.type === 'topic' || selected?.type === 'topic-file'
-                        ? selected.path
-                        : null
-                    }
-                    onToggleDir={toggleDir}
-                    onSelectFile={(entry) =>
-                      handleSelect({
-                        type: entry.is_dir ? 'topic' : 'topic-file',
-                        path: entry.path,
-                        name: entry.name,
-                        created_secs: entry.created_secs,
-                        mtime_secs: entry.mtime_secs,
-                      })
-                    }
-                    onAt={(path) => onAtRef(path)}
-                    onMore={(entry, x, y) =>
-                      handleMore(
-                        entry.is_dir ? 'topic-folder' : 'topic-file',
-                        entry.name,
-                        entry.path,
-                        pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
-                        x,
-                        y,
-                        wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
-                      )
-                    }
-                  />
-                )}
-              </>
-            )}
+                collapsed={isCollapsed('topics')}
+                onToggle={() => toggleSection('topics')}
+                label="专题"
+                icon={<TopicIcon />}
+              />
+              {!isCollapsed('topics') && (
+                <>
+                  {topicsLoading ? (
+                    <div
+                      style={{
+                        padding: '8px 6px',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-tertiary, #9CA3AF)',
+                      }}
+                    >
+                      加载中...
+                    </div>
+                  ) : (
+                    <TopicTree
+                      entries={dirs.get('')?.entries ?? []}
+                      dirs={dirs}
+                      selectedPath={
+                        selected?.type === 'topic' || selected?.type === 'topic-file'
+                          ? selected.path
+                          : null
+                      }
+                      onToggleDir={toggleDir}
+                      onSelectFile={(entry) =>
+                        handleSelect({
+                          type: entry.is_dir ? 'topic' : 'topic-file',
+                          path: entry.path,
+                          name: entry.name,
+                          created_secs: entry.created_secs,
+                          mtime_secs: entry.mtime_secs,
+                        })
+                      }
+                      onAt={(path) => onAtRef(path)}
+                      onMore={(entry, x, y) =>
+                        handleMore(
+                          entry.is_dir ? 'topic-folder' : 'topic-file',
+                          entry.name,
+                          entry.path,
+                          pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
+                          x,
+                          y,
+                          wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
+                        )
+                      }
+                    />
+                  )}
+                </>
+              )}
             </div>
           </>
         )}

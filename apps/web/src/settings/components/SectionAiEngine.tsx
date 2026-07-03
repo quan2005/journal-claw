@@ -1,14 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { selectRuntimeClient } from '../../lib/runtimeClient'
+import { hostOpenWithSystem } from '../../lib/hostBridge'
 import {
-  getEngineConfig,
-  setEngineConfig,
-  listModels,
   BUILTIN_PRESETS,
   newProviderId,
-  type EngineConfig,
   type ProviderEntry,
-} from '../../lib/tauri'
-import { openFile } from '../../lib/tauri'
+  type EngineConfig,
+} from '../../lib/apiTypes'
+
+const getEngineConfig = () => selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
+const setEngineConfig = (cfg: EngineConfig) =>
+  selectRuntimeClient().invoke<void>('set_engine_config', { config: cfg })
+const listModels = (
+  engine: string,
+  apiKey: string,
+  baseUrl: string,
+  protocol?: string,
+): Promise<string[]> =>
+  selectRuntimeClient().invoke<string[]>('list_models', { engine, apiKey, baseUrl, protocol })
 import { Check, ExternalLink, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import SkeletonRow from './SkeletonRow'
 import { useTranslation } from '../../contexts/I18nContext'
@@ -696,7 +705,7 @@ export default function SectionAiEngine() {
                       {preset?.apiKeyUrl && (
                         <button
                           type="button"
-                          onClick={() => openFile(preset.apiKeyUrl)}
+                          onClick={() => hostOpenWithSystem(preset.apiKeyUrl)}
                           style={{ ...mutedButtonStyle, padding: '4px 8px', fontSize: 12 }}
                         >
                           {t('getApiKey')}

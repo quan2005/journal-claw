@@ -1,20 +1,44 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { selectRuntimeClient } from '../lib/runtimeClient'
 import type { ConversationMessage, ConversationStreamPayload, MessageBlock } from '../types'
-import type { ImageAttachment } from '../lib/tauri'
-import {
-  conversationCreate,
-  conversationSend,
-  conversationCancel,
-  conversationClose,
-  conversationGetMessages,
-  conversationTruncate,
-  conversationRetry,
-  conversationGetStats,
-} from '../lib/tauri'
-import type { SessionStats } from '../lib/tauri'
+import type { ImageAttachment, SessionStats, LoadedMessage } from '../lib/apiTypes'
 import { useEventCallback } from './useEventCallback'
 import { createArtifactParser } from '../artifacts/parser'
+
+const conversationCreate = (context?: string, contextFiles?: string[]): Promise<string> =>
+  selectRuntimeClient().invoke<string>('conversation_create', {
+    context: context ?? null,
+    contextFiles: contextFiles ?? null,
+  })
+
+const conversationSend = (
+  sessionId: string,
+  message: string,
+  images?: ImageAttachment[],
+): Promise<void> =>
+  selectRuntimeClient().invoke<void>('conversation_send', {
+    sessionId,
+    message,
+    images: images ?? null,
+  })
+
+const conversationCancel = (sessionId: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('conversation_cancel', { sessionId })
+
+const conversationClose = (sessionId: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('conversation_close', { sessionId })
+
+const conversationGetMessages = (sessionId: string): Promise<LoadedMessage[]> =>
+  selectRuntimeClient().invoke<LoadedMessage[]>('conversation_get_messages', { sessionId })
+
+const conversationTruncate = (sessionId: string, keepCount: number): Promise<void> =>
+  selectRuntimeClient().invoke<void>('conversation_truncate', { sessionId, keepCount })
+
+const conversationRetry = (sessionId: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('conversation_retry', { sessionId })
+
+const conversationGetStats = (sessionId: string): Promise<SessionStats> =>
+  selectRuntimeClient().invoke<SessionStats>('conversation_get_stats', { sessionId })
 
 // ── Module-level singletons — shared across all hook instances ──
 const globalCache = new Map<string, ConversationMessage[]>()
@@ -138,8 +162,8 @@ export function useConversation() {
     setTabs((prev) => prev.map((t) => (t.sessionId === sid ? { ...t, pendingQueue: queue } : t)))
   }, [])
 
- // ── Event listener — processes ALL sessions ────────────
- useEffect(() => {
+  // ── Event listener — processes ALL sessions ────────────
+  useEffect(() => {
     // Transport-agnostic client: the feature flag (JOURNAL_RUNTIME) decides
     // whether this is the Tauri bridge or the daemon HttpRuntimeClient. The
     // reducer below stays identical — only the transport differs.

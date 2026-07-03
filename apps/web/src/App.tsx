@@ -11,11 +11,7 @@ import {
 } from 'react'
 
 import { selectRuntimeClient } from './lib/runtimeClient'
-import {
-  subscribeHostEvent,
-  setHostZoom,
-  onHostFileDrop,
-} from './lib/hostBridge'
+import { subscribeHostEvent, setHostZoom, onHostFileDrop } from './lib/hostBridge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { TitleBar } from './components/TitleBar'
@@ -44,22 +40,39 @@ import { useUI, useLayout } from './contexts/UIContext'
 import type { Category } from './contexts/UIContext'
 import { NavRail } from './components/NavRail'
 import { useTodoContext } from './contexts/TodoContext'
-import {
-  importFile,
-  getEngineConfig,
-  createSampleEntryIfNeeded,
-  createSampleEntry,
-  listAllJournalEntries,
-  enqueueWork as invokeEnqueueWork,
-  cancelWorkItem,
-  retryWorkItem,
-  getWorkspacePath,
-  getOnboardingStatus,
-  completeOnboarding,
-} from './lib/tauri'
 import { fileBasename, type JournalFileOpenDetail } from './lib/fileNavigation'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import { useTranslation } from './contexts/I18nContext'
+
+import type { EngineConfig, OnboardingStatus, WorkItem, ImportResult } from './lib/apiTypes'
+
+const importFile = (srcPath: string) =>
+  selectRuntimeClient().invoke<ImportResult>('import_file', { srcPath })
+const getEngineConfig = () => selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
+const createSampleEntryIfNeeded = () =>
+  selectRuntimeClient().invoke<boolean>('create_sample_entry_if_needed')
+const createSampleEntry = () => selectRuntimeClient().invoke<void>('create_sample_entry')
+const listAllJournalEntries = () =>
+  selectRuntimeClient().invoke<JournalEntry[]>('list_all_journal_entries')
+const enqueueWork = (params: {
+  text?: string
+  files?: string[]
+  prompt?: string
+  displayName: string
+}): Promise<WorkItem> =>
+  selectRuntimeClient().invoke<WorkItem>('enqueue_work', {
+    text: params.text ?? null,
+    files: params.files ?? null,
+    prompt: params.prompt ?? null,
+    displayName: params.displayName,
+  })
+const cancelWorkItem = (id: string) =>
+  selectRuntimeClient().invoke<void>('cancel_work_item', { id })
+const retryWorkItem = (id: string) => selectRuntimeClient().invoke<void>('retry_work_item', { id })
+const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
+const getOnboardingStatus = () =>
+  selectRuntimeClient().invoke<OnboardingStatus>('get_onboarding_status')
+const completeOnboarding = () => selectRuntimeClient().invoke<void>('complete_onboarding')
 const RightPanel = lazy(() =>
   import('./components/RightPanel').then((m) => ({ default: m.RightPanel })),
 )
@@ -586,7 +599,7 @@ export default function App() {
         const prompt = '分析并处理这些文件'
         const displayName = processablePaths.map((p) => p.split(/[\\/]/).pop()).join(', ')
         try {
-          await invokeEnqueueWork({ files: processablePaths, prompt, displayName })
+          await enqueueWork({ files: processablePaths, prompt, displayName })
         } catch (err) {
           console.error('[file-submit] enqueue error:', String(err))
         }
@@ -1082,9 +1095,7 @@ export default function App() {
             flexDirection: 'column',
             overflow: 'hidden',
             background: 'var(--sidebar-bg)',
-            borderRight: leftSidebarOpen
-              ? '0.5px solid var(--divider)'
-              : '0.5px solid transparent',
+            borderRight: leftSidebarOpen ? '0.5px solid var(--divider)' : '0.5px solid transparent',
             opacity: leftSidebarOpen ? 1 : 0,
             pointerEvents: leftSidebarOpen ? 'auto' : 'none',
             transition: SIDEBAR_PANEL_TRANSITION,

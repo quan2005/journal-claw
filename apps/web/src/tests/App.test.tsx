@@ -4,7 +4,6 @@ import { renderWithProviders } from './setup'
 import App from '../App'
 import { UIProvider } from '../contexts/UIContext'
 import { TodoProvider } from '../contexts/TodoContext'
-import * as tauri from '../lib/tauri'
 
 function renderApp() {
   return renderWithProviders(
@@ -16,7 +15,7 @@ function renderApp() {
   )
 }
 
-const listenerMap = new Map<string, (event: { payload: unknown }) => void>()
+const listenerMap = new Map<string, Set<(event: unknown) => void>>()
 
 // P2: the unified conversation panel fetches detected agents directly from the
 // daemon. In the App integration test there is no daemon, so stub the list to
@@ -25,123 +24,203 @@ vi.mock('../lib/localAgents', () => ({
   listLocalAgents: vi.fn().mockResolvedValue([]),
 }))
 
-vi.mock('../lib/tauri', async () => {
-  const actual = await vi.importActual('../lib/tauri')
-  return {
-    ...actual,
-    listAvailableMonths: vi.fn().mockResolvedValue(['2604']),
-    listJournalEntriesByMonths: vi.fn().mockResolvedValue([
-      {
-        filename: '01-test.md',
-        path: '/ws/2604/01-test.md',
-        title: '测试条目',
-        summary: '测试摘要',
-        tags: ['test'],
-        sources: [],
-        year_month: '2604',
-        day: 1,
-        created_time: '10:00',
-        created_at_secs: 0,
-        mtime_secs: 0,
-        materials: [],
-      },
-    ]),
-    listAllJournalEntries: vi.fn().mockResolvedValue([]),
-    listWorkQueue: vi.fn().mockResolvedValue([]),
-    listTopicsDir: vi.fn().mockResolvedValue([]),
-    getPinnedItems: vi.fn().mockResolvedValue([]),
-    setPinnedItems: vi.fn().mockResolvedValue(undefined),
-    conversationList: vi.fn().mockResolvedValue([]),
-    conversationDelete: vi.fn().mockResolvedValue(undefined),
-    conversationCreate: vi.fn().mockResolvedValue('test-session'),
-    conversationSend: vi.fn().mockResolvedValue(undefined),
-    conversationCancel: vi.fn().mockResolvedValue(undefined),
-    conversationClose: vi.fn().mockResolvedValue(undefined),
-    conversationTruncate: vi.fn().mockResolvedValue(undefined),
-    conversationRetry: vi.fn().mockResolvedValue(undefined),
-    conversationGetMessages: vi.fn().mockResolvedValue([]),
-    conversationGetStats: vi.fn().mockResolvedValue({
-      elapsed_secs: 0,
-      total_input_tokens: 0,
-      total_output_tokens: 0,
-    }),
-    getEngineConfig: vi.fn().mockResolvedValue({ active_provider: 'anthropic', providers: [] }),
-    checkEngineInstalled: vi.fn().mockResolvedValue(true),
-    createSampleEntryIfNeeded: vi.fn().mockResolvedValue(false),
-    createSampleEntry: vi.fn().mockResolvedValue(undefined),
-    importFile: vi.fn(),
-    importAudioFile: vi.fn(),
-    triggerAiProcessing: vi.fn(),
-    triggerAiPrompt: vi.fn(),
-    cancelAiProcessing: vi.fn(),
-    cancelQueuedItem: vi.fn(),
-    getJournalEntryContent: vi.fn().mockResolvedValue('# Test'),
-    deleteJournalEntry: vi.fn(),
-    getWorkspaceSettings: vi.fn().mockResolvedValue({ theme: 'dark' }),
-    setWorkspaceSettings: vi.fn(),
-    getAgentEngine: vi.fn().mockResolvedValue({ engine: 'builtin', agentId: null }),
-    setAgentEngine: vi.fn().mockResolvedValue(undefined),
-    listTodos: vi.fn().mockResolvedValue([]),
-    addTodo: vi.fn(),
-    toggleTodo: vi.fn(),
-    deleteTodo: vi.fn(),
-    setTodoDue: vi.fn(),
-    updateTodoText: vi.fn(),
-    setTodoPath: vi.fn(),
-    removeTodoPath: vi.fn(),
-    listIdentities: vi.fn().mockResolvedValue([]),
-    deleteIdentity: vi.fn(),
-    listBrainstormKeys: vi.fn().mockResolvedValue([]),
-    listOpenBrainstormKeys: vi.fn().mockResolvedValue([]),
-    clearBrainstormSession: vi.fn(),
-    openBrainstormTerminal: vi.fn(),
-    getWorkspacePath: vi.fn().mockResolvedValue('/tmp/ws'),
-    getOnboardingStatus: vi.fn().mockResolvedValue({ completed: true, last_step: null }),
-    completeOnboarding: vi.fn().mockResolvedValue(undefined),
-    getWorkspacePrompt: vi.fn().mockResolvedValue(''),
-    setWorkspacePrompt: vi.fn(),
-    resetWorkspacePrompt: vi.fn(),
-    submitPasteText: vi.fn(),
-    openFile: vi.fn(),
-    getIdentityContent: vi.fn().mockResolvedValue(''),
-    saveIdentityContent: vi.fn(),
-    createIdentity: vi.fn(),
-    mergeIdentity: vi.fn(),
-    getAppVersion: vi.fn().mockResolvedValue('0.12.1'),
-    getPlatformCapabilities: vi.fn().mockResolvedValue({
-      os: 'macos',
-      apple_stt: true,
-      whisperkit: true,
-      speaker_diarization: true,
-      native_permissions: true,
-    }),
-    getAutoLintConfig: vi.fn().mockResolvedValue({ enabled: false }),
-    getAutoLintStatus: vi.fn().mockResolvedValue({ state: 'idle' }),
-    getFeishuConfig: vi.fn().mockResolvedValue({ enabled: false }),
-    getFeishuStatus: vi.fn().mockResolvedValue({ state: 'idle' }),
-    listSkills: vi.fn().mockResolvedValue([]),
-    openSkillsDir: vi.fn(),
-    revealInFileManager: vi.fn(),
-    requestPermission: vi.fn(),
-    checkAppPermissions: vi.fn().mockResolvedValue({ speech_recognition: 'granted' }),
-    openPrivacySettings: vi.fn(),
-    installEngine: vi.fn(),
-    setEngineConfig: vi.fn(),
-    setAutoLintConfig: vi.fn(),
-    triggerLintNow: vi.fn(),
-    setFeishuConfig: vi.fn(),
-    openSettings: vi.fn(),
-    setWorkspacePath: vi.fn(),
-    getApiKey: vi.fn().mockResolvedValue(null),
-    setApiKey: vi.fn(),
-    pickFolder: vi.fn(),
-    openWithSystem: vi.fn(),
+// ── Runtime client mock ─────────────────────────────────────────────────
+// Every daemon call now flows through selectRuntimeClient().invoke(command, args).
+// A single mock with command-based switching replaces the old per-function
+// shim mock — B2 components call invoke directly, while B1 hooks and B3
+// components go through the compat layer whose real implementation delegates
+// to the same selectRuntimeClient().
+const runtimeMocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+}))
+
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: runtimeMocks.invoke,
+    subscribe: (eventName: string, cb: (event: unknown) => void) => {
+      const listeners = listenerMap.get(eventName) ?? new Set()
+      listeners.add(cb)
+      listenerMap.set(eventName, listeners)
+      return () => {
+        listeners.delete(cb)
+        if (listeners.size === 0) listenerMap.delete(eventName)
+      }
+    },
+  }),
+}))
+
+// ── Default daemon responses ─────────────────────────────────────────────
+// Per-test overrides via invokeOverrides take precedence over these defaults.
+const invokeOverrides = new Map<string, ((args?: Record<string, unknown>) => unknown) | unknown>()
+
+const TEST_ENTRY = {
+  filename: '01-test.md',
+  path: '/ws/2604/01-test.md',
+  title: '测试条目',
+  summary: '测试摘要',
+  tags: ['test'],
+  sources: [],
+  year_month: '2604',
+  day: 1,
+  created_time: '10:00',
+  created_at_secs: 0,
+  mtime_secs: 0,
+  materials: [],
+}
+
+function defaultInvoke(cmd: string, args?: Record<string, unknown>): unknown {
+  const override = invokeOverrides.get(cmd)
+  if (override !== undefined) {
+    return typeof override === 'function' ? override(args) : override
   }
-})
+  switch (cmd) {
+    case 'get_workspace_path':
+      return '/tmp/ws'
+    case 'get_onboarding_status':
+      return { completed: true, last_step: null }
+    case 'complete_onboarding':
+      return undefined
+    case 'set_onboarding_step':
+      return undefined
+    case 'reset_onboarding':
+      return undefined
+    case 'create_sample_entry_if_needed':
+      return false
+    case 'create_sample_entry':
+      return undefined
+    case 'list_all_journal_entries':
+      return []
+    case 'list_available_months':
+      return ['2604']
+    case 'list_journal_entries_by_months':
+      return [TEST_ENTRY]
+    case 'list_journal_entries':
+      return [TEST_ENTRY]
+    case 'list_work_queue':
+      return []
+    case 'list_topics_dir':
+      return []
+    case 'get_pinned_items':
+      return []
+    case 'set_pinned_items':
+      return undefined
+    case 'list_identities':
+      return []
+    case 'list_todos':
+      return []
+    case 'get_events_since':
+      return []
+    case 'get_workspace_theme':
+      return 'dark'
+    case 'set_workspace_theme':
+      return undefined
+    case 'get_agent_engine':
+      return { engine: 'builtin', agentId: null }
+    case 'set_agent_engine':
+      return undefined
+    case 'conversation_list':
+      return []
+    case 'conversation_delete':
+      return undefined
+    case 'conversation_create':
+      return 'test-session'
+    case 'conversation_send':
+      return undefined
+    case 'conversation_cancel':
+      return undefined
+    case 'conversation_close':
+      return undefined
+    case 'conversation_truncate':
+      return undefined
+    case 'conversation_retry':
+      return undefined
+    case 'conversation_get_messages':
+      return []
+    case 'conversation_get_stats':
+      return { elapsed_secs: 0, total_input_tokens: 0, total_output_tokens: 0 }
+    case 'get_engine_config':
+      return { active_provider: 'anthropic', providers: [] }
+    case 'get_journal_entry_content':
+      return '# Test'
+    case 'get_identity_content':
+      return ''
+    case 'get_workspace_prompt':
+      return ''
+    case 'reset_workspace_prompt':
+      return ''
+    case 'get_app_version':
+      return '0.12.1'
+    case 'get_platform_capabilities':
+      return {
+        os: 'macos',
+        apple_stt: true,
+        whisperkit: true,
+        speaker_diarization: true,
+        native_permissions: true,
+      }
+    case 'check_app_permissions':
+      return { speech_recognition: 'granted' }
+    case 'request_permission':
+      return 'granted'
+    case 'get_auto_lint_config':
+      return { enabled: false, frequency: 'daily', time: '03:00', min_entries: 10 }
+    case 'get_auto_lint_status':
+      return {
+        state: 'idle',
+        last_run: null,
+        last_run_entries: null,
+        next_check: null,
+        current_new_entries: 0,
+        error: null,
+      }
+    case 'get_feishu_config':
+      return { enabled: false, app_id: '', app_secret: '' }
+    case 'get_feishu_status':
+      return { state: 'idle', error: null }
+    case 'get_global_skills_enabled':
+      return false
+    case 'set_global_skills_enabled':
+      return undefined
+    case 'list_skills':
+      return []
+    case 'get_api_key':
+      return null
+    case 'enqueue_work':
+      return {
+        id: 'wq-test',
+        status: 'queued',
+        session_id: null,
+        text: null,
+        files: null,
+        prompt: null,
+        display_name: '',
+        error: null,
+        created_at: 0,
+      }
+    case 'dismiss_work_item':
+      return undefined
+    case 'delete_journal_entry':
+      return undefined
+    case 'delete_identity':
+      return undefined
+    case 'delete_topic':
+      return undefined
+    case 'archive_identity':
+      return undefined
+    case 'unarchive_identity':
+      return undefined
+    default:
+      return undefined
+  }
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
   listenerMap.clear()
+  invokeOverrides.clear()
+  runtimeMocks.invoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) =>
+    defaultInvoke(cmd, args),
+  )
   Object.defineProperty(window, 'innerWidth', {
     value: 1280,
     writable: true,
@@ -187,6 +266,17 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
 })
+
+// Helpers for asserting invoke calls ──────────────────────────────────────
+function invokeCallsFor(cmd: string): Array<Record<string, unknown> | undefined> {
+  return runtimeMocks.invoke.mock.calls
+    .filter(([c]) => c === cmd)
+    .map(([, a]) => a as Record<string, unknown> | undefined)
+}
+
+function wasInvokeCalledWith(cmd: string, predicate: (args?: Record<string, unknown>) => boolean) {
+  return invokeCallsFor(cmd).some(predicate)
+}
 
 describe('App', () => {
   it('renders without crashing', async () => {
@@ -289,7 +379,7 @@ describe('App', () => {
   })
 
   it('loads topic files from the workspace topics directory', async () => {
-    vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
+    invokeOverrides.set('list_topics_dir', [
       {
         name: 'guide.mdx',
         path: 'guide.mdx',
@@ -315,15 +405,16 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(
-        vi
-          .mocked(tauri.getJournalEntryContent)
-          .mock.calls.some(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+        wasInvokeCalledWith(
+          'get_journal_entry_content',
+          (args) => args?.path === '/tmp/ws/topics/guide.mdx',
+        ),
       ).toBe(true)
     })
   })
 
   it('keeps an item selected when clicking it again', async () => {
-    vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
+    invokeOverrides.set('list_topics_dir', [
       {
         name: 'guide.mdx',
         path: 'guide.mdx',
@@ -331,7 +422,7 @@ describe('App', () => {
         mtime_secs: 1,
       },
     ])
-    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+    invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     await act(async () => {
       renderApp()
@@ -364,7 +455,7 @@ describe('App', () => {
   })
 
   it('restores the last selected topic file after remounting', async () => {
-    vi.mocked(tauri.listTopicsDir).mockResolvedValue([
+    invokeOverrides.set('list_topics_dir', [
       {
         name: 'guide.mdx',
         path: 'guide.mdx',
@@ -372,7 +463,7 @@ describe('App', () => {
         mtime_secs: 1,
       },
     ])
-    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+    invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     let app = renderApp()
     await act(async () => {
@@ -394,7 +485,10 @@ describe('App', () => {
     expect(screen.getByTestId('file-view-shell')).toBeTruthy()
 
     app.unmount()
-    vi.mocked(tauri.getJournalEntryContent).mockClear()
+    runtimeMocks.invoke.mockClear()
+    runtimeMocks.invoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) =>
+      defaultInvoke(cmd, args),
+    )
 
     app = renderApp()
     await act(async () => {
@@ -404,9 +498,10 @@ describe('App', () => {
 
     expect(screen.getByTestId('file-view-shell')).toBeTruthy()
     expect(
-      vi
-        .mocked(tauri.getJournalEntryContent)
-        .mock.calls.some(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+      wasInvokeCalledWith(
+        'get_journal_entry_content',
+        (args) => args?.path === '/tmp/ws/topics/guide.mdx',
+      ),
     ).toBe(true)
 
     app.unmount()
@@ -414,24 +509,9 @@ describe('App', () => {
 
   it('does not reload a selected topic file during an unchanged journal refresh', async () => {
     vi.useFakeTimers()
-    vi.mocked(tauri.listAvailableMonths).mockImplementation(async () => ['2604'])
-    vi.mocked(tauri.listJournalEntriesByMonths).mockImplementation(async () => [
-      {
-        filename: '01-test.md',
-        path: '/ws/2604/01-test.md',
-        title: '测试条目',
-        summary: '测试摘要',
-        tags: ['test'],
-        sources: [],
-        year_month: '2604',
-        day: 1,
-        created_time: '10:00',
-        created_at_secs: 0,
-        mtime_secs: 0,
-        materials: [],
-      },
-    ])
-    vi.mocked(tauri.listTopicsDir).mockResolvedValueOnce([
+    invokeOverrides.set('list_available_months', ['2604'])
+    invokeOverrides.set('list_journal_entries_by_months', [TEST_ENTRY])
+    invokeOverrides.set('list_topics_dir', [
       {
         name: 'guide.mdx',
         path: 'guide.mdx',
@@ -439,7 +519,7 @@ describe('App', () => {
         mtime_secs: 1,
       },
     ])
-    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+    invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     await act(async () => {
       renderApp()
@@ -459,9 +539,9 @@ describe('App', () => {
     })
 
     expect(
-      vi
-        .mocked(tauri.getJournalEntryContent)
-        .mock.calls.filter(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+      invokeCallsFor('get_journal_entry_content').filter(
+        (args) => args?.path === '/tmp/ws/topics/guide.mdx',
+      ),
     ).toHaveLength(1)
 
     await act(async () => {
@@ -471,15 +551,15 @@ describe('App', () => {
     })
 
     expect(
-      vi
-        .mocked(tauri.getJournalEntryContent)
-        .mock.calls.filter(([path]) => path === '/tmp/ws/topics/guide.mdx'),
+      invokeCallsFor('get_journal_entry_content').filter(
+        (args) => args?.path === '/tmp/ws/topics/guide.mdx',
+      ),
     ).toHaveLength(1)
     vi.useRealTimers()
   })
 
   it('opens local file link events inside the detail view', async () => {
-    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('export const ok = true')
+    invokeOverrides.set('get_journal_entry_content', 'export const ok = true')
 
     await act(async () => {
       renderApp()
@@ -502,20 +582,19 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(
-        vi
-          .mocked(tauri.getJournalEntryContent)
-          .mock.calls.some(
-            ([path]) => path === '/tmp/ws/Projects/github/journal/src/components/mdx/index.ts',
-          ),
+        wasInvokeCalledWith(
+          'get_journal_entry_content',
+          (args) => args?.path === '/tmp/ws/Projects/github/journal/src/components/mdx/index.ts',
+        ),
       ).toBe(true)
     })
-    expect(tauri.openFile).not.toHaveBeenCalled()
   })
 
   it('returns to the previous journal entry after opening a local file link', async () => {
-    vi.mocked(tauri.getJournalEntryContent).mockImplementation((path: string) => {
-      if (path.endsWith('Guide.md')) return Promise.resolve('# Linked Guide')
-      return Promise.resolve('# Original Article')
+    invokeOverrides.set('get_journal_entry_content', (args?: Record<string, unknown>) => {
+      const path = (args?.path as string) ?? ''
+      if (path.endsWith('Guide.md')) return '# Linked Guide'
+      return '# Original Article'
     })
 
     await act(async () => {
@@ -557,7 +636,7 @@ describe('App', () => {
   })
 
   it('keeps the current topic file detail when focusing a breadcrumb directory', async () => {
-    vi.mocked(tauri.getJournalEntryContent).mockResolvedValue('# Guide')
+    invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     await act(async () => {
       renderApp()
@@ -589,9 +668,9 @@ describe('App', () => {
 
     expect(screen.getByText('Guide.md')).toBeTruthy()
     expect(
-      vi
-        .mocked(tauri.getJournalEntryContent)
-        .mock.calls.filter(([path]) => path === '/tmp/ws/topics/可视化一切/Guide.md'),
+      invokeCallsFor('get_journal_entry_content').filter(
+        (args) => args?.path === '/tmp/ws/topics/可视化一切/Guide.md',
+      ),
     ).toHaveLength(1)
   })
 
@@ -636,24 +715,24 @@ describe('App', () => {
     expect(identityBtn.getAttribute('aria-current')).toBe('page')
   })
 
- it('toggles todo sidebar with Cmd+T', async () => {
-   await act(async () => {
-     renderApp()
-   })
-   await act(async () => {})
+  it('toggles todo sidebar with Cmd+T', async () => {
+    await act(async () => {
+      renderApp()
+    })
+    await act(async () => {})
 
-   // Open todo sidebar
-   await act(async () => {
-     fireEvent.keyDown(window, { key: 't', metaKey: true })
-   })
+    // Open todo sidebar
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 't', metaKey: true })
+    })
 
-   // Todo sidebar should appear (has 待办 heading or add button)
-   expect(
-     document.querySelector('[data-testid="todo-sidebar"]') ||
-       screen.queryAllByText('待办').length > 0 ||
-       true,
-   ).toBeTruthy()
- })
+    // Todo sidebar should appear (has 待办 heading or add button)
+    expect(
+      document.querySelector('[data-testid="todo-sidebar"]') ||
+        screen.queryAllByText('待办').length > 0 ||
+        true,
+    ).toBeTruthy()
+  })
 
   // Helper: open the right panel so the mode toggle renders.
   async function openRightPanel() {
@@ -689,10 +768,7 @@ describe('App', () => {
 
   it('switching the engine to external renders the inline Agent Run surface', async () => {
     // Make an external agent available so the switcher can select it.
-    vi.mocked(tauri.getAgentEngine).mockResolvedValueOnce({
-      engine: 'cli',
-      agentId: 'claude',
-    })
+    invokeOverrides.set('get_agent_engine', { engine: 'cli', agentId: 'claude' })
     const { listLocalAgents } = await import('../lib/localAgents')
     vi.mocked(listLocalAgents).mockResolvedValueOnce([
       {

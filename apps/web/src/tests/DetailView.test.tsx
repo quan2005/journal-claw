@@ -3,40 +3,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
 import { DetailView } from '../components/DetailView'
 
+const mocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+}))
+
 vi.mock('../lib/hostBridge', () => ({
   hostConvertFileSrc: (path: string) => `asset://${path}`,
   hostAsk: vi.fn().mockResolvedValue(false),
+  hostOpenWithSystem: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('../lib/tauri', async () => {
-  const actual = await vi.importActual<typeof import('../lib/tauri')>('../lib/tauri')
-  const topicMarkdownContent = `---
-tags: ["journal","mdx-manual","template","hr-operations"]
-summary: "HR 与运营 / customer-profile 模板的独立使用说明。"
-sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md"]
----
-
-# customer-profile
-
-<Subtitle>HR 与运营 family / customer-profile template.</Subtitle>`
-
-  return {
-    ...actual,
-    getWorkspacePath: vi.fn().mockResolvedValue('/Users/yanwu/Documents/journal'),
-    getJournalEntryContent: vi.fn((path: string) => {
-      if (path.match(/\.tsx?$/)) {
-        return Promise.resolve('const answer: number = 42\nconsole.log(answer)')
-      }
-      return Promise.resolve(
-        path.match(/\.mdx?$/) ? topicMarkdownContent : '<main><h1>Deck</h1></main>',
-      )
-    }),
-    getIdentityContent: vi.fn().mockResolvedValue(''),
-    getWorkspacePrompt: vi.fn().mockResolvedValue(''),
-    resetWorkspacePrompt: vi.fn().mockResolvedValue(''),
-    openFile: vi.fn().mockResolvedValue(undefined),
-  }
-})
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: mocks.invoke,
+    subscribe: () => () => {},
+  }),
+}))
 
 vi.mock('../lib/markdown', () => ({
   renderMarkdown: vi.fn(() => null),
@@ -54,6 +36,16 @@ function expectSourceViewToContain(text: string) {
   expect(screen.getByTestId('source-view').textContent).toContain(text)
 }
 
+const TOPIC_MARKDOWN_CONTENT = `---
+tags: ["journal","mdx-manual","template","hr-operations"]
+summary: "HR 与运营 / customer-profile 模板的独立使用说明。"
+sources: ["../../Projects/github/journal/.agents/skills/journal/references/template-registry.md","../../Projects/github/journal/.agents/skills/journal/references/writing-rules.md"]
+---
+
+# customer-profile
+
+<Subtitle>HR 与运营 family / customer-profile template.</Subtitle>`
+
 describe('DetailView topic file rendering', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -62,6 +54,20 @@ describe('DetailView topic file rendering', () => {
         writeText: vi.fn().mockResolvedValue(undefined),
       },
       configurable: true,
+    })
+    mocks.invoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === 'get_workspace_path') return '/Users/yanwu/Documents/journal'
+      if (cmd === 'get_identity_content') return ''
+      if (cmd === 'get_workspace_prompt') return ''
+      if (cmd === 'reset_workspace_prompt') return ''
+      if (cmd === 'get_journal_entry_content') {
+        const path = (args?.path as string) ?? ''
+        if (path.match(/\.tsx?$/)) {
+          return 'const answer: number = 42\nconsole.log(answer)'
+        }
+        return path.match(/\.mdx?$/) ? TOPIC_MARKDOWN_CONTENT : '<main><h1>Deck</h1></main>'
+      }
+      return undefined
     })
   })
 
@@ -192,8 +198,15 @@ describe('DetailView topic file rendering', () => {
   })
 
   it('keeps source line numbers out of Cmd+A selection', async () => {
-    const { getJournalEntryContent } = await import('../lib/tauri')
-    vi.mocked(getJournalEntryContent).mockResolvedValueOnce('alpha\nbeta')
+    mocks.invoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === 'get_workspace_path') return '/Users/yanwu/Documents/journal'
+      if (cmd === 'get_journal_entry_content') {
+        const path = (args?.path as string) ?? ''
+        if (path.endsWith('Snippet.ts')) return 'alpha\nbeta'
+        return TOPIC_MARKDOWN_CONTENT
+      }
+      return undefined
+    })
 
     renderWithProviders(
       <DetailView
@@ -346,8 +359,13 @@ describe('DetailView topic file rendering', () => {
   })
 
   it('renders identity entries with preview/source controls and raw markdown source', async () => {
-    const { getIdentityContent } = await import('../lib/tauri')
-    vi.mocked(getIdentityContent).mockResolvedValue('# 张三\n\n- 会议主持人\n- customer-profile')
+    mocks.invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'get_workspace_path') return '/Users/yanwu/Documents/journal'
+      if (cmd === 'get_identity_content') {
+        return '# 张三\n\n- 会议主持人\n- customer-profile'
+      }
+      return ''
+    })
 
     renderWithProviders(
       <DetailView

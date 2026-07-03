@@ -2,27 +2,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAgentEngine } from '../hooks/useAgentEngine'
 
-const mockGetAgentEngine = vi.fn()
-const mockSetAgentEngine = vi.fn()
+const invokeMock = vi.fn()
 
-vi.mock('../lib/tauri', () => ({
-  getAgentEngine: (...args: unknown[]) => mockGetAgentEngine(...(args as [never])),
-  setAgentEngine: (...args: unknown[]) => mockSetAgentEngine(...(args as [never])),
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({ invoke: invokeMock }),
 }))
 
 describe('useAgentEngine', () => {
   beforeEach(() => {
-    // resetAllMocks (not clearAllMocks) so a previous test's mockResolved/
-    // mockRejected implementation cannot leak into the next — the suite is
-    // robust when run in any order or as part of the full suite. Each default
-    // implementation is re-installed explicitly below.
     vi.resetAllMocks()
-    mockGetAgentEngine.mockResolvedValue({ engine: 'builtin', agentId: null })
-    mockSetAgentEngine.mockResolvedValue(undefined)
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === 'get_agent_engine') return Promise.resolve({ engine: 'builtin', agentId: null })
+      if (cmd === 'set_agent_engine') return Promise.resolve(undefined)
+      return Promise.resolve(undefined)
+    })
   })
 
   it('loads the persisted engine selection from daemon settings on mount', async () => {
-    mockGetAgentEngine.mockResolvedValue({ engine: 'cli', agentId: 'codex' })
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === 'get_agent_engine') return Promise.resolve({ engine: 'cli', agentId: 'codex' })
+      return Promise.resolve(undefined)
+    })
     const { result } = renderHook(() => useAgentEngine())
 
     await vi.waitFor(() => expect(result.current.loading).toBe(false))
@@ -31,7 +31,10 @@ describe('useAgentEngine', () => {
   })
 
   it('falls back to the built-in engine when the daemon is unreachable', async () => {
-    mockGetAgentEngine.mockRejectedValue(new Error('daemon offline'))
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === 'get_agent_engine') return Promise.reject(new Error('daemon offline'))
+      return Promise.resolve(undefined)
+    })
     const { result } = renderHook(() => useAgentEngine())
 
     await vi.waitFor(() => expect(result.current.loading).toBe(false))
@@ -44,14 +47,17 @@ describe('useAgentEngine', () => {
     await vi.waitFor(() => expect(result.current.loading).toBe(false))
 
     act(() => result.current.setEngine('cli'))
-    expect(mockSetAgentEngine).toHaveBeenCalledWith({ engine: 'cli' })
+    expect(invokeMock).toHaveBeenCalledWith('set_agent_engine', { engine: 'cli' })
 
     act(() => result.current.setAgentId('claude'))
-    expect(mockSetAgentEngine).toHaveBeenCalledWith({ agentId: 'claude' })
+    expect(invokeMock).toHaveBeenCalledWith('set_agent_engine', { agentId: 'claude' })
   })
 
   it('ignores an invalid persisted engine value and keeps the default', async () => {
-    mockGetAgentEngine.mockResolvedValue({ engine: 'magic', agentId: null })
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === 'get_agent_engine') return Promise.resolve({ engine: 'magic', agentId: null })
+      return Promise.resolve(undefined)
+    })
     const { result } = renderHook(() => useAgentEngine())
     await vi.waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.engine).toBe('builtin')

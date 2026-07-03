@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { getWorkspacePath } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { dispatchJournalFileOpen } from '../lib/fileNavigation'
 import type { MessageBlock } from '../types'
+
+const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
 
 export function FileAttachments({ blocks }: { blocks: MessageBlock[] }) {
   const [workspacePath, setWorkspacePath] = useState('')

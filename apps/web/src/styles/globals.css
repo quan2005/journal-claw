@@ -832,7 +832,9 @@ body,
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
-  transition: border-color var(--workbench-item-transition), background var(--workbench-item-transition);
+  transition:
+    border-color var(--workbench-item-transition),
+    background var(--workbench-item-transition);
 }
 
 .automation-button:hover {
@@ -1330,7 +1332,9 @@ body,
   font-weight: var(--font-semibold);
   white-space: nowrap;
   cursor: pointer;
-  transition: border-color var(--workbench-item-transition), background var(--workbench-item-transition);
+  transition:
+    border-color var(--workbench-item-transition),
+    background var(--workbench-item-transition);
 }
 
 .ideas-workbench-button:hover {
@@ -1870,13 +1874,23 @@ body,
 
 /* ── Workbench shared animations ───────────────────────────── */
 @keyframes workbench-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes workbench-scale-in {
-  from { transform: scale(0.97); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ── Cmd+V kbd button glow pulse ────────────────────────── */

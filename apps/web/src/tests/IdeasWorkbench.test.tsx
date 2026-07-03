@@ -24,17 +24,26 @@ vi.mock('../contexts/TodoContext', () => ({
   useTodoContext: () => mockState.todoContext,
 }))
 
-vi.mock('../lib/tauri', async () => {
-  const actual = await vi.importActual<typeof import('../lib/tauri')>('../lib/tauri')
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: vi.fn((cmd: string) => {
+      if (cmd === 'get_workspace_path') return Promise.resolve('/Users/yanwu/Documents/journal')
+      if (cmd === 'get_journal_entry_content') return Promise.resolve('')
+      if (cmd === 'get_identity_content') return Promise.resolve('')
+      if (cmd === 'get_workspace_prompt') return Promise.resolve('')
+      if (cmd === 'reset_workspace_prompt') return Promise.resolve('')
+      return Promise.resolve(undefined)
+    }),
+    subscribe: () => () => {},
+  }),
+}))
+
+vi.mock('../lib/hostBridge', async () => {
+  const actual = await vi.importActual<typeof import('../lib/hostBridge')>('../lib/hostBridge')
   return {
     ...actual,
-    getWorkspacePath: vi.fn().mockResolvedValue('/Users/yanwu/Documents/journal'),
-    getJournalEntryContent: vi.fn().mockResolvedValue(''),
-    getIdentityContent: vi.fn().mockResolvedValue(''),
-    getWorkspacePrompt: vi.fn().mockResolvedValue(''),
-    resetWorkspacePrompt: vi.fn().mockResolvedValue(''),
-    openFile: vi.fn().mockResolvedValue(undefined),
-    pickFolder: vi.fn().mockResolvedValue('/Users/yanwu/Documents/journal/projects'),
+    pickHostFolder: vi.fn().mockResolvedValue('/Users/yanwu/Documents/journal/projects'),
+    hostOpenWithSystem: vi.fn().mockResolvedValue(undefined),
   }
 })
 

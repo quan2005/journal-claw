@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listIdentities } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { useEventSync } from './useEventSync'
 import type { IdentityEntry } from '../types'
+
+const listIdentities = (): Promise<IdentityEntry[]> =>
+  selectRuntimeClient().invoke<IdentityEntry[]>('list_identities')
 
 export function useIdentity() {
   const [identities, setIdentities] = useState<IdentityEntry[]>([])

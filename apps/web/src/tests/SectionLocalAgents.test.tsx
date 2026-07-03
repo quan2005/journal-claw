@@ -12,8 +12,8 @@ import { ToastProvider } from '../contexts/ToastContext'
 import { createElement } from 'react'
 
 // Mock the host bridge so openUrl clicks never touch a real shell.
-vi.mock('../lib/tauri', () => ({
-  openUrl: vi.fn(async () => {}),
+vi.mock('../lib/hostBridge', () => ({
+  hostOpenWithSystem: vi.fn(async () => {}),
 }))
 
 import SectionLocalAgents from '../settings/components/SectionLocalAgents'
@@ -74,12 +74,15 @@ const authMissingOpencode: AgentInfo = {
 function mockAgentsResponse(body: AgentsResponse): void {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      json: async () => body,
-      text: async () => JSON.stringify(body),
-    } as unknown as Response)),
+    vi.fn(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => body,
+          text: async () => JSON.stringify(body),
+        }) as unknown as Response,
+    ),
   )
 }
 
@@ -113,9 +116,7 @@ describe('SectionLocalAgents', () => {
   it('renders diagnostics with localized reason on an unavailable agent', async () => {
     mockAgentsResponse({ agents: [missingCodex] })
     render(<SectionLocalAgents />)
-    await waitFor(() =>
-      expect(screen.getByText(/未在 PATH 上找到 Codex CLI/)).toBeTruthy(),
-    )
+    await waitFor(() => expect(screen.getByText(/未在 PATH 上找到 Codex CLI/)).toBeTruthy())
     expect(screen.getByText('前往安装')).toBeTruthy()
   })
 
@@ -124,9 +125,7 @@ describe('SectionLocalAgents', () => {
     render(<SectionLocalAgents />)
     await waitFor(() => expect(screen.getByText('Claude Code')).toBeTruthy())
     fireEvent.click(screen.getByText('重新扫描'))
-    await waitFor(() =>
-      expect(fetchCallUrls().some((u) => u.includes('rescan=1'))).toBe(true),
-    )
+    await waitFor(() => expect(fetchCallUrls().some((u) => u.includes('rescan=1'))).toBe(true))
   })
 
   it('shows an error banner when the daemon is unreachable', async () => {

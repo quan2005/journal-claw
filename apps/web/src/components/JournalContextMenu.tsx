@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { JournalEntry } from '../types'
-import { revealInFileManager, openFile } from '../lib/tauri'
+import { hostOpenWithSystem, hostRevealInFileManager } from '../lib/hostBridge'
 import { useTranslation } from '../contexts/I18nContext'
 
 interface JournalContextMenuProps {
@@ -60,11 +60,11 @@ export function JournalContextMenu({
   }
 
   async function handleShowInFileManager() {
-    await revealInFileManager(entry.path)
+    await hostRevealInFileManager(entry.path)
   }
 
   async function handleOpenWithEditor() {
-    await openFile(entry.path)
+    await hostOpenWithSystem(entry.path)
   }
 
   const items: MenuItem[] = [

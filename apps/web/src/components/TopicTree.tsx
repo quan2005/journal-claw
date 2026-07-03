@@ -1,5 +1,5 @@
 // src/components/TopicTree.tsx
-import { type TopicEntry } from '../lib/tauri'
+import type { TopicEntry } from '../lib/apiTypes'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
 import { displayTopicName, filterCuration } from '../lib/topicCuration'
 import { FileTypeIcon } from './FileTypeIcon'

@@ -28,7 +28,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { AgentInfo } from '@journal/contracts'
 import { listLocalAgents } from '../lib/localAgents'
-import { getEngineConfig } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { useAgentEngine } from '../hooks/useAgentEngine'
 import { useAgentRun } from '../hooks/useAgentRun'
 import { useTranslation } from '../contexts/I18nContext'
@@ -37,6 +37,9 @@ import { EngineSwitcher } from './EngineSwitcher'
 import { ChatPanel, type ChatPanelProps } from './ChatPanel'
 import { RunStreamEntries } from './AgentRunPanel'
 import { AuthModeToggle } from './AuthModeToggle'
+import type { EngineConfig } from '../lib/apiTypes'
+
+const getEngineConfig = () => selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
 
 /** The conversation slice App.tsx already assembles from useConversation. */
 export type ConversationSlice = Pick<

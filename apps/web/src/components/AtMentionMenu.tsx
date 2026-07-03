@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { listAtMentionCandidates, type AtMentionCandidate } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+import type { AtMentionCandidate } from '../lib/apiTypes'
+
+const listAtMentionCandidates = (relativePath: string, query = '') =>
+  selectRuntimeClient().invoke<AtMentionCandidate[]>('list_at_mention_candidates', {
+    relativePath,
+    query,
+  })
 
 interface AtMentionMenuProps {
   query: string

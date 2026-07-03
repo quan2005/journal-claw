@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { listTopicsDir, type TopicEntry } from '../lib/tauri'
 import { selectRuntimeClient } from '../lib/runtimeClient'
+import type { TopicEntry } from '../lib/apiTypes'
+
+const listTopicsDir = (relativePath: string): Promise<TopicEntry[]> =>
+  selectRuntimeClient().invoke<TopicEntry[]>('list_topics_dir', { relativePath })
 
 const TOPICS_REFRESH_DEBOUNCE_MS = 250
 const TOPIC_EXPANDED_DIRS_STORAGE_KEY = 'journal_topics_expanded_dirs_v1'

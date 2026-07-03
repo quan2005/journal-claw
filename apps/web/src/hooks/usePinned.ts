@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getPinnedItems, setPinnedItems, type PinnedItem } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+import type { PinnedItem } from '../types'
+
+const getPinnedItems = (): Promise<PinnedItem[]> =>
+  selectRuntimeClient().invoke<PinnedItem[]>('get_pinned_items')
+
+const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_pinned_items', { items })
 
 export function usePinned() {
   const [items, setItems] = useState<PinnedItem[]>([])

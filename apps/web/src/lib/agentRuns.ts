@@ -7,13 +7,23 @@
  * daemon HTTP/SSE surface (the runtime flag decides whether the *chat* path
  * uses Tauri or daemon; the Run panel is daemon-native).
  */
-import type { AgentRun, AgentRunEvent, AuthorizationMode, ChangeSet, Artifact, MemoryRecord, SourceBinding, RunEngine } from '../types/agentRun'
+import type {
+  AgentRun,
+  AgentRunEvent,
+  AuthorizationMode,
+  ChangeSet,
+  Artifact,
+  MemoryRecord,
+  SourceBinding,
+  RunEngine,
+} from '../types/agentRun'
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:17510'
 
 function baseUrl(): string {
   try {
-    const ls = typeof localStorage !== 'undefined' ? localStorage.getItem('JOURNAL_DAEMON_URL') : null
+    const ls =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('JOURNAL_DAEMON_URL') : null
     if (ls) return ls
   } catch {
     // ignore
@@ -62,7 +72,10 @@ export async function listChangeSets(runId: string): Promise<ChangeSet[]> {
  * Subscribe to a run's SSE event stream. Returns an unsubscribe function.
  * Each parsed `data:` line is fed to onEvent.
  */
-export function subscribeRunEvents(runId: string, onEvent: (event: AgentRunEvent) => void): () => void {
+export function subscribeRunEvents(
+  runId: string,
+  onEvent: (event: AgentRunEvent) => void,
+): () => void {
   const es = new EventSource(`${baseUrl()}/runs/${encodeURIComponent(runId)}/events`)
   es.onmessage = (msg) => {
     try {

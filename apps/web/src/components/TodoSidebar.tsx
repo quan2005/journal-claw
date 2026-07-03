@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TodoItem } from '../types'
 import { useTranslation } from '../contexts/I18nContext'
 import { useTodoContext } from '../contexts/TodoContext'
-import { pickFolder } from '../lib/tauri'
+import { pickHostFolder } from '../lib/hostBridge'
 
 // ── Custom date picker ───────────────────────────────────────────────────────
 export function DatePicker({
@@ -1174,7 +1174,7 @@ export function TodoSidebar({ onOpenConversation, onNavigateToSource }: TodoSide
               onMouseEnter={hi}
               onMouseLeave={ho}
               onClick={async () => {
-                const picked = await pickFolder()
+                const picked = await pickHostFolder()
                 if (picked) {
                   const homePath = picked.replace(/^\/Users\/[^/]+/, '~')
                   onSetPath(contextMenu.lineIndex, homePath, contextMenu.doneFile)

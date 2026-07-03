@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { revealInFileManager, openFile } from '../lib/tauri'
-import { hostAsk } from '../lib/hostBridge'
+import { hostAsk, hostOpenWithSystem, hostRevealInFileManager } from '../lib/hostBridge'
 
 export interface TreeContextMenuState {
   x: number
@@ -84,11 +83,11 @@ export function TreeContextMenu({
   }
 
   async function handleShowInFileManager() {
-    await revealInFileManager(state.absolutePath ?? path)
+    await hostRevealInFileManager(state.absolutePath ?? path)
     onClose()
   }
   async function handleOpenInEditor() {
-    await openFile(state.absolutePath ?? path)
+    await hostOpenWithSystem(state.absolutePath ?? path)
     onClose()
   }
 

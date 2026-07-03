@@ -2,14 +2,24 @@ import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useEffect } from 'react'
 import { useTopics } from '../hooks/useTopics'
-import { listTopicsDir } from '../lib/tauri'
 
 type EventCallback = (payload: unknown) => void
 const eventListeners = vi.hoisted(() => new Map<string, Set<EventCallback>>())
 
+const { listTopicsDirMock, invokeMock } = vi.hoisted(() => {
+  const listTopicsDirMock = vi.fn()
+  const invokeMock = vi.fn((cmd: string, args?: Record<string, unknown>) => {
+    if (cmd === 'list_topics_dir') {
+      return listTopicsDirMock(args?.relativePath ?? '')
+    }
+    return undefined
+  })
+  return { listTopicsDirMock, invokeMock }
+})
+
 vi.mock('../lib/runtimeClient', () => ({
   selectRuntimeClient: () => ({
-    invoke: vi.fn(),
+    invoke: invokeMock,
     subscribe: (name: string, cb: EventCallback) => {
       const listeners = eventListeners.get(name) ?? new Set<EventCallback>()
       listeners.add(cb)
@@ -20,10 +30,6 @@ vi.mock('../lib/runtimeClient', () => ({
       }
     },
   }),
-}))
-
-vi.mock('../lib/tauri', () => ({
-  listTopicsDir: vi.fn(),
 }))
 
 function TopicsProbe({ onRender }: { onRender?: (entries: string[]) => void }) {
@@ -71,7 +77,7 @@ describe('useTopics', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     eventListeners.clear()
-    vi.mocked(listTopicsDir).mockReset()
+    listTopicsDirMock.mockReset()
     const store: Record<string, string> = {}
     Object.defineProperty(window, 'localStorage', {
       value: {
@@ -99,7 +105,7 @@ describe('useTopics', () => {
   })
 
   it('does not poll topic directories while mounted', async () => {
-    vi.mocked(listTopicsDir).mockResolvedValue([])
+    listTopicsDirMock.mockResolvedValue([])
 
     render(<TopicsProbe />)
 
@@ -107,7 +113,7 @@ describe('useTopics', () => {
       await Promise.resolve()
     })
 
-    expect(vi.mocked(listTopicsDir)).toHaveBeenCalledTimes(1)
+    expect(listTopicsDirMock).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       vi.advanceTimersByTime(30_000)
@@ -115,11 +121,11 @@ describe('useTopics', () => {
       await Promise.resolve()
     })
 
-    expect(vi.mocked(listTopicsDir)).toHaveBeenCalledTimes(1)
+    expect(listTopicsDirMock).toHaveBeenCalledTimes(1)
   })
 
   it('does not refresh when focus changes without a topic file event', async () => {
-    vi.mocked(listTopicsDir).mockResolvedValue([])
+    listTopicsDirMock.mockResolvedValue([])
 
     render(<TopicsProbe />)
 
@@ -134,11 +140,11 @@ describe('useTopics', () => {
       await Promise.resolve()
     })
 
-    expect(vi.mocked(listTopicsDir)).toHaveBeenCalledTimes(1)
+    expect(listTopicsDirMock).toHaveBeenCalledTimes(1)
   })
 
   it('refreshes the loaded topic list after a topic file event', async () => {
-    vi.mocked(listTopicsDir)
+    listTopicsDirMock
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         { name: 'guide.mdx', path: 'guide.mdx', is_dir: false, mtime_secs: 1 },
@@ -150,7 +156,7 @@ describe('useTopics', () => {
       await Promise.resolve()
     })
 
-    expect(vi.mocked(listTopicsDir)).toHaveBeenCalledWith('')
+    expect(listTopicsDirMock).toHaveBeenCalledWith('')
 
     emitEvent('topics-updated', null)
 
@@ -164,7 +170,7 @@ describe('useTopics', () => {
   })
 
   it('coalesces multiple topic file events into one refresh', async () => {
-    vi.mocked(listTopicsDir)
+    listTopicsDirMock
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         { name: 'guide.mdx', path: 'guide.mdx', is_dir: false, mtime_secs: 1 },
@@ -187,13 +193,13 @@ describe('useTopics', () => {
       await Promise.resolve()
     })
 
-    expect(vi.mocked(listTopicsDir)).toHaveBeenCalledTimes(2)
+    expect(listTopicsDirMock).toHaveBeenCalledTimes(2)
   })
 
   it('does not re-render the topic tree when a file event returns an unchanged snapshot', async () => {
     const unchangedEntry = { name: 'guide.mdx', path: 'guide.mdx', is_dir: false, mtime_secs: 1 }
     const onRender = vi.fn()
-    vi.mocked(listTopicsDir).mockResolvedValue([unchangedEntry])
+    listTopicsDirMock.mockResolvedValue([unchangedEntry])
 
     render(<TopicsProbe onRender={onRender} />)
 
@@ -219,7 +225,7 @@ describe('useTopics', () => {
 
   it('loads topic directories that were expanded in the previous session', async () => {
     window.localStorage.setItem('journal_topics_expanded_dirs_v1', JSON.stringify(['manual']))
-    vi.mocked(listTopicsDir).mockImplementation(async (path: string) => {
+    listTopicsDirMock.mockImplementation(async (path: string) => {
       if (path === '') {
         return [{ name: 'manual', path: 'manual', is_dir: true, mtime_secs: 1 }]
       }
@@ -237,7 +243,7 @@ describe('useTopics', () => {
       await Promise.resolve()
     })
 
-    expect(vi.mocked(listTopicsDir)).toHaveBeenCalledWith('manual')
+    expect(listTopicsDirMock).toHaveBeenCalledWith('manual')
     expect(screen.getByText('manual:manual/guide.mdx')).toBeTruthy()
   })
 })

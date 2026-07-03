@@ -13,29 +13,23 @@ const subscribeMock = vi.fn((event: string, handler: (payload: unknown) => void)
   return offSpy
 })
 
+const invokeMock = vi.fn((cmd: string) => {
+  if (cmd === 'conversation_create') return Promise.resolve('s1')
+  if (cmd === 'conversation_get_messages') return Promise.resolve([])
+  return Promise.resolve(undefined)
+})
+
 vi.mock('../lib/runtimeClient', () => ({
   defaultRuntimeClient: {
-    invoke: vi.fn(),
+    invoke: invokeMock,
     subscribe: (...args: unknown[]) =>
       subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
   },
   selectRuntimeClient: () => ({
-    invoke: vi.fn(),
+    invoke: invokeMock,
     subscribe: (...args: unknown[]) =>
       subscribeMock(args[0] as string, args[1] as (p: unknown) => void),
   }),
-}))
-
-// Stash the tauri commands the hook calls into on mount/send paths.
-vi.mock('../lib/tauri', () => ({
-  conversationCreate: vi.fn().mockResolvedValue('s1'),
-  conversationSend: vi.fn().mockResolvedValue(undefined),
-  conversationCancel: vi.fn().mockResolvedValue(undefined),
-  conversationClose: vi.fn().mockResolvedValue(undefined),
-  conversationGetMessages: vi.fn().mockResolvedValue([]),
-  conversationTruncate: vi.fn().mockResolvedValue(undefined),
-  conversationRetry: vi.fn().mockResolvedValue(undefined),
-  conversationGetStats: vi.fn().mockResolvedValue(null),
 }))
 
 const { useConversation } = await import('./useConversation')

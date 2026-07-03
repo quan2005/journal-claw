@@ -1,6 +1,6 @@
 import { useRef, useEffect, memo } from 'react'
 import type { JournalEntry, IdentityEntry } from '../types'
-import type { TopicEntry } from '../lib/tauri'
+import type { TopicEntry } from '../lib/apiTypes'
 import { pickDisplayTags } from '../lib/tags'
 import { useTextOverflow } from '../hooks/useTextOverflow'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'

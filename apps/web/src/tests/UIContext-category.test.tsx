@@ -3,9 +3,7 @@ import { renderHook, act } from '@testing-library/react'
 import { UIProvider, useUI } from '../contexts/UIContext'
 import type { ReactNode } from 'react'
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <UIProvider>{children}</UIProvider>
-)
+const wrapper = ({ children }: { children: ReactNode }) => <UIProvider>{children}</UIProvider>
 
 describe('UIContext category state', () => {
   beforeEach(() => {

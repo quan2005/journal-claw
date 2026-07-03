@@ -1,15 +1,22 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from '../contexts/I18nContext'
-import {
-  getEngineConfig,
-  setEngineConfig,
-  setWorkspacePath,
-  pickFolder,
-  listModels,
-  BUILTIN_PRESETS,
-  type EngineConfig,
-} from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+import { pickHostFolder } from '../lib/hostBridge'
+import { BUILTIN_PRESETS, type EngineConfig } from '../lib/apiTypes'
+
+const getEngineConfig = () => selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
+const setEngineConfig = (cfg: EngineConfig) =>
+  selectRuntimeClient().invoke<void>('set_engine_config', { config: cfg })
+const setWorkspacePath = (path: string) =>
+  selectRuntimeClient().invoke<void>('set_workspace_path', { path })
+const listModels = (
+  engine: string,
+  apiKey: string,
+  baseUrl: string,
+  protocol?: string,
+): Promise<string[]> =>
+  selectRuntimeClient().invoke<string[]>('list_models', { engine, apiKey, baseUrl, protocol })
 import type { OnboardingStep } from '../hooks/useOnboarding'
 import '../styles/onboarding.css'
 
@@ -154,7 +161,7 @@ export default function OnboardingView({ defaultWorkspacePath, onComplete }: Pro
 
   const handleBrowseWorkspace = useCallback(async () => {
     try {
-      const folder = await pickFolder()
+      const folder = await pickHostFolder()
       if (folder) {
         setWsPath(folder)
         setWsError('')

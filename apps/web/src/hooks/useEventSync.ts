@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { selectRuntimeClient } from '../lib/runtimeClient'
-import { getEventsSince } from '../lib/tauri'
+import type { DomainEvent } from '../types'
+
+const getEventsSince = (sinceSeq: number): Promise<DomainEvent[]> =>
+  selectRuntimeClient().invoke<DomainEvent[]>('get_events_since', { sinceSeq })
 
 /**
  * Subscribe to Tauri events AND catch up via the event log on mount.

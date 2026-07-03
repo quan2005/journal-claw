@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import { TopicTree } from '../components/TopicTree'
-import type { TopicEntry } from '../lib/tauri'
+import type { TopicEntry } from '../lib/apiTypes'
 
 function topic(name: string, isDir = false, extra: Partial<TopicEntry> = {}): TopicEntry {
   return {

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { ConversationMessage, MessageBlock, WebSearchResultItem, Attachment } from '../types'
-import type { SessionStats } from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { useTranslation } from '../contexts/I18nContext'
 import { useToast } from '../contexts/ToastContext'
 import { Spinner } from './Spinner'
@@ -26,14 +26,16 @@ function LazyMD({ content }: { content: string }) {
   )
 }
 import { useSmoothStream } from '../hooks/useSmoothStream'
-import { importText, openFile } from '../lib/tauri'
+import { hostOpenDialog, hostOpenWithSystem } from '../lib/hostBridge'
 import { FileAttachments } from './FileAttachments'
-import type { ImageAttachment } from '../lib/tauri'
 import { fileKindFromName } from '../lib/fileKind'
 import { dispatchJournalFileOpen } from '../lib/fileNavigation'
-import { hostOpenDialog } from '../lib/hostBridge'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
+import type { SessionStats, ImageAttachment, ImportResult } from '../lib/apiTypes'
+
+const importText = (text: string) =>
+  selectRuntimeClient().invoke<ImportResult>('import_text', { text })
 
 interface ImageAtt {
   media_type: string
@@ -774,7 +776,9 @@ export function ChatPanel({
                 >
                   <span
                     onClick={() =>
-                      openFile(att.path).catch(() => showToast('warning', t('openFileFailed')))
+                      hostOpenWithSystem(att.path).catch(() =>
+                        showToast('warning', t('openFileFailed')),
+                      )
                     }
                     style={{
                       maxWidth: 120,

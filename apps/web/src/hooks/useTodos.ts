@@ -1,17 +1,47 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  listTodos,
-  addTodo as addTodoIpc,
-  toggleTodo as toggleTodoIpc,
-  deleteTodo as deleteTodoIpc,
-  setTodoDue as setTodoDueIpc,
-  updateTodoText as updateTodoTextIpc,
-  setTodoPath as setTodoPathIpc,
-  removeTodoPath as removeTodoPathIpc,
-  setTodoSessionId as setTodoSessionIdIpc,
-} from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { useEventSync } from './useEventSync'
 import type { TodoItem } from '../types'
+
+const listTodos = (): Promise<TodoItem[]> => selectRuntimeClient().invoke<TodoItem[]>('list_todos')
+
+const addTodoIpc = (
+  text: string,
+  due?: string,
+  source?: string,
+  path?: string,
+): Promise<TodoItem> =>
+  selectRuntimeClient().invoke<TodoItem>('add_todo', {
+    text,
+    due: due ?? null,
+    source: source ?? null,
+    path: path ?? null,
+  })
+
+const toggleTodoIpc = (lineIndex: number, checked: boolean, doneFile: boolean): Promise<void> =>
+  selectRuntimeClient().invoke<void>('toggle_todo', { lineIndex, checked, doneFile })
+
+const deleteTodoIpc = (lineIndex: number, doneFile: boolean): Promise<void> =>
+  selectRuntimeClient().invoke<void>('delete_todo', { lineIndex, doneFile })
+
+const setTodoDueIpc = (lineIndex: number, due: string | null, doneFile: boolean): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_todo_due', { lineIndex, due, doneFile })
+
+const updateTodoTextIpc = (lineIndex: number, text: string, doneFile: boolean): Promise<void> =>
+  selectRuntimeClient().invoke<void>('update_todo_text', { lineIndex, text, doneFile })
+
+const setTodoPathIpc = (lineIndex: number, path: string | null, doneFile: boolean): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_todo_path', { lineIndex, path, doneFile })
+
+const removeTodoPathIpc = (lineIndex: number, doneFile: boolean): Promise<void> =>
+  selectRuntimeClient().invoke<void>('remove_todo_path', { lineIndex, doneFile })
+
+const setTodoSessionIdIpc = (
+  lineIndex: number,
+  sessionId: string | null,
+  doneFile: boolean,
+): Promise<void> =>
+  selectRuntimeClient().invoke<void>('set_todo_session_id', { lineIndex, sessionId, doneFile })
 
 export function useTodos() {
   const [todos, setTodos] = useState<TodoItem[]>([])

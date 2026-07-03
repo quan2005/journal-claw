@@ -14,19 +14,14 @@
  * default port) and can be overridden via JOURNAL_DAEMON_URL.
  */
 import type { JournalRuntimeClient } from './runtimeClient'
+import type { AutoLintConfig } from './apiTypes'
+import type { PinnedItem } from '../types'
 
 export interface HttpRuntimeClientOptions {
   baseUrl?: string
 }
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:17510'
-
-interface AutoLintConfig {
-  enabled: boolean
-  frequency: 'daily' | 'weekly' | 'monthly'
-  time: '03:00' | '12:00' | '22:00'
-  min_entries: 10 | 20 | 30
-}
 
 interface WorkspaceSettings {
   theme: 'light' | 'dark' | 'system'
@@ -40,12 +35,6 @@ interface WorkspaceSettings {
   /** Selected external CLI agent id (when agent_engine === 'cli'). */
   agent_id?: string | null
   [key: string]: unknown
-}
-
-interface PinnedItem {
-  type: 'journal' | 'identity' | 'topic'
-  path: string
-  order: number
 }
 
 function normalizePinnedItems(value: unknown): PinnedItem[] {
@@ -150,12 +139,9 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
       }
       case 'get_agent_engine': {
         const settings = await this.getSettings()
-        const engine =
-          settings.agent_engine === 'cli' ? 'cli' : 'builtin'
+        const engine = settings.agent_engine === 'cli' ? 'cli' : 'builtin'
         const agentId =
-          typeof settings.agent_id === 'string' && settings.agent_id
-            ? settings.agent_id
-            : null
+          typeof settings.agent_id === 'string' && settings.agent_id ? settings.agent_id : null
         return { engine, agentId } as unknown as T
       }
       case 'set_agent_engine': {

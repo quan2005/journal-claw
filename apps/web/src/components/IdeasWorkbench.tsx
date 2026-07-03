@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent 
 import { CalendarDays, Link2, MessageSquare, Plus } from 'lucide-react'
 import { useTranslation } from '../contexts/I18nContext'
 import { useTodoContext } from '../contexts/TodoContext'
-import { pickFolder } from '../lib/tauri'
+import { pickHostFolder } from '../lib/hostBridge'
 import type { TodoItem } from '../types'
 import { DatePicker, formatDueShort } from './TodoSidebar'
 
@@ -68,7 +68,11 @@ const IDEAS_TABS: {
   countFor: (stats: IdeaStats) => number
 }[] = [
   { key: 'all', label: '全部（未完成）', countFor: (s) => s.open },
-  { key: 'pendingDiscussion', label: '待探讨（未完成且未探讨）', countFor: (s) => s.pendingDiscussion },
+  {
+    key: 'pendingDiscussion',
+    label: '待探讨（未完成且未探讨）',
+    countFor: (s) => s.pendingDiscussion,
+  },
   { key: 'due', label: '有截止日期（未完成）', countFor: (s) => s.due },
   { key: 'done', label: '已完成', countFor: (s) => s.done },
 ]
@@ -476,7 +480,7 @@ function IdeasContextMenu({
         )}
       {!item.done_file &&
         menuItem(t('setPath'), async () => {
-          const picked = await pickFolder()
+          const picked = await pickHostFolder()
           if (picked) {
             const homePath = picked.replace(/^\/Users\/[^/]+/, '~')
             await todoContext.setTodoPath(item.line_index, homePath, item.done_file)

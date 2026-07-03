@@ -2,14 +2,12 @@ import { screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
 import SkillsWorkbench from '../components/SkillsWorkbench'
-import { listSkills, type SkillInfo } from '../lib/tauri'
+import type { SkillInfo } from '../lib/apiTypes'
 
-vi.mock('../lib/tauri', () => ({
-  listSkills: vi.fn(),
-  openSkillsDir: vi.fn(),
-  openSkillDir: vi.fn(),
-  setSkillEnabled: vi.fn(),
-  setGlobalSkillEnabled: vi.fn(),
+const mockInvoke = vi.hoisted(() => vi.fn())
+
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({ invoke: mockInvoke }),
 }))
 
 const skills: SkillInfo[] = [
@@ -63,7 +61,10 @@ describe('SkillsWorkbench', () => {
     })
     vi.clearAllMocks()
     localStorage.clear()
-    vi.mocked(listSkills).mockResolvedValue(skills)
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'list_skills') return Promise.resolve(skills)
+      return Promise.resolve(undefined)
+    })
   })
 
   it('renders the existing skill list instead of an empty canvas when favorites are empty', async () => {

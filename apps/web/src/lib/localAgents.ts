@@ -13,7 +13,8 @@ const DEFAULT_BASE_URL = 'http://127.0.0.1:17510'
 
 function baseUrl(): string {
   try {
-    const ls = typeof localStorage !== 'undefined' ? localStorage.getItem('JOURNAL_DAEMON_URL') : null
+    const ls =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('JOURNAL_DAEMON_URL') : null
     if (ls) return ls
   } catch {
     // ignore
@@ -26,9 +27,7 @@ function baseUrl(): string {
  * short-lived detection cache (the Settings "重新扫描" button).
  */
 export async function listLocalAgents(rescan = false): Promise<AgentInfo[]> {
-  const url = rescan
-    ? `${baseUrl()}/agents?rescan=1`
-    : `${baseUrl()}/agents`
+  const url = rescan ? `${baseUrl()}/agents?rescan=1` : `${baseUrl()}/agents`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`listLocalAgents failed: ${res.status}`)
   const body = (await res.json()) as AgentsResponse

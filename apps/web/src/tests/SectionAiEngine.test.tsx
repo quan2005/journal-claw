@@ -3,36 +3,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SectionAiEngine from '../settings/components/SectionAiEngine'
 import { renderWithProviders as render } from './setup'
 
-const mockGetEngineConfig = vi.fn()
-const mockSetEngineConfig = vi.fn()
+const mockInvoke = vi.hoisted(() => vi.fn())
 
-vi.mock('../lib/tauri', async () => {
-  const actual = await vi.importActual('../lib/tauri')
-  return {
-    ...actual,
-    getEngineConfig: (...args: unknown[]) => mockGetEngineConfig(...args),
-    setEngineConfig: (...args: unknown[]) => mockSetEngineConfig(...args),
-    listModels: vi.fn().mockResolvedValue([]),
-  }
-})
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({ invoke: mockInvoke }),
+}))
 
 describe('SectionAiEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetEngineConfig.mockResolvedValue({
-      active_provider: 'anthropic',
-      providers: [
-        {
-          protocol: 'anthropic',
-          id: 'anthropic',
-          label: 'Anthropic',
-          api_key: 'sk-ant-test-key',
-          base_url: '',
-          model: '',
-        },
-      ],
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'get_engine_config')
+        return Promise.resolve({
+          active_provider: 'anthropic',
+          providers: [
+            {
+              protocol: 'anthropic',
+              id: 'anthropic',
+              label: 'Anthropic',
+              api_key: 'sk-ant-test-key',
+              base_url: '',
+              model: '',
+            },
+          ],
+        })
+      if (cmd === 'set_engine_config') return Promise.resolve(undefined)
+      if (cmd === 'list_models') return Promise.resolve([])
+      return Promise.resolve(undefined)
     })
-    mockSetEngineConfig.mockResolvedValue(undefined)
   })
 
   it('persists engine config only after save is clicked', async () => {
@@ -47,23 +45,26 @@ describe('SectionAiEngine', () => {
 
     expect(screen.getByText('有未保存修改')).toBeTruthy()
     expect(saveButton.disabled).toBe(false)
-    expect(mockSetEngineConfig).not.toHaveBeenCalled()
+    const setCallsBefore = mockInvoke.mock.calls.filter((c) => c[0] === 'set_engine_config')
+    expect(setCallsBefore).toHaveLength(0)
 
     fireEvent.click(saveButton)
 
     await waitFor(() => {
-      expect(mockSetEngineConfig).toHaveBeenCalledWith({
-        active_provider: 'anthropic',
-        providers: [
-          {
-            protocol: 'anthropic',
-            id: 'anthropic',
-            label: 'Anthropic',
-            api_key: 'sk-ant-test',
-            base_url: '',
-            model: '',
-          },
-        ],
+      expect(mockInvoke).toHaveBeenCalledWith('set_engine_config', {
+        config: {
+          active_provider: 'anthropic',
+          providers: [
+            {
+              protocol: 'anthropic',
+              id: 'anthropic',
+              label: 'Anthropic',
+              api_key: 'sk-ant-test',
+              base_url: '',
+              model: '',
+            },
+          ],
+        },
       })
     })
 

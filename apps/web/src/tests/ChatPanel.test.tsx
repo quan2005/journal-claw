@@ -4,18 +4,21 @@ import { renderWithProviders } from './setup'
 import { ChatPanel } from '../components/ChatPanel'
 
 const mocks = vi.hoisted(() => ({
-  importText: vi.fn(),
+  invoke: vi.fn(),
   openFile: vi.fn(),
   open: vi.fn(),
 }))
 
-vi.mock('../lib/tauri', () => ({
-  importText: mocks.importText,
-  openFile: mocks.openFile,
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({
+    invoke: mocks.invoke,
+    subscribe: () => () => {},
+  }),
 }))
 
 vi.mock('../lib/hostBridge', () => ({
   hostOpenDialog: mocks.open,
+  hostOpenWithSystem: mocks.openFile,
 }))
 
 function renderChatPanel(props?: Partial<React.ComponentProps<typeof ChatPanel>>) {
@@ -41,10 +44,15 @@ function renderChatPanel(props?: Partial<React.ComponentProps<typeof ChatPanel>>
 describe('ChatPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.importText.mockResolvedValue({
-      path: '/workspace/2606/raw/05-paste-20260605-120000.txt',
-      filename: '05-paste-20260605-120000.txt',
-      year_month: '2606',
+    mocks.invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'import_text') {
+        return {
+          path: '/workspace/2606/raw/05-paste-20260605-120000.txt',
+          filename: '05-paste-20260605-120000.txt',
+          year_month: '2606',
+        }
+      }
+      return undefined
     })
   })
 
@@ -65,7 +73,9 @@ describe('ChatPanel', () => {
     fireEvent(textarea, pasteEvent)
 
     expect(pasteEvent.defaultPrevented).toBe(true)
-    await waitFor(() => expect(mocks.importText).toHaveBeenCalledWith(longText))
+    await waitFor(() =>
+      expect(mocks.invoke).toHaveBeenCalledWith('import_text', { text: longText }),
+    )
     expect(await screen.findByText('05-paste-20260605-120000.txt')).toBeTruthy()
     expect((textarea as HTMLTextAreaElement).value).toBe('')
 

@@ -17,15 +17,18 @@ import {
   Globe,
   SquareSlash,
 } from 'lucide-react'
-import {
-  listSkills,
-  openSkillsDir,
-  openSkillDir,
-  setSkillEnabled,
-  setGlobalSkillEnabled,
-  type SkillInfo,
-  type SkillTrigger,
-} from '../lib/tauri'
+import { selectRuntimeClient } from '../lib/runtimeClient'
+import type { SkillInfo, SkillTrigger } from '../lib/apiTypes'
+
+const listSkills = () => selectRuntimeClient().invoke<SkillInfo[]>('list_skills')
+const openSkillsDir = (scope: 'builtin' | 'project' | 'global') =>
+  selectRuntimeClient().invoke<void>('open_skills_dir', { scope })
+const openSkillDir = (scope: 'builtin' | 'project' | 'global', dirName: string) =>
+  selectRuntimeClient().invoke<void>('open_skill_dir', { scope, dirName })
+const setSkillEnabled = (skillId: string, enabled: boolean) =>
+  selectRuntimeClient().invoke<void>('set_skill_enabled', { skillId, enabled })
+const setGlobalSkillEnabled = (skillId: string, enabled: boolean) =>
+  selectRuntimeClient().invoke<void>('set_global_skill_enabled', { skillId, enabled })
 import { useTranslation } from '../contexts/I18nContext'
 
 // Map a skill's dir_name to a lucide icon. Falls back to Zap.
@@ -159,22 +162,38 @@ function SkillCard({
           <div className="sk-card-title">{s.description}</div>
         </div>
         <div className="sk-card-actions" onClick={(e) => e.stopPropagation()}>
-          <StarBtn on={isFavorite} onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} />
-          <SlashBtn onClick={(e) => { e.stopPropagation(); onInvoke() }} />
+          <StarBtn
+            on={isFavorite}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleFavorite()
+            }}
+          />
+          <SlashBtn
+            onClick={(e) => {
+              e.stopPropagation()
+              onInvoke()
+            }}
+          />
           {s.scope === 'builtin' ? (
             <span className="sk-card-builtin-badge">
-              <Lock size={12} />常驻
+              <Lock size={12} />
+              常驻
             </span>
           ) : !isShadowed ? (
-            <Switch on={on} onClick={(e) => { e.stopPropagation(); toggle() }} />
+            <Switch
+              on={on}
+              onClick={(e) => {
+                e.stopPropagation()
+                toggle()
+              }}
+            />
           ) : null}
         </div>
       </div>
 
       {/* shadowed notice */}
-      {isShadowed && (
-        <p className="sk-card-shadowed">已被高优先级技能覆盖</p>
-      )}
+      {isShadowed && <p className="sk-card-shadowed">已被高优先级技能覆盖</p>}
 
       {/* footer: trigger chips */}
       {!isShadowed && s.triggers.length > 0 && (
@@ -227,10 +246,7 @@ function SkillDrawer({
   const Icon = skillIcon(s.dir_name)
 
   return (
-    <div
-      onClick={close}
-      className={`sk-drawer-backdrop${show ? ' is-show' : ''}`}
-    >
+    <div onClick={close} className={`sk-drawer-backdrop${show ? ' is-show' : ''}`}>
       <div onClick={(e) => e.stopPropagation()} className={`sk-drawer${show ? ' is-show' : ''}`}>
         {/* header */}
         <div className="sk-drawer-header">
@@ -242,7 +258,13 @@ function SkillDrawer({
               <div className="sk-drawer-id">{s.dir_name}</div>
               <div className="sk-drawer-title">{s.name}</div>
             </div>
-            <StarBtn on={fav} onClick={(e) => { e.stopPropagation(); onFav() }} />
+            <StarBtn
+              on={fav}
+              onClick={(e) => {
+                e.stopPropagation()
+                onFav()
+              }}
+            />
             <button type="button" aria-label="关闭" onClick={close} className="sk-drawer-close">
               <X size={18} />
             </button>
@@ -253,14 +275,21 @@ function SkillDrawer({
             <span style={{ flex: 1 }} />
             {s.scope === 'builtin' ? (
               <span className="sk-drawer-builtin-label">
-                <Lock size={14} />常驻 · 不可停用
+                <Lock size={14} />
+                常驻 · 不可停用
               </span>
             ) : (
               <>
                 <span className={`sk-drawer-status${on ? ' is-on' : ''}`}>
                   {on ? '已启用' : '已停用'}
                 </span>
-                <Switch on={on} onClick={(e) => { e.stopPropagation(); toggle() }} />
+                <Switch
+                  on={on}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggle()
+                  }}
+                />
               </>
             )}
           </div>
@@ -295,9 +324,7 @@ function SkillDrawer({
 
           {s.loads.length > 0 && (
             <div className="sk-drawer-section">
-              <div className="sk-drawer-section-title">
-                加载的规则 · {s.loads.length}
-              </div>
+              <div className="sk-drawer-section-title">加载的规则 · {s.loads.length}</div>
               <div className="sk-drawer-loads">
                 {s.loads.map((f, i) => (
                   <div key={i} className="sk-drawer-file-chip">
@@ -359,16 +386,12 @@ export default function SkillsWorkbench() {
     } else {
       setSkillEnabled(skill.id, next).catch(console.error)
     }
-    setSkills((prev) =>
-      prev.map((s) => (s.id === skill.id ? { ...s, enabled: next } : s)),
-    )
+    setSkills((prev) => prev.map((s) => (s.id === skill.id ? { ...s, enabled: next } : s)))
   }
 
   const toggleFavorite = (skillId: string) => {
     setFavorites((prev) => {
-      const next = prev.includes(skillId)
-        ? prev.filter((id) => id !== skillId)
-        : [...prev, skillId]
+      const next = prev.includes(skillId) ? prev.filter((id) => id !== skillId) : [...prev, skillId]
       saveFavorites(next)
       return next
     })
@@ -380,12 +403,30 @@ export default function SkillsWorkbench() {
     )
   }
 
-  const tabs: { key: TabKey; label: string; icon: typeof Zap; count: number }[] = useMemo(() => [
-    { key: 'favorites', label: '收藏', icon: Star, count: favorites.length },
-    { key: 'builtin', label: '内置', icon: Lock, count: skills.filter((s) => s.scope === 'builtin').length },
-    { key: 'project', label: '项目', icon: Package, count: skills.filter((s) => s.scope === 'project').length },
-    { key: 'global', label: '全局', icon: Globe, count: skills.filter((s) => s.scope === 'global').length },
-  ], [skills, favorites])
+  const tabs: { key: TabKey; label: string; icon: typeof Zap; count: number }[] = useMemo(
+    () => [
+      { key: 'favorites', label: '收藏', icon: Star, count: favorites.length },
+      {
+        key: 'builtin',
+        label: '内置',
+        icon: Lock,
+        count: skills.filter((s) => s.scope === 'builtin').length,
+      },
+      {
+        key: 'project',
+        label: '项目',
+        icon: Package,
+        count: skills.filter((s) => s.scope === 'project').length,
+      },
+      {
+        key: 'global',
+        label: '全局',
+        icon: Globe,
+        count: skills.filter((s) => s.scope === 'global').length,
+      },
+    ],
+    [skills, favorites],
+  )
 
   const list = useMemo(() => {
     let filtered = skills
@@ -400,8 +441,7 @@ export default function SkillsWorkbench() {
         filtered = skills.filter((s) => s.scope === 'global')
         break
       case 'favorites':
-        filtered =
-          favorites.length === 0 ? skills : skills.filter((s) => favorites.includes(s.id))
+        filtered = favorites.length === 0 ? skills : skills.filter((s) => favorites.includes(s.id))
         break
     }
     if (q.trim()) {
@@ -413,7 +453,8 @@ export default function SkillsWorkbench() {
     return filtered
   }, [skills, tab, q, favorites])
 
-  const showingFavoritesFallback = tab === 'favorites' && favorites.length === 0 && skills.length > 0
+  const showingFavoritesFallback =
+    tab === 'favorites' && favorites.length === 0 && skills.length > 0
 
   if (loading) {
     return <div className="sk-loading">加载中…</div>
@@ -427,7 +468,8 @@ export default function SkillsWorkbench() {
           <span className="sk-eyebrow">AGENT SKILLS</span>
           <h1 className="sk-title">技能</h1>
           <p className="sk-subtitle">
-            管理触发 AI 行为的技能。每个技能定义触发方式、加载的规则与产出 —— 启用后即可在对话中被调用。
+            管理触发 AI 行为的技能。每个技能定义触发方式、加载的规则与产出 ——
+            启用后即可在对话中被调用。
           </p>
         </div>
 
@@ -452,11 +494,7 @@ export default function SkillsWorkbench() {
           <span className="sk-filter-spacer" />
           <div className="sk-search">
             <Search size={15} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="搜索技能…"
-            />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索技能…" />
           </div>
           <span className="sk-filter-divider" />
           <button type="button" className="sk-btn-ghost" onClick={() => openSkillsDir('project')}>

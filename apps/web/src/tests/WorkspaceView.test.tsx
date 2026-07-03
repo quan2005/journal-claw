@@ -42,19 +42,16 @@ vi.mock('../lib/localAgents', () => ({
 
 vi.mock('../lib/runtimeClient', () => ({
   selectRuntimeClient: () => ({
+    invoke: vi.fn((cmd: string) => {
+      if (cmd === 'get_engine_config')
+        return Promise.resolve({ providers: [], active_provider: '' })
+      if (cmd === 'conversation_list') return Promise.resolve([])
+      if (cmd === 'conversation_delete') return Promise.resolve(undefined)
+      return Promise.resolve(undefined)
+    }),
     subscribe: () => () => {},
   }),
 }))
-
-vi.mock('../lib/tauri', async () => {
-  const actual = await vi.importActual<typeof import('../lib/tauri')>('../lib/tauri')
-  return {
-    ...actual,
-    getEngineConfig: vi.fn().mockResolvedValue({ providers: [], active_provider: '' }),
-    conversationList: vi.fn().mockResolvedValue([]),
-    conversationDelete: vi.fn().mockResolvedValue(undefined),
-  }
-})
 
 // Mock toast dispatcher used by placeholder actions
 const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent').mockReturnValue(true)

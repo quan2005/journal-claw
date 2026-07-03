@@ -1,15 +1,33 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import {
-  listAvailableMonths,
-  listJournalEntriesByMonths,
-  listWorkQueue,
-  enqueueWork as invokeEnqueueWork,
-  dismissWorkItem as invokeDismissWork,
-} from '../lib/tauri'
 import { selectRuntimeClient } from '../lib/runtimeClient'
 import { useEventSync } from './useEventSync'
 import type { JournalEntry, ProcessingUpdate, QueueItem, AiLogLine } from '../types'
-import type { WorkItem } from '../lib/tauri'
+import type { WorkItem } from '../lib/apiTypes'
+
+const listAvailableMonths = (): Promise<string[]> =>
+  selectRuntimeClient().invoke<string[]>('list_available_months')
+
+const listJournalEntriesByMonths = (months: string[]): Promise<JournalEntry[]> =>
+  selectRuntimeClient().invoke<JournalEntry[]>('list_journal_entries_by_months', { months })
+
+const listWorkQueue = (): Promise<WorkItem[]> =>
+  selectRuntimeClient().invoke<WorkItem[]>('list_work_queue')
+
+const invokeEnqueueWork = (params: {
+  text?: string
+  files?: string[]
+  prompt?: string
+  displayName: string
+}): Promise<WorkItem> =>
+  selectRuntimeClient().invoke<WorkItem>('enqueue_work', {
+    text: params.text ?? null,
+    files: params.files ?? null,
+    prompt: params.prompt ?? null,
+    displayName: params.displayName,
+  })
+
+const invokeDismissWork = (id: string): Promise<void> =>
+  selectRuntimeClient().invoke<void>('dismiss_work_item', { id })
 
 const BATCH_SIZE = 3
 

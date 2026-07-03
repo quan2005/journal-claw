@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { selectRuntimeClient } from '../lib/runtimeClient'
-import { conversationList, conversationDelete, type SessionSummary } from '../lib/tauri'
 import { useTranslation } from '../contexts/I18nContext'
+import type { SessionSummary } from '../lib/apiTypes'
+
+const conversationList = () => selectRuntimeClient().invoke<SessionSummary[]>('conversation_list')
+const conversationDelete = (sessionId: string) =>
+  selectRuntimeClient().invoke<void>('conversation_delete', { sessionId })
 
 export const SESSION_LIST_WIDTH = 240
 

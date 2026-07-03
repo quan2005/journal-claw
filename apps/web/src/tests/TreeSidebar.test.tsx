@@ -23,11 +23,10 @@ vi.mock('../hooks/useTopics', () => ({
   }),
 }))
 
-vi.mock('../lib/tauri', () => ({
-  deleteJournalEntry: vi.fn(),
-  deleteIdentity: vi.fn(),
-  deleteTopic: vi.fn(),
-  getWorkspacePath: vi.fn().mockResolvedValue('/ws'),
+const mockInvoke = vi.hoisted(() => vi.fn())
+
+vi.mock('../lib/runtimeClient', () => ({
+  selectRuntimeClient: () => ({ invoke: mockInvoke }),
 }))
 
 const identity: IdentityEntry = {
@@ -108,6 +107,10 @@ beforeEach(() => {
     writable: true,
   })
   vi.clearAllMocks()
+  mockInvoke.mockImplementation((cmd: string) => {
+    if (cmd === 'get_workspace_path') return Promise.resolve('/ws')
+    return Promise.resolve(undefined)
+  })
 })
 
 describe('TreeSidebar', () => {

@@ -1,15 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { renderMarkdown } from '../lib/markdown'
 import type { JournalEntry, IdentityEntry } from '../types'
-import {
-  getJournalEntryContent,
-  getIdentityContent,
-  getWorkspacePrompt,
-  resetWorkspacePrompt,
-  getWorkspacePath,
-  openFile,
-  type WorkspaceDirEntry,
-} from '../lib/tauri'
+import type { WorkspaceDirEntry } from '../lib/apiTypes'
+import { selectRuntimeClient } from '../lib/runtimeClient'
 import { pickDisplayTags } from '../lib/tags'
 import { fileKindFromName, type FileKind } from '../lib/fileKind'
 import { parseCSV } from '../lib/parseCSV'
@@ -18,7 +11,7 @@ import { Spinner } from './Spinner'
 import { IdeasWorkbench, type IdeaConversationRequest } from './IdeasWorkbench'
 import { FindBar } from './FindBar'
 import { createTranslator, detectLang } from '../lib/i18n'
-import { hostAsk, hostConvertFileSrc } from '../lib/hostBridge'
+import { hostAsk, hostConvertFileSrc, hostOpenWithSystem } from '../lib/hostBridge'
 import { SandboxPreview } from './SandboxPreview'
 import { ArrowLeft, Check, Code2, Copy, Eye, Maximize2, Minimize2 } from 'lucide-react'
 import { isAbsoluteFilePath } from '../lib/fileNavigation'
@@ -34,6 +27,14 @@ import xml from 'highlight.js/lib/languages/xml'
 import sql from 'highlight.js/lib/languages/sql'
 import yaml from 'highlight.js/lib/languages/yaml'
 import markdownLang from 'highlight.js/lib/languages/markdown'
+
+const getJournalEntryContent = (path: string) =>
+  selectRuntimeClient().invoke<string>('get_journal_entry_content', { path })
+const getIdentityContent = (path: string) =>
+  selectRuntimeClient().invoke<string>('get_identity_content', { path })
+const getWorkspacePrompt = () => selectRuntimeClient().invoke<string>('get_workspace_prompt')
+const resetWorkspacePrompt = () => selectRuntimeClient().invoke<string>('reset_workspace_prompt')
+const getWorkspacePath = () => selectRuntimeClient().invoke<string>('get_workspace_path')
 
 // ── Constants ───────────────────────────────────────────────────────────────────
 const SOUL_PATH = '__soul__'
@@ -1855,7 +1856,7 @@ export const DetailView = React.memo(function DetailView({
         >
           <span style={{ fontSize: 'var(--text-base)' }}>{file.name}</span>
           <button
-            onClick={() => openFile(fileAbsolutePath)}
+            onClick={() => hostOpenWithSystem(fileAbsolutePath)}
             style={{
               fontSize: 'var(--text-sm)',
               color: 'var(--segment-active-text)',
@@ -2330,7 +2331,7 @@ export const DetailView = React.memo(function DetailView({
                       } else {
                         try {
                           const ws = await getWorkspacePath()
-                          await openFile(`${ws}/${src}`)
+                          await hostOpenWithSystem(`${ws}/${src}`)
                         } catch (e) {
                           console.error('[source-click] open failed:', e)
                         }
@@ -2338,7 +2339,7 @@ export const DetailView = React.memo(function DetailView({
                     } else {
                       try {
                         const ws = await getWorkspacePath()
-                        await openFile(`${ws}/${src}`)
+                        await hostOpenWithSystem(`${ws}/${src}`)
                       } catch (e) {
                         console.error('[source-click] open failed:', e)
                       }
@@ -2414,8 +2415,7 @@ export const DetailView = React.memo(function DetailView({
                   fontSize: 'var(--text-base)',
                   color: 'var(--detail-summary)',
                   lineHeight: 1.8,
-                  marginBottom:
-                    pickDisplayTags(identity.tags, Infinity).length > 0 ? 10 : 0,
+                  marginBottom: pickDisplayTags(identity.tags, Infinity).length > 0 ? 10 : 0,
                 }}
               >
                 {identity.summary}

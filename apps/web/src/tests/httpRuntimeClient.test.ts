@@ -6,12 +6,14 @@ globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch
 
 class MockEventSource {
   static last: MockEventSource | null = null
+  static instances: MockEventSource[] = []
   url: string
   onmessage: ((msg: { data: string }) => void) | null = null
   closed = false
   constructor(url: string) {
     this.url = url
     MockEventSource.last = this
+    MockEventSource.instances.push(this)
   }
   close() {
     this.closed = true
@@ -26,6 +28,7 @@ describe('HttpRuntimeClient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     MockEventSource.last = null
+    MockEventSource.instances = []
     vi.resetModules()
   })
 
@@ -118,6 +121,39 @@ describe('HttpRuntimeClient', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ theme: 'light' }),
+    })
+  })
+
+  it('invoke maps pinned items to workspace settings', async () => {
+    const pinned = [
+      { type: 'journal', path: '2606/26-周报-0626.md', order: 0 },
+      { type: 'topic', path: 'topics/research.md', order: 1 },
+    ]
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          theme: 'dark',
+          auto_lint: {},
+          global_skills_enabled: false,
+          pinned: [...pinned, { type: 'bad', path: 'x', order: 2 }, { type: 'identity' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ theme: 'dark', auto_lint: {}, global_skills_enabled: false, pinned }),
+      })
+    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
+    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
+
+    await expect(client.invoke('get_pinned_items')).resolves.toEqual(pinned)
+    await client.invoke('set_pinned_items', { items: pinned })
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/settings')
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pinned }),
     })
   })
 
@@ -417,15 +453,29 @@ describe('HttpRuntimeClient', () => {
     await expect(client.invoke('get_workspace_path')).rejects.toThrow(/500/)
   })
 
-  it('subscribe opens EventSource on named conversation stream and surfaces parsed payloads', async () => {
+  it('subscribe multiplexes named events over one app-event EventSource', async () => {
     const { HttpRuntimeClient } = await import('../lib/runtimeClient')
     const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
-    const received: unknown[] = []
-    const off = client.subscribe('conversation-stream', (p) => received.push(p))
-    expect(MockEventSource.last?.url).toBe('http://127.0.0.1:1/events/conversation-stream')
-    MockEventSource.last!.emit({ session_id: 's1', event: 'text_delta', data: 'hi' })
-    expect(received[0]).toEqual({ session_id: 's1', event: 'text_delta', data: 'hi' })
-    off()
+    const conversation: unknown[] = []
+    const journal: unknown[] = []
+    const offConversation = client.subscribe('conversation-stream', (p) => conversation.push(p))
+    const offJournal = client.subscribe('journal-updated', (p) => journal.push(p))
+
+    expect(MockEventSource.instances).toHaveLength(1)
+    expect(MockEventSource.last?.url).toBe('http://127.0.0.1:1/events/app-event')
+
+    MockEventSource.last!.emit({
+      event: 'conversation-stream',
+      payload: { session_id: 's1', event: 'text_delta', data: 'hi' },
+    })
+    MockEventSource.last!.emit({ event: 'journal-updated', payload: '2606' })
+
+    expect(conversation[0]).toEqual({ session_id: 's1', event: 'text_delta', data: 'hi' })
+    expect(journal[0]).toBe('2606')
+
+    offConversation()
+    expect(MockEventSource.last?.closed).toBe(false)
+    offJournal()
     expect(MockEventSource.last?.closed).toBe(true)
   })
 

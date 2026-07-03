@@ -8,6 +8,7 @@
 
 import express from 'express'
 import type { Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import type { Provider } from '@earendil-works/pi-ai'
 import { AgentRunService } from './runs/service.js'
 import { getAgentDef } from './runtimes/registry.js'
@@ -59,6 +60,21 @@ export interface DaemonHandle {
 }
 
 const VALID_MODES: ReadonlySet<AgentRunMode> = new Set(['chat', 'agent', 'observe'])
+const LOOPBACK_CORS_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS'
+const LOOPBACK_CORS_HEADERS = 'Content-Type, Authorization'
+
+function isAllowedCorsOrigin(origin: string): boolean {
+  if (origin === 'file://' || origin === 'null') return true
+
+  try {
+    const parsed = new URL(origin)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+    const host = parsed.hostname.toLowerCase()
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]'
+  } catch {
+    return false
+  }
+}
 
 function resolveDataDir(): string {
   return process.env.JOURNAL_DAEMON_DATA_DIR ?? '.journal-daemon-data'
@@ -199,6 +215,20 @@ function parseUpdateRoutineRequest(body: unknown): {
 export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
   return new Promise((resolve, reject) => {
     const app = express()
+    app.use((req, res, next) => {
+      const origin = req.headers.origin
+      if (typeof origin === 'string' && isAllowedCorsOrigin(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Vary', 'Origin')
+        res.setHeader('Access-Control-Allow-Methods', LOOPBACK_CORS_METHODS)
+        res.setHeader('Access-Control-Allow-Headers', LOOPBACK_CORS_HEADERS)
+      }
+      if (req.method === 'OPTIONS') {
+        res.status(204).end()
+        return
+      }
+      next()
+    })
     app.use(express.json({ limit: '25mb' }))
 
     const service = opts.runService ?? new AgentRunService(resolveDataDir())
@@ -238,6 +268,15 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           subscriber(payload)
         } catch {
           // Ignore one broken SSE client.
+        }
+      }
+      if (event !== 'app-event') {
+        for (const subscriber of namedEventSubscribers.get('app-event') ?? []) {
+          try {
+            subscriber({ event, payload })
+          } catch {
+            // Ignore one broken SSE client.
+          }
         }
       }
     }
@@ -1451,6 +1490,21 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
     const handleConversationError = (res: express.Response, err: unknown): void => {
       const message = err instanceof Error ? err.message : String(err)
+      const isConfigError =
+        message.includes('model not found for provider') ||
+        message.includes('active provider not configured') ||
+        message.includes('model is required for provider') ||
+        message.includes('base_url is required for provider')
+      if (isConfigError) {
+        res.status(400).json({
+          error: {
+            code: 'engine_config_error',
+            message,
+            hint: 'Check the AI engine provider/model settings in Settings > AI Engine.',
+          },
+        })
+        return
+      }
       const status = message.includes('not found') || message.includes('failed to read') ? 404 : 400
       res.status(status).json({ error: { code: 'conversation_error', message } })
     }
@@ -1656,7 +1710,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
             )
           : executeRun(
               service,
-              { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode },
+              { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode, cwd: workspaceRoot() },
               { signal: abortController.signal },
             )
       execution
@@ -1923,7 +1977,11 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       const prompt = typeof body.prompt === 'string' ? body.prompt : goal
       const childAbort = new AbortController()
       runAbortControllers.set(childRun.id, childAbort)
-      executeRun(service, { runId: childRun.id, agentId, prompt }, { signal: childAbort.signal })
+      executeRun(
+        service,
+        { runId: childRun.id, agentId, prompt, cwd: workspaceRoot() },
+        { signal: childAbort.signal },
+      )
         .then((result) => {
           runAbortControllers.delete(childRun.id)
           if (!result.ok) return
@@ -1953,7 +2011,9 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     // service. Binding 0.0.0.0 would be both a sandbox EPERM and a needless
     // exposure of the workspace API.
     const server: Server = app.listen(opts.port, '127.0.0.1', () => {
-      const url = `http://127.0.0.1:${opts.port}`
+      const address = server.address() as AddressInfo | null
+      const port = address?.port ?? opts.port
+      const url = `http://127.0.0.1:${port}`
       resolve({
         url,
         close: () =>

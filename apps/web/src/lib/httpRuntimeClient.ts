@@ -32,6 +32,7 @@ interface WorkspaceSettings {
   theme: 'light' | 'dark' | 'system'
   auto_lint: AutoLintConfig
   global_skills_enabled: boolean
+  pinned?: unknown
   disabled_skills?: string[]
   enabled_global_skills?: string[]
   /** Selected chat engine for the unified conversation panel ('builtin'|'cli'). */
@@ -39,6 +40,35 @@ interface WorkspaceSettings {
   /** Selected external CLI agent id (when agent_engine === 'cli'). */
   agent_id?: string | null
   [key: string]: unknown
+}
+
+interface PinnedItem {
+  type: 'journal' | 'identity' | 'topic'
+  path: string
+  order: number
+}
+
+function normalizePinnedItems(value: unknown): PinnedItem[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item, index): PinnedItem[] => {
+    if (!item || typeof item !== 'object') return []
+    const candidate = item as { type?: unknown; path?: unknown; order?: unknown }
+    if (
+      candidate.type !== 'journal' &&
+      candidate.type !== 'identity' &&
+      candidate.type !== 'topic'
+    ) {
+      return []
+    }
+    if (typeof candidate.path !== 'string') return []
+    return [
+      {
+        type: candidate.type,
+        path: candidate.path,
+        order: typeof candidate.order === 'number' ? candidate.order : index,
+      },
+    ]
+  })
 }
 
 function resolveBaseUrl(opts?: HttpRuntimeClientOptions): string {
@@ -60,6 +90,8 @@ function resolveBaseUrl(opts?: HttpRuntimeClientOptions): string {
 
 export class HttpRuntimeClient implements JournalRuntimeClient {
   readonly baseUrl: string
+  private sharedEventSource: EventSource | null = null
+  private readonly sharedSubscribers = new Map<string, Set<(payload: unknown) => void>>()
 
   constructor(opts: HttpRuntimeClientOptions = {}) {
     this.baseUrl = resolveBaseUrl(opts)
@@ -134,6 +166,14 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         if (args?.engine !== undefined) patch.agent_engine = args.engine
         if (args?.agentId !== undefined) patch.agent_id = args.agentId
         if (Object.keys(patch).length > 0) await this.updateSettings(patch)
+        return undefined as T
+      }
+      case 'get_pinned_items': {
+        const settings = await this.getSettings()
+        return normalizePinnedItems(settings.pinned) as T
+      }
+      case 'set_pinned_items': {
+        await this.updateSettings({ pinned: normalizePinnedItems(args?.items) })
         return undefined as T
       }
       case 'get_auto_lint_config': {
@@ -901,10 +941,14 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
   }
 
   subscribe<T>(event: string, handler: (payload: T) => void): () => void {
-    // The daemon exposes a global /events heartbeat stream and named event
-    // streams under /events/:event. Conversation streaming is a named stream.
-    const route = event === 'agent-run' ? '/events' : `/events/${encodeURIComponent(event)}`
-    const es = new EventSource(`${this.baseUrl}${route}`)
+    // The daemon exposes run-specific streams separately. App-level named
+    // events are multiplexed over one /events/app-event stream so startup
+    // subscriptions cannot exhaust the browser's per-origin connection pool.
+    if (event !== 'agent-run') {
+      return this.subscribeShared(event, handler as (payload: unknown) => void)
+    }
+
+    const es = new EventSource(`${this.baseUrl}/events`)
     es.onmessage = (msg) => {
       try {
         const payload = JSON.parse(msg.data) as T
@@ -914,5 +958,54 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
       }
     }
     return () => es.close()
+  }
+
+  private subscribeShared(event: string, handler: (payload: unknown) => void): () => void {
+    const subscribers = this.sharedSubscribers.get(event) ?? new Set<(payload: unknown) => void>()
+    subscribers.add(handler)
+    this.sharedSubscribers.set(event, subscribers)
+    this.ensureSharedEventSource()
+
+    return () => {
+      const current = this.sharedSubscribers.get(event)
+      current?.delete(handler)
+      if (current?.size === 0) this.sharedSubscribers.delete(event)
+      if (this.sharedSubscribers.size === 0) {
+        this.sharedEventSource?.close()
+        this.sharedEventSource = null
+      }
+    }
+  }
+
+  private ensureSharedEventSource(): void {
+    if (this.sharedEventSource) return
+    const es = new EventSource(`${this.baseUrl}/events/app-event`)
+    es.onmessage = (msg) => {
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(msg.data)
+      } catch {
+        return
+      }
+
+      this.dispatchShared('app-event', parsed)
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'event' in parsed &&
+        'payload' in parsed &&
+        typeof (parsed as { event?: unknown }).event === 'string'
+      ) {
+        const wrapped = parsed as { event: string; payload: unknown }
+        this.dispatchShared(wrapped.event, wrapped.payload)
+      }
+    }
+    this.sharedEventSource = es
+  }
+
+  private dispatchShared(event: string, payload: unknown): void {
+    for (const subscriber of this.sharedSubscribers.get(event) ?? []) {
+      subscriber(payload)
+    }
   }
 }

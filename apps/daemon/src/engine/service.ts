@@ -52,6 +52,7 @@ export interface PiPromptResult {
 const DEFAULT_SYSTEM_PROMPT = 'You are JournalClaw daemon built-in agent.'
 const OPENAI_COMPATIBLE_VENDORS = new Set(['volcengine', 'zhipu', 'dashscope'])
 const DEFAULT_OPENAI_COMPATIBLE_BASE_URL: Record<string, string> = {
+  deepseek: 'https://api.deepseek.com/v1',
   volcengine: 'https://ark.cn-beijing.volces.com/api/v3',
   zhipu: 'https://open.bigmodel.cn/api/paas/v4',
   dashscope: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
@@ -239,6 +240,15 @@ function shouldRegisterOpenAICompatibleProvider(
 ): boolean {
   if (models.getModel(provider.id, provider.model)) return false
   if (OPENAI_COMPATIBLE_VENDORS.has(provider.id)) return true
+  if (DEFAULT_OPENAI_COMPATIBLE_BASE_URL[provider.id]) return true
+  if (
+    provider.base_url &&
+    Object.values(DEFAULT_OPENAI_COMPATIBLE_BASE_URL).some((url) =>
+      provider.base_url.toLowerCase().startsWith(url.toLowerCase()),
+    )
+  ) {
+    return true
+  }
   return provider.protocol === 'openai' && Boolean(provider.base_url)
 }
 

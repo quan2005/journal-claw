@@ -926,6 +926,17 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     return (await res.json()) as WorkspaceSettings
   }
 
+  async health(): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/health`)
+      if (!res.ok) return false
+      const body = (await res.json().catch(() => null)) as { status?: string } | null
+      return body?.status === 'ok'
+    } catch {
+      return false
+    }
+  }
+
   subscribe<T>(event: string, handler: (payload: T) => void): () => void {
     // The daemon exposes run-specific streams separately. App-level named
     // events are multiplexed over one /events/app-event stream so startup

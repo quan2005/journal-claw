@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url'
 import {
   app,
   BrowserWindow,
+  nativeTheme,
   type BrowserWindowConstructorOptions,
 } from 'electron'
 import { buildApplicationMenu } from './menu.js'
@@ -24,8 +25,16 @@ import {
   waitForHealth,
 } from './daemon.js'
 import { registerHostIpc } from './hostIpc.js'
+import { runStartup } from './startup.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
+
+// ── D0: perf instrumentation ─────────────────────────────────────────────
+// Captured at module load (≈ process start) so every mark is a relative ms.
+const bootStart = Date.now()
+function perf(event: string): void {
+  process.stdout.write(`[desktop:perf] ${event} +${Date.now() - bootStart}ms\n`)
+}
 
 // Dev server (apps/web vite). Overridable for non-standard setups.
 const DEV_SERVER_URL = process.env.JOURNAL_DEV_URL ?? 'http://localhost:1420'
@@ -66,6 +75,17 @@ async function startDaemon(): Promise<DaemonHandle | null> {
   return handle
 }
 
+// ── D2: theme-aware background tokens (docs/DESIGN.md --bg) ──────────────
+// Pick by the OS/native theme so the window never flashes the wrong color
+// before the renderer applies its own data-theme. Desktop has zero business
+// semantics — this reads nativeTheme (host concern), not daemon settings.
+const BG_DARK = '#0f0f0f'
+const BG_LIGHT = '#ffffff'
+
+function resolveBackgroundColor(): string {
+  return nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT
+}
+
 function windowOptions(): BrowserWindowConstructorOptions {
   return {
     width: 1280,
@@ -73,7 +93,12 @@ function windowOptions(): BrowserWindowConstructorOptions {
     minWidth: 720,
     minHeight: 480,
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#FFFFFF',
+    // D2: paint the native window with the app background immediately so the
+    // first frame is never pure white. Matches renderer --bg tokens.
+    backgroundColor: resolveBackgroundColor(),
+    // D2: hidden until the renderer signals ready-to-show (or the 3s fallback
+    // fires), avoiding the empty-skeleton → content flash.
+    show: false,
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
       // Keep the main world free of Node; the renderer talks to the daemon
@@ -102,25 +127,50 @@ function loadRenderer(window: BrowserWindow): void {
   }
 }
 
+// D2: fallback timeout — dev Vite cold-start may delay ready-to-show beyond
+// 1s. We force-show so AC-1's ≤1s window-appearance target holds even when the
+// dev server is slow (the fallback only triggers in the abnormal case).
+const SHOW_FALLBACK_MS = 3000
+
 function createWindow(): void {
   const window = new BrowserWindow(windowOptions())
+  let shown = false
+  const showOnce = (): void => {
+    if (shown) return
+    shown = true
+    window.show()
+    perf('ready-to-show')
+  }
+  // Show as soon as the renderer has painted its first frame.
+  window.once('ready-to-show', showOnce)
+  // Fallback: never let a slow dev server keep the window hidden indefinitely.
+  const fallback = setTimeout(showOnce, SHOW_FALLBACK_MS)
+  fallback.unref()
   loadRenderer(window)
 }
 
-app.whenReady().then(async () => {
-  registerHostIpc()
-  buildApplicationMenu()
-
-  // Daemon is best-effort: a failure to start must not block the window.
-  daemonHandle = await startDaemon().catch((err: Error) => {
-    log('daemon', `spawn failed: ${err.message}`)
-    return null
-  })
-
-  createWindow()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+app.whenReady().then(() => {
+  // D1: createWindow runs synchronously inside runStartup; startDaemon runs
+  // in parallel (never awaited before the window). The window appears within
+  // ~1s while the daemon boots in the background.
+  runStartup({
+    registerHostIpc,
+    buildApplicationMenu,
+    createWindow,
+    startDaemon: () =>
+      startDaemon().catch((err: Error) => {
+        log('daemon', `spawn failed: ${err.message}`)
+        return null
+      }),
+    registerActivateHandler: (handler) => {
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) handler()
+      })
+    },
+    onDaemonReady: (handle) => {
+      daemonHandle = handle
+    },
+    perf,
   })
 })
 

@@ -14,6 +14,8 @@ import { HttpRuntimeClient } from './httpRuntimeClient'
 export type JournalRuntimeClient = {
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>
   subscribe<T>(event: string, handler: (payload: T) => void): () => void
+  /** Lightweight daemon reachability probe (GET /health). Boot-time only. */
+  health(): Promise<boolean>
 }
 
 /** Runtime selection is retained as a compatibility shim for older call sites. */

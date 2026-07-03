@@ -14,10 +14,34 @@
         document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light');
       })();
     </script>
+    <style>
+      /* D2: critical inline CSS — paints background + boot splash before the JS
+         bundle executes, eliminating the white-screen window. Replaced by React
+         once it mounts into #root. Tokens mirror docs/DESIGN.md (--bg, #ff5701). */
+      #boot-splash{position:fixed;inset:0;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;gap:18px;font-family:-apple-system,
+        BlinkMacSystemFont,"Noto Serif SC",serif}
+      :root:not([data-theme='light']) #boot-splash,
+      [data-theme='dark'] #boot-splash{background:#0f0f0f}
+      [data-theme='light'] #boot-splash{background:#ffffff}
+      #boot-splash .brand{font-size:30px;font-weight:700;letter-spacing:.04em;
+        color:#111827}
+      :root:not([data-theme='light']) #boot-splash .brand,
+      [data-theme='dark'] #boot-splash .brand{color:#f6f6f1}
+      #boot-splash .spinner{width:26px;height:26px;border-radius:999px;
+        border:2.5px solid rgba(255,87,1,.2);border-top-color:#ff5701;
+        animation:bootspin .8s linear infinite}
+      @keyframes bootspin{to{transform:rotate(360deg)}}
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-splash">
+        <div class="brand">谨迹</div>
+        <div class="spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

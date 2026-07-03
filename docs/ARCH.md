@@ -96,6 +96,8 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 
 `apps/desktop`：main/preload 构建、daemon 子进程生命周期与日志转发、原生菜单与窗口、文件选择/系统打开/Reveal/dialog/zoom/theme/file drop。Preload 只暴露 `window.electronAPI` 白名单方法。
 
+启动时序（`src/startup.ts`）：窗口创建同步先行、daemon 并行启动互不阻塞；窗口 `show:false` + `ready-to-show`（3s 兜底）+ 主题感知背景色防白屏；renderer 侧 `BootGate` 以指数退避探测 daemon 就绪后进入正常界面。
+
 ## 数据与恢复
 
 - workspace 既有 Markdown、topics、todos、identity、skills、conversation、automation 数据保持可读。

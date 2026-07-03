@@ -9,7 +9,7 @@ description: JournalClaw 当前 Electron + TypeScript daemon 架构说明。
 
 ```
 apps/web (React)
-  -> lib/tauri.ts compatibility shim
+  -> runtimeClient / hostBridge
   -> runtimeClient / httpRuntimeClient
   -> apps/daemon (HTTP + SSE)
 
@@ -27,7 +27,7 @@ apps/web hostBridge
 - `invoke(command, args)`：兼容旧 command 风格调用，实际映射到 daemon route。
 - `subscribe(event, handler)`：订阅 daemon SSE 事件，返回同步 unsubscribe。
 
-`apps/web/src/lib/tauri.ts` 保留旧函数名是为了降低迁移成本，不代表存在旧 native runtime。
+历史注记：`apps/web/src/lib/tauri.ts` 兼容 shim 已于 2026-07-03 拆除，调用方直接消费 `runtimeClient` / `hostBridge`。
 
 ## Daemon
 

@@ -1,5 +1,5 @@
 ---
-status: approved
+status: verified
 date: 2026-07-03
 slug: architecture-governance-replan
 level: L3

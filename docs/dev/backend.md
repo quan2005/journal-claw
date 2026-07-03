@@ -25,7 +25,7 @@ JournalClaw 的业务后端是 `apps/daemon` TypeScript 进程，通过 HTTP + S
 1. 在对应 service 中实现纯业务逻辑，并写 vitest。
 2. 在 `server.ts` 暴露 route，必要时补 route test。
 3. 在 `apps/web/src/lib/httpRuntimeClient.ts` 增加旧 command 名到 HTTP route 的映射。
-4. 前端通过 `runtimeClient` / `lib/tauri.ts` 调用，不绕过统一入口。
+4. 前端通过 `runtimeClient` / `hostBridge` 调用，不绕过统一入口。
 
 ## Agent Run
 

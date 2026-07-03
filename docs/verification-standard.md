@@ -136,7 +136,7 @@ verify-report.md 落盘到 story 目录，含：Codex 原始结论 + 越界核�
 ### E. Diff 卫生
 - 无顺手重构（既有逻辑零改动）
 - 无大范围格式化（prettier 全文重排）
-- tauri.ts 等大文件纯新增、零删除（除非 story 明确要求改签名）
+- runtimeClient/httpRuntimeClient 等大文件改动克制（除非 story 明确要求改签名）
 
 ---
 

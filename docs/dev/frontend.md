@@ -12,7 +12,6 @@ description: JournalClaw 前端开发指南，包括组件、Hooks、runtime cli
 | `components/` | 纯 UI 与用户交互 |
 | `hooks/` | 业务状态、数据加载、事件订阅 |
 | `contexts/` | UI、i18n、toast、todos 等跨组件状态 |
-| `lib/tauri.ts` | 兼容 shim：保留旧函数名，内部委托 runtime/host bridge |
 | `lib/runtimeClient.ts` | daemon runtime client 抽象 |
 | `lib/httpRuntimeClient.ts` | HTTP + SSE transport |
 | `lib/hostBridge.ts` | Electron preload host 能力 |
@@ -23,7 +22,7 @@ description: JournalClaw 前端开发指南，包括组件、Hooks、runtime cli
 
 1. 在 daemon service + route 中实现能力。
 2. 在 `HttpRuntimeClient` 增加 command 映射。
-3. 如需兼容旧调用点，在 `lib/tauri.ts` 增加封装。
+3. 业务调用统一走 `selectRuntimeClient().invoke(...)`，宿主能力走 `hostBridge` 导出函数。
 4. 在 hook/component 中调用封装函数或 runtime client。
 
 ## 宿主调用
@@ -36,4 +35,4 @@ daemon 业务事件通过 SSE 进入 runtime client；宿主本地事件通过 `
 
 ## 测试
 
-前端测试使用 vitest + Testing Library。业务调用优先 mock `../lib/tauri` 或 runtime client；宿主能力优先 mock `../lib/hostBridge`。
+前端测试使用 vitest + Testing Library。业务调用优先 mock `../lib/runtimeClient`；宿主能力优先 mock `../lib/hostBridge`。

@@ -73,7 +73,7 @@
 
 ```
 React UI（apps/web）
-  → tauri.ts shim → runtimeClient → httpRuntimeClient
+  → runtimeClient → httpRuntimeClient（tauri.ts shim 已于 2026-07-03 拆除）
   → HTTP / SSE
 TypeScript Daemon（apps/daemon）
   ├─ journal / todos / topics / identity / materials（本地数据 CRUD）

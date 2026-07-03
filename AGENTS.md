@@ -1,110 +1,48 @@
 # AGENTS.md
 
-谨迹（JournalClaw）维护指南。面向 AI 编码助手和人类开发者。
+谨迹（JournalClaw）维护指南 hub。面向 AI 编码助手和人类开发者。**每条约定只在一处权威存在**——本文件只做导航、铁律摘要与命令速查，细则见链接文档。
 
-## 用户画像
+## 文档地图
 
-知识工作者：频繁参与会议、整理文档，每天产生多条日志。核心任务是**高效浏览 + 沉浸阅读**，不是创作。情感期望：打开即平静，阅读时忘记工具的存在。
+| 文档 | 唯一权威内容 |
+|---|---|
+| `docs/ARCH.md` | 架构分层、模块边界、依赖方向规则（含违反示例） |
+| `docs/DESIGN.md` | 视觉设计规范（配色、排版、结构化 token、动效、Anti-slop） |
+| `docs/CONVENTIONS.md` | 工程规范（命令、目录、测试策略、门禁流程、版本、CI/CD） |
+| `docs/final-state.md` | 产品北极星、五个一等对象、状态地图 |
+| `docs/adr/` | 架构决策历史（只增不改） |
 
-## 设计基调
+## 产品一句话
 
-**Modern · Bold · Agentic**（现代 · 大胆 · 对话式 AI 优先）
+`journal` = **本地优先的个人 Agentic Knowledge Workspace**：文件是长期资产，Agent 是工作执行者，输出是核心结果。用户是知识工作者，核心任务是高效浏览 + 沉浸阅读。详见 `docs/final-state.md`。
 
-单一信号橙 `#FF5701` 作为所有交互 accent 的唯一来源；纯白表面 `#FFFFFF` + 暖白分层 `#F6F6F1`/`#ECECE6` + 墨色文字 `#111827`；字体三栈各司其职——Playfair Display（标题衬线）+ 系统无衬线（UI 正文）+ JetBrains Mono（代码）；8pt 间距网格；表面分层传达深度。
-
-完整设计规范见 `docs/DESIGN.md`（含配色、排版、组件、结构化 token、动效、Anti-slop 规则）。
-
----
-
-## 常用命令
+## 常用命令速查
 
 ```bash
-# Dev（同时启动 Vite + Electron）
-npm run desktop:dev
-
-# 仅前端（Vite at localhost:1420）
-npm run dev
-
-# 前端测试
-npm test                    # vitest run（单次）
-npm run test:watch          # watch 模式
-npx vitest run src/tests/JournalItem.test.tsx   # 单文件
-
-# 前端构建检查
-npm run build               # tsc + vite build
-
-# Lint & Format
-npm run lint                # eslint
-npm run format:check        # prettier
-
-# Daemon / Desktop 测试
-cd apps/daemon && npx vitest run
-cd apps/desktop && npx vitest run
-
-# E2E 测试
-npm run test:e2e            # playwright
-
-# 生产构建（Electron）
-npm run desktop:build
+npm run desktop:dev     # Vite + Electron
+npm run dev             # 仅前端 (localhost:1420)
+npm test                # 全 workspace vitest
+npm run build           # tsc + vite build
+npm run lint && npm run format:check
 ```
 
----
+完整命令与单测/e2e 用法见 `docs/CONVENTIONS.md` §1。
 
-## 技术架构
+## 铁律摘要（细则见权威出处）
 
-**Electron + React 19 + TypeScript daemon**，本地优先桌面应用。
+1. **Runtime 单一入口**：业务能力走 `runtimeClient` → daemon HTTP/SSE；宿主能力走 `hostBridge.ts` → Electron preload 白名单。组件禁止直连 daemon URL、raw Electron IPC。→ `docs/ARCH.md`
+2. **desktop 零业务语义**：Electron 宿主只管窗口/菜单/daemon 生命周期/宿主能力。→ `docs/ARCH.md`
+3. **文件写入走 ChangeSet**；authorization mode 在 daemon 执行。→ `docs/ARCH.md`
+4. **Theme 经 daemon 持久化**，不用 localStorage（面板宽度除外）。→ `docs/ARCH.md`
+5. **结构化 token 强制消费**（圆角/阴影/边框/聚焦环/字体三栈），禁止硬编码。→ `docs/DESIGN.md` §5
+6. **视觉一致性**：`JournalList` ↔ `IdentityList`、`DetailPanel` ↔ `IdentityDetail` 同步修改。→ `docs/DESIGN.md`
+7. **视觉修复验证真实渲染链**（`.md-content` + 真实 CSS cascade），先写红测试。→ `docs/CONVENTIONS.md` §3
+8. **视觉需求优先 HTML mockup 澄清**，不用文字/ASCII 描述。
+9. **单一信号橙 `#FF5701`** 是所有交互 accent 的唯一来源。→ `docs/DESIGN.md`
+10. **门禁流程**：需求门禁（story approved 才编码）→ 验收门禁（verify-report 通过才 commit）→ 文档维护。→ `docs/CONVENTIONS.md` §4
+11. **版本号由 release-please 管理，禁止手改**；Conventional Commits。→ `docs/CONVENTIONS.md` §6
+12. **AI 引擎**：daemon 内建 pi 引擎（`apps/daemon/src/engine/`）+ Claude/Codex/OpenCode CLI adapters。→ `docs/ARCH.md`
 
-**Phase 10 / M8-b 终局（2026-06-27）**：Tauri/Rust 后端已删除；`apps/desktop` 是 Electron 宿主（窗口、菜单、daemon 生命周期，零业务语义），`apps/daemon` 是业务后端（含 pi 内建引擎），`apps/web` 通过 daemon HTTP/SSE 与 Electron preload host bridge 获取能力。详见 `docs/adr/rust-removal-roadmap.md`。
+## 已下线能力
 
-完整架构详见 `docs/ARCH.md`（含系统分层、设计决策、前后端架构、数据流、IPC 约定）。
-
----
-
-## Codex 门禁约定
-
-- 新的开发需求在进入编码前，须先经 `.agents/skills/requirements-gate` 完成梳理，产出 `story.md` 并由用户确认为 `status: approved`。非开发消息、已批准任务的延续、或标注 `[skip-gate]` 的消息不受此约定影响。
-- `git commit` 前，若存在与本次改动相关、`status: approved` 但尚未 `verified` 的 `story.md`，须先经 `.agents/skills/verification-gate` 由独立 subAgent 完成验收并产出 `verify-report.md`，全部通过后将 story 翻为 `verified`。
-- `git commit` 前，若本次改动对应的 story 已 `verified` 且影响面涉及架构、设计、约定或用户可感知变化，须经 `.agents/skills/docs-maintenance` 同步更新 `AGENTS.md` / `ARCH.md` / `DESIGN.md`，并按需维护 `README`、`llms.txt` 与使用、开发说明文档。
-
----
-
-## 版本管理
-
-版本号由 release-please 自动同步，**不要手动修改**：
-- `package.json` → `version`
-- workspace package manifests（如 `apps/web/package.json`、`apps/daemon/package.json`、`apps/desktop/package.json`）→ `version`
-
-Commit message 遵循 **Conventional Commits**：
-
-| 格式 | 版本变化 | 示例 |
-|---|---|---|
-| `fix: ...` | patch | `fix: 修复跨文件夹链接跳转` |
-| `feat: ...` | minor | `feat: 新增标签筛选功能` |
-| `feat!: ...` 或 body 含 `BREAKING CHANGE:` | major | `feat!: 重构存储格式` |
-| `chore:` / `docs:` / `refactor:` / `test:` 等 | 无变化 | `chore: 更新依赖` |
-
-合并到 master 后，release-please 自动维护 Release PR；合并该 PR 即完成打 tag + GitHub Release。
-
----
-
-## CI/CD
-
-| Workflow | 触发 | 内容 |
-|---|---|---|
-| `ci.yml` | PR / push to master | 前端：tsc + eslint + prettier + vitest；contracts/daemon/desktop：typecheck + vitest |
-| `release.yml` | `v*.*.*` tag | 构建 web renderer、TS daemon、Electron app，上传 Electron .dmg 到 GitHub Release |
-| `release-please.yml` | push to master | 自动管理 Release PR |
-
----
-
-## 关键约束
-
-1. **视觉一致性**：`JournalList` ↔ `IdentityList`、`DetailPanel` ↔ `IdentityDetail` 表现保持一致。修改其中一个时同步修改另一个。
-2. **Context menu / Host 能力**：原生菜单、文件选择、系统打开、窗口主题/缩放等只走 Electron preload 白名单与 `apps/web/src/lib/hostBridge.ts`，组件不得直接接触 raw Electron IPC。
-3. **Theme**：通过 daemon/runtime client 持久化，不用 localStorage（面板宽度除外）；Electron 只同步窗口外观。
-4. **AI 引擎**：daemon 已集成 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`）作为内建引擎（`apps/daemon/src/engine/`），多 vendor 经 OpenAI 兼容 + 自定义 baseURL，工具/授权/事件映射/prompt-skills 组装就绪，经 `POST /runs engine=builtin` 走 AgentRunService。详见 `docs/adr/rust-removal-roadmap.md`。
-5. **Swift sidecar（已删除 · M8-b 2026-06-27）**：音频/语音/转写能力（`journal-speech` 二进制、Apple SpeechAnalyzer、WhisperKit、speaker profiles）已从默认跨平台主干下线，前端入口与 Rust 残余均已移除。详见 `docs/adr/rust-removal-release-note.md`。
-6. **Runtime 单一入口**：业务能力通过 `apps/web/src/lib/tauri.ts` 兼容 shim → `runtimeClient` → daemon HTTP/SSE；宿主能力通过 `hostBridge.ts`。不允许组件直接调用 daemon URL、raw Electron IPC 或旧 Tauri API。
-7. **视觉修复必须验证真实渲染链**：日志详情里的样式问题不要只看孤立组件、源码 CSS 或普通 Vite probe。真实链路是 `renderMarkdown`（`lib/markdown.tsx`）→ `.md-content` → `markdown.css`，大文件另走 `MarkdownRenderer`（Marked + highlight.js + DOMPurify）。修复前先确认真实 DOM、CSS 加载顺序、specificity、继承变量和 computed style；尤其留意 `max-width` / `max-inline-size`、`line-height`、`margin`、`text-wrap: balance` 这类会让”看似改了但界面没变”的属性。把用户指出的具体视觉问题写成红/绿测试；如需浏览器验证，尽量验证包含 `.md-content` 和真实 CSS cascade 的场景，普通 Vite 页面不能替代 Tauri 真实窗口。
-8. **优先使用 HTML mockup 澄清视觉效果**：讨论布局、组件外观、交互动效等视觉相关需求时，优先生成可在浏览器中打开的 HTML mockup 来展示和确认效果，而非仅用文字或 ASCII 描述。
-9. **结构化 token 强制消费**：圆角（`--radius-sm/md/lg/pill`）、浮层阴影（`--shadow-overlay`）、菜单边框（`--border-menu`）、聚焦环（`--focus-ring`）必须走 token，禁止组件各自硬编码数值。字体三栈各司其职：标题用 Playfair Display（`--font-display`），正文用系统无衬线（`--font-body`），代码用 JetBrains Mono（`--font-mono`），中文衬线编辑时刻用 Noto Serif SC（`--font-serif`）。详见 `docs/DESIGN.md` §5 结构化 token。
+音频/语音/转写（journal-speech、SpeechAnalyzer、WhisperKit、speaker profiles）与 Rust/Tauri 后端已于 M8-b（2026-06-27）删除。详见 `docs/adr/rust-removal-release-note.md`。

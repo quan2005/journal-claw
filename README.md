@@ -81,7 +81,6 @@ User action (drop / paste / Agent Run)
 apps/web/src/            # React frontend
   components/            # React components
   hooks/                 # useJournal, useTheme, useIdentity, useTodos, useConversation
-  lib/tauri.ts           # Compatibility shim delegating to runtime/host bridge
   lib/runtimeClient.ts   # daemon runtime abstraction
   lib/hostBridge.ts      # Electron host capabilities
 apps/daemon/src/         # TypeScript daemon

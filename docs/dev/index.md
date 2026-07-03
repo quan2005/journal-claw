@@ -25,7 +25,6 @@ description: JournalClaw 的开发指南入口，涵盖项目架构、环境搭�
 apps/web/src/              # React 前端
   components/              # 业务组件
   hooks/                   # journal/todos/conversation/theme 等 hooks
-  lib/tauri.ts             # 兼容 shim，内部走 runtime client
   lib/runtimeClient.ts     # daemon runtime client 抽象
   lib/httpRuntimeClient.ts # HTTP + SSE transport
   lib/hostBridge.ts        # Electron preload host 能力

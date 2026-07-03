@@ -81,7 +81,6 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 apps/web/src/            # React 前端
   components/            # React 组件
   hooks/                 # useJournal, useTheme, useIdentity, useTodos, useConversation
-  lib/tauri.ts           # 兼容 shim，内部委托 runtime/host bridge
   lib/runtimeClient.ts   # daemon runtime 抽象
   lib/hostBridge.ts      # Electron host 能力
 apps/daemon/src/         # TypeScript daemon
@@ -114,6 +113,6 @@ npm run desktop:build    # Electron 生产构建
 
 - [用户指南](docs/guide/quick-start.md) — 安装、导入、对话、时间线
 - [开发者指南](docs/dev/index.md) — 环境搭建、架构、前后端开发、构建与发布
-- [设计系统](docs/design/index.md) — 配色、排版、组件、布局、动画
+- [设计系统](docs/DESIGN.md) — 配色、排版、组件、布局、动画
 - [架构文档 (ARCH.md)](docs/ARCH.md) — 完整架构文档
 - [llms.txt](llms.txt) — 面向 AI Agent 的机读文档索引

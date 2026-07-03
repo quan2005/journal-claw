@@ -5,16 +5,17 @@
   "type": "module",
   "description": "JournalClaw Electron host — window + menu + daemon lifecycle only (zero business semantics).",
   "main": "dist/main.js",
+  "author": "JournalClaw",
   "scripts": {
+    "build:daemon": "pnpm --filter @journal/daemon build",
     "build:main": "tsc -p tsconfig.json",
-    "dev": "pnpm run build:main && concurrently -k -n web,app \"pnpm --filter @journal/web dev\" \"wait-on tcp:1420 && electron .\"",
-    "start": "pnpm run build:main && electron .",
-    "build": "pnpm run build:main && electron-builder",
+    "dev": "pnpm run build:daemon && pnpm run build:main && concurrently -k -n web,app \"pnpm --filter @journal/web dev\" \"wait-on tcp:1420 && electron .\"",
+    "start": "pnpm run build:daemon && pnpm run build:main && electron .",
+    "build": "pnpm run build:daemon && pnpm run build:main && electron-builder",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.19.0",
     "concurrently": "^9.1.0",

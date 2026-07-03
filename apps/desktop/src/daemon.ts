@@ -74,7 +74,15 @@ export function spawnDaemon(opts: DaemonOptions = {}): DaemonHandle {
   const nodePath = opts.nodePath ?? process.execPath
 
   const child = spawn(nodePath, [daemonPath, '--no-open', '--port', String(port)], {
-    env: { ...process.env, ...opts.env, JOURNAL_DAEMON_PORT: String(port) },
+    // ELECTRON_RUN_AS_NODE forces the Electron binary to run cli.js as plain
+    // node. Placed LAST so process.env / opts.env can never clobber it back
+    // into a fork bomb (child re-boots a full Electron app → spawn loop).
+    env: {
+      ...process.env,
+      ...opts.env,
+      JOURNAL_DAEMON_PORT: String(port),
+      ELECTRON_RUN_AS_NODE: '1',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
     // Same process group as the host so it is reclaimed when Electron exits.
     windowsHide: true,
@@ -164,20 +172,12 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
  * Retries handle the cold-start window between spawn() and the HTTP listener.
  */
 export async function waitForHealth(opts: HealthCheckOptions): Promise<void> {
-  const {
-    url,
-    maxAttempts = 30,
-    intervalMs = 500,
-    isHealthy = defaultIsHealthy,
-    signal,
-  } = opts
+  const { url, maxAttempts = 30, intervalMs = 500, isHealthy = defaultIsHealthy, signal } = opts
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     if (signal?.aborted) throw new Error('health check aborted')
     if (await isHealthy(url)) return
     await sleep(intervalMs, signal)
   }
-  throw new Error(
-    `daemon did not become healthy at ${url} after ${maxAttempts} attempts`,
-  )
+  throw new Error(`daemon did not become healthy at ${url} after ${maxAttempts} attempts`)
 }

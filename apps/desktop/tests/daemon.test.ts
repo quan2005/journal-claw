@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import * as childProcess from 'node:child_process'
 import {
   DEFAULT_DAEMON_PORT,
   resolveDaemonPath,
@@ -8,11 +9,24 @@ import {
   type Killable,
 } from '../src/daemon.js'
 
+// Wrap `spawn` in a spy that delegates to the real implementation by default,
+// so the existing spawnDaemon test still spawns a real child. Individual tests
+// can intercept a single call via mockImplementationOnce to inspect arguments.
+vi.mock('node:child_process', async (importActual) => {
+  const actual = await importActual<typeof import('node:child_process')>()
+  return {
+    ...actual,
+    spawn: vi.fn(actual.spawn),
+  }
+})
+
 /** Minimal in-memory Killable that drives stopChild without a real process. */
-function makeFakeChild(behavior: {
-  exitsOnTerm?: boolean
-  exitsAfterMs?: number
-} = {}): Killable & { signals: Array<NodeJS.Signals | number>; killed: boolean } {
+function makeFakeChild(
+  behavior: {
+    exitsOnTerm?: boolean
+    exitsAfterMs?: number
+  } = {},
+): Killable & { signals: Array<NodeJS.Signals | number>; killed: boolean } {
   const signals: Array<NodeJS.Signals | number> = []
   const exitListeners = new Set<() => void>()
   let killed = false
@@ -61,7 +75,7 @@ describe('stopChild', () => {
   })
 
   it('is a no-op for an already-killed child', async () => {
- const child = makeFakeChild({ exitsOnTerm: true })
+    const child = makeFakeChild({ exitsOnTerm: true })
     child.kill('SIGTERM') // pre-kill
     expect(child.signals).toHaveLength(1)
     await stopChild(child, 50)
@@ -121,6 +135,11 @@ describe('waitForHealth', () => {
 })
 
 describe('spawnDaemon', () => {
+  afterEach(() => {
+    // Restore the default (real) spawn implementation; clears call history too.
+    vi.restoreAllMocks()
+  })
+
   it('builds the handle with the loopback url and default port', () => {
     const handle = spawnDaemon({ daemonPath: '/nonexistent/cli.js' })
     expect(handle.port).toBe(DEFAULT_DAEMON_PORT)
@@ -128,11 +147,51 @@ describe('spawnDaemon', () => {
     // tidy up the (immediately errored) child
     handle.process.kill('SIGKILL')
   })
+
+  it('sets ELECTRON_RUN_AS_NODE=1 so the Electron binary runs cli.js as node', () => {
+    const spawnSpy = vi.mocked(childProcess.spawn)
+    // Fake child with the chained stdio/kill surface spawnDaemon touches.
+    const fakeChild = {
+      stdout: { on: vi.fn() },
+      stderr: { on: vi.fn() },
+      kill: vi.fn().mockReturnValue(true),
+      killed: false,
+      once: vi.fn(),
+    }
+    spawnSpy.mockImplementationOnce((() => fakeChild) as unknown as typeof childProcess.spawn)
+
+    spawnDaemon({ daemonPath: '/nonexistent/cli.js' })
+
+    const options = spawnSpy.mock.lastCall?.[2] as { env?: NodeJS.ProcessEnv } | undefined
+    expect(options?.env?.ELECTRON_RUN_AS_NODE).toBe('1')
+  })
+
+  it('keeps ELECTRON_RUN_AS_NODE=1 even when opts.env tries to override it', () => {
+    const spawnSpy = vi.mocked(childProcess.spawn)
+    const fakeChild = {
+      stdout: { on: vi.fn() },
+      stderr: { on: vi.fn() },
+      kill: vi.fn().mockReturnValue(true),
+      killed: false,
+      once: vi.fn(),
+    }
+    spawnSpy.mockImplementationOnce((() => fakeChild) as unknown as typeof childProcess.spawn)
+
+    // A caller (or inherited env) attempting to force node-as-electron must not
+    // win — that path is a guaranteed fork bomb.
+    spawnDaemon({
+      daemonPath: '/nonexistent/cli.js',
+      env: { ELECTRON_RUN_AS_NODE: '0' },
+    })
+
+    const options = spawnSpy.mock.lastCall?.[2] as { env?: NodeJS.ProcessEnv } | undefined
+    expect(options?.env?.ELECTRON_RUN_AS_NODE).toBe('1')
+  })
 })
 
 describe('resolveDaemonPath', () => {
   it('falls back to the sibling monorepo layout when nothing is found', () => {
- const previous = process.env.JOURNAL_DAEMON_BIN
+    const previous = process.env.JOURNAL_DAEMON_BIN
     delete process.env.JOURNAL_DAEMON_BIN
     const path = resolveDaemonPath('/some/abs/apps/desktop/dist')
     expect(path).toBe('/some/abs/apps/daemon/dist/cli.js')

@@ -14,7 +14,15 @@
  * intent via callbacks. Persistence lives one level up (useAgentEngine →
  * daemon settings), never in localStorage.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
+import { createPortal } from 'react-dom'
 import type { AgentInfo } from '@journal/contracts'
 import type { RunEngine } from '../types/agentRun'
 import { useTranslation } from '../contexts/I18nContext'
@@ -46,6 +54,9 @@ function agentLabel(agent: AgentInfo | undefined, agentId: string | null): strin
   return agent?.name ?? agentId
 }
 
+/** Pixel gap between the chip and the popover (matches the pre-rework CSS). */
+const POPOVER_GAP = 6
+
 export function EngineSwitcher({
   engine,
   agentId,
@@ -59,16 +70,19 @@ export function EngineSwitcher({
 }: EngineSwitcherProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({ position: 'fixed' })
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const popoverRef = useRef<HTMLDivElement | null>(null)
 
   // Close on outside click / Escape — same defensive pattern as open-design's
-  // switcher so a click on a diagnostic fix button (rendered in-portal later)
-  // never gets yanked away mid-interaction.
+  // switcher so a click on a diagnostic fix button (rendered in-portal) never
+  // gets yanked away mid-interaction. The popover lives on document.body (via
+  // createPortal) so the check must cover both the chip wrapper and the popover.
   useEffect(() => {
     if (!open) return
     const onPointer = (e: MouseEvent) => {
-      if (!wrapRef.current) return
-      if (wrapRef.current.contains(e.target as Node)) return
+      if (wrapRef.current?.contains(e.target as Node)) return
+      if (popoverRef.current?.contains(e.target as Node)) return
       setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
@@ -79,6 +93,60 @@ export function EngineSwitcher({
     return () => {
       document.removeEventListener('mousedown', onPointer)
       document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  // AC-2 rework (story ui-fixes-sidebar-dropdown): the same chip is mounted in
+  // the Workspace view's right panel. That panel's ancestor (an
+  // `.app-sidebar-panel` with opacity<1, or any transform/filter) establishes a
+  // *stacking context* — and stacking context, not containing block, is what
+  // decides paint order. position:fixed only changes the containing block, so a
+  // fixed popover still paints *inside* the panel's stacking subtree and gets
+  // occluded by the middle column's z-index:50 dropdowns. The fix: portal the
+  // popover to document.body (createPortal, React built-in) so it joins the
+  // *root* stacking context, where z-index:var(--workbench-menu-z) (1010) wins.
+  // Space-aware flip + viewport coords are computed in a layout effect (no
+  // drop-then-flip flash) — no Popper / generic popover layer (story boundary).
+  useLayoutEffect(() => {
+    if (!open) {
+      setPopoverStyle({ position: 'fixed' })
+      return
+    }
+    const wrap = wrapRef.current
+    const popover = popoverRef.current
+    if (!wrap || !popover) return
+
+    const wrapRect = wrap.getBoundingClientRect()
+    const popRect = popover.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    const spaceBelow = vh - wrapRect.bottom - POPOVER_GAP
+    const flipUp = popRect.height > spaceBelow
+    const top = flipUp
+      ? Math.round(wrapRect.top - POPOVER_GAP - popRect.height)
+      : Math.round(wrapRect.bottom + POPOVER_GAP)
+
+    // Right-align the popover to the chip's right edge, clamped into the viewport.
+    const margin = 8
+    let left = Math.round(wrapRect.right - popRect.width)
+    if (left < margin) left = margin
+    if (left + popRect.width > vw - margin) left = Math.round(vw - margin - popRect.width)
+
+    setPopoverStyle({ position: 'fixed', top, left })
+  }, [open])
+
+  // Close on viewport resize or any scroll (capture so scrolls inside the
+  // workspace panel's own scroll container also dismiss). Repositioning on
+  // every scroll frame is heavier than this chip needs.
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    return () => {
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
     }
   }, [open])
 
@@ -119,6 +187,125 @@ export function EngineSwitcher({
     [onAgentChange],
   )
 
+  // The popover is hoisted into a const so it can be portaled to document.body
+  // when an ancestor creates a fixed-position containing block (transform /
+  // filter / …). position:fixed + the computed viewport coords are applied via
+  // inline style; the matching .engine-switcher__popover CSS only carries the
+  // visual tokens + z-index:var(--workbench-menu-z) (1010, above the workspace
+  // middle column's z-index:50 dropdowns).
+  const popoverEl = open ? (
+    <div
+      ref={popoverRef}
+      className="engine-switcher__popover"
+      role="menu"
+      data-testid="engine-switcher-popover"
+      style={popoverStyle}
+    >
+      <div className="engine-switcher__row">
+        <span className="engine-switcher__label">{t('engineSwitcherModeLabel')}</span>
+        <div className="engine-switcher__seg" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={engine === 'builtin'}
+            className={'engine-switcher__seg-btn' + (engine === 'builtin' ? ' is-active' : '')}
+            data-testid="engine-switcher-mode-builtin"
+            onClick={() => handleEngineSelect('builtin')}
+          >
+            {t('engineSwitcherBuiltin')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={engine === 'cli'}
+            className={'engine-switcher__seg-btn' + (engine === 'cli' ? ' is-active' : '')}
+            data-testid="engine-switcher-mode-cli"
+            onClick={() => handleEngineSelect('cli')}
+          >
+            {t('engineSwitcherCli')}
+          </button>
+        </div>
+      </div>
+
+      {engine === 'cli' ? (
+        <div className="engine-switcher__row">
+          <span className="engine-switcher__label">
+            {t('engineSwitcherAgentLabel')}
+            <button
+              type="button"
+              className="engine-switcher__rescan"
+              data-testid="engine-switcher-rescan"
+              onClick={onRescan}
+              disabled={rescanning}
+              title={t('rescan')}
+            >
+              {rescanning ? t('rescanning') : t('rescan')}
+            </button>
+          </span>
+          {loading && agents.length === 0 ? (
+            <span className="engine-switcher__hint">{t('rescanning')}</span>
+          ) : agents.length === 0 ? (
+            <span className="engine-switcher__hint">{t('engineSwitcherNoAgents')}</span>
+          ) : (
+            <ul className="engine-switcher__agent-list" role="radiogroup">
+              {agents.map((a) => {
+                const active = a.id === agentId
+                return (
+                  <li
+                    key={a.id}
+                    className={
+                      'engine-switcher__agent' +
+                      (active ? ' is-active' : '') +
+                      (a.available ? '' : ' is-unavailable')
+                    }
+                  >
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={!a.available}
+                      data-testid={`engine-switcher-agent-${a.id}`}
+                      className="engine-switcher__agent-btn"
+                      onClick={() => handleAgentSelect(a)}
+                      title={a.available && a.version ? `${a.name} · ${a.version}` : a.name}
+                    >
+                      <span className="engine-switcher__agent-glyph" aria-hidden>
+                        {(a.name.match(/[A-Za-z]/)?.[0] ?? '?').toUpperCase()}
+                      </span>
+                      <span className="engine-switcher__agent-meta">
+                        <span className="engine-switcher__agent-name">{a.name}</span>
+                        <span className="engine-switcher__agent-status">
+                          {a.available
+                            ? a.version
+                              ? `${t('agentAvailable')} · ${a.version}`
+                              : t('agentAvailable')
+                            : t('agentUnavailable')}
+                        </span>
+                      </span>
+                    </button>
+                    {!a.available && a.diagnostics && a.diagnostics.length > 0
+                      ? a.diagnostics.map((d, i) => (
+                          <AgentDiagnosticRow
+                            key={`${a.id}-diag-${i}`}
+                            diagnostic={d}
+                            agentName={a.name}
+                            agentBin={a.bin}
+                            handlers={{ onRescan }}
+                          />
+                        ))
+                      : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <p className="engine-switcher__builtin-hint">{t('engineSwitcherBuiltinHint')}</p>
+      )}
+    </div>
+  ) : null
+
   return (
     <div className="engine-switcher" ref={wrapRef} data-testid="engine-switcher">
       <button
@@ -152,112 +339,9 @@ export function EngineSwitcher({
         </span>
       </button>
 
-      {open ? (
-        <div className="engine-switcher__popover" role="menu" data-testid="engine-switcher-popover">
-          <div className="engine-switcher__row">
-            <span className="engine-switcher__label">{t('engineSwitcherModeLabel')}</span>
-            <div className="engine-switcher__seg" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={engine === 'builtin'}
-                className={'engine-switcher__seg-btn' + (engine === 'builtin' ? ' is-active' : '')}
-                data-testid="engine-switcher-mode-builtin"
-                onClick={() => handleEngineSelect('builtin')}
-              >
-                {t('engineSwitcherBuiltin')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={engine === 'cli'}
-                className={'engine-switcher__seg-btn' + (engine === 'cli' ? ' is-active' : '')}
-                data-testid="engine-switcher-mode-cli"
-                onClick={() => handleEngineSelect('cli')}
-              >
-                {t('engineSwitcherCli')}
-              </button>
-            </div>
-          </div>
-
-          {engine === 'cli' ? (
-            <div className="engine-switcher__row">
-              <span className="engine-switcher__label">
-                {t('engineSwitcherAgentLabel')}
-                <button
-                  type="button"
-                  className="engine-switcher__rescan"
-                  data-testid="engine-switcher-rescan"
-                  onClick={onRescan}
-                  disabled={rescanning}
-                  title={t('rescan')}
-                >
-                  {rescanning ? t('rescanning') : t('rescan')}
-                </button>
-              </span>
-              {loading && agents.length === 0 ? (
-                <span className="engine-switcher__hint">{t('rescanning')}</span>
-              ) : agents.length === 0 ? (
-                <span className="engine-switcher__hint">{t('engineSwitcherNoAgents')}</span>
-              ) : (
-                <ul className="engine-switcher__agent-list" role="radiogroup">
-                  {agents.map((a) => {
-                    const active = a.id === agentId
-                    return (
-                      <li
-                        key={a.id}
-                        className={
-                          'engine-switcher__agent' +
-                          (active ? ' is-active' : '') +
-                          (a.available ? '' : ' is-unavailable')
-                        }
-                      >
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          disabled={!a.available}
-                          data-testid={`engine-switcher-agent-${a.id}`}
-                          className="engine-switcher__agent-btn"
-                          onClick={() => handleAgentSelect(a)}
-                          title={a.available && a.version ? `${a.name} · ${a.version}` : a.name}
-                        >
-                          <span className="engine-switcher__agent-glyph" aria-hidden>
-                            {(a.name.match(/[A-Za-z]/)?.[0] ?? '?').toUpperCase()}
-                          </span>
-                          <span className="engine-switcher__agent-meta">
-                            <span className="engine-switcher__agent-name">{a.name}</span>
-                            <span className="engine-switcher__agent-status">
-                              {a.available
-                                ? a.version
-                                  ? `${t('agentAvailable')} · ${a.version}`
-                                  : t('agentAvailable')
-                                : t('agentUnavailable')}
-                            </span>
-                          </span>
-                        </button>
-                        {!a.available && a.diagnostics && a.diagnostics.length > 0
-                          ? a.diagnostics.map((d, i) => (
-                              <AgentDiagnosticRow
-                                key={`${a.id}-diag-${i}`}
-                                diagnostic={d}
-                                agentName={a.name}
-                                agentBin={a.bin}
-                                handlers={{ onRescan }}
-                              />
-                            ))
-                          : null}
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </div>
-          ) : (
-            <p className="engine-switcher__builtin-hint">{t('engineSwitcherBuiltinHint')}</p>
-          )}
-        </div>
-      ) : null}
+      {popoverEl && typeof document !== 'undefined'
+        ? createPortal(popoverEl, document.body)
+        : null}
     </div>
   )
 }

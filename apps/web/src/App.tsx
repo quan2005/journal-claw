@@ -962,6 +962,15 @@ export default function App() {
   const todayYearMonth = `${String(todayDate.getFullYear()).slice(2)}${String(todayDate.getMonth() + 1).padStart(2, '0')}`
   const todayDay = todayDate.getDate()
 
+  // Fullscreen workbench categories (ideas/skills/automation) own the whole
+  // center panel; the left tree-sidebar column — panel AND divider — must not
+  // render at all (not a zero-width shell) so the workbench hugs the NavRail.
+  // Width is held in the layout context, so unmounting the column never loses
+  // the user's drag-adjusted width when they switch back. (AC-1, story
+  // 20260703-ui-fixes-sidebar-dropdown; regression of 20260701.)
+  const needsLeftSidebar =
+    activeCategory === 'journal' || activeCategory === 'identity' || activeCategory === 'topics'
+
   return (
     <div
       style={{
@@ -1083,78 +1092,85 @@ export default function App() {
           onSettingsClick={() => setView('settings')}
         />
 
-        {/* Left: Tree Sidebar */}
-        <div
-          className="app-sidebar-panel"
-          data-sidebar-panel="left"
-          aria-hidden={!leftSidebarOpen}
-          style={{
-            width: leftSidebarOpen ? sidebarWidth : 0,
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            background: 'var(--sidebar-bg)',
-            borderRight: leftSidebarOpen ? '0.5px solid var(--divider)' : '0.5px solid transparent',
-            opacity: leftSidebarOpen ? 1 : 0,
-            pointerEvents: leftSidebarOpen ? 'auto' : 'none',
-            transition: SIDEBAR_PANEL_TRANSITION,
-            willChange: 'width, opacity',
-          }}
-        >
-          <TreeSidebar
-            selected={topicFocusSelection ?? treeSelection}
-            onSelect={handleTreeSelect}
-            onDeselect={() => {
-              setDetailReturnTarget(null)
-              setTopicFocusSelection(null)
-              setTreeSelection(null)
-              setSelectedEntry(null)
-            }}
-            entries={entries}
-            identities={allIdentities}
-            identityLoading={identityLoading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            onLoadMore={loadMore}
-            onAtRef={(path: string) => {
-              setRightPanelOpen(true)
-              window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${path}` }))
-            }}
-            todayYearMonth={todayYearMonth}
-            todayDay={todayDay}
-            category={activeCategory}
-          />
-        </div>
+        {/* Left: Tree Sidebar (only for list categories; fullscreen workbench
+            categories omit the whole column so the workbench hugs the NavRail) */}
+        {needsLeftSidebar && (
+          <>
+            <div
+              className="app-sidebar-panel"
+              data-sidebar-panel="left"
+              aria-hidden={!leftSidebarOpen}
+              style={{
+                width: leftSidebarOpen ? sidebarWidth : 0,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                background: 'var(--sidebar-bg)',
+                borderRight: leftSidebarOpen
+                  ? '0.5px solid var(--divider)'
+                  : '0.5px solid transparent',
+                opacity: leftSidebarOpen ? 1 : 0,
+                pointerEvents: leftSidebarOpen ? 'auto' : 'none',
+                transition: SIDEBAR_PANEL_TRANSITION,
+                willChange: 'width, opacity',
+              }}
+            >
+              <TreeSidebar
+                selected={topicFocusSelection ?? treeSelection}
+                onSelect={handleTreeSelect}
+                onDeselect={() => {
+                  setDetailReturnTarget(null)
+                  setTopicFocusSelection(null)
+                  setTreeSelection(null)
+                  setSelectedEntry(null)
+                }}
+                entries={entries}
+                identities={allIdentities}
+                identityLoading={identityLoading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
+                onAtRef={(path: string) => {
+                  setRightPanelOpen(true)
+                  window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${path}` }))
+                }}
+                todayYearMonth={todayYearMonth}
+                todayDay={todayDay}
+                category={activeCategory}
+              />
+            </div>
 
-        {/* Divider */}
-        <div
-          data-sidebar-divider="left"
-          onMouseDown={leftSidebarOpen ? onDividerMouseDown : undefined}
-          style={{
-            width: DIVIDER_WIDTH,
-            flexShrink: 0,
-            position: 'relative',
-            background: 'transparent',
-            userSelect: 'none' as const,
-            cursor: leftSidebarOpen ? 'col-resize' : 'default',
-          }}
-        >
-          <button
-            type="button"
-            aria-label={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
-            title={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => setLeftSidebarOpen((prev) => !prev)}
-            style={sidebarToggleStyle()}
-          >
-            {leftSidebarOpen ? (
-              <ChevronLeft size={15} strokeWidth={1.8} />
-            ) : (
-              <ChevronRight size={15} strokeWidth={1.8} />
-            )}
-          </button>
-        </div>
+            {/* Divider */}
+            <div
+              data-sidebar-divider="left"
+              onMouseDown={leftSidebarOpen ? onDividerMouseDown : undefined}
+              style={{
+                width: DIVIDER_WIDTH,
+                flexShrink: 0,
+                position: 'relative',
+                background: 'transparent',
+                userSelect: 'none' as const,
+                cursor: leftSidebarOpen ? 'col-resize' : 'default',
+              }}
+            >
+              <button
+                type="button"
+                aria-label={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
+                title={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={() => setLeftSidebarOpen((prev) => !prev)}
+                style={sidebarToggleStyle()}
+              >
+                {leftSidebarOpen ? (
+                  <ChevronLeft size={15} strokeWidth={1.8} />
+                ) : (
+                  <ChevronRight size={15} strokeWidth={1.8} />
+                )}
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Center: Detail panel */}
         <div

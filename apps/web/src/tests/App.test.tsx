@@ -183,6 +183,10 @@ function defaultInvoke(cmd: string, args?: Record<string, unknown>): unknown {
       return undefined
     case 'list_skills':
       return []
+    case 'list_automation_templates':
+      return []
+    case 'list_routines':
+      return []
     case 'get_api_key':
       return null
     case 'enqueue_work':
@@ -346,6 +350,76 @@ describe('App', () => {
     expect(rightExpandToggle.querySelector('svg')?.classList.contains('lucide-chevron-left')).toBe(
       true,
     )
+  })
+
+  // AC-1 (story 20260703-ui-fixes-sidebar-dropdown): fullscreen workbench
+  // categories must not render the left tree-sidebar column at all — not a
+  // zero-width shell, but the entire column (panel + divider) absent so the
+  // workbench sits flush against the NavRail.
+  it('does not render the left sidebar column for fullscreen workbench categories', async () => {
+    await act(async () => {
+      renderApp()
+    })
+    await act(async () => {})
+
+    // Default journal category keeps the column.
+    expect(document.querySelector('[data-sidebar-panel="left"]')).not.toBeNull()
+    expect(document.querySelector('[data-sidebar-divider="left"]')).not.toBeNull()
+
+    for (const label of ['想法', '自动化', '技能']) {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: label }))
+      })
+      expect(document.querySelector('[data-sidebar-panel="left"]')).toBeNull()
+      expect(document.querySelector('[data-sidebar-divider="left"]')).toBeNull()
+    }
+
+    // Returning to a list category restores the column.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '流水' }))
+    })
+    expect(document.querySelector('[data-sidebar-panel="left"]')).not.toBeNull()
+    expect(document.querySelector('[data-sidebar-divider="left"]')).not.toBeNull()
+  })
+
+  it('keeps the left sidebar column for list categories', async () => {
+    await act(async () => {
+      renderApp()
+    })
+    await act(async () => {})
+
+    for (const label of ['专题', '画像', '流水']) {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: label }))
+      })
+      expect(document.querySelector('[data-sidebar-panel="left"]')).not.toBeNull()
+      expect(document.querySelector('[data-sidebar-divider="left"]')).not.toBeNull()
+    }
+  })
+
+  it('preserves the left sidebar width memory across a fullscreen round-trip', async () => {
+    await act(async () => {
+      renderApp()
+    })
+    await act(async () => {})
+
+    const leftPanelBefore = document.querySelector('[data-sidebar-panel="left"]') as HTMLElement
+    const widthBefore = leftPanelBefore.style.width
+    expect(widthBefore).not.toBe('0px')
+
+    // Detour through a fullscreen category (column unmounts).
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '想法' }))
+    })
+    expect(document.querySelector('[data-sidebar-panel="left"]')).toBeNull()
+
+    // Back to a list category — width must be unchanged.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '流水' }))
+    })
+    const leftPanelAfter = document.querySelector('[data-sidebar-panel="left"]') as HTMLElement
+    expect(leftPanelAfter.style.width).toBe(widthBefore)
+    expect(leftPanelAfter.style.width).not.toBe('0px')
   })
 
   it('preserves readable detail width by closing sidebars at narrow window sizes', async () => {

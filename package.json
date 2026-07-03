@@ -10,6 +10,7 @@
     "desktop:build": "pnpm --filter @journal/desktop build",
    "build": "pnpm -r build",
     "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @journal/web test:e2e",
     "lint": "pnpm -r lint",
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

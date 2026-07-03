@@ -54,7 +54,7 @@ async function detectOne(id: string): Promise<AgentInfo> {
   return found
 }
 
-describe('agent detection', () => {
+describe.sequential('agent detection', () => {
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'journal-detect-'))
     savedPath = process.env.PATH ?? ''

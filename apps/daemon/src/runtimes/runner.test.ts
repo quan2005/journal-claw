@@ -107,6 +107,23 @@ describe('executeRun', () => {
     expect(captured).toContain('--verbose')
     expect(captured).toContain('--model')
   })
+
+  it('passes cwd to the spawned child process', async () => {
+    const service = new AgentRunService(dir)
+    const run = service.createRun({ goal: 'g', mode: 'agent' })
+    let capturedCwd: string | undefined
+    await executeRun(
+      service,
+      { runId: run.id, agentId: 'claude', prompt: 'hi', cwd: '/tmp/journal-agent-cwd' },
+      {
+        spawnChild: (_bin, _args, opts) => {
+          capturedCwd = opts.cwd
+          return mockChild(['{"type":"result","subtype":"result","result":"ok"}'], 0) as any
+        },
+      },
+    )
+    expect(capturedCwd).toBe('/tmp/journal-agent-cwd')
+  })
 })
 
 describe('executeRun run_started dedup (regression)', () => {

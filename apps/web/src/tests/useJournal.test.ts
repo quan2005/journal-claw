@@ -152,7 +152,7 @@ describe('useJournal', () => {
     // Rust enqueueWork should have been called
     expect(enqueueWork).toHaveBeenCalledWith({
       files: ['/ws/2603/raw/meeting.audio-ai.md'],
-      prompt: '请根据这份音频转写材料，生成日志条目。',
+      prompt: '请根据这份素材，生成日志条目。',
       displayName: 'meeting.m4a',
     })
   })

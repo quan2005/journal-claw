@@ -37,6 +37,10 @@ export default defineConfig(async () => ({
     exclude: ["e2e/**", "node_modules/**"],
     globals: true,
     setupFiles: ['./src/tests/setup.ts'],
+    testTimeout: 10000,
+    pool: 'threads',
+    maxWorkers: 2,
+    minWorkers: 1,
   },
   build: {
     // Restore the default warning threshold so oversized chunks are surfaced (AC-19).

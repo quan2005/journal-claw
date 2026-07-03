@@ -99,6 +99,7 @@ function injectTreeSectionHeaderCss() {
 
 function loadCollapsedSections(): Set<string> {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：侧栏折叠态（纯 UI 状态），非业务数据
     const raw = localStorage.getItem(COLLAPSED_SECTIONS_STORAGE_KEY)
     if (!raw) return new Set(DEFAULT_COLLAPSED_SECTIONS)
     const parsed = JSON.parse(raw)
@@ -111,6 +112,7 @@ function loadCollapsedSections(): Set<string> {
 
 function saveCollapsedSections(collapsed: Set<string>) {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：侧栏折叠态（纯 UI 状态），非业务数据
     localStorage.setItem(COLLAPSED_SECTIONS_STORAGE_KEY, JSON.stringify([...collapsed].sort()))
   } catch {
     /* quota exceeded — ignore */

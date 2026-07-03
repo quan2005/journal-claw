@@ -110,7 +110,7 @@ Rust 后端退出按 9 个阶段推进（详见 `docs/adr/rust-removal-roadmap.m
 | **M8** | 删除 Rust 后端 + MDX 下线 + Gate A–J 收尾 | ✅ M8-a d26f89e（清前端 @tauri-apps 硬依赖）· M8-b 3c9622f（删 src-tauri + @tauri-apps 依赖）· MDX 下线 5020ca9 |
 
 **下线能力（已完成事实）**：
-- **Rust/Tauri 删除**：`apps/web/src-tauri/` 已删；`@tauri-apps/*` npm 依赖已移除；`rg "src-tauri\|@tauri-apps\|tauri::"` 仅余历史/迁移说明。
+- **Rust/Tauri 删除**：`apps/web/` 下的 `src-tauri/` 目录已删；`@tauri-apps/*` npm 依赖已移除；`rg "src-tauri\|@tauri-apps\|tauri::"` 仅余历史/迁移说明。
 - **音频/语音/Swift sidecar 下线**：`journal-speech` 二进制、Apple SpeechAnalyzer、WhisperKit、speaker profiles 已从默认跨平台主干移除。
 - **MDX 下线**：MDX 渲染链（MdxRenderer / components/mdx/* / journal-blocks / mdx.css）已删；日志详情改用纯 Markdown 渲染；既有 MDX 笔记降级为 Markdown 可读，不做迁移脚本（用户 2026-06-27 选 b 彻底移除）。
 
@@ -150,7 +150,7 @@ Express + 纯 tsc 构建 + node-pty + vitest。入口 `cli.ts`，类型共享 `p
 run summary / artifact index / memory rule 沉淀已落地（SedimentationService）；保留周期与压缩策略、独立可视化入口列为后续产品债。
 
 ### ✅ 原 D6 · Rust 删除决策（已定：M8-b 已删）
-TS daemon 覆盖全部用户可见能力后删除 Rust。桌面宿主迁移到 Electron（不保留 Tauri shell）。`apps/web/src-tauri/` 已删除，Gate A–J 验收见 `docs/adr/rust-removal-acceptance.md`。
+TS daemon 覆盖全部用户可见能力后删除 Rust。桌面宿主迁移到 Electron（不保留 Tauri shell）。`apps/web/` 下的 `src-tauri/` 目录已删除，Gate A–J 验收见 `docs/adr/rust-removal-acceptance.md`。
 
 ### ✅ 原 D7 · host 形态（已定：Electron）
 桌面宿主固定为 Electron（`apps/desktop`），仅承载窗口/菜单/daemon 生命周期/宿主能力，零业务语义。已无 Tauri shell。
@@ -208,7 +208,7 @@ TS daemon 覆盖全部用户可见能力后删除 Rust。桌面宿主迁移到 E
 ### M8-b 终局（2026-06-27）
 - M7-a/b/c：Electron host 骨架 → 前端默认走 daemon → host 层 reveal/open/dialog/zoom/file-drop。
 - M8-a：清理前端 `@tauri-apps` 硬依赖。
-- M8-b：删除 `apps/web/src-tauri/` + `@tauri-apps/*` 依赖，默认 runtime 固定为 daemon HTTP/SSE + Electron host bridge。
+- M8-b：删除 `apps/web/` 下的 `src-tauri/` 目录 + `@tauri-apps/*` 依赖，默认 runtime 固定为 daemon HTTP/SSE + Electron host bridge。
 - MDX 下线：删除 MDX 渲染链，日志详情改纯 Markdown。
 
 **M8-b 后技术栈定型**：Electron（host）+ React 19（renderer）+ TypeScript daemon（Express HTTP/SSE backend）+ pi 内建引擎（+ CLI adapter 委派）+ ChangeSet（文件变更）+ electron-builder（打包）+ vitest/Playwright（测试）。

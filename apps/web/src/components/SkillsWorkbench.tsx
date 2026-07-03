@@ -43,15 +43,18 @@ function skillIcon(name: string) {
 type TabKey = 'favorites' | 'builtin' | 'project' | 'global'
 
 // ── Favorites persistence (localStorage) ─────────────────
+// 备注：skills 收藏是纯 UI 偏好（非核心业务状态），暂用 localStorage；如未来需跨设备同步应迁至 daemon。
 const FAVORITES_KEY = 'skills-favorites'
 function loadFavorites(): string[] {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：UI 偏好（skills 收藏），非业务状态
     return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
   } catch {
     return []
   }
 }
 function saveFavorites(ids: string[]) {
+  // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：UI 偏好（skills 收藏），非业务状态
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids))
 }
 

@@ -19,6 +19,7 @@ export type Category = 'journal' | 'ideas' | 'identity' | 'topics' | 'automation
 // ── Persistent layout dimensions ──
 const loadDim = (key: string, fallback: number): number => {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：纯布局尺寸（面板宽度），非业务状态
     const v = localStorage.getItem(key)
     return v ? parseInt(v) : fallback
   } catch {
@@ -28,6 +29,7 @@ const loadDim = (key: string, fallback: number): number => {
 
 const saveDim = (key: string, v: number) => {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：纯布局尺寸（面板宽度），非业务状态
     localStorage.setItem(key, String(v))
   } catch {
     /* quota exceeded — ignore */
@@ -37,6 +39,7 @@ const saveDim = (key: string, v: number) => {
 // ── Persistent boolean (panel pinned flag) ──
 const loadBool = (key: string, fallback: boolean): boolean => {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：面板 pinned 标志（UI 状态），非业务状态
     const v = localStorage.getItem(key)
     return v === null ? fallback : v === 'true'
   } catch {
@@ -46,6 +49,7 @@ const loadBool = (key: string, fallback: boolean): boolean => {
 
 const saveBool = (key: string, v: boolean) => {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：面板 pinned 标志（UI 状态），非业务状态
     localStorage.setItem(key, String(v))
   } catch {
     /* quota exceeded — ignore */
@@ -86,6 +90,7 @@ function isTreeSelection(value: unknown): value is TreeSelection {
 
 function loadTreeSelectionState(): StoredTreeSelectionState {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：UI 树选中态恢复（导航视图），非业务数据
     const raw = localStorage.getItem(TREE_SELECTION_STORAGE_KEY)
     if (!raw) {
       return { view: 'journal', treeSelection: null, showIdeas: false, activeCategory: 'journal' }
@@ -111,6 +116,7 @@ function loadTreeSelectionState(): StoredTreeSelectionState {
 
 function saveTreeSelectionState(state: StoredTreeSelectionState) {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：UI 树选中态恢复（导航视图），非业务数据
     localStorage.setItem(TREE_SELECTION_STORAGE_KEY, JSON.stringify(state))
   } catch {
     /* quota exceeded — ignore */

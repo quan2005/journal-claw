@@ -107,3 +107,59 @@ Round-1 的全部 3 个 fail 项（1 blocker + 2 minor）已修复；AC-2 全量
 ## 待用户裁决
 
 无。
+
+---
+
+## Round 3 — WS-3 护栏机器化
+
+> 复核范围：当前工作区未提交改动中的 WS-3 内容，对应 story.md AC-4 / AC-5。
+
+### AC 核对
+
+| AC | 结论 | 证据 |
+|---|---|---|
+| AC-4 护栏机器化 | ✅ pass | 5 条 ESLint 边界规则（`apps/web/eslint.config.js:21-72`）+ docs-consistency 脚本（`scripts/check-docs-consistency.mjs`）+ CI 接入（`.github/workflows/ci.yml:22`）均生效；红测试已独立复现；白名单均为纯 UI 状态并附 `ARCH.md 白名单` 行内理由。 |
+| AC-5 分发可用性 | ✅ pass | 无独立 WS-3 任务书，但 `design.md` WS-3 节直接引用 `docs/ARCH.md「依赖方向规则」` / `已下线能力` / `历史注记`；`AGENTS.md` 铁律摘要链接到 `docs/ARCH.md` 具体章节；ESLint 错误信息也引用 `docs/ARCH.md` 章节。Hub 文档已可直接引用作为执行约束。 |
+
+### AC-4 逐项证据
+
+| 检查项 | 结论 | 证据 |
+|---|---|---|
+| 禁 `import electron`（命名/default/namespace） | ✅ | `apps/web/eslint.config.js:28-36` `no-restricted-imports`；独立探针 `import { ipcRenderer } from 'electron'` 触发 error。 |
+| 禁直接访问 `window.electronAPI` | ✅ | `apps/web/eslint.config.js:52-58` `no-restricted-syntax` selector `MemberExpression[object.name='window'][property.name='electronAPI']`；探针 `const api = window.electronAPI` 触发 error。 |
+| 禁 import 已删除 `lib/tauri` | ✅ | `apps/web/eslint.config.js:43-49` patterns `['**/lib/tauri', '**/lib/tauri.*']`；探针 `import { oldShim } from '../lib/tauri'` 触发 error。 |
+| 禁 `localhost`/`127.0.0.1` 字面量（consumer 层） | ✅ | `apps/web/eslint.config.js:59-63` selector `Literal[value=/localhost\|127\.0\.0\.1/]`；探针 `'http://localhost:9999/bad'` 触发 error。 |
+| 禁 consumer 层 localStorage 业务持久化，白名单纯 UI 状态 | ✅ | `apps/web/eslint.config.js:64-69` selector 匹配 `localStorage`；4 处既有纯 UI 用法均带 `// eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：…`：SkillsWorkbench.tsx:50-58（收藏偏好）、TreeSidebar.tsx:102-116（折叠态）、UIContext.tsx:22-120（面板宽度/pinned/树选中态）、useTopics.ts:19-36（topics 树展开态）。 |
+| 红测试证据可信 | ✅ | `ws3-evidence.md:15-46` ESLint 探针与 `ws3-evidence.md:53-70` docs 探针均已独立复现，输出与证据一致。 |
+| docs-consistency 脚本逻辑正确 | ✅ | `scripts/check-docs-consistency.mjs:14-18` 扫描 `AGENTS.md`、`docs/ARCH.md`、`docs/CONVENTIONS.md`、`docs/final-state.md`，匹配反引号文件路径，校验存在性；运行输出 `OK — 已校验 27 个反引号路径，全部存在。` |
+| CI 接入新增检查 | ✅ | `.github/workflows/ci.yml:22` 新增 `node scripts/check-docs-consistency.mjs`；lint 步骤 `pnpm --filter @journal/web lint` 已包含新 ESLint 规则。 |
+
+### 验证命令输出（最终绿）
+
+```bash
+$ pnpm --filter @journal/web lint
+✖ 9 problems (0 errors, 9 warnings)
+
+$ node scripts/check-docs-consistency.mjs
+[check-docs-consistency] OK — 已校验 27 个反引号路径，全部存在。
+
+$ pnpm -r test
+packages/contracts:  Test Files  4 passed (4)   Tests  20 passed (20)
+apps/desktop:        Test Files  3 passed (3)   Tests  15 passed (15)
+apps/daemon:         Test Files  44 passed (44) Tests 277 passed (277)
+apps/web:            Test Files  53 passed (53)  Tests 385 passed (385)
+```
+
+### 越界检查
+
+- 可归因为 WS-3 及其必要配套：新增 ESLint 规则、docs-consistency 脚本、CI 调用、为既有纯 UI localStorage 补注释、为通过 docs 检查修正两处反引号路径描述。
+- 未发现新增产品功能、行为变更、技术栈替换或 WS-3 范围外的 opportunistic 重构。
+- 非目标核对：无语音/转写回归、无 release 渠道改动、无性能优化相关改动。
+
+### 结论
+
+WS-3 护栏机器化完整落地，AC-4 / AC-5 均通过。本轮判为 **pass**。详细 Round 3 报告见 `verify-report-r3.md`。
+
+### 待用户裁决
+
+无。仅一项非阻塞观察：`scripts/check-docs-consistency.mjs` 未扫描 `docs/DESIGN.md`，但当前 `docs/DESIGN.md` 无反引号文件路径，不影响校验结果；是否加入纯属完整性偏好。

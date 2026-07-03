@@ -41,6 +41,7 @@ npm run desktop:build
 - 视觉修复必须验证真实渲染链：`renderMarkdown` → `.md-content` → `markdown.css`；大文件走 `MarkdownRenderer`。孤立组件或普通 Vite probe 不能替代真实 CSS cascade 验证。
 - e2e（Playwright）覆盖跨面板主流程，不替代单测。
 - 硬门：commit 前 `pnpm -r test` + `pnpm build` + lint 全绿。
+- 架构边界由 ESLint 强制（`apps/web/eslint.config.js` 护栏 block：禁 raw electron / window.electronAPI 直访 / lib 外 localhost 字面量 / 消费层 localStorage / lib/tauri 回潮）；文档路径一致性由 `scripts/check-docs-consistency.mjs` 在 CI 校验。
 
 ## 4. 流程门禁
 
@@ -63,6 +64,6 @@ Commit message 遵循 Conventional Commits：`fix:`→patch、`feat:`→minor、
 
 | Workflow | 触发 | 内容 |
 |---|---|---|
-| `ci.yml` | PR / push to master | web：typecheck+lint+prettier+vitest；contracts/daemon/desktop：typecheck+vitest |
+| `ci.yml` | PR / push to master | web：typecheck+lint+prettier+vitest；contracts/daemon/desktop：typecheck+vitest；docs 一致性脚本 |
 | `release.yml` | `v*.*.*` tag | 构建 renderer/daemon/Electron，上传 .dmg |
 | `release-please.yml` | push to master | Release PR 自动维护 |

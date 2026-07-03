@@ -52,7 +52,7 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 | Runtime client | `apps/web/src/lib/runtimeClient.ts`, `httpRuntimeClient.ts` | 业务 command 到 daemon HTTP/SSE |
 | Host bridge | `apps/web/src/lib/hostBridge.ts` | Electron preload 白名单能力 |
 
-> 历史注记：`apps/web/src/lib/tauri.ts` 兼容 shim（保留旧 Tauri 函数名的转发层）已于 2026-07-03 拆除，调用方直接消费 runtimeClient / hostBridge。
+> 历史注记：`apps/web/src/lib/` 下的 `tauri.ts` 兼容 shim（保留旧 Tauri 函数名的转发层）已于 2026-07-03 拆除，调用方直接消费 runtimeClient / hostBridge。
 
 ## Daemon
 

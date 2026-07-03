@@ -19,6 +19,7 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: node scripts/check-docs-consistency.mjs
       - run: pnpm --filter @journal/web typecheck
       - run: pnpm --filter @journal/web lint
       - run: pnpm format:check

@@ -16,6 +16,7 @@ interface DirState {
 
 function loadExpandedTopicDirs(): string[] {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：topics 树展开态（纯 UI 折叠状态），非业务数据
     const raw = localStorage.getItem(TOPIC_EXPANDED_DIRS_STORAGE_KEY)
     const parsed = raw ? JSON.parse(raw) : []
     if (!Array.isArray(parsed)) return []
@@ -31,6 +32,7 @@ function saveExpandedTopicDirs(dirs: Map<string, DirState>) {
       .filter(([path, state]) => path.length > 0 && state.expanded)
       .map(([path]) => path)
       .sort()
+    // eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：topics 树展开态（纯 UI 折叠状态），非业务数据
     localStorage.setItem(TOPIC_EXPANDED_DIRS_STORAGE_KEY, JSON.stringify(expanded))
   } catch {
     /* quota exceeded — ignore */

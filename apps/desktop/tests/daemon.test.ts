@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as childProcess from 'node:child_process'
+import { resolve as resolvePath } from 'node:path'
 import {
   DEFAULT_DAEMON_PORT,
   resolveDaemonPath,
@@ -194,7 +195,7 @@ describe('resolveDaemonPath', () => {
     const previous = process.env.JOURNAL_DAEMON_BIN
     delete process.env.JOURNAL_DAEMON_BIN
     const path = resolveDaemonPath('/some/abs/apps/desktop/dist')
-    expect(path).toBe('/some/abs/apps/daemon/dist/cli.js')
+    expect(path).toBe(resolvePath('/some/abs/apps/desktop/dist', '../../daemon/dist/cli.js'))
     if (previous !== undefined) process.env.JOURNAL_DAEMON_BIN = previous
   })
 })

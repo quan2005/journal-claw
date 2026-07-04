@@ -4,33 +4,33 @@ design: ./design.md
 date: 2026-07-03
 round: 3
 result: pass
-scope: "WS-3 护栏机器化：apps/web/eslint.config.js、scripts/check-docs-consistency.mjs、.github/workflows/ci.yml、ws3-evidence.md，及 AC-5 分发可用性。"
+scope: 'WS-3 护栏机器化：apps/web/eslint.config.js、scripts/check-docs-consistency.mjs、.github/workflows/ci.yml、ws3-evidence.md，及 AC-5 分发可用性。'
 ---
 
 # 验收报告 — 架构治理重规划：全景技术设定 + 落地清理（Round 3）
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-4 护栏机器化 | ✅ pass | 见下表逐项；红测试已独立复现，本地/CI 均失败并给出可读错误。 |
+| AC              | 结论              | 证据                                                                                                                                                            |
+| --------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-4 护栏机器化 | ✅ pass           | 见下表逐项；红测试已独立复现，本地/CI 均失败并给出可读错误。                                                                                                    |
 | AC-5 分发可用性 | ✅ pass（有保留） | 无独立 WS-3 任务书，但 design.md WS-3 节、`AGENTS.md` 铁律摘要均直接引用 `docs/ARCH.md` 具体章节；ESLint 错误信息也引用 `docs/ARCH.md` 章节。Hub 文档已可引用。 |
 
 ### AC-4 逐项核对
 
-| 检查项 | 结论 | 证据 |
-|---|---|---|
-| ESLint 禁 `import electron`（含命名/default/namespace） | ✅ | `apps/web/eslint.config.js:28-36` 配置 `no-restricted-imports`；独立探针 `import { ipcRenderer } from 'electron'` / `import * as electron from 'electron'` / `import electron from 'electron'` 均被拦截，输出 `LINT_EXIT=1`。 |
-| ESLint 禁直接访问 `window.electronAPI` | ✅ | `apps/web/eslint.config.js:52-58` 配置 `no-restricted-syntax`，selector `MemberExpression[object.name='window'][property.name='electronAPI']`；独立探针 `const api = window.electronAPI` 触发 error。 |
-| ESLint 禁 import 已删除 `lib/tauri` 路径 | ✅ | `apps/web/eslint.config.js:43-49` 配置 patterns `['**/lib/tauri', '**/lib/tauri.*']`；独立探针 `import { oldShim } from '../lib/tauri'` 触发 error。 |
-| ESLint 禁 `localhost`/`127.0.0.1` 字面量（consumer 层） | ✅ | `apps/web/eslint.config.js:59-63` 配置 selector `Literal[value=/localhost|127\.0\.0\.1/]`；独立探针 `'http://localhost:9999/bad'` 触发 error。说明：规则覆盖所有含 `localhost`/`127.0.0.1` 的字面量，比 design.md 字面「`localhost:`」稍宽，语义一致。 |
-| ESLint 禁 consumer 层 localStorage 业务持久化，白名单纯 UI 状态 | ✅ | `apps/web/eslint.config.js:64-69` 配置 selector 匹配 `localStorage`；consumer 层现存 4 处纯 UI 用法均带 `// eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：…` 并说明理由：SkillsWorkbench.tsx:50-58（skills 收藏 UI 偏好）、TreeSidebar.tsx:102-116（侧栏折叠态）、UIContext.tsx:22-120（面板宽度/pinned/树选中态）、useTopics.ts:19-36（topics 树展开态）。 |
-| 每条白名单均有 inline reason comment 且确为纯 UI 状态 | ✅ | 上述 4 处 disable 注释均明确指向「ARCH.md 白名单」并声明「非业务状态/非业务数据」；代码本身只保存视图/布局/折叠/收藏，不保存 journal/topics/identity 等业务实体。 |
-| 红测试证据真实可信 | ✅ | `ws3-evidence.md:15-46` 的 ESLint 探针与 `ws3-evidence.md:53-70` 的 docs 探针均已独立复现，输出与证据文件一致（见「独立复现命令输出」）。 |
-| docs-consistency 脚本检查范围与逻辑正确 | ✅ | `scripts/check-docs-consistency.mjs:14-18` 扫描 `AGENTS.md`、`docs/ARCH.md`、`docs/CONVENTIONS.md`、`docs/final-state.md`，用反引号路径正则匹配 `apps/|packages/|docs/|scripts/` 开头路径，校验文件存在性；通配符路径跳过；缺失时输出文件与路径清单并退出 1。 |
-| docs-consistency 脚本运行通过 | ✅ | `node scripts/check-docs-consistency.mjs` → `[check-docs-consistency] OK — 已校验 27 个反引号路径，全部存在。` |
-| CI 集成新增检查 | ✅ | `.github/workflows/ci.yml:22` 新增 `node scripts/check-docs-consistency.mjs`，位于 lint/test 之前；lint 命令 `pnpm --filter @journal/web lint` 已包含新 ESLint 规则。 |
-| CI 失败信息可读 | ✅ | ESLint 错误含规则 ID、`docs/ARCH.md` 引用及修复方向；docs-consistency 错误列出 `✗ 文档 → 路径` 并给出修复建议。 |
+| 检查项                                                          | 结论 | 证据                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------- |
+| ESLint 禁 `import electron`（含命名/default/namespace）         | ✅   | `apps/web/eslint.config.js:28-36` 配置 `no-restricted-imports`；独立探针 `import { ipcRenderer } from 'electron'` / `import * as electron from 'electron'` / `import electron from 'electron'` 均被拦截，输出 `LINT_EXIT=1`。                                                                                                                                                  |
+| ESLint 禁直接访问 `window.electronAPI`                          | ✅   | `apps/web/eslint.config.js:52-58` 配置 `no-restricted-syntax`，selector `MemberExpression[object.name='window'][property.name='electronAPI']`；独立探针 `const api = window.electronAPI` 触发 error。                                                                                                                                                                          |
+| ESLint 禁 import 已删除 `lib/tauri` 路径                        | ✅   | `apps/web/eslint.config.js:43-49` 配置 patterns `['**/lib/tauri', '**/lib/tauri.*']`；独立探针 `import { oldShim } from '../lib/tauri'` 触发 error。                                                                                                                                                                                                                           |
+| ESLint 禁 `localhost`/`127.0.0.1` 字面量（consumer 层）         | ✅   | `apps/web/eslint.config.js:59-63` 配置 selector `Literal[value=/localhost                                                                                                                                                                                                                                                                                                      | 127\.0\.0\.1/]`；独立探针 `'http://localhost:9999/bad'`触发 error。说明：规则覆盖所有含`localhost`/`127.0.0.1` 的字面量，比 design.md 字面「`localhost:`」稍宽，语义一致。 |
+| ESLint 禁 consumer 层 localStorage 业务持久化，白名单纯 UI 状态 | ✅   | `apps/web/eslint.config.js:64-69` 配置 selector 匹配 `localStorage`；consumer 层现存 4 处纯 UI 用法均带 `// eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：…` 并说明理由：SkillsWorkbench.tsx:50-58（skills 收藏 UI 偏好）、TreeSidebar.tsx:102-116（侧栏折叠态）、UIContext.tsx:22-120（面板宽度/pinned/树选中态）、useTopics.ts:19-36（topics 树展开态）。 |
+| 每条白名单均有 inline reason comment 且确为纯 UI 状态           | ✅   | 上述 4 处 disable 注释均明确指向「ARCH.md 白名单」并声明「非业务状态/非业务数据」；代码本身只保存视图/布局/折叠/收藏，不保存 journal/topics/identity 等业务实体。                                                                                                                                                                                                              |
+| 红测试证据真实可信                                              | ✅   | `ws3-evidence.md:15-46` 的 ESLint 探针与 `ws3-evidence.md:53-70` 的 docs 探针均已独立复现，输出与证据文件一致（见「独立复现命令输出」）。                                                                                                                                                                                                                                      |
+| docs-consistency 脚本检查范围与逻辑正确                         | ✅   | `scripts/check-docs-consistency.mjs:14-18` 扫描 `AGENTS.md`、`docs/ARCH.md`、`docs/CONVENTIONS.md`、`docs/final-state.md`，用反引号路径正则匹配 `apps/                                                                                                                                                                                                                         | packages/                                                                                                                                                                  | docs/ | scripts/` 开头路径，校验文件存在性；通配符路径跳过；缺失时输出文件与路径清单并退出 1。 |
+| docs-consistency 脚本运行通过                                   | ✅   | `node scripts/check-docs-consistency.mjs` → `[check-docs-consistency] OK — 已校验 27 个反引号路径，全部存在。`                                                                                                                                                                                                                                                                 |
+| CI 集成新增检查                                                 | ✅   | `.github/workflows/ci.yml:22` 新增 `node scripts/check-docs-consistency.mjs`，位于 lint/test 之前；lint 命令 `pnpm --filter @journal/web lint` 已包含新 ESLint 规则。                                                                                                                                                                                                          |
+| CI 失败信息可读                                                 | ✅   | ESLint 错误含规则 ID、`docs/ARCH.md` 引用及修复方向；docs-consistency 错误列出 `✗ 文档 → 路径` 并给出修复建议。                                                                                                                                                                                                                                                                |
 
 ### AC-5 分发可用性
 
@@ -50,13 +50,13 @@ scope: "WS-3 护栏机器化：apps/web/eslint.config.js、scripts/check-docs-co
 
 ## 方案落实（不偏，对照 design.md）
 
-| design.md 要求 | 结论 | 证据 |
-|---|---|---|
-| 优先 ESLint 内建，零新依赖 | ✅ | `apps/web/eslint.config.js` 仅使用 `no-restricted-imports` / `no-restricted-syntax`，无新增 npm 依赖。 |
-| 组件禁 import raw electron、禁绕过 hostBridge/runtimeClient、禁 import `lib/tauri` | ✅ | 见 AC-4 逐项。 |
-| 组件禁硬编码 daemon URL、禁 localStorage 业务持久化（面板宽度白名单除外） | ✅ | localhost/127.0.0.1 与 localStorage 规则已启用；面板宽度等 UI 状态已加白名单注释。 |
-| docs 一致性 CI 脚本核对核心文档引用 | ✅ | `scripts/check-docs-consistency.mjs` 实现并运行通过。 |
-| 每条规则附红测试证明 | ✅ | `ws3-evidence.md` 记录并独立复现。 |
+| design.md 要求                                                                     | 结论 | 证据                                                                                                   |
+| ---------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------ |
+| 优先 ESLint 内建，零新依赖                                                         | ✅   | `apps/web/eslint.config.js` 仅使用 `no-restricted-imports` / `no-restricted-syntax`，无新增 npm 依赖。 |
+| 组件禁 import raw electron、禁绕过 hostBridge/runtimeClient、禁 import `lib/tauri` | ✅   | 见 AC-4 逐项。                                                                                         |
+| 组件禁硬编码 daemon URL、禁 localStorage 业务持久化（面板宽度白名单除外）          | ✅   | localhost/127.0.0.1 与 localStorage 规则已启用；面板宽度等 UI 状态已加白名单注释。                     |
+| docs 一致性 CI 脚本核对核心文档引用                                                | ✅   | `scripts/check-docs-consistency.mjs` 实现并运行通过。                                                  |
+| 每条规则附红测试证明                                                               | ✅   | `ws3-evidence.md` 记录并独立复现。                                                                     |
 
 ## 越界检查（不多，对照 story 非目标 + design.md 范围）
 

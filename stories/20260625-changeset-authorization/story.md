@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-changeset-authorization
-title: "ChangeSet + AuthorizationMode — trackable/reversible file ops (Sources safe operation)"
+title: 'ChangeSet + AuthorizationMode — trackable/reversible file ops (Sources safe operation)'
 status: verified
 source: orchestrator
 level: L2
@@ -29,6 +29,7 @@ related:
 ## 范围
 
 ### 实现
+
 1. `apps/daemon/src/changeset/service.ts` — ChangeSetService: recordChangeSet, revertChangeSet, listChangeSets; remove ops move file to `<workspace>/.journal-trash/<id>/` (recoverable)
 2. `apps/daemon/src/changeset/authorization.ts` — isPathAllowed(mode, root, path) decision engine + toClaudePermissionMode(mode) mapping (read_only->plan, workspace_write->acceptEdits, full_access->bypassPermissions)
 3. `POST /runs` — accept authorizationMode; default workspace_write; pass to claude via --permission-mode
@@ -36,6 +37,7 @@ related:
 5. sha256 hashing + diff preview for create/edit
 
 ### 独占文件
+
 - `apps/daemon/src/changeset/service.ts` + `.test.ts`
 - `apps/daemon/src/changeset/authorization.ts` + `.test.ts`
 - `apps/daemon/src/server.ts` (POST /runs authorizationMode + GET /runs/:id/changesets)

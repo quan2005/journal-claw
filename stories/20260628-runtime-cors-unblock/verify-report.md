@@ -4,7 +4,8 @@ round: 1
 story: STORY-20260628-runtime-cors-unblock
 verifier: verification-gate subAgent (independent)
 date: 2026-06-28
-evidence_basis: [real-chromium-renderer, curl-headers, daemon-tests, web-tests, typecheck, source-file-lines]
+evidence_basis:
+  [real-chromium-renderer, curl-headers, daemon-tests, web-tests, typecheck, source-file-lines]
 ---
 
 # 验收报告 · 桌面真实链路读取旧日志阻断修复
@@ -75,12 +76,12 @@ entries    -> status 200, ok true, count 19, first "周报-0626"
 
 ### 2c. CORS 响应头实测（curl -D -）
 
-| 场景 | Origin | 状态 | ACAO | AC-Methods | AC-Headers |
-|---|---|---|---|---|---|
-| loopback GET | `http://localhost:1420` | 200 | `http://localhost:1420` | GET,POST,...,OPTIONS | Content-Type, Authorization |
-| loopback 预检 OPTIONS | `http://127.0.0.1:1420` | **204** | `http://127.0.0.1:1420` | 同上 | 同上 |
-| 非 loopback GET | `https://example.com` | 200 | **无**（不回显） | — | — |
-| 无 Origin（curl 同源） | — | 200 | 无（不需要） | — | — |
+| 场景                   | Origin                  | 状态    | ACAO                    | AC-Methods           | AC-Headers                  |
+| ---------------------- | ----------------------- | ------- | ----------------------- | -------------------- | --------------------------- |
+| loopback GET           | `http://localhost:1420` | 200     | `http://localhost:1420` | GET,POST,...,OPTIONS | Content-Type, Authorization |
+| loopback 预检 OPTIONS  | `http://127.0.0.1:1420` | **204** | `http://127.0.0.1:1420` | 同上                 | 同上                        |
+| 非 loopback GET        | `https://example.com`   | 200     | **无**（不回显）        | —                    | —                           |
+| 无 Origin（curl 同源） | —                       | 200     | 无（不需要）            | —                    | —                           |
 
 `Vary: Origin` 在所有允许的响应里都有设置。非 loopback 不下发 CORS 头，浏览器会拒绝跨源读 —— 安全边界正确。
 
@@ -109,38 +110,38 @@ entries    -> status 200, ok true, count 19, first "周报-0626"
 
 ## design 方案逐条核对 ✅
 
-| design 条款 | 落地证据 | 状态 |
-|---|---|---|
-| daemon 端 CORS 白名单中间件 | `server.ts:252-265` | ✅ |
-| 允许 loopback（localhost/127.0.0.1/[::1]） | `server.ts:70-80`（含 `[::1]` 兜底） | ✅ |
-| 允许 `file://` 与 `null`（打包态 loadFile） | `server.ts:70`；`main.ts:93` `loadFile` | ✅ |
-| 不允许非 loopback、不用 `*` | `server.ts:74-76` 显式 host 比对；curl 实测 example.com 无 ACAO | ✅ |
-| `Vary: Origin` | `server.ts:256`；curl 实测可见 | ✅ |
-| Methods/Headers 覆盖 | `server.ts:66-67, 257-258` | ✅ |
-| OPTIONS 预检 204 + CORS 头 | `server.ts:260-263`；curl 实测 204 | ✅ |
-| 覆盖 JSON + SSE | 中间件在所有路由前；`/events/:event` 也走同一中间件 | ✅ |
-| `publishEvent` 同时投递 `app-event` wrapper | `server.ts:299-316` | ✅ |
-| `subscribe` 普通命名事件复用单一 `/events/app-event` | `httpRuntimeClient.ts:918-979`（`sharedEventSource`） | ✅ |
-| `agent-run` 保持独立 stream | `httpRuntimeClient.ts:922`（`if (event !== 'agent-run')`） | ✅ |
-| `get_pinned_items`/`set_pinned_items` 映射 settings | `httpRuntimeClient.ts:146-153`、`normalizePinnedItems:46-67` | ✅ |
-| 不新增 daemon route（沿用 `/settings`） | 实现确认无新 route | ✅ |
-| `apps/desktop` dev/start/build 前置 `@journal/daemon build` | `apps/desktop/package.json:12-14`（三条脚本均 `pnpm run build:daemon &&`） | ✅ |
-| `startDaemon({ port: 0 })` 返回实际 OS 端口 | `server.ts:2036-2039`（`server.address()` 取实际端口） | ✅ |
-| 保持 Electron `webSecurity` 默认开启 | `apps/desktop/src/main.ts:77-84`（`webPreferences` 无 `webSecurity:false`，且 `contextIsolation:true`/`nodeIntegration:false`/`sandbox:true`） | ✅ |
-| 不暴露 raw Electron IPC / 不关闭 webSecurity | 同上；renderer 经 HTTP 走 daemon | ✅ |
+| design 条款                                                 | 落地证据                                                                                                                                       | 状态 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| daemon 端 CORS 白名单中间件                                 | `server.ts:252-265`                                                                                                                            | ✅   |
+| 允许 loopback（localhost/127.0.0.1/[::1]）                  | `server.ts:70-80`（含 `[::1]` 兜底）                                                                                                           | ✅   |
+| 允许 `file://` 与 `null`（打包态 loadFile）                 | `server.ts:70`；`main.ts:93` `loadFile`                                                                                                        | ✅   |
+| 不允许非 loopback、不用 `*`                                 | `server.ts:74-76` 显式 host 比对；curl 实测 example.com 无 ACAO                                                                                | ✅   |
+| `Vary: Origin`                                              | `server.ts:256`；curl 实测可见                                                                                                                 | ✅   |
+| Methods/Headers 覆盖                                        | `server.ts:66-67, 257-258`                                                                                                                     | ✅   |
+| OPTIONS 预检 204 + CORS 头                                  | `server.ts:260-263`；curl 实测 204                                                                                                             | ✅   |
+| 覆盖 JSON + SSE                                             | 中间件在所有路由前；`/events/:event` 也走同一中间件                                                                                            | ✅   |
+| `publishEvent` 同时投递 `app-event` wrapper                 | `server.ts:299-316`                                                                                                                            | ✅   |
+| `subscribe` 普通命名事件复用单一 `/events/app-event`        | `httpRuntimeClient.ts:918-979`（`sharedEventSource`）                                                                                          | ✅   |
+| `agent-run` 保持独立 stream                                 | `httpRuntimeClient.ts:922`（`if (event !== 'agent-run')`）                                                                                     | ✅   |
+| `get_pinned_items`/`set_pinned_items` 映射 settings         | `httpRuntimeClient.ts:146-153`、`normalizePinnedItems:46-67`                                                                                   | ✅   |
+| 不新增 daemon route（沿用 `/settings`）                     | 实现确认无新 route                                                                                                                             | ✅   |
+| `apps/desktop` dev/start/build 前置 `@journal/daemon build` | `apps/desktop/package.json:12-14`（三条脚本均 `pnpm run build:daemon &&`）                                                                     | ✅   |
+| `startDaemon({ port: 0 })` 返回实际 OS 端口                 | `server.ts:2036-2039`（`server.address()` 取实际端口）                                                                                         | ✅   |
+| 保持 Electron `webSecurity` 默认开启                        | `apps/desktop/src/main.ts:77-84`（`webPreferences` 无 `webSecurity:false`，且 `contextIsolation:true`/`nodeIntegration:false`/`sandbox:true`） | ✅   |
+| 不暴露 raw Electron IPC / 不关闭 webSecurity                | 同上；renderer 经 HTTP 走 daemon                                                                                                               | ✅   |
 
 ---
 
 ## 测试要求核对 ✅
 
-| design 要求 | 落地证据 | 运行结果 |
-|---|---|---|
-| `server.test.ts` loopback origin 带 ACAO | `server.test.ts:21-33` | 5/5 pass |
-| `OPTIONS` 预检 204 + CORS 头 | `server.test.ts:35-51` | pass |
-| 非 loopback 不带 ACAO | `server.test.ts:53-64` | pass |
-| `startDaemon({ port: 0 })` 实端口 | `server.test.ts:6-13`（`handle.url` 正则） | pass |
-| 命名事件复用单一 `/events/app-event` 断言 | `httpRuntimeClient.test.ts:399-423` | 19/19 pass |
-| pinned settings 映射断言 | `httpRuntimeClient.test.ts:127-158` | pass |
+| design 要求                               | 落地证据                                   | 运行结果   |
+| ----------------------------------------- | ------------------------------------------ | ---------- |
+| `server.test.ts` loopback origin 带 ACAO  | `server.test.ts:21-33`                     | 5/5 pass   |
+| `OPTIONS` 预检 204 + CORS 头              | `server.test.ts:35-51`                     | pass       |
+| 非 loopback 不带 ACAO                     | `server.test.ts:53-64`                     | pass       |
+| `startDaemon({ port: 0 })` 实端口         | `server.test.ts:6-13`（`handle.url` 正则） | pass       |
+| 命名事件复用单一 `/events/app-event` 断言 | `httpRuntimeClient.test.ts:399-423`        | 19/19 pass |
+| pinned settings 映射断言                  | `httpRuntimeClient.test.ts:127-158`        | pass       |
 
 ### 运行结果
 

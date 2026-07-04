@@ -24,6 +24,7 @@ related:
 [证据] `stories/20260628-browse-ideas-skills-polish/story.md` 的 AC-1 曾要求给三类 Browse 页加入紧凑页眉；用户现在明确要求「彻底移除 Browse 页眉（专题/画像/Timeline），回到无页眉的裸列表」，并给出精确删除范围。
 
 现状失败模式：
+
 - 用户现在进入三个 Browse pane 时先看到图标 + 标签页眉，再进入列表。
 - 该页眉对已由 NavRail 表达的页面身份形成重复，并占用扫读列表的顶部空间。
 - 用户已明确判定这是确定性 revert，不需要进一步视觉探索。
@@ -31,17 +32,20 @@ related:
 ## 成功标准（Given-When-Then）
 
 ### AC-1 — 三个 Browse pane 回到裸列表
+
 - **Given** 用户进入「专题」「画像」或「Timeline」Browse pane
 - **When** 页面渲染
 - **Then** 列表顶部不出现 Browse 页眉、页眉图标或页眉标签
 - **And** 原列表内容、分组、排序、选择与上下文菜单行为保持不变
 
 ### AC-2 — 页眉实现痕迹被移除
+
 - **Given** 开发者检索 Browse 页眉相关代码
 - **When** 检索 `BrowsePaneHeader`、`browse-pane-header`、`browseTopicsLabel`、`browseProfilesLabel`、`browseTimelineLabel`
 - **Then** 不再存在运行时代码、样式、测试或文档中对这些已删除页眉能力的有效引用
 
 ### AC-3 — 回归检查
+
 - **Given** 本次 revert 已完成
 - **When** 运行 `npm run build` 与 `npm test`
 - **Then** 除用户标明的 pre-existing `HistoryFloatingButton` / `SandboxPreview` 失败外，不引入新的失败
@@ -72,6 +76,6 @@ related:
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-28 | 可开发 | 无 |
+| 轮次 | 日期       | Readiness | 主要缺口 |
+| ---- | ---------- | --------- | -------- |
+| 1    | 2026-06-28 | 可开发    | 无       |

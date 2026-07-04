@@ -1,11 +1,7 @@
 import { lstatSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import type { ConversationService } from '../conversation/service.js'
-import type {
-  AutomationRoutine,
-  AutomationRun,
-  RunManifest,
-} from './types.js'
+import type { AutomationRoutine, AutomationRun, RunManifest } from './types.js'
 
 /**
  * RoutineRunner — executes a routine through the ME pi engine via
@@ -156,10 +152,11 @@ function buildManifest(
 }
 
 function summarizeText(title: string, assistantText: string): string {
-  const firstLine = assistantText
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line.length > 0) ?? '运行完成'
+  const firstLine =
+    assistantText
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? '运行完成'
   const clipped = [...firstLine].slice(0, 120).join('')
   return `${title}：${clipped}`
 }

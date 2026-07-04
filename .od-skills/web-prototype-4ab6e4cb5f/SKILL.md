@@ -6,12 +6,12 @@ description: |
   `references/layouts.md`. Default for any landing / marketing / docs / SaaS
   page when no more specific skill matches.
 triggers:
-  - "prototype"
-  - "mockup"
-  - "landing"
-  - "single page"
-  - "marketing page"
-  - "homepage"
+  - 'prototype'
+  - 'mockup'
+  - 'landing'
+  - 'single page'
+  - 'marketing page'
+  - 'homepage'
 od:
   mode: prototype
   platform: desktop
@@ -60,14 +60,14 @@ Replace the six `:root` variables with the active design system's tokens. Replac
 
 **Pick layouts before writing copy.** Default rhythms (from `layouts.md`):
 
-| Page kind | Default rhythm |
-|---|---|
-| Landing | 1 hero → 3 features → 4 stats *or* 5 quote → custom split → 6 cta |
-| Marketing / editorial | 1 hero-center → 7 log list → 6 cta |
-| Pricing | 1 hero-center → 8 comparison table → 6 cta |
-| Docs index | 1 hero-center → 7 log list (sections of docs) → 6 cta |
+| Page kind             | Default rhythm                                                    |
+| --------------------- | ----------------------------------------------------------------- |
+| Landing               | 1 hero → 3 features → 4 stats _or_ 5 quote → custom split → 6 cta |
+| Marketing / editorial | 1 hero-center → 7 log list → 6 cta                                |
+| Pricing               | 1 hero-center → 8 comparison table → 6 cta                        |
+| Docs index            | 1 hero-center → 7 log list (sections of docs) → 6 cta             |
 
-State the chosen list in one sentence to the user *before* writing — they can redirect cheaply now and not after 200 lines of HTML.
+State the chosen list in one sentence to the user _before_ writing — they can redirect cheaply now and not after 200 lines of HTML.
 
 ### Step 3 — Paste and fill
 

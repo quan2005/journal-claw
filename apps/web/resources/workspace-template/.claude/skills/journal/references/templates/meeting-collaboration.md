@@ -44,16 +44,16 @@ Avoid when: the material is a technical RCA document with logs and root cause de
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| daily-standup | Use progress-sync; compress discussion; focus status changes and blockers |
+| Subtype            | Apply changes                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| daily-standup      | Use progress-sync; compress discussion; focus status changes and blockers                  |
 | requirement-review | Use decision-review; add requirement background, acceptance criteria, changed requirements |
-| technical-review | Use decision-review; add constraints, architecture options, migration risk |
-| design-review | Use decision-review; add design goal, feedback themes, screenshots when present |
-| strategic-decision | Use decision-review; emphasize resource allocation, decision stability, hidden risks |
-| customer-visit | Use interview-1on1; add customer profile, objections, buying signals |
-| brainstorm | Use general-meeting; group ideas by theme and mark selected next experiments |
-| training-share | Use learning style; extract concepts, examples, questions, and transferable methods |
+| technical-review   | Use decision-review; add constraints, architecture options, migration risk                 |
+| design-review      | Use decision-review; add design goal, feedback themes, screenshots when present            |
+| strategic-decision | Use decision-review; emphasize resource allocation, decision stability, hidden risks       |
+| customer-visit     | Use interview-1on1; add customer profile, objections, buying signals                       |
+| brainstorm         | Use general-meeting; group ideas by theme and mark selected next experiments               |
+| training-share     | Use learning style; extract concepts, examples, questions, and transferable methods        |
 
 ## Quality Rules
 

@@ -38,11 +38,11 @@ T6  首个有意义绘制（数据返回 + 列表渲染）
 
 ## 白屏成因（三个叠加段）
 
-| 段 | 时间区间 | 成因 | 严重度 |
-|---|---|---|---|
-| **无窗口段** | T1 → T3 | `await startDaemon()` 阻塞 `createWindow()`，daemon 未就绪前连窗口都不出现 | 🔴 主因 |
-| **白窗口段** | T3 → T5 | `show:true` + `backgroundColor:#FFFFFF` + 无 critical CSS，Vite/React 加载期间纯白 | 🟠 次因 |
-| **空数据段** | T5 → T6 | React 已挂载但 hooks 首次请求 daemon，返回前列表为空（骨架/空态闪烁） | 🟡 |
+| 段           | 时间区间 | 成因                                                                               | 严重度  |
+| ------------ | -------- | ---------------------------------------------------------------------------------- | ------- |
+| **无窗口段** | T1 → T3  | `await startDaemon()` 阻塞 `createWindow()`，daemon 未就绪前连窗口都不出现         | 🔴 主因 |
+| **白窗口段** | T3 → T5  | `show:true` + `backgroundColor:#FFFFFF` + 无 critical CSS，Vite/React 加载期间纯白 | 🟠 次因 |
+| **空数据段** | T5 → T6  | React 已挂载但 hooks 首次请求 daemon，返回前列表为空（骨架/空态闪烁）              | 🟡      |
 
 ## 关键证据（代码行号）
 
@@ -54,15 +54,15 @@ T6  首个有意义绘制（数据返回 + 列表渲染）
 
 ## 估算时间线（dev 模式，daemon 冷启）
 
-| 节点 | 估算偏移（ms） | 说明 |
-|---|---|---|
-| T0 进程启动 | 0 | `electron .` |
-| T1 whenReady | ~100–200 | Electron 自举 |
-| T2 daemon healthy | ~600–3000 | spawn + Express + 首次 health 轮询命中 |
-| T3 窗口出现 | **= T2** | 被串行阻塞，窗口出现时刻 = daemon 就绪时刻 |
-| T4 HTML 到达 | T3 + ~200–1200 | Vite dev 冷启动 transform |
-| T5 React 挂载 | T4 + ~100–300 | provider 树 + lazy 解析 |
-| T6 首个有意义绘制 | T5 + ~100–500 | hooks 请求往返 |
+| 节点              | 估算偏移（ms） | 说明                                       |
+| ----------------- | -------------- | ------------------------------------------ |
+| T0 进程启动       | 0              | `electron .`                               |
+| T1 whenReady      | ~100–200       | Electron 自举                              |
+| T2 daemon healthy | ~600–3000      | spawn + Express + 首次 health 轮询命中     |
+| T3 窗口出现       | **= T2**       | 被串行阻塞，窗口出现时刻 = daemon 就绪时刻 |
+| T4 HTML 到达      | T3 + ~200–1200 | Vite dev 冷启动 transform                  |
+| T5 React 挂载     | T4 + ~100–300  | provider 树 + lazy 解析                    |
+| T6 首个有意义绘制 | T5 + ~100–500  | hooks 请求往返                             |
 
 **窗口出现时间 ≈ T2（600ms–3s+），首个有意义绘制 ≈ T2 + 400–2000ms。**
 

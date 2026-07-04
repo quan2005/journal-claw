@@ -4,45 +4,45 @@ design: ./design.md
 date: 2026-07-03
 round: 1
 result: pass
-scope: "git diff -- apps/desktop/src/main.ts apps/web/index.html apps/web/src/lib/httpRuntimeClient.ts apps/web/src/lib/runtimeClient.ts apps/web/src/main.tsx + untracked: apps/desktop/src/startup.ts apps/desktop/tests/startup.test.ts apps/web/src/components/BootGate.tsx apps/web/src/tests/BootGate.test.tsx"
+scope: 'git diff -- apps/desktop/src/main.ts apps/web/index.html apps/web/src/lib/httpRuntimeClient.ts apps/web/src/lib/runtimeClient.ts apps/web/src/main.tsx + untracked: apps/desktop/src/startup.ts apps/desktop/tests/startup.test.ts apps/web/src/components/BootGate.tsx apps/web/src/tests/BootGate.test.tsx'
 ---
 
 # 验收报告 — 启动白屏消除（desktop:dev）
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 — 窗口即时可感知 | ✅ pass | 实际运行 `npm run desktop:dev`：窗口在 `[desktop:perf] ready-to-show +708ms` 出现（≤1s），且 `apps/web/index.html` 内联 `#boot-splash`（品牌“谨迹”+ spinner）在 JS 执行前已注入，因此窗口首帧即有内容而非纯白。renderer `performance.mark('boot:probing-start')` 在 567.90ms，`boot:children-rendered` 在 578.00ms。 |
+| AC                           | 结论    | 证据                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 — 窗口即时可感知        | ✅ pass | 实际运行 `npm run desktop:dev`：窗口在 `[desktop:perf] ready-to-show +708ms` 出现（≤1s），且 `apps/web/index.html` 内联 `#boot-splash`（品牌“谨迹”+ spinner）在 JS 执行前已注入，因此窗口首帧即有内容而非纯白。renderer `performance.mark('boot:probing-start')` 在 567.90ms，`boot:children-rendered` 在 578.00ms。                    |
 | AC-2 — daemon 慢速不阻塞窗口 | ✅ pass | 通过临时 `JOURNAL_DAEMON_BIN=/tmp/daemon-delay-wrapper.js` 给 daemon 注入 3s 延迟（已清理，未提交）。复跑后窗口仍在 `[desktop:perf] ready-to-show +541ms` 出现（≤1s），并显示 BootGate 启动态；daemon 就绪后 `boot:daemon-ready`（4287.90ms）到 `boot:children-rendered`（4251.70ms）间隔约 36–72ms，自动切换到正常界面，无需用户操作。 |
-| AC-3 — 再启动一致 | ✅ pass | 修复不依赖缓存：每次启动均走 `runStartup()` 并行链 + `index.html` 内联 splash + `BootGate` 探测。AC-1/AC-2 两次独立冷启均达标，关闭再开行为一致。 |
-| AC-4 — 有度量证据 | ✅ pass | main 进程 4 个 `[desktop:perf]` 埋点（`whenReady`/`createWindow`/`ready-to-show`/`daemon-healthy`）已真实采集；renderer 3 个 `performance.mark`（`boot:probing-start`/`boot:daemon-ready`/`boot:children-rendered`）通过 CDP 实际读取。数据已写入 `./perf-after.md`（替换原估算值）。 |
+| AC-3 — 再启动一致            | ✅ pass | 修复不依赖缓存：每次启动均走 `runStartup()` 并行链 + `index.html` 内联 splash + `BootGate` 探测。AC-1/AC-2 两次独立冷启均达标，关闭再开行为一致。                                                                                                                                                                                       |
+| AC-4 — 有度量证据            | ✅ pass | main 进程 4 个 `[desktop:perf]` 埋点（`whenReady`/`createWindow`/`ready-to-show`/`daemon-healthy`）已真实采集；renderer 3 个 `performance.mark`（`boot:probing-start`/`boot:daemon-ready`/`boot:children-rendered`）通过 CDP 实际读取。数据已写入 `./perf-after.md`（替换原估算值）。                                                   |
 
 ### AC-1 / AC-2 真实时间线
 
 **AC-1 正常启动**
 
-| 事件 | 时间戳 | 来源 |
-|---|---|---|
-| `whenReady` | +64ms | `[desktop:perf]` |
-| `createWindow` | +152ms | `[desktop:perf]` |
-| `ready-to-show`（窗口可见） | **+708ms** | `[desktop:perf]` |
-| `boot:probing-start` | 567.90ms | renderer `performance.mark` |
-| `daemon-healthy` | +721ms | `[desktop:perf]` |
-| `boot:daemon-ready` | 577.80ms | renderer `performance.mark` |
-| `boot:children-rendered` | 578.00ms | renderer `performance.mark` |
+| 事件                        | 时间戳     | 来源                        |
+| --------------------------- | ---------- | --------------------------- |
+| `whenReady`                 | +64ms      | `[desktop:perf]`            |
+| `createWindow`              | +152ms     | `[desktop:perf]`            |
+| `ready-to-show`（窗口可见） | **+708ms** | `[desktop:perf]`            |
+| `boot:probing-start`        | 567.90ms   | renderer `performance.mark` |
+| `daemon-healthy`            | +721ms     | `[desktop:perf]`            |
+| `boot:daemon-ready`         | 577.80ms   | renderer `performance.mark` |
+| `boot:children-rendered`    | 578.00ms   | renderer `performance.mark` |
 
 **AC-2 daemon 延迟 3s**
 
-| 事件 | 时间戳 | 来源 |
-|---|---|---|
-| `whenReady` | +30ms | `[desktop:perf]` |
-| `createWindow` | +71ms | `[desktop:perf]` |
-| `ready-to-show`（窗口可见） | **+541ms** | `[desktop:perf]` |
-| `boot:probing-start` | 474.20ms | renderer `performance.mark` |
-| `daemon-healthy` | +3661ms | `[desktop:perf]` |
-| `boot:daemon-ready` | 4287.90ms | renderer `performance.mark` |
-| `boot:children-rendered` | 4251.70ms | renderer `performance.mark` |
+| 事件                        | 时间戳     | 来源                        |
+| --------------------------- | ---------- | --------------------------- |
+| `whenReady`                 | +30ms      | `[desktop:perf]`            |
+| `createWindow`              | +71ms      | `[desktop:perf]`            |
+| `ready-to-show`（窗口可见） | **+541ms** | `[desktop:perf]`            |
+| `boot:probing-start`        | 474.20ms   | renderer `performance.mark` |
+| `daemon-healthy`            | +3661ms    | `[desktop:perf]`            |
+| `boot:daemon-ready`         | 4287.90ms  | renderer `performance.mark` |
+| `boot:children-rendered`    | 4251.70ms  | renderer `performance.mark` |
 
 ## 范围完整性（不少，对照 story.md 范围）
 
@@ -63,19 +63,19 @@ scope: "git diff -- apps/desktop/src/main.ts apps/web/index.html apps/web/src/li
 
 ## 越界检查（不多，对照 story 非目标 + design 范围）
 
-| 改动 | 是否越界 | 说明 |
-|---|---|---|
-| `apps/desktop/src/main.ts` 增加 perf 与窗口展示逻辑 | 否 | 直接服务 AC-1/AC-2/D0/D2。 |
-| `apps/desktop/src/startup.ts` 新增启动编排 | 否 | design.md D1/D4 明确要求。 |
-| `apps/web/index.html` 内联 critical CSS + splash | 否 | design.md D2 明确要求。 |
-| `apps/web/src/components/BootGate.tsx` 新增 boot 态 | 否 | design.md D3 明确要求。 |
-| `apps/web/src/main.tsx` 用 `BootGate` 包裹 provider 树 | 否 | design.md D3 明确要求。 |
-| `apps/web/src/lib/runtimeClient.ts` 接口新增 `health()` | 否 | BootGate 探测所需的最小契约扩展。 |
-| `apps/web/src/lib/httpRuntimeClient.ts` 实现 `health()` | 否 | 同上；仅调用既有 `/health`，未改 daemon。 |
-| 未改动 daemon 业务逻辑 | 否 | 符合 story “不改变 daemon 的业务初始化逻辑与数据加载语义”。 |
-| 未引入新框架/新依赖 | 否 | `package.json` 无变更，无新增 npm 依赖。 |
-| 未优化打包分发版 | 否 | 符合“不针对打包分发版做专门优化验证”。 |
-| 未处理运行时性能 / 未优化 `build:daemon` 前置构建 | 否 | 符合三类边界。 |
+| 改动                                                    | 是否越界 | 说明                                                        |
+| ------------------------------------------------------- | -------- | ----------------------------------------------------------- |
+| `apps/desktop/src/main.ts` 增加 perf 与窗口展示逻辑     | 否       | 直接服务 AC-1/AC-2/D0/D2。                                  |
+| `apps/desktop/src/startup.ts` 新增启动编排              | 否       | design.md D1/D4 明确要求。                                  |
+| `apps/web/index.html` 内联 critical CSS + splash        | 否       | design.md D2 明确要求。                                     |
+| `apps/web/src/components/BootGate.tsx` 新增 boot 态     | 否       | design.md D3 明确要求。                                     |
+| `apps/web/src/main.tsx` 用 `BootGate` 包裹 provider 树  | 否       | design.md D3 明确要求。                                     |
+| `apps/web/src/lib/runtimeClient.ts` 接口新增 `health()` | 否       | BootGate 探测所需的最小契约扩展。                           |
+| `apps/web/src/lib/httpRuntimeClient.ts` 实现 `health()` | 否       | 同上；仅调用既有 `/health`，未改 daemon。                   |
+| 未改动 daemon 业务逻辑                                  | 否       | 符合 story “不改变 daemon 的业务初始化逻辑与数据加载语义”。 |
+| 未引入新框架/新依赖                                     | 否       | `package.json` 无变更，无新增 npm 依赖。                    |
+| 未优化打包分发版                                        | 否       | 符合“不针对打包分发版做专门优化验证”。                      |
+| 未处理运行时性能 / 未优化 `build:daemon` 前置构建       | 否       | 符合三类边界。                                              |
 
 ## 冗余（不重，对照 story.md）
 

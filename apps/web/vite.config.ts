@@ -1,10 +1,10 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { resolve } from "path";
-import { visualizer } from "rollup-plugin-visualizer";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // @ts-expect-error process is a nodejs global
-const host = process.env.TAURI_DEV_HOST;
+const host = process.env.TAURI_DEV_HOST
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -13,8 +13,8 @@ export default defineConfig(async () => ({
     // Produce dist/stats.html on every build for ongoing bundle-size monitoring (AC-20).
     // No CI gate — local inspection only (Q3 default).
     visualizer({
-      filename: "dist/stats.html",
-      template: "list",
+      filename: 'dist/stats.html',
+      template: 'list',
       gzipSize: true,
       brotliSize: false,
     }),
@@ -34,7 +34,7 @@ export default defineConfig(async () => ({
   ],
   test: {
     environment: 'jsdom',
-    exclude: ["e2e/**", "node_modules/**"],
+    exclude: ['e2e/**', 'node_modules/**'],
     globals: true,
     setupFiles: ['./src/tests/setup.ts'],
     testTimeout: 10000,
@@ -76,7 +76,11 @@ export default defineConfig(async () => ({
             return 'katex'
           }
           // recharts (charting)
-          if (/[\\/]node_modules[\\/](recharts|d3-|victory-vendor|internmap|robust-predicates|delaunator)[\\/]/.test(id)) {
+          if (
+            /[\\/]node_modules[\\/](recharts|d3-|victory-vendor|internmap|robust-predicates|delaunator)[\\/]/.test(
+              id,
+            )
+          ) {
             return 'recharts'
           }
           return undefined
@@ -102,14 +106,14 @@ export default defineConfig(async () => ({
     host: host || false,
     hmr: host
       ? {
-          protocol: "ws",
+          protocol: 'ws',
           host,
           port: 1421,
         }
       : undefined,
     watch: {
       // 3. tell Vite to ignore generated workspace skill folders
-      ignored: ["**/.claude/**"],
+      ignored: ['**/.claude/**'],
     },
   },
-}));
+}))

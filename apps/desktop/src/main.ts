@@ -11,19 +11,9 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  app,
-  BrowserWindow,
-  nativeTheme,
-  type BrowserWindowConstructorOptions,
-} from 'electron'
+import { app, BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron'
 import { buildApplicationMenu } from './menu.js'
-import {
-  type DaemonHandle,
-  DEFAULT_DAEMON_PORT,
-  spawnDaemon,
-  waitForHealth,
-} from './daemon.js'
+import { type DaemonHandle, DEFAULT_DAEMON_PORT, spawnDaemon, waitForHealth } from './daemon.js'
 import { registerHostIpc } from './hostIpc.js'
 import { runStartup } from './startup.js'
 
@@ -42,8 +32,7 @@ const DEV_SERVER_URL = process.env.JOURNAL_DEV_URL ?? 'http://localhost:1420'
 const DAEMON_PORT = Number(process.env.JOURNAL_DAEMON_PORT ?? DEFAULT_DAEMON_PORT)
 // Packaged renderer index (wired by M7-b/c). Overridable for local prod tests.
 const RENDERER_INDEX =
-  process.env.JOURNAL_RENDERER_INDEX ??
-  join(app.getAppPath(), 'dist-renderer', 'index.html')
+  process.env.JOURNAL_RENDERER_INDEX ?? join(app.getAppPath(), 'dist-renderer', 'index.html')
 
 /** Tracks the running daemon so it can be reclaimed on quit. */
 let daemonHandle: DaemonHandle | null = null
@@ -175,7 +164,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
- // macOS keeps the app alive with no windows; everywhere else we quit.
+  // macOS keeps the app alive with no windows; everywhere else we quit.
   if (process.platform !== 'darwin') app.quit()
 })
 

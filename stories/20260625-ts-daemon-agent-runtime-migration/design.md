@@ -18,19 +18,19 @@
 
 ## Child Story 映射
 
-| G | Story | 范围 |
-|---|---|---|
-| G1-G3 | `../20260625-monorepo-daemon-skeleton/story.md` | monorepo、daemon 骨架、基础 contracts |
-| G4 | `../20260625-agent-run-service/story.md` | AgentRunService、JSONL、SSE、cancel |
-| G5 | `../20260625-http-runtime-client-pilot/story.md` | HttpRuntimeClient 与前端运行时试点 |
-| G6 | `../20260626-source-binding-evidence/story.md` | SourceBinding 与证据链 |
-| G7 | `../20260625-artifact-index/story.md` | Artifact index |
-| G8-G9 | `../20260625-changeset-authorization/story.md` | ChangeSet 与 AuthorizationMode |
-| G10-G11 | `../20260625-coding-agent-adapters/story.md` | RuntimeAgentDef registry 与三家 adapter |
-| G12-G13 | `../20260625-agent-run-panel-integration/story.md` | Agent Run panel 与右侧入口 |
-| G14 | `../20260626-run-sedimentation-review/story.md` | 自动沉淀、summary、review/edit/reject/rollback |
-| G15 | `../20260626-workspace-context-boundary/story.md` | Workspace metadata 与上下文组装 |
-| Multi-agent | `../20260626-multi-agent-delegation/story.md` | parent/child run 与子任务委托 |
+| G           | Story                                              | 范围                                           |
+| ----------- | -------------------------------------------------- | ---------------------------------------------- |
+| G1-G3       | `../20260625-monorepo-daemon-skeleton/story.md`    | monorepo、daemon 骨架、基础 contracts          |
+| G4          | `../20260625-agent-run-service/story.md`           | AgentRunService、JSONL、SSE、cancel            |
+| G5          | `../20260625-http-runtime-client-pilot/story.md`   | HttpRuntimeClient 与前端运行时试点             |
+| G6          | `../20260626-source-binding-evidence/story.md`     | SourceBinding 与证据链                         |
+| G7          | `../20260625-artifact-index/story.md`              | Artifact index                                 |
+| G8-G9       | `../20260625-changeset-authorization/story.md`     | ChangeSet 与 AuthorizationMode                 |
+| G10-G11     | `../20260625-coding-agent-adapters/story.md`       | RuntimeAgentDef registry 与三家 adapter        |
+| G12-G13     | `../20260625-agent-run-panel-integration/story.md` | Agent Run panel 与右侧入口                     |
+| G14         | `../20260626-run-sedimentation-review/story.md`    | 自动沉淀、summary、review/edit/reject/rollback |
+| G15         | `../20260626-workspace-context-boundary/story.md`  | Workspace metadata 与上下文组装                |
+| Multi-agent | `../20260626-multi-agent-delegation/story.md`      | parent/child run 与子任务委托                  |
 
 ## 验收失败项收口
 

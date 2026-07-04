@@ -104,10 +104,7 @@ export async function executeRun(
   }
   const launch = resolveAgentLaunch(def, configuredEnv)
   const launchPath = launch.launchPath ?? def.bin
-  const childEnv = applyAgentLaunchEnv(
-    { ...process.env, ...configuredEnv },
-    launch,
-  )
+  const childEnv = applyAgentLaunchEnv({ ...process.env, ...configuredEnv }, launch)
 
   const spawnChild =
     options.spawnChild ??

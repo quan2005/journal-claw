@@ -21,7 +21,7 @@ source: 终局 UI 10 优化目标 — G1 / G7 / G10
 
 ## 成功标准（GWT 验收）
 
-- **AC-1**（按钮 accent 统一）Given 用户停留在 `技能` / `想法` / `自动化` 任一 Hub 页，When 观察其主操作（新建*）按钮，Then 三者均为实心 `var(--accent)`（#FF5701）背景 + 白色文字、同一圆角 token，无浅珊瑚/粉填充残留。
+- **AC-1**（按钮 accent 统一）Given 用户停留在 `技能` / `想法` / `自动化` 任一 Hub 页，When 观察其主操作（新建\*）按钮，Then 三者均为实心 `var(--accent)`（#FF5701）背景 + 白色文字、同一圆角 token，无浅珊瑚/粉填充残留。
 - **AC-2**（对比度达标）Given 暗色主题下渲染正文副文本（secondary）与元信息/提示文本（tertiary/muted），When 用对比度工具测量文字色与其所在表面背景色，Then secondary ≥ 4.5:1、tertiary/muted ≥ 3:1（WCAG AA）；附测量数值。
 - **AC-3**（水印收敛）Given 用户进入 `专题` / `核心画像` / `Timeline` 的空状态，When 观察背景「谨迹」水印，Then 水印不透明度 ≤ 0.04（或等效极淡），不再与中央引导区（「粘贴/拖文件」「在左侧选择…」）争夺视觉焦点；引导区成为唯一焦点。
 

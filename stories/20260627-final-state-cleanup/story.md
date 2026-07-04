@@ -1,6 +1,6 @@
 ---
 id: STORY-20260627-final-state-cleanup
-title: "Final-state 终局锚点与发布文档收尾"
+title: 'Final-state 终局锚点与发布文档收尾'
 status: verified
 source: gate
 level: L2
@@ -43,6 +43,7 @@ related:
 ### 用户行为变化
 
 做完后，项目执行者会：
+
 - 以 `docs/final-state.md` 判断终局状态时，过期 Phase/D1-D7/Rust/Tauri 叙述冲突从“多处需要人工辨别”降为“0 个有效冲突”。
 - 以 README、用户指南、About/Permissions 文案判断用户可见能力时，已下线的录音/语音转写/WhisperKit/SpeechAnalyzer/speaker profile 宣传从“多处命中”降为“0 个有效宣传入口”，仅允许 release note/历史迁移说明保留。
 - 以常用验证命令复核主链路时，依赖清单与 lockfile 不再因 Electron 依赖分类漂移阻断 frozen install 或测试启动；若仍有既有测试失败，失败集合必须被明确记录为基线且不新增。
@@ -52,30 +53,35 @@ related:
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — 终局锚点可信
+
 - **Given** 项目执行者打开 `docs/final-state.md`
 - **When** 阅读产品北极星、技术最终态、迁移进度、待定决策和落地记录
 - **Then** 文档明确反映 2026-06-27 M8-b 终局：Electron host、TypeScript daemon、pi 内建引擎、Rust/Tauri 删除、音频/语音/MDX 下线、五个一等对象当前完成度
 - **And** 不再把已完成的 Rust 退出、Electron 切换、AuthorizationMode、AgentRun/Sources/Artifacts/Memory/Workspace 一等化标为待定或未开始
 
 ### AC-2 — 用户可见能力叙述不误导
+
 - **Given** 用户或维护者阅读 README 与 `docs/guide/*`
 - **When** 搜索录音、语音转写、WhisperKit、SpeechAnalyzer、speaker profiles、Tauri v2、Rust IPC 等已过期终局叙述
 - **Then** 用户可见文档不再宣传已下线能力或旧架构为当前能力
 - **And** 语音/转写相关 guide 页面直接删除，不保留下线说明页；现有导航和相关链接不得指向被删除页面
 
 ### AC-3 — 应用内文案不宣传已下线语音能力
+
 - **Given** 用户打开设置页的权限和关于区域
 - **When** 查看权限说明、About credit 和相关本地化文案
 - **Then** 不再出现 WhisperKit/SpeechAnalyzer/Apple speech recognition 等当前不可用能力的可用性暗示
 - **And** daemon 返回的 `apple_stt=false`、`whisperkit=false`、`speaker_diarization=false` 与前端展示含义一致
 
 ### AC-4 — 依赖与验证入口可复跑
+
 - **Given** 项目执行者在当前工作树完成本故事相关修改后
 - **When** 运行 package manager 的 frozen/install 检查、contracts/daemon/desktop/web 的 typecheck 与核心测试命令
 - **Then** 不再因 `apps/desktop/package.json` 与 `pnpm-lock.yaml` 不一致、半残 node_modules 或 pnpm build approval 配置缺失而阻断
 - **And** 若 web vitest 仍保留既有 9 个失败基线，报告必须列明失败文件集合并证明没有新增失败
 
 ### AC-5 — 后续 agent 按开发/测试对抗执行
+
 - **Given** 本 story 被确认并进入开发
 - **When** 编排者拆分并派发多个 agent
 - **Then** 每个产出型 agent 都有对应的对抗验收 agent，形成类似开发工程师与测试工程师的成对检查
@@ -99,12 +105,12 @@ related:
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | `docs/final-state.md` 是继续作为“当前终局锚点”重写，还是标为历史快照并另建终局锚点？ | 继续作为当前终局锚点重写 | 待用户确认 |
-| Q2 | 是否把当前用户文档里的语音录音/转写相关页面改为“已下线说明”，而不是删除整页？ | 直接删除语音/转写相关 guide，并清理所有链接 | 已由用户确认 |
-| Q3 | 是否把依赖/测试复跑阻断也纳入本次 agent 处理范围？ | 纳入，作为 AC-4 | 已由用户要求“定义对应任务的验收 Agent / 成功标准”确认 |
-| Q4 | agent 编排是否采用开发/测试成对对抗，而不是执行者自验？ | 采用 Generator/Discriminator 对抗编排 | 已由用户要求“形成 gan 对抗，类似开发工程师和测试工程师”确认 |
+| #   | 问题                                                                                 | 当前默认值                                  | 状态                                                        |
+| --- | ------------------------------------------------------------------------------------ | ------------------------------------------- | ----------------------------------------------------------- |
+| Q1  | `docs/final-state.md` 是继续作为“当前终局锚点”重写，还是标为历史快照并另建终局锚点？ | 继续作为当前终局锚点重写                    | 待用户确认                                                  |
+| Q2  | 是否把当前用户文档里的语音录音/转写相关页面改为“已下线说明”，而不是删除整页？        | 直接删除语音/转写相关 guide，并清理所有链接 | 已由用户确认                                                |
+| Q3  | 是否把依赖/测试复跑阻断也纳入本次 agent 处理范围？                                   | 纳入，作为 AC-4                             | 已由用户要求“定义对应任务的验收 Agent / 成功标准”确认       |
+| Q4  | agent 编排是否采用开发/测试成对对抗，而不是执行者自验？                              | 采用 Generator/Discriminator 对抗编排       | 已由用户要求“形成 gan 对抗，类似开发工程师和测试工程师”确认 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -117,6 +123,6 @@ related:
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-27 | 可开发 | 用户已确认 Q1 默认值；Q2/Q3/Q4 已按用户指令确认；可按 design.md 的 GAN 式开发/测试对抗编排派发 agent |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                             |
+| ---- | ---------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-27 | 可开发    | 用户已确认 Q1 默认值；Q2/Q3/Q4 已按用户指令确认；可按 design.md 的 GAN 式开发/测试对抗编排派发 agent |

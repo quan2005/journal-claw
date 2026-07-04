@@ -141,10 +141,7 @@ function readdirSafe(dir: string): string[] {
 
 function resolvePathDirs(): string[] {
   const seen = new Set<string>()
-  const dirs = [
-    ...(process.env.PATH || '').split(delimiter),
-    ...userToolchainDirs(),
-  ]
+  const dirs = [...(process.env.PATH || '').split(delimiter), ...userToolchainDirs()]
   return dirs.filter((dir) => {
     if (!dir || seen.has(dir)) return false
     seen.add(dir)
@@ -164,9 +161,7 @@ export function agentSearchDirs(): string[] {
 
 export function resolveOnPath(bin: string): string | null {
   const exts =
-    process.platform === 'win32'
-      ? (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';')
-      : ['']
+    process.platform === 'win32' ? (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';') : ['']
   const dirs = resolvePathDirs()
   for (const dir of dirs) {
     for (const ext of exts) {
@@ -239,10 +234,7 @@ export function inspectAgentExecutableResolution(
     }
   }
   const configuredOverridePath = configuredExecutableOverride(def, configuredEnv)
-  const candidates = [
-    def.bin,
-    ...(Array.isArray(def.fallbackBins) ? def.fallbackBins : []),
-  ]
+  const candidates = [def.bin, ...(Array.isArray(def.fallbackBins) ? def.fallbackBins : [])]
   let pathResolvedPath: string | null = null
   for (const bin of candidates) {
     const resolved = resolveOnPath(bin)

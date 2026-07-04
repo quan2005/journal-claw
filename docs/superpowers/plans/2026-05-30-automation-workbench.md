@@ -69,6 +69,7 @@
 ## Task 1: Rust Domain Types
 
 **Files:**
+
 - Create: `src-tauri/src/automation_types.rs`
 - Modify: `src-tauri/src/main.rs`
 - Test: `cd src-tauri && cargo test automation_types`
@@ -300,6 +301,7 @@ git commit -m "feat: add automation domain types"
 ## Task 2: Schedule Calculation
 
 **Files:**
+
 - Create: `src-tauri/src/automation_schedule.rs`
 - Modify: `src-tauri/src/main.rs`
 - Test: `cd src-tauri && cargo test automation_schedule`
@@ -558,6 +560,7 @@ git commit -m "feat: add automation schedule calculation"
 ## Task 3: Automation Store
 
 **Files:**
+
 - Create: `src-tauri/src/automation_store.rs`
 - Modify: `src-tauri/src/main.rs`
 - Test: `cd src-tauri && cargo test automation_store`
@@ -848,6 +851,7 @@ git commit -m "feat: add automation workspace store"
 ## Task 4: Built-In Templates
 
 **Files:**
+
 - Create: `src-tauri/src/automation_templates.rs`
 - Modify: `src-tauri/src/main.rs`
 - Test: `cd src-tauri && cargo test automation_templates`
@@ -1105,6 +1109,7 @@ git commit -m "feat: add automation templates"
 ## Task 5: Unattended Conversation Entry Point
 
 **Files:**
+
 - Modify: `src-tauri/src/conversation.rs`
 - Test: `cd src-tauri && cargo test conversation`
 
@@ -1331,6 +1336,7 @@ git commit -m "feat: add unattended conversation runner"
 ## Task 6: Automation Runner
 
 **Files:**
+
 - Create: `src-tauri/src/automation_runner.rs`
 - Modify: `src-tauri/src/main.rs`
 - Test: `cd src-tauri && cargo test automation_runner`
@@ -1645,6 +1651,7 @@ git commit -m "feat: add automation agent runner"
 ## Task 7: Automation Service and Commands
 
 **Files:**
+
 - Create: `src-tauri/src/automation.rs`
 - Create: `src-tauri/src/automation_commands.rs`
 - Modify: `src-tauri/src/main.rs`
@@ -2065,6 +2072,7 @@ git commit -m "feat: add automation service commands"
 ## Task 8: TypeScript IPC Types and Contracts
 
 **Files:**
+
 - Modify: `src/types.ts`
 - Modify: `src/lib/tauri.ts`
 - Modify: `src/tests/ipc-contract.test.ts`
@@ -2082,7 +2090,10 @@ export type AutomationSchedule =
   | { kind: 'monthly'; day: number; time: string; timezone: string }
 
 export type AutomationScope =
-  | { kind: 'relative'; range: 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' }
+  | {
+      kind: 'relative'
+      range: 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month'
+    }
   | { kind: 'recent_days'; days: number }
   | { kind: 'month'; year_month: string }
   | { kind: 'tags'; tags: string[]; range?: AutomationScope }
@@ -2224,8 +2235,7 @@ export const updateRoutine = (
   patch: UpdateRoutineRequest,
 ): Promise<AutomationRoutine> => invoke<AutomationRoutine>('update_routine', { id, patch })
 
-export const deleteRoutine = (id: string): Promise<void> =>
-  invoke<void>('delete_routine', { id })
+export const deleteRoutine = (id: string): Promise<void> => invoke<void>('delete_routine', { id })
 
 export const pauseRoutine = (id: string): Promise<AutomationRoutine> =>
   invoke<AutomationRoutine>('pause_routine', { id })
@@ -2348,6 +2358,7 @@ git commit -m "feat: add automation ipc contracts"
 ## Task 9: Automation Hook
 
 **Files:**
+
 - Create: `src/hooks/useAutomation.ts`
 - Test: `npm run build`
 
@@ -2523,6 +2534,7 @@ git commit -m "feat: add automation hook"
 ## Task 10: Main View Routing
 
 **Files:**
+
 - Modify: `src/contexts/UIContext.tsx`
 - Modify: `src/components/TreeSidebar.tsx`
 - Modify: `src/App.tsx`
@@ -2565,49 +2577,70 @@ Add props to component signature:
 Render an automation entry below Ideas:
 
 ```tsx
-      <div
-        onClick={onSelectAutomation}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '10px 6px',
-          margin: '0 0 6px',
-          cursor: 'pointer',
-          userSelect: 'none' as const,
-          borderRadius: 6,
-          background: automationSelected ? 'var(--item-selected-bg)' : 'transparent',
-          transition: 'background-color 0.15s var(--ease-out)',
-        }}
-      >
-        <span style={{ width: 12, height: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span
-            style={{
-              width: 3,
-              height: 16,
-              borderRadius: 2,
-              background: 'var(--record-btn)',
-              transform: automationSelected ? 'scaleY(1)' : 'scaleY(0)',
-              transition: 'transform 0.2s var(--ease-out)',
-            }}
-          />
-        </span>
-        <span style={{ width: 13, display: 'flex', color: automationSelected ? 'var(--record-btn)' : 'var(--item-meta)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-        </span>
-        <span
-          style={{
-            fontSize: 'var(--text-base, 0.875rem)',
-            fontWeight: 'var(--font-semibold, 600)',
-            color: automationSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-          }}
-        >
-          自动化
-        </span>
-      </div>
+<div
+  onClick={onSelectAutomation}
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 6px',
+    margin: '0 0 6px',
+    cursor: 'pointer',
+    userSelect: 'none' as const,
+    borderRadius: 6,
+    background: automationSelected ? 'var(--item-selected-bg)' : 'transparent',
+    transition: 'background-color 0.15s var(--ease-out)',
+  }}
+>
+  <span
+    style={{
+      width: 12,
+      height: 12,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <span
+      style={{
+        width: 3,
+        height: 16,
+        borderRadius: 2,
+        background: 'var(--record-btn)',
+        transform: automationSelected ? 'scaleY(1)' : 'scaleY(0)',
+        transition: 'transform 0.2s var(--ease-out)',
+      }}
+    />
+  </span>
+  <span
+    style={{
+      width: 13,
+      display: 'flex',
+      color: automationSelected ? 'var(--record-btn)' : 'var(--item-meta)',
+    }}
+  >
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  </span>
+  <span
+    style={{
+      fontSize: 'var(--text-base, 0.875rem)',
+      fontWeight: 'var(--font-semibold, 600)',
+      color: automationSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+    }}
+  >
+    自动化
+  </span>
+</div>
 ```
 
 - [ ] **Step 3: Wire App to automation view**
@@ -2701,6 +2734,7 @@ git commit -m "feat: add automation main view route"
 ## Task 11: Workbench UI Components
 
 **Files:**
+
 - Modify: `src/components/AutomationWorkbench.tsx`
 - Create: `src/components/AutomationTemplateGrid.tsx`
 - Create: `src/components/AutomationRoutineList.tsx`
@@ -2812,7 +2846,15 @@ export function AutomationRoutineList({
 }) {
   if (routines.length === 0) {
     return (
-      <div style={{ padding: 14, border: '1px solid var(--divider)', borderRadius: 8, color: 'var(--item-meta)', fontSize: 13 }}>
+      <div
+        style={{
+          padding: 14,
+          border: '1px solid var(--divider)',
+          borderRadius: 8,
+          color: 'var(--item-meta)',
+          fontSize: 13,
+        }}
+      >
         还没有自动化。先从模板创建一个。
       </div>
     )
@@ -2846,17 +2888,36 @@ export function AutomationRoutineList({
         >
           <span style={{ minWidth: 0 }}>
             <span style={{ display: 'block', fontWeight: 500 }}>{routine.title}</span>
-            <span style={{ display: 'block', marginTop: 3, color: 'var(--duration-text)', fontSize: 12 }}>
+            <span
+              style={{
+                display: 'block',
+                marginTop: 3,
+                color: 'var(--duration-text)',
+                fontSize: 12,
+              }}
+            >
               {routine.template_id ? `模板：${routine.template_id}` : '自定义 Agent'}
             </span>
           </span>
           <span>
             <span style={{ display: 'block', fontWeight: 500 }}>{scheduleLabel(routine)}</span>
-            <span style={{ display: 'block', marginTop: 3, color: 'var(--duration-text)', fontSize: 12 }}>
+            <span
+              style={{
+                display: 'block',
+                marginTop: 3,
+                color: 'var(--duration-text)',
+                fontSize: 12,
+              }}
+            >
               {scopeLabel(routine)}
             </span>
           </span>
-          <span style={{ color: routine.enabled ? 'var(--status-success)' : 'var(--duration-text)', fontSize: 12 }}>
+          <span
+            style={{
+              color: routine.enabled ? 'var(--status-success)' : 'var(--duration-text)',
+              fontSize: 12,
+            }}
+          >
             {routine.enabled ? '已启用' : '暂停'}
           </span>
           <span style={{ color: 'var(--item-meta)', fontSize: 12 }}>
@@ -2963,7 +3024,16 @@ export function AutomationRoutineDetail({
       </div>
       <div style={blockStyle}>
         <div style={labelStyle}>Prompt</div>
-        <div style={{ padding: 12, border: '1px solid var(--divider)', borderRadius: 8, color: 'var(--item-meta)', fontSize: 12, lineHeight: 1.58 }}>
+        <div
+          style={{
+            padding: 12,
+            border: '1px solid var(--divider)',
+            borderRadius: 8,
+            color: 'var(--item-meta)',
+            fontSize: 12,
+            lineHeight: 1.58,
+          }}
+        >
           {routine.prompt}
         </div>
       </div>
@@ -2972,7 +3042,10 @@ export function AutomationRoutineDetail({
         {latest?.manifest ? (
           <div style={{ display: 'grid', gap: 8, color: 'var(--item-meta)', fontSize: 12 }}>
             <ManifestRow label="Summary" value={latest.manifest.summary} />
-            <ManifestRow label="Changed" value={latest.manifest.files_changed.join(', ') || '无文件变更'} />
+            <ManifestRow
+              label="Changed"
+              value={latest.manifest.files_changed.join(', ') || '无文件变更'}
+            />
             <ManifestRow label="Session" value={latest.manifest.conversation_id} />
           </div>
         ) : (
@@ -2982,15 +3055,26 @@ export function AutomationRoutineDetail({
         )}
       </div>
       <div style={{ display: 'flex', gap: 8, padding: 16 }}>
-        <button style={primaryStyle} onClick={() => onRun(routine)}>立即运行</button>
-        <button style={secondaryStyle} onClick={() => onEdit(routine)}>编辑</button>
+        <button style={primaryStyle} onClick={() => onRun(routine)}>
+          立即运行
+        </button>
+        <button style={secondaryStyle} onClick={() => onEdit(routine)}>
+          编辑
+        </button>
         {routine.enabled ? (
-          <button style={secondaryStyle} onClick={() => onPause(routine)}>暂停</button>
+          <button style={secondaryStyle} onClick={() => onPause(routine)}>
+            暂停
+          </button>
         ) : (
-          <button style={secondaryStyle} onClick={() => onResume(routine)}>启用</button>
+          <button style={secondaryStyle} onClick={() => onResume(routine)}>
+            启用
+          </button>
         )}
         {latest?.conversation_id && (
-          <button style={secondaryStyle} onClick={() => onOpenConversation(latest.conversation_id!)}>
+          <button
+            style={secondaryStyle}
+            onClick={() => onOpenConversation(latest.conversation_id!)}
+          >
             会话
           </button>
         )}
@@ -3078,7 +3162,7 @@ export function AutomationWorkbench({
     }
   }, [selectedRoutine?.id])
 
-  const selectedRuns = selectedRoutine ? automation.runsByRoutine[selectedRoutine.id] ?? [] : []
+  const selectedRuns = selectedRoutine ? (automation.runsByRoutine[selectedRoutine.id] ?? []) : []
 
   const handleTemplateSelect = (template: AutomationTemplate) => {
     setSelectedTemplateId(template.id)
@@ -3089,27 +3173,47 @@ export function AutomationWorkbench({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', background: 'var(--bg)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        height: '100%',
+        background: 'var(--bg)',
+      }}
+    >
       <header style={{ padding: '26px 30px 18px', borderBottom: '1px solid var(--divider)' }}>
         <div style={{ color: 'var(--month-label)', fontSize: 12, marginBottom: 5 }}>
           Automation Workbench
         </div>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>自动化工作台</h2>
         <p style={{ maxWidth: 680, margin: '8px 0 0', color: 'var(--item-meta)', fontSize: 13 }}>
-          用模板开始，用 Routine 承载。每个任务都是一条定时完整 Agent 会话，运行后留下摘要、会话和改动清单。
+          用模板开始，用 Routine 承载。每个任务都是一条定时完整 Agent
+          会话，运行后留下摘要、会话和改动清单。
         </p>
       </header>
 
       <div style={{ overflow: 'auto', padding: '20px 30px 28px' }}>
-        <section style={{ paddingBottom: 22, borderBottom: '1px solid var(--divider)', marginBottom: 22 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+        <section
+          style={{ paddingBottom: 22, borderBottom: '1px solid var(--divider)', marginBottom: 22 }}
+        >
+          <div
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}
+          >
             <Metric label="启用中" value={automation.counts.enabled} />
             <Metric label="全部自动化" value={automation.counts.total} />
             <Metric label="需查看失败" value={automation.counts.failed} />
           </div>
         </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(320px, 0.9fr)', gap: 22, alignItems: 'start' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.6fr) minmax(320px, 0.9fr)',
+            gap: 22,
+            alignItems: 'start',
+          }}
+        >
           <div>
             <SectionTitle title="模板入口" subtitle="模板可展开成完整 Routine" />
             <AutomationTemplateGrid
@@ -3147,7 +3251,15 @@ export function AutomationWorkbench({
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div style={{ minHeight: 74, padding: 12, border: '1px solid var(--divider)', borderRadius: 8, background: 'var(--detail-case-bg)' }}>
+    <div
+      style={{
+        minHeight: 74,
+        padding: 12,
+        border: '1px solid var(--divider)',
+        borderRadius: 8,
+        background: 'var(--detail-case-bg)',
+      }}
+    >
       <div style={{ color: 'var(--duration-text)', fontSize: 12 }}>{label}</div>
       <div style={{ marginTop: 4, fontSize: 22, fontWeight: 600 }}>{value}</div>
     </div>
@@ -3156,7 +3268,15 @@ function Metric({ label, value }: { label: string; value: number }) {
 
 function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginBottom: 12,
+      }}
+    >
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</h3>
       <span style={{ color: 'var(--duration-text)', fontSize: 12 }}>{subtitle}</span>
     </div>
@@ -3186,6 +3306,7 @@ git commit -m "feat: build automation workbench UI"
 ## Task 12: Automation Editor Dialog
 
 **Files:**
+
 - Create: `src/components/AutomationEditorDialog.tsx`
 - Modify: `src/components/AutomationWorkbench.tsx`
 - Test: `npm run build`
@@ -3228,7 +3349,8 @@ export function AutomationEditorDialog({
   const [scopeText, setScopeText] = useState(scopeLabel(seed.scope))
 
   const selectedTemplate = useMemo(
-    () => templates.find((t) => t.id === (routine?.template_id ?? initialTemplate?.id)) ?? templates[0],
+    () =>
+      templates.find((t) => t.id === (routine?.template_id ?? initialTemplate?.id)) ?? templates[0],
     [initialTemplate?.id, routine?.template_id, templates],
   )
 
@@ -3264,15 +3386,32 @@ export function AutomationEditorDialog({
         background: 'rgba(0,0,0,0.45)',
       }}
     >
-      <div style={{ width: 'min(940px, calc(100vw - 56px))', maxHeight: 'calc(100vh - 56px)', overflow: 'hidden', border: '1px solid var(--divider)', borderRadius: 8, background: 'var(--bg)' }}>
+      <div
+        style={{
+          width: 'min(940px, calc(100vw - 56px))',
+          maxHeight: 'calc(100vh - 56px)',
+          overflow: 'hidden',
+          border: '1px solid var(--divider)',
+          borderRadius: 8,
+          background: 'var(--bg)',
+        }}
+      >
         <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--divider)' }}>
           <h2 style={{ margin: 0, fontSize: 18 }}>{routine ? '编辑自动化' : '新建自动化'}</h2>
           <p style={{ margin: '6px 0 0', color: 'var(--item-meta)', fontSize: 12 }}>
             主入口是模板；任何选择最终都会生成 Routine。
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', minHeight: 500 }}>
-          <div style={{ padding: 14, borderRight: '1px solid var(--divider)', background: 'var(--sidebar-bg)' }}>
+        <div
+          style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', minHeight: 500 }}
+        >
+          <div
+            style={{
+              padding: 14,
+              borderRight: '1px solid var(--divider)',
+              background: 'var(--sidebar-bg)',
+            }}
+          >
             <div style={{ marginBottom: 8, color: 'var(--duration-text)', fontSize: 11 }}>模板</div>
             {templates.map((template) => (
               <div
@@ -3280,8 +3419,12 @@ export function AutomationEditorDialog({
                 style={{
                   padding: 11,
                   borderRadius: 8,
-                  background: template.id === selectedTemplate?.id ? 'var(--record-highlight)' : 'transparent',
-                  color: template.id === selectedTemplate?.id ? 'var(--item-text)' : 'var(--item-meta)',
+                  background:
+                    template.id === selectedTemplate?.id
+                      ? 'var(--record-highlight)'
+                      : 'transparent',
+                  color:
+                    template.id === selectedTemplate?.id ? 'var(--item-text)' : 'var(--item-meta)',
                 }}
               >
                 <strong>{template.title}</strong>
@@ -3299,18 +3442,42 @@ export function AutomationEditorDialog({
               <input value={time} onChange={(e) => setTime(e.target.value)} style={inputStyle} />
             </Field>
             <Field label="输入范围">
-              <input value={scopeText} onChange={(e) => setScopeText(e.target.value)} style={inputStyle} />
+              <input
+                value={scopeText}
+                onChange={(e) => setScopeText(e.target.value)}
+                style={inputStyle}
+              />
             </Field>
             <Field label="Prompt">
-              <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ ...inputStyle, height: 160, paddingTop: 10 }} />
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                style={{ ...inputStyle, height: 160, paddingTop: 10 }}
+              />
             </Field>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--item-meta)', fontSize: 13 }}>
-              <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                color: 'var(--item-meta)',
+                fontSize: 13,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => setEnabled(e.target.checked)}
+              />
               启用这个自动化
             </label>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-              <button onClick={onClose} style={secondaryStyle}>取消</button>
-              <button onClick={save} style={primaryStyle}>保存自动化</button>
+              <button onClick={onClose} style={secondaryStyle}>
+                取消
+              </button>
+              <button onClick={save} style={primaryStyle}>
+                保存自动化
+              </button>
             </div>
           </div>
         </div>
@@ -3380,7 +3547,9 @@ function scopeFromText(text: string): AutomationScope {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'block', marginBottom: 14 }}>
-      <span style={{ display: 'block', marginBottom: 6, color: 'var(--duration-text)', fontSize: 11 }}>
+      <span
+        style={{ display: 'block', marginBottom: 6, color: 'var(--duration-text)', fontSize: 11 }}
+      >
         {label}
       </span>
       {children}
@@ -3452,25 +3621,27 @@ onEdit={(routine) => setEditingRoutine(routine)}
 Render dialog at the bottom:
 
 ```tsx
-{(editingRoutine || draftTemplate) && (
-  <AutomationEditorDialog
-    templates={automation.templates}
-    routine={editingRoutine}
-    initialTemplate={draftTemplate}
-    onClose={() => {
-      setEditingRoutine(null)
-      setDraftTemplate(null)
-    }}
-    onCreate={async (request) => {
-      const routine = await automation.create(request)
-      setSelectedId(routine.id)
-    }}
-    onUpdate={async (id, patch) => {
-      const routine = await automation.update(id, patch)
-      setSelectedId(routine.id)
-    }}
-  />
-)}
+{
+  ;(editingRoutine || draftTemplate) && (
+    <AutomationEditorDialog
+      templates={automation.templates}
+      routine={editingRoutine}
+      initialTemplate={draftTemplate}
+      onClose={() => {
+        setEditingRoutine(null)
+        setDraftTemplate(null)
+      }}
+      onCreate={async (request) => {
+        const routine = await automation.create(request)
+        setSelectedId(routine.id)
+      }}
+      onUpdate={async (id, patch) => {
+        const routine = await automation.update(id, patch)
+        setSelectedId(routine.id)
+      }}
+    />
+  )
+}
 ```
 
 - [ ] **Step 3: Run build**
@@ -3495,6 +3666,7 @@ git commit -m "feat: add automation editor dialog"
 ## Task 13: Settings Integration
 
 **Files:**
+
 - Modify: `src/settings/components/SectionAutomation.tsx`
 - Modify: `src/App.tsx`
 - Test: `npm run build`
@@ -3526,14 +3698,20 @@ return (
         padding: 16,
       }}
     >
-      <div style={{ fontSize: 14, color: 'var(--item-text)', marginBottom: 4 }}>
-        自动化工作台
-      </div>
+      <div style={{ fontSize: 14, color: 'var(--item-text)', marginBottom: 4 }}>自动化工作台</div>
       <div style={{ fontSize: 12, color: 'var(--item-meta)', marginBottom: 16 }}>
         自动化现在作为主界面工作台管理。这里保留全局后台运行和失败通知设置。
       </div>
-      <SettingRow title="允许后台自动化运行" desc="关闭后，定时 Routine 暂停；手动运行仍可执行。" value="开启" />
-      <SettingRow title="默认 Agent 权限" desc="自动化使用完整 Agent 权限，并保留完整会话与 manifest。" value="完整 Agent" />
+      <SettingRow
+        title="允许后台自动化运行"
+        desc="关闭后，定时 Routine 暂停；手动运行仍可执行。"
+        value="开启"
+      />
+      <SettingRow
+        title="默认 Agent 权限"
+        desc="自动化使用完整 Agent 权限，并保留完整会话与 manifest。"
+        value="完整 Agent"
+      />
       <SettingRow title="失败通知" desc="只在失败或连续跳过时提示，避免打扰阅读。" value="开启" />
     </div>
   </div>
@@ -3601,6 +3779,7 @@ git commit -m "feat: update automation settings surface"
 ## Task 14: Legacy Auto-Lint Migration
 
 **Files:**
+
 - Modify: `src-tauri/src/automation.rs`
 - Modify: `src-tauri/src/automation_templates.rs`
 - Modify: `src-tauri/src/auto_lint.rs`
@@ -3705,6 +3884,7 @@ git commit -m "feat: migrate auto lint into automation routine"
 ## Task 15: Verification
 
 **Files:**
+
 - No new source files.
 - Verify all touched Rust and TypeScript code.
 

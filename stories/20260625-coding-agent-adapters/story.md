@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-coding-agent-adapters
-title: "Coding Agent Registry + three CLI adapters (Runs execution engine)"
+title: 'Coding Agent Registry + three CLI adapters (Runs execution engine)'
 status: verified
 source: orchestrator
 level: L2
@@ -29,6 +29,7 @@ related:
 - OpenCode uses `opencode run --format json`.
 
 ### claude stream schema (measured)
+
 - `{"type":"system","subtype":"init", cwd, session_id, tools[], model, permissionMode}`
 - `{"type":"system","subtype":"hook_started"/"hook_response", hook_id, exit_code, outcome}`
 - `{"type":"system","subtype":"api_retry", attempt, max_retries, retry_delay_ms, error}`
@@ -40,6 +41,7 @@ related:
 ## 范围
 
 ### 实现
+
 1. `packages/contracts/src/runtime.ts` — RuntimeAgentDef + AgentAuthStatus
 2. `apps/daemon/src/runtimes/registry.ts` — dedup registry
 3. `apps/daemon/src/runtimes/defs/claude.ts` — claude adapter def
@@ -51,6 +53,7 @@ related:
 9. `GET /agents` — list registered adapters
 
 ### 独占文件
+
 - `packages/contracts/src/runtime.ts` + `index.ts` re-export (additive) + `runtime.test.ts`
 - `apps/daemon/src/runtimes/registry.ts` + `.test.ts`
 - `apps/daemon/src/runtimes/defs/claude.ts`

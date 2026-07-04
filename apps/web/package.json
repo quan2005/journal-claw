@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "predev": "npm run build:magicui",
-    "build": "tsc && npm run build:magicui && vite build",
-    "build:magicui": "vite build --config magicui.vite.config.ts && npx tailwindcss -i src/lib/sandbox/magicui/tailwind.css -o src/lib/sandbox/magicui/dist/magicui.bundle.css --minify",
+    "predev": "bun run build:magicui",
+    "build": "tsc && bun run build:magicui && vite build",
+    "build:magicui": "vite build --config magicui.vite.config.ts && bunx tailwindcss -i src/lib/sandbox/magicui/tailwind.css -o src/lib/sandbox/magicui/dist/magicui.bundle.css --minify",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

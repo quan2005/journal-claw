@@ -63,19 +63,13 @@ function domRect(top: number, bottom: number, height: number): DOMRect {
   } as DOMRect
 }
 
-function mockGeometry(opts: {
-  chipBottom: number
-  popoverHeight: number
-  viewportHeight: number
-}) {
+function mockGeometry(opts: { chipBottom: number; popoverHeight: number; viewportHeight: number }) {
   Object.defineProperty(window, 'innerHeight', {
     value: opts.viewportHeight,
     configurable: true,
     writable: true,
   })
-  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
-    this: Element,
-  ) {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     if (this instanceof HTMLElement && this.classList.contains('engine-switcher__popover')) {
       return domRect(0, opts.popoverHeight, opts.popoverHeight)
     }

@@ -37,11 +37,7 @@ Markdown for prose, headings, lists, tables, code. JSX for metric summaries, tim
 ## 访谈整理
 
 ```mdx
-<Quote
-  text="最看重的是效果，不是效率。"
-  author="冯灿威"
-  context="新用户（<1 月），首次深度访谈"
-/>
+<Quote text="最看重的是效果，不是效率。" author="冯灿威" context="新用户（<1 月），首次深度访谈" />
 
 <InsightCard title="导入阶段流失严重">
   5 位受访者中 3 位提到首次导入材料时不知道系统处理进度，导致中途放弃。
@@ -137,9 +133,11 @@ Markdown for prose, headings, lists, tables, code. JSX for metric summaries, tim
 
 ```mdx
 <!-- 错误：ActionTable、EvidenceCard、IncidentTimeline 不存在 -->
+
 <ActionTable items={[...]} />
 
 <!-- 正确：用 Checklist 或 Markdown 表格替代 -->
+
 <Checklist title="行动项" items={[{ text: '李四：补文档（周三）', state: 'todo' }]} />
 ```
 
@@ -147,9 +145,11 @@ Markdown for prose, headings, lists, tables, code. JSX for metric summaries, tim
 
 ```mdx
 <!-- 错误：heading 不是有效 prop -->
+
 <Metrics heading="概览" items={[...]} />
 
 <!-- 正确：使用 title -->
+
 <Metrics title="概览" items={[...]} />
 ```
 
@@ -157,19 +157,28 @@ Markdown for prose, headings, lists, tables, code. JSX for metric summaries, tim
 
 ```mdx
 <!-- 错误：直接传字符串数组 -->
+
 <Checklist items={['任务一', '任务二']} />
 
 <!-- 正确：传对象数组 -->
-<Checklist items={[{ text: '任务一', state: 'todo' }, { text: '任务二', state: 'done' }]} />
+
+<Checklist
+  items={[
+    { text: '任务一', state: 'todo' },
+    { text: '任务二', state: 'done' },
+  ]}
+/>
 ```
 
 ### 4. 图表 data 结构错误
 
 ```mdx
 <!-- 错误：用 name/count -->
+
 <BarChart data={[{ name: 'A', count: 10 }]} />
 
 <!-- 正确：用 label/value -->
+
 <BarChart data={[{ label: 'A', value: 10 }]} />
 ```
 
@@ -177,8 +186,12 @@ Markdown for prose, headings, lists, tables, code. JSX for metric summaries, tim
 
 ```mdx
 <!-- 错误：简单两行内容也包装成组件 -->
-<Card title="备注"><p>下次会议周五</p></Card>
+
+<Card title="备注">
+  <p>下次会议周五</p>
+</Card>
 
 <!-- 正确：Markdown 足够时直接用 Markdown -->
+
 > 备注：下次会议周五
 ```

@@ -4,18 +4,18 @@ design: N/A
 date: 2026-06-28
 round: 1
 result: fail
-scope: "git diff HEAD against apps/web/src/styles/globals.css、apps/web/src/styles/skills-workbench.css、apps/web/src/components/DetailView.tsx 三个文件"
+scope: 'git diff HEAD against apps/web/src/styles/globals.css、apps/web/src/styles/skills-workbench.css、apps/web/src/components/DetailView.tsx 三个文件'
 ---
 
 # 验收报告 — 视觉一致性与可达性打磨（codex 批次）
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
+| AC                       | 结论    | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AC-1（按钮 accent 统一） | ✅ pass | 三个 Hub 主操作按钮均已改为实心 `var(--record-btn)`(#FF5701) 背景 + `var(--status-on-fill)` 文字、共用 `var(--workbench-btn-radius)` 圆角 token，无 color-mix 粉/珊瑚填充残留：<br>· 技能 `.sk-btn-primary` `skills-workbench.css:194-213`（`background: var(--record-btn, #ff5701)`、`color: var(--status-on-fill, #fff)`、`border-radius: var(--workbench-btn-radius)`）<br>· 想法 `.ideas-workbench-button-primary` `globals.css:1348-1360`（同 token）<br>· 自动化 `.automation-button-primary` `globals.css:846-858`（同 token）<br>三页按钮在任一主题下表现一致。`npm run build` 通过。 |
-| AC-2（对比度达标） | ✅ pass | 暗色主题 token（`globals.css:466-616`）：`--text-secondary: #a2a6ae`（未改）、`--text-tertiary/--muted-text/--muted-icon` 由 `#6b7280` 上调为 `#747b86`。以 WCAG 相对亮度法在主表面 `--bg:#0f0f0f` 上计算：<br>· secondary `#a2a6ae` = **7.85:1** ≥ 4.5:1 ✅<br>· tertiary/muted `#747b86` = **4.49:1** ≥ 3:1 ✅<br>· 复核次级表面 `--detail-case-bg:#141414` = 4.32:1、`--bg-secondary:#1c1c1e` = 3.99:1，均 ≥ 3:1 ✅ |
-| AC-3（水印收敛） | ✅ pass | `DetailView.tsx:1388-1404` 水印 `opacity: 0.035` ≤ 0.04 ✅；`fontSize` 由 `84vh` 降至 `60vh`（Won't 明确允许"只调不透明度/尺寸"）。该水印是 专题/核心画像/Timeline 三处空状态**共享**的唯一 DetailView 空状态水印（全仓 `謹跡` 水印仅 `DetailView.tsx:1403` 一处，见 grep 取证），一处修复覆盖三处。 |
+| AC-2（对比度达标）       | ✅ pass | 暗色主题 token（`globals.css:466-616`）：`--text-secondary: #a2a6ae`（未改）、`--text-tertiary/--muted-text/--muted-icon` 由 `#6b7280` 上调为 `#747b86`。以 WCAG 相对亮度法在主表面 `--bg:#0f0f0f` 上计算：<br>· secondary `#a2a6ae` = **7.85:1** ≥ 4.5:1 ✅<br>· tertiary/muted `#747b86` = **4.49:1** ≥ 3:1 ✅<br>· 复核次级表面 `--detail-case-bg:#141414` = 4.32:1、`--bg-secondary:#1c1c1e` = 3.99:1，均 ≥ 3:1 ✅                                                                                                                                                                        |
+| AC-3（水印收敛）         | ✅ pass | `DetailView.tsx:1388-1404` 水印 `opacity: 0.035` ≤ 0.04 ✅；`fontSize` 由 `84vh` 降至 `60vh`（Won't 明确允许"只调不透明度/尺寸"）。该水印是 专题/核心画像/Timeline 三处空状态**共享**的唯一 DetailView 空状态水印（全仓 `謹跡` 水印仅 `DetailView.tsx:1403` 一处，见 grep 取证），一处修复覆盖三处。                                                                                                                                                                                                                                                                                          |
 
 ## 范围完整性（不少，对照 story.md 范围）
 
@@ -43,6 +43,7 @@ N/A — 本任务无 design.md，仅以 story.md 为准。
 **result: fail** — 三条 AC（G1/G7/G10）本身全部达成且 build 通过，但存在一项无法归属的功能性越界改动（speaker_id 徽章移除），按六字标准"不多"判 fail。
 
 修复建议（按风险排序）：
+
 1. **【高】speaker_id 移除归属问题**：二选一——(a) 将该改动从本批次剥离、回退 `DetailView.tsx:2399-2464`，留待 M8-b 清理线单独处理；(b) 若确认要在此批次一并下线，须回写 story.md 补一条 AC 并说明理由（当前 story 无此意图）。建议 (a)。
 
 ## 待用户裁决

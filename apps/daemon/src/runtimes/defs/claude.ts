@@ -42,9 +42,7 @@ export const claudeAgentDef: RuntimeAgentDef = {
     if (options.model && options.model !== 'default') {
       args.push('--model', options.model)
     }
-    const dirs = (extraAllowedDirs || []).filter(
-      (d) => typeof d === 'string' && d.length > 0,
-    )
+    const dirs = (extraAllowedDirs || []).filter((d) => typeof d === 'string' && d.length > 0)
     if (dirs.length > 0) {
       args.push('--add-dir', ...dirs)
     }

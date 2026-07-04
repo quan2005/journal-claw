@@ -44,15 +44,15 @@ Avoid when: the source context matters more than the concept.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| cornell-note | Split cues, notes, summary, questions |
-| feynman-note | Explain simply, find gaps, refine explanation |
-| concept-explanation | Add definition, examples, non-examples |
-| problem-solving | Add problem, attempts, solution, reflection |
-| literature-matrix | Use `ComparisonMatrix` for papers |
-| learning-plan | Add goals, resources, schedule, progress |
-| flashcard | Write question, answer, hint, mastery level |
+| Subtype             | Apply changes                                 |
+| ------------------- | --------------------------------------------- |
+| cornell-note        | Split cues, notes, summary, questions         |
+| feynman-note        | Explain simply, find gaps, refine explanation |
+| concept-explanation | Add definition, examples, non-examples        |
+| problem-solving     | Add problem, attempts, solution, reflection   |
+| literature-matrix   | Use `ComparisonMatrix` for papers             |
+| learning-plan       | Add goals, resources, schedule, progress      |
+| flashcard           | Write question, answer, hint, mastery level   |
 
 ## Quality Rules
 

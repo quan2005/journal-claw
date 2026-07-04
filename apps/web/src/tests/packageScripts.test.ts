@@ -9,6 +9,6 @@ const scripts = (packageJson as PackageJson).scripts
 
 describe('package scripts', () => {
   it('prebuilds Magic UI bundles before starting dev', () => {
-    expect(scripts?.predev).toBe('npm run build:magicui')
+    expect(scripts?.predev).toBe('bun run build:magicui')
   })
 })

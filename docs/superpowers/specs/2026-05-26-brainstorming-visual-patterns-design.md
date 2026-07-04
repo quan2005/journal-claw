@@ -7,6 +7,7 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ## Design Decision
 
 **Maximum fidelity replication.** Copy brainstorming frame-template.css patterns verbatim — same class names, same structure, same behavior. Only changes:
+
 - Color variables mapped to journal theme (amber accent, ink-cyan neutrals)
 - Removed interactive states (`.selected`, `cursor:pointer`, `onclick`) since journal entries are read-only
 - Removed frame chrome (`.header`, `.indicator-bar`) — not applicable
@@ -14,6 +15,7 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ## CSS Patterns to Replicate (7 groups)
 
 ### 1. Typography Helpers
+
 ```css
 .subtitle — secondary text below heading
 .section  — content block with bottom margin
@@ -21,6 +23,7 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ```
 
 ### 2. Options (choice cards)
+
 ```css
 .options            — vertical card list, gap: 0.75rem
 .option             — bg-secondary, border, rounded 12px
@@ -29,6 +32,7 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ```
 
 ### 3. Cards (visual grid)
+
 ```css
 .cards              — auto-fit grid, min 280px
 .card               — bg-secondary, border, rounded 12px, overflow hidden
@@ -37,6 +41,7 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ```
 
 ### 4. Mockup Container
+
 ```css
 .mockup             — bordered rounded container
 .mockup-header      — bg-tertiary bar with label text
@@ -44,11 +49,13 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ```
 
 ### 5. Split View
+
 ```css
 .split              — 1fr 1fr grid, gap 1.5rem, collapses at 700px
 ```
 
 ### 6. Pros/Cons
+
 ```css
 .pros-cons          — 1fr 1fr grid
 .pros h4            — green (#34c759) heading
@@ -56,6 +63,7 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ```
 
 ### 7. Wireframe Building Blocks
+
 ```css
 .placeholder        — dashed border, centered, for empty areas
 .mock-nav           — accent bg, white text, flex row
@@ -68,24 +76,26 @@ AI-generated journal entries are now Fragment HTML with semantic tags + basic CS
 ### Color Mapping
 
 | Brainstorming Variable | Journal Value (light) | Journal Value (dark) |
-|---|---|---|
-| `--bg-primary` | `#f5f6f7` | `#0f0f0f` |
-| `--bg-secondary` | `#ffffff` | `#1a1a1c` |
-| `--bg-tertiary` | `#e5e5e7` | `#2a2a2e` |
-| `--border` | `#d8dce0` | `#2a2a2e` |
-| `--text-primary` | `#1c1c1e` | `#e8e8e8` |
-| `--text-secondary` | `#6a7278` | `#a2a6ae` |
-| `--text-tertiary` | `#a0a8ad` | `#5a5e68` |
-| `--accent` | `#b8782a` | `#c8933b` |
-| `--success` | `#34c759` | `#34c759` |
-| `--error` | `#ff3b30` | `#ff3b30` |
+| ---------------------- | --------------------- | -------------------- |
+| `--bg-primary`         | `#f5f6f7`             | `#0f0f0f`            |
+| `--bg-secondary`       | `#ffffff`             | `#1a1a1c`            |
+| `--bg-tertiary`        | `#e5e5e7`             | `#2a2a2e`            |
+| `--border`             | `#d8dce0`             | `#2a2a2e`            |
+| `--text-primary`       | `#1c1c1e`             | `#e8e8e8`            |
+| `--text-secondary`     | `#6a7278`             | `#a2a6ae`            |
+| `--text-tertiary`      | `#a0a8ad`             | `#5a5e68`            |
+| `--accent`             | `#b8782a`             | `#c8933b`            |
+| `--success`            | `#34c759`             | `#34c759`            |
+| `--error`              | `#ff3b30`             | `#ff3b30`            |
 
 ## Files to Modify
 
 ### 1. `src/lib/sandbox/buildSrcdoc.ts`
+
 Append the 7 CSS pattern groups into the fragment wrapper's `<style>` block (after existing base element styles, before `</style>`). Approximately 120 lines of CSS.
 
 ### 2. `src-tauri/resources/workspace-template/.claude/CLAUDE.md`
+
 Add a "Visual Patterns" reference section after the "Log Format" section:
 
 ```markdown
@@ -93,32 +103,36 @@ Add a "Visual Patterns" reference section after the "Log Format" section:
 
 正文支持以下 CSS class，按场景选用：
 
-| 场景 | 使用组件 |
-|---|---|
-| 方案对比、选项罗列 | `.options` > `.option` > `.letter` + `.content` |
-| 关键结论、信息分块 | `.cards` > `.card` > `.card-body` |
-| 设计稿、线框展示 | `.mockup` > `.mockup-header` + `.mockup-body` |
-| 利弊权衡 | `.pros-cons` > `.pros` / `.cons` |
-| 并排对比 | `.split` > 左 + 右 |
-| 页面布局示意 | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` |
+| 场景               | 使用组件                                                                     |
+| ------------------ | ---------------------------------------------------------------------------- |
+| 方案对比、选项罗列 | `.options` > `.option` > `.letter` + `.content`                              |
+| 关键结论、信息分块 | `.cards` > `.card` > `.card-body`                                            |
+| 设计稿、线框展示   | `.mockup` > `.mockup-header` + `.mockup-body`                                |
+| 利弊权衡           | `.pros-cons` > `.pros` / `.cons`                                             |
+| 并排对比           | `.split` > 左 + 右                                                           |
+| 页面布局示意       | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` |
 
 排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）。
 不滥用。只在信息天然适合该视觉形态时使用。
 ```
 
 ### 3. Meeting minutes templates (4 files)
+
 In each template's structure section, add a one-line hint about available visual components. Example for `argumentation-chain.md`:
+
 ```
 论证链的各方立场可使用 `.options` 组件，共识结论可使用 `.card` 组件。
 ```
 
 ## Out of Scope
+
 - Interactive behavior (click to select, events)
 - Frame chrome (header, indicator bar)
 - New visual patterns not in brainstorming frame-template.css
 - Canvas.css / dot-pattern background (ideate-specific, not brainstorming)
 
 ## Verification
+
 1. Open journal HTML entry → sandbox preview renders with new CSS classes available
 2. Create a test HTML fragment using `.cards`, `.options`, `.pros-cons` → visually matches brainstorming companion style
 3. Dark/light mode toggle → all patterns adapt correctly

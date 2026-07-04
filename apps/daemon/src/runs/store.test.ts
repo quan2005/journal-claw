@@ -41,7 +41,9 @@ describe('RunStore (JSONL persistence)', () => {
     const file = join(dataDir, 'runs', `${runId}.jsonl`)
     expect(existsSync(file)).toBe(true)
 
-    const lines = readFileSync(file, 'utf8').split('\n').filter((l) => l.trim().length > 0)
+    const lines = readFileSync(file, 'utf8')
+      .split('\n')
+      .filter((l) => l.trim().length > 0)
     expect(lines.length).toBe(3)
     for (const line of lines) {
       const parsed = JSON.parse(line)

@@ -4,7 +4,7 @@ design: ./design.md
 date: 2026-07-01
 round: 3
 result: fail
-scope: "git diff HEAD -- apps/web/src/App.tsx apps/web/src/components/WorkspaceView.tsx apps/web/src/components/TreeSidebar.tsx apps/web/src/styles/workspace.css apps/web/src/main.tsx apps/web/src/tests/WorkspaceView.test.tsx apps/web/src/tests/App.test.tsx"
+scope: 'git diff HEAD -- apps/web/src/App.tsx apps/web/src/components/WorkspaceView.tsx apps/web/src/components/TreeSidebar.tsx apps/web/src/styles/workspace.css apps/web/src/main.tsx apps/web/src/tests/WorkspaceView.test.tsx apps/web/src/tests/App.test.tsx'
 ---
 
 # 验收报告 — 在谨迹中复刻 Momo 工作空间 UI，作为桌面端 Workspace 入口视图（Round 3）
@@ -22,26 +22,26 @@ Round 3 在修复旧问题的同时引入了新的越界与视觉 token 违规�
 
 ## 质量 gate 结果
 
-| 六字标准 | 结论 | 关键证据 |
-|---|---|---|
-| 不漏 | ✅ pass | 7 条 AC 均能在代码中找到对应实现位置（见下表）。 |
-| 不重 | ✅ pass | Workspace 相关组件仅在 `WorkspaceView.tsx` 中实现，无并行实现。 |
-| 不偏 | ❌ fail | AC-6 使用硬编码 `#818cf8` 作为 contributor 头像色，违反"无第二 accent 色"；AC-4 使用真实 topic 文件作为 Recently Viewed 数据源，与 story 边界"全部使用 mock"冲突。 |
-| 不倚 | ⚠️ partial | AC-4 / AC-5 / AC-6 存在未按契约实现或测试未覆盖的细化点（详见 AC 核对）。 |
-| 不多 | ❌ fail | `App.tsx:190-194` 引入 `needsSidebar`，将左侧边栏隐藏逻辑扩展到 ideas / automation / skills，超出 story / design 范围。 |
-| 不少 | ✅ pass | design.md 中组件拆分、App.tsx 分支、样式文件、暗色变量、`prefers-reduced-motion`、测试文件均已落实。 |
+| 六字标准 | 结论       | 关键证据                                                                                                                                                           |
+| -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 不漏     | ✅ pass    | 7 条 AC 均能在代码中找到对应实现位置（见下表）。                                                                                                                   |
+| 不重     | ✅ pass    | Workspace 相关组件仅在 `WorkspaceView.tsx` 中实现，无并行实现。                                                                                                    |
+| 不偏     | ❌ fail    | AC-6 使用硬编码 `#818cf8` 作为 contributor 头像色，违反"无第二 accent 色"；AC-4 使用真实 topic 文件作为 Recently Viewed 数据源，与 story 边界"全部使用 mock"冲突。 |
+| 不倚     | ⚠️ partial | AC-4 / AC-5 / AC-6 存在未按契约实现或测试未覆盖的细化点（详见 AC 核对）。                                                                                          |
+| 不多     | ❌ fail    | `App.tsx:190-194` 引入 `needsSidebar`，将左侧边栏隐藏逻辑扩展到 ideas / automation / skills，超出 story / design 范围。                                            |
+| 不少     | ✅ pass    | design.md 中组件拆分、App.tsx 分支、样式文件、暗色变量、`prefers-reduced-motion`、测试文件均已落实。                                                               |
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| **AC-1** Workspace 作为 Topics 分类的新视图 | ✅ pass | `App.tsx:1180-1181` 在 `activeCategory === 'topics' && (!treeSelection \|\| treeSelection.type === 'topic')` 时渲染 `<WorkspaceView onOpenRecent={handleOpenRecent} />`；右侧面板仍由现有 `rightPanelOpen` 状态控制，默认收起。 |
-| **AC-2** 文件树与 Workspace 结构 | ✅ pass | `TreeSidebar.tsx:575-627` 在 `category === 'topics'` 时渲染 "Workspace" 标题与 Search / LayoutGrid 占位图标；原有 Topics 树仍在 `TreeSidebar.tsx:971` 渲染。 |
-| **AC-3** Quick Start 操作区 | ✅ pass | `WorkspaceView.tsx:220-247` 渲染 New File / New Folder / Import 三卡片；点击调用 `placeholderAction` 派发 `show-toast` 占位事件，不调用后端。 |
-| **AC-4** Recently Viewed 列表 | ⚠️ partial | `WorkspaceView.tsx:250-333` 已正确渲染 Name / Contributors / Viewed 表头、文件图标、副标题、contributor 头像、相对时间与 Show more；行点击通过 `onOpenRecent` 进入 `DetailView`（`App.tsx:651-667`）。**偏差：** `WorkspaceView.tsx:161-200` 的 `buildRecentItems` 优先从 `useTopics` 读取真实 topic 文件，仅在真实文件不足 5 条时才补 mock，违反 story 边界 "Contributors / recently viewed 数据全部使用 mock"。 |
-| **AC-5** 右侧 AI Chat 面板 | ✅ pass | `WorkspaceChatShell`（`WorkspaceView.tsx:337-451`）在 `App.tsx:1276-1277` 接入右侧面板；含 New Chat 头部、问候语 "闫戍's momo"、输入框、附件、模型选择器 Sonnet 4.6 / 1M Medium、语音、发送按钮；回车仅本地追加用户消息。Round 2 的 `Copy` 历史图标已在 `WorkspaceView.tsx:381` 修复为 `History`。 |
-| **AC-6** 视觉还原度（浅色模式） | ❌ fail | 大部分颜色、圆角、字体、阴影均使用 token（`workspace.css` 已无可检出硬编码色值）。**违规：** `WorkspaceView.tsx:52,61,70,79,88,97,106,115,124,133,182` 共 11 处将 contributor 头像背景硬编码为 `#818cf8`（靛蓝），引入第二 accent 色，违反 "颜色仅使用谨迹设计 token（白/暖白/墨文字/信号橙），无第二 accent 色"。 |
-| **AC-7** 暗色主题可用性 | ✅ pass（未做真实窗口目视） | 全部表面使用 CSS 变量（`--bg`、`--text-primary`、`--item-hover-bg`、`--focus-ring`）；`--record-btn` 在暗色下映射为 `#FF7A33`。无硬编码暗色值。 |
+| AC                                          | 结论                        | 证据                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AC-1** Workspace 作为 Topics 分类的新视图 | ✅ pass                     | `App.tsx:1180-1181` 在 `activeCategory === 'topics' && (!treeSelection \|\| treeSelection.type === 'topic')` 时渲染 `<WorkspaceView onOpenRecent={handleOpenRecent} />`；右侧面板仍由现有 `rightPanelOpen` 状态控制，默认收起。                                                                                                                                                                                   |
+| **AC-2** 文件树与 Workspace 结构            | ✅ pass                     | `TreeSidebar.tsx:575-627` 在 `category === 'topics'` 时渲染 "Workspace" 标题与 Search / LayoutGrid 占位图标；原有 Topics 树仍在 `TreeSidebar.tsx:971` 渲染。                                                                                                                                                                                                                                                      |
+| **AC-3** Quick Start 操作区                 | ✅ pass                     | `WorkspaceView.tsx:220-247` 渲染 New File / New Folder / Import 三卡片；点击调用 `placeholderAction` 派发 `show-toast` 占位事件，不调用后端。                                                                                                                                                                                                                                                                     |
+| **AC-4** Recently Viewed 列表               | ⚠️ partial                  | `WorkspaceView.tsx:250-333` 已正确渲染 Name / Contributors / Viewed 表头、文件图标、副标题、contributor 头像、相对时间与 Show more；行点击通过 `onOpenRecent` 进入 `DetailView`（`App.tsx:651-667`）。**偏差：** `WorkspaceView.tsx:161-200` 的 `buildRecentItems` 优先从 `useTopics` 读取真实 topic 文件，仅在真实文件不足 5 条时才补 mock，违反 story 边界 "Contributors / recently viewed 数据全部使用 mock"。 |
+| **AC-5** 右侧 AI Chat 面板                  | ✅ pass                     | `WorkspaceChatShell`（`WorkspaceView.tsx:337-451`）在 `App.tsx:1276-1277` 接入右侧面板；含 New Chat 头部、问候语 "闫戍's momo"、输入框、附件、模型选择器 Sonnet 4.6 / 1M Medium、语音、发送按钮；回车仅本地追加用户消息。Round 2 的 `Copy` 历史图标已在 `WorkspaceView.tsx:381` 修复为 `History`。                                                                                                                |
+| **AC-6** 视觉还原度（浅色模式）             | ❌ fail                     | 大部分颜色、圆角、字体、阴影均使用 token（`workspace.css` 已无可检出硬编码色值）。**违规：** `WorkspaceView.tsx:52,61,70,79,88,97,106,115,124,133,182` 共 11 处将 contributor 头像背景硬编码为 `#818cf8`（靛蓝），引入第二 accent 色，违反 "颜色仅使用谨迹设计 token（白/暖白/墨文字/信号橙），无第二 accent 色"。                                                                                                |
+| **AC-7** 暗色主题可用性                     | ✅ pass（未做真实窗口目视） | 全部表面使用 CSS 变量（`--bg`、`--text-primary`、`--item-hover-bg`、`--focus-ring`）；`--record-btn` 在暗色下映射为 `#FF7A33`。无硬编码暗色值。                                                                                                                                                                                                                                                                   |
 
 ## 范围完整性（不少，对照 story.md 范围）
 
@@ -59,18 +59,18 @@ story 范围 / design 范围条目核对：
 
 ## 方案落实（不偏，对照 design.md）
 
-| design 条目 | 结论 | 证据 |
-|---|---|---|
-| §2 组件拆分（单文件） | ✅ pass | `WorkspaceView.tsx` 内含 QuickStart / RecentlyViewed / WorkspaceChatShell 子组件。 |
-| §3.1 App.tsx 分支 | ✅ pass | `App.tsx:1180-1181` 与 design 示例一致。 |
-| §3.2 TreeSidebar | ✅ pass（合理偏差） | design 原话 "无需修改"，但为 AC-2 添加了 Workspace 标题与占位图标，属于满足 AC 的最小偏差。 |
-| §3.3 右侧面板使用 WorkspaceChatShell | ✅ pass | `App.tsx:1276-1277` 在 Topics 分类下替换 `UnifiedChatShell`。 |
-| §4.2 Mock 数据结构 | ❌ fail | design 要求 Recently Viewed 使用写死 5 条 mock 并展开到 10 条；实现优先使用真实 topic 条目（`WorkspaceView.tsx:161-200`）。 |
-| §5.1 样式文件 | ✅ pass | `apps/web/src/styles/workspace.css` 存在，`main.tsx:4` 引入。 |
-| §5.2 token 消费 | ❌ fail | `#818cf8` 硬编码色未走 token。 |
-| §6 暗色主题 | ✅ pass | 全部使用变量，无硬编码暗色值。 |
-| §7 交互行为（Recently Viewed 行打开文件） | ✅ pass | `handleOpenRecent`（`App.tsx:651-667`）设置 `treeSelection` 为 `topic-file` 并切回主视图。 |
-| §9 测试策略 | ⚠️ partial | `WorkspaceView.test.tsx` 覆盖 Quick Start、表头、Show more、本地 Chat 发送；**未覆盖** `onOpenRecent` 被调用。 |
+| design 条目                               | 结论                | 证据                                                                                                                        |
+| ----------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| §2 组件拆分（单文件）                     | ✅ pass             | `WorkspaceView.tsx` 内含 QuickStart / RecentlyViewed / WorkspaceChatShell 子组件。                                          |
+| §3.1 App.tsx 分支                         | ✅ pass             | `App.tsx:1180-1181` 与 design 示例一致。                                                                                    |
+| §3.2 TreeSidebar                          | ✅ pass（合理偏差） | design 原话 "无需修改"，但为 AC-2 添加了 Workspace 标题与占位图标，属于满足 AC 的最小偏差。                                 |
+| §3.3 右侧面板使用 WorkspaceChatShell      | ✅ pass             | `App.tsx:1276-1277` 在 Topics 分类下替换 `UnifiedChatShell`。                                                               |
+| §4.2 Mock 数据结构                        | ❌ fail             | design 要求 Recently Viewed 使用写死 5 条 mock 并展开到 10 条；实现优先使用真实 topic 条目（`WorkspaceView.tsx:161-200`）。 |
+| §5.1 样式文件                             | ✅ pass             | `apps/web/src/styles/workspace.css` 存在，`main.tsx:4` 引入。                                                               |
+| §5.2 token 消费                           | ❌ fail             | `#818cf8` 硬编码色未走 token。                                                                                              |
+| §6 暗色主题                               | ✅ pass             | 全部使用变量，无硬编码暗色值。                                                                                              |
+| §7 交互行为（Recently Viewed 行打开文件） | ✅ pass             | `handleOpenRecent`（`App.tsx:651-667`）设置 `treeSelection` 为 `topic-file` 并切回主视图。                                  |
+| §9 测试策略                               | ⚠️ partial          | `WorkspaceView.test.tsx` 覆盖 Quick Start、表头、Show more、本地 Chat 发送；**未覆盖** `onOpenRecent` 被调用。              |
 
 ## 越界检查（不多，对照 story 非目标 + design 范围）
 
@@ -117,10 +117,10 @@ Round 3 修复了 Round 2 的 3 项核心缺陷（Recently Viewed 可打开文�
 
 ## 待用户裁决
 
-| # | 问题 | 当前实现 | 契约要求 | 两边代价 | 保守结论 |
-|---|---|---|---|---|---|
-| 1 | Recently Viewed 数据源 | `buildRecentItems` 优先使用真实 topic 文件，不足时补 mock | story 边界："Contributors / recently viewed 数据全部使用 mock" | 保留真实数据：满足"Workspace 内直接点击打开"的成功标准，但与边界冲突；改为纯 mock：符合边界与 design §4.2，但行点击要么跳转不存在的 mock 路径，要么只能 placeholder | 按保守计为 **fail**，需用户确认是否接受真实数据并回写契约 |
-| 2 | 全局 sidebar 隐藏 | ideas / automation / skills 不再渲染左侧边栏 | story / design 均未提及该行为 | 保留：可能改善全屏工作区体验，但属于独立功能变更；回退：不影响 Workspace 功能，保持仅修改 Topics 视图的最小范围 | 按保守计为 **fail / 越界**，需用户确认是否作为独立变更保留并补 story |
+| #   | 问题                   | 当前实现                                                  | 契约要求                                                       | 两边代价                                                                                                                                                            | 保守结论                                                             |
+| --- | ---------------------- | --------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1   | Recently Viewed 数据源 | `buildRecentItems` 优先使用真实 topic 文件，不足时补 mock | story 边界："Contributors / recently viewed 数据全部使用 mock" | 保留真实数据：满足"Workspace 内直接点击打开"的成功标准，但与边界冲突；改为纯 mock：符合边界与 design §4.2，但行点击要么跳转不存在的 mock 路径，要么只能 placeholder | 按保守计为 **fail**，需用户确认是否接受真实数据并回写契约            |
+| 2   | 全局 sidebar 隐藏      | ideas / automation / skills 不再渲染左侧边栏              | story / design 均未提及该行为                                  | 保留：可能改善全屏工作区体验，但属于独立功能变更；回退：不影响 Workspace 功能，保持仅修改 Topics 视图的最小范围                                                     | 按保守计为 **fail / 越界**，需用户确认是否作为独立变更保留并补 story |
 
 ---
 

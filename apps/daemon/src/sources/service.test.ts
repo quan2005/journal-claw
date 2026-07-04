@@ -5,10 +5,24 @@ import type { AgentRunEvent } from '@journal/contracts'
 
 const ts = '2026-06-25T12:00:00Z'
 function toolCall(runId: string, name: string, input: unknown, spanId = 'tu1'): AgentRunEvent {
-  return { type: 'tool_call', runId, sessionId: 's1', spanId, data: JSON.stringify({ name, input }), timestamp: ts }
+  return {
+    type: 'tool_call',
+    runId,
+    sessionId: 's1',
+    spanId,
+    data: JSON.stringify({ name, input }),
+    timestamp: ts,
+  }
 }
 function toolResult(runId: string, content: string, spanId = 'tu1'): AgentRunEvent {
-  return { type: 'tool_result', runId, sessionId: 's1', spanId, data: JSON.stringify({ content }), timestamp: ts }
+  return {
+    type: 'tool_result',
+    runId,
+    sessionId: 's1',
+    spanId,
+    data: JSON.stringify({ content }),
+    timestamp: ts,
+  }
 }
 
 describe('SourceBindingService', () => {

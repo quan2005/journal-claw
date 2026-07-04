@@ -1,16 +1,16 @@
 ---
 id: SPEC-20260615-panel-auto-toggle
-title: "左右栏自动开关逻辑（默认收起 · @ 展开 · 切换内容时无任务则收起 · pin 粘性）"
+title: '左右栏自动开关逻辑（默认收起 · @ 展开 · 切换内容时无任务则收起 · pin 粘性）'
 status: approved
 source: gate
 level: L2
 created: 2026-06-15
 related:
-  - src/contexts/UIContext.tsx          # rightPanelOpen / rightPanelWidth 现状，将新增 rightPanelPinned
-  - src/App.tsx                         # leftSidebarOpen 状态、onAtRef、handleCategoryChange、内容键
-  - src/components/RightPanel.tsx       # 右栏壳
-  - src/components/ChatPanel.tsx        # isStreaming / pendingQueue 来源（经 useChat）
-  - docs/ARCH.md:30-53                  # 面板分层
+  - src/contexts/UIContext.tsx # rightPanelOpen / rightPanelWidth 现状，将新增 rightPanelPinned
+  - src/App.tsx # leftSidebarOpen 状态、onAtRef、handleCategoryChange、内容键
+  - src/components/RightPanel.tsx # 右栏壳
+  - src/components/ChatPanel.tsx # isStreaming / pendingQueue 来源（经 useChat）
+  - docs/ARCH.md:30-53 # 面板分层
 ---
 
 # 左右栏自动开关逻辑
@@ -26,6 +26,7 @@ related:
 **缺口**：切换阅读内容时，右栏不会自动收起；用户需手动 Cmd+T 关闭，割裂阅读流。
 
 **目标行为（用户已逐项确认）**：
+
 1. 左右栏**默认关闭**。
 2. 点击 `@` 时右栏**自动展开**（沿用现状）。
 3. 切换内容时，若右栏**无进行中任务**且**未被 pin**，自动收起。
@@ -33,12 +34,14 @@ related:
 ## 2. 目标与假设
 
 通过「默认收起 + pin 粘性 + 切换时按任务状态收起」影响右栏生命周期，预期：
+
 - 冷启动：左右栏均收起，中间阅读区最大化。
 - 点击 NavRail 列表类（journal/identity/topics）→ 左栏展开（沿用 `handleCategoryChange` [证据: `App.tsx:695`]）。
 - 点击 `@` / Cmd+T / Cmd+N → 右栏展开，**默认 unpinned**。
 - 切换内容（条目/树选/类别）瞬间，右栏在「无任务且未 pin」时收起。
 
 **假设（可证伪）**：
+
 - `isStreaming || pendingQueue.length > 0` 足以代表「右栏有进行中任务」——若用户日常依赖草稿/未发送文本判断，假设不成立，需回到待确认 Q。
 - 用户主要工作流是「浏览 → 偶尔 @ 提问」，不需要常驻右栏；需常驻时用 pin。若多数用户实际需要常驻，默认 unpinned 反成负担。
 
@@ -73,21 +76,23 @@ related:
 
 ## 6. 非功能需求（NFR）
 
-| 维度 | 要求 | 备注 |
-|---|---|---|
-| 性能 | 内容键 effect 仅在内容键变化时触发一次比较，无轮询、无 setInterval。 | O(1) |
-| 安全 / 权限 | N/A — 纯前端 UI 状态，无后端调用。 | — |
-| 数据 / 隐私 | `journal_right_panel_pinned` 存 localStorage（boolean），无 PII。与既有 `journal_right_panel_width` 同级 [证据: `UIContext.tsx:162-175`]。 | — |
-| 可靠性 / 降级 | 若 localStorage 读取失败（隐私模式），pin 退化为 session 内 `false`，不影响展开/收起主逻辑。 | — |
-| 可观测性 | N/A — 无需埋点；行为可直接观察。 | — |
-| 回滚策略 | 翻转两个初值 + 删除 effect + 删除 pin 按钮 + 移除 `rightPanelPinned`。无数据迁移。 | — |
+| 维度          | 要求                                                                                                                                       | 备注 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| 性能          | 内容键 effect 仅在内容键变化时触发一次比较，无轮询、无 setInterval。                                                                       | O(1) |
+| 安全 / 权限   | N/A — 纯前端 UI 状态，无后端调用。                                                                                                         | —    |
+| 数据 / 隐私   | `journal_right_panel_pinned` 存 localStorage（boolean），无 PII。与既有 `journal_right_panel_width` 同级 [证据: `UIContext.tsx:162-175`]。 | —    |
+| 可靠性 / 降级 | 若 localStorage 读取失败（隐私模式），pin 退化为 session 内 `false`，不影响展开/收起主逻辑。                                               | —    |
+| 可观测性      | N/A — 无需埋点；行为可直接观察。                                                                                                           | —    |
+| 回滚策略      | 翻转两个初值 + 删除 effect + 删除 pin 按钮 + 移除 `rightPanelPinned`。无数据迁移。                                                         | —    |
 
 ## 7. 依赖与影响面
 
 **依赖**：
+
 - `isStreaming` / `pendingQueue`：由 `useChat`（chat hook）返回，已在 `App.tsx` 作用域内消费（传入 RightPanel/ChatPanel 的 props）。[证据: agent 探索报告 §4，待实现时核对实际变量名]
 
 **影响面**：
+
 - `UIContext.tsx`：新增 state + context value 字段；所有 `useUI()` 消费者类型变化（仅新增可选字段，不破坏既有）。
 - `App.tsx`：新增 effect + pin 按钮 JSX；`leftSidebarOpen`/`rightPanelOpen` 初值翻转。
 - 视觉一致性约束 [证据: AGENTS.md 关键约束 1]：本变更仅触及右栏分隔控件，不涉及 JournalList↔IdentityList 对称性，无连带改动。
@@ -102,17 +107,17 @@ related:
 
 ## 9. 待确认
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | 「进行中任务」是否需包含输入框未发送草稿？ | 否（仅 streaming + pendingQueue） | 用户已确认 |
-| Q2 | Cmd+N / openChatPanel 是否 auto-pin？ | 否（保持 unpinned） | 用户已确认 |
-| Q3 | 是否需要流式结束后延迟收起？ | 否（仅切换瞬间） | 用户已确认 |
+| #   | 问题                                       | 当前默认值                        | 状态       |
+| --- | ------------------------------------------ | --------------------------------- | ---------- |
+| Q1  | 「进行中任务」是否需包含输入框未发送草稿？ | 否（仅 streaming + pendingQueue） | 用户已确认 |
+| Q2  | Cmd+N / openChatPanel 是否 auto-pin？      | 否（保持 unpinned）               | 用户已确认 |
+| Q3  | 是否需要流式结束后延迟收起？               | 否（仅切换瞬间）                  | 用户已确认 |
 
 三项均已在设计澄清阶段由用户显式确认，无遗留。
 
 ## 10. 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-15 | 可开发 | 无遗留待确认；实现时核对 `useChat` 真实变量名（见 §8） |
-| 2 | 2026-06-15 | 可开发 | 增量变更（用户追加）：展开/收起 + pin 按钮从分隔栏迁至 TitleBar 右侧与 ThemeToggle 同组，分隔栏退化为纯拖拽条；AC-9 同步更新 |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                                                     |
+| ---- | ---------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-15 | 可开发    | 无遗留待确认；实现时核对 `useChat` 真实变量名（见 §8）                                                                       |
+| 2    | 2026-06-15 | 可开发    | 增量变更（用户追加）：展开/收起 + pin 按钮从分隔栏迁至 TitleBar 右侧与 ThemeToggle 同组，分隔栏退化为纯拖拽条；AC-9 同步更新 |

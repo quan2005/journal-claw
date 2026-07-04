@@ -89,8 +89,6 @@ export function isAgentAuthStatus(value: unknown): value is AgentAuthStatus {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
   return (
-    typeof v.id === 'string' &&
-    typeof v.installed === 'boolean' &&
-    typeof v.authed === 'boolean'
+    typeof v.id === 'string' && typeof v.installed === 'boolean' && typeof v.authed === 'boolean'
   )
 }

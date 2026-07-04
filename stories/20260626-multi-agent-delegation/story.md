@@ -1,6 +1,6 @@
 ---
 id: STORY-20260626-multi-agent-delegation
-title: "Multi-agent delegation via child runs"
+title: 'Multi-agent delegation via child runs'
 status: verified
 source: leader
 level: L2
@@ -30,17 +30,20 @@ related:
 ## 验收标准
 
 ### AC-1 — parent run 可创建 child run
+
 - **Given** 一个 parent run 存在
 - **When** 用户调用 `POST /runs/:id/subtasks`
 - **Then** daemon 创建带 `parentRunId` 的 child run
 - **And** child run 可选择已注册 agentId
 
 ### AC-2 — 可查询 child runs
+
 - **Given** parent run 已创建多个子任务
 - **When** 用户调用 `GET /runs/:id/subtasks`
 - **Then** 返回所有 child runs，且包含状态、goal、agent 相关信息
 
 ### AC-3 — 前端类型不漂移
+
 - **Given** contracts 中 `AgentRun` 支持 `parentRunId`
 - **When** 前端消费 run 数据
 - **Then** 前端使用共享 contracts 或保持字段完全一致

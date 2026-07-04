@@ -1,6 +1,6 @@
 ---
 id: STORY-20260626-workspace-context-boundary
-title: "Workspace context boundary (G15)"
+title: 'Workspace context boundary (G15)'
 status: verified
 source: leader
 level: L2
@@ -30,16 +30,19 @@ related:
 ## 验收标准
 
 ### AC-1 — workspace metadata 可持久化
+
 - **Given** 用户设置 workspace name/type/goals/activeSources
 - **When** daemon 重启或再次读取 metadata
 - **Then** `GET /workspace/meta` 返回一致内容
 
 ### AC-2 — Run 前组装 workspace 上下文
+
 - **Given** workspace 有 goals、activeSources 和 durable memory
 - **When** 用户创建 run
 - **Then** agent prompt 中包含 workspace metadata 和可用 memory
 
 ### AC-3 — activeSources 可更新并影响下一次 run
+
 - **Given** 用户新增或移除 active source
 - **When** 下一次 run 创建
 - **Then** prompt 中的 source context 与最新 workspace metadata 一致

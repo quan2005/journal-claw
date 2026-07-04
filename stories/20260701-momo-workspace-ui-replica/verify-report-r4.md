@@ -4,7 +4,7 @@ design: ./design.md
 date: 2026-07-01
 round: 4
 result: pass
-scope: "git diff HEAD -- apps/web/src/App.tsx apps/web/src/components/WorkspaceView.tsx apps/web/src/components/TreeSidebar.tsx apps/web/src/styles/workspace.css apps/web/src/main.tsx apps/web/src/tests/WorkspaceView.test.tsx apps/web/src/tests/App.test.tsx stories/20260701-momo-workspace-ui-replica/story.md stories/20260701-momo-workspace-ui-replica/design.md"
+scope: 'git diff HEAD -- apps/web/src/App.tsx apps/web/src/components/WorkspaceView.tsx apps/web/src/components/TreeSidebar.tsx apps/web/src/styles/workspace.css apps/web/src/main.tsx apps/web/src/tests/WorkspaceView.test.tsx apps/web/src/tests/App.test.tsx stories/20260701-momo-workspace-ui-replica/story.md stories/20260701-momo-workspace-ui-replica/design.md'
 ---
 
 # 验收报告 — 在谨迹中复刻 Momo 工作空间 UI，作为桌面端 Workspace 入口视图（Round 4）
@@ -21,26 +21,26 @@ scope: "git diff HEAD -- apps/web/src/App.tsx apps/web/src/components/WorkspaceV
 
 ## 质量 gate 结果（六字标准）
 
-| 六字标准 | 结论 | 关键证据 |
-|---|---|---|
-| 不漏 | ✅ pass | AC-1 ~ AC-7 均能在代码中定位到实现位置。 |
-| 不重 | ✅ pass | Workspace 相关能力只在 `WorkspaceView.tsx` 中实现，无并行实现。 |
-| 不偏 | ✅ pass | 各 AC 的 Then 子句均能在代码/测试中找到对应行为。 |
-| 不倚 | ✅ pass | 无 TODO / stub / 静默降级；Quick Start、Recently Viewed、Chat 占位均完整实现。 |
-| 不多 | ✅ pass | diff 中所有改动可归入 AC、design 范围或必要基础设施；无新增越界功能。 |
-| 不少 | ✅ pass | design.md 要求的组件拆分、App.tsx 分支、样式文件、暗色变量、`prefers-reduced-motion`、测试文件均已落实。 |
+| 六字标准 | 结论    | 关键证据                                                                                                 |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| 不漏     | ✅ pass | AC-1 ~ AC-7 均能在代码中定位到实现位置。                                                                 |
+| 不重     | ✅ pass | Workspace 相关能力只在 `WorkspaceView.tsx` 中实现，无并行实现。                                          |
+| 不偏     | ✅ pass | 各 AC 的 Then 子句均能在代码/测试中找到对应行为。                                                        |
+| 不倚     | ✅ pass | 无 TODO / stub / 静默降级；Quick Start、Recently Viewed、Chat 占位均完整实现。                           |
+| 不多     | ✅ pass | diff 中所有改动可归入 AC、design 范围或必要基础设施；无新增越界功能。                                    |
+| 不少     | ✅ pass | design.md 要求的组件拆分、App.tsx 分支、样式文件、暗色变量、`prefers-reduced-motion`、测试文件均已落实。 |
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
+| AC                                          | 结论    | 证据                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **AC-1** Workspace 作为 Topics 分类的新视图 | ✅ pass | `App.tsx:1170-1171` 在 `activeCategory === 'topics' && (!treeSelection \|\| treeSelection.type === 'topic')` 时渲染 `<WorkspaceView onOpenRecent={handleOpenRecent} />`；左侧 Topics 树仍由 `TreeSidebar.tsx:836` 渲染；右侧面板收起/展开由 `App.tsx:1225-1238` 的现有 toggle 控制，切换内容时 `App.tsx:706-717` 的 auto-collapse effect 会关闭右侧面板。 |
-| **AC-2** 文件树与 Workspace 结构 | ✅ pass | `TreeSidebar.tsx:575-627` 在 `category === 'topics'` 时渲染 "Workspace" 标题与 Search / LayoutGrid 占位图标；原有 Topics 树仍在 `TreeSidebar.tsx:836` 渲染，文件夹展开/折叠行为不变。 |
-| **AC-3** Quick Start 操作区 | ✅ pass | `WorkspaceView.tsx:220-247` 渲染 New File / New Folder / Import 三卡片；点击调用 `placeholderAction`（`WorkspaceView.tsx:153-159`）派发 `show-toast` 占位事件，不调用后端。 |
-| **AC-4** Recently Viewed 列表 | ✅ pass | `WorkspaceView.tsx:250-333` 渲染 Name / Contributors / Viewed 表头、文件图标、副标题、contributor 头像、相对时间与 Show more；行点击通过 `onOpenRecent` 进入 `DetailView`；数据源优先使用 `useTopics` 真实文件、不足 5 条补 mock，与 story 边界 `stories/.../story.md:113` 一致。`WorkspaceView.test.tsx:46-53` 新增点击行回调断言。 |
-| **AC-5** 右侧 AI Chat 面板 | ✅ pass | `WorkspaceChatShell`（`WorkspaceView.tsx:337-451`）在 `App.tsx:1266-1267` 接入右侧面板；含 New Chat 头部、问候语 "闫戍's momo"、输入框、附件、模型选择器 Sonnet 4.6 / 1M Medium、语音、发送按钮；回车仅本地追加用户消息；History 图标已修复为 `History`（`WorkspaceView.tsx:381`）。 |
-| **AC-6** 视觉还原度（浅色模式） | ✅ pass | `workspace.css` 全部颜色/圆角/字体/阴影均使用 token；`WorkspaceView.tsx` 与 `workspace.css` 中已无 `#818cf8` 等硬编码色；contributor 头像背景使用 `var(--record-btn)`；标题使用 `var(--font-display)`（`workspace.css:26`）；聚焦环使用 `var(--focus-ring)`；卡片无装饰阴影。 |
-| **AC-7** 暗色主题可用性 | ✅ pass | 全部表面使用 CSS 变量（`--bg`、`--text-primary`、`--item-hover-bg`、`--focus-ring`）；暗色模式下 `--record-btn` 映射为 `#FF7A33`（`globals.css:309`）；无硬编码暗色值。 |
+| **AC-2** 文件树与 Workspace 结构            | ✅ pass | `TreeSidebar.tsx:575-627` 在 `category === 'topics'` 时渲染 "Workspace" 标题与 Search / LayoutGrid 占位图标；原有 Topics 树仍在 `TreeSidebar.tsx:836` 渲染，文件夹展开/折叠行为不变。                                                                                                                                                                     |
+| **AC-3** Quick Start 操作区                 | ✅ pass | `WorkspaceView.tsx:220-247` 渲染 New File / New Folder / Import 三卡片；点击调用 `placeholderAction`（`WorkspaceView.tsx:153-159`）派发 `show-toast` 占位事件，不调用后端。                                                                                                                                                                               |
+| **AC-4** Recently Viewed 列表               | ✅ pass | `WorkspaceView.tsx:250-333` 渲染 Name / Contributors / Viewed 表头、文件图标、副标题、contributor 头像、相对时间与 Show more；行点击通过 `onOpenRecent` 进入 `DetailView`；数据源优先使用 `useTopics` 真实文件、不足 5 条补 mock，与 story 边界 `stories/.../story.md:113` 一致。`WorkspaceView.test.tsx:46-53` 新增点击行回调断言。                      |
+| **AC-5** 右侧 AI Chat 面板                  | ✅ pass | `WorkspaceChatShell`（`WorkspaceView.tsx:337-451`）在 `App.tsx:1266-1267` 接入右侧面板；含 New Chat 头部、问候语 "闫戍's momo"、输入框、附件、模型选择器 Sonnet 4.6 / 1M Medium、语音、发送按钮；回车仅本地追加用户消息；History 图标已修复为 `History`（`WorkspaceView.tsx:381`）。                                                                      |
+| **AC-6** 视觉还原度（浅色模式）             | ✅ pass | `workspace.css` 全部颜色/圆角/字体/阴影均使用 token；`WorkspaceView.tsx` 与 `workspace.css` 中已无 `#818cf8` 等硬编码色；contributor 头像背景使用 `var(--record-btn)`；标题使用 `var(--font-display)`（`workspace.css:26`）；聚焦环使用 `var(--focus-ring)`；卡片无装饰阴影。                                                                             |
+| **AC-7** 暗色主题可用性                     | ✅ pass | 全部表面使用 CSS 变量（`--bg`、`--text-primary`、`--item-hover-bg`、`--focus-ring`）；暗色模式下 `--record-btn` 映射为 `#FF7A33`（`globals.css:309`）；无硬编码暗色值。                                                                                                                                                                                   |
 
 ## 范围完整性（不少，对照 story.md 范围）
 
@@ -56,18 +56,18 @@ scope: "git diff HEAD -- apps/web/src/App.tsx apps/web/src/components/WorkspaceV
 
 ## 方案落实（不偏，对照 design.md）
 
-| design 条目 | 结论 | 证据 |
-|---|---|---|
-| §2 组件拆分（单文件） | ✅ pass | `WorkspaceView.tsx` 内含 QuickStart / RecentlyViewed / WorkspaceChatShell 子组件。 |
-| §3.1 App.tsx 分支 | ✅ pass | `App.tsx:1170-1171` 与 design 示例一致。 |
-| §3.2 TreeSidebar | ✅ pass（合理偏差） | design 原话 "无需修改"，但为 AC-2 添加了 Workspace 标题与占位图标，属于满足 AC 的最小偏差。 |
-| §3.3 右侧面板使用 WorkspaceChatShell | ✅ pass | `App.tsx:1266-1267` 在 Topics 分类下替换 `UnifiedChatShell`。 |
-| §4.2 Mock 数据结构 | ✅ pass | `buildRecentItems`（`WorkspaceView.tsx:161-200`）优先消费真实 topic 文件，不足 5 条补 mock，与 design 一致。 |
-| §5.1 样式文件 | ✅ pass | `apps/web/src/styles/workspace.css` 存在，`main.tsx:4` 引入。 |
-| §5.2 token 消费 | ✅ pass | 无 `#818cf8` 等硬编码；contributor / 发送按钮 / Star 等 accent 均走 `var(--record-btn)`。 |
-| §6 暗色主题 | ✅ pass | 全部使用变量，无硬编码暗色值。 |
-| §7 交互行为（Recently Viewed 行打开文件） | ✅ pass | `handleOpenRecent`（`App.tsx:645-661`）设置 `treeSelection` 为 `topic-file` 并切回主视图。 |
-| §9 测试策略 | ✅ pass | `WorkspaceView.test.tsx` 覆盖 Quick Start、表头、Show more、本地 Chat 发送、onOpenRecent 回调。 |
+| design 条目                               | 结论                | 证据                                                                                                         |
+| ----------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| §2 组件拆分（单文件）                     | ✅ pass             | `WorkspaceView.tsx` 内含 QuickStart / RecentlyViewed / WorkspaceChatShell 子组件。                           |
+| §3.1 App.tsx 分支                         | ✅ pass             | `App.tsx:1170-1171` 与 design 示例一致。                                                                     |
+| §3.2 TreeSidebar                          | ✅ pass（合理偏差） | design 原话 "无需修改"，但为 AC-2 添加了 Workspace 标题与占位图标，属于满足 AC 的最小偏差。                  |
+| §3.3 右侧面板使用 WorkspaceChatShell      | ✅ pass             | `App.tsx:1266-1267` 在 Topics 分类下替换 `UnifiedChatShell`。                                                |
+| §4.2 Mock 数据结构                        | ✅ pass             | `buildRecentItems`（`WorkspaceView.tsx:161-200`）优先消费真实 topic 文件，不足 5 条补 mock，与 design 一致。 |
+| §5.1 样式文件                             | ✅ pass             | `apps/web/src/styles/workspace.css` 存在，`main.tsx:4` 引入。                                                |
+| §5.2 token 消费                           | ✅ pass             | 无 `#818cf8` 等硬编码；contributor / 发送按钮 / Star 等 accent 均走 `var(--record-btn)`。                    |
+| §6 暗色主题                               | ✅ pass             | 全部使用变量，无硬编码暗色值。                                                                               |
+| §7 交互行为（Recently Viewed 行打开文件） | ✅ pass             | `handleOpenRecent`（`App.tsx:645-661`）设置 `treeSelection` 为 `topic-file` 并切回主视图。                   |
+| §9 测试策略                               | ✅ pass             | `WorkspaceView.test.tsx` 覆盖 Quick Start、表头、Show more、本地 Chat 发送、onOpenRecent 回调。              |
 
 ## 越界检查（不多，对照 story 非目标 + design 范围）
 
@@ -107,6 +107,6 @@ Round 3 的 4 项核心缺陷（ contributor 第二 accent 色、workspace.css �
 
 ## 待用户裁决
 
-| # | 问题 | 当前实现 | 契约要求 | 两边代价 | 保守结论 |
-|---|---|---|---|---|---|
-| 1 | 右侧面板全局默认值 | `UIContext.tsx:204` 中 `rightPanelOpen` 初始为 `true`；在 AC-1 的「切换到 Topics」场景下，`App.tsx:706-717` 的 auto-collapse effect 会在内容 key 变化时关闭右侧面板，因此该场景下满足收起。 | story.md 多处描述为「右侧 Chat 面板默认收起」 | 保持现状：切换进 Workspace 时会收起，与 AC-1 的 GWT 场景一致；但冷启动且已持久化 `activeCategory === 'topics'` 时，右侧面板会默认展开。改为 `useState(false)`：全局默认收起，更符合 story 字面，但会影响所有分类的初始状态。 | AC-1 的 Given-When-Then 场景通过；作为灰色地带建议用户确认是否要将全局默认值改为 `false` 或仅对 Topics 默认收起。 |
+| #   | 问题               | 当前实现                                                                                                                                                                                    | 契约要求                                      | 两边代价                                                                                                                                                                                                                     | 保守结论                                                                                                          |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | 右侧面板全局默认值 | `UIContext.tsx:204` 中 `rightPanelOpen` 初始为 `true`；在 AC-1 的「切换到 Topics」场景下，`App.tsx:706-717` 的 auto-collapse effect 会在内容 key 变化时关闭右侧面板，因此该场景下满足收起。 | story.md 多处描述为「右侧 Chat 面板默认收起」 | 保持现状：切换进 Workspace 时会收起，与 AC-1 的 GWT 场景一致；但冷启动且已持久化 `activeCategory === 'topics'` 时，右侧面板会默认展开。改为 `useState(false)`：全局默认收起，更符合 story 字面，但会影响所有分类的初始状态。 | AC-1 的 Given-When-Then 场景通过；作为灰色地带建议用户确认是否要将全局默认值改为 `false` 或仅对 Topics 默认收起。 |

@@ -39,44 +39,44 @@ AI 编译生成的每一条知识条目都包含 YAML frontmatter + Markdown 正
 
 ```markdown
 ---
-title: "2025年度产品规划讨论"
-tags: ["产品规划", "战略", "Q2"]
+title: '2025年度产品规划讨论'
+tags: ['产品规划', '战略', 'Q2']
 date: 2025-05-07
 sources:
   - type: document
     path: raw/产品roadmap-v3.pdf
   - type: text
     path: raw/会议纪要-20250507.md
-summary: "讨论了Q2产品方向，确定了三个优先级最高的功能..."
+summary: '讨论了Q2产品方向，确定了三个优先级最高的功能...'
 ---
 
 ## 会议要点
 
 1. Q2 确认优先开发 A/B/C 三个功能
 2. 竞品分析显示 D 方向暂时搁置
-...
+   ...
 ```
 
 ### Frontmatter 字段
 
-| 字段 | 说明 |
-|---|---|
-| `title` | AI 生成的描述性标题 |
-| `tags` | 提取的关键词标签 |
-| `date` | 素材提交日期 |
-| `sources` | 对应的原始素材列表 |
+| 字段      | 说明                     |
+| --------- | ------------------------ |
+| `title`   | AI 生成的描述性标题      |
+| `tags`    | 提取的关键词标签         |
+| `date`    | 素材提交日期             |
+| `sources` | 对应的原始素材列表       |
 | `summary` | 一段话摘要，适合快速浏览 |
 
 ## AI 提供商
 
 谨迹通过统一的 Messages API 协议支持多厂商：
 
-| 提供商 | 底层模型 | 说明 |
-|---|---|---|
-| Anthropic | Claude 系列 | 原生支持，推荐 |
-| 火山方舟 | Doubao 系列 | 需配置 Endpoint ID |
-| 智谱 AI | GLM 系列 | 国内优质模型 |
-| 阿里云百炼 | Qwen 系列 | OpenAI 兼容接入 |
+| 提供商     | 底层模型    | 说明               |
+| ---------- | ----------- | ------------------ |
+| Anthropic  | Claude 系列 | 原生支持，推荐     |
+| 火山方舟   | Doubao 系列 | 需配置 Endpoint ID |
+| 智谱 AI    | GLM 系列    | 国内优质模型       |
+| 阿里云百炼 | Qwen 系列   | OpenAI 兼容接入    |
 
 所有 API Key 安全存储在 macOS Keychain 中。
 

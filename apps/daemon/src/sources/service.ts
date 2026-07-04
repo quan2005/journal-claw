@@ -23,7 +23,8 @@ const TOOL_KIND: Record<string, SourceBindingKind> = {
 
 // Extract plausible file paths from a tool's input. Matches bare filenames
 // with known extensions OR any token containing a path separator.
-const PATH_RE = /(?:[\w./-]+\/[\w./-]+)|(?:\b[\w-]+\.(?:md|mdx|txt|json|ts|tsx|js|jsx|rs|toml|yaml|yml|csv|pdf|html|css)\b)/g
+const PATH_RE =
+  /(?:[\w./-]+\/[\w./-]+)|(?:\b[\w-]+\.(?:md|mdx|txt|json|ts|tsx|js|jsx|rs|toml|yaml|yml|csv|pdf|html|css)\b)/g
 
 export interface RecordBindingInput {
   runId: string

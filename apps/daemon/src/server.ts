@@ -148,7 +148,8 @@ function parseScope(body: unknown): AutomationScopeLike {
     case 'tags':
     case 'identities':
     case 'keyword': {
-      if (kind === 'tags') return { kind, tags: parseStringList(body.tags), range: parseOptionalScope(body.range) }
+      if (kind === 'tags')
+        return { kind, tags: parseStringList(body.tags), range: parseOptionalScope(body.range) }
       if (kind === 'identities')
         return {
           kind,
@@ -167,7 +168,9 @@ function parseOptionalScope(body: unknown): AutomationScopeLike | undefined {
 }
 
 function parseStringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
 }
 
 function parseCreateRoutineRequest(body: unknown): {
@@ -1710,7 +1713,14 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
             )
           : executeRun(
               service,
-              { runId: run.id, agentId, prompt: assembledPrompt, model, authorizationMode, cwd: workspaceRoot() },
+              {
+                runId: run.id,
+                agentId,
+                prompt: assembledPrompt,
+                model,
+                authorizationMode,
+                cwd: workspaceRoot(),
+              },
               { signal: abortController.signal },
             )
       execution

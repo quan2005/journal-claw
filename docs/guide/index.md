@@ -49,12 +49,12 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 
 ## 技术概要
 
-| 层面 | 技术 |
-|---|---|
-| 桌面框架 | Electron |
-| 前端 | React 19 + TypeScript + Vite 7 |
-| 后端 | TypeScript daemon（HTTP + SSE） |
-| AI 引擎 | daemon pi 内建引擎 + CLI adapters（支持多厂商） |
+| 层面     | 技术                                            |
+| -------- | ----------------------------------------------- |
+| 桌面框架 | Electron                                        |
+| 前端     | React 19 + TypeScript + Vite 7                  |
+| 后端     | TypeScript daemon（HTTP + SSE）                 |
+| AI 引擎  | daemon pi 内建引擎 + CLI adapters（支持多厂商） |
 
 ## 接下来的步骤
 

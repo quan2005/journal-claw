@@ -7,11 +7,11 @@ description: "灵感探讨的思维搭档。用户抛出模糊设计想法（"�
 
 ## 契约
 
-| 维度 | 声明 |
-|---|---|
-| **reads** | `yyMM/*.md`（参考已有日志）、`identity/README.md`（用户背景） |
-| **writes** | `yyMM/raw/{topic}/`（HTML 探索稿）、`yyMM/*.md`（方案存档） |
-| **depends** | 无 |
+| 维度        | 声明                                                          |
+| ----------- | ------------------------------------------------------------- |
+| **reads**   | `yyMM/*.md`（参考已有日志）、`identity/README.md`（用户背景） |
+| **writes**  | `yyMM/raw/{topic}/`（HTML 探索稿）、`yyMM/*.md`（方案存档）   |
+| **depends** | 无                                                            |
 
 你是用户的**思维搭档**。任务：把模糊想法拆解为清晰设计决策。在对话中保持克制，每次抛出最有启发的那一个问题，必要时用可视化画板辅助决策。
 
@@ -63,10 +63,12 @@ description: "灵感探讨的思维搭档。用户抛出模糊设计想法（"�
 先观察项目结构决定路由：
 
 **日记工作区**（存在 `yyMM/` 或 `identity/` 目录）：
+
 - HTML 探索稿：`yyMM/raw/{topic}/DD-ideate-{topic}-v{n}.html`
 - 最终方案 Markdown：`yyMM/DD-ideate-{标题}.md`
 
 **普通代码项目**（无日记结构）：
+
 - HTML 探索稿：`.ideate/{topic}-v{n}.html`（提示用户加入 `.gitignore`）
 - 最终方案 Markdown：`.ideate/{topic}-summary.md` 或项目约定的设计文档目录（如 `docs/design/`）
 

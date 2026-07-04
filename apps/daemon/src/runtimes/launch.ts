@@ -81,8 +81,7 @@ export function applyAgentLaunchEnv(
   // Case-insensitive key lookup — Windows uses 'Path', not 'PATH'. Using
   // env.PATH directly would be undefined on Windows, yielding a one-entry
   // PATH and discarding all system paths.
-  const pathKey =
-    Object.keys(env).find((k) => k.toLowerCase() === 'path') ?? 'PATH'
+  const pathKey = Object.keys(env).find((k) => k.toLowerCase() === 'path') ?? 'PATH'
   const existing = typeof env[pathKey] === 'string' ? (env[pathKey] as string) : ''
   const normalize = (p: string): string => {
     const trimmed = p.replace(/[/\\]+$/, '')

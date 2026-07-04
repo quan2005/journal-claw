@@ -18,8 +18,13 @@
    ```json
    {
      "hooks": {
-       "UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "echo '[需求门禁] …'" } ] } ],
-       "PreToolUse":      [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "grep -q 'git commit' && echo '{…}' || true" } ] } ]
+       "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "echo '[需求门禁] …'" }] }],
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [{ "type": "command", "command": "grep -q 'git commit' && echo '{…}' || true" }]
+         }
+       ]
      }
    }
    ```

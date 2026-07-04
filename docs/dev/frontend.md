@@ -7,14 +7,14 @@ description: JournalClaw 前端开发指南，包括组件、Hooks、runtime cli
 
 ## 分层
 
-| 层 | 说明 |
-|---|---|
-| `components/` | 纯 UI 与用户交互 |
-| `hooks/` | 业务状态、数据加载、事件订阅 |
-| `contexts/` | UI、i18n、toast、todos 等跨组件状态 |
-| `lib/runtimeClient.ts` | daemon runtime client 抽象 |
-| `lib/httpRuntimeClient.ts` | HTTP + SSE transport |
-| `lib/hostBridge.ts` | Electron preload host 能力 |
+| 层                         | 说明                                |
+| -------------------------- | ----------------------------------- |
+| `components/`              | 纯 UI 与用户交互                    |
+| `hooks/`                   | 业务状态、数据加载、事件订阅        |
+| `contexts/`                | UI、i18n、toast、todos 等跨组件状态 |
+| `lib/runtimeClient.ts`     | daemon runtime client 抽象          |
+| `lib/httpRuntimeClient.ts` | HTTP + SSE transport                |
+| `lib/hostBridge.ts`        | Electron preload host 能力          |
 
 ## 业务调用
 

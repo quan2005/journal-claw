@@ -3,7 +3,7 @@ spec: ./spec.md
 date: 2026-06-15
 round: 2
 result: pass
-scope: "第 1 轮 4 项 fail 的修复核对 + 越界复查 + main bundle / tsc 复验"
+scope: '第 1 轮 4 项 fail 的修复核对 + 越界复查 + main bundle / tsc 复验'
 ---
 
 # 验收报告 — 性能优化第 1+2 批（第 2 轮）
@@ -12,12 +12,12 @@ scope: "第 1 轮 4 项 fail 的修复核对 + 越界复查 + main bundle / tsc 
 
 ## 第 1 轮 fail 项复核（4/4 全部修复）
 
-| AC | 结论 | 关键证据 |
-|---|---|---|
-| AC-7 TreeItem memo | ✅ pass | `TreeItem.tsx:1` 导入 `memo`；`:181` `export const TreeItem = memo(function TreeItem(...)`；`:460` `})` 闭合。diff 纯净（+2/-2）。 |
+| AC                          | 结论    | 关键证据                                                                                                                                                                                                      |
+| --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-7 TreeItem memo          | ✅ pass | `TreeItem.tsx:1` 导入 `memo`；`:181` `export const TreeItem = memo(function TreeItem(...)`；`:460` `})` 闭合。diff 纯净（+2/-2）。                                                                            |
 | AC-16 MarkdownRenderer lazy | ✅ pass | `ChatPanel.tsx:17-19` lazy 声明；`:21-27` LazyMD 包装器含 Suspense；4 处用法全替换为 LazyMD。markdown.tsx 引用落在 lazy 的 DetailView chunk（103KB），不在 main bundle。MarkdownRenderer 独立 chunk = 178KB。 |
-| AC-17 highlight.js 动态加载 | ✅ pass | `MarkdownRenderer.tsx:14-40` LANGUAGE_LOADERS 映射全改动态 `import()`；`:42-59` 异步 registerLanguage + fire-and-forget。不再顶层同步注册。highlight chunk = 171KB。 |
-| AC-18 katex.css 动态加载 | ✅ pass | `math.tsx:1-14` 删除静态 import，新增 `ensureKatexCss()` 含动态 `import('katex/dist/katex.min.css')` + 失败重试；`:71-72` 渲染时触发。katex chunk = 261KB。 |
+| AC-17 highlight.js 动态加载 | ✅ pass | `MarkdownRenderer.tsx:14-40` LANGUAGE_LOADERS 映射全改动态 `import()`；`:42-59` 异步 registerLanguage + fire-and-forget。不再顶层同步注册。highlight chunk = 171KB。                                          |
+| AC-18 katex.css 动态加载    | ✅ pass | `math.tsx:1-14` 删除静态 import，新增 `ensureKatexCss()` 含动态 `import('katex/dist/katex.min.css')` + 失败重试；`:71-72` 渲染时触发。katex chunk = 261KB。                                                   |
 
 ## 越界复查 — 无新越界
 

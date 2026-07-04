@@ -24,33 +24,33 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 
 ## 依赖方向规则（硬性）
 
-| 规则 | 允许 | 禁止（违反示例） |
-|---|---|---|
-| web → daemon 只经 runtimeClient | `selectRuntimeClient().invoke('journal_list')` | 组件内 `fetch('http://localhost:4517/journal')` |
-| web → Electron 只经 hostBridge | `hostRevealInFileManager(p)` | 组件 import `electron` 或直接摸 `window.electronAPI` |
-| desktop 零业务语义 | 窗口/菜单/daemon 子进程/文件对话框 | 在 desktop main 里解析 journal 数据 |
-| 契约类型只放 contracts | web/daemon 都 import `@journal/contracts` | daemon 里复制一份 `AgentRun` 类型 |
-| 业务状态持久化在 daemon | settings 经 `/settings` | 组件用 localStorage 存业务状态（面板宽度白名单除外） |
+| 规则                            | 允许                                           | 禁止（违反示例）                                     |
+| ------------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| web → daemon 只经 runtimeClient | `selectRuntimeClient().invoke('journal_list')` | 组件内 `fetch('http://localhost:4517/journal')`      |
+| web → Electron 只经 hostBridge  | `hostRevealInFileManager(p)`                   | 组件 import `electron` 或直接摸 `window.electronAPI` |
+| desktop 零业务语义              | 窗口/菜单/daemon 子进程/文件对话框             | 在 desktop main 里解析 journal 数据                  |
+| 契约类型只放 contracts          | web/daemon 都 import `@journal/contracts`      | daemon 里复制一份 `AgentRun` 类型                    |
+| 业务状态持久化在 daemon         | settings 经 `/settings`                        | 组件用 localStorage 存业务状态（面板宽度白名单除外） |
 
 新增业务能力路径：daemon service + route → runtimeClient 方法 → UI。新增宿主能力路径：Electron preload 白名单 → `hostBridge.ts` 包装 → UI。
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|---|
-| 桌面宿主 | Electron（electron-builder 打包） |
-| Renderer | React 19 + TypeScript + Vite |
-| Backend | TypeScript daemon（Express HTTP + SSE） |
+| 层         | 技术                                             |
+| ---------- | ------------------------------------------------ |
+| 桌面宿主   | Electron（electron-builder 打包）                |
+| Renderer   | React 19 + TypeScript + Vite                     |
+| Backend    | TypeScript daemon（Express HTTP + SSE）          |
 | Agent 引擎 | pi 内建引擎 + Claude/Codex/OpenCode CLI adapters |
-| 文件变更 | ChangeSet service |
-| 测试 | vitest + Playwright |
+| 文件变更   | ChangeSet service                                |
+| 测试       | vitest + Playwright                              |
 
 ## 前端边界
 
-| 入口 | 文件 | 职责 |
-|---|---|---|
+| 入口           | 文件                                                        | 职责                            |
+| -------------- | ----------------------------------------------------------- | ------------------------------- |
 | Runtime client | `apps/web/src/lib/runtimeClient.ts`, `httpRuntimeClient.ts` | 业务 command 到 daemon HTTP/SSE |
-| Host bridge | `apps/web/src/lib/hostBridge.ts` | Electron preload 白名单能力 |
+| Host bridge    | `apps/web/src/lib/hostBridge.ts`                            | Electron preload 白名单能力     |
 
 > 历史注记：`apps/web/src/lib/` 下的 `tauri.ts` 兼容 shim（保留旧 Tauri 函数名的转发层）已于 2026-07-03 拆除，调用方直接消费 runtimeClient / hostBridge。
 

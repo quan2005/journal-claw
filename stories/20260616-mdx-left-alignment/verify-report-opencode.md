@@ -5,7 +5,7 @@ date: 2026-07-01
 round: 1
 verifier: opencode subagent (独立验收，与实现者无关)
 result: fail
-scope: "核对范围（来自主对话）：apps/web/src/styles/markdown.css；apps/web/src/components/MdxRenderer.tsx"
+scope: '核对范围（来自主对话）：apps/web/src/styles/markdown.css；apps/web/src/components/MdxRenderer.tsx'
 ---
 
 # 验收报告 — MDX 预览正文左对齐与阅读排版修复（opencode 独立验收）
@@ -16,12 +16,12 @@ scope: "核对范围（来自主对话）：apps/web/src/styles/markdown.css；a
 
 时间线证据：
 
-| 事件 | 日期 | 证据 |
-|---|---|---|
-| 本 story 创建 | 2026-06-16 | `stories/20260616-mdx-left-alignment/story.md` frontmatter `created: 2026-06-16` |
-| 本 story 第 2 轮验收 PASS | 2026-06-16 | `stories/20260616-mdx-left-alignment/verify-report-r2.md:6` `result: pass` |
-| **MDX 整链被删除** | **2026-06-27** | `git show -s --format='%ci' 5020ca9` → `2026-06-27 15:30:36 +0800` |
-| 本次验收 | 2026-07-01 | 今日 |
+| 事件                      | 日期           | 证据                                                                             |
+| ------------------------- | -------------- | -------------------------------------------------------------------------------- |
+| 本 story 创建             | 2026-06-16     | `stories/20260616-mdx-left-alignment/story.md` frontmatter `created: 2026-06-16` |
+| 本 story 第 2 轮验收 PASS | 2026-06-16     | `stories/20260616-mdx-left-alignment/verify-report-r2.md:6` `result: pass`       |
+| **MDX 整链被删除**        | **2026-06-27** | `git show -s --format='%ci' 5020ca9` → `2026-06-27 15:30:36 +0800`               |
+| 本次验收                  | 2026-07-01     | 今日                                                                             |
 
 删除提交原文（`git show --stat 5020ca9`）：
 
@@ -29,23 +29,23 @@ scope: "核对范围（来自主对话）：apps/web/src/styles/markdown.css；a
 
 该提交删除的、与本 story 直接相关的文件（`git show --stat 5020ca9`）：
 
-| 文件 | 删除行数 | 在本 story 中的角色 |
-|---|---|---|
-| `apps/web/src/components/MdxRenderer.tsx` | 454 | **验收范围第二项**；story/design 引用的真实链路入口（story.md:19,21） |
-| `apps/web/src/styles/mdx.css` | 1829 | story.md:21、design.md「影响面」明确列出的修改对象 |
-| `apps/web/src/components/journal-blocks/JournalBlockRenderer.tsx` | 98 | story.md:19 引用的链路节点 |
-| `apps/web/src/tests/JournalBlockRenderer.test.tsx` | 591 | design 方案 4 要求的红/绿测试载体 |
-| `apps/web/src/tests/MdxComponentDesign.test.ts` | 51 | r2 报告点名引用的测试（verify-report-r2.md:39,56） |
-| `apps/web/src/tests/MdxRenderer.test.tsx` | 319 | MDX 渲染测试 |
-| `apps/web/src/tests/MdxRendererSuspense.test.tsx` | 84 | MDX 渲染测试 |
+| 文件                                                              | 删除行数 | 在本 story 中的角色                                                   |
+| ----------------------------------------------------------------- | -------- | --------------------------------------------------------------------- |
+| `apps/web/src/components/MdxRenderer.tsx`                         | 454      | **验收范围第二项**；story/design 引用的真实链路入口（story.md:19,21） |
+| `apps/web/src/styles/mdx.css`                                     | 1829     | story.md:21、design.md「影响面」明确列出的修改对象                    |
+| `apps/web/src/components/journal-blocks/JournalBlockRenderer.tsx` | 98       | story.md:19 引用的链路节点                                            |
+| `apps/web/src/tests/JournalBlockRenderer.test.tsx`                | 591      | design 方案 4 要求的红/绿测试载体                                     |
+| `apps/web/src/tests/MdxComponentDesign.test.ts`                   | 51       | r2 报告点名引用的测试（verify-report-r2.md:39,56）                    |
+| `apps/web/src/tests/MdxRenderer.test.tsx`                         | 319      | MDX 渲染测试                                                          |
+| `apps/web/src/tests/MdxRendererSuspense.test.tsx`                 | 84       | MDX 渲染测试                                                          |
 
 ## 验收范围有效性核对（铁律：找证据）
 
 主对话指定核对范围 = `apps/web/src/styles/markdown.css` + `apps/web/src/components/MdxRenderer.tsx`。
 
-| 范围项 | 是否存在 | 证据 |
-|---|---|---|
-| `apps/web/src/styles/markdown.css` | 存在 | `read` 成功，共 239 行 |
+| 范围项                                    | 是否存在   | 证据                                                                |
+| ----------------------------------------- | ---------- | ------------------------------------------------------------------- |
+| `apps/web/src/styles/markdown.css`        | 存在       | `read` 成功，共 239 行                                              |
 | `apps/web/src/components/MdxRenderer.tsx` | **不存在** | `read` 返回 `File not found`；`ls` 返回 `No such file or directory` |
 
 **验收范围 50% 失效。** 后续 AC 核对只能在「幸存的 markdown.css」+「全仓 grep」上进行，无法对 story/design 明确指定的真实链路入口取证。
@@ -108,10 +108,10 @@ scope: "核对范围（来自主对话）：apps/web/src/styles/markdown.css；a
 
 ## 待用户裁决
 
-| # | 问题 | 两边代价 | 本报告结论（保守原则） |
-|---|---|---|---|
-| R1 | **本 story 是否已被 M8-b「下线 MDX」（commit 5020ca9, 2026-06-27） supersede？** | (a) 判定 supersede：本 story 标记为 obsolete/随 MDX 下线归档，不再维护，AC fail 视为「对象不存在」而非缺陷；(b) 判定需重新落地：意味着要恢复 MDX 预览链（与 M8-b 用户决策 b「彻底移除 MDX」直接冲突），需新开 story 重新定义范围 | **保守计 fail**：当前代码无任何证据支持 4 条 AC（铁律：找不到证据 = fail）。但根因是 feature 被有意删除，非实现缺陷，故最终处置交用户裁决，不替用户翻 story status。 |
-| R2 | markdown.css:46-50 的死规则 `.md-content.mdx-content > :where(...)` 是否清理？ | 清理：减少冗余、避免误导未来维护者；保留：零功能影响，留作历史痕迹 | 不阻断，仅提示。本验收不修改代码。 |
+| #   | 问题                                                                             | 两边代价                                                                                                                                                                                                                         | 本报告结论（保守原则）                                                                                                                                               |
+| --- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | **本 story 是否已被 M8-b「下线 MDX」（commit 5020ca9, 2026-06-27） supersede？** | (a) 判定 supersede：本 story 标记为 obsolete/随 MDX 下线归档，不再维护，AC fail 视为「对象不存在」而非缺陷；(b) 判定需重新落地：意味着要恢复 MDX 预览链（与 M8-b 用户决策 b「彻底移除 MDX」直接冲突），需新开 story 重新定义范围 | **保守计 fail**：当前代码无任何证据支持 4 条 AC（铁律：找不到证据 = fail）。但根因是 feature 被有意删除，非实现缺陷，故最终处置交用户裁决，不替用户翻 story status。 |
+| R2  | markdown.css:46-50 的死规则 `.md-content.mdx-content > :where(...)` 是否清理？   | 清理：减少冗余、避免误导未来维护者；保留：零功能影响，留作历史痕迹                                                                                                                                                               | 不阻断，仅提示。本验收不修改代码。                                                                                                                                   |
 
 ## 铁律遵守声明
 

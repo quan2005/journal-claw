@@ -18,10 +18,12 @@ reference_repo: /Users/yanwu/Projects/github/open-design
 ## 背景（Leader 已诊断）
 
 [证据] 实机截图反馈两个问题：
+
 1. **历史会话控件重叠**：`HistoryFloatingButton` 用 `position:absolute; top:8; left:8; zIndex:20`（`apps/web/src/components/HistoryFloatingButton.tsx:137-140`），锚定最近 positioned 祖先。P2 的 `UnifiedChatShell` 的 `contentStyle`/`shellStyle` 没有 `position:relative`（`UnifiedChatShell.tsx:230-251`），导致历史按钮锚定到更高祖先，叠到了顶栏 `EngineSwitcher` chip 上。
 2. **授权选择器设计怪异**：当前是一个原生 `<select>`（`authSelectStyle` 带 `flex:1`，`UnifiedChatShell.tsx:164-173,264-273`），塞在 composer 输入框的 bordered box 顶部（`ChatPanel.tsx` composerExtras 渲染处），全宽、原生样式、与输入框抢空间。
 
 [证据] open-design 的正确做法（务必研读）：
+
 - composer 下面一条 **`.composer-row`**（`apps/web/src/styles/chat.css:1340-1416`）：`display:flex; align-items:center; gap:6px; border-top`，左侧工具 → `<span className="composer-spacer">` 把后续推到右 → 紧凑 pill 控件 → 发送键。
 - **`SessionModeToggle`**（`apps/web/src/components/SessionModeToggle.tsx:158-230`）：一个紧凑 `<button className="session-mode-toggle__trigger">` = 图标 + 标签 + chevron-down；点开 `__popover` 菜单（`role="menu"`，`menuitemradio`），每项图标+标签+勾选；不是原生 select。
 
@@ -42,10 +44,10 @@ reference_repo: /Users/yanwu/Projects/github/open-design
 
 ## 实现参考
 
-| 复刻对象 | open-design 源 | journal 落点 |
-|---|---|---|
-| composer 控件行布局 | `styles/chat.css` `.composer-row`（1340-1416） | ChatPanel composer 下方控件行 |
+| 复刻对象                 | open-design 源                                      | journal 落点                             |
+| ------------------------ | --------------------------------------------------- | ---------------------------------------- |
+| composer 控件行布局      | `styles/chat.css` `.composer-row`（1340-1416）      | ChatPanel composer 下方控件行            |
 | 紧凑 pill + popover 控件 | `SessionModeToggle.tsx`（158-230）trigger + popover | 新 `AuthModeToggle.tsx`（授权模式 pill） |
-| popover 进场动效 | `chat.css` `composer-toolbox-pop-in` keyframe | AuthModeToggle popover 动效 |
+| popover 进场动效         | `chat.css` `composer-toolbox-pop-in` keyframe       | AuthModeToggle popover 动效              |
 
 引擎/模型 chip 持久化、渲染层融合（AC-6）等 P2 已交付项不动。

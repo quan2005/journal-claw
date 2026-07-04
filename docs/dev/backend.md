@@ -9,16 +9,16 @@ JournalClaw 的业务后端是 `apps/daemon` TypeScript 进程，通过 HTTP + S
 
 ## 目录
 
-| 目录 | 职责 |
-|---|---|
-| `server.ts` | Express routes 与 SSE 入口 |
-| `engine/` | pi 内建引擎封装、事件映射、prompt 组装 |
-| `runs/` | Agent Run 生命周期、事件存储、cancel |
-| `runtimes/` | Claude Code、Codex CLI、OpenCode adapters |
-| `changeset/` | 文件变更记录、diff/hash、revert |
-| `journal/`, `todos/`, `topics/`, `identity/` | 本地知识库 CRUD |
-| `settings/`, `config/`, `workspace/` | 工作区与应用配置 |
-| `automation/`, `work_queue/`, `ai_processor/` | 自动化、队列与 AI 处理 |
+| 目录                                          | 职责                                      |
+| --------------------------------------------- | ----------------------------------------- |
+| `server.ts`                                   | Express routes 与 SSE 入口                |
+| `engine/`                                     | pi 内建引擎封装、事件映射、prompt 组装    |
+| `runs/`                                       | Agent Run 生命周期、事件存储、cancel      |
+| `runtimes/`                                   | Claude Code、Codex CLI、OpenCode adapters |
+| `changeset/`                                  | 文件变更记录、diff/hash、revert           |
+| `journal/`, `todos/`, `topics/`, `identity/`  | 本地知识库 CRUD                           |
+| `settings/`, `config/`, `workspace/`          | 工作区与应用配置                          |
+| `automation/`, `work_queue/`, `ai_processor/` | 自动化、队列与 AI 处理                    |
 
 ## 新增业务能力
 
@@ -47,6 +47,6 @@ POST /runs/:id/cancel
 
 ```bash
 cd apps/daemon
-npx vitest run
-npx tsc --noEmit
+bunx vitest run
+bunx tsc --noEmit
 ```

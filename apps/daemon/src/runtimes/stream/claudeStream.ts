@@ -86,7 +86,10 @@ export function createClaudeStreamParser(meta: RunMeta) {
         const subtype = typeof obj.subtype === 'string' ? obj.subtype : ''
         if (subtype === 'init' && !started) {
           started = true
-          emit(events, makeEvent('run_started', meta, JSON.stringify({ message: 'claude run started' })))
+          emit(
+            events,
+            makeEvent('run_started', meta, JSON.stringify({ message: 'claude run started' })),
+          )
         }
         // api_retry / hook_* are informational; swallow.
         return events
@@ -114,12 +117,9 @@ export function createClaudeStreamParser(meta: RunMeta) {
             if (id) {
               emit(
                 events,
-                makeEvent(
-                  'tool_call',
-                  meta,
-                  JSON.stringify({ id, name, input: raw.input ?? {} }),
-                  { spanId: id },
-                ),
+                makeEvent('tool_call', meta, JSON.stringify({ id, name, input: raw.input ?? {} }), {
+                  spanId: id,
+                }),
               )
             }
           }

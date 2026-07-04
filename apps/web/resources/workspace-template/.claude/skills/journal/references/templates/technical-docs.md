@@ -44,12 +44,12 @@ Avoid when: it is just implementation notes.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| deployment-runbook | Add environment, commands, validation, rollback |
-| code-review | Add files, risks, findings, required fixes |
-| code-snippet | Add code, use case, caveats, related files |
-| migration-guide | Add before/after, steps, compatibility, rollback |
+| Subtype            | Apply changes                                    |
+| ------------------ | ------------------------------------------------ |
+| deployment-runbook | Add environment, commands, validation, rollback  |
+| code-review        | Add files, risks, findings, required fixes       |
+| code-snippet       | Add code, use case, caveats, related files       |
+| migration-guide    | Add before/after, steps, compatibility, rollback |
 
 ## Quality Rules
 

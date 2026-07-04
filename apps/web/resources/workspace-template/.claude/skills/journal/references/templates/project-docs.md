@@ -44,15 +44,15 @@ Avoid when: the event was an operational incident; use technical-docs incident-r
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| charter | Add authority, budget, sponsor, decision rights |
-| user-story | Use user, scenario, need, value, acceptance criteria |
-| requirement-pool | Use table grouped by source, priority, status |
-| roadmap | Use Now / Next / Later and dependencies |
-| test-plan | Add scope, cases, environment, acceptance criteria |
-| milestone-plan | Lead with `MilestoneTimeline` |
-| changelog | Group by added, changed, fixed, breaking |
+| Subtype          | Apply changes                                        |
+| ---------------- | ---------------------------------------------------- |
+| charter          | Add authority, budget, sponsor, decision rights      |
+| user-story       | Use user, scenario, need, value, acceptance criteria |
+| requirement-pool | Use table grouped by source, priority, status        |
+| roadmap          | Use Now / Next / Later and dependencies              |
+| test-plan        | Add scope, cases, environment, acceptance criteria   |
+| milestone-plan   | Lead with `MilestoneTimeline`                        |
+| changelog        | Group by added, changed, fixed, breaking             |
 
 ## Quality Rules
 

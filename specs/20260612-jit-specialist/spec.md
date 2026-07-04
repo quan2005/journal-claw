@@ -12,6 +12,7 @@ created: 2026-06-12
 ## 1. 背景
 
 当前谨迹的会话系统已有 `task` 工具实现子任务外包（`src-tauri/src/llm/task_tool.rs`）：
+
 - 主 Agent 可并发派生多个子 Agent（`conversation.rs:2141-2247`）
 - 子 Agent 拥有 bash、文件读写等工具，但不能再派生子任务（深度=1）
 - 流式事件协议已存在（`subtask_start/delta/end`）
@@ -22,6 +23,7 @@ created: 2026-06-12
 ## 2. 目标
 
 将现有 `task` 工具升级为"JIT Specialist"机制：
+
 1. 主 Agent 自主决定何时外包、用什么级别的专家
 2. 每个子 Agent 有独立的名称、人设、模型级别、步数上限
 3. 每个子 Agent 可被用户独立中止
@@ -65,6 +67,7 @@ created: 2026-06-12
 当前：子 Agent 使用 `cancel.child_token()`，但只有会话级取消入口。
 
 改造：
+
 - 为每个正在执行的 subtask 维护 `HashMap<tool_use_id, CancellationToken>`（在 `ConversationSession` 或独立的 `SubtaskRegistry` 中）
 - 新增 Tauri command: `subtask_abort(session_id, tool_use_id)`
 - 前端在协同卡片的每个子 Agent 行提供"中止"按钮
@@ -78,6 +81,7 @@ created: 2026-06-12
 ### 4.5 前端协同卡片
 
 保持"克制·沉静"基调：
+
 - 不用色标/进度条/百分比
 - 用极简的列表展示每个子 Agent：名称 + 状态文字 + 步数 + 中止按钮
 - 状态用文字 badge：`执行中` / `已完成` / `已中止` / `失败`
@@ -101,13 +105,14 @@ created: 2026-06-12
 {
   "tool_use_id": "id",
   "current_step": 3,
-  "text": "..." 
+  "text": "..."
 }
 ```
 
 ### 4.6 主 Agent System Prompt 增补
 
 在 `src-tauri/src/llm/prompt.rs` 中增加关于 task 工具的使用指引：
+
 - 何时应该外包（多源检索、独立代码修改、大量文件操作）
 - 如何命名和设定人设
 - 何时使用不同 intellect_level
@@ -128,13 +133,13 @@ created: 2026-06-12
 
 ## 7. 检索证据
 
-| 文件 | 结论 |
-|------|------|
-| `src-tauri/src/llm/task_tool.rs` | [证据] 当前 task tool input 只有 `prompt` 一个字段；子 Agent 固定用 `SUBAGENT_SYSTEM` 提示词；引擎直接透传主 Agent 的 `engine` |
-| `src-tauri/src/llm/tool_loop.rs:11` | [证据] `MAX_TURNS = 60` 硬编码，无参数化入口 |
-| `src-tauri/src/conversation.rs:2141-2247` | [证据] task tool 已并发执行，使用 `cancel.child_token()` 但无独立取消入口 |
-| `src-tauri/src/llm/mod.rs:67-77` | [证据] `create_engine_for_provider` 按 protocol 分发引擎，当前无"按级别选模型"逻辑 |
-| `src/types.ts:181,223-225` | [证据] 前端已有 subtask 类型和 subtask_start/delta/end 事件定义 |
+| 文件                                      | 结论                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `src-tauri/src/llm/task_tool.rs`          | [证据] 当前 task tool input 只有 `prompt` 一个字段；子 Agent 固定用 `SUBAGENT_SYSTEM` 提示词；引擎直接透传主 Agent 的 `engine` |
+| `src-tauri/src/llm/tool_loop.rs:11`       | [证据] `MAX_TURNS = 60` 硬编码，无参数化入口                                                                                   |
+| `src-tauri/src/conversation.rs:2141-2247` | [证据] task tool 已并发执行，使用 `cancel.child_token()` 但无独立取消入口                                                      |
+| `src-tauri/src/llm/mod.rs:67-77`          | [证据] `create_engine_for_provider` 按 protocol 分发引擎，当前无"按级别选模型"逻辑                                             |
+| `src/types.ts:181,223-225`                | [证据] 前端已有 subtask 类型和 subtask_start/delta/end 事件定义                                                                |
 
 ## 8. 依赖与影响
 
@@ -144,16 +149,16 @@ created: 2026-06-12
 
 ## 9. NFR 审查
 
-| 维度 | 判定 |
-|------|------|
-| 性能 | N/A — 并发机制已存在，本次不增加额外开销 |
-| 安全权限 | N/A — 子 Agent 权限与主 Agent 相同（已有设计） |
-| 数据隐私 | N/A — 纯本地桌面应用 |
-| 可靠性降级 | 步数熔断 + 独立取消 = 降级机制已内建 |
-| 可观测性 | 前端协同卡片即为可观测面板 |
-| 回滚 | N/A — 无持久化 schema 变更 |
-| 兼容性 | 新字段 optional，旧调用不受影响 |
-| 成本 | [待确认-1] 模型映射确定后需评估 |
-| 风控滥用 | 步数熔断 + 用户手动中止 = 双重保护 |
-| 运营客服 | N/A — 桌面应用 |
-| 多语言地区 | N/A |
+| 维度       | 判定                                           |
+| ---------- | ---------------------------------------------- |
+| 性能       | N/A — 并发机制已存在，本次不增加额外开销       |
+| 安全权限   | N/A — 子 Agent 权限与主 Agent 相同（已有设计） |
+| 数据隐私   | N/A — 纯本地桌面应用                           |
+| 可靠性降级 | 步数熔断 + 独立取消 = 降级机制已内建           |
+| 可观测性   | 前端协同卡片即为可观测面板                     |
+| 回滚       | N/A — 无持久化 schema 变更                     |
+| 兼容性     | 新字段 optional，旧调用不受影响                |
+| 成本       | [待确认-1] 模型映射确定后需评估                |
+| 风控滥用   | 步数熔断 + 用户手动中止 = 双重保护             |
+| 运营客服   | N/A — 桌面应用                                 |
+| 多语言地区 | N/A                                            |

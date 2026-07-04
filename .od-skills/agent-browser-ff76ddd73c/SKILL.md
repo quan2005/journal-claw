@@ -8,27 +8,27 @@ description: |
   previews, QA, bug hunts, or reviewing app quality. Prefer local Open Design
   preview URLs unless the user explicitly asks for external browsing.
 triggers:
-  - "browser"
-  - "current browser tab"
-  - "selected tab"
-  - "open website"
-  - "test this web app"
-  - "take a screenshot"
-  - "element screenshot"
-  - "extract logo"
-  - "extract fonts"
-  - "extract colors"
-  - "extract images"
-  - "extract motion"
-  - "OG metadata"
-  - "accessibility"
-  - "a11y"
-  - "click a button"
-  - "fill out a form"
-  - "scrape page"
-  - "QA"
-  - "dogfood"
-  - "bug hunt"
+  - 'browser'
+  - 'current browser tab'
+  - 'selected tab'
+  - 'open website'
+  - 'test this web app'
+  - 'take a screenshot'
+  - 'element screenshot'
+  - 'extract logo'
+  - 'extract fonts'
+  - 'extract colors'
+  - 'extract images'
+  - 'extract motion'
+  - 'OG metadata'
+  - 'accessibility'
+  - 'a11y'
+  - 'click a button'
+  - 'fill out a form'
+  - 'scrape page'
+  - 'QA'
+  - 'dogfood'
+  - 'bug hunt'
 od:
   mode: prototype
   surface: web
@@ -38,7 +38,7 @@ od:
     type: markdown
   design_system:
     requires: false
-  upstream: "https://github.com/vercel-labs/agent-browser/blob/main/skills/agent-browser/SKILL.md"
+  upstream: 'https://github.com/vercel-labs/agent-browser/blob/main/skills/agent-browser/SKILL.md'
   capabilities_required:
     - file_write
 ---

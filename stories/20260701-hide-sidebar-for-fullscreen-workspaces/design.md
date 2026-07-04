@@ -19,7 +19,8 @@
 
 ```ts
 const needsSidebar = useMemo(
-  () => activeCategory === 'journal' || activeCategory === 'identity' || activeCategory === 'topics',
+  () =>
+    activeCategory === 'journal' || activeCategory === 'identity' || activeCategory === 'topics',
   [activeCategory],
 )
 ```
@@ -38,12 +39,21 @@ const needsSidebar = useMemo(
 改为仅在 `needsSidebar` 时渲染，并移除 divider 内的 `<button>`：
 
 ```jsx
-{needsSidebar && (
-  <>
-    <div className="app-sidebar-panel" data-sidebar-panel="left">...</div>
-    <div data-sidebar-divider="left" onMouseDown={leftSidebarOpen ? onDividerMouseDown : undefined}>...</div>
-  </>
-)}
+{
+  needsSidebar && (
+    <>
+      <div className="app-sidebar-panel" data-sidebar-panel="left">
+        ...
+      </div>
+      <div
+        data-sidebar-divider="left"
+        onMouseDown={leftSidebarOpen ? onDividerMouseDown : undefined}
+      >
+        ...
+      </div>
+    </>
+  )
+}
 ```
 
 ### 3. 保留 divider 拖拽
@@ -68,7 +78,10 @@ if (cat === activeCategory && needsSidebar) {
 右侧 divider 内保留展开/收起按钮，用于打开/关闭右侧聊天/对话面板。按钮样式沿用 `sidebarToggleStyle()`，点击时切换 `rightPanelOpen`：
 
 ```jsx
-<div data-sidebar-divider="right" onMouseDown={rightPanelOpen ? onRightPanelDividerMouseDown : undefined}>
+<div
+  data-sidebar-divider="right"
+  onMouseDown={rightPanelOpen ? onRightPanelDividerMouseDown : undefined}
+>
   <button onClick={() => setRightPanelOpen((prev) => !prev)} style={sidebarToggleStyle()}>
     {rightPanelOpen ? <ChevronRight /> : <ChevronLeft />}
   </button>

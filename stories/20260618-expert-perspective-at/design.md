@@ -32,10 +32,10 @@ status: accepted
 
 ```yaml
 ---
-summary: "..."
-tags: ["专家"]
-expert_skill: "technical-architect-perspective"
-aliases: ["架构师", "技术架构师"]
+summary: '...'
+tags: ['专家']
+expert_skill: 'technical-architect-perspective'
+aliases: ['架构师', '技术架构师']
 ---
 ```
 
@@ -125,6 +125,7 @@ expert_contexts: Vec<ExpertContext>
 ...
 
 回答要求：
+
 - 给出该专家的判断、盲点提示、反观点或挑战性追问。
 - 不要只模仿口吻；要使用该专家的思考框架。
 - 信息不足时说明边界，不编造此人没说过的话。

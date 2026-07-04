@@ -3,12 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Agent } from '@earendil-works/pi-agent-core'
-import {
-  fauxAssistantMessage,
-  fauxProvider,
-  fauxText,
-  type Context,
-} from '@earendil-works/pi-ai'
+import { fauxAssistantMessage, fauxProvider, fauxText, type Context } from '@earendil-works/pi-ai'
 import { ConfigService, type EngineConfig } from '../config/service.js'
 import { AgentRunService } from '../runs/service.js'
 import {
@@ -70,10 +65,9 @@ describe('ConversationService', () => {
       ['user', 'second question'],
       ['assistant', 'second answer'],
     ])
-    expect(events.filter((event) => event.event === 'text_delta').map((event) => event.data)).toEqual([
-      'first answer',
-      'second answer',
-    ])
+    expect(
+      events.filter((event) => event.event === 'text_delta').map((event) => event.data),
+    ).toEqual(['first answer', 'second answer'])
     expect(runService.readEvents(firstRunId()).map((event) => event.type)).toContain('run_finished')
   })
 
@@ -152,38 +146,40 @@ describe('ConversationService', () => {
   it('cancels an active pi agent and records canceled run state', async () => {
     let abortCount = 0
     let listener: ((event: { type: 'agent_start' | 'turn_start' }) => void) | null = null
-    const service = makeService([], () =>
-      ({
-        state: {
-          systemPrompt: '',
-          model: {},
-          thinkingLevel: 'off',
-          tools: [],
-          messages: [],
-          isStreaming: false,
-          pendingToolCalls: new Set(),
-        },
-        sessionId: '',
-        transformContext: undefined,
-        subscribe(fn: (event: { type: 'agent_start' | 'turn_start' }) => void) {
-          listener = fn
-          return () => {
-            listener = null
-          }
-        },
-        async prompt() {
-          listener?.({ type: 'agent_start' })
-          listener?.({ type: 'turn_start' })
-          await new Promise((_resolve, reject) => {
-            setTimeout(() => reject(new Error('aborted')), 20)
-          })
-        },
-        async continue() {},
-        followUp() {},
-        abort() {
-          abortCount += 1
-        },
-      }) as unknown as Agent,
+    const service = makeService(
+      [],
+      () =>
+        ({
+          state: {
+            systemPrompt: '',
+            model: {},
+            thinkingLevel: 'off',
+            tools: [],
+            messages: [],
+            isStreaming: false,
+            pendingToolCalls: new Set(),
+          },
+          sessionId: '',
+          transformContext: undefined,
+          subscribe(fn: (event: { type: 'agent_start' | 'turn_start' }) => void) {
+            listener = fn
+            return () => {
+              listener = null
+            }
+          },
+          async prompt() {
+            listener?.({ type: 'agent_start' })
+            listener?.({ type: 'turn_start' })
+            await new Promise((_resolve, reject) => {
+              setTimeout(() => reject(new Error('aborted')), 20)
+            })
+          },
+          async continue() {},
+          followUp() {},
+          abort() {
+            abortCount += 1
+          },
+        }) as unknown as Agent,
     )
     const id = service.create()
 
@@ -195,9 +191,9 @@ describe('ConversationService', () => {
     const run = runService.getRun(firstRunId())
     expect(abortCount).toBe(1)
     expect(run?.status).toBe('canceled')
-    expect(events.some((event) => event.event === 'error' && event.data.includes('cancelled'))).toBe(
-      true,
-    )
+    expect(
+      events.some((event) => event.event === 'error' && event.data.includes('cancelled')),
+    ).toBe(true)
   })
 
   it('loads existing Rust V2 and V1 conversation history', () => {

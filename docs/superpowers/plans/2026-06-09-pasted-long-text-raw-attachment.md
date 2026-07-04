@@ -13,6 +13,7 @@
 ### Task 1: Lock the long-text paste behavior
 
 **Files:**
+
 - Modify: `src/tests/ChatPanel.test.tsx`
 
 - [ ] **Step 1: Replace the `importTextTemp` mock with `importText`**
@@ -38,6 +39,7 @@ Expected: FAIL because `ChatPanel` still imports and calls `importTextTemp`.
 ### Task 2: Route long pasted text through `importText`
 
 **Files:**
+
 - Modify: `src/components/ChatPanel.tsx`
 
 - [ ] **Step 1: Replace the IPC import**
@@ -62,6 +64,7 @@ Expected: PASS.
 ### Task 3: Verify the change
 
 **Files:**
+
 - Verify: `src/components/ChatPanel.tsx`
 - Verify: `src/tests/ChatPanel.test.tsx`
 
@@ -82,4 +85,3 @@ npm run build
 ```bash
 git diff --check
 ```
-

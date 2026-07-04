@@ -18,12 +18,12 @@ result: fail
 
 ## 1. 输入与核对范围
 
-| 项 | 内容 | 状态 |
-|---|---|---|
-| story.md | `stories/20260616-mdx-left-alignment/story.md` | 可读，`status: verified` |
-| design.md | `stories/20260616-mdx-left-alignment/design.md` | 可读，`status: verified` |
-| 核对范围 | `apps/web/src/components/MdxRenderer.tsx` | **不存在（已删除）** |
-| 报告输出 | `stories/20260616-mdx-left-alignment/verify-report-opencode-r2.md` | 本文件 |
+| 项        | 内容                                                               | 状态                     |
+| --------- | ------------------------------------------------------------------ | ------------------------ |
+| story.md  | `stories/20260616-mdx-left-alignment/story.md`                     | 可读，`status: verified` |
+| design.md | `stories/20260616-mdx-left-alignment/design.md`                    | 可读，`status: verified` |
+| 核对范围  | `apps/web/src/components/MdxRenderer.tsx`                          | **不存在（已删除）**     |
+| 报告输出  | `stories/20260616-mdx-left-alignment/verify-report-opencode-r2.md` | 本文件                   |
 
 ## 2. AC 逐项核对
 
@@ -56,7 +56,7 @@ result: fail
 - 期望：复杂块全宽，普通正文不被带偏。
 - 证据：
   - `apps/web/src/styles/markdown.css:58-61` 仍保留 `.md-content > :where(pre, table, img)` 的 `max-width: 100%`。
-  - 但"复杂 MDX 组件"（JournalBlockRenderer / journal-blocks/* / conversion / enhanced / infographic / judgment / opening 等）已随 commit `5020ca9` 删除，commit message 明确："图表/mermaid/公式/callout 富内容块不再渲染"。
+  - 但"复杂 MDX 组件"（JournalBlockRenderer / journal-blocks/\* / conversion / enhanced / infographic / judgment / opening 等）已随 commit `5020ca9` 删除，commit message 明确："图表/mermaid/公式/callout 富内容块不再渲染"。
   - `apps/web/src/styles/journal-blocks.css` 文件存在（1525 行），但唯一引用方 `.journal-block-prose { max-width: var(--journal-prose-max) }` 已无渲染入口。
 - 结论：AC-3 的核心对象"复杂 MDX 组件"已不存在；按保守原则 fail。
 
@@ -71,21 +71,21 @@ result: fail
 
 ## 3. 越界 / 偏差清单
 
-| # | 类型 | 描述 | 证据 |
-|---|---|---|---|
+| #   | 类型                     | 描述                                                                                                                                                                                        | 证据                                    |
+| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | D-1 | 范围错配（任务 vs 设计） | 任务指定核对范围为 `apps/web/src/components/MdxRenderer.tsx`，但 design.md 第 21-23 行的影响面是 `markdown.css / mdx.css / src/tests/*`，**未列出 MdxRenderer.tsx**。任务与 design 不一致。 | design.md:21-23；任务提示词"核对范围"段 |
-| D-2 | 设计契约文件不存在 | design.md 影响面列出的 `src/styles/mdx.css` 在仓库中不存在（glob 无结果）。已被 `5020ca9` 删除。 | commit `5020ca9` stat 列含 `mdx.css` |
-| D-3 | 死代码 | `markdown.css:46` 的 `.md-content.mdx-content` 选择器无任何组件会渲染 `mdx-content` class 触发，属死代码。 | `rg "mdx-content" -g "*.tsx"` 无结果 |
-| D-4 | story 与代码现状冲突 | story.md `status: verified`、design.md `status: verified`，但其描述的整条 MDX 渲染链已被后续 commit `5020ca9`（2026-06-27，晚于 story 创建 2026-06-16）整体下线。契约与实现层不再对应。 | git log + 文件存在性核查 |
+| D-2 | 设计契约文件不存在       | design.md 影响面列出的 `src/styles/mdx.css` 在仓库中不存在（glob 无结果）。已被 `5020ca9` 删除。                                                                                            | commit `5020ca9` stat 列含 `mdx.css`    |
+| D-3 | 死代码                   | `markdown.css:46` 的 `.md-content.mdx-content` 选择器无任何组件会渲染 `mdx-content` class 触发，属死代码。                                                                                  | `rg "mdx-content" -g "*.tsx"` 无结果    |
+| D-4 | story 与代码现状冲突     | story.md `status: verified`、design.md `status: verified`，但其描述的整条 MDX 渲染链已被后续 commit `5020ca9`（2026-06-27，晚于 story 创建 2026-06-16）整体下线。契约与实现层不再对应。     | git log + 文件存在性核查                |
 
 ## 4. 待用户裁决项
 
-| # | 问题 | 上下文 | 建议 |
-|---|---|---|---|
-| Q1 | 验收是否应"历史性"进行？ | story.md 创建于 2026-06-16，`5020ca9` 删除 MdxRenderer 在 2026-06-27，story 当时已被标 `verified`。当前再核对只能看现存代码，无法回溯到删除前状态。 | 若仅核对 2026-06-16～2026-06-27 间的实现状态，需 git checkout 历史版本另行验收；本报告基于当前 working tree。 |
-| Q2 | story/design 是否应归档或废止？ | MDX 整条链路已下线，本 story 的 AC 在现版本中无可对应实现。继续以 `verified` 状态保留会让契约与代码长期失配。 | 建议把 story/design 翻为 `superseded` 或追加废弃说明，引用 `5020ca9`。 |
-| Q3 | markdown.css:46 的死规则是否清理？ | `.md-content.mdx-content` 选择器永不命中，与 AGENTS.md 约束 7 "修复前先确认真实 DOM、CSS 加载顺序、specificity" 精神不符。 | 单独开清理任务（不在本 story 范围内）。 |
-| Q4 | 任务提示词的核对范围是否需修正？ | 提示词仅给 `MdxRenderer.tsx`，而 design.md 影响面是 `markdown.css / mdx.css / tests/*`。 | 由分发者裁决是否扩大核对范围后重跑。 |
+| #   | 问题                               | 上下文                                                                                                                                              | 建议                                                                                                          |
+| --- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Q1  | 验收是否应"历史性"进行？           | story.md 创建于 2026-06-16，`5020ca9` 删除 MdxRenderer 在 2026-06-27，story 当时已被标 `verified`。当前再核对只能看现存代码，无法回溯到删除前状态。 | 若仅核对 2026-06-16～2026-06-27 间的实现状态，需 git checkout 历史版本另行验收；本报告基于当前 working tree。 |
+| Q2  | story/design 是否应归档或废止？    | MDX 整条链路已下线，本 story 的 AC 在现版本中无可对应实现。继续以 `verified` 状态保留会让契约与代码长期失配。                                       | 建议把 story/design 翻为 `superseded` 或追加废弃说明，引用 `5020ca9`。                                        |
+| Q3  | markdown.css:46 的死规则是否清理？ | `.md-content.mdx-content` 选择器永不命中，与 AGENTS.md 约束 7 "修复前先确认真实 DOM、CSS 加载顺序、specificity" 精神不符。                          | 单独开清理任务（不在本 story 范围内）。                                                                       |
+| Q4  | 任务提示词的核对范围是否需修正？   | 提示词仅给 `MdxRenderer.tsx`，而 design.md 影响面是 `markdown.css / mdx.css / tests/*`。                                                            | 由分发者裁决是否扩大核对范围后重跑。                                                                          |
 
 ## 5. 取证命令与产物索引
 

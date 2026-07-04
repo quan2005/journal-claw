@@ -1,6 +1,6 @@
 ---
 id: STORY-20260627-directive-migration-retire
-title: "下线 directiveMigration 与 compile_mdx 残留"
+title: '下线 directiveMigration 与 compile_mdx 残留'
 status: verified
 source: gate
 level: L1
@@ -37,6 +37,7 @@ MDX 已在 `stories/20260627-mdx-retire/story.md` 完成下线并验证，但该
 ### 用户行为变化
 
 做完后，项目执行工程师会：
+
 - 残留排查：`apps/web/src` 与 `apps/daemon/src` 中 `directiveMigration|directive_migration|compile_mdx|compileMdx|legacyDirectives` 命中从当前多处残留 → 0 个有效残留
 - 验证反馈：web 与 daemon 的 TypeScript 检查为 0 错误；web vitest 不新增失败（接受用户给定基线 9 个既有失败）；daemon vitest 从 448 项基线扣除删除的 directive migration 2 项后为 446 项通过
 
@@ -45,22 +46,26 @@ MDX 已在 `stories/20260627-mdx-retire/story.md` 完成下线并验证，但该
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — 失效入口不可见
+
 - **Given** 用户打开通用设置区域
 - **When** 浏览 General 设置项
 - **Then** 不再看到旧 directive 到 MDX 迁移入口
 - **And** 不存在可触发该迁移的前端调用路径
 
 ### AC-2 — 失效 runtime 能力不可调用
+
 - **Given** 前端或 HTTP runtime client 枚举可调用能力
 - **When** 查找 `compile_mdx`、`apply_directive_migration`、`scan_legacy_directive_files`
 - **Then** 这些能力不再从 web 封装或 daemon HTTP 映射暴露
 
 ### AC-3 — 残留代码清零
+
 - **Given** 开发者在 `apps/web/src` 和 `apps/daemon/src` 中执行残留检索
 - **When** 搜索 `directiveMigration|directive_migration|compile_mdx|compileMdx|legacyDirectives`
 - **Then** 结果为 0 个有效命中
 
 ### AC-4 — 既有主线不回退
+
 - **Given** 开发者完成清理
 - **When** 分别运行 web 与 daemon 的 TypeScript 检查和测试
 - **Then** TypeScript 检查为 0 错误
@@ -82,10 +87,10 @@ MDX 已在 `stories/20260627-mdx-retire/story.md` 完成下线并验证，但该
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | 是否整体下线 directiveMigration，而不是改为输出纯 Markdown？ | 整体下线 | 已由用户 2026-06-27 指令确认 |
-| Q2 | 是否保留 Rust 侧同名残留？ | 保留到 M8 | 已由用户 2026-06-27 指令确认 |
+| #   | 问题                                                         | 当前默认值 | 状态                         |
+| --- | ------------------------------------------------------------ | ---------- | ---------------------------- |
+| Q1  | 是否整体下线 directiveMigration，而不是改为输出纯 Markdown？ | 整体下线   | 已由用户 2026-06-27 指令确认 |
+| Q2  | 是否保留 Rust 侧同名残留？                                   | 保留到 M8  | 已由用户 2026-06-27 指令确认 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -98,6 +103,6 @@ MDX 已在 `stories/20260627-mdx-retire/story.md` 完成下线并验证，但该
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-27 | 可开发 | 用户已明确选择整体下线；无意图层缺口 |
+| 轮次 | 日期       | Readiness | 主要缺口                             |
+| ---- | ---------- | --------- | ------------------------------------ |
+| 1    | 2026-06-27 | 可开发    | 用户已明确选择整体下线；无意图层缺口 |

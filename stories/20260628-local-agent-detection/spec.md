@@ -39,11 +39,11 @@ reference_repo: /Users/yanwu/Projects/github/open-design
 
 ## 实现参考（codex / opencode 必读 ../open-design 源码）
 
-| 复刻对象 | open-design 源 | journal 落点 |
-|---|---|---|
-| 检测逻辑 | `apps/daemon/src/runtimes/{detection,executables,diagnostics,types,models}.ts` | `apps/daemon/src/agents/`（新建）或并入现有 agent 层 |
-| 契约 | `packages/contracts/src/api/registry.ts`（AgentInfo/AgentDiagnostic/AgentFixIntent 子集） | journal contracts / 类型定义处 |
-| 端点 | `GET /api/agents`（detectAgents） | journal daemon `GET /agents` + rescan |
-| 选择器/诊断 UI | `apps/web/src/components/AgentPicker.tsx`、`AgentDiagnosticRow.tsx`、`utils/agentLabels.ts` | 设置页新分区 + 可复用组件（P2 composer 复用） |
+| 复刻对象       | open-design 源                                                                              | journal 落点                                         |
+| -------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 检测逻辑       | `apps/daemon/src/runtimes/{detection,executables,diagnostics,types,models}.ts`              | `apps/daemon/src/agents/`（新建）或并入现有 agent 层 |
+| 契约           | `packages/contracts/src/api/registry.ts`（AgentInfo/AgentDiagnostic/AgentFixIntent 子集）   | journal contracts / 类型定义处                       |
+| 端点           | `GET /api/agents`（detectAgents）                                                           | journal daemon `GET /agents` + rescan                |
+| 选择器/诊断 UI | `apps/web/src/components/AgentPicker.tsx`、`AgentDiagnosticRow.tsx`、`utils/agentLabels.ts` | 设置页新分区 + 可复用组件（P2 composer 复用）        |
 
 复用 journal 现有 `getAgentDef` 与 daemon 结构；勿引第三方新依赖（CLAUDE.md Rule1）。文案走 `locales/zh.ts` + `en.ts` 对齐，勿留英文 hardcode。

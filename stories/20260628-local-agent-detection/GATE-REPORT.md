@@ -8,13 +8,13 @@
 
 ## AC 判定
 
-| AC | 判定 | 证据 |
-|---|---|---|
-| AC-1 检测 | FAIL | 当前 `probeEnv` 仅 `{ ...process.env, ...configuredEnv }`，随后直接 probe `resolution.selectedPath`，见 `apps/daemon/src/runtimes/detection.ts:122-127`。open-design 在 `resolveAgentLaunch` 后调用 `applyAgentLaunchEnv`，把 wrapper 目录、Node 目录和 user toolchain dirs 合入 child PATH，见 `/Users/yanwu/Projects/github/open-design/apps/daemon/src/runtimes/detection.ts:203-220`、`launch.ts:39-85`。新增测试 `apps/daemon/src/runtimes/detection.test.ts:106-129` 失败，`agent.available` 实际为 `false`。 |
-| AC-2 诊断 + 修复意图 | FAIL | reason/fix intent 类型基本齐全，见 `packages/contracts/src/registry.ts:22-45`，诊断 builder 也覆盖六类 reason，见 `apps/daemon/src/runtimes/diagnostics.ts:30-115`。但 auth probe 非 0 退出除 ENOENT/EACCES 外一律归为 `auth-missing`，见 `apps/daemon/src/runtimes/auth.ts:63-74`，相比 open-design 的文本分类与 `auth-unknown` 分流过度简化，网络错误、超时、CLI 状态命令异常会被误报为未登录。另有响应契约泄漏，见 Major-2。 |
-| AC-3 端点 | PASS | `GET /agents` 返回 `{ agents }`，`?rescan=1|true` 传入 `forceRefresh` 绕过缓存，见 `apps/daemon/src/server.ts:1735-1739`、`apps/daemon/src/runtimes/detection.ts:200-213`。未接 HTTP 流式端点，但 spec 标明流式为加分项非必须。 |
-| AC-4 设置页展示 | PASS | 设置页新增 `localAgents` 分区，卡片展示名称、状态、版本、路径、登录状态，见 `apps/web/src/settings/components/SectionLocalAgents.tsx:150-206`；diagnostics 渲染 reason 和 fix action，见 `SectionLocalAgents.tsx:208-234`、`apps/web/src/components/AgentDiagnosticRow.tsx:71-135`；顶部 rescan 有进行中态，见 `SectionLocalAgents.tsx:247-298`。可见文案走 `en.ts`/`zh.ts`，未发现可见 hardcode。 |
-| AC-5 不回退/绿 | FAIL | `npm run build` 通过。`cd apps/daemon && npx vitest run` 失败：`src/runtimes/detection.test.ts` 与 build 后的 `dist/runtimes/detection.test.js` 同源失败，核心断言为 `expected false to be true` at `src/runtimes/detection.test.ts:127`。`npm test` 失败中包含该新增失败；web 的 `HistoryFloatingButton` 和 `SandboxPreview` 两个失败为用户已声明的 pre-existing，可忽略。 |
+| AC                   | 判定 | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 检测            | FAIL | 当前 `probeEnv` 仅 `{ ...process.env, ...configuredEnv }`，随后直接 probe `resolution.selectedPath`，见 `apps/daemon/src/runtimes/detection.ts:122-127`。open-design 在 `resolveAgentLaunch` 后调用 `applyAgentLaunchEnv`，把 wrapper 目录、Node 目录和 user toolchain dirs 合入 child PATH，见 `/Users/yanwu/Projects/github/open-design/apps/daemon/src/runtimes/detection.ts:203-220`、`launch.ts:39-85`。新增测试 `apps/daemon/src/runtimes/detection.test.ts:106-129` 失败，`agent.available` 实际为 `false`。 |
+| AC-2 诊断 + 修复意图 | FAIL | reason/fix intent 类型基本齐全，见 `packages/contracts/src/registry.ts:22-45`，诊断 builder 也覆盖六类 reason，见 `apps/daemon/src/runtimes/diagnostics.ts:30-115`。但 auth probe 非 0 退出除 ENOENT/EACCES 外一律归为 `auth-missing`，见 `apps/daemon/src/runtimes/auth.ts:63-74`，相比 open-design 的文本分类与 `auth-unknown` 分流过度简化，网络错误、超时、CLI 状态命令异常会被误报为未登录。另有响应契约泄漏，见 Major-2。                                                                                     |
+| AC-3 端点            | PASS | `GET /agents` 返回 `{ agents }`，`?rescan=1                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | true`传入`forceRefresh`绕过缓存，见`apps/daemon/src/server.ts:1735-1739`、`apps/daemon/src/runtimes/detection.ts:200-213`。未接 HTTP 流式端点，但 spec 标明流式为加分项非必须。 |
+| AC-4 设置页展示      | PASS | 设置页新增 `localAgents` 分区，卡片展示名称、状态、版本、路径、登录状态，见 `apps/web/src/settings/components/SectionLocalAgents.tsx:150-206`；diagnostics 渲染 reason 和 fix action，见 `SectionLocalAgents.tsx:208-234`、`apps/web/src/components/AgentDiagnosticRow.tsx:71-135`；顶部 rescan 有进行中态，见 `SectionLocalAgents.tsx:247-298`。可见文案走 `en.ts`/`zh.ts`，未发现可见 hardcode。                                                                                                                  |
+| AC-5 不回退/绿       | FAIL | `npm run build` 通过。`cd apps/daemon && npx vitest run` 失败：`src/runtimes/detection.test.ts` 与 build 后的 `dist/runtimes/detection.test.js` 同源失败，核心断言为 `expected false to be true` at `src/runtimes/detection.test.ts:127`。`npm test` 失败中包含该新增失败；web 的 `HistoryFloatingButton` 和 `SandboxPreview` 两个失败为用户已声明的 pre-existing，可忽略。                                                                                                                                         |
 
 ## 发现的问题
 
@@ -64,26 +64,26 @@
 
 ## 对抗测试覆盖
 
-| 场景 | 结果 |
-|---|---|
-| 恶意/含空格 PATH | 部分覆盖。新增测试 HOME 路径含空格，`execFile` 无 shell 注入风险；但 PATH 对称性失败。 |
-| 符号链接/破 shim | 已有测试覆盖 shebang target missing -> `shim-broken`。 |
-| 空/无效 `*_BIN` | 已有测试覆盖 invalid `CODEX_BIN` -> `configured-bin-invalid`；empty env 被忽略，行为与 open-design 接近。 |
-| 版本输出畸形 | 已有测试覆盖 version probe 非 0 exit -> available true + version null。 |
-| 并发扫描 | 代码层面 `Promise.all` + `safeProbe`；无共享 mutable result，未发现数据竞争。 |
-| 缓存失效 | 已有测试覆盖 `forceRefresh` 绕过缓存。 |
-| 流式中途异常 | `detectAgentsStream` 使用 `safeProbe`，单 adapter 异常不应打断 generator；HTTP 端未实现流式，按 spec 非必须。 |
+| 场景             | 结果                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| 恶意/含空格 PATH | 部分覆盖。新增测试 HOME 路径含空格，`execFile` 无 shell 注入风险；但 PATH 对称性失败。                        |
+| 符号链接/破 shim | 已有测试覆盖 shebang target missing -> `shim-broken`。                                                        |
+| 空/无效 `*_BIN`  | 已有测试覆盖 invalid `CODEX_BIN` -> `configured-bin-invalid`；empty env 被忽略，行为与 open-design 接近。     |
+| 版本输出畸形     | 已有测试覆盖 version probe 非 0 exit -> available true + version null。                                       |
+| 并发扫描         | 代码层面 `Promise.all` + `safeProbe`；无共享 mutable result，未发现数据竞争。                                 |
+| 缓存失效         | 已有测试覆盖 `forceRefresh` 绕过缓存。                                                                        |
+| 流式中途异常     | `detectAgentsStream` 使用 `safeProbe`，单 adapter 异常不应打断 generator；HTTP 端未实现流式，按 spec 非必须。 |
 
 ## 执行命令
 
-| 命令 | 结果 |
-|---|---|
-| `npm run build` | PASS。Electron signing/icon 与 web chunk size 仅为警告。 |
-| `cd apps/daemon && npx vitest run` | FAIL。2 个失败均为新增同源对抗测试：`src/runtimes/detection.test.ts` 和 build 后 `dist/runtimes/detection.test.js`。其余 540 个测试通过。 |
-| `npm test` | FAIL。包含本轮 daemon 对抗测试失败；web `HistoryFloatingButton`、`SandboxPreview` 为 pre-existing 失败。contracts 20/20 pass，desktop 13/13 pass。 |
-| `cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx` | PASS，6/6。 |
-| `cd apps/web && npx vitest run src/tests/SectionLocalAgents.test.tsx` | PASS，6/6。 |
-| `cd apps/daemon && npx vitest run src/runtimes/detection.test.ts` | FAIL，1/13，失败点为 `toolchain PATH symmetry`。 |
+| 命令                                                                  | 结果                                                                                                                                               |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run build`                                                       | PASS。Electron signing/icon 与 web chunk size 仅为警告。                                                                                           |
+| `cd apps/daemon && npx vitest run`                                    | FAIL。2 个失败均为新增同源对抗测试：`src/runtimes/detection.test.ts` 和 build 后 `dist/runtimes/detection.test.js`。其余 540 个测试通过。          |
+| `npm test`                                                            | FAIL。包含本轮 daemon 对抗测试失败；web `HistoryFloatingButton`、`SandboxPreview` 为 pre-existing 失败。contracts 20/20 pass，desktop 13/13 pass。 |
+| `cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx` | PASS，6/6。                                                                                                                                        |
+| `cd apps/web && npx vitest run src/tests/SectionLocalAgents.test.tsx` | PASS，6/6。                                                                                                                                        |
+| `cd apps/daemon && npx vitest run src/runtimes/detection.test.ts`     | FAIL，1/13，失败点为 `toolchain PATH symmetry`。                                                                                                   |
 
 ## 独立 opencode 审查交叉结果
 
@@ -107,21 +107,21 @@
 
 ### 必修项复核
 
-| 项 | 判定 | 证据 |
-|---|---|---|
+| 项                | 判定 | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Major-1 PATH 对称 | PASS | `detection.ts` probe 先 `resolveAgentLaunch` 再 `applyAgentLaunchEnv`，见 `apps/daemon/src/runtimes/detection.ts:144-152`；runtime spawn 走同一套解析和 env，见 `apps/daemon/src/runtimes/runner.ts:95-126`；`launch.ts` 把 resolved wrapper dir、Node bin、`userToolchainBinDirs()` 合入 child PATH，见 `apps/daemon/src/runtimes/launch.ts:54-101`；resolution 搜索范围与 toolchain dirs 对齐，见 `apps/daemon/src/runtimes/executables.ts:49-152`。红灯测试 `toolchain PATH symmetry` 已转绿，见 `apps/daemon/src/runtimes/detection.test.ts:106-129` 与命令结果 14/14 pass。 |
-| Major-2 契约泄漏 | PASS | 原黑名单 strip 改为 `agentInfoBase` 白名单，只发 `id/name/bin/installUrl/docsUrl` 再显式拼 `available/path/version/authStatus/diagnostics`，见 `apps/daemon/src/runtimes/detection.ts:105-176`。`fallbackBins`、`promptViaStdin`、`streamFormat`、`buildArgs`、`authProbe` 不再能经 `...def` 泄漏。 |
-| Major-3 auth 分流 | PASS | `AUTH_FAILURE_RE` 只把明确认证失败文本归 `missing`，见 `apps/daemon/src/runtimes/auth.ts:53-75`；exit 0 JSON `loggedIn:false` -> `missing`，无字段/非 JSON 无认证失败信号 -> `unknown`，见 `auth.ts:96-123`；ENOENT/EACCES 与非 0 无认证失败信号 -> `unknown`，见 `auth.ts:126-145`。测试覆盖 `auth-missing`、`auth-unknown`、`auth-ok`，见 `apps/daemon/src/runtimes/detection.test.ts:142-205`。 |
+| Major-2 契约泄漏  | PASS | 原黑名单 strip 改为 `agentInfoBase` 白名单，只发 `id/name/bin/installUrl/docsUrl` 再显式拼 `available/path/version/authStatus/diagnostics`，见 `apps/daemon/src/runtimes/detection.ts:105-176`。`fallbackBins`、`promptViaStdin`、`streamFormat`、`buildArgs`、`authProbe` 不再能经 `...def` 泄漏。                                                                                                                                                                                                                                                                              |
+| Major-3 auth 分流 | PASS | `AUTH_FAILURE_RE` 只把明确认证失败文本归 `missing`，见 `apps/daemon/src/runtimes/auth.ts:53-75`；exit 0 JSON `loggedIn:false` -> `missing`，无字段/非 JSON 无认证失败信号 -> `unknown`，见 `auth.ts:96-123`；ENOENT/EACCES 与非 0 无认证失败信号 -> `unknown`，见 `auth.ts:126-145`。测试覆盖 `auth-missing`、`auth-unknown`、`auth-ok`，见 `apps/daemon/src/runtimes/detection.test.ts:142-205`。                                                                                                                                                                               |
 
 ### AC 判定
 
-| AC | 判定 | 证据 |
-|---|---|---|
-| AC-1 检测 | PASS | `not-on-path`、healthy version、bad version still available、not executable、broken shim、configured bin、cache、streaming 均由 `apps/daemon/src/runtimes/detection.test.ts` 覆盖；单文件命令 `cd apps/daemon && npx vitest run src/runtimes/detection.test.ts` 通过，14 tests passed。PATH 对称对抗测试已包含 HOME 含空格 + `~/.local/bin` shim/interpreter 场景。 |
-| AC-2 诊断 + 修复意图 | PASS | 诊断 reason/fixActions 在 daemon detection tests 覆盖；auth unknown/missing 分流已转绿；web `AgentDiagnosticRow` 测试覆盖 not-on-path、auth-missing、configured-bin-invalid、rescan/openDocs/openInstall/setEnv/clearEnv 等按钮行为，`cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx src/tests/SectionLocalAgents.test.tsx` 通过，12 tests passed。 |
-| AC-3 端点 | PASS | `GET /agents` 返回 `{ agents }` 并支持 `?rescan=1|true` 强制刷新，见 `apps/daemon/src/server.ts:1738-1747`；设置页 rescan 会请求 `?rescan=1`，见 `apps/web/src/tests/SectionLocalAgents.test.tsx:122-129`。route-level JSON error envelope 已补齐。 |
-| AC-4 设置页展示 | PASS | web local agents 测试通过，覆盖卡片名称/状态、version/path、诊断文案、安装按钮、rescan 进行路径、error/empty state。`cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx src/tests/SectionLocalAgents.test.tsx` 结果：2 files / 12 tests passed。 |
-| AC-5 不回退/绿 | PASS（带既有失败豁免） | `npm run build` PASS；`cd apps/daemon && npx vitest run` PASS，88 files / 544 tests；`npm test` 因 `HistoryFloatingButton.test.tsx` 与 `SandboxPreview.test.ts` 两个用户声明 pre-existing 失败返回 1，其余 contracts 20/20、desktop 13/13、daemon 已单独全量通过，web local-agent 新增测试无失败。 |
+| AC                   | 判定                   | 证据                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 检测            | PASS                   | `not-on-path`、healthy version、bad version still available、not executable、broken shim、configured bin、cache、streaming 均由 `apps/daemon/src/runtimes/detection.test.ts` 覆盖；单文件命令 `cd apps/daemon && npx vitest run src/runtimes/detection.test.ts` 通过，14 tests passed。PATH 对称对抗测试已包含 HOME 含空格 + `~/.local/bin` shim/interpreter 场景。      |
+| AC-2 诊断 + 修复意图 | PASS                   | 诊断 reason/fixActions 在 daemon detection tests 覆盖；auth unknown/missing 分流已转绿；web `AgentDiagnosticRow` 测试覆盖 not-on-path、auth-missing、configured-bin-invalid、rescan/openDocs/openInstall/setEnv/clearEnv 等按钮行为，`cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx src/tests/SectionLocalAgents.test.tsx` 通过，12 tests passed。 |
+| AC-3 端点            | PASS                   | `GET /agents` 返回 `{ agents }` 并支持 `?rescan=1                                                                                                                                                                                                                                                                                                                        | true`强制刷新，见`apps/daemon/src/server.ts:1738-1747`；设置页 rescan 会请求 `?rescan=1`，见 `apps/web/src/tests/SectionLocalAgents.test.tsx:122-129`。route-level JSON error envelope 已补齐。 |
+| AC-4 设置页展示      | PASS                   | web local agents 测试通过，覆盖卡片名称/状态、version/path、诊断文案、安装按钮、rescan 进行路径、error/empty state。`cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx src/tests/SectionLocalAgents.test.tsx` 结果：2 files / 12 tests passed。                                                                                                        |
+| AC-5 不回退/绿       | PASS（带既有失败豁免） | `npm run build` PASS；`cd apps/daemon && npx vitest run` PASS，88 files / 544 tests；`npm test` 因 `HistoryFloatingButton.test.tsx` 与 `SandboxPreview.test.ts` 两个用户声明 pre-existing 失败返回 1，其余 contracts 20/20、desktop 13/13、daemon 已单独全量通过，web local-agent 新增测试无失败。                                                                       |
 
 ### Electron 裁决
 
@@ -137,14 +137,14 @@ Package "electron" is only allowed in "devDependencies". Please remove it from t
 
 ### 执行命令
 
-| 命令 | 结果 |
-|---|---|
-| `cd apps/daemon && npx vitest run src/runtimes/detection.test.ts` | PASS，1 file / 14 tests。 |
-| `cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx src/tests/SectionLocalAgents.test.tsx` | PASS，2 files / 12 tests。 |
-| `npm run desktop:build`（临时 electron 放回 dependencies） | FAIL，符合预期，electron-builder 明确报 `electron` only allowed in `devDependencies`。随后已恢复 manifest。 |
-| `npm run build` | PASS。Electron signing/icon、web chunk size 仅为警告。 |
-| `cd apps/daemon && npx vitest run` | PASS，88 files / 544 tests。 |
-| `npm test` | FAIL only because `HistoryFloatingButton` 与 `SandboxPreview` 两个 pre-existing web failures；contracts 20/20、desktop 13/13 通过，daemon 本轮已全量通过，local-agent 新增 web tests 通过。 |
+| 命令                                                                                                        | 结果                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cd apps/daemon && npx vitest run src/runtimes/detection.test.ts`                                           | PASS，1 file / 14 tests。                                                                                                                                                                   |
+| `cd apps/web && npx vitest run src/tests/AgentDiagnosticRow.test.tsx src/tests/SectionLocalAgents.test.tsx` | PASS，2 files / 12 tests。                                                                                                                                                                  |
+| `npm run desktop:build`（临时 electron 放回 dependencies）                                                  | FAIL，符合预期，electron-builder 明确报 `electron` only allowed in `devDependencies`。随后已恢复 manifest。                                                                                 |
+| `npm run build`                                                                                             | PASS。Electron signing/icon、web chunk size 仅为警告。                                                                                                                                      |
+| `cd apps/daemon && npx vitest run`                                                                          | PASS，88 files / 544 tests。                                                                                                                                                                |
+| `npm test`                                                                                                  | FAIL only because `HistoryFloatingButton` 与 `SandboxPreview` 两个 pre-existing web failures；contracts 20/20、desktop 13/13 通过，daemon 本轮已全量通过，local-agent 新增 web tests 通过。 |
 
 ### 独立 opencode 交叉复核
 

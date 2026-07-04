@@ -4,24 +4,24 @@ design: ./design.md
 date: 2026-07-03
 round: 2
 result: pass
-scope: "Round-1 修复项：docs/dev/frontend.md / docs/dev/index.md / docs/dev/backend.md / docs/dev/architecture.md（tauri.ts 描述清理）；README.cn.md / SectionAbout.tsx（docs/design/index.md 链接修正）；docs/ARCH.md（依赖规则示例修正）。"
+scope: 'Round-1 修复项：docs/dev/frontend.md / docs/dev/index.md / docs/dev/backend.md / docs/dev/architecture.md（tauri.ts 描述清理）；README.cn.md / SectionAbout.tsx（docs/design/index.md 链接修正）；docs/ARCH.md（依赖规则示例修正）。'
 ---
 
 # 验收报告 — 架构治理重规划：全景技术设定 + 落地清理（Round 2）
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 全景技术地图 | ✅ pass | `AGENTS.md:1-48` 薄 hub 不变；`docs/CONVENTIONS.md`、`docs/ARCH.md`、`docs/DESIGN.md`、`docs/final-state.md` 职责唯一；从 `AGENTS.md` 到任一约定文档 ≤1 跳，到具体章节 ≤2 跳。无新增矛盾重复表述。 |
-| AC-2 文档与代码一致 | ✅ pass | Round-1 发现的 3 类不一致已全部修复，全量复核未再发现核心文档中将已删除实体描述为当前实体的残留： |
+| AC                          | 结论    | 证据                                                                                                                                                                                                                                                                                                                        |
+| --------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 全景技术地图           | ✅ pass | `AGENTS.md:1-48` 薄 hub 不变；`docs/CONVENTIONS.md`、`docs/ARCH.md`、`docs/DESIGN.md`、`docs/final-state.md` 职责唯一；从 `AGENTS.md` 到任一约定文档 ≤1 跳，到具体章节 ≤2 跳。无新增矛盾重复表述。                                                                                                                          |
+| AC-2 文档与代码一致         | ✅ pass | Round-1 发现的 3 类不一致已全部修复，全量复核未再发现核心文档中将已删除实体描述为当前实体的残留：                                                                                                                                                                                                                           |
 | AC-3 架构债清单落地（WS-2） | ✅ pass | `apps/web/src/lib/tauri.ts` 已删除；`apps/web/src/tests/tauri.test.ts` 已删除；`apps/web/src` 内无活跃 `from '../lib/tauri'` / `from '../../lib/tauri'` import；调用方已切到 `selectRuntimeClient` / `hostBridge` / `apiTypes`。`pnpm -r test` 全绿；`pnpm --filter @journal/web lint` 0 errors（9 warnings，与 R1 相同）。 |
-| AC-4 护栏机器化 | ⏸️ N/A | 本次 diff 范围未新增 lint 规则/CI 检查/依赖边界检查；无内容可验证。 |
-| AC-5 分发可用性 | ⏸️ N/A | 同 AC-4，本次范围未新增分发相关改动；文档 hub 已可引用。 |
+| AC-4 护栏机器化             | ⏸️ N/A  | 本次 diff 范围未新增 lint 规则/CI 检查/依赖边界检查；无内容可验证。                                                                                                                                                                                                                                                         |
+| AC-5 分发可用性             | ⏸️ N/A  | 同 AC-4，本次范围未新增分发相关改动；文档 hub 已可引用。                                                                                                                                                                                                                                                                    |
 
 ### AC-2 修复明细与复核证据
 
-**Fix 1：docs/dev/* 中 `tauri.ts` 描述已清理或转为历史注记**
+**Fix 1：docs/dev/\* 中 `tauri.ts` 描述已清理或转为历史注记**
 
 - `docs/dev/frontend.md:15-17` 分层表已删除 `lib/tauri.ts` 行，仅保留 `lib/runtimeClient.ts` / `lib/httpRuntimeClient.ts` / `lib/hostBridge.ts`。
 - `docs/dev/frontend.md:25` 业务调用路径改为："业务调用统一走 `selectRuntimeClient().invoke(...)`，宿主能力走 `hostBridge` 导出函数"。
@@ -62,12 +62,12 @@ scope: "Round-1 修复项：docs/dev/frontend.md / docs/dev/index.md / docs/dev/
 
 ## 方案落实（不偏，对照 design.md）
 
-| design.md 要求 | 结论 | 证据 |
-|---|---|---|
-| `CLAUDE.md` 薄 hub + docs 分层 | ✅ | `AGENTS.md` 与 `CLAUDE.md` 为同一文件 symlink，48 行导航/摘要/链接。 |
-| 每条约定单一权威出处 | ✅ | `AGENTS.md:7-13` 文档地图明确职责；正文只链接不复述。 |
-| tauri.ts 删除、调用点切到 runtimeClient/hostBridge | ✅ | `git status --short` 显示 `D apps/web/src/lib/tauri.ts`；grep 无活跃 import。 |
-| Round-2 修复只改文档描述与等价调用点 | ✅ | 见下方"越界检查"。 |
+| design.md 要求                                     | 结论 | 证据                                                                          |
+| -------------------------------------------------- | ---- | ----------------------------------------------------------------------------- |
+| `CLAUDE.md` 薄 hub + docs 分层                     | ✅   | `AGENTS.md` 与 `CLAUDE.md` 为同一文件 symlink，48 行导航/摘要/链接。          |
+| 每条约定单一权威出处                               | ✅   | `AGENTS.md:7-13` 文档地图明确职责；正文只链接不复述。                         |
+| tauri.ts 删除、调用点切到 runtimeClient/hostBridge | ✅   | `git status --short` 显示 `D apps/web/src/lib/tauri.ts`；grep 无活跃 import。 |
+| Round-2 修复只改文档描述与等价调用点               | ✅   | 见下方"越界检查"。                                                            |
 
 ## 越界检查（不多，对照 story 非目标 + design.md 范围）
 
@@ -116,23 +116,23 @@ Round-1 的全部 3 个 fail 项（1 blocker + 2 minor）已修复；AC-2 全量
 
 ### AC 核对
 
-| AC | 结论 | 证据 |
-|---|---|---|
+| AC              | 结论    | 证据                                                                                                                                                                                                                                             |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AC-4 护栏机器化 | ✅ pass | 5 条 ESLint 边界规则（`apps/web/eslint.config.js:21-72`）+ docs-consistency 脚本（`scripts/check-docs-consistency.mjs`）+ CI 接入（`.github/workflows/ci.yml:22`）均生效；红测试已独立复现；白名单均为纯 UI 状态并附 `ARCH.md 白名单` 行内理由。 |
 | AC-5 分发可用性 | ✅ pass | 无独立 WS-3 任务书，但 `design.md` WS-3 节直接引用 `docs/ARCH.md「依赖方向规则」` / `已下线能力` / `历史注记`；`AGENTS.md` 铁律摘要链接到 `docs/ARCH.md` 具体章节；ESLint 错误信息也引用 `docs/ARCH.md` 章节。Hub 文档已可直接引用作为执行约束。 |
 
 ### AC-4 逐项证据
 
-| 检查项 | 结论 | 证据 |
-|---|---|---|
-| 禁 `import electron`（命名/default/namespace） | ✅ | `apps/web/eslint.config.js:28-36` `no-restricted-imports`；独立探针 `import { ipcRenderer } from 'electron'` 触发 error。 |
-| 禁直接访问 `window.electronAPI` | ✅ | `apps/web/eslint.config.js:52-58` `no-restricted-syntax` selector `MemberExpression[object.name='window'][property.name='electronAPI']`；探针 `const api = window.electronAPI` 触发 error。 |
-| 禁 import 已删除 `lib/tauri` | ✅ | `apps/web/eslint.config.js:43-49` patterns `['**/lib/tauri', '**/lib/tauri.*']`；探针 `import { oldShim } from '../lib/tauri'` 触发 error。 |
-| 禁 `localhost`/`127.0.0.1` 字面量（consumer 层） | ✅ | `apps/web/eslint.config.js:59-63` selector `Literal[value=/localhost\|127\.0\.0\.1/]`；探针 `'http://localhost:9999/bad'` 触发 error。 |
-| 禁 consumer 层 localStorage 业务持久化，白名单纯 UI 状态 | ✅ | `apps/web/eslint.config.js:64-69` selector 匹配 `localStorage`；4 处既有纯 UI 用法均带 `// eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：…`：SkillsWorkbench.tsx:50-58（收藏偏好）、TreeSidebar.tsx:102-116（折叠态）、UIContext.tsx:22-120（面板宽度/pinned/树选中态）、useTopics.ts:19-36（topics 树展开态）。 |
-| 红测试证据可信 | ✅ | `ws3-evidence.md:15-46` ESLint 探针与 `ws3-evidence.md:53-70` docs 探针均已独立复现，输出与证据一致。 |
-| docs-consistency 脚本逻辑正确 | ✅ | `scripts/check-docs-consistency.mjs:14-18` 扫描 `AGENTS.md`、`docs/ARCH.md`、`docs/CONVENTIONS.md`、`docs/final-state.md`，匹配反引号文件路径，校验存在性；运行输出 `OK — 已校验 27 个反引号路径，全部存在。` |
-| CI 接入新增检查 | ✅ | `.github/workflows/ci.yml:22` 新增 `node scripts/check-docs-consistency.mjs`；lint 步骤 `pnpm --filter @journal/web lint` 已包含新 ESLint 规则。 |
+| 检查项                                                   | 结论 | 证据                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 禁 `import electron`（命名/default/namespace）           | ✅   | `apps/web/eslint.config.js:28-36` `no-restricted-imports`；独立探针 `import { ipcRenderer } from 'electron'` 触发 error。                                                                                                                                                                                                           |
+| 禁直接访问 `window.electronAPI`                          | ✅   | `apps/web/eslint.config.js:52-58` `no-restricted-syntax` selector `MemberExpression[object.name='window'][property.name='electronAPI']`；探针 `const api = window.electronAPI` 触发 error。                                                                                                                                         |
+| 禁 import 已删除 `lib/tauri`                             | ✅   | `apps/web/eslint.config.js:43-49` patterns `['**/lib/tauri', '**/lib/tauri.*']`；探针 `import { oldShim } from '../lib/tauri'` 触发 error。                                                                                                                                                                                         |
+| 禁 `localhost`/`127.0.0.1` 字面量（consumer 层）         | ✅   | `apps/web/eslint.config.js:59-63` selector `Literal[value=/localhost\|127\.0\.0\.1/]`；探针 `'http://localhost:9999/bad'` 触发 error。                                                                                                                                                                                              |
+| 禁 consumer 层 localStorage 业务持久化，白名单纯 UI 状态 | ✅   | `apps/web/eslint.config.js:64-69` selector 匹配 `localStorage`；4 处既有纯 UI 用法均带 `// eslint-disable-next-line no-restricted-syntax -- ARCH.md 白名单：…`：SkillsWorkbench.tsx:50-58（收藏偏好）、TreeSidebar.tsx:102-116（折叠态）、UIContext.tsx:22-120（面板宽度/pinned/树选中态）、useTopics.ts:19-36（topics 树展开态）。 |
+| 红测试证据可信                                           | ✅   | `ws3-evidence.md:15-46` ESLint 探针与 `ws3-evidence.md:53-70` docs 探针均已独立复现，输出与证据一致。                                                                                                                                                                                                                               |
+| docs-consistency 脚本逻辑正确                            | ✅   | `scripts/check-docs-consistency.mjs:14-18` 扫描 `AGENTS.md`、`docs/ARCH.md`、`docs/CONVENTIONS.md`、`docs/final-state.md`，匹配反引号文件路径，校验存在性；运行输出 `OK — 已校验 27 个反引号路径，全部存在。`                                                                                                                       |
+| CI 接入新增检查                                          | ✅   | `.github/workflows/ci.yml:22` 新增 `node scripts/check-docs-consistency.mjs`；lint 步骤 `pnpm --filter @journal/web lint` 已包含新 ESLint 规则。                                                                                                                                                                                    |
 
 ### 验证命令输出（最终绿）
 

@@ -40,11 +40,11 @@ depends_on: P1 本地 Agent 检测（已并主干，提供 GET /agents 可用 ag
 
 ## 实现参考（opencode 必读 ../open-design）
 
-| 复刻对象 | open-design 源 | journal 落点 |
-|---|---|---|
-| 顶栏引擎/模型 chip | `apps/web/src/components/InlineModelSwitcher.tsx`、`AgentIcon.tsx`、`utils/agentLabels.ts` | 统一对话面顶栏新 chip 组件 |
-| 统一对话面（无 tab） | `apps/web/src/components/ChatPane.tsx` | 改 `App.tsx` 右栏：删 tab，渲一个面 |
-| composer 控制条 | `ChatComposer.tsx` 的 `composer-row` + `SessionModeToggle` | 复用现有 ChatPanel composer + 折叠 Agent Run 控件 |
-| ExecMode/agent 选择模型 | `AgentPicker.tsx`、`components/agentModelSelection.ts` | 引擎切换状态（持久化走 runtime client，不用 localStorage） |
+| 复刻对象                | open-design 源                                                                             | journal 落点                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| 顶栏引擎/模型 chip      | `apps/web/src/components/InlineModelSwitcher.tsx`、`AgentIcon.tsx`、`utils/agentLabels.ts` | 统一对话面顶栏新 chip 组件                                 |
+| 统一对话面（无 tab）    | `apps/web/src/components/ChatPane.tsx`                                                     | 改 `App.tsx` 右栏：删 tab，渲一个面                        |
+| composer 控制条         | `ChatComposer.tsx` 的 `composer-row` + `SessionModeToggle`                                 | 复用现有 ChatPanel composer + 折叠 Agent Run 控件          |
+| ExecMode/agent 选择模型 | `AgentPicker.tsx`、`components/agentModelSelection.ts`                                     | 引擎切换状态（持久化走 runtime client，不用 localStorage） |
 
 复用 journal 现有 `useConversation` / `useAgentRun` / `GET /agents`（P1）；引擎选择持久化走 runtimeClient（AGENTS.md：不用 localStorage）；视觉走谨迹设计系统（`--record-btn` 橙、结构化 token、字体三栈），不照搬 open-design 配色；文案 zh/en 对齐零 hardcode。

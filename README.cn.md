@@ -58,14 +58,14 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|---|
-| 桌面框架 | Electron |
-| 前端 | React 19 + TypeScript + Vite 7 |
-| 后端 | TypeScript daemon（HTTP + SSE） |
-| AI 引擎 | daemon pi 内建引擎 + CLI adapters |
-| 文件变更 | ChangeSet service |
-| 桌面宿主能力 | Electron preload host bridge |
+| 层           | 技术                              |
+| ------------ | --------------------------------- |
+| 桌面框架     | Electron                          |
+| 前端         | React 19 + TypeScript + Vite 7    |
+| 后端         | TypeScript daemon（HTTP + SSE）   |
+| AI 引擎      | daemon pi 内建引擎 + CLI adapters |
+| 文件变更     | ChangeSet service                 |
+| 桌面宿主能力 | Electron preload host bridge      |
 
 ## 架构
 
@@ -97,14 +97,14 @@ apps/desktop/src/        # Electron host
 
 ## 本地开发
 
-**前置依赖**：Node.js 20+、pnpm 9
+**前置依赖**：Node.js 20+、bun 1.1+
 
 ```bash
-pnpm install
+bun install
 npm run desktop:dev      # 启动桌面开发模式（Vite + Electron）
 npm test                 # 前端测试（vitest）
-cd apps/daemon && npx vitest run
-cd apps/desktop && npx vitest run
+cd apps/daemon && bunx vitest run
+cd apps/desktop && bunx vitest run
 npm run test:e2e         # E2E 测试（Playwright）
 npm run desktop:build    # Electron 生产构建
 ```

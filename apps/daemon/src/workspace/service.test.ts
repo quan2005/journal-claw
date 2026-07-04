@@ -12,7 +12,9 @@ describe('WorkspaceService', () => {
     mkdirSync(ws, { recursive: true })
   })
   afterEach(() => {
-    try { rmSync(ws, { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(ws, { recursive: true, force: true })
+    } catch {}
   })
 
   it('getMeta returns sensible defaults when no metadata file exists', () => {

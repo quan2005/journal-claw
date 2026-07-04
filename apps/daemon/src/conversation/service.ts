@@ -211,11 +211,7 @@ export class ConversationService {
     return id
   }
 
-  async send(
-    sessionId: string,
-    message: string,
-    images?: ImageAttachment[] | null,
-  ): Promise<void> {
+  async send(sessionId: string, message: string, images?: ImageAttachment[] | null): Promise<void> {
     const session = this.requireSession(sessionId)
     if (session.agent.state.isStreaming) {
       session.agent.followUp(userMessage(message, images))
@@ -589,11 +585,8 @@ export class ConversationService {
           updated_at: Number(maybeV2.updated_at ?? nowSecs(this.now)),
           version: 2,
           messages: Array.isArray(maybeV2.messages) ? maybeV2.messages : [],
-          system_prompt:
-            typeof maybeV2.system_prompt === 'string' ? maybeV2.system_prompt : null,
-          expert_contexts: Array.isArray(maybeV2.expert_contexts)
-            ? maybeV2.expert_contexts
-            : [],
+          system_prompt: typeof maybeV2.system_prompt === 'string' ? maybeV2.system_prompt : null,
+          expert_contexts: Array.isArray(maybeV2.expert_contexts) ? maybeV2.expert_contexts : [],
           elapsed_secs: Number(maybeV2.elapsed_secs ?? 0),
           total_input_tokens: Number(maybeV2.total_input_tokens ?? 0),
           total_output_tokens: Number(maybeV2.total_output_tokens ?? 0),
@@ -823,9 +816,7 @@ function rustUserBlocksToPi(blocks: RustContentBlock[]): string | (TextContent |
   return content
 }
 
-function rustAssistantBlockToPi(
-  block: RustContentBlock,
-): AssistantMessage['content'][number][] {
+function rustAssistantBlockToPi(block: RustContentBlock): AssistantMessage['content'][number][] {
   if (isRustText(block)) return [{ type: 'text', text: block.text }]
   if (isRustThinking(block)) {
     return [
@@ -1007,13 +998,15 @@ function sumUsage(messages: AgentMessage[]): { input: number; output: number } {
 }
 
 function visibleMessageCount(messages: AgentMessage[]): number {
-  return messages.filter((message) => message.role === 'user' || message.role === 'assistant').length
+  return messages.filter((message) => message.role === 'user' || message.role === 'assistant')
+    .length
 }
 
 function toolLabel(name: string, args: unknown): string {
   if (name === 'bash' && isRecord(args) && typeof args.command === 'string') return args.command
   if (isRecord(args) && typeof args.path === 'string') return `${name}: ${args.path}`
-  if (isRecord(args) && typeof args.prompt === 'string') return `${name}: ${args.prompt.slice(0, 80)}`
+  if (isRecord(args) && typeof args.prompt === 'string')
+    return `${name}: ${args.prompt.slice(0, 80)}`
   return name
 }
 

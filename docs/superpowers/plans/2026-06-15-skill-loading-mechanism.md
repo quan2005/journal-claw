@@ -12,23 +12,24 @@
 
 ## File Structure
 
-| File | Action | Responsibility |
-|------|--------|---------------|
-| `src-tauri/src/skills.rs` | Modify | 新增 builtin/global 扫描、三层合并与覆盖去重、`get_skill_content` 命令 |
-| `src-tauri/src/workspace_settings.rs` | Modify | 新增 `enabled_global_skills` 字段 + getter/setter |
-| `src-tauri/src/llm/prompt.rs` | Modify | `scan_skills()` 扩展为三层、支持 builtin 强制加载 |
-| `src-tauri/src/llm/enable_skill.rs` | Modify | `execute()` 支持 builtin 路径查找 |
-| `src-tauri/src/main.rs` | Modify | 注册新增 Tauri 命令 |
-| `src-tauri/resources/builtin-skills/` | Create | 内置技能目录（从 `.agents/skills/` 迁移） |
-| `src/lib/tauri.ts` | Modify | 扩展 SkillInfo 类型 + 新增 IPC 函数 |
-| `src/components/SkillsWorkbench.tsx` | Modify | 三分区布局 + `/` 按钮 + shadowed 标注 |
-| `src/styles/skills-workbench.css` | Modify | 新增分区样式 + `/` 按钮样式 |
+| File                                  | Action | Responsibility                                                         |
+| ------------------------------------- | ------ | ---------------------------------------------------------------------- |
+| `src-tauri/src/skills.rs`             | Modify | 新增 builtin/global 扫描、三层合并与覆盖去重、`get_skill_content` 命令 |
+| `src-tauri/src/workspace_settings.rs` | Modify | 新增 `enabled_global_skills` 字段 + getter/setter                      |
+| `src-tauri/src/llm/prompt.rs`         | Modify | `scan_skills()` 扩展为三层、支持 builtin 强制加载                      |
+| `src-tauri/src/llm/enable_skill.rs`   | Modify | `execute()` 支持 builtin 路径查找                                      |
+| `src-tauri/src/main.rs`               | Modify | 注册新增 Tauri 命令                                                    |
+| `src-tauri/resources/builtin-skills/` | Create | 内置技能目录（从 `.agents/skills/` 迁移）                              |
+| `src/lib/tauri.ts`                    | Modify | 扩展 SkillInfo 类型 + 新增 IPC 函数                                    |
+| `src/components/SkillsWorkbench.tsx`  | Modify | 三分区布局 + `/` 按钮 + shadowed 标注                                  |
+| `src/styles/skills-workbench.css`     | Modify | 新增分区样式 + `/` 按钮样式                                            |
 
 ---
 
 ### Task 1: 创建 builtin-skills 资源目录
 
 **Files:**
+
 - Create: `src-tauri/resources/builtin-skills/docs-maintenance/SKILL.md`
 - Create: `src-tauri/resources/builtin-skills/requirements-gate/SKILL.md`
 - Create: `src-tauri/resources/builtin-skills/verification-gate/SKILL.md`
@@ -58,6 +59,7 @@ git commit -m "feat: add builtin-skills resource directory for L1 skills"
 ### Task 2: workspace_settings.rs — 新增 enabled_global_skills 字段
 
 **Files:**
+
 - Modify: `src-tauri/src/workspace_settings.rs`
 - Test: 在同一文件的 `mod tests` 中新增测试
 
@@ -167,6 +169,7 @@ git commit -m "feat: add enabled_global_skills whitelist to workspace settings"
 ### Task 3: skills.rs — 三层扫描 + 覆盖合并 + get_skill_content 命令
 
 **Files:**
+
 - Modify: `src-tauri/src/skills.rs`
 - Test: 同文件 `mod tests`
 
@@ -467,6 +470,7 @@ git commit -m "feat: three-layer skill scanning with priority merge and get_skil
 ### Task 4: prompt.rs — 适配三层扫描
 
 **Files:**
+
 - Modify: `src-tauri/src/llm/prompt.rs`
 
 - [ ] **Step 1: 更新 scan_skills 函数支持三层**
@@ -630,6 +634,7 @@ git commit -m "feat: prompt.rs scan_skills supports three-layer discovery"
 ### Task 5: enable_skill.rs — 支持 builtin 路径查找
 
 **Files:**
+
 - Modify: `src-tauri/src/llm/enable_skill.rs`
 
 - [ ] **Step 1: 更新 execute 函数的搜索路径**
@@ -682,6 +687,7 @@ git commit -m "feat: enable_skill searches builtin and plugin cache paths"
 ### Task 6: main.rs — 注册新 Tauri 命令
 
 **Files:**
+
 - Modify: `src-tauri/src/main.rs`
 
 - [ ] **Step 1: 在 invoke_handler 中注册新命令**
@@ -713,6 +719,7 @@ git commit -m "feat: register new Tauri commands for skill loading"
 ### Task 7: tauri.ts — 前端 IPC 层扩展
 
 **Files:**
+
 - Modify: `src/lib/tauri.ts`
 
 - [ ] **Step 1: 扩展 SkillInfo 类型**
@@ -766,6 +773,7 @@ git commit -m "feat: extend SkillInfo type and add IPC for three-layer skills"
 ### Task 8: SkillsWorkbench.tsx — 三分区布局 + `/` 按钮
 
 **Files:**
+
 - Modify: `src/components/SkillsWorkbench.tsx`
 - Modify: `src/styles/skills-workbench.css`
 
@@ -1127,8 +1135,8 @@ export default function SkillsWorkbench() {
   transition: all 0.15s ease;
 }
 .skills-card-invoke:hover {
-  border-color: #FF5701;
-  color: #FF5701;
+  border-color: #ff5701;
+  color: #ff5701;
   background: rgba(255, 87, 1, 0.05);
 }
 
@@ -1146,7 +1154,7 @@ export default function SkillsWorkbench() {
 /* ── Scope badge variants ─────────────── */
 .skills-card-scope.scope-builtin {
   background: rgba(255, 87, 1, 0.1);
-  color: #FF5701;
+  color: #ff5701;
 }
 .skills-card-scope.scope-project {
   background: rgba(59, 130, 246, 0.1);
@@ -1178,6 +1186,7 @@ git commit -m "feat: SkillsWorkbench three-section layout with invoke button"
 ### Task 9: 集成验证
 
 **Files:**
+
 - Test: 全链路验证
 
 - [ ] **Step 1: 运行 Rust 全量测试**
@@ -1211,6 +1220,7 @@ npm run tauri dev
 ```
 
 验证点：
+
 1. SkillsWorkbench 显示三个分区
 2. 内置技能分区无 toggle，有 `/` 按钮
 3. 项目技能有 toggle（默认开）+ `/` 按钮

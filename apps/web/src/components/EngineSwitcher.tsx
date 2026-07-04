@@ -339,9 +339,7 @@ export function EngineSwitcher({
         </span>
       </button>
 
-      {popoverEl && typeof document !== 'undefined'
-        ? createPortal(popoverEl, document.body)
-        : null}
+      {popoverEl && typeof document !== 'undefined' ? createPortal(popoverEl, document.body) : null}
     </div>
   )
 }

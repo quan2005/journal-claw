@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-http-runtime-client-pilot
-title: "HttpRuntimeClient + 前端 Run 试点"
+title: 'HttpRuntimeClient + 前端 Run 试点'
 status: verified
 source: orchestrator
 level: L2
@@ -29,6 +29,7 @@ related:
 ## 范围
 
 ### 实现内容
+
 1. **`apps/web/src/lib/httpRuntimeClient.ts`** — JournalRuntimeClient 的 HTTP 实现
    - `invoke` → fetch daemon HTTP API
    - `subscribe` → EventSource (SSE) 订阅 daemon 事件流
@@ -40,6 +41,7 @@ related:
 4. **mock daemon 消息** — ChatPanel 在 flag=http 下能完成一轮 mock 消息
 
 ### 独占文件
+
 - `apps/web/src/lib/httpRuntimeClient.ts`（新增）
 - `apps/web/src/lib/httpRuntimeClient.test.ts`（新增）
 - `apps/web/src/lib/runtimeClient.ts`（改：加 flag 选择）
@@ -49,21 +51,27 @@ related:
 ## 验收标准（草稿，G4 verified 后细化）
 
 ### AC-1 · HttpRuntimeClient 实现接口
+
 - **检查**：`httpRuntimeClient.ts` 导出的对象满足 `JournalRuntimeClient` 接口；`invoke` 用 fetch，`subscribe` 用 EventSource
 
 ### AC-2 · feature flag 默认 tauri
+
 - **检查**：无 flag 时 `defaultRuntimeClient` 是 TauriRuntimeClient；现有行为零回退
 
 ### AC-3 · flag=http 走 daemon
+
 - **检查**：`JOURNAL_RUNTIME=http` 时，useConversation 的 subscribe 走 HttpRuntimeClient 的 EventSource
 
 ### AC-4 · stream reducer 不绑 Tauri 事件名
+
 - **检查**：grep useConversation 确认 reducer 逻辑不 hardcode `conversation-stream` Tauri event name（走 client.subscribe 抽象）
 
 ### AC-5 · Tauri fallback 可用
+
 - **检查**：flag 切回 tauri，现有对话行为不回退（ChatPanel.test 全绿）
 
 ### AC-6 · 不回退 + diff 卫生
+
 - **检查**：`git diff --name-only` 仅允许范围；`pnpm --filter @journal/web typecheck + test` 不回退
 
 ## 不做项

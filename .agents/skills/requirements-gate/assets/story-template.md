@@ -1,12 +1,12 @@
 ---
 id: STORY-{YYYYMMDD}-{slug}
-title: ""
-status: draft            # draft → clarifying → approved → verified
-source: gate             # gate（门禁自产）| brainstorming（梳理反哺）
-level: L2                # L1 轻量 | L2 标准 | L3 深度
-hypothesis_basis: data   # data（有数据支撑）| intuition（直觉，须注明验证方式）
-design: ./design.md      # 配套方案契约（实现层），由 brainstorming/开发阶段产出
-created: {YYYY-MM-DD}
+title: ''
+status: draft # draft → clarifying → approved → verified
+source: gate # gate（门禁自产）| brainstorming（梳理反哺）
+level: L2 # L1 轻量 | L2 标准 | L3 深度
+hypothesis_basis: data # data（有数据支撑）| intuition（直觉，须注明验证方式）
+design: ./design.md # 配套方案契约（实现层），由 brainstorming/开发阶段产出
+created: { YYYY-MM-DD }
 related: []
 ---
 
@@ -41,6 +41,7 @@ related: []
 ### 用户行为变化
 
 做完后，{用户群} 会：
+
 - {行为变化 1}：{baseline} → {目标}
 - {行为变化 2}：{baseline} → {目标}
 
@@ -53,12 +54,14 @@ related: []
      编号一旦发出不复用不重排。 -->
 
 ### AC-1 — {场景名}
+
 - **Given** {用户前置状态}
 - **When** {用户操作 / 触发条件}
 - **Then** {用户可观察结果}
 - **And** {附加可观察结果}
 
 ### AC-2 — {场景名}
+
 - **Given**
 - **When**
 - **Then**
@@ -89,9 +92,9 @@ related: []
 
 <!-- 用户未答复的意图层问题 + 当前显式默认值；approved 前须清零或被用户接受 -->
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | | | 待确认 |
+| #   | 问题 | 当前默认值 | 状态   |
+| --- | ---- | ---------- | ------ |
+| Q1  |      |            | 待确认 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -104,6 +107,6 @@ related: []
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | | 草稿 / 待澄清 / 可开发 | |
+| 轮次 | 日期 | Readiness              | 主要缺口 |
+| ---- | ---- | ---------------------- | -------- |
+| 1    |      | 草稿 / 待澄清 / 可开发 |          |

@@ -1,6 +1,6 @@
 ---
 id: STORY-20260626-run-sedimentation-review
-title: "Run sedimentation review pipeline (G14)"
+title: 'Run sedimentation review pipeline (G14)'
 status: verified
 source: leader
 level: L3
@@ -31,23 +31,27 @@ related:
 ## 验收标准
 
 ### AC-1 — run 完成后生成 summary Markdown
+
 - **Given** 一个 run 成功结束
 - **When** sedimentation 执行
 - **Then** daemon 在 `.journal/runs/<runId>/summary.md` 写入摘要
 - **And** summary 路径可通过 memory/sedimentation 记录追溯
 
 ### AC-2 — memory/rule 记录可追溯
+
 - **Given** run 输出包含偏好、项目事实、写作规则或工具规则
 - **When** sedimentation 生成记录
 - **Then** 每条记录包含 `sourceRunId`、`evidence`、`sourceArtifactIds` 或 `changeSetIds`
 
 ### AC-3 — 用户可 review/edit/reject/rollback
+
 - **Given** run 已产生沉淀记录
 - **When** 用户调用 review API
 - **Then** 可列出、编辑、拒绝、恢复/回滚记录
 - **And** 被拒绝记录不再作为 durable memory 注入下一次 run
 
 ### AC-4 — 沉淀写入受 AuthorizationMode/ChangeSet 约束
+
 - **Given** 当前 run 是 `read_only`
 - **When** sedimentation 尝试写 summary 或 memory 文件
 - **Then** 返回结构化拒绝或 blocked ChangeSet

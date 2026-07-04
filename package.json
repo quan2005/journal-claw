@@ -5,24 +5,29 @@
   "type": "module",
   "description": "JournalClaw — 本地优先的个人 Agentic Knowledge Workspace",
   "scripts": {
-   "dev": "pnpm --filter @journal/web dev",
-    "desktop:dev": "pnpm --filter @journal/desktop dev",
-    "desktop:build": "pnpm --filter @journal/desktop build",
-   "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "test:e2e": "pnpm --filter @journal/web test:e2e",
-    "lint": "pnpm -r lint",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "daemon:dev": "pnpm --filter @journal/daemon dev",
-    "postinstall": "lefthook install"
+    "dev": "bun run --filter @journal/web dev",
+    "desktop:dev": "bun run --filter @journal/desktop dev",
+    "desktop:build": "bun run --filter @journal/desktop build",
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test",
+    "test:e2e": "bun run --filter @journal/web test:e2e",
+    "lint": "bun run --filter '*' lint",
+    "format:check": "bunx prettier --check \"**/*.{ts,tsx,md}\"",
+    "format": "bunx prettier --write \"**/*.{ts,tsx,md}\"",
+    "daemon:dev": "bun run --filter @journal/daemon dev",
+    "postinstall": "lefthook install && node scripts/fix-electron.mjs"
   },
   "devDependencies": {
     "lefthook": "^2.1.5",
     "prettier": "^3.8.2"
   },
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "bun@1.3.14",
   "engines": {
-    "node": ">=20"
-  }
+    "node": ">=20",
+    "bun": ">=1.1.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

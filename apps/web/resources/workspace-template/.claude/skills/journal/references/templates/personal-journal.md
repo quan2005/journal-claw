@@ -44,15 +44,15 @@ Avoid when: it is a project plan for work; use project-docs.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| morning-journal | Emphasize intention, energy, top priorities |
-| evening-journal | Emphasize events, reflection, closure |
-| emotion-log | Add trigger, body signal, interpretation, regulation |
-| habit-tracking | Use progress, streak, blocker, next adjustment |
-| travel-plan | Add itinerary, transport, lodging, budget, checklist |
-| purchase-decision | Use `ComparisonMatrix` and `DecisionRecord` |
-| family-affairs | Add people, timeline, responsibility, follow-up |
+| Subtype           | Apply changes                                        |
+| ----------------- | ---------------------------------------------------- |
+| morning-journal   | Emphasize intention, energy, top priorities          |
+| evening-journal   | Emphasize events, reflection, closure                |
+| emotion-log       | Add trigger, body signal, interpretation, regulation |
+| habit-tracking    | Use progress, streak, blocker, next adjustment       |
+| travel-plan       | Add itinerary, transport, lodging, budget, checklist |
+| purchase-decision | Use `ComparisonMatrix` and `DecisionRecord`          |
+| family-affairs    | Add people, timeline, responsibility, follow-up      |
 
 ## Quality Rules
 

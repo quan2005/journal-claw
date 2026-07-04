@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-agent-run-service
-title: "AgentRunService — Run 一等化的服务层"
+title: 'AgentRunService — Run 一等化的服务层'
 status: verified
 source: orchestrator
 level: L2
@@ -28,6 +28,7 @@ G3 已在 `packages/contracts` 定义了 `AgentRun` / `AgentRunEvent` 契约。G
 ## 范围
 
 ### 实现内容
+
 1. **`apps/daemon/src/runs/service.ts`** — AgentRunService
    - `createRun(input): AgentRun` — 创建 run，状态 `queued`
    - `appendEvent(runId, event)` — 追加事件，驱动状态机
@@ -48,6 +49,7 @@ G3 已在 `packages/contracts` 定义了 `AgentRun` / `AgentRunEvent` 契约。G
    - cancel → canceled
 
 ### 独占文件
+
 - `apps/daemon/src/runs/service.ts`（新增）
 - `apps/daemon/src/runs/store.ts`（新增）
 - `apps/daemon/src/runs/service.test.ts`（新增）
@@ -59,36 +61,42 @@ G3 已在 `packages/contracts` 定义了 `AgentRun` / `AgentRunEvent` 契约。G
 按 `docs/verification-standard.md`，每条附 Codex 可执行的检查命令。
 
 ### AC-1 · 创建 run 并返回结构化结果
+
 - **Given** daemon 运行
 - **When** `POST /runs` body `{ goal: "test", mode: "agent" }`
 - **Then** 返回 `{ id, sessionId, goal, mode, status: "queued", createdAt, updatedAt }`，类型满足 `AgentRun`
 - **检查**：`curl -X POST /runs -d '{"goal":"test","mode":"agent"}'` 输出含 `id` + `status:"queued"`
 
 ### AC-2 · SSE 事件流推送
+
 - **Given** 一个已创建的 run
 - **When** `GET /runs/:id/events`
 - **Then** SSE 流推送该 run 的事件，每个事件 `data:` 行是 `AgentRunEvent` JSON
 - **检查**：daemon 内部 `appendEvent` 后，SSE 客户端收到对应事件；事件类型在 G3 定义的 12 种内
 
 ### AC-3 · 取消 run
+
 - **Given** 一个 running 的 run
 - **When** `POST /runs/:id/cancel`
 - **Then** run 状态变 `canceled`；后续 appendEvent 不再改变状态
 - **检查**：`POST /cancel` 后 `GET /runs/:id`（或事件流）显示 `canceled`
 
 ### AC-4 · JSONL 持久化与回放
+
 - **Given** run 产生了若干事件
 - **When** 检查 `<dataDir>/runs/<runId>.jsonl`
 - **Then** 文件存在，每行一个 `AgentRunEvent`；回放后事件序列与内存一致
 - **检查**：`cat <dataDir>/runs/<runId>.jsonl | wc -l` = 事件数；每行 `JSON.parse` 成功且 `isAgentRunEvent` 返回 true
 
 ### AC-5 · 状态机正确流转
+
 - **Given** 事件序列 `run_started → text_delta → run_finished`
 - **When** 检查 run 状态
 - **Then** 中态 `running`，终态 `succeeded`
 - **检查**：`pnpm --filter @journal/daemon test` 含状态机测试（started→running, finished→succeeded, failed→failed, cancel→canceled）
 
 ### AC-6 · 不回退 + diff 卫生
+
 - **Given** G4 改动
 - **When** `git diff --name-only`
 - **Then** 仅 `apps/daemon/src/runs/**` + `apps/daemon/src/server.ts`；不碰 web/contracts/Rust
@@ -105,6 +113,7 @@ G3 已在 `packages/contracts` 定义了 `AgentRun` / `AgentRunEvent` 契约。G
 ## 验收方式
 
 遵循 `docs/verification-standard.md`：
+
 - 验收方 Codex `workspace-write` 沙盒
 - 实现方先 commit，验收在干净 HEAD
 - 验收后 `git diff` 越界核查

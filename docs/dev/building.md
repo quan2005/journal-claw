@@ -22,9 +22,9 @@ Electron 打包产物输出到 `apps/desktop/release/`。
 ## 分包构建
 
 ```bash
-pnpm --filter @journal/web build
-pnpm --filter @journal/daemon build
-pnpm --filter @journal/desktop build
+bun run --filter @journal/web build
+bun run --filter @journal/daemon build
+bun run --filter @journal/desktop build
 ```
 
 `apps/desktop/electron-builder.yml` 负责桌面包配置。当前 host 只承载窗口、菜单与 daemon 生命周期；业务状态和文件操作仍由 daemon services 负责。
@@ -49,7 +49,7 @@ GitHub Actions 自动化构建：
 ## 本地构建验证
 
 ```bash
-npm run desktop:build
+bun run desktop:build
 open apps/desktop/release/mac*/JournalClaw.app
 du -sh apps/desktop/release/*.dmg
 ```

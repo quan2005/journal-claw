@@ -4,7 +4,7 @@ design: /Users/yanwu/Projects/github/journal/stories/20260625-ts-daemon-agent-ru
 date: 2026-06-26
 round: 4
 result: pass
-scope: "Independent opencode build read-only verification for all approved child stories mapped by design.md."
+scope: 'Independent opencode build read-only verification for all approved child stories mapped by design.md.'
 ---
 
 # 验收报告 R4 — Child Stories 汇总验收
@@ -21,13 +21,13 @@ scope: "Independent opencode build read-only verification for all approved child
 
 ## 第一批：新拆 Child Stories
 
-| Story | Result | 关键证据 |
-|---|---|---|
-| `20260625-coding-agent-adapters` | pass | Claude/Codex/OpenCode 三家 adapter 注册；OpenCode def/parser；runner mock；`GET /agents` 与 `POST /runs` 语义通过。 |
-| `20260626-source-binding-evidence` | pass | `GET /runs/:id/sources`；SourceBinding 去重；忽略非文件工具；从 `tool_result` 填充 excerpt。 |
-| `20260626-run-sedimentation-review` | pass | summary Markdown；memory/rule 记录带 evidence/changeSetIds；edit/reject/restore/revert；`read_only` 不写 summary 文件。 |
-| `20260626-workspace-context-boundary` | pass | workspace metadata 持久化；run 前 `assembleContext` 注入 workspace + durable memory；rejected memory 不注入。 |
-| `20260626-multi-agent-delegation` | pass | `POST /runs/:id/subtasks` 创建 child run；`GET /runs/:id/subtasks` 查询；child run 记录 `parentRunId` 与 `agentId`。 |
+| Story                                 | Result | 关键证据                                                                                                                |
+| ------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `20260625-coding-agent-adapters`      | pass   | Claude/Codex/OpenCode 三家 adapter 注册；OpenCode def/parser；runner mock；`GET /agents` 与 `POST /runs` 语义通过。     |
+| `20260626-source-binding-evidence`    | pass   | `GET /runs/:id/sources`；SourceBinding 去重；忽略非文件工具；从 `tool_result` 填充 excerpt。                            |
+| `20260626-run-sedimentation-review`   | pass   | summary Markdown；memory/rule 记录带 evidence/changeSetIds；edit/reject/restore/revert；`read_only` 不写 summary 文件。 |
+| `20260626-workspace-context-boundary` | pass   | workspace metadata 持久化；run 前 `assembleContext` 注入 workspace + durable memory；rejected memory 不注入。           |
+| `20260626-multi-agent-delegation`     | pass   | `POST /runs/:id/subtasks` 创建 child run；`GET /runs/:id/subtasks` 查询；child run 记录 `parentRunId` 与 `agentId`。    |
 
 ### 第一批命令
 
@@ -43,13 +43,13 @@ scope: "Independent opencode build read-only verification for all approved child
 
 ## 第二批：旧映射 Child Stories
 
-| Story | Result | 关键证据 |
-|---|---|---|
-| `20260625-agent-run-service` | pass | AgentRunService create/SSE/cancel/status machine/JSONL replay 全覆盖。 |
-| `20260625-http-runtime-client-pilot` | pass | HttpRuntimeClient 实现 `JournalRuntimeClient`；默认 tauri；`JOURNAL_RUNTIME=http` 走 daemon；`useConversation` 经 runtime client 订阅。 |
-| `20260625-artifact-index` | pass | Artifact contract + guard；ArtifactIndexService；capture `<artifact>` 标签；artifact routes。 |
-| `20260625-changeset-authorization` | pass | ChangeSet create/edit/remove/revert；read_only/workspace_write/full_access/wide_with_audit；claude permission mode mapping；snapshot diff。 |
-| `20260625-agent-run-panel-integration` | pass | `rightPanelMode` 默认 chat；Run/Chat toggle；AgentRunPanel lazy-loaded；right panel 渲染分支。 |
+| Story                                  | Result | 关键证据                                                                                                                                    |
+| -------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260625-agent-run-service`           | pass   | AgentRunService create/SSE/cancel/status machine/JSONL replay 全覆盖。                                                                      |
+| `20260625-http-runtime-client-pilot`   | pass   | HttpRuntimeClient 实现 `JournalRuntimeClient`；默认 tauri；`JOURNAL_RUNTIME=http` 走 daemon；`useConversation` 经 runtime client 订阅。     |
+| `20260625-artifact-index`              | pass   | Artifact contract + guard；ArtifactIndexService；capture `<artifact>` 标签；artifact routes。                                               |
+| `20260625-changeset-authorization`     | pass   | ChangeSet create/edit/remove/revert；read_only/workspace_write/full_access/wide_with_audit；claude permission mode mapping；snapshot diff。 |
+| `20260625-agent-run-panel-integration` | pass   | `rightPanelMode` 默认 chat；Run/Chat toggle；AgentRunPanel lazy-loaded；right panel 渲染分支。                                              |
 
 ### 第二批命令
 

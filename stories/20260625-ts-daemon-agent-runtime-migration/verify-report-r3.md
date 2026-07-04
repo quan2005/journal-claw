@@ -4,7 +4,7 @@ design: /Users/yanwu/Projects/github/journal/stories/20260625-ts-daemon-agent-ru
 date: 2026-06-26
 round: 3
 result: pass
-scope: "git status --short（26 modified + 13 untracked）；重点核对 verify-report-r2.md 的 2 条 fail 项（web MemoryRecord drift、App.test.tsx 侧栏测试）与 2 条待裁决项（A 授权默认翻转、B App.test.tsx 范围），并复查是否引入新越界。"
+scope: 'git status --short（26 modified + 13 untracked）；重点核对 verify-report-r2.md 的 2 条 fail 项（web MemoryRecord drift、App.test.tsx 侧栏测试）与 2 条待裁决项（A 授权默认翻转、B App.test.tsx 范围），并复查是否引入新越界。'
 ---
 
 # 验收报告 R3 — TypeScript daemon 与 Coding Agent Runtime 迁移
@@ -48,11 +48,11 @@ export interface MemoryRecord {
   detail: string
   evidence: string[]
   sourceArtifactIds?: string[]
-  changeSetIds?: string[]    // ← R2 缺，已补
-  path?: string              // ← R2 缺，已补
-  status?: MemoryRecordStatus  // ← R2 缺，已补（MemoryRecordStatus union 也已补：agentRun.ts:124）
+  changeSetIds?: string[] // ← R2 缺，已补
+  path?: string // ← R2 缺，已补
+  status?: MemoryRecordStatus // ← R2 缺，已补（MemoryRecordStatus union 也已补：agentRun.ts:124）
   createdAt: string
-  updatedAt?: string         // ← R2 缺，已补
+  updatedAt?: string // ← R2 缺，已补
 }
 ```
 
@@ -63,6 +63,7 @@ export interface MemoryRecord {
 **结论：fixed（代码审查取证；运行时因 vite 环境问题无法执行，见 §0）**
 
 R2 指出 2 个失败 case：
+
 1. `places sidebar collapse controls on the panel dividers`（`App.test.tsx:249`）
 2. `preserves readable detail width by closing sidebars at narrow window sizes`（`App.test.tsx:300`）
 
@@ -70,34 +71,35 @@ R2 指出 2 个失败 case：
 
 **Test 1 断言（`App.test.tsx:249-298`）→ 代码证据：**
 
-| 断言 | 代码位置 | 核对 |
-|---|---|---|
-| `getByRole('button', { name: '折叠左侧栏' })` | `App.tsx:1202` `aria-label={leftSidebarOpen ? t('collapseLeftSidebar')...}`；`locales/zh.ts:62` `collapseLeftSidebar: '折叠左侧栏'` | ✓ |
-| `getByRole('button', { name: '折叠右侧栏 (⌘T)' })` | `App.tsx:1289`；`locales/zh.ts:64` `collapseRightSidebar: '折叠右侧栏 (⌘T)'` | ✓ |
-| `leftToggle.closest('[data-sidebar-divider="left"]')` | button 在 `App.tsx:1200`，父 div `App.tsx:1189` `data-sidebar-divider="left"` | ✓ |
-| `rightToggle.closest('[data-sidebar-divider="right"]')` | button 在 `App.tsx:1287`，父 div `App.tsx:1275` `data-sidebar-divider="right"` | ✓ |
-| `titleBar?.contains(rightToggle)` === false | `TitleBar.tsx` diff 删除了 PanelRight toggle button + `onToggleRightPanel` prop | ✓ |
-| `style.top` === `'var(--panel-toggle-top)'` | `App.tsx:90` `sidebarToggleStyle()` → `top: 'var(--panel-toggle-top)'` | ✓ |
-| style 含 `'--panel-toggle-top: clamp(88px, 12vh, 120px)'` | `App.tsx:78` `PANEL_TOGGLE_TOP = 'clamp(88px, 12vh, 120px)'`；`App.tsx:87` 注入 CSS var | ✓ |
-| `style.transform` === `'translate(-50%, -50%)'` | `App.tsx:92` | ✓ |
-| leftToggle svg `lucide-chevron-left`（open 时） | `App.tsx:1209` `<ChevronLeft>` | ✓ |
-| rightToggle svg `lucide-chevron-right`（open 时） | `App.tsx:1296` `<ChevronRight>` | ✓ |
-| leftPanel.transition 含 `'width 220ms'` | `App.tsx:1158` `transition: SIDEBAR_PANEL_TRANSITION`（`App.tsx:77` 含 `width 220ms`） | ✓ |
-| rightPanel.transition 含 `'width 220ms'` | `App.tsx:1316` 同上 | ✓ |
-| click leftToggle → leftPanel width `'0px'`, opacity `'0'`, aria-hidden `'true'` | `App.tsx:1205` `setLeftSidebarOpen(prev => !prev)`；`App.tsx:1149` width `leftSidebarOpen ? sidebarWidth : 0`；`App.tsx:1147` `aria-hidden` | ✓ |
-| click rightToggle → rightPanel width `'0px'`, opacity `'0'`, aria-hidden `'true'` | `App.tsx:1292` toggle；`App.tsx:1307` width；`App.tsx:1305` aria-hidden | ✓ |
-| collapse 后 expand toggle `lucide-chevron-left` + name `'展开右侧栏 (⌘T)'` | `App.tsx:1298` `<ChevronLeft>` when closed；`locales/zh.ts:65` `expandRightSidebar: '展开右侧栏 (⌘T)'` | ✓ |
+| 断言                                                                              | 代码位置                                                                                                                                    | 核对 |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `getByRole('button', { name: '折叠左侧栏' })`                                     | `App.tsx:1202` `aria-label={leftSidebarOpen ? t('collapseLeftSidebar')...}`；`locales/zh.ts:62` `collapseLeftSidebar: '折叠左侧栏'`         | ✓    |
+| `getByRole('button', { name: '折叠右侧栏 (⌘T)' })`                                | `App.tsx:1289`；`locales/zh.ts:64` `collapseRightSidebar: '折叠右侧栏 (⌘T)'`                                                                | ✓    |
+| `leftToggle.closest('[data-sidebar-divider="left"]')`                             | button 在 `App.tsx:1200`，父 div `App.tsx:1189` `data-sidebar-divider="left"`                                                               | ✓    |
+| `rightToggle.closest('[data-sidebar-divider="right"]')`                           | button 在 `App.tsx:1287`，父 div `App.tsx:1275` `data-sidebar-divider="right"`                                                              | ✓    |
+| `titleBar?.contains(rightToggle)` === false                                       | `TitleBar.tsx` diff 删除了 PanelRight toggle button + `onToggleRightPanel` prop                                                             | ✓    |
+| `style.top` === `'var(--panel-toggle-top)'`                                       | `App.tsx:90` `sidebarToggleStyle()` → `top: 'var(--panel-toggle-top)'`                                                                      | ✓    |
+| style 含 `'--panel-toggle-top: clamp(88px, 12vh, 120px)'`                         | `App.tsx:78` `PANEL_TOGGLE_TOP = 'clamp(88px, 12vh, 120px)'`；`App.tsx:87` 注入 CSS var                                                     | ✓    |
+| `style.transform` === `'translate(-50%, -50%)'`                                   | `App.tsx:92`                                                                                                                                | ✓    |
+| leftToggle svg `lucide-chevron-left`（open 时）                                   | `App.tsx:1209` `<ChevronLeft>`                                                                                                              | ✓    |
+| rightToggle svg `lucide-chevron-right`（open 时）                                 | `App.tsx:1296` `<ChevronRight>`                                                                                                             | ✓    |
+| leftPanel.transition 含 `'width 220ms'`                                           | `App.tsx:1158` `transition: SIDEBAR_PANEL_TRANSITION`（`App.tsx:77` 含 `width 220ms`）                                                      | ✓    |
+| rightPanel.transition 含 `'width 220ms'`                                          | `App.tsx:1316` 同上                                                                                                                         | ✓    |
+| click leftToggle → leftPanel width `'0px'`, opacity `'0'`, aria-hidden `'true'`   | `App.tsx:1205` `setLeftSidebarOpen(prev => !prev)`；`App.tsx:1149` width `leftSidebarOpen ? sidebarWidth : 0`；`App.tsx:1147` `aria-hidden` | ✓    |
+| click rightToggle → rightPanel width `'0px'`, opacity `'0'`, aria-hidden `'true'` | `App.tsx:1292` toggle；`App.tsx:1307` width；`App.tsx:1305` aria-hidden                                                                     | ✓    |
+| collapse 后 expand toggle `lucide-chevron-left` + name `'展开右侧栏 (⌘T)'`        | `App.tsx:1298` `<ChevronLeft>` when closed；`locales/zh.ts:65` `expandRightSidebar: '展开右侧栏 (⌘T)'`                                      | ✓    |
 
 **Test 2 断言（`App.test.tsx:300-328`）→ 代码证据：**
 
-| 断言 | 代码位置 | 核对 |
-|---|---|---|
-| innerWidth=840：rightPanel width `'0px'` | `App.tsx:189-191` `leftSidebarOpen` initial = `innerWidth >= 720`；`UIContext.tsx:206` `rightPanelOpen` default = `true`；`App.tsx:211-213` effect：`viewportWidth < 960 && rightPanelOpen` → `setRightPanelOpen(false)` | ✓ |
-| innerWidth=840：leftPanel width ≠ `'0px'` | `leftSidebarOpen` = `840 >= 720` = true → `App.tsx:1149` width = `sidebarWidth` | ✓ |
-| resize→680：leftPanel width `'0px'` | `App.tsx:214-216` effect：`viewportWidth < 720 && leftSidebarOpen` → `setLeftSidebarOpen(false)` → width = 0 | ✓ |
-| resize→680：rightPanel width `'0px'` | 已为 false，保持 0 | ✓ |
+| 断言                                      | 代码位置                                                                                                                                                                                                                 | 核对 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| innerWidth=840：rightPanel width `'0px'`  | `App.tsx:189-191` `leftSidebarOpen` initial = `innerWidth >= 720`；`UIContext.tsx:206` `rightPanelOpen` default = `true`；`App.tsx:211-213` effect：`viewportWidth < 960 && rightPanelOpen` → `setRightPanelOpen(false)` | ✓    |
+| innerWidth=840：leftPanel width ≠ `'0px'` | `leftSidebarOpen` = `840 >= 720` = true → `App.tsx:1149` width = `sidebarWidth`                                                                                                                                          | ✓    |
+| resize→680：leftPanel width `'0px'`       | `App.tsx:214-216` effect：`viewportWidth < 720 && leftSidebarOpen` → `setLeftSidebarOpen(false)` → width = 0                                                                                                             | ✓    |
+| resize→680：rightPanel width `'0px'`      | 已为 false，保持 0                                                                                                                                                                                                       | ✓    |
 
 关键修复点：
+
 - `App.tsx:189-191`：`leftSidebarOpen` 从 `useState(false)` 改为 `useState(() => window.innerWidth >= HIDE_LEFT_SIDEBAR_BELOW)`——这是 test 2 在 840px 下 leftPanel 不为 0 的前提。
 - `UIContext.tsx:206`：`rightPanelOpen` default 从 `false` 改为 `true`——配合 responsive effect 在窄屏自动关闭。
 - `TitleBar.tsx`：移除了 titlebar 内的 PanelRight toggle，toggle 下沉到 divider。
@@ -111,6 +113,7 @@ R2 指出 2 个失败 case：
 R2 提出：story.md AC-3 由「默认 `wide_with_audit`」被回写为「默认 `workspace_write`」，需用户确认是否授权此意图层改动。
 
 本轮状态：
+
 - `story.md:79-82`（AC-3）仍为 `workspace_write` 默认，`wide_with_audit` 为显式模式——**与 R2 观察一致，未被回退**。
 - `story.md:45` 背景段新增引用「**2026-06-26 验收裁决**」，声称存在验收裁决记录。
 - `docs/adr/ts-daemon-agent-runtime-migration.md` 同步翻转（R2 已记录）。
@@ -120,6 +123,7 @@ R2 提出：story.md AC-3 由「默认 `wide_with_audit`」被回写为「默认
 gate 规则：「接受则回写对应契约…后视为通过」。回写已发生且实现一致。但「验收裁决」文字出自被改契约本身，验收员无法独立判定是用户裁决还是实现者自述。
 
 **两边代价**：
+
 - 接受 → AC-3 pass，实现无需改动。
 - 不接受 → 回退 story.md:45/56/79-82 + ADR 为 `wide_with_audit` 默认，调整 daemon/web 默认值与测试。
 
@@ -134,6 +138,7 @@ R2 提出：design.md §验证矩阵 将 `App.test.tsx` 列为必过项，但 2 
 本轮状态：实现者选择**修复测试**（§1.2）而非从验证矩阵剔除。`App.tsx` / `TitleBar.tsx` / `UIContext.tsx` 被修改以让 2 个测试通过。
 
 **范围归属判断（不多）**：
+
 - 侧栏 toggle 下沉 + `rightPanelOpen` 默认值变更是 App shell 布局变更，不属于 AC-1–AC-6 任一条。
 - 但 `design.md:56` 验证矩阵明确要求 `src/tests/App.test.tsx` 通过——这些修改是满足该验证矩阵的**必要基础设施**。
 - 被修复的测试在 HEAD 已存在（`App.test.tsx` 本轮**未修改**，不在 git status 中），测试先于修改存在。
@@ -145,14 +150,14 @@ R2 提出：design.md §验证矩阵 将 `App.test.tsx` 列为必过项，但 2 
 
 > umbrella story 声明「只作为总契约和迁移边界，不直接承载业务代码开发。实现必须拆到更小的 approved child stories 后再派发」（`story.md:25`）。AC 以「是否已拆解到 approved child story + 边界 + 退出条件 + 当前实现一致性」为 umbrella 层验收点。
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 本地优先 / 多平台 / 平台专属 API 不入默认路径 | **pass** | daemon 绑 loopback `server.ts:532`；snapshot/changeset/sediment 全用 Node 跨平台 API；无 Apple Speech/Whisper/ffmpeg/Trash 引用。Rust 删除退出条件 ADR 存在。 |
-| AC-2 三家 CLI 收敛到 adapter；产品层只看统一语义 | **pass** | 三家 def + parser 全齐（R2 已验）；产品层契约统一 `packages/contracts/src/index.ts`。 |
-| AC-3 授权策略：默认 `workspace_write`，三档 + `wide_with_audit` 显式模式 | **pass（条件：待裁决 A 确认）** | 实现一致：daemon `server.ts:203`、web `AgentRunPanel.tsx:48` default `workspace_write`；`useAgentRun.ts:201-207` `AUTHORIZATION_MODES` 含四档；契约已回写（§2.1）。 |
-| AC-4 Run 面板不重做视觉 | **pass** | `AgentRunPanel.tsx` 仅增 `wide_with_audit` 标签（`:31` `'Wide (audited)'`）、blocked/failed changeset 颜色（`:209-221`）、status fallback（`:57` 移除 `?? STATUS_META.queued`）——均为数据接入修复，无视觉重做。侧栏 toggle 修改在 App shell，不在 Run 面板。 |
-| AC-5 Rust 退出条件独立 checklist | **pass** | R2 已 pass，本轮无回退。 |
-| AC-6 自动沉淀 + review/edit/reject/rollback | **partial（umbrella 层 pass；前端 review UI 属 child story）** | daemon 侧全齐（R2 已验）；web `MemoryRecord` 类型镜像已补齐（§1.1），但前端 review/edit/reject/restore/revert UI 仍未接入——属 `20260626-run-sedimentation-review` child story（approved，未实现）。umbrella 已正确拆解。 |
+| AC                                                                       | 结论                                                           | 证据                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-1 本地优先 / 多平台 / 平台专属 API 不入默认路径                       | **pass**                                                       | daemon 绑 loopback `server.ts:532`；snapshot/changeset/sediment 全用 Node 跨平台 API；无 Apple Speech/Whisper/ffmpeg/Trash 引用。Rust 删除退出条件 ADR 存在。                                                                                                |
+| AC-2 三家 CLI 收敛到 adapter；产品层只看统一语义                         | **pass**                                                       | 三家 def + parser 全齐（R2 已验）；产品层契约统一 `packages/contracts/src/index.ts`。                                                                                                                                                                        |
+| AC-3 授权策略：默认 `workspace_write`，三档 + `wide_with_audit` 显式模式 | **pass（条件：待裁决 A 确认）**                                | 实现一致：daemon `server.ts:203`、web `AgentRunPanel.tsx:48` default `workspace_write`；`useAgentRun.ts:201-207` `AUTHORIZATION_MODES` 含四档；契约已回写（§2.1）。                                                                                          |
+| AC-4 Run 面板不重做视觉                                                  | **pass**                                                       | `AgentRunPanel.tsx` 仅增 `wide_with_audit` 标签（`:31` `'Wide (audited)'`）、blocked/failed changeset 颜色（`:209-221`）、status fallback（`:57` 移除 `?? STATUS_META.queued`）——均为数据接入修复，无视觉重做。侧栏 toggle 修改在 App shell，不在 Run 面板。 |
+| AC-5 Rust 退出条件独立 checklist                                         | **pass**                                                       | R2 已 pass，本轮无回退。                                                                                                                                                                                                                                     |
+| AC-6 自动沉淀 + review/edit/reject/rollback                              | **partial（umbrella 层 pass；前端 review UI 属 child story）** | daemon 侧全齐（R2 已验）；web `MemoryRecord` 类型镜像已补齐（§1.1），但前端 review/edit/reject/restore/revert UI 仍未接入——属 `20260626-run-sedimentation-review` child story（approved，未实现）。umbrella 已正确拆解。                                     |
 
 ## 4. 范围完整性（不少，对照 story.md 范围）
 
@@ -180,11 +185,11 @@ R2 提出：design.md §验证矩阵 将 `App.test.tsx` 列为必过项，但 2 
 
 R3 相对 R2 新增的 3 个 modified 文件均归属明确：
 
-| 文件 | 改动 | 归属 |
-|---|---|---|
-| `apps/web/src/App.tsx` | 侧栏 toggle 下沉到 divider + `leftSidebarOpen` 响应式初始值 | design.md §验证矩阵（App.test.tsx 必过）必要基础设施 |
-| `apps/web/src/components/TitleBar.tsx` | 移除 titlebar PanelRight toggle（配合 toggle 下沉） | 同上（行为的另一面） |
-| `apps/web/src/contexts/UIContext.tsx` | `rightPanelOpen` default false→true + 缩进修复 | 同上（test 2 响应式前提） |
+| 文件                                   | 改动                                                        | 归属                                                 |
+| -------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
+| `apps/web/src/App.tsx`                 | 侧栏 toggle 下沉到 divider + `leftSidebarOpen` 响应式初始值 | design.md §验证矩阵（App.test.tsx 必过）必要基础设施 |
+| `apps/web/src/components/TitleBar.tsx` | 移除 titlebar PanelRight toggle（配合 toggle 下沉）         | 同上（行为的另一面）                                 |
+| `apps/web/src/contexts/UIContext.tsx`  | `rightPanelOpen` default false→true + 缩进修复              | 同上（test 2 响应式前提）                            |
 
 - 无命中 story §三类边界（云端协作 / 平台专属 API / 重做 Run 面板视觉 / 首批以外 CLI）的改动。
 - 侧栏 toggle 变更不在 Run 面板内（AC-4 不受影响）。
@@ -206,6 +211,7 @@ R3 相对 R2 新增的 3 个 modified 文件均归属明确：
 **fail 项数：0**
 
 R2 的 2 条 fail 全部修复：
+
 1. ~~不重 — web `MemoryRecord` drift~~ → **fixed**（`agentRun.ts:134-138` 补齐 4 字段）。
 2. ~~不偏 — `App.test.tsx` 侧栏布局测试失败~~ → **fixed**（`App.tsx` toggle 下沉 + 响应式初始值 + `UIContext` 默认值调整；逐条断言代码审查通过）。
 

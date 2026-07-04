@@ -8,7 +8,7 @@ JournalClaw is a macOS desktop app — an AI-powered knowledge base for knowledg
 
 ## The Idea
 
-Andrej Karpathy [wrote about](https://karpathy.bearblog.dev/the-append-and-review-note/) a note-taking principle that resonates: *append first, review later*. The friction of organizing while capturing kills the thought. The value is in the review cycle, not the structure.
+Andrej Karpathy [wrote about](https://karpathy.bearblog.dev/the-append-and-review-note/) a note-taking principle that resonates: _append first, review later_. The friction of organizing while capturing kills the thought. The value is in the review cycle, not the structure.
 
 JournalClaw takes this to the extreme: **you never write a single note**. Documents, pasted text — all raw materials go into `raw/`, and the LLM incrementally compiles them into structured Markdown knowledge entries. Every new material triggers an update. You only do two things: feed it materials, and come back to read.
 
@@ -58,14 +58,14 @@ Your questions answered
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop framework | Electron |
-| Frontend | React 19 + TypeScript + Vite 7 |
-| Backend | TypeScript daemon (HTTP + SSE) |
-| AI engine | daemon pi built-in engine + CLI adapters |
-| File changes | ChangeSet service |
-| Host capabilities | Electron preload host bridge |
+| Layer             | Technology                               |
+| ----------------- | ---------------------------------------- |
+| Desktop framework | Electron                                 |
+| Frontend          | React 19 + TypeScript + Vite 7           |
+| Backend           | TypeScript daemon (HTTP + SSE)           |
+| AI engine         | daemon pi built-in engine + CLI adapters |
+| File changes      | ChangeSet service                        |
+| Host capabilities | Electron preload host bridge             |
 
 ## Architecture
 
@@ -97,14 +97,14 @@ apps/desktop/src/        # Electron host
 
 ## Development
 
-**Prerequisites:** Node.js 20+, pnpm 9
+**Prerequisites:** Node.js 20+, bun 1.1+
 
 ```bash
-pnpm install
+bun install
 npm run desktop:dev      # Dev mode (Vite + Electron)
 npm test                 # Frontend tests (vitest)
-cd apps/daemon && npx vitest run
-cd apps/desktop && npx vitest run
+cd apps/daemon && bunx vitest run
+cd apps/desktop && bunx vitest run
 npm run test:e2e         # E2E tests (Playwright)
 npm run desktop:build    # Electron production build
 ```

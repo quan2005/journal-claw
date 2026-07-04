@@ -15,14 +15,14 @@
 
 ## 替代能力
 
-| 旧路径 | 新路径 |
-|---|---|
-| Native command 调用 | daemon HTTP + SSE runtime client |
-| Rust 内建 LLM/tool loop | daemon pi 内建引擎 |
-| Rust conversation | daemon Agent Run / conversation service |
-| 系统文件操作 command | daemon file/material services + Electron host bridge |
-| Rust automation runner | daemon automation service |
-| Rust event emission | daemon SSE event stream |
+| 旧路径                  | 新路径                                               |
+| ----------------------- | ---------------------------------------------------- |
+| Native command 调用     | daemon HTTP + SSE runtime client                     |
+| Rust 内建 LLM/tool loop | daemon pi 内建引擎                                   |
+| Rust conversation       | daemon Agent Run / conversation service              |
+| 系统文件操作 command    | daemon file/material services + Electron host bridge |
+| Rust automation runner  | daemon automation service                            |
+| Rust event emission     | daemon SSE event stream                              |
 
 ## 下线能力
 

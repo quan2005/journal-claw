@@ -1,6 +1,6 @@
 ---
 id: SPEC-20260615-perf-batch1-2
-title: "性能优化第 1+2 批：拖拽卡顿根治 + 首屏启动 + 数据层 I/O"
+title: '性能优化第 1+2 批：拖拽卡顿根治 + 首屏启动 + 数据层 I/O'
 status: verified
 source: gate
 level: L2
@@ -41,6 +41,7 @@ related:
 - **数据层**：config/journal 读盘次数显著下降，列表刷新单次 IPC 完成多月加载
 
 **假设（可证伪）**：
+
 - 拖拽卡顿的主因是同步 I/O + Context 雪崩重渲染 + memo 失效，而非浏览器 layout/paint（可通过 rAF + memo 后 Profiler 验证）
 - Tabler 字体仅用于 sandbox 预览，删除 ttf/woff 不影响主 UI 图标（主 UI 用 `lucide-react`）
 - config.json 在运行时不被外部进程高频修改，notify 监听失效足够
@@ -48,6 +49,7 @@ related:
 ## 3. 范围（In Scope）
 
 ### 第 1 批（M1，渲染链路）
+
 - M1-1 拖拽防抖与 localStorage 解耦
 - M1-2 UIContext / TodoContext value memo 化
 - M1-3 修复 DetailView memo 失效 + 稳定 App 下发 props
@@ -56,6 +58,7 @@ related:
 - M1-6 resize 事件节流
 
 ### 第 2 批（M2，构建与数据层）
+
 - M2-1 拆分 main bundle（manualChunks + lazy）
 - M2-2 Tabler Icons 字体瘦身
 - M2-3 Rust config / journal 内容内存缓存
@@ -113,31 +116,34 @@ related:
 - **AC-31**（M2 回归）：M2 完成后，`npm test`、`npm run build`、`npm run lint`、`cd src-tauri && cargo test`、`cd src-tauri && cargo clippy` 全绿。
 
 ### 全局约束（两个里程碑均适用）
+
 - **AC-32**（视觉一致性）：`JournalList`↔`IdentityList`、`DetailPanel`↔`IdentityDetail` 的 memo 化与渲染优化**同步**进行（AGENTS.md 约束 1）。
 - **AC-33**（IPC 单一入口）：所有新增/修改的 Rust 调用经 `src/lib/tauri.ts`，组件中不直接 `invoke()`（约束 6）。
 - **AC-34**（真实渲染链验证）：拖拽、流式、列表渲染的视觉验证在 Tauri 真实窗口中进行，不靠孤立 Vite 页面（约束 7）。
 
 ## 6. 非功能需求（NFR）
 
-| 维度 | 要求 | 备注 |
-|---|---|---|
-| 性能 | 拖拽 Long Task < 50ms；流式 commit ≤ 60fps；main bundle < 600KB；dist 字体 < 1MB；config 缓存命中 | AC-1,9,15,21,22 |
-| 安全 / 权限 | 不引入新的文件系统/网络访问；config 缓存仅进程内存，不落盘额外文件 | Rust 缓存为内存态 |
-| 数据 / 隐私 | 不改变持久化数据格式；localStorage key 名不变；缓存失效后行为与无缓存完全一致 | 向后兼容 |
-| 可靠性 / 降级 | rAF 批处理失败时回退到逐 token（保证不丢消息，AC-10）；config 缓存失效时回退到读盘 | 降级路径必须存在 |
-| 可观测性 | 保留 `console.error`/`console.warn`；release 剥离 debug 日志；Rust 用 tracing 可动态调 level | AC-29,30 |
-| 回滚策略 | 每项独立 commit，可单独 revert；M1/M2 分里程碑，M1 不依赖 M2 | 分批降低风险 |
-| 兼容性 | IPC command 签名不变；事件名不变；localStorage key 不变；构建产物可在当前 Tauri 版本运行 | 无 breaking change |
+| 维度          | 要求                                                                                              | 备注               |
+| ------------- | ------------------------------------------------------------------------------------------------- | ------------------ |
+| 性能          | 拖拽 Long Task < 50ms；流式 commit ≤ 60fps；main bundle < 600KB；dist 字体 < 1MB；config 缓存命中 | AC-1,9,15,21,22    |
+| 安全 / 权限   | 不引入新的文件系统/网络访问；config 缓存仅进程内存，不落盘额外文件                                | Rust 缓存为内存态  |
+| 数据 / 隐私   | 不改变持久化数据格式；localStorage key 名不变；缓存失效后行为与无缓存完全一致                     | 向后兼容           |
+| 可靠性 / 降级 | rAF 批处理失败时回退到逐 token（保证不丢消息，AC-10）；config 缓存失效时回退到读盘                | 降级路径必须存在   |
+| 可观测性      | 保留 `console.error`/`console.warn`；release 剥离 debug 日志；Rust 用 tracing 可动态调 level      | AC-29,30           |
+| 回滚策略      | 每项独立 commit，可单独 revert；M1/M2 分里程碑，M1 不依赖 M2                                      | 分批降低风险       |
+| 兼容性        | IPC command 签名不变；事件名不变；localStorage key 不变；构建产物可在当前 Tauri 版本运行          | 无 breaking change |
 
 ## 7. 依赖与影响面
 
 **依赖**：
+
 - `vite` 7（manualChunks、optimizeDeps）——`[证据]` `package.json:3`
 - `rollup-plugin-visualizer` —— **新增依赖**，需 `npm i -D`
 - Tauri webview 支持 `woff2`（macOS WKWebView 全支持）——`[推测]` 目标平台仅 macOS
 - Rust `notify` crate（已用于 topics watcher，`[证据]` `src-tauri/Cargo.toml`）可用于 config 失效监听；或用 mtime 比对更简单
 
 **受影响模块**：
+
 - `src/App.tsx`（拖拽、resize、props 下发）——M1 核心
 - `src/contexts/UIContext.tsx`、`TodoContext.tsx`——M1-2
 - `src/components/DetailView.tsx`、`ChatPanel.tsx`、`TreeSidebar.tsx`、`JournalItem.tsx`——M1-3,4
@@ -159,19 +165,19 @@ related:
 
 ## 9. 待确认
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | refresh 防抖延迟取多少？ | 200ms（trailing） | 已确认 |
-| Q2 | Rust 日志守卫用 `cfg(debug_assertions)` 还是引入 `tracing`？ | 先用 `cfg(debug_assertions)` 守卫热路径的裸 `eprintln!`，不引入 tracing（避免大改） | 已确认 |
-| Q3 | bundle visualizer 是否加入 CI 体积门禁（超阈值 fail）？ | 仅本地产出 stats.html，不加 CI 门禁（避免过度工程） | 已确认 |
-| Q4 | Tabler 字体瘦身：只留 woff2，还是做 subset 精简图标？ | 只留 woff2（最简，删 ttf/woff） | 已确认 |
-| Q5 | 增量刷新若需改 Rust emit payload 是否接受？ | 接受（`journal-updated` 携带 `year_month`）；若复杂则回退"全量重读 + mtime 缓存" | 已确认 |
+| #   | 问题                                                         | 当前默认值                                                                          | 状态   |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------ |
+| Q1  | refresh 防抖延迟取多少？                                     | 200ms（trailing）                                                                   | 已确认 |
+| Q2  | Rust 日志守卫用 `cfg(debug_assertions)` 还是引入 `tracing`？ | 先用 `cfg(debug_assertions)` 守卫热路径的裸 `eprintln!`，不引入 tracing（避免大改） | 已确认 |
+| Q3  | bundle visualizer 是否加入 CI 体积门禁（超阈值 fail）？      | 仅本地产出 stats.html，不加 CI 门禁（避免过度工程）                                 | 已确认 |
+| Q4  | Tabler 字体瘦身：只留 woff2，还是做 subset 精简图标？        | 只留 woff2（最简，删 ttf/woff）                                                     | 已确认 |
+| Q5  | 增量刷新若需改 Rust emit payload 是否接受？                  | 接受（`journal-updated` 携带 `year_month`）；若复杂则回退"全量重读 + mtime 缓存"    | 已确认 |
 
 ## 10. 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-15 | 待澄清 | Q1-Q5 待用户确认默认值 |
-| 2 | 2026-06-15 | 可开发 | 用户确认全部默认值，status → approved |
-| 3 | 2026-06-15 | implemented | M1（项1-6）+ M2（项7-12）全部实现，tsc/build/lint/clippy 通过，cargo test 440/441（1 预存失败） |
-| 4 | 2026-06-15 | verified | 第 2 轮验收通过（34/34 AC pass），第 1 轮 4 项 fail（AC-7/16/17/18）全部修复 |
+| 轮次 | 日期       | Readiness   | 主要缺口                                                                                        |
+| ---- | ---------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-15 | 待澄清      | Q1-Q5 待用户确认默认值                                                                          |
+| 2    | 2026-06-15 | 可开发      | 用户确认全部默认值，status → approved                                                           |
+| 3    | 2026-06-15 | implemented | M1（项1-6）+ M2（项7-12）全部实现，tsc/build/lint/clippy 通过，cargo test 440/441（1 预存失败） |
+| 4    | 2026-06-15 | verified    | 第 2 轮验收通过（34/34 AC pass），第 1 轮 4 项 fail（AC-7/16/17/18）全部修复                    |

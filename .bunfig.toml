@@ -1,0 +1,5 @@
+[install]
+# Bun defaults to ignoring lifecycle scripts (postinstall, etc.) for security.
+# Electron and other packages with native binaries need their postinstall scripts
+# to run, so we explicitly enable them.
+ignoreScripts = false

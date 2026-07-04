@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  nextRunAfter,
-  nextWaitMs,
-  parseTime,
-  shouldRunDue,
-  validateSchedule,
-} from './schedule.js'
+import { nextRunAfter, nextWaitMs, parseTime, shouldRunDue, validateSchedule } from './schedule.js'
 import type { AutomationRoutine, AutomationSchedule } from './types.js'
 
 const HK = 'Asia/Hong_Kong'
@@ -69,10 +63,7 @@ describe('schedule.nextRunAfter', () => {
   it('weekdays skips the weekend', () => {
     // 2026-05-30 is a Saturday; next weekday fire is Monday 06-01 09:00.
     expect(
-      nextRunAfter(
-        { kind: 'weekdays', time: '09:00', timezone: HK },
-        new Date(2026, 4, 30, 10, 0),
-      ),
+      nextRunAfter({ kind: 'weekdays', time: '09:00', timezone: HK }, new Date(2026, 4, 30, 10, 0)),
     ).toEqual(new Date(2026, 5, 1, 9, 0))
   })
 

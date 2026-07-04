@@ -51,10 +51,10 @@ Avoid when: metrics belong to a broader work report.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| support-ticket | Add issue, reproduction, handling process, result |
-| partner-communication | Add cooperation goal, resources, division of work |
+| Subtype                   | Apply changes                                                 |
+| ------------------------- | ------------------------------------------------------------- |
+| support-ticket            | Add issue, reproduction, handling process, result             |
+| partner-communication     | Add cooperation goal, resources, division of work             |
 | customer-success-followup | Add usage, value delivered, risk, renewal or expansion signal |
 
 ## Quality Rules

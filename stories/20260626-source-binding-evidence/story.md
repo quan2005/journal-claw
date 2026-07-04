@@ -1,6 +1,6 @@
 ---
 id: STORY-20260626-source-binding-evidence
-title: "Source Binding evidence chain (G6)"
+title: 'Source Binding evidence chain (G6)'
 status: verified
 source: leader
 level: L2
@@ -30,18 +30,21 @@ related:
 ## 验收标准
 
 ### AC-1 — Run 可列出 source bindings
+
 - **Given** 一个 run 产生了 read/search/tool_call 事件
 - **When** 用户请求 `GET /runs/:id/sources`
 - **Then** 返回该 run 的 source bindings
 - **And** 每条包含 `runId`、`path`、`kind`、`createdAt`
 
 ### AC-2 — source binding 去重且忽略非文件工具
+
 - **Given** 同一个 run 多次读取同一路径，或调用非文件工具
 - **When** source capture 执行
 - **Then** 同一路径不会重复记录
 - **And** 非文件工具不会产生 source binding
 
 ### AC-3 — evidence chain 至少包含可展示证据
+
 - **Given** 工具调用输入或结果中包含可用路径/片段
 - **When** source binding 被记录
 - **Then** binding 尽量填充 `excerpt` 或 `range`

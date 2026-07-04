@@ -1,11 +1,11 @@
 ---
 id: SPEC-{YYYYMMDD}-{slug}
-title: ""
-status: draft        # draft → clarifying → approved → implemented → verified
-source: gate         # gate（门禁自产）| brainstorming（superpowers 梳理产出，经门禁结构补全）
-level: L2            # L1 轻量 | L2 标准 | L3 深度
-created: {YYYY-MM-DD}
-related: []          # 相关 issue / MR / 文档路径
+title: ''
+status: draft # draft → clarifying → approved → implemented → verified
+source: gate # gate（门禁自产）| brainstorming（superpowers 梳理产出，经门禁结构补全）
+level: L2 # L1 轻量 | L2 标准 | L3 深度
+created: { YYYY-MM-DD }
+related: [] # 相关 issue / MR / 文档路径
 ---
 
 # {需求标题}
@@ -39,14 +39,14 @@ related: []          # 相关 issue / MR / 文档路径
 
 <!-- 按 references/nfr-checklist.md 扫描；不适用写 "N/A + 原因"，不许留空 -->
 
-| 维度 | 要求 | 备注 |
-|---|---|---|
-| 性能 | | |
-| 安全 / 权限 | | |
-| 数据 / 隐私 | | |
-| 可靠性 / 降级 | | |
-| 可观测性 | | |
-| 回滚策略 | | |
+| 维度          | 要求 | 备注 |
+| ------------- | ---- | ---- |
+| 性能          |      |      |
+| 安全 / 权限   |      |      |
+| 数据 / 隐私   |      |      |
+| 可靠性 / 降级 |      |      |
+| 可观测性      |      |      |
+| 回滚策略      |      |      |
 
 ## 7. 依赖与影响面
 
@@ -60,12 +60,12 @@ related: []          # 相关 issue / MR / 文档路径
 
 <!-- 用户未答复的澄清问题 + 当前采用的显式默认值；approved 前必须清零或被用户显式接受 -->
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | | | 待确认 |
+| #   | 问题 | 当前默认值 | 状态   |
+| --- | ---- | ---------- | ------ |
+| Q1  |      |            | 待确认 |
 
 ## 10. 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | | 草稿 / 待澄清 / 可开发 | |
+| 轮次 | 日期 | Readiness              | 主要缺口 |
+| ---- | ---- | ---------------------- | -------- |
+| 1    |      | 草稿 / 待澄清 / 可开发 |          |

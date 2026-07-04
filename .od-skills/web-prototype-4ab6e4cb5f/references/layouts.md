@@ -47,7 +47,9 @@ Use when there is a real product visual (product UI, screenshot, photograph). Le
     <div>
       <p class="eyebrow">EYEBROW · ROLE</p>
       <h1>Headline that names the change.</h1>
-      <p class="lead" style="margin-top: 20px;">A short subhead — concrete, not corporate. Two sentences max.</p>
+      <p class="lead" style="margin-top: 20px;">
+        A short subhead — concrete, not corporate. Two sentences max.
+      </p>
       <div class="hero-cta" style="margin-top: 28px;">
         <button class="btn btn-primary">Primary action</button>
         <button class="btn btn-ghost btn-arrow">Read the story</button>
@@ -72,21 +74,28 @@ Three feature cells. Lead with a small `<h2>` framing the row. Don't put an icon
     <div class="grid-3">
       <div class="feature card-flat">
         <div class="feature-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v18M3 12h18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 3v18M3 12h18" />
+          </svg>
         </div>
         <h3>Specific feature one</h3>
         <p>Two-sentence description that names the user value, not the technology.</p>
       </div>
       <div class="feature card-flat">
         <div class="feature-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="12" cy="12" r="8" />
+            <path d="M12 8v4l3 2" />
+          </svg>
         </div>
         <h3>Specific feature two</h3>
         <p>Two-sentence description that names the user value, not the technology.</p>
       </div>
       <div class="feature card-flat">
         <div class="feature-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M4 7h16M4 12h10M4 17h16" />
+          </svg>
         </div>
         <h3>Specific feature three</h3>
         <p>Two-sentence description that names the user value, not the technology.</p>
@@ -107,7 +116,9 @@ Use when there are real numbers. Three stats max — four feels like a brochure.
     <div class="grid-3">
       <div class="stat">
         <div class="stat-num num">38<span class="stat-unit">×</span></div>
-        <p class="stat-label">less data moved over the wire vs. naive sync, on real customer workloads.</p>
+        <p class="stat-label">
+          less data moved over the wire vs. naive sync, on real customer workloads.
+        </p>
       </div>
       <div class="stat">
         <div class="stat-num num">3,184</div>
@@ -130,7 +141,10 @@ A single decisive quote with attribution. Use sparingly — one per page, never 
 <section class="section" data-od-id="quote">
   <div class="container" style="max-width: 800px;">
     <div class="quote-mark">"</div>
-    <blockquote class="quote">Filebase pays for itself in the first month. We were going to hire a dedicated DevOps person to babysit our sync — instead we just switched.</blockquote>
+    <blockquote class="quote">
+      Filebase pays for itself in the first month. We were going to hire a dedicated DevOps person
+      to babysit our sync — instead we just switched.
+    </blockquote>
     <p class="quote-author">— Mira Hassan, CTO at Northwind Studios</p>
   </div>
 </section>
@@ -144,7 +158,9 @@ End the page on one decisive ask. Centered, generous whitespace, one primary but
 <section class="section" data-od-id="cta-strip" style="text-align: center;">
   <div class="container" style="max-width: 600px;">
     <h2>Stop measuring meetings. Start measuring focus.</h2>
-    <p class="lead" style="margin: 16px auto 32px;">Free for solo. $4/mo per teammate after that.</p>
+    <p class="lead" style="margin: 16px auto 32px;">
+      Free for solo. $4/mo per teammate after that.
+    </p>
     <button class="btn btn-primary">Start free</button>
   </div>
 </section>
@@ -166,7 +182,10 @@ Editorial layout for a list of dated entries. Date in mono on the left, title + 
         <span class="meta">Apr 27, 2026</span>
         <div>
           <h3>Sync engine v3 — half the wire bytes</h3>
-          <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">A new content-defined chunker that produces 38× fewer post-edit changes on Final Cut projects.</p>
+          <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">
+            A new content-defined chunker that produces 38× fewer post-edit changes on Final Cut
+            projects.
+          </p>
         </div>
         <span class="pull meta">Engineering</span>
       </article>
@@ -174,7 +193,9 @@ Editorial layout for a list of dated entries. Date in mono on the left, title + 
         <span class="meta">Apr 19, 2026</span>
         <div>
           <h3>Per-folder bandwidth budgets</h3>
-          <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">Cap how much a single project can pull each month — useful for archive folders.</p>
+          <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">
+            Cap how much a single project can pull each month — useful for archive folders.
+          </p>
         </div>
         <span class="pull meta">Product</span>
       </article>
@@ -182,7 +203,9 @@ Editorial layout for a list of dated entries. Date in mono on the left, title + 
         <span class="meta">Apr 04, 2026</span>
         <div>
           <h3>S3 + R2 dual-region replication</h3>
-          <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">Two providers, automatic failover. Enterprise tier only for now.</p>
+          <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">
+            Two providers, automatic failover. Enterprise tier only for now.
+          </p>
         </div>
         <span class="pull meta">Infra</span>
       </article>
@@ -212,10 +235,30 @@ Hairline borders, mono numerics, one column highlighted via an accent border. Do
         </tr>
       </thead>
       <tbody>
-        <tr><td>Sync engine v3</td><td class="num-col">✓</td><td class="num-col">✓</td><td class="num-col">✓</td></tr>
-        <tr><td>Per-folder budgets</td><td class="num-col">—</td><td class="num-col">✓</td><td class="num-col">✓</td></tr>
-        <tr><td>SAML / SCIM</td><td class="num-col">—</td><td class="num-col">—</td><td class="num-col">✓</td></tr>
-        <tr><td>Dedicated infra</td><td class="num-col">—</td><td class="num-col">—</td><td class="num-col">✓</td></tr>
+        <tr>
+          <td>Sync engine v3</td>
+          <td class="num-col">✓</td>
+          <td class="num-col">✓</td>
+          <td class="num-col">✓</td>
+        </tr>
+        <tr>
+          <td>Per-folder budgets</td>
+          <td class="num-col">—</td>
+          <td class="num-col">✓</td>
+          <td class="num-col">✓</td>
+        </tr>
+        <tr>
+          <td>SAML / SCIM</td>
+          <td class="num-col">—</td>
+          <td class="num-col">—</td>
+          <td class="num-col">✓</td>
+        </tr>
+        <tr>
+          <td>Dedicated infra</td>
+          <td class="num-col">—</td>
+          <td class="num-col">—</td>
+          <td class="num-col">✓</td>
+        </tr>
         <tr style="border-top: 1px solid var(--fg);">
           <td><strong>Monthly</strong></td>
           <td class="num-col"><strong>$0</strong></td>
@@ -233,13 +276,15 @@ Hairline borders, mono numerics, one column highlighted via an accent border. Do
 ## Section rhythm — when in doubt
 
 For a 5-section landing:
+
 1. Hero (Layout 1 or 2)
 2. Features (Layout 3)
-3. Stats *or* quote (Layout 4 or 5)
+3. Stats _or_ quote (Layout 4 or 5)
 4. Split detail (custom, using `grid-2-1` / `grid-1-2`)
 5. CTA + footer (Layout 6)
 
 For a 4-section docs/marketing index:
+
 1. Hero center (Layout 1)
 2. Log list (Layout 7)
 3. CTA + footer (Layout 6)

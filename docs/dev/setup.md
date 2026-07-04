@@ -8,7 +8,7 @@ description: JournalClaw 开发环境搭建指南，包括依赖安装、开发�
 ## 系统要求
 
 - Node.js 20+
-- pnpm 9（仓库声明为 `pnpm@9.15.0`）
+- bun 1.1+（仓库声明为 `bun@1.3.14`）
 - macOS / Windows / Linux 桌面开发环境
 
 默认开发与测试不需要 Rust toolchain、Xcode、Swift sidecar、WhisperKit 或 ffmpeg。
@@ -18,7 +18,7 @@ description: JournalClaw 开发环境搭建指南，包括依赖安装、开发�
 ```bash
 git clone https://github.com/quan2005/journal.git
 cd journal
-pnpm install
+bun install
 ```
 
 ## 开发模式
@@ -44,10 +44,10 @@ npm test
 npm run test:watch
 
 # daemon 测试
-cd apps/daemon && npx vitest run
+cd apps/daemon && bunx vitest run
 
 # desktop 测试
-cd apps/desktop && npx vitest run
+cd apps/desktop && bunx vitest run
 
 # E2E 测试
 npm run test:e2e
@@ -58,9 +58,9 @@ npm run test:e2e
 ```bash
 npm run lint
 npm run format:check
-cd apps/web && npx tsc --noEmit
-cd apps/daemon && npx tsc --noEmit
-cd apps/desktop && npx tsc --noEmit
+cd apps/web && bunx tsc --noEmit
+cd apps/daemon && bunx tsc --noEmit
+cd apps/desktop && bunx tsc --noEmit
 ```
 
 ## 调试

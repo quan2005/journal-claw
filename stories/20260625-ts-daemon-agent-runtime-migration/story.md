@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-ts-daemon-agent-runtime-migration
-title: "TypeScript daemon 与 Coding Agent Runtime 迁移"
+title: 'TypeScript daemon 与 Coding Agent Runtime 迁移'
 status: verified
 source: gate
 level: L3
@@ -60,6 +60,7 @@ related:
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — 迁移边界被用户确认且只本地、多平台
+
 - **Given** 用户希望将产品主干迁往 TypeScript daemon 并适配多 Coding Agent CLI
 - **When** story、design 和 ADR 被创建并进入评审
 - **Then** 用户能看到本迁移**只支持本地执行**、**多平台行为一致**
@@ -67,6 +68,7 @@ related:
 - **And** 在 TS daemon 验收覆盖范围内，Rust 后端不作为这些能力的长期并行主干保留
 
 ### AC-2 — Coding Agent CLI 适配目标清晰
+
 - **Given** 用户希望后续支持不同 Coding Agent CLI
 - **When** 进入 design.md 或开发计划
 - **Then** Claude Code、Codex CLI、OpenCode 三种 CLI 的差异被收敛到 adapter 层
@@ -74,6 +76,7 @@ related:
 - **And** Gemini、Cursor、ACP 等其它 CLI 暂不进入首批支持范围
 
 ### AC-3 — 授权策略符合用户当前取向
+
 - **Given** 高权限 Agent 需要先跑通本地工作流
 - **When** 第一阶段实现 TS daemon 和 Agent run
 - **Then** 默认策略是 `workspace_write`：仅允许 workspace root 内写入，并记录工具调用和文件变更
@@ -81,18 +84,21 @@ related:
 - **And** `wide_with_audit` 仅作为显式迁移/审计模式，不作为默认值
 
 ### AC-4 — Run 面板不被过度重做
+
 - **Given** 用户认为当前 Run 面板中计划、工具调用、diff、输出的视觉优先级已经可用
 - **When** 后续实现 Agent Run Workbench 数据接入
 - **Then** 实现应复用现有视觉层级和 block 风格
 - **And** 工作重点是接入结构化 run 数据、状态和 ChangeSet，而不是重新设计视觉优先级
 
 ### AC-5 — Rust 后端退出条件明确
+
 - **Given** TS daemon 覆盖 workspace、文件工具、conversation/run event、Coding Agent CLI、ChangeSet 和 AuthorizationMode
 - **When** 这些能力通过测试和真实任务验收
 - **Then** Rust 后端不再作为长期并行主干保留
 - **And** 删除 Rust 前必须通过独立验收清单，包含 host/runtime、API parity、AgentRun、三家 CLI、ChangeSet、自动沉淀、数据迁移、测试矩阵、真实任务和回滚计划
 
 ### AC-6 — Agent Run 自动沉淀
+
 - **Given** 一个 Agent Run 已经结束
 - **When** daemon 进入 run lifecycle 的收尾阶段
 - **Then** 系统自动写入 run summary Markdown、artifact index、memory/rule 记录
@@ -107,15 +113,15 @@ related:
 
 ## 风险
 
-| # | 风险 | 影响 | 缓解方向（交 design） |
-|---|---|---|---|
-| R1 | 迁移期双主干（Rust + TS daemon）并行，维护与一致性成本高 | 高 | 分阶段迁移，每阶段单能力验收后再并轨；明确退出条件（AC-5） |
-| R2 | 平台能力被误带进默认路径（Apple Speech/Whisper/ffmpeg/Trash） | 高 | story/ADR 明确禁项；验收以“多平台一致 + 只本地”为硬条件（AC-1） |
-| R3 | Coding Agent CLI 差异渗入产品层，adapter 失效 | 中 | adapter 边界写进 AC-2；统一 AgentRun event / ChangeSet / AuthorizationMode |
-| R4 | 默认 `workspace_write` 仍可能误写 workspace 内文件 | 中 | 默认限制在 workspace root 内，并记录工具调用与文件变更；`wide_with_audit` 仅作为显式迁移/审计模式（AC-3） |
-| R5 | `src/lib/tauri.ts` 导出 API 形变波及前端 | 中 | `JournalRuntimeClient` 保持现有导出不变（交棒清单） |
-| R6 | 删除 Rust 缺测试/回滚记录导致不可逆 | 高 | AC-5 强制要求回滚记录 + 迁移说明 + 测试覆盖 |
-| R7 | 大迁移整体偏大，单 story 难以 1-2 sprint 完成 | 中 | 须按 design phase 拆分为可开发子 story；本 story 先承载产品边界与分阶段总契约 |
+| #   | 风险                                                          | 影响 | 缓解方向（交 design）                                                                                     |
+| --- | ------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------- |
+| R1  | 迁移期双主干（Rust + TS daemon）并行，维护与一致性成本高      | 高   | 分阶段迁移，每阶段单能力验收后再并轨；明确退出条件（AC-5）                                                |
+| R2  | 平台能力被误带进默认路径（Apple Speech/Whisper/ffmpeg/Trash） | 高   | story/ADR 明确禁项；验收以“多平台一致 + 只本地”为硬条件（AC-1）                                           |
+| R3  | Coding Agent CLI 差异渗入产品层，adapter 失效                 | 中   | adapter 边界写进 AC-2；统一 AgentRun event / ChangeSet / AuthorizationMode                                |
+| R4  | 默认 `workspace_write` 仍可能误写 workspace 内文件            | 中   | 默认限制在 workspace root 内，并记录工具调用与文件变更；`wide_with_audit` 仅作为显式迁移/审计模式（AC-3） |
+| R5  | `src/lib/tauri.ts` 导出 API 形变波及前端                      | 中   | `JournalRuntimeClient` 保持现有导出不变（交棒清单）                                                       |
+| R6  | 删除 Rust 缺测试/回滚记录导致不可逆                           | 高   | AC-5 强制要求回滚记录 + 迁移说明 + 测试覆盖                                                               |
+| R7  | 大迁移整体偏大，单 story 难以 1-2 sprint 完成                 | 中   | 须按 design phase 拆分为可开发子 story；本 story 先承载产品边界与分阶段总契约                             |
 
 ## 交棒清单（移交 design.md 的实现层问题）
 
@@ -129,13 +135,13 @@ related:
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | `workspace_write` 的“文件夹内”是否等同当前 workspace root？ | 是 | 待确认 |
-| Q2 | 这个总迁移 story 是否只作为总契约，后续实现必须拆为 Phase 1/2/3 子 story？ | 是 | 已决策 |
-| Q3 | Rust 删除以“TS daemon 覆盖所有现有用户可见能力”为准，还是以“Agent 相关能力覆盖”为准？ | 以独立 Rust 删除验收清单为准；任何仍暴露给用户的 Rust-backed 能力必须被 TS 替代或明确下线 | 已决策 |
-| Q4 | Memory/Rules 沉淀是否默认需要确认？ | 默认自动沉淀；必须可回看、编辑、拒绝和回滚 | 已决策 |
-| Q5 | 首批支持哪些 Coding Agent CLI？ | Claude Code、Codex CLI、OpenCode；其它暂不支持 | 已决策 |
+| #   | 问题                                                                                  | 当前默认值                                                                                | 状态   |
+| --- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------ |
+| Q1  | `workspace_write` 的“文件夹内”是否等同当前 workspace root？                           | 是                                                                                        | 待确认 |
+| Q2  | 这个总迁移 story 是否只作为总契约，后续实现必须拆为 Phase 1/2/3 子 story？            | 是                                                                                        | 已决策 |
+| Q3  | Rust 删除以“TS daemon 覆盖所有现有用户可见能力”为准，还是以“Agent 相关能力覆盖”为准？ | 以独立 Rust 删除验收清单为准；任何仍暴露给用户的 Rust-backed 能力必须被 TS 替代或明确下线 | 已决策 |
+| Q4  | Memory/Rules 沉淀是否默认需要确认？                                                   | 默认自动沉淀；必须可回看、编辑、拒绝和回滚                                                | 已决策 |
+| Q5  | 首批支持哪些 Coding Agent CLI？                                                       | Claude Code、Codex CLI、OpenCode；其它暂不支持                                            | 已决策 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -148,7 +154,7 @@ related:
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-25 | 待澄清 | story 已按 handoff 候选稿落仓；待用户确认 Q1/Q2，并决定是否批准为总契约或先拆 Phase 0 |
-| 2 | 2026-06-25 | 可开发 | 用户要求“拆小一点，然后分发到 claude -p 中落地”；本 story 批准为总契约，但不直接派发业务代码，后续只按 child story 开发 |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                                                |
+| ---- | ---------- | --------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-25 | 待澄清    | story 已按 handoff 候选稿落仓；待用户确认 Q1/Q2，并决定是否批准为总契约或先拆 Phase 0                                   |
+| 2    | 2026-06-25 | 可开发    | 用户要求“拆小一点，然后分发到 claude -p 中落地”；本 story 批准为总契约，但不直接派发业务代码，后续只按 child story 开发 |

@@ -94,15 +94,7 @@ export class SkillsService {
 
   private scanBuiltinSkills(): SkillInfo[] {
     return this.scanSkillsDir(
-      join(
-        this.repoRoot,
-        'apps',
-        'web',
-        'resources',
-        'workspace-template',
-        '.claude',
-        'skills',
-      ),
+      join(this.repoRoot, 'apps', 'web', 'resources', 'workspace-template', '.claude', 'skills'),
       'builtin',
     ).filter((skill) => !DEV_SKILLS.has(skill.dir_name))
   }

@@ -1,16 +1,16 @@
 ---
 id: SPEC-20260615-design-system-unification
-title: "设计系统全面统一：Playfair/JetBrains 字体 + 暖白分层 + 结构化 token + 组件对齐"
+title: '设计系统全面统一：Playfair/JetBrains 字体 + 暖白分层 + 结构化 token + 组件对齐'
 status: verified
 source: gate
 level: L3
 created: 2026-06-15
 related:
-  - specs/20260614-agentic-design-language/spec.md   # 被部分推翻（字体决策）
-  - docs/DESIGN.md                                    # 主战场：规范定稿
-  - src/styles/globals.css                            # 令牌根文件
-  - index.html                                        # 字体加载
-  - AGENTS.md                                         # 设计基调段
+  - specs/20260614-agentic-design-language/spec.md # 被部分推翻（字体决策）
+  - docs/DESIGN.md # 主战场：规范定稿
+  - src/styles/globals.css # 令牌根文件
+  - index.html # 字体加载
+  - AGENTS.md # 设计基调段
 ---
 
 # 设计系统全面统一：Playfair/JetBrains 字体 + 暖白分层 + 结构化 token + 组件对齐
@@ -42,6 +42,7 @@ related:
    - 🟡 列表项选中指示器不统一（JournalItem 2px borderLeft vs TreeItem 3px 竖条）。
 
 **用户决策（4 轮澄清已确认）**：
+
 - 推翻上轮 spec 的「只用系统字体」决策——**加载 Playfair Display（标题）+ JetBrains Mono（代码）**。
 - 采纳新规范草稿的暖白 **Secondary `#F6F6F1`**，拉开 tertiary 保证分层。
 - **删除 docs/design/ 整个旧体系**，DESIGN.md 为唯一权威。
@@ -55,6 +56,7 @@ related:
 通过 {改写 DESIGN.md 规范（字体三栈 + 暖白分层 + 结构化 token + 移除录音按钮章节 + 消除文档矛盾）；删除 docs/design/ 旧体系并同步 README/llms.txt；对齐 globals.css token 与 index.html 字体加载；逐组件消除离散偏离并修复 P0 硬违规}，影响 {全应用视觉气质 + 设计文档体系 + 组件实现一致性}，预期 {设计系统从「骨架健康、细节失血」变为「规范唯一权威、token 完整、组件零硬编码偏离、无 P0 违规」，且加载 Playfair Display + JetBrains Mono 后「modern bold」气质由字体个性承载}。
 
 **假设（可证伪）**：
+
 - **假设 A**：Playfair Display 是西文衬线，中文标题会回退到 `--font-serif` 栈里的 `'Noto Serif SC'`（已在 docs/index.html 加载，但应用主入口 index.html 未加载）。**证伪方式**：需在 index.html 补加载 Noto Serif SC，否则中文标题回退到系统宋体（Songti SC），观感可能退化。R1 覆盖。
 - **假设 B**：加载 2 个 web font（Playfair + JetBrains + 补 Noto Serif SC）的 FOUT 与请求开销可接受。**证伪方式**：用 `font-display: swap` + preload，首屏先用系统字体，加载后无感切换；总增量约 80-120KB。R2 覆盖。
 - **假设 C**：`--bg-secondary: #F6F6F1` 与 `--bg-tertiary: #ECECE6` 的 ΔE ≥ 3，表面分层可感知。**证伪方式**：实际渲染核对三档背景在浅色模式下的视觉区分度。R3 覆盖。
@@ -66,15 +68,18 @@ related:
 ### 阶段 1：规范定稿（docs/DESIGN.md 改写）
 
 **1.1 移除录音按钮章节**
+
 - 删除第 5 节「组件 → 录音按钮（首要行动号召）」整个子节（DESIGN.md:166-173）。
 - 原因：UI 未实现，spec 与产品脱节。录音走系统后端，UI 主入口是文字+文件输入。
 
 **1.2 改写配色（第 2 节 + frontmatter）**
+
 - 表面分层从 `#FFFFFF → #FAFAFA → #F4F4F5` 改为 `#FFFFFF → #F6F6F1 → #ECECE6`（暖白三层）。
 - frontmatter `surface-dark` 等保持不变（暗色已零偏离）。
 - 新增 frontmatter `secondary: "#F6F6F1"` 字段。
 
 **1.3 改写排版（第 3 节 + frontmatter）**
+
 - 字体三栈：
   - `--font-display: 'Playfair Display', 'Noto Serif SC', serif`（标题/Display 层级，承载 bold 衬线气质）
   - `--font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif`（正文/UI，保持现状）
@@ -85,12 +90,14 @@ related:
 - 字重阶梯放开：Playfair 标题可用 700/800/900；正文 400/500/600；系统字体原生支持 100-900。
 
 **1.4 新增「结构化 token」子节（第 5 节组件 → 新增）**
+
 - 圆角 token：`--radius-sm: 6px`（徽章/小控件）、`--radius-md: 6px`（输入框）、`--radius-lg: 8px`（菜单/对话框/卡片）、`--radius-pill: 999px`。
 - 阴影 token：`--shadow-overlay: 0 4px 12px rgba(0,0,0,0.15)`（浮层唯一值，浅色）/ 暗色 `0 4px 12px rgba(0,0,0,0.5)`。
 - 边框 token：`--border-menu: 1px solid var(--divider)`（菜单/对话框统一 1px）。
 - 聚焦环 token：`--focus-ring: 2px solid color-mix(in srgb, var(--record-btn) 55%, var(--bg))`——**强制消费**，所有 `:focus-visible` 必须用此 token，禁止各自硬编码浓度/粗细。
 
 **1.5 消除文档矛盾（第 6 节 该做与不该做）**
+
 - 新增条款：「循环动画豁免——呼吸/脉冲/shimmer/省略号等无限循环对称动画可用 `ease-in-out`；所有非循环过渡一律 `ease-out-quart`」。
 - 这使 `AiStatusPill.tsx:77`、`ChatPanel.tsx:1755`、`SessionList.tsx:172`、`HistoryFloatingButton.tsx:296`、`SkeletonRow.tsx:20`、`globals.css:1887` 的 6 处 ease-in-out 合规化（不改代码）。
 - 移除「不该做：不引入额外的字体家族」→ 改为「三栈各司其职，不引入三栈之外的字体」。
@@ -98,26 +105,32 @@ related:
 ### 阶段 2：文档同步
 
 **2.1 删除 docs/design/ 旧体系**
+
 - 删除整个 `docs/design/` 目录（index.md / colors.md / typography.md / animation.md / components.md / layout.md）。
 - 原因：6 个文档全是「琥珀金/墨水青」旧体系，与 DESIGN.md 13 处矛盾，保留即混乱。
 
 **2.2 处理 docs/guide/themes.md**
+
 - 重写为 Agentic 新体系（橙白主题、light/dark/system 三模式、暖白分层），或删除并在 guide/index.md 移除链接。
 - [推测] 默认重写，因为 themes 是用户可见的「主题说明」文档，有存在价值。
 
 **2.3 更新 README.md**
+
 - `:43` 移除「amber-gold accent, ink-cyan neutral palette」→ 改为「Signal orange (#FF5701) accent, warm-white layered surfaces」。
 - `:137` 链接 `docs/design/index.md` → 改指向 `docs/DESIGN.md`。
 
 **2.4 更新 llms.txt（根 + docs/）**
+
 - 「Design System」节：移除指向 docs/design/ 各文档的链接，改为单一指向 `docs/DESIGN.md`。
 - 描述从「Ink-cyan neutrals, amber-gold, restrained aesthetics」改为「Signal orange, warm-white surfaces, modern bold, Playfair/JetBrains typography」。
 
 **2.5 更新 AGENTS.md（若字体/色彩基调变化触及约定）**
+
 - 「设计基调」段：补充字体三栈（Playfair/JetBrains）+ 暖白分层基调用词。
 - 「关键约束」段：新增「结构化 token」约束——圆角/阴影/边框/聚焦环必须走 token，禁止组件硬编码。
 
 **2.6 清理其他文档的旧体系残留**
+
 - `docs/dev/frontend.md`：`--record-btn`「琥珀金交互色」→「信号橙交互 accent」；`--accent`「录音红」→「危险红」；色彩系统链接改指 `docs/DESIGN.md`。
 - `docs/guide/recording.md`：「录音按钮状态」表（琥珀金/录音红色值）→「录音处理状态」（信号橙）。
 - `docs/guide/settings.md`：「强调色 琥珀金」→「信号橙 #FF5701」。
@@ -126,6 +139,7 @@ related:
 ### 阶段 3：Token 层对齐（src/styles/globals.css + index.html）
 
 **3.1 字体加载（index.html）**
+
 - Google Fonts link 从只加载 IBM Plex Mono 改为加载：
   - `Playfair Display: wght@400;500;600;700;800;900`（标题）
   - `JetBrains Mono: wght@400;500`（代码，对齐现有 IBM Plex Mono 的 wght）
@@ -134,12 +148,14 @@ related:
 - 移除 IBM Plex Mono 加载（被 JetBrains Mono 取代）。
 
 **3.2 字体 token（globals.css）**
+
 - `--font-mono: 'IBM Plex Mono' → 'JetBrains Mono', ui-monospace, monospace`（L30）。
 - 新增 `--font-display: 'Playfair Display', 'Noto Serif SC', serif`。
 - `--font-serif: 'Noto Serif SC', serif` 保留（L31）。
 - `--font-body` 不变（L29）。
 
 **3.3 配色 token（globals.css）**
+
 - 浅色 `:root`：`--bg-secondary: #fafafa → #f6f6f1`（L53）；`--bg-tertiary: #f4f4f5 → #ecece6`（L54）。
 - `--titlebar-bg: #f9fafb → #f6f6f1`（L59，与 bg-secondary 一致）。
 - `--sidebar-bg: #f9fafb → #f6f6f1`（L102）。
@@ -148,18 +164,21 @@ related:
 - 暗色模式：`--bg-secondary: #1c1c1e` 和 `--bg-tertiary: #2c2c2e` 保持不变（暗色分层已健康，暖白是浅色专属调整）。
 
 **3.4 新增结构化 token（globals.css）**
+
 - 新增：`--radius-sm: 6px`、`--radius-md: 6px`、`--radius-lg: 8px`、`--radius-pill: 999px`。
 - 新增：`--shadow-overlay: 0 4px 12px rgba(0,0,0,0.15)`（浅色）；暗色 `0 4px 12px rgba(0,0,0,0.5)`。
 - 新增：`--border-menu: 1px solid var(--divider)`。
 - `--focus-ring` 定义已在（L74/L283/L461/L2030），需让组件消费它（见阶段 4）。
 
 **3.5 间距 token 修正（globals.css）**
+
 - `--space-5: 24px → 20px`（L45，对齐 DESIGN.md frontmatter spacing "5": "20px"）。
 - 移除冗余 `--space-6: 24px`（L46）——与 `--space-5` 同值，无存在意义；检查引用，迁移到 `--space-5`。
 
 ### 阶段 4：组件层对齐
 
 **4.1 字体引用迁移**
+
 - `var(--font-serif)` 8 处引用，按场景分流：
   - **标题场景**（journal-blocks hero h1 L51、markdownComponents h1/h2/h3 L125/139/153）→ 改 `--font-display`（Playfair）。
   - **中文编辑/引用场景**（JournalItem.tsx:64 列表项标题、journal-blocks L671/L1286、mdx.css:765 引用块）→ 保留 `--font-serif`（Noto Serif SC）。
@@ -167,10 +186,12 @@ related:
 - JetBrains Mono 硬编码清理：`bridges.ts:101/103`、`previewPreset.ts:27`、`TodoSidebar.tsx:350`（`'SF Mono', 'IBM Plex Mono'` → `var(--font-mono)`）、workspace-template 内联。
 
 **4.2 分段控件去卡片化**
+
 - `DetailView.tsx:2187-2188` 移除外层容器的 `border` + `background`（回归透明背景）。
 - `DetailView.tsx:376` 和 `:2112` 移除活跃态 `border: '1px solid var(--divider-active)'`。
 
 **4.3 阴影统一**
+
 - 4 处浮层改 `var(--shadow-overlay)`：
   - `TreeContextMenu.tsx:187`（`0 4px 24px` → token）
   - `JournalContextMenu.tsx:109`（`0 4px 20px` → token）
@@ -178,29 +199,35 @@ related:
   - `globals.css:1677-1684`（`.ideas-workbench-menu` 补 `var(--shadow-overlay)`）
 
 **4.4 来源徽章对齐**
+
 - `FileChip.tsx:58` 圆角 `5 → var(--radius-sm)`。
 - `FileChip.tsx:63` 字号 `var(--text-sm) → var(--text-xs)`（14→12）。
 - `FileChip.tsx:59` 边框 `0.5px → 1px`。
 
 **4.5 列表项选中指示器统一**
+
 - `JournalItem.tsx:46` `borderLeft: 2px solid var(--record-btn)` → 改为与 TreeItem 一致的 3px 绝对定位竖条。
 - 补 hover transition（JournalItem 当前无 hover 过渡，即时切换）。
 
 **4.6 菜单边框统一**
+
 - `TreeContextMenu.tsx:186` `border: '0.5px solid' → var(--border-menu)`。
 
 **4.7 聚焦环落地**
+
 - `onboarding.css:262` `outline: none` → 移除；`:267-269` 补 `outline: var(--focus-ring)`。
 - `nav-rail.css:67` `outline: 1px solid ... 60%` → `outline: var(--focus-ring)`。
 - `globals.css:1168`（automation-input）`outline: 2px solid ... 22%` → `outline: var(--focus-ring)`。
 - `globals.css:1587`（ideas-workbench-draft）同上。
 
 **4.8 P0 硬违规修复**
+
 - **玻璃态**：`Toast.tsx:63-64` 移除 `backdropFilter: 'blur(12px)'`，改纯色 `background: var(--bg-secondary)`；`SectionVoice.tsx:925` 同理。
 - **布局动画**：`HistoryFloatingButton.tsx:148-155` 把 `width/height/max-height/border-radius` 动画改为 `transform: scale() + opacity`（展开态用 scale 定位 + overflow 裁切）。
 - **橙色小号正文**：`SectionVoice.tsx:1245` `color: 'var(--record-btn)'` → 改为 callout 形式：橙软底（`var(--record-btn-soft-bg)` = `#FFF4ED`）+ 橙边框（`var(--record-btn-soft-border)` = `#FDBA74`）+ 墨色文字（`var(--text-primary)`），圆角 `var(--radius-sm)`。视觉参考 `docs/superpowers/mockups/q5-hint-fix-comparison.html` 方案 C。
 
 **4.9 间距网格收敛（仅明显偏离）**
+
 - workbench/settings/onboarding 的裸 px（13/22/34/46/52/80）收敛到最近的 `--space-*` token。
 - 不追求像素级对齐，只处理明显偏离 8pt 网格的值。
 
@@ -261,27 +288,29 @@ related:
 
 ## 6. 非功能需求（NFR）
 
-| 维度 | 要求 | 备注 |
-|---|---|---|
-| 性能 | 加载 3 个 web font（Playfair + JetBrains + Noto Serif SC）增量约 80-120KB；用 `font-display: swap` + preload 避免 FOUT 阻塞首屏。token 替换零运行时开销。 | [证据] 现状已加载 IBM Plex Mono ~20KB |
-| 安全 / 权限 | 纯前端 CSS/TSX/HTML 改动，无 IPC/文件系统/网络变更（Google Fonts 走现有 CDN）。 | N/A 无权限面变化 |
-| 数据 / 隐私 | 不涉及用户数据。Google Fonts 请求经现有 CDN，无新增数据上报。 | N/A |
-| 可靠性 / 降级 | web font 加载失败时回退：Playfair → Noto Serif SC → serif；JetBrains → ui-monospace → monospace；Noto Serif SC → 系统宋体。token 缺失走 `var(--token, fallback)`。 | |
-| 可观测性 | 无新增埋点；视觉回归靠 HTML mockup + 人工 + 现有测试。 | |
-| 回滚策略 | **git revert 单 commit/PR 即可**——token 是纯值替换，文档在 git，字体加载 link 可回退。无数据迁移、无不可逆操作。 | **L3 强制：回滚 ✓** |
-| 兼容性 | token **只改值不改名**（`--font-mono`/`--bg-secondary` 名字保留），所有引用文件零改动自动生效（除硬编码点需手工迁移）。字体加载 link 增删不影响 JS 逻辑。 | **L3 强制：兼容性 ✓** |
-| 成本 | 零新依赖（Google Fonts 免费）。字体增量约 80-120KB 一次性下载，浏览器缓存。 | |
-| 风控滥用 | N/A 单机应用，无多租户。 | |
-| 运营客服 | N/A | |
-| 多语言地区 | DESIGN.md 中文为主；字体三栈支持中英混排；色板无地区敏感性。Playfair Display 对中文回退 Noto Serif SC。 | |
+| 维度          | 要求                                                                                                                                                               | 备注                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| 性能          | 加载 3 个 web font（Playfair + JetBrains + Noto Serif SC）增量约 80-120KB；用 `font-display: swap` + preload 避免 FOUT 阻塞首屏。token 替换零运行时开销。          | [证据] 现状已加载 IBM Plex Mono ~20KB |
+| 安全 / 权限   | 纯前端 CSS/TSX/HTML 改动，无 IPC/文件系统/网络变更（Google Fonts 走现有 CDN）。                                                                                    | N/A 无权限面变化                      |
+| 数据 / 隐私   | 不涉及用户数据。Google Fonts 请求经现有 CDN，无新增数据上报。                                                                                                      | N/A                                   |
+| 可靠性 / 降级 | web font 加载失败时回退：Playfair → Noto Serif SC → serif；JetBrains → ui-monospace → monospace；Noto Serif SC → 系统宋体。token 缺失走 `var(--token, fallback)`。 |                                       |
+| 可观测性      | 无新增埋点；视觉回归靠 HTML mockup + 人工 + 现有测试。                                                                                                             |                                       |
+| 回滚策略      | **git revert 单 commit/PR 即可**——token 是纯值替换，文档在 git，字体加载 link 可回退。无数据迁移、无不可逆操作。                                                   | **L3 强制：回滚 ✓**                   |
+| 兼容性        | token **只改值不改名**（`--font-mono`/`--bg-secondary` 名字保留），所有引用文件零改动自动生效（除硬编码点需手工迁移）。字体加载 link 增删不影响 JS 逻辑。          | **L3 强制：兼容性 ✓**                 |
+| 成本          | 零新依赖（Google Fonts 免费）。字体增量约 80-120KB 一次性下载，浏览器缓存。                                                                                        |                                       |
+| 风控滥用      | N/A 单机应用，无多租户。                                                                                                                                           |                                       |
+| 运营客服      | N/A                                                                                                                                                                |                                       |
+| 多语言地区    | DESIGN.md 中文为主；字体三栈支持中英混排；色板无地区敏感性。Playfair Display 对中文回退 Noto Serif SC。                                                            |                                       |
 
 **L3 强制项核对**：
+
 - 数据契约（视觉契约）→ 兼容性（✓ token 只改值不改名）、回滚（✓ git revert）。
 - 权限/计费/对外 API/不可逆迁移/跨团队指标 → 均 N/A（纯前端视觉 + 文档）。
 
 ## 7. 依赖与影响面
 
 **依赖**：
+
 - 无新依赖。Google Fonts CDN（已用于 IBM Plex Mono）。
 - Playfair Display / JetBrains Mono / Noto Serif SC 均为 Google Fonts 免费字体。
 
@@ -290,11 +319,13 @@ related:
 **Token 根**：`src/styles/globals.css`（2377 行）——`:root` + 3 处主题覆盖块。阶段 3 主要工作。
 
 **经 token 自动生效**（无需改代码）：
+
 - `--bg-secondary` 改值：9 处引用（journal-blocks.css ×7、mdx.css ×2）自动跟随暖白。[证据: grep]
 - `--font-mono` 改值：56 处引用自动从 IBM Plex Mono 切换到 JetBrains Mono。[证据: grep 精确计数]
 - `--space-5` 改值：引用处自动从 24px 变 20px。
 
 **需手工迁移的硬编码**：
+
 - `var(--font-serif)` 8 处 → 按场景分流到 `--font-display`/保留。[证据: 探查报告]
 - JetBrains Mono 硬编码：`bridges.ts:101/103`、`previewPreset.ts:27`、`TodoSidebar.tsx:350`、workspace-template。
 - `#fafafa` 硬编码：`globals.css:181`（--detail-case-bg）、`:199`（--queue-bg）。
@@ -302,6 +333,7 @@ related:
 - 组件偏离 7 类：分段控件、阴影 ×4、FileChip、JournalItem、菜单边框、聚焦环 ×4。
 
 **文档**：
+
 - `docs/DESIGN.md`（全文增量改写）。
 - `docs/design/`（整个目录删除，6 文件）。
 - `docs/guide/themes.md`（重写或删除）。
@@ -310,25 +342,26 @@ related:
 - `AGENTS.md`（「设计基调」+「关键约束」段）。
 
 **关联 spec**：
+
 - `specs/20260614-agentic-design-language`（**被部分推翻**：§9 Q3 字体决策从「只用系统字体」推翻为「加载 Playfair + JetBrains」）。spec §1 已记录推翻理由。
 
 **与历史结论冲突（13 处文档矛盾，删除 docs/design/ 后自动消解）**：
 
-| # | 矛盾 | 消解方式 |
-|---|---|---|
-| A | DESIGN.md §99 信号橙 vs docs/design/colors.md:13 琥珀金 | 删 docs/design/ |
-| B | DESIGN.md §111 纯白 vs docs/design/index.md:20 墨水青近白 | 删 docs/design/ |
-| C | DESIGN.md §114 墨文字 vs docs/design/colors.md:36 | 删 docs/design/ |
-| D | DESIGN.md §220 ease-out-quart vs animation.md:59 ease-in-out | 删 docs/design/ + DESIGN.md 新增循环豁免条款 |
-| E | DESIGN.md §144 允许 700/800 vs typography.md:37 禁止 | 删 docs/design/ |
-| F | DESIGN.md §132 scale 12/14/16/18/24/32/40 vs typography.md:21-29 旧 scale | 删 docs/design/ |
-| G | DESIGN.md §146 不引入字体家族 vs typography.md:16 Noto Serif SC | 改写规则为三栈 + 删 docs/design/ |
-| H | DESIGN.md §169 录音按钮规格 vs components.md:12 旧色值 | 删录音按钮章节 + 删 docs/design/ |
-| I | DESIGN.md §178 列表色 vs colors.md:55-56 旧值 | 删 docs/design/ |
-| J | DESIGN.md §103 语义色 vs colors.md:67-72 旧值 | 删 docs/design/ |
-| K | layout.md:51 圆角上限 12px vs DESIGN.md 无上限 | 删 docs/design/ |
-| L | colors.md:12 --accent 录音红 vs DESIGN.md §105 danger 红 | 删 docs/design/ |
-| M | docs/guide/themes.md 整篇旧体系 | 重写或删除 |
+| #   | 矛盾                                                                      | 消解方式                                     |
+| --- | ------------------------------------------------------------------------- | -------------------------------------------- |
+| A   | DESIGN.md §99 信号橙 vs docs/design/colors.md:13 琥珀金                   | 删 docs/design/                              |
+| B   | DESIGN.md §111 纯白 vs docs/design/index.md:20 墨水青近白                 | 删 docs/design/                              |
+| C   | DESIGN.md §114 墨文字 vs docs/design/colors.md:36                         | 删 docs/design/                              |
+| D   | DESIGN.md §220 ease-out-quart vs animation.md:59 ease-in-out              | 删 docs/design/ + DESIGN.md 新增循环豁免条款 |
+| E   | DESIGN.md §144 允许 700/800 vs typography.md:37 禁止                      | 删 docs/design/                              |
+| F   | DESIGN.md §132 scale 12/14/16/18/24/32/40 vs typography.md:21-29 旧 scale | 删 docs/design/                              |
+| G   | DESIGN.md §146 不引入字体家族 vs typography.md:16 Noto Serif SC           | 改写规则为三栈 + 删 docs/design/             |
+| H   | DESIGN.md §169 录音按钮规格 vs components.md:12 旧色值                    | 删录音按钮章节 + 删 docs/design/             |
+| I   | DESIGN.md §178 列表色 vs colors.md:55-56 旧值                             | 删 docs/design/                              |
+| J   | DESIGN.md §103 语义色 vs colors.md:67-72 旧值                             | 删 docs/design/                              |
+| K   | layout.md:51 圆角上限 12px vs DESIGN.md 无上限                            | 删 docs/design/                              |
+| L   | colors.md:12 --accent 录音红 vs DESIGN.md §105 danger 红                  | 删 docs/design/                              |
+| M   | docs/guide/themes.md 整篇旧体系                                           | 重写或删除                                   |
 
 ## 8. 风险与待人类决策的问题
 
@@ -342,6 +375,7 @@ related:
 - **R8 [推测]**：`docs/guide/themes.md` 重写工作量。**决策**：[推测] 默认重写为 Agentic 新体系（用户可见文档有存在价值）；若用户倾向删除，guide/index.md 移除链接即可。Q1 待确认。
 
 **L3 多角色评审**：
+
 - **设计**：Playfair 中英混排观感（R1）；暖白分层是否破坏现有「纯白锐利」气质（R3）。风险已识别，HTML mockup 验收。
 - **工程**：web font 加载性能（R2）；token 改值不改名的兼容性（✓）；`--space-6` 移除的引用迁移（R6）。风险可控。
 - **PM**：录音按钮章节移除是否影响用户预期？[推测] 当前 UI 无此入口，移除 spec 章节是「对齐现实」非「删除功能」，无用户感知。
@@ -349,16 +383,16 @@ related:
 
 ## 9. 待确认
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | docs/guide/themes.md 处理方式 | 默认：**重写为 Agentic 新体系**（用户可见文档有存在价值）；备选：删除并在 guide/index.md 移除链接 | 待确认（可用默认） |
-| Q2 | Playfair Display 字重区间 | 默认：**wght 400;500;600;700;800;900**（覆盖标题所需 700/800/900 + 正文衬线 400/500） | 待确认（可用默认） |
-| Q3 | 暖白 tertiary 具体值 | 默认：**`#ECECE6`**（与 secondary `#F6F6F1` 的 ΔE 约 3.5）；备选：`#E8E8E0`（ΔE 约 4.5，更安全） | 待确认（实现后 mockup 微调） |
-| Q4 | `--space-6` 移除后的引用迁移策略 | 默认：grep 引用，值 24px 的迁移到 `--space-5`（改后 20px）或 `--space-8`（32px）按上下文判断 | ✅ 已确认：保留 `--space-6: 24px`（10 处引用都是 3×8pt 章节间距，语义清晰），仅修正 `--space-5` 为 20px 对齐 frontmatter |
-| Q5 | SectionVoice:1245 橙色小号正文的修复形式 | 默认：**callout 形式**（橙软底 `#FFF4ED` + 橙边框 `#FDBA74` + 墨色文字 `#111827`，圆角 `var(--radius-sm)`）——用户已通过 mockup 确认方案 C | ✅ 已确认 |
+| #   | 问题                                     | 当前默认值                                                                                                                                | 状态                                                                                                                     |
+| --- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Q1  | docs/guide/themes.md 处理方式            | 默认：**重写为 Agentic 新体系**（用户可见文档有存在价值）；备选：删除并在 guide/index.md 移除链接                                         | 待确认（可用默认）                                                                                                       |
+| Q2  | Playfair Display 字重区间                | 默认：**wght 400;500;600;700;800;900**（覆盖标题所需 700/800/900 + 正文衬线 400/500）                                                     | 待确认（可用默认）                                                                                                       |
+| Q3  | 暖白 tertiary 具体值                     | 默认：**`#ECECE6`**（与 secondary `#F6F6F1` 的 ΔE 约 3.5）；备选：`#E8E8E0`（ΔE 约 4.5，更安全）                                          | 待确认（实现后 mockup 微调）                                                                                             |
+| Q4  | `--space-6` 移除后的引用迁移策略         | 默认：grep 引用，值 24px 的迁移到 `--space-5`（改后 20px）或 `--space-8`（32px）按上下文判断                                              | ✅ 已确认：保留 `--space-6: 24px`（10 处引用都是 3×8pt 章节间距，语义清晰），仅修正 `--space-5` 为 20px 对齐 frontmatter |
+| Q5  | SectionVoice:1245 橙色小号正文的修复形式 | 默认：**callout 形式**（橙软底 `#FFF4ED` + 橙边框 `#FDBA74` + 墨色文字 `#111827`，圆角 `var(--radius-sm)`）——用户已通过 mockup 确认方案 C | ✅ 已确认                                                                                                                |
 
 ## 10. 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-15 | 可开发 | 用户已通过 4 轮 AskUserQuestion 完成核心决策（字体加载 Playfair+JetBrains / 暖白 #F6F6F1 / 删 docs/design/ / 移除录音按钮章节 / 一个 L3 spec 分阶段）。三轮探查报告提供完整证据（主题 token / 组件实现 / 设计债 / 文档矛盾 / 新 token 落地 / 门禁流程）。Q1-Q5 有合理默认值。L3 强制项（兼容性·token 只改值不改名、回滚·git revert）已覆盖。R1（Playfair 中文回退）必修：index.html 补加载 Noto Serif SC。R2（web font FOUT）用 swap+preload 缓解。R3（暖白分层）实现后 mockup 验证。R4（推翻 verified spec）已记录理由。本 spec 与在途的 panel-auto-toggle/workbench-widescreen-align 无冲突（布局/交互层）。 |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---- | ---------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-15 | 可开发    | 用户已通过 4 轮 AskUserQuestion 完成核心决策（字体加载 Playfair+JetBrains / 暖白 #F6F6F1 / 删 docs/design/ / 移除录音按钮章节 / 一个 L3 spec 分阶段）。三轮探查报告提供完整证据（主题 token / 组件实现 / 设计债 / 文档矛盾 / 新 token 落地 / 门禁流程）。Q1-Q5 有合理默认值。L3 强制项（兼容性·token 只改值不改名、回滚·git revert）已覆盖。R1（Playfair 中文回退）必修：index.html 补加载 Noto Serif SC。R2（web font FOUT）用 swap+preload 缓解。R3（暖白分层）实现后 mockup 验证。R4（推翻 verified spec）已记录理由。本 spec 与在途的 panel-auto-toggle/workbench-widescreen-align 无冲突（布局/交互层）。 |

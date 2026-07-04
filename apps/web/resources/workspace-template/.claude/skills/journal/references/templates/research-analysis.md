@@ -44,12 +44,12 @@ Avoid when: risks are just one section of another template.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| swot | Use strengths, weaknesses, opportunities, threats |
+| Subtype              | Apply changes                                              |
+| -------------------- | ---------------------------------------------------------- |
+| swot                 | Use strengths, weaknesses, opportunities, threats          |
 | feasibility-analysis | Add constraints, feasibility judgment, required validation |
-| experiment-report | Add hypothesis, experiment design, result, decision |
-| business-analysis | Add business model, cost, revenue, strategic implication |
+| experiment-report    | Add hypothesis, experiment design, result, decision        |
+| business-analysis    | Add business model, cost, revenue, strategic implication   |
 
 ## Quality Rules
 

@@ -9,15 +9,15 @@ description: JournalClaw 的开发指南入口，涵盖项目架构、环境搭�
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|---|
-| 桌面宿主 | Electron |
-| 前端 | React 19 + TypeScript + Vite 7 |
-| 样式 | 纯 CSS（CSS 变量 + tokens） |
-| 后端 | TypeScript daemon（HTTP + SSE） |
-| Agent 引擎 | pi 内建引擎 + CLI adapters |
-| 本地文件 | daemon services + ChangeSet |
-| 测试 | vitest + Playwright |
+| 层         | 技术                            |
+| ---------- | ------------------------------- |
+| 桌面宿主   | Electron                        |
+| 前端       | React 19 + TypeScript + Vite 7  |
+| 样式       | 纯 CSS（CSS 变量 + tokens）     |
+| 后端       | TypeScript daemon（HTTP + SSE） |
+| Agent 引擎 | pi 内建引擎 + CLI adapters      |
+| 本地文件   | daemon services + ChangeSet     |
+| 测试       | vitest + Playwright             |
 
 ## 目录结构
 

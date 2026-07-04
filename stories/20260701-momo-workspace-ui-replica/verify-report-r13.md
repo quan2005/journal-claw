@@ -4,22 +4,22 @@ design: ./design.md
 date: 2026-07-02
 round: 13
 result: pass
-scope: "apps/web/src/App.tsx, apps/web/src/components/WorkspaceView.tsx, apps/web/src/styles/workspace.css, apps/web/src/tests/WorkspaceView.test.tsx, apps/web/src/main.tsx, apps/web/src/components/TreeSidebar.tsx, stories/20260701-momo-workspace-ui-replica/story.md, stories/20260701-momo-workspace-ui-replica/design.md"
+scope: 'apps/web/src/App.tsx, apps/web/src/components/WorkspaceView.tsx, apps/web/src/styles/workspace.css, apps/web/src/tests/WorkspaceView.test.tsx, apps/web/src/main.tsx, apps/web/src/components/TreeSidebar.tsx, stories/20260701-momo-workspace-ui-replica/story.md, stories/20260701-momo-workspace-ui-replica/design.md'
 ---
 
 # 验收报告 — 在谨迹中复刻 Momo 工作空间 UI，作为桌面端 Workspace 入口视图
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 Workspace 作为 Topics 分类的新视图 | ✅ pass | `App.tsx:1166-1168` 在 `activeCategory === 'topics' && (!treeSelection \|\| treeSelection.type === 'topic')` 时渲染 `<WorkspaceView />`，否则渲染 `DetailView`；`TreeSidebar.tsx:575-627` 复用现有 Topics 树；右侧面板由 `rightPanelOpen` 控制，`App.tsx:702-722` 在内容切换且无流式任务时自动收起 |
-| AC-2 文件树与 Workspace 结构 | ✅ pass | `TreeSidebar.tsx:575-627` 在 `category === 'topics'` 时显示「Workspace」标题与搜索/视图图标；Topics 树形结构沿用现有实现 |
-| AC-3 Quick Start 操作区 | ✅ pass | `WorkspaceView.tsx:246-274` 渲染「Quick Start」标题与 New File/New Folder/Import 三卡片；点击触发 `placeholderAction` 派发 `show-toast`，不调用后端 |
-| AC-4 Recently Viewed 列表 | ✅ pass | `WorkspaceView.tsx:276-359` 渲染「Recently Viewed」表头 Name/Contributors/Viewed；`buildRecentItems` (`WorkspaceView.tsx:187-226`) 优先使用真实 topic 文件，不足 5 条补 mock，最多 10 条；底部「Show more」展开/收起 |
-| AC-5 右侧 AI Chat 面板 | ✅ pass | `WorkspaceChatShell` (`WorkspaceView.tsx:563-861`) 集成 `useAgentEngine`/`useAgentRun`，保留发送/取消/重试；`SessionDropdown` (`WorkspaceView.tsx:363-559`) 使用聊天图标 +「New Chat」下拉，支持历史会话搜索/切换/删除及独立「+」新建按钮；输入框底部融合 `EngineSwitcher`/`AuthModeToggle`；`ToolCapsule` (`WorkspaceView.tsx:911-951`) 单行胶囊默认收起、点击展开；空状态为纯文字「闫戍's momo」(`WorkspaceView.tsx:752`)，无 Continue 按钮；`WorkspaceView.test.tsx:117` 断言问候语 |
-| AC-6 视觉还原度（浅色模式） | ✅ pass | 颜色、圆角、阴影、聚焦环均消费 token，无第二 accent 色；字体栈正确使用 (`workspace.css:8,26,649,714` 等)；第 12 轮 fail 的 3 处间距已修复：`workspace.css:242` 改为 `top: calc(100% + 8px)`，`workspace.css:279` 改为 `padding: 4px 0`，`TreeSidebar.tsx:581` 改为 `padding: 12px 8px 8px`；经逐行核对 `workspace.css` 与 TreeSidebar Workspace 头部新增样式，所有 `padding`/`gap`/`margin` 均为 4 的倍数 |
-| AC-7 暗色主题可用性 | ✅ pass | 全部通过 CSS 变量自动切换；`globals.css:309` 定义暗色 `--record-btn: #FF7A33`，与 AC-7 一致 |
+| AC                                      | 结论    | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 Workspace 作为 Topics 分类的新视图 | ✅ pass | `App.tsx:1166-1168` 在 `activeCategory === 'topics' && (!treeSelection \|\| treeSelection.type === 'topic')` 时渲染 `<WorkspaceView />`，否则渲染 `DetailView`；`TreeSidebar.tsx:575-627` 复用现有 Topics 树；右侧面板由 `rightPanelOpen` 控制，`App.tsx:702-722` 在内容切换且无流式任务时自动收起                                                                                                                                                                                     |
+| AC-2 文件树与 Workspace 结构            | ✅ pass | `TreeSidebar.tsx:575-627` 在 `category === 'topics'` 时显示「Workspace」标题与搜索/视图图标；Topics 树形结构沿用现有实现                                                                                                                                                                                                                                                                                                                                                               |
+| AC-3 Quick Start 操作区                 | ✅ pass | `WorkspaceView.tsx:246-274` 渲染「Quick Start」标题与 New File/New Folder/Import 三卡片；点击触发 `placeholderAction` 派发 `show-toast`，不调用后端                                                                                                                                                                                                                                                                                                                                    |
+| AC-4 Recently Viewed 列表               | ✅ pass | `WorkspaceView.tsx:276-359` 渲染「Recently Viewed」表头 Name/Contributors/Viewed；`buildRecentItems` (`WorkspaceView.tsx:187-226`) 优先使用真实 topic 文件，不足 5 条补 mock，最多 10 条；底部「Show more」展开/收起                                                                                                                                                                                                                                                                   |
+| AC-5 右侧 AI Chat 面板                  | ✅ pass | `WorkspaceChatShell` (`WorkspaceView.tsx:563-861`) 集成 `useAgentEngine`/`useAgentRun`，保留发送/取消/重试；`SessionDropdown` (`WorkspaceView.tsx:363-559`) 使用聊天图标 +「New Chat」下拉，支持历史会话搜索/切换/删除及独立「+」新建按钮；输入框底部融合 `EngineSwitcher`/`AuthModeToggle`；`ToolCapsule` (`WorkspaceView.tsx:911-951`) 单行胶囊默认收起、点击展开；空状态为纯文字「闫戍's momo」(`WorkspaceView.tsx:752`)，无 Continue 按钮；`WorkspaceView.test.tsx:117` 断言问候语 |
+| AC-6 视觉还原度（浅色模式）             | ✅ pass | 颜色、圆角、阴影、聚焦环均消费 token，无第二 accent 色；字体栈正确使用 (`workspace.css:8,26,649,714` 等)；第 12 轮 fail 的 3 处间距已修复：`workspace.css:242` 改为 `top: calc(100% + 8px)`，`workspace.css:279` 改为 `padding: 4px 0`，`TreeSidebar.tsx:581` 改为 `padding: 12px 8px 8px`；经逐行核对 `workspace.css` 与 TreeSidebar Workspace 头部新增样式，所有 `padding`/`gap`/`margin` 均为 4 的倍数                                                                              |
+| AC-7 暗色主题可用性                     | ✅ pass | 全部通过 CSS 变量自动切换；`globals.css:309` 定义暗色 `--record-btn: #FF7A33`，与 AC-7 一致                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## 范围完整性（不少，对照 story.md 范围）
 
@@ -34,18 +34,18 @@ scope: "apps/web/src/App.tsx, apps/web/src/components/WorkspaceView.tsx, apps/we
 
 ## 方案落实（不偏，对照 design.md）
 
-| design.md 条目 | 结论 | 证据 |
-|---|---|---|
-| 新增 `WorkspaceView.tsx` | ✅ | `apps/web/src/components/WorkspaceView.tsx` 存在 |
-| 新增 `workspace.css` 并在 `main.tsx` import | ✅ | `apps/web/src/styles/workspace.css` 存在；`main.tsx:4` import |
-| 修改 `App.tsx` 中心渲染分支 | ✅ | `App.tsx:1166-1168` |
-| 新增 `WorkspaceView.test.tsx` | ✅ | `apps/web/src/tests/WorkspaceView.test.tsx` 存在，9 个测试全部通过 |
-| `WorkspaceChatShell` 真实能力集成 | ✅ | `WorkspaceView.tsx:563-861` 集成 `useAgentEngine`/`useAgentRun` |
-| `SessionDropdown` 历史/新建/切换/删除 | ✅ | `WorkspaceView.tsx:363-559` |
-| 引擎/权限选择器位于输入框底部 | ✅ | `WorkspaceView.tsx:843-856` 位于 `workspace-chat__input-box` 内底部 |
-| 工具调用胶囊默认收起、点击展开 | ✅ | `ToolCapsule` (`WorkspaceView.tsx:911-951`) + `.workspace-chat__tool*` CSS |
-| 颜色/圆角/阴影/聚焦环 token 消费 | ✅ | `workspace.css` 中无硬编码色值，圆角均使用 `--radius-*`，菜单使用 `--shadow-overlay`/`--border-menu`，聚焦环使用 `--focus-ring` |
-| 8pt/4px 网格间距 | ✅ | 见 AC-6；第 12 轮识别的非 4 倍数间距已修复，新增/修改样式全部落在 4px 网格 |
+| design.md 条目                              | 结论 | 证据                                                                                                                            |
+| ------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 新增 `WorkspaceView.tsx`                    | ✅   | `apps/web/src/components/WorkspaceView.tsx` 存在                                                                                |
+| 新增 `workspace.css` 并在 `main.tsx` import | ✅   | `apps/web/src/styles/workspace.css` 存在；`main.tsx:4` import                                                                   |
+| 修改 `App.tsx` 中心渲染分支                 | ✅   | `App.tsx:1166-1168`                                                                                                             |
+| 新增 `WorkspaceView.test.tsx`               | ✅   | `apps/web/src/tests/WorkspaceView.test.tsx` 存在，9 个测试全部通过                                                              |
+| `WorkspaceChatShell` 真实能力集成           | ✅   | `WorkspaceView.tsx:563-861` 集成 `useAgentEngine`/`useAgentRun`                                                                 |
+| `SessionDropdown` 历史/新建/切换/删除       | ✅   | `WorkspaceView.tsx:363-559`                                                                                                     |
+| 引擎/权限选择器位于输入框底部               | ✅   | `WorkspaceView.tsx:843-856` 位于 `workspace-chat__input-box` 内底部                                                             |
+| 工具调用胶囊默认收起、点击展开              | ✅   | `ToolCapsule` (`WorkspaceView.tsx:911-951`) + `.workspace-chat__tool*` CSS                                                      |
+| 颜色/圆角/阴影/聚焦环 token 消费            | ✅   | `workspace.css` 中无硬编码色值，圆角均使用 `--radius-*`，菜单使用 `--shadow-overlay`/`--border-menu`，聚焦环使用 `--focus-ring` |
+| 8pt/4px 网格间距                            | ✅   | 见 AC-6；第 12 轮识别的非 4 倍数间距已修复，新增/修改样式全部落在 4px 网格                                                      |
 
 ## 越界检查（不多，对照 story 非目标 + design.md 范围）
 

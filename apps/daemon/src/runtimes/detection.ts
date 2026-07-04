@@ -33,11 +33,7 @@
  * `#!/usr/bin/env node` line, marking a healthy CLI as `shim-broken`.
  */
 import { execFile } from 'node:child_process'
-import type {
-  AgentDiagnostic,
-  AgentInfo,
-  RuntimeAgentDef,
-} from '@journal/contracts'
+import type { AgentDiagnostic, AgentInfo, RuntimeAgentDef } from '@journal/contracts'
 import { agentBinEnvKey } from './executables.js'
 import {
   buildAuthDiagnostic,
@@ -112,10 +108,9 @@ function probeVersionAtPath(
  * base shape explicitly from a known list closes that hole permanently — a
  * new internal field on RuntimeAgentDef no longer auto-bleeds into /agents.
  */
-function agentInfoBase(def: RuntimeAgentDef): Pick<
-  AgentInfo,
-  'id' | 'name' | 'bin' | 'installUrl' | 'docsUrl'
-> {
+function agentInfoBase(
+  def: RuntimeAgentDef,
+): Pick<AgentInfo, 'id' | 'name' | 'bin' | 'installUrl' | 'docsUrl'> {
   const base: Pick<AgentInfo, 'id' | 'name' | 'bin' | 'installUrl' | 'docsUrl'> = {
     id: def.id,
     name: def.name,
@@ -126,10 +121,7 @@ function agentInfoBase(def: RuntimeAgentDef): Pick<
   return base
 }
 
-function unavailableAgent(
-  def: RuntimeAgentDef,
-  diagnostics: AgentDiagnostic[] = [],
-): AgentInfo {
+function unavailableAgent(def: RuntimeAgentDef, diagnostics: AgentDiagnostic[] = []): AgentInfo {
   return {
     ...agentInfoBase(def),
     available: false,
@@ -145,10 +137,7 @@ async function probe(
   if (!launch.selectedPath || !launch.launchPath) {
     return unavailableAgent(def, [buildExecutableDiagnostic(def, configuredEnv)])
   }
-  const probeEnv = applyAgentLaunchEnv(
-    { ...process.env, ...configuredEnv },
-    launch,
-  )
+  const probeEnv = applyAgentLaunchEnv({ ...process.env, ...configuredEnv }, launch)
   const outcome = await probeVersionAtPath(def, launch.launchPath, probeEnv)
   if (outcome.kind === 'not-invocable') {
     return unavailableAgent(def, [
@@ -223,9 +212,7 @@ let cachedResults: AgentInfo[] | null = null
  * in registry order. Mirrors open-design detectAgents(): one adapter's probe
  * blowing up never collapses the result (safeProbe isolates it).
  */
-export async function detectAgents(
-  options: DetectAgentsOptions = {},
-): Promise<AgentInfo[]> {
+export async function detectAgents(options: DetectAgentsOptions = {}): Promise<AgentInfo[]> {
   if (!options.forceRefresh && cachedResults && Date.now() - cachedAt < CACHE_TTL_MS) {
     return cachedResults
   }
@@ -254,9 +241,7 @@ export async function* detectAgentsStream(
   )
   const pending = new Set(tagged)
   while (pending.size > 0) {
-    const settled = await Promise.race(
-      [...pending].map((p) => p.then((r) => ({ r, p }))),
-    )
+    const settled = await Promise.race([...pending].map((p) => p.then((r) => ({ r, p }))))
     pending.delete(settled.p)
     yield settled.r.agent
   }

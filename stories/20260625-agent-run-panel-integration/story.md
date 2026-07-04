@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-agent-run-panel-integration
-title: "AgentRunPanel integration into right panel (G13)"
+title: 'AgentRunPanel integration into right panel (G13)'
 status: verified
 source: orchestrator
 level: L2
@@ -23,12 +23,14 @@ related:
 ## 范围
 
 ### 实现
+
 1. UIContext/LayoutContext: add `rightPanelMode: 'chat' | 'run'` + setter (default 'chat')
 2. App.tsx: render AgentRunPanel instead of ChatPanel when mode === 'run', inside the existing RightPanel wrapper
 3. A small mode toggle control (segmented chat/run) shown in the right panel header area
 4. AgentRunPanel is lazy-loaded (matches existing RightPanel/ChatPanel lazy pattern)
 
 ### 独占文件
+
 - apps/web/src/contexts/UIContext.tsx (add rightPanelMode state)
 - apps/web/src/App.tsx (render branch + lazy import + toggle)
 - apps/web/src/components/AgentRunPanel.tsx (optional: accept no-op props if needed)

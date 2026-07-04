@@ -39,11 +39,7 @@ export function buildExecutableDiagnostic(
       severity: 'error',
       message: `${def.name}'s configured binary (${envKey}) was not found or is not executable.`,
       detail: overrideRaw,
-      fixActions: [
-        { kind: 'setEnv', envKey },
-        { kind: 'clearEnv', envKey },
-        { kind: 'rescan' },
-      ],
+      fixActions: [{ kind: 'setEnv', envKey }, { kind: 'clearEnv', envKey }, { kind: 'rescan' }],
     }
   }
   return {

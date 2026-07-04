@@ -12,16 +12,16 @@ result: pass
 
 ## 逐条 AC 结论
 
-### AC-1 — skill 可被 AI 发现并引用  ✅ PASS
+### AC-1 — skill 可被 AI 发现并引用 ✅ PASS
 
-| 子句 | 证据 |
-|---|---|
-| 文件存在且可被发现 | `.agents/skills/opencode-subagent/SKILL.md:1-4` 含合法 frontmatter（`name` + `description`），在仓库 skills 列表中可枚举。 |
-| 何时用 opencode subagent | `SKILL.md:12-16`「When to Use」列明三类触发场景（独立 subagent 显式要求、host Agent 工具不可用/昂贵、需磁盘报告）。 |
-| 何时仍用 host Agent 工具 | `SKILL.md:18-21`「Do not use when」+ `SKILL.md:66`「Fall back to the host `Agent`/`Task` tool」+ `SKILL.md:15` 明确 host Agent/Task 为合法备选。 |
+| 子句                                  | 证据                                                                                                                                                                                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文件存在且可被发现                    | `.agents/skills/opencode-subagent/SKILL.md:1-4` 含合法 frontmatter（`name` + `description`），在仓库 skills 列表中可枚举。                                                                                                               |
+| 何时用 opencode subagent              | `SKILL.md:12-16`「When to Use」列明三类触发场景（独立 subagent 显式要求、host Agent 工具不可用/昂贵、需磁盘报告）。                                                                                                                      |
+| 何时仍用 host Agent 工具              | `SKILL.md:18-21`「Do not use when」+ `SKILL.md:66`「Fall back to the host `Agent`/`Task` tool」+ `SKILL.md:15` 明确 host Agent/Task 为合法备选。                                                                                         |
 | 可拷贝调用模板（命令/参数/输入/输出） | `SKILL.md:25-32` Core Pattern 四参数签名 `<story.md> [design.md] <scope> <output-report.md>`；`SKILL.md:46-56` Quick Reference 约定 message 顺序、`--agent build`、输出路径、format、permissions；`SKILL.md:42-44` 报告 SUMMARY 行格式。 |
 
-### AC-2 — 标准化调用能成功跑通  ✅ PASS（运行时实证）
+### AC-2 — 标准化调用能成功跑通 ✅ PASS（运行时实证）
 
 本次验收本身就是 AC-2 的活体证明：
 
@@ -32,21 +32,21 @@ result: pass
 
 主对话回收链路（脚本 `opencode-subagent.sh:84-90`）：运行后校验报告文件存在 → 打印 `报告已生成：<path>` → `tail -n 1 | grep -E '^SUMMARY:'` 回吐摘要行。`result: pass/fail` 编码在 `SUMMARY: result=...` 内。✓
 
-### AC-3 — 不破坏现有门禁体系  ✅ PASS
+### AC-3 — 不破坏现有门禁体系 ✅ PASS
 
-| 子句 | 证据 |
-|---|---|
-| 不删除现有 skill | `.agents/skills/` 下 `verification-gate` / `requirements-gate` / `docs-maintenance` 三目录均存在（`ls` 确认）。 |
-| 不修改现有 skill 默认流程 | `grep 'opencode-subagent\|opencode run\|--agent build'` 在三个兄弟 skill 的 `*.md` 中 **0 命中**（13 命中全部落在 `opencode-subagent/SKILL.md` 自身）——新 skill 未侵入既有 gate 默认流程。 |
-| 仅作可选 subagent 后端补充 | `SKILL.md:10`「headless subagent backend」；`SKILL.md:18-21` 明示 host Agent/Task 仍为合法路径，无强制接管语义。 |
+| 子句                       | 证据                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 不删除现有 skill           | `.agents/skills/` 下 `verification-gate` / `requirements-gate` / `docs-maintenance` 三目录均存在（`ls` 确认）。                                                                            |
+| 不修改现有 skill 默认流程  | `grep 'opencode-subagent\|opencode run\|--agent build'` 在三个兄弟 skill 的 `*.md` 中 **0 命中**（13 命中全部落在 `opencode-subagent/SKILL.md` 自身）——新 skill 未侵入既有 gate 默认流程。 |
+| 仅作可选 subagent 后端补充 | `SKILL.md:10`「headless subagent backend」；`SKILL.md:18-21` 明示 host Agent/Task 仍为合法路径，无强制接管语义。                                                                           |
 
-### AC-4 — 错误处理与边界清晰  ✅ PASS
+### AC-4 — 错误处理与边界清晰 ✅ PASS
 
-| 子句 | 证据 |
-|---|---|
-| 回退路径（重试/换 host Agent/上报） | `SKILL.md:58-69`「Failure & Fallback」三步：修一处→重跑一次→{上报用户 / 回退 host Agent / 放弃走 inline}。 |
-| 不隐瞒失败/不伪造结论 | `SKILL.md:69`「Do not hide the failure, do not fabricate a report」；`SKILL.md:82-91`「Red Flags」+「verify before summarizing」；脚本 `opencode-subagent.sh:88-91` 报告缺失即 `exit 2` 并告警。 |
-| 失败模式覆盖 | `SKILL.md:93-101`「Troubleshooting」覆盖 File not found（`-f` 吞 message）、`/tmp` 权限拒绝、`--agent` 误用、报告缺失、scope 漂移五类典型失败。 |
+| 子句                                | 证据                                                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 回退路径（重试/换 host Agent/上报） | `SKILL.md:58-69`「Failure & Fallback」三步：修一处→重跑一次→{上报用户 / 回退 host Agent / 放弃走 inline}。                                                                                       |
+| 不隐瞒失败/不伪造结论               | `SKILL.md:69`「Do not hide the failure, do not fabricate a report」；`SKILL.md:82-91`「Red Flags」+「verify before summarizing」；脚本 `opencode-subagent.sh:88-91` 报告缺失即 `exit 2` 并告警。 |
+| 失败模式覆盖                        | `SKILL.md:93-101`「Troubleshooting」覆盖 File not found（`-f` 吞 message）、`/tmp` 权限拒绝、`--agent` 误用、报告缺失、scope 漂移五类典型失败。                                                  |
 
 ## 三类边界（Won't）核对
 

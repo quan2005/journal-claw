@@ -74,7 +74,9 @@ export class SedimentationService {
     // workspace carries a human-readable account of what each run did.
     const summaryDetail = buildRunSummary(runId, assistantText, artifacts, changeSets, toolCalls)
     const summaryPath =
-      options.authorizationMode === 'read_only' ? undefined : this.persistSummary(runId, summaryDetail)
+      options.authorizationMode === 'read_only'
+        ? undefined
+        : this.persistSummary(runId, summaryDetail)
     const summary: MemoryRecord = this.make(
       runId,
       'note',

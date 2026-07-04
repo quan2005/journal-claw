@@ -6,11 +6,11 @@
 
 ## 三层架构
 
-| 层级 | 来源 | 存储位置 | 默认状态 | 可否关闭 |
-|------|------|----------|----------|----------|
-| L1 内置 | 打包进应用二进制 | `src-tauri/resources/builtin-skills/` | 强制加载 | ❌ |
-| L2 项目安装 | 用户主动安装到项目 | `<workspace>/.agents/skills/` | 可选（默认开） | ✅ toggle |
-| L3 全局发现 | 扫描 `~/.claude/` 下已知路径 | 原地引用，不复制 | 默认不加载 | ✅ toggle |
+| 层级        | 来源                         | 存储位置                              | 默认状态       | 可否关闭  |
+| ----------- | ---------------------------- | ------------------------------------- | -------------- | --------- |
+| L1 内置     | 打包进应用二进制             | `src-tauri/resources/builtin-skills/` | 强制加载       | ❌        |
+| L2 项目安装 | 用户主动安装到项目           | `<workspace>/.agents/skills/`         | 可选（默认开） | ✅ toggle |
+| L3 全局发现 | 扫描 `~/.claude/` 下已知路径 | 原地引用，不复制                      | 默认不加载     | ✅ toggle |
 
 ## 冲突解决
 
@@ -73,7 +73,7 @@
   "disabled_skills": ["project:some-skill"],
 
   // 新增：L3 全局技能的白名单（默认关，记录开了哪些）
-  "enabled_global_skills": ["global:superpowers:brainstorming"]
+  "enabled_global_skills": ["global:superpowers:brainstorming"],
 }
 ```
 

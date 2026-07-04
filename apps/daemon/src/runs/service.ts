@@ -22,11 +22,7 @@ import {
 } from '@journal/contracts'
 import { RunStore } from './store.js'
 
-const TERMINAL_STATUSES: ReadonlySet<AgentRunStatus> = new Set([
-  'succeeded',
-  'failed',
-  'canceled',
-])
+const TERMINAL_STATUSES: ReadonlySet<AgentRunStatus> = new Set(['succeeded', 'failed', 'canceled'])
 
 type SseSubscriber = (event: AgentRunEvent) => void
 
@@ -140,9 +136,9 @@ export class AgentRunService {
   }
 
   /** 暴露给 server.ts 在 SSE handler 里读取 runId 是否存在。 */
- hasRun(runId: string): boolean {
-   return this.runs.has(runId)
- }
+  hasRun(runId: string): boolean {
+    return this.runs.has(runId)
+  }
 
   /** List child runs spawned by a parent (multi-agent subtask delegation). */
   listChildRuns(parentRunId: string): AgentRun[] {

@@ -1,19 +1,19 @@
 ---
 spec: ./spec.md
-date: {YYYY-MM-DD}
+date: { YYYY-MM-DD }
 round: 1
-result: fail         # pass | fail（六项全过才是 pass）
-scope: "{核对范围：diff 命令或文件清单描述}"
+result: fail # pass | fail（六项全过才是 pass）
+scope: '{核对范围：diff 命令或文件清单描述}'
 ---
 
 # 验收报告 — {spec 标题}
 
 ## AC 核对（不漏 / 不偏）
 
-| AC | 结论 | 证据 |
-|---|---|---|
+| AC   | 结论    | 证据                                                        |
+| ---- | ------- | ----------------------------------------------------------- |
 | AC-1 | ✅ pass | `src/foo.ts:42` — 实现了 X，测试 `test/foo.test.ts:10` 通过 |
-| AC-2 | ❌ fail | 预期 Y，实际 Z（`src/bar.ts:17`） |
+| AC-2 | ❌ fail | 预期 Y，实际 Z（`src/bar.ts:17`）                           |
 
 ## 范围完整性（不少）
 

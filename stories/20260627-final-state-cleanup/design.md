@@ -24,12 +24,12 @@
 
 本任务采用“开发工程师 vs 测试工程师”的成对编排：
 
-| 产出 Agent（Generator） | 对抗验收 Agent（Discriminator） | 对抗目标 |
-|---|---|---|
-| Agent A · 终局锚点文档 | Agent A-test · final-state 文档审计 | A-test 必须尝试证明 `docs/final-state.md` 仍存在过期 Phase、Rust/Tauri、pi 缺失或五对象状态冲突 |
-| Agent B · 用户文档与应用文案 | Agent B-test · 用户可见叙述审计 | B-test 必须尝试证明 README/guide/locale/About/Permissions 仍在宣传已下线能力 |
-| Agent C · 依赖与验证入口 | Agent C-test · 验证可复跑审计 | C-test 必须尝试证明 lockfile/manifest drift、pnpm approval、缺失测试依赖或新增测试失败仍存在 |
-| 主对话整合 | Agent D · 最终独立验收 | D 不站在任何执行 agent 一边，只按 story AC 与本 design 给总判定 |
+| 产出 Agent（Generator）      | 对抗验收 Agent（Discriminator）     | 对抗目标                                                                                        |
+| ---------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Agent A · 终局锚点文档       | Agent A-test · final-state 文档审计 | A-test 必须尝试证明 `docs/final-state.md` 仍存在过期 Phase、Rust/Tauri、pi 缺失或五对象状态冲突 |
+| Agent B · 用户文档与应用文案 | Agent B-test · 用户可见叙述审计     | B-test 必须尝试证明 README/guide/locale/About/Permissions 仍在宣传已下线能力                    |
+| Agent C · 依赖与验证入口     | Agent C-test · 验证可复跑审计       | C-test 必须尝试证明 lockfile/manifest drift、pnpm approval、缺失测试依赖或新增测试失败仍存在    |
+| 主对话整合                   | Agent D · 最终独立验收              | D 不站在任何执行 agent 一边，只按 story AC 与本 design 给总判定                                 |
 
 ### 对抗协议
 

@@ -15,38 +15,38 @@
 
 ## 逐项核对
 
-### AC-1 — 现有对话路径保持可用  →  PASS（范围证据充分）
+### AC-1 — 现有对话路径保持可用 → PASS（范围证据充分）
 
-| 子项 | 结论 | 证据 |
-|---|---|---|
-| 创建/发送/取消/重试行为一致 | PASS | `useConversation.ts:5-15` 仍导入 `conversationCreate/Send/Cancel/Close/GetMessages/Truncate/Retry/GetStats`（来自 `../lib/tauri`）；`createTab:795-809`、`send:838-952`、`retry:954-987`、`cancel:989-999` 调用形态未变 |
-| 事件处理保持一致 | PASS | 事件 reducer 完整保留：`turn_start/text_delta/thinking_delta/tool_start/tool_end/web_search_result/done/error/truncated/loop_warning/subtask_*/title/usage`，见 `useConversation.ts:150-592` |
-| 不要求启动 TS daemon | PASS（范围）／ 待裁决（transport） | 范围文件内未直接 invoke daemon；subscription 经 `selectRuntimeClient()` 解耦。但 **当前 HEAD 的 `runtimeClient.ts` 已默认走 HTTP daemon**（见下方"待裁决 #1"），这是本 story 之后的 M8-a 迁移所致，非本 story 引入 |
+| 子项                        | 结论                               | 证据                                                                                                                                                                                                                    |
+| --------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 创建/发送/取消/重试行为一致 | PASS                               | `useConversation.ts:5-15` 仍导入 `conversationCreate/Send/Cancel/Close/GetMessages/Truncate/Retry/GetStats`（来自 `../lib/tauri`）；`createTab:795-809`、`send:838-952`、`retry:954-987`、`cancel:989-999` 调用形态未变 |
+| 事件处理保持一致            | PASS                               | 事件 reducer 完整保留：`turn_start/text_delta/thinking_delta/tool_start/tool_end/web_search_result/done/error/truncated/loop_warning/subtask_*/title/usage`，见 `useConversation.ts:150-592`                            |
+| 不要求启动 TS daemon        | PASS（范围）／ 待裁决（transport） | 范围文件内未直接 invoke daemon；subscription 经 `selectRuntimeClient()` 解耦。但 **当前 HEAD 的 `runtimeClient.ts` 已默认走 HTTP daemon**（见下方"待裁决 #1"），这是本 story 之后的 M8-a 迁移所致，非本 story 引入      |
 
-### AC-2 — 组件不再直接绑定 Tauri event 订阅  →  PASS（核心交付达成）
+### AC-2 — 组件不再直接绑定 Tauri event 订阅 → PASS（核心交付达成）
 
-| 子项 | 结论 | 证据 |
-|---|---|---|
-| `useConversation` 通过统一 runtime client 订阅 `conversation-stream` | PASS | `useConversation.ts:2` `import { selectRuntimeClient } from '../lib/runtimeClient'`；`:146` `const client = selectRuntimeClient()`；`:147` `client.subscribe<ConversationStreamPayload>('conversation-stream', ...)`；unsubscribe 在 `:595-597` 同步释放 |
-| 无直接 Tauri event API 绑定 | PASS | grep `@tauri-apps/api`、`tauri.*listen`、`invoke(` 在范围内文件 **0 命中**；测试 `useConversation.test.ts:52-56` 静态断言源码不含 `@tauri-apps/api/event` |
-| 订阅路径可测且通过 | PASS | `npx vitest run src/hooks/useConversation.test.ts` → **5/5 passed**；含 `subscribes to conversation-stream via runtime client`（`:58-63`）、`unsubscribes on unmount`（`:105-110`） |
-| 底层默认实现仍走 Tauri | 待裁决 | 见"待裁决 #1"——当前 HEAD 默认为 HTTP daemon（后置 M8-a 迁移）。**本 story 的保护层目标（解耦）已 100% 达成**；transport 默认值的变更归属后续 story |
+| 子项                                                                 | 结论   | 证据                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useConversation` 通过统一 runtime client 订阅 `conversation-stream` | PASS   | `useConversation.ts:2` `import { selectRuntimeClient } from '../lib/runtimeClient'`；`:146` `const client = selectRuntimeClient()`；`:147` `client.subscribe<ConversationStreamPayload>('conversation-stream', ...)`；unsubscribe 在 `:595-597` 同步释放 |
+| 无直接 Tauri event API 绑定                                          | PASS   | grep `@tauri-apps/api`、`tauri.*listen`、`invoke(` 在范围内文件 **0 命中**；测试 `useConversation.test.ts:52-56` 静态断言源码不含 `@tauri-apps/api/event`                                                                                                |
+| 订阅路径可测且通过                                                   | PASS   | `npx vitest run src/hooks/useConversation.test.ts` → **5/5 passed**；含 `subscribes to conversation-stream via runtime client`（`:58-63`）、`unsubscribes on unmount`（`:105-110`）                                                                      |
+| 底层默认实现仍走 Tauri                                               | 待裁决 | 见"待裁决 #1"——当前 HEAD 默认为 HTTP daemon（后置 M8-a 迁移）。**本 story 的保护层目标（解耦）已 100% 达成**；transport 默认值的变更归属后续 story                                                                                                       |
 
-### AC-3 — 外部 API 不破坏  →  PASS（范围内可验证部分）
+### AC-3 — 外部 API 不破坏 → PASS（范围内可验证部分）
 
-| 子项 | 结论 | 证据 |
-|---|---|---|
-| `../lib/tauri` 既有导出在 hook 内仍被兼容消费 | PASS | `useConversation.ts:4-15` 导入的函数/类型签名均按原形态调用（见 AC-1 第一行证据），无破坏性用法 |
-| `tauri.ts` 对外函数签名保持兼容 | 越界（不在本次范围） | 本次范围仅 useConversation.ts。`apps/web/src/lib/tauri.ts`（25KB）签名核对超出指定范围，未核 |
-| 不引入 HTTP daemon 作为默认路径 | 待裁决 | useConversation.ts 本身未引入；transport 默认值由 runtimeClient.ts 决定（后置迁移已变，见 #1） |
+| 子项                                          | 结论                 | 证据                                                                                            |
+| --------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
+| `../lib/tauri` 既有导出在 hook 内仍被兼容消费 | PASS                 | `useConversation.ts:4-15` 导入的函数/类型签名均按原形态调用（见 AC-1 第一行证据），无破坏性用法 |
+| `tauri.ts` 对外函数签名保持兼容               | 越界（不在本次范围） | 本次范围仅 useConversation.ts。`apps/web/src/lib/tauri.ts`（25KB）签名核对超出指定范围，未核    |
+| 不引入 HTTP daemon 作为默认路径               | 待裁决               | useConversation.ts 本身未引入；transport 默认值由 runtimeClient.ts 决定（后置迁移已变，见 #1）  |
 
-### AC-4 — 小范围独占修改  →  PASS（范围内）
+### AC-4 — 小范围独占修改 → PASS（范围内）
 
-| 子项 | 结论 | 证据 |
-|---|---|---|
-| 范围文件改动自洽、无越界 | PASS | useConversation.ts 改动仅落在订阅接线（`:2`、`:142-147`、`:595-605`），其余 reducer 与会话管理逻辑无结构性重写 |
-| 未修改 Rust / 未新增 daemon / 未改 ChatPanel | PASS（范围） | 范围文件为前端 hook，无 Rust、无 daemon 创建、无 ChatPanel 视觉/业务结构改动 |
-| 全仓范围合规性 | 越界 | 单文件核对无法判定全仓 diff；git log 显示本 story 对应 commit `4d973c8 feat: agent runtime migration — phase 0 contracts + phase 1 runtime client`，后续 `e601530`（G5）为独立迁移 |
+| 子项                                         | 结论         | 证据                                                                                                                                                                               |
+| -------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 范围文件改动自洽、无越界                     | PASS         | useConversation.ts 改动仅落在订阅接线（`:2`、`:142-147`、`:595-605`），其余 reducer 与会话管理逻辑无结构性重写                                                                     |
+| 未修改 Rust / 未新增 daemon / 未改 ChatPanel | PASS（范围） | 范围文件为前端 hook，无 Rust、无 daemon 创建、无 ChatPanel 视觉/业务结构改动                                                                                                       |
+| 全仓范围合规性                               | 越界         | 单文件核对无法判定全仓 diff；git log 显示本 story 对应 commit `4d973c8 feat: agent runtime migration — phase 0 contracts + phase 1 runtime client`，后续 `e601530`（G5）为独立迁移 |
 
 ---
 

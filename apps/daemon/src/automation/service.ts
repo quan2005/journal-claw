@@ -165,10 +165,7 @@ export class AutomationService {
     }
   }
 
-  private async runInner(
-    routineId: string,
-    trigger: AutomationRunTrigger,
-  ): Promise<AutomationRun> {
+  private async runInner(routineId: string, trigger: AutomationRunTrigger): Promise<AutomationRun> {
     const routine = this.store.getRoutine(routineId)
     const run: AutomationRun = {
       id: `run_${randomUUID()}`,
@@ -184,11 +181,7 @@ export class AutomationService {
     this.store.upsertRun(run)
 
     try {
-      const { conversationId, manifest } = await this.runner.run(
-        this.workspaceRoot,
-        routine,
-        run,
-      )
+      const { conversationId, manifest } = await this.runner.run(this.workspaceRoot, routine, run)
       run.status = 'succeeded'
       run.completed_at = this.isoNow()
       run.conversation_id = conversationId

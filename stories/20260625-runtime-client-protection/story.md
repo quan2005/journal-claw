@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-runtime-client-protection
-title: "前端运行时保护层"
+title: '前端运行时保护层'
 status: verified
 source: gate
 level: L2
@@ -54,24 +54,28 @@ related:
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — 现有对话路径保持可用
+
 - **Given** 用户仍在使用当前 Tauri/Rust 默认运行时
 - **When** 用户创建会话、发送消息、取消或重试
 - **Then** 前端行为和现有事件处理保持一致
 - **And** 不要求启动 TS daemon
 
 ### AC-2 — 组件不再直接绑定 Tauri event 订阅
+
 - **Given** 维护者需要后续接入 HTTP/SSE daemon
 - **When** 检查 conversation hook 的事件订阅
 - **Then** `useConversation` 通过统一 runtime client 订阅 `conversation-stream`
 - **And** 底层默认实现仍走 Tauri
 
 ### AC-3 — 外部 API 不破坏
+
 - **Given** 现有组件和 hooks 已经使用 `src/lib/tauri.ts` 的导出函数
 - **When** 本 story 完成
 - **Then** `src/lib/tauri.ts` 对外导出的既有函数签名保持兼容
 - **And** 不引入 HTTP daemon 作为默认路径
 
 ### AC-4 — 小范围独占修改
+
 - **Given** 运行时入口文件是冲突热点
 - **When** Claude 执行本 story
 - **Then** 允许修改范围限于 `src/lib/runtimeClient.ts`、`src/lib/tauri.ts`、`src/hooks/useConversation.ts` 和必要测试
@@ -92,10 +96,10 @@ related:
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | Phase 1 是否只做 TauriRuntimeClient 包装，不接 HTTP daemon？ | 是 | 已决策 |
-| Q2 | 是否允许 Claude 独占修改 `src/lib/tauri.ts` 与 `useConversation`？ | 是，但只能在本 story 范围内 | 已决策 |
+| #   | 问题                                                               | 当前默认值                  | 状态   |
+| --- | ------------------------------------------------------------------ | --------------------------- | ------ |
+| Q1  | Phase 1 是否只做 TauriRuntimeClient 包装，不接 HTTP daemon？       | 是                          | 已决策 |
+| Q2  | 是否允许 Claude 独占修改 `src/lib/tauri.ts` 与 `useConversation`？ | 是，但只能在本 story 范围内 | 已决策 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -108,7 +112,6 @@ related:
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-25 | 可开发 | 用户要求拆小并分发落地；本 story 需等待契约文档/ADR 落仓后派发 |
-
+| 轮次 | 日期       | Readiness | 主要缺口                                                       |
+| ---- | ---------- | --------- | -------------------------------------------------------------- |
+| 1    | 2026-06-25 | 可开发    | 用户要求拆小并分发落地；本 story 需等待契约文档/ADR 落仓后派发 |

@@ -83,10 +83,7 @@ describe('AgentRunService', () => {
   describe('state machine', () => {
     it('queued → running on run_started', () => {
       const run = service.createRun({ goal: 'g', mode: 'agent' })
-      service.appendEvent(
-        run.id,
-        makeEvent(service, run.id, { type: 'run_started' }),
-      )
+      service.appendEvent(run.id, makeEvent(service, run.id, { type: 'run_started' }))
       expect(service.getRun(run.id)?.status).toBe('running')
     })
 

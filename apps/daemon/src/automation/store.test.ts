@@ -3,12 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AutomationStore } from './store.js'
-import type {
-  AutomationRoutine,
-  AutomationRun,
-  AutomationSchedule,
-  RunManifest,
-} from './types.js'
+import type { AutomationRoutine, AutomationRun, AutomationSchedule, RunManifest } from './types.js'
 
 const HK = 'Asia/Hong_Kong'
 

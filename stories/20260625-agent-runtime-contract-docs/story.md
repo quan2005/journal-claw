@@ -1,6 +1,6 @@
 ---
 id: STORY-20260625-agent-runtime-contract-docs
-title: "Agent Runtime 迁移契约文档落仓"
+title: 'Agent Runtime 迁移契约文档落仓'
 status: verified
 source: gate
 level: L2
@@ -53,6 +53,7 @@ handoff 已经给出 TypeScript daemon + Coding Agent Runtime 的最终状态、
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — design 契约落仓
+
 - **Given** 维护者准备拆分 TypeScript daemon + Coding Agent Runtime 迁移
 - **When** 本 story 完成
 - **Then** `stories/20260625-agent-runtime-contract-docs/design.md` 存在
@@ -60,6 +61,7 @@ handoff 已经给出 TypeScript daemon + Coding Agent Runtime 的最终状态、
 - **And** 文档引用 umbrella story 和 handoff 的事实来源
 
 ### AC-2 — ADR 落仓
+
 - **Given** 后续任务需要统一迁移架构判断
 - **When** 本 story 完成
 - **Then** `docs/adr/ts-daemon-agent-runtime-migration.md` 存在
@@ -67,6 +69,7 @@ handoff 已经给出 TypeScript daemon + Coding Agent Runtime 的最终状态、
 - **And** ADR 明确只本地、多平台一致、首批只支持 Claude Code / Codex CLI / OpenCode
 
 ### AC-3 — Rust 删除 gate 落仓
+
 - **Given** Rust 后端不能在 TS daemon 未覆盖时被提前删除
 - **When** 本 story 完成
 - **Then** `docs/adr/rust-removal-acceptance.md` 存在
@@ -74,12 +77,14 @@ handoff 已经给出 TypeScript daemon + Coding Agent Runtime 的最终状态、
 - **And** 文档明确如果桌面宿主仍依赖 Tauri/Rust，则 Rust 删除 gate 不通过
 
 ### AC-4 — 不修改业务代码
+
 - **Given** 本 story 只负责契约落仓
 - **When** Claude 或人工执行任务
 - **Then** 不修改 `src/`、`src-tauri/`、`package.json`、workspace 配置或测试文件
 - **And** 允许改动范围仅限本 story 目录、umbrella story、已拆出的 child story、`docs/adr/` 目标文档和 handoff 账本
 
 ### AC-5 — umbrella 被收缩为总契约并拆出首批 child story
+
 - **Given** umbrella story 的范围过大，INVEST Small 未过
 - **When** 本 story 完成
 - **Then** `stories/20260625-ts-daemon-agent-runtime-migration/story.md` 明确只作为总契约，不直接承载业务代码
@@ -101,10 +106,10 @@ handoff 已经给出 TypeScript daemon + Coding Agent Runtime 的最终状态、
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | 本 story 是否只做契约文档，不改业务代码？ | 是 | 已决策 |
-| Q2 | 是否可以用 Claude `-p` 执行文档落仓？ | 是 | 已决策 |
+| #   | 问题                                      | 当前默认值 | 状态   |
+| --- | ----------------------------------------- | ---------- | ------ |
+| Q1  | 本 story 是否只做契约文档，不改业务代码？ | 是         | 已决策 |
+| Q2  | 是否可以用 Claude `-p` 执行文档落仓？     | 是         | 已决策 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -117,7 +122,7 @@ handoff 已经给出 TypeScript daemon + Coding Agent Runtime 的最终状态、
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-25 | 可开发 | 用户要求拆小并分发落地；本 story 限定为文档契约落仓，允许派发 Claude |
-| 2 | 2026-06-25 | 可开发 | 第一轮验收指出拆分 story 未列入 Phase 0 允许范围；已将 umbrella/child story 文件纳入契约范围 |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                     |
+| ---- | ---------- | --------- | -------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-25 | 可开发    | 用户要求拆小并分发落地；本 story 限定为文档契约落仓，允许派发 Claude                         |
+| 2    | 2026-06-25 | 可开发    | 第一轮验收指出拆分 story 未列入 Phase 0 允许范围；已将 umbrella/child story 文件纳入契约范围 |

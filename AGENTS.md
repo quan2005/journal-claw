@@ -4,13 +4,13 @@
 
 ## 文档地图
 
-| 文档 | 唯一权威内容 |
-|---|---|
-| `docs/ARCH.md` | 架构分层、模块边界、依赖方向规则（含违反示例） |
-| `docs/DESIGN.md` | 视觉设计规范（配色、排版、结构化 token、动效、Anti-slop） |
-| `docs/CONVENTIONS.md` | 工程规范（命令、目录、测试策略、门禁流程、版本、CI/CD） |
-| `docs/final-state.md` | 产品北极星、五个一等对象、状态地图 |
-| `docs/adr/` | 架构决策历史（只增不改） |
+| 文档                  | 唯一权威内容                                              |
+| --------------------- | --------------------------------------------------------- |
+| `docs/ARCH.md`        | 架构分层、模块边界、依赖方向规则（含违反示例）            |
+| `docs/DESIGN.md`      | 视觉设计规范（配色、排版、结构化 token、动效、Anti-slop） |
+| `docs/CONVENTIONS.md` | 工程规范（命令、目录、测试策略、门禁流程、版本、CI/CD）   |
+| `docs/final-state.md` | 产品北极星、五个一等对象、状态地图                        |
+| `docs/adr/`           | 架构决策历史（只增不改）                                  |
 
 ## 产品一句话
 
@@ -27,6 +27,8 @@ npm run lint && npm run format:check
 ```
 
 完整命令与单测/e2e 用法见 `docs/CONVENTIONS.md` §1。
+
+包管理器为 **bun**（版本见 `package.json#packageManager`）；开发前执行 `bun install`，CI 与本地均统一使用 bun。
 
 ## 铁律摘要（细则见权威出处）
 

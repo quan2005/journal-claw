@@ -43,10 +43,7 @@ describe('TopicsService', () => {
     try {
       mkdirSync(join(ws, 'topics'), { recursive: true })
       const service = new TopicsService(ws, new ChangeSetService(ws))
-      writeFileSync(
-        join(ws, 'topics', 'titled.md'),
-        '---\ntitle: 我的笔记标题\n---\n\n正文',
-      )
+      writeFileSync(join(ws, 'topics', 'titled.md'), '---\ntitle: 我的笔记标题\n---\n\n正文')
       writeFileSync(join(ws, 'topics', 'plain.md'), '# 没有frontmatter')
       writeFileSync(join(ws, 'topics', 'notes.mdx'), '---\ntitle: "MDX Title"\n---\nbody')
       writeFileSync(join(ws, 'topics', 'data.json'), '{}')

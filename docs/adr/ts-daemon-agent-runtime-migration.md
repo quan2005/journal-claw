@@ -161,11 +161,7 @@ type ChangeSet = {
 第一阶段不做复杂细粒度权限系统。
 
 ```ts
-type AuthorizationMode =
-  | 'wide_with_audit'
-  | 'read_only'
-  | 'workspace_write'
-  | 'full_access'
+type AuthorizationMode = 'wide_with_audit' | 'read_only' | 'workspace_write' | 'full_access'
 ```
 
 - `wide_with_audit`：显式迁移/审计模式。允许执行，但记录工具调用、文件访问、ChangeSet、artifact 和错误。
@@ -183,7 +179,13 @@ Run 结束后的自动沉淀记录。它不是黑盒记忆，每条记录都必�
 type SedimentationRecord = {
   id: string
   runId: string
-  kind: 'run_summary' | 'artifact_index' | 'preference' | 'project_fact' | 'writing_rule' | 'tool_rule'
+  kind:
+    | 'run_summary'
+    | 'artifact_index'
+    | 'preference'
+    | 'project_fact'
+    | 'writing_rule'
+    | 'tool_rule'
   path: string
   evidence: Array<{ sourcePath?: string; quote?: string; eventId?: string }>
   relatedArtifactIds?: string[]

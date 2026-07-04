@@ -44,12 +44,12 @@ Avoid when: the material defines project scope or requirements; use project-docs
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| status-report | Compress narrative; prioritize status, blocker, next action |
-| performance-review | Add evidence, impact, growth points, manager feedback |
-| executive-summary | Put conclusion and risk first; remove low-level details |
-| risk-focused-report | Lead with `RiskMatrix`; add mitigation owner and deadline |
+| Subtype             | Apply changes                                               |
+| ------------------- | ----------------------------------------------------------- |
+| status-report       | Compress narrative; prioritize status, blocker, next action |
+| performance-review  | Add evidence, impact, growth points, manager feedback       |
+| executive-summary   | Put conclusion and risk first; remove low-level details     |
+| risk-focused-report | Lead with `RiskMatrix`; add mitigation owner and deadline   |
 
 ## Quality Rules
 

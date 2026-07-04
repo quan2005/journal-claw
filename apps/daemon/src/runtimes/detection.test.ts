@@ -2,15 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, writeFileSync, chmodSync, rmSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import {
-  detectAgents,
-  detectAgentsStream,
-  __resetDetectionCacheForTests,
-} from './detection.js'
-import {
-  registerAgentDef,
-  __resetRegistryForTests,
-} from './registry.js'
+import { detectAgents, detectAgentsStream, __resetDetectionCacheForTests } from './detection.js'
+import { registerAgentDef, __resetRegistryForTests } from './registry.js'
 import { __resetToolchainDirCacheForTests } from './executables.js'
 import type { RuntimeAgentDef, AgentInfo } from '@journal/contracts'
 
@@ -30,11 +23,7 @@ function makeBin(name: string, body: string, mode: number = 0o755): string {
   return p
 }
 
-function stubDef(
-  id: string,
-  bin: string,
-  extra: Partial<RuntimeAgentDef> = {},
-): RuntimeAgentDef {
+function stubDef(id: string, bin: string, extra: Partial<RuntimeAgentDef> = {}): RuntimeAgentDef {
   return {
     id,
     name: id,
@@ -115,11 +104,7 @@ describe.sequential('agent detection', () => {
     writeFileSync(interpreter, '#!/bin/sh\necho "7.7.7"\n', { mode: 0o755 })
     chmodSync(interpreter, 0o755)
     const agentBin = join(localBin, 'journal-detect-toolchain-bin')
-    writeFileSync(
-      agentBin,
-      '#!/usr/bin/env journal-detect-interp\n',
-      { mode: 0o755 },
-    )
+    writeFileSync(agentBin, '#!/usr/bin/env journal-detect-interp\n', { mode: 0o755 })
     chmodSync(agentBin, 0o755)
 
     registerAgentDef(stubDef('toolchain', 'journal-detect-toolchain-bin'))

@@ -1,17 +1,17 @@
 ---
 id: SPEC-20260614-agentic-design-language
-title: "设计语言全面替换为 Agentic（#FF5701 · system fonts · 8pt grid）"
+title: '设计语言全面替换为 Agentic（#FF5701 · system fonts · 8pt grid）'
 status: verified
 source: gate
 level: L3
 created: 2026-06-14
 related:
-  - docs/DESIGN.md            # 将被改写
-  - AGENTS.md                 # 「设计基调」段将被改写
-  - src/styles/globals.css    # 令牌根文件
-  - index.html                # 字体加载
-  - specs/20260614-skills-redesign/spec.md   # 令牌映射表需同步更新
-  - /Users/yanwu/Downloads/JournalClaw 技能页面 (standalone).html  # Agentic 视觉源之一
+  - docs/DESIGN.md # 将被改写
+  - AGENTS.md # 「设计基调」段将被改写
+  - src/styles/globals.css # 令牌根文件
+  - index.html # 字体加载
+  - specs/20260614-skills-redesign/spec.md # 令牌映射表需同步更新
+  - /Users/yanwu/Downloads/JournalClaw 技能页面 (standalone).html # Agentic 视觉源之一
 ---
 
 # 设计语言全面替换为 Agentic
@@ -25,6 +25,7 @@ related:
 **目标**：按用户提供的 Agentic 设计语言描述全面替换——Primary `#FF5701`、Success `#16A34A`、Warning `#D97706`、Danger `#DC2626`、Surface `#FFFFFF`、Text `#111827`；8pt 间距网格；type scale 14/16/18/24/32/40；"modern, bold" 气质。用户已确认 [决策]：**全应用彻底替换** + **只用系统字体**（不加载 Playfair Display / JetBrains Mono）+ **改写 DESIGN.md/AGENTS.md** + **同步更新 skills spec**。
 
 **关键冲突已处理**：
+
 - `docs/DESIGN.md` §6 明确禁止 `#ffffff`/`#000000` 与衬线标题——本次按用户决策整体改写，旧禁令随之失效。
 - skills-redesign spec（`status: clarifying`，未 approved）的令牌映射表（mockup 金→`--record-btn` #B8782A）将被同步改为映射到 `#FF5701`。
 - 用户选择「只用系统字体」：Agentic 原描述的 Playfair Display（标题）与 JetBrains Mono（mono）**不加载**，标题用系统无衬线栈（保持现状的 `--font-body`），mono 继续用已加载的 IBM Plex Mono。这是对原 brief 的有意识偏离，spec 记录此偏离。
@@ -36,6 +37,7 @@ related:
 通过 {改写 globals.css 令牌为 Agentic 色板 + 8pt 间距 + 新 type scale + system fonts；清理 8 个生产文件的 inline-hex 走令牌；改写 DESIGN.md/AGENTS.md；同步 skills spec 令牌映射}，影响 {应用整体视觉气质}，预期 {全应用从金橙沉静切换为 Agentic 橙+白+现代粗体，暗色模式同步，文档与代码一致}。
 
 **假设（可证伪）**：
+
 - 假设 A：令牌值替换后，所有经 `var(--token)` 引用的组件视觉自动正确（无需逐组件改）。证伪方式：8 个 inline-hex 文件 + mdx/chart 渲染需手工核对（已知 16 文件 120 处 hex，见 §7）。
 - 假设 B：`#FF5701`（橙）在浅色 `#FFFFFF` 背景上对比度足够用于按钮文字。**证伪需验证**：`#FF5701` on `#FFFFFF` 对比度约 2.7:1，**低于 WCAG AA 文字 4.5:1**——作为大面积按钮填充+白字组合时，文字该用深色 `#111827` 而非白色。spec §8 列为风险 R1，需实现时验证。
 - 假设 C：macOS 系统字体栈在「modern bold」气质下可接受（无衬线标题）。这是用户已确认的偏离。
@@ -44,6 +46,7 @@ related:
 ## 3. 范围（In Scope）
 
 **令牌层（`src/styles/globals.css`，主要工作）**
+
 - `:root`（浅色默认）令牌值替换：
   - 主 accent：`--record-btn: #B8782A` → `#FF5701`；`--record-btn-hover` → 深一档（如 `#E64A00`）；`--record-btn-icon` → `#111827`（浅色，深墨保证 WCAG AA ~5.9:1；见 §8 R1）。初稿曾写 `#FFFFFF`，与 §8 R1/AC-14 无障碍硬约束冲突——以 §8 R1（[证据·必修]）为准。暗色 `--record-btn-icon` 为 `#0F0F0F`。
   - `--accent: #ff3b30`（红）→ 重新定义语义：保留为「危险/删除」语义红（与 `--status-danger` 对齐 `#DC2626`），**不再作为交互 accent**（交互 accent 统一走 `--record-btn`=#FF5701）。
@@ -57,11 +60,13 @@ related:
 - 暗色模式三处覆盖块（`@media dark` line 248、`[data-theme='dark']` line 427、`[data-theme='light']` line 1998）同步改写：暗色表面用 `#0F0F0F`/`#1C1C1E` 系（保持现状暗色基调），橙 `#FF5701` 在暗色下提亮一档（如 `#FF7A33`）保证对比度。
 
 **字体层（`index.html` + globals.css）[决策：只用系统字体]**
+
 - `index.html:7-8` 的 IBM Plex Mono Google Fonts `<link>` **保留**（mono 继续用 IBM Plex Mono，已是好选择；brief 的 JetBrains Mono 不带来质的提升，省一次字体切换）。
 - `globals.css` 字体令牌：`--font-body` 保持系统栈；`--font-mono` 保持 IBM Plex Mono；`--font-serif` 保留声明但不强制使用（与现状一致）。
 - **偏离记录**：brief 的 Playfair Display（标题）不加载；标题用 `--font-body`（system-ui/SF Pro）。spec §9 Q3 记录。
 
 **Inline-hex 清理（8 个重点文件，生产代码）**
+
 - `src/components/FileTypeIcon.tsx`（48 处）—— 把文件类型色改为引用 `--file-*` 令牌（令牌本身在 globals.css 已存在，本次同步刷新令牌值）。
 - `src/components/mdx/chart-impl.tsx`（34 处）+ `charts.tsx`（1 处）—— 图表配色改为 Agentic 色板（橙为主，配套 6–8 色序列，避免纯随机）。
 - `src/settings/components/SectionSpeakers.tsx`（10）、`SectionPermissions.tsx`（9）—— 内联色走令牌。
@@ -70,10 +75,12 @@ related:
 - 其余含 hex 的 8 个文件（各 1 处）快速核对，能走令牌的走令牌。
 
 **文档层**
+
 - 改写 `docs/DESIGN.md`：隐喻从「档案册/金橙」改为 Agentic（"对话式 AI 优先 / modern bold / 橙白"）；§1–6 全部重写；§6 禁令更新（允许 `#FFFFFF`/`#111827`，允许 700/800 字重，仍禁渐变文字/玻璃态/ bounce 缓动等通用反 slop）。
 - 改写 `AGENTS.md`「设计基调」段：从「克制·沉静·专业」改为 Agentic 表述（"Modern · Bold · Agentic"），指向更新后的 `docs/DESIGN.md`。
 
 **关联 spec 同步**
+
 - `specs/20260614-skills-redesign/spec.md` §7 令牌映射表**已同步**（第 2 轮）：mockup accent → `#FF5701`，标题用 system font，移除 Noto Serif SC。该 spec 与本 spec 耦合交付（用户决策「一并升级」）。
 
 ## 4. 非目标（Out of Scope）
@@ -108,29 +115,31 @@ related:
 
 ## 6. 非功能需求（NFR）
 
-| 维度 | 要求 | 备注 |
-|---|---|---|
-| 性能 | 不新增 web font 加载（系统字体 + 现有 IBM Plex Mono）；令牌替换零运行时开销。 | [证据] 现状已是系统字体+1 web font |
-| 安全 / 权限 | 纯前端 CSS/TSX 改动，无 IPC/文件系统/网络变更。 | N/A 无权限面变化 |
-| 数据 / 隐私 | 不涉及用户数据。 | N/A |
-| 可靠性 / 降级 | 令牌缺失回退：CSS `var(--token, fallback)` 模式；inline-hex 替换时保留 fallback。 | |
-| 可观测性 | 无新增埋点；视觉回归靠人工 + 现有测试。 | |
-| 回滚策略 | **git revert 单 commit/PR 即可**——令牌是纯值替换，无数据迁移、无不可逆操作。DESIGN.md/AGENTS.md 同在 git。 | L3 强制：回滚 ✓ |
-| 兼容性 | 令牌**只改值不改名**（`--record-btn` 名字保留，值变 `#FF57001`），所有 28 个引用文件零改动自动生效。这是降低风险的关键设计。 | L3 强制：兼容性 ✓ |
-| 成本 | 零新依赖。零字体下载新增。 | |
-| 风控滥用 | N/A 单机应用，无多租户。 | |
-| 运营客服 | N/A | |
-| 多语言地区 | 文档双语（DESIGN.md 中文为主）；色板无地区敏感性。 | |
+| 维度          | 要求                                                                                                                         | 备注                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 性能          | 不新增 web font 加载（系统字体 + 现有 IBM Plex Mono）；令牌替换零运行时开销。                                                | [证据] 现状已是系统字体+1 web font |
+| 安全 / 权限   | 纯前端 CSS/TSX 改动，无 IPC/文件系统/网络变更。                                                                              | N/A 无权限面变化                   |
+| 数据 / 隐私   | 不涉及用户数据。                                                                                                             | N/A                                |
+| 可靠性 / 降级 | 令牌缺失回退：CSS `var(--token, fallback)` 模式；inline-hex 替换时保留 fallback。                                            |                                    |
+| 可观测性      | 无新增埋点；视觉回归靠人工 + 现有测试。                                                                                      |                                    |
+| 回滚策略      | **git revert 单 commit/PR 即可**——令牌是纯值替换，无数据迁移、无不可逆操作。DESIGN.md/AGENTS.md 同在 git。                   | L3 强制：回滚 ✓                    |
+| 兼容性        | 令牌**只改值不改名**（`--record-btn` 名字保留，值变 `#FF57001`），所有 28 个引用文件零改动自动生效。这是降低风险的关键设计。 | L3 强制：兼容性 ✓                  |
+| 成本          | 零新依赖。零字体下载新增。                                                                                                   |                                    |
+| 风控滥用      | N/A 单机应用，无多租户。                                                                                                     |                                    |
+| 运营客服      | N/A                                                                                                                          |                                    |
+| 多语言地区    | 文档双语（DESIGN.md 中文为主）；色板无地区敏感性。                                                                           |                                    |
 
 **L3 强制项核对**：数据契约（视觉契约）→ 兼容性（✓ 令牌只改值）、回滚（✓ git revert）；权限/计费/对外 API/不可逆迁移/跨团队指标 → 均 N/A（纯前端视觉）。
 
 ## 7. 依赖与影响面
 
 **依赖**：
+
 - 无新依赖。`gray_matter`/`mdxjs`/lucide-react 均已在。
 - 系统字体栈（macOS SF Pro）由 OS 提供，零加载成本。
 
 **影响面（受影响模块/文件）**：
+
 - **令牌根**：`src/styles/globals.css`（2361 行）——`:root` + 3 处主题覆盖块。主要工作。
 - **经令牌自动生效**（无需改代码）：28 个引用 `--record-btn` 的文件、13 个 `--font-body`、21 个 `--font-mono`、15 个 `--status-success`、14 个 `--status-danger`、8 个 `--status-warning` [证据: grep -rl 计数]。
 - **inline-hex 需手工替换**（16 生产文件，120 处）[证据: 精确 grep]：
@@ -143,27 +152,28 @@ related:
 
 **令牌映射决策表**（旧 → 新，浅色默认）：
 
-| 令牌 | 旧值 | 新值 | 说明 |
-|---|---|---|---|
-| `--record-btn` | `#b8782a` | `#FF5701` | 主 accent，只改值不改名 |
-| `--record-btn-hover` | `#a06820` | `#E64A00` [推测] | 深一档 |
-| `--record-btn-icon` | `#f5f6f7` | `#111827` | 按钮上文字/图标（深墨，WCAG AA） |
-| `--accent` | `#ff3b30`（交互红） | 语义重定义：危险红，对齐 `--status-danger` | 不再作交互 accent |
-| `--bg` | `#f5f6f7` | `#FFFFFF` | 主背景 |
-| `--bg-secondary` | `#f7f8f9` | `#FAFAFA` [推测] | 微分层 |
-| `--bg-tertiary` | `#e5e5e7` | `#F4F4F5` [推测] | |
-| `--text-primary` | `#1c1c1e` | `#111827` | 主文字 |
-| `--text-secondary` | `#6a7278` | `#4B5563` [推测] | |
-| `--text-tertiary` | `#a0a8ad` | `#9CA3AF` [推测] | |
-| `--divider` | `#d8dce0` | `#E5E7EB` [推测] | |
-| `--status-success` | `#266b45` | `#16A34A` | brief 指定 |
-| `--status-warning` | `#8a6500` | `#D97706` | brief 指定 |
-| `--status-danger` | `#b5312a` | `#DC2626` | brief 指定 |
-| 各 `-bg` 配套 | 旧浅底 | 新浅底 | 配合主色 |
+| 令牌                 | 旧值                | 新值                                       | 说明                             |
+| -------------------- | ------------------- | ------------------------------------------ | -------------------------------- |
+| `--record-btn`       | `#b8782a`           | `#FF5701`                                  | 主 accent，只改值不改名          |
+| `--record-btn-hover` | `#a06820`           | `#E64A00` [推测]                           | 深一档                           |
+| `--record-btn-icon`  | `#f5f6f7`           | `#111827`                                  | 按钮上文字/图标（深墨，WCAG AA） |
+| `--accent`           | `#ff3b30`（交互红） | 语义重定义：危险红，对齐 `--status-danger` | 不再作交互 accent                |
+| `--bg`               | `#f5f6f7`           | `#FFFFFF`                                  | 主背景                           |
+| `--bg-secondary`     | `#f7f8f9`           | `#FAFAFA` [推测]                           | 微分层                           |
+| `--bg-tertiary`      | `#e5e5e7`           | `#F4F4F5` [推测]                           |                                  |
+| `--text-primary`     | `#1c1c1e`           | `#111827`                                  | 主文字                           |
+| `--text-secondary`   | `#6a7278`           | `#4B5563` [推测]                           |                                  |
+| `--text-tertiary`    | `#a0a8ad`           | `#9CA3AF` [推测]                           |                                  |
+| `--divider`          | `#d8dce0`           | `#E5E7EB` [推测]                           |                                  |
+| `--status-success`   | `#266b45`           | `#16A34A`                                  | brief 指定                       |
+| `--status-warning`   | `#8a6500`           | `#D97706`                                  | brief 指定                       |
+| `--status-danger`    | `#b5312a`           | `#DC2626`                                  | brief 指定                       |
+| 各 `-bg` 配套        | 旧浅底              | 新浅底                                     | 配合主色                         |
 
 标注 `[推测]` 的值为合理默认，实现时可微调（Q4 待确认是否需逐值过审）。
 
 **与历史结论冲突**：
+
 - `docs/DESIGN.md` §6 禁令（禁 `#fff`/`#000`、禁 >600 字重）——本次改写后失效。
 - `AGENTS.md`「设计基调」——本次改写。
 - skills-redesign spec §7 令牌映射——本次同步更新。
@@ -181,18 +191,18 @@ related:
 
 ## 9. 待确认
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | 8pt 网格严格度 | 默认：**8pt 节奏 + 4px 细粒度例外**（`--space-1` 保留 4px，主要节奏点落 8/16/32/48/64） | 待确认（可用默认） |
-| Q2 | Type scale 映射 | 默认：UI 正文保留 14px 紧凑；新增 `--text-display-lg:40px`/`--text-display:32px`/`--text-heading:24px` 用于展示型标题；保留 `--text-xs:12px` 次元信息 | 待确认（可用默认） |
-| Q3 | 字体偏离 | 用户已确认：**只用系统字体**（不加载 Playfair Display/JetBrains Mono）；mono 继续用 IBM Plex Mono。Agentic 原描述的 serif 标题不实现 | ✅ 已确认（偏离已记录） |
-| Q4 | 令牌新值逐个过审 vs 一次性默认 | 默认：**一次性用 §7 表的默认值实现**，实现后用 HTML mockup 给你验收，不满意再微调（避免逐值往返） | 待确认（可用默认） |
-| Q5 | `--accent` 语义重定义 | 默认：`--accent` 从「交互红」重定义为「危险红」对齐 `--status-danger`；交互 accent 统一走 `--record-btn`（橙）。R2 核对 4 个引用点 | 待确认（可用默认） |
-| Q6 | mdx 图表配色序列 | 默认：6 色序列 `#FF5701`/`#16A34A`/`#D97706`/`#3B82F6`/`#8B5CF6`/`#EC4899`（橙为主，序列色兼顾区分度） | 待确认（可用默认） |
+| #   | 问题                           | 当前默认值                                                                                                                                            | 状态                    |
+| --- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Q1  | 8pt 网格严格度                 | 默认：**8pt 节奏 + 4px 细粒度例外**（`--space-1` 保留 4px，主要节奏点落 8/16/32/48/64）                                                               | 待确认（可用默认）      |
+| Q2  | Type scale 映射                | 默认：UI 正文保留 14px 紧凑；新增 `--text-display-lg:40px`/`--text-display:32px`/`--text-heading:24px` 用于展示型标题；保留 `--text-xs:12px` 次元信息 | 待确认（可用默认）      |
+| Q3  | 字体偏离                       | 用户已确认：**只用系统字体**（不加载 Playfair Display/JetBrains Mono）；mono 继续用 IBM Plex Mono。Agentic 原描述的 serif 标题不实现                  | ✅ 已确认（偏离已记录） |
+| Q4  | 令牌新值逐个过审 vs 一次性默认 | 默认：**一次性用 §7 表的默认值实现**，实现后用 HTML mockup 给你验收，不满意再微调（避免逐值往返）                                                     | 待确认（可用默认）      |
+| Q5  | `--accent` 语义重定义          | 默认：`--accent` 从「交互红」重定义为「危险红」对齐 `--status-danger`；交互 accent 统一走 `--record-btn`（橙）。R2 核对 4 个引用点                    | 待确认（可用默认）      |
+| Q6  | mdx 图表配色序列               | 默认：6 色序列 `#FF5701`/`#16A34A`/`#D97706`/`#3B82F6`/`#8B5CF6`/`#EC4899`（橙为主，序列色兼顾区分度）                                                | 待确认（可用默认）      |
 
 ## 10. 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-06-14 | 待澄清 | 应用范围（全应用✓）、字体（系统✓）、文档改写（✓）、skills spec 同步（✓）已确认；Q1/Q2/Q4/Q5/Q6 有合理默认值（8pt 节奏+4px 例外 / 新增 display scale / 一次性默认实现 / accent 重定义为危险红 / 图表 6 色序列）。L3 强制项（兼容性·令牌只改值不改名、回滚·git revert）已覆盖。R1 对比度必修。 |
-| 2 | 2026-06-14 | 可开发 | skills-redesign spec 第 2 轮已落地（用户决策：无历史/无分类/删 Settings/Agentic 一并升级）；§3 inline-hex 清理表移除 `SectionPlugins.tsx`（该文件将由 skills spec 删除）；§7 令牌映射与本 spec 一致。本 spec 与 skills spec 耦合交付。 |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                                                                                                                                                                                                                     |
+| ---- | ---------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-06-14 | 待澄清    | 应用范围（全应用✓）、字体（系统✓）、文档改写（✓）、skills spec 同步（✓）已确认；Q1/Q2/Q4/Q5/Q6 有合理默认值（8pt 节奏+4px 例外 / 新增 display scale / 一次性默认实现 / accent 重定义为危险红 / 图表 6 色序列）。L3 强制项（兼容性·令牌只改值不改名、回滚·git revert）已覆盖。R1 对比度必修。 |
+| 2    | 2026-06-14 | 可开发    | skills-redesign spec 第 2 轮已落地（用户决策：无历史/无分类/删 Settings/Agentic 一并升级）；§3 inline-hex 清理表移除 `SectionPlugins.tsx`（该文件将由 skills spec 删除）；§7 令牌映射与本 spec 一致。本 spec 与 skills spec 耦合交付。                                                       |

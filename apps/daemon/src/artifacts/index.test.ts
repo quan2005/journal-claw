@@ -29,7 +29,8 @@ describe('ArtifactIndexService', () => {
 
   it('captureFromRun indexes <artifact> tags from assistant text', () => {
     const svc = new ArtifactIndexService()
-    const text = 'Before\n<artifact type="report" title="Q2 Review">## Findings\nblah</artifact>\nAfter'
+    const text =
+      'Before\n<artifact type="report" title="Q2 Review">## Findings\nblah</artifact>\nAfter'
     const recorded = svc.captureFromRun('r1', text)
     expect(recorded).toHaveLength(1)
     expect(recorded[0].type).toBe('report')

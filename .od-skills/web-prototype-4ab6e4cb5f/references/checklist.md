@@ -17,7 +17,7 @@ Run this before emitting `<artifact>`. P0 = must pass; P1 = should pass; P2 = ni
 
 ## P1 — should pass
 
-- [ ] **One decisive flourish.** A pull quote, a striking stat, a real-feeling photograph, one micro-animation on the hero. *One.* Not three.
+- [ ] **One decisive flourish.** A pull quote, a striking stat, a real-feeling photograph, one micro-animation on the hero. _One._ Not three.
 - [ ] **Section rhythm alternates.** No two stat rows in a row. No two feature triplets in a row. No two quote blocks in a row.
 - [ ] **Headlines under 14 words.** If longer, the writing is doing the design's job.
 - [ ] **Lead text under 56 ch / two sentences.** `max-width: 60ch` on `.lead` enforces this; don't override.
@@ -41,4 +41,4 @@ Look at the page for two seconds. If your gut says any of:
 - "this could be any AI startup's homepage"
 - "the feature row has an icon, a heading, and three lines of vague benefit copy"
 
-…go back, replace one feature cell with something more specific to *this* product (a screenshot, a concrete example, a sample of the actual output), and remove one accent.
+…go back, replace one feature cell with something more specific to _this_ product (a screenshot, a concrete example, a sample of the actual output), and remove one accent.

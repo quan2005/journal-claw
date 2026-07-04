@@ -9,6 +9,7 @@
 **作用域**：`files: src/**/*.{ts,tsx}` + `ignores: src/lib/**, src/tests/**` —— 即「lib/ 与 tests/ 之外的全部 src」。这样 `hostBridge.ts`/`runtimeClient.ts` 等 lib 合法实现、以及 tests 的合法 mock 不受约束；其余消费层（components/hooks/contexts/App/settings/entities/shared）全覆盖。采用单一 block 是因为 flat-config 中 `no-restricted-syntax` 属同一规则键，两个 block 各自定义会「后者覆盖前者」（实测会丢规则并报 Unused eslint-disable）。
 
 **规则清单**：
+
 - `no-restricted-imports`：禁止 import `electron` / `tauri` / `**/lib/tauri`（防回潮）。
 - `no-restricted-syntax`：禁止 `window.electronAPI` 直访、禁止 `localhost`/`127.0.0.1` 字面量、禁止消费层 `localStorage` 持久化业务状态。
 
@@ -75,10 +76,10 @@ EXIT=1
 
 脚本初次运行即暴露 2 处文档把「已删除实体」当成反引号路径引用，已就地修复（改为引用仍存在的父目录 + 裸文件名）：
 
-| 文档 | 原引用（已删除） | 修后表述 |
-|---|---|---|
-| `docs/ARCH.md` 历史注记 | `apps/web/src/lib/tauri.ts` | `apps/web/src/lib/` 下的 `tauri.ts` |
-| `docs/final-state.md` ×3 | `apps/web/src-tauri/` | `apps/web/` 下的 `src-tauri/` 目录 |
+| 文档                     | 原引用（已删除）            | 修后表述                            |
+| ------------------------ | --------------------------- | ----------------------------------- |
+| `docs/ARCH.md` 历史注记  | `apps/web/src/lib/tauri.ts` | `apps/web/src/lib/` 下的 `tauri.ts` |
+| `docs/final-state.md` ×3 | `apps/web/src-tauri/`       | `apps/web/` 下的 `src-tauri/` 目录  |
 
 ## 最终绿
 

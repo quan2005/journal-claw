@@ -4,16 +4,16 @@ design: ./design.md
 date: 2026-06-16
 round: 1
 result: pass
-scope: "src/styles/markdown.css; src/styles/mdx.css; src/tests/light-theme-unit.test.ts; src/tests/MdxComponentDesign.test.ts; src/tests/journalBlockStyles.test.ts; renderer class wiring for md-content/mdx-content"
+scope: 'src/styles/markdown.css; src/styles/mdx.css; src/tests/light-theme-unit.test.ts; src/tests/MdxComponentDesign.test.ts; src/tests/journalBlockStyles.test.ts; renderer class wiring for md-content/mdx-content'
 ---
 
 # 验收报告 — MDX 预览行首符号左对齐修复
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 — 行首符号不突出阅读栏 | PASS | `src/styles/markdown.css:4`-`13` 在 `.md-content` 上保留阅读容器宽度并显式 `hanging-punctuation: none`；`src/styles/mdx.css:4`-`22` 在 `.mdx-content` 上同样显式 `hanging-punctuation: none`。`rg -n "hanging-punctuation" src` 只找到两处运行时声明，均为 `none`，测试中还断言不包含 `first`。`src/components/MarkdownRenderer.tsx:406`、`src/components/MarkdownRenderer.tsx:499` 使用 `.md-content`，`src/components/MdxRenderer.tsx:421`、`src/components/MdxRenderer.tsx:431` 使用 `.md-content.mdx-content`，覆盖 Markdown 与 MDX 真实容器。headless Chrome 内联真实 CSS 检查结果：Markdown 普通段落与 `【...】` 段落 `mdLeftDelta: 0`，MDX 普通段落与 `【...】` 段落 `mdxLeftDelta: 0`。 |
+| AC                            | 结论 | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 — 行首符号不突出阅读栏   | PASS | `src/styles/markdown.css:4`-`13` 在 `.md-content` 上保留阅读容器宽度并显式 `hanging-punctuation: none`；`src/styles/mdx.css:4`-`22` 在 `.mdx-content` 上同样显式 `hanging-punctuation: none`。`rg -n "hanging-punctuation" src` 只找到两处运行时声明，均为 `none`，测试中还断言不包含 `first`。`src/components/MarkdownRenderer.tsx:406`、`src/components/MarkdownRenderer.tsx:499` 使用 `.md-content`，`src/components/MdxRenderer.tsx:421`、`src/components/MdxRenderer.tsx:431` 使用 `.md-content.mdx-content`，覆盖 Markdown 与 MDX 真实容器。headless Chrome 内联真实 CSS 检查结果：Markdown 普通段落与 `【...】` 段落 `mdLeftDelta: 0`，MDX 普通段落与 `【...】` 段落 `mdxLeftDelta: 0`。                      |
 | AC-2 — 既有阅读栏分层保持不变 | PASS | `src/styles/markdown.css:16`-`32` 保留普通正文块 `width: min(100%, var(--journal-prose-max))`、`max-width: var(--journal-prose-max)`、`margin-left: 0`；`src/styles/markdown.css:43`-`46` 让 `pre/table/img` 保持 `max-width: 100%`。`src/styles/mdx.css:29`-`44` 将 prose 类 MDX 块约束到 `--journal-prose-max`，`src/styles/mdx.css:45`-`74` 将 chart/html preview/table/device/grid 等复杂块保持 `width: 100%`、`max-width: 100%`。测试 `src/tests/light-theme-unit.test.ts:250`-`263` 覆盖 Markdown/MDX/read-mode 容器与 wide 规则，`src/tests/MdxComponentDesign.test.ts:14`-`18` 覆盖 MDX prose/content/wide 三档，`src/tests/journalBlockStyles.test.ts:29`-`33` 覆盖 journal block prose/content/wide 三档。 |
 
 ## 范围完整性（不少，对照 story.md 范围）

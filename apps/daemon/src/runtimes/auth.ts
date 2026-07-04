@@ -45,9 +45,7 @@ function tailString(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   if (!trimmed) return undefined
-  return trimmed.length > PROBE_TAIL_BYTES
-    ? trimmed.slice(-PROBE_TAIL_BYTES)
-    : trimmed
+  return trimmed.length > PROBE_TAIL_BYTES ? trimmed.slice(-PROBE_TAIL_BYTES) : trimmed
 }
 
 // Authentication / authorization: a missing, invalid, or expired credential.
@@ -83,66 +81,61 @@ export async function probeAgentAuthStatus(
   const args = def.authProbe.args
   const timeoutMs = def.authProbe.timeoutMs ?? 5000
   return new Promise((resolve) => {
-    execFile(
-      resolvedBin,
-      args,
-      { timeout: timeoutMs, env },
-      (err, stdout, stderr) => {
-        const stdoutText = String(stdout ?? '')
-        const stderrText = String(stderr ?? '')
-        const stderrTail = tailString(stderrText)
-        const combined = `${stdoutText}\n${stderrText}`
+    execFile(resolvedBin, args, { timeout: timeoutMs, env }, (err, stdout, stderr) => {
+      const stdoutText = String(stdout ?? '')
+      const stderrText = String(stderr ?? '')
+      const stderrTail = tailString(stderrText)
+      const combined = `${stdoutText}\n${stderrText}`
 
-        // Exit 0 — parse JSON for an explicit loggedIn verdict.
-        if (!err) {
-          try {
-            const parsed = JSON.parse(stdoutText || '{}') as Record<string, unknown>
-            if (parsed.loggedIn === true) {
-              resolve({ status: 'ok' })
-              return
-            }
-            if (parsed.loggedIn === false) {
-              // The CLI itself reports no credential. Authoritative missing.
-              resolve({ status: 'missing', stderrTail })
-              return
-            }
-            // Exit 0 but no loggedIn field — couldn't tell.
-            resolve({ status: 'unknown', stderrTail })
-            return
-          } catch {
-            // Non-JSON stdout on a 0-exit: the CLI speaks an unknown shape.
-            // Fall back to the text classifier before giving up — claude's
-            // prose-mode "Not authenticated" output lands here.
-            const failure = classifyAuthFailure(combined)
-            if (failure) {
-              resolve({ status: 'missing', stderrTail })
-              return
-            }
-            resolve({ status: 'unknown', stderrTail })
+      // Exit 0 — parse JSON for an explicit loggedIn verdict.
+      if (!err) {
+        try {
+          const parsed = JSON.parse(stdoutText || '{}') as Record<string, unknown>
+          if (parsed.loggedIn === true) {
+            resolve({ status: 'ok' })
             return
           }
-        }
-
-        // Non-zero exit. OS-level rejections (ENOENT/EACCES) mean the binary
-        // vanished between version and auth probe — definitely not "logged
-        // out", so unknown.
-        const code = (err as NodeJS.ErrnoException)?.code
-        if (typeof code === 'string' && (code === 'ENOENT' || code === 'EACCES')) {
+          if (parsed.loggedIn === false) {
+            // The CLI itself reports no credential. Authoritative missing.
+            resolve({ status: 'missing', stderrTail })
+            return
+          }
+          // Exit 0 but no loggedIn field — couldn't tell.
+          resolve({ status: 'unknown', stderrTail })
+          return
+        } catch {
+          // Non-JSON stdout on a 0-exit: the CLI speaks an unknown shape.
+          // Fall back to the text classifier before giving up — claude's
+          // prose-mode "Not authenticated" output lands here.
+          const failure = classifyAuthFailure(combined)
+          if (failure) {
+            resolve({ status: 'missing', stderrTail })
+            return
+          }
           resolve({ status: 'unknown', stderrTail })
           return
         }
-        // Otherwise look at the actual output: real "not logged in" CLIs
-        // (claude, codex) emit auth-failure text on stderr/stdout. If the
-        // text carries that signal, it's a definitive missing; otherwise
-        // (timeout, network error, CLI internal failure) it's unknown —
-        // never silently claim the user is logged out.
-        const failure = classifyAuthFailure(combined)
-        if (failure) {
-          resolve({ status: 'missing', stderrTail })
-          return
-        }
+      }
+
+      // Non-zero exit. OS-level rejections (ENOENT/EACCES) mean the binary
+      // vanished between version and auth probe — definitely not "logged
+      // out", so unknown.
+      const code = (err as NodeJS.ErrnoException)?.code
+      if (typeof code === 'string' && (code === 'ENOENT' || code === 'EACCES')) {
         resolve({ status: 'unknown', stderrTail })
-      },
-    )
+        return
+      }
+      // Otherwise look at the actual output: real "not logged in" CLIs
+      // (claude, codex) emit auth-failure text on stderr/stdout. If the
+      // text carries that signal, it's a definitive missing; otherwise
+      // (timeout, network error, CLI internal failure) it's unknown —
+      // never silently claim the user is logged out.
+      const failure = classifyAuthFailure(combined)
+      if (failure) {
+        resolve({ status: 'missing', stderrTail })
+        return
+      }
+      resolve({ status: 'unknown', stderrTail })
+    })
   })
 }

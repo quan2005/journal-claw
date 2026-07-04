@@ -24,6 +24,7 @@
 **条款**：创建会话 / 发送 / 取消 / 重试行为保持一致；不要求启动 TS daemon。
 
 **证据**：
+
 - `useConversation.ts:5-14` 仍从 `'../lib/tauri'` 导入 `conversationCreate / conversationSend / conversationCancel / conversationClose / conversationGetMessages / conversationTruncate / conversationRetry / conversationGetStats`，命令调用面未变。
 - `useConversation.ts:838-952`（`send`）、`:954-987`（`retry`）、`:989-999`（`cancel`）、`:795-809`（`createTab`）业务逻辑结构完整，事件处理 reducer（`:141-605`）未拆分。
 - 测试 `useConversation.test.ts` 5/5 通过（`npx vitest run src/hooks/useConversation.test.ts` → `Tests 5 passed (5)`），覆盖订阅、text_delta 路由、done 置 streaming=false、unmount 退订。
@@ -38,6 +39,7 @@
 **条款 a**：`useConversation` 通过统一 runtime client 订阅 `conversation-stream`。
 
 **证据**：
+
 - `useConversation.ts:2` `import { selectRuntimeClient } from '../lib/runtimeClient'`。
 - `useConversation.ts:146-147`：
   ```
@@ -64,6 +66,7 @@
 **条款**：`src/lib/tauri.ts` 对外导出的既有函数签名保持兼容；不引入 HTTP daemon 作为默认路径。
 
 **证据**：
+
 - 范围内：`useConversation.ts` 作为消费方，仍以原签名调用 `conversationCreate(context, contextFiles)`、`conversationSend(sid, text, images)`、`conversationCancel(sid)`、`conversationRetry(sid)`、`conversationTruncate(sid, idx)`、`conversationGetMessages(id)`、`conversationGetStats(id)`、`conversationClose(id)`（见 `:798, :762, :768, :929, :967, :993, :1014, :626, :742`）。消费侧无破坏。
 - `src/lib/tauri.ts` 本体出核对范围，签名兼容性的直接证据无法从范围内取得。
 
@@ -76,6 +79,7 @@
 **条款**：允许范围限于 `src/lib/runtimeClient.ts`、`src/lib/tauri.ts`、`src/hooks/useConversation.ts` 及必要测试；不改 Rust、不新增 daemon、不改 ChatPanel。
 
 **证据**：
+
 - 本次核对文件 `useConversation.ts` 的导入仅来自：`react`、`../lib/runtimeClient`、`../types`、`../lib/tauri`、`./useEventCallback`、`../artifacts/parser` —— 均为既有的同层或工具模块，无越界依赖。
 - 文件内无 Rust / daemon / ChatPanel 视觉或业务结构改写痕迹（reducer 与 tab 管理逻辑保持原结构）。
 - 测试 `useConversation.test.ts` 属「必要测试」允许项。
@@ -86,14 +90,14 @@
 
 ## Won't 边界核对
 
-| Won't 条款 | 范围内核对 | 证据 |
-|---|---|---|
-| 不启用 HTTP daemon 默认路径 | 未违反（范围内） | hook 未设默认传输，委托 `selectRuntimeClient()`；默认翻转为 `runtimeClient.ts`（出范围）后续 story 行为 |
-| 不新增 TS daemon | 未违反 | `useConversation.ts` 无 daemon 实体引入 |
-| 不接入 CLI adapter | 未违反 | 无 CLI 相关引用 |
-| 不实现 AgentRunEvent / ChangeSet / AuthorizationMode / 自动沉淀 | 未违反 | 文件仅处理 `ConversationStreamPayload` 事件族 |
-| 不重写 ChatPanel | 未违反 | ChatPanel 不在范围内，本文件结构未变 |
-| 不删除 Rust | 未违反 | 范围内无 Rust 触及 |
+| Won't 条款                                                      | 范围内核对       | 证据                                                                                                    |
+| --------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| 不启用 HTTP daemon 默认路径                                     | 未违反（范围内） | hook 未设默认传输，委托 `selectRuntimeClient()`；默认翻转为 `runtimeClient.ts`（出范围）后续 story 行为 |
+| 不新增 TS daemon                                                | 未违反           | `useConversation.ts` 无 daemon 实体引入                                                                 |
+| 不接入 CLI adapter                                              | 未违反           | 无 CLI 相关引用                                                                                         |
+| 不实现 AgentRunEvent / ChangeSet / AuthorizationMode / 自动沉淀 | 未违反           | 文件仅处理 `ConversationStreamPayload` 事件族                                                           |
+| 不重写 ChatPanel                                                | 未违反           | ChatPanel 不在范围内，本文件结构未变                                                                    |
+| 不删除 Rust                                                     | 未违反           | 范围内无 Rust 触及                                                                                      |
 
 ---
 
@@ -105,9 +109,9 @@
 
 ## 待用户裁决项
 
-| # | 事项 | 现状 | 建议 |
-|---|---|---|---|
-| 1 | AC-2 字面条款「底层默认实现仍走 Tauri」 | `runtimeClient.ts` 现返回 `HttpRuntimeClient`，Tauri fallback 已由后续 story（M7-b `83cd73c`、M8-a `d26f89e`）移除 | 本 story 已 `verified` 且属 Phase-1 保护层，其历史使命（让 hook 经抽象层订阅）已由范围内代码兑现；传输默认值的演进归属后续 story。建议**不追溯**，仅记录演进事实 |
+| #   | 事项                                    | 现状                                                                                                               | 建议                                                                                                                                                             |
+| --- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | AC-2 字面条款「底层默认实现仍走 Tauri」 | `runtimeClient.ts` 现返回 `HttpRuntimeClient`，Tauri fallback 已由后续 story（M7-b `83cd73c`、M8-a `d26f89e`）移除 | 本 story 已 `verified` 且属 Phase-1 保护层，其历史使命（让 hook 经抽象层订阅）已由范围内代码兑现；传输默认值的演进归属后续 story。建议**不追溯**，仅记录演进事实 |
 
 ---
 

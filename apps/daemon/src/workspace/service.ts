@@ -73,7 +73,9 @@ function normalize(root: string, raw: Partial<WorkspaceMeta>): WorkspaceMeta {
     name: typeof raw.name === 'string' && raw.name ? raw.name : basename(root),
     type: (raw.type as WorkspaceType) ?? 'general',
     goals: Array.isArray(raw.goals) ? raw.goals.filter((g) => typeof g === 'string') : [],
-    activeSources: Array.isArray(raw.activeSources) ? raw.activeSources.filter((s) => typeof s === 'string') : [],
+    activeSources: Array.isArray(raw.activeSources)
+      ? raw.activeSources.filter((s) => typeof s === 'string')
+      : [],
     description: typeof raw.description === 'string' ? raw.description : undefined,
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
   }

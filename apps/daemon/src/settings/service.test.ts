@@ -128,9 +128,9 @@ describe('SettingsService', () => {
   })
 
   it('rejects invalid auto_lint frequency', () => {
-    expect(() =>
-      new SettingsService(ws).update({ auto_lint: { frequency: 'hourly' } }),
-    ).toThrow(SettingsValidationError)
+    expect(() => new SettingsService(ws).update({ auto_lint: { frequency: 'hourly' } })).toThrow(
+      SettingsValidationError,
+    )
   })
 
   // P2 unified conversation panel: the selected chat engine (built-in pi vs an

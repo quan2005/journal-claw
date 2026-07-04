@@ -11,15 +11,15 @@ scope: git diff 覆盖 apps/web/src/App.tsx、apps/web/src/main.tsx；新增文�
 
 ## AC 核对（对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 — Workspace 作为 Topics 分类的新视图 | ✅ pass | `apps/web/src/App.tsx:1117-1118`：当 `activeCategory === 'topics'` 且未选中具体文件（`!treeSelection \|\| treeSelection.type === 'topic'`）时渲染 `<WorkspaceView />`，选中 `topic-file` 时仍回退到 `DetailView`；`App.test.tsx` 现有 Topics 相关用例通过。 |
-| AC-2 — 文件树与 Workspace 结构 | ⚠️ partial | `App.tsx:1058-1080` 复用现有 `TreeSidebar`，Topics 导航可用。但 story 要求「顶部可显示『Workspace』标题与搜索/视图图标」，且 `design.md` §2 明确列出内部子组件 `WorkspaceHeader`；实现中 `WorkspaceView.tsx:138-149` 仅渲染 `QuickStart` + `RecentlyViewed`，无标题栏/搜索/视图图标。 |
-| AC-3 — Quick Start 操作区 | ✅ pass | `WorkspaceView.tsx:151-179` 实现 `New File`、`New Folder`、`Import` 三卡片，图标与文案一致；点击通过 `placeholderAction` 派发 toast，不调用后端。`WorkspaceView.test.tsx:10-15`、`31-35` 通过。 |
-| AC-4 — Recently Viewed 列表 | ✅ pass | `WorkspaceView.tsx:181-250` 渲染表头 Name / Contributors / Viewed，含文件图标、文件名、路径副标题、贡献者头像、相对时间；`Show more` 可展开更多行。`WorkspaceView.test.tsx:17-29` 通过。注：mock 数据为 8 条，与 design.md §4.2 写的「5 条展开到 10 条」不一致。 |
-| AC-5 — 右侧 AI Chat 面板 | ⚠️ partial | `WorkspaceView.tsx:254-379` + `App.tsx:1198-1200` 实现 `WorkspaceChatShell`，含 New Chat 头部、Plus/Copy/Pin 操作、输入框、附件按钮、模型选择器（Sonnet 4.6 / 1M Medium）、语音按钮、发送按钮；回车仅本地追加消息；空输入时发送按钮禁用。`WorkspaceView.test.tsx:39-57` 通过。但空状态问候区渲染了 🌟 emoji 头像（`WorkspaceView.tsx:307-310`），与 story「不放置吉祥物头像」及 design 决策「纯文字问候」冲突。 |
-| AC-6 — 视觉还原度（浅色模式） | ✅ pass | `workspace.css` 使用 `--bg`、`--text-primary`、`--divider`、`--radius-lg/md`、`--focus-ring`、`--font-display`、`--font-body`、`--font-mono` 等 token；卡片无边框阴影；间距落在 8pt 网格；唯一 accent 为 `--record-btn`（#FF5701），无第二交互色。 |
-| AC-7 — 暗色主题可用性 | ✅ pass | 颜色自动随 CSS 变量切换；`apps/web/src/styles/globals.css:309` 暗色下 `--record-btn: #ff7a33`，满足 story 对信号橙暗色版的要求；文字/悬停/聚焦环均使用现有暗色 token。 |
+| AC                                        | 结论       | 证据                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 — Workspace 作为 Topics 分类的新视图 | ✅ pass    | `apps/web/src/App.tsx:1117-1118`：当 `activeCategory === 'topics'` 且未选中具体文件（`!treeSelection \|\| treeSelection.type === 'topic'`）时渲染 `<WorkspaceView />`，选中 `topic-file` 时仍回退到 `DetailView`；`App.test.tsx` 现有 Topics 相关用例通过。                                                                                                                                                     |
+| AC-2 — 文件树与 Workspace 结构            | ⚠️ partial | `App.tsx:1058-1080` 复用现有 `TreeSidebar`，Topics 导航可用。但 story 要求「顶部可显示『Workspace』标题与搜索/视图图标」，且 `design.md` §2 明确列出内部子组件 `WorkspaceHeader`；实现中 `WorkspaceView.tsx:138-149` 仅渲染 `QuickStart` + `RecentlyViewed`，无标题栏/搜索/视图图标。                                                                                                                           |
+| AC-3 — Quick Start 操作区                 | ✅ pass    | `WorkspaceView.tsx:151-179` 实现 `New File`、`New Folder`、`Import` 三卡片，图标与文案一致；点击通过 `placeholderAction` 派发 toast，不调用后端。`WorkspaceView.test.tsx:10-15`、`31-35` 通过。                                                                                                                                                                                                                 |
+| AC-4 — Recently Viewed 列表               | ✅ pass    | `WorkspaceView.tsx:181-250` 渲染表头 Name / Contributors / Viewed，含文件图标、文件名、路径副标题、贡献者头像、相对时间；`Show more` 可展开更多行。`WorkspaceView.test.tsx:17-29` 通过。注：mock 数据为 8 条，与 design.md §4.2 写的「5 条展开到 10 条」不一致。                                                                                                                                                |
+| AC-5 — 右侧 AI Chat 面板                  | ⚠️ partial | `WorkspaceView.tsx:254-379` + `App.tsx:1198-1200` 实现 `WorkspaceChatShell`，含 New Chat 头部、Plus/Copy/Pin 操作、输入框、附件按钮、模型选择器（Sonnet 4.6 / 1M Medium）、语音按钮、发送按钮；回车仅本地追加消息；空输入时发送按钮禁用。`WorkspaceView.test.tsx:39-57` 通过。但空状态问候区渲染了 🌟 emoji 头像（`WorkspaceView.tsx:307-310`），与 story「不放置吉祥物头像」及 design 决策「纯文字问候」冲突。 |
+| AC-6 — 视觉还原度（浅色模式）             | ✅ pass    | `workspace.css` 使用 `--bg`、`--text-primary`、`--divider`、`--radius-lg/md`、`--focus-ring`、`--font-display`、`--font-body`、`--font-mono` 等 token；卡片无边框阴影；间距落在 8pt 网格；唯一 accent 为 `--record-btn`（#FF5701），无第二交互色。                                                                                                                                                              |
+| AC-7 — 暗色主题可用性                     | ✅ pass    | 颜色自动随 CSS 变量切换；`apps/web/src/styles/globals.css:309` 暗色下 `--record-btn: #ff7a33`，满足 story 对信号橙暗色版的要求；文字/悬停/聚焦环均使用现有暗色 token。                                                                                                                                                                                                                                          |
 
 ## 范围完整性（对照 story.md 范围）
 
@@ -53,6 +53,7 @@ scope: git diff 覆盖 apps/web/src/App.tsx、apps/web/src/main.tsx；新增文�
 **结果：fail。**
 
 主要偏差：
+
 1. AC-2 未实现 `WorkspaceHeader`（Workspace 标题 + 搜索/视图图标）。
 2. AC-5 问候区放置了 🌟 emoji 头像，违反「不放置吉祥物头像/纯文字问候」的明确要求。
 3. `workspace.css` 中存在与实现无关的 `.workspace-sidebar` 死代码。
@@ -60,6 +61,7 @@ scope: git diff 覆盖 apps/web/src/App.tsx、apps/web/src/main.tsx；新增文�
 5. mock 数据条数（8 条）与 design.md 所述（5 条/10 条）不一致，建议对齐或更新 design。
 
 按风险排序的修复建议：
+
 1. 移除 `WorkspaceChatShell` 中的 `workspace-chat__avatar` emoji，改为纯文字问候并垂直居中。
 2. 在 `WorkspaceView` 顶部补 `WorkspaceHeader`（标题 + 搜索/视图图标占位）。
 3. 删除 `workspace.css` 中 `.workspace-sidebar` 全部未使用样式。

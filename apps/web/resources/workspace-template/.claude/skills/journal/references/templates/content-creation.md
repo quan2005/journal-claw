@@ -44,12 +44,12 @@ Avoid when: the interview is customer research; use research-analysis.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| press-release | Add headline, lead, quote, availability, boilerplate |
-| announcement | Lead with what changed and who is affected |
-| speaker-notes | Add timing, transitions, emphasis |
-| newsletter-brief | Add sections, links, call to action |
+| Subtype          | Apply changes                                        |
+| ---------------- | ---------------------------------------------------- |
+| press-release    | Add headline, lead, quote, availability, boilerplate |
+| announcement     | Lead with what changed and who is affected           |
+| speaker-notes    | Add timing, transitions, emphasis                    |
+| newsletter-brief | Add sections, links, call to action                  |
 
 ## Quality Rules
 

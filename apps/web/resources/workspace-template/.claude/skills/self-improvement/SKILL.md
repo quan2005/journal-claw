@@ -9,23 +9,23 @@ AI 秘书的持续改进机制。把处理素材中犯的错、用户的纠正�
 
 ## 契约
 
-| 维度 | 声明 |
-|---|---|
-| **reads** | `.claude/learnings/LEARNINGS.md`、`yyMM/*.md`（自检时读最近条目） |
-| **writes** | `.claude/learnings/LEARNINGS.md`、workspace `CLAUDE.md`（晋升规则时） |
-| **depends** | 无 |
+| 维度        | 声明                                                                  |
+| ----------- | --------------------------------------------------------------------- |
+| **reads**   | `.claude/learnings/LEARNINGS.md`、`yyMM/*.md`（自检时读最近条目）     |
+| **writes**  | `.claude/learnings/LEARNINGS.md`、workspace `CLAUDE.md`（晋升规则时） |
+| **depends** | 无                                                                    |
 
 ## 何时触发
 
-| 场景 | 动作 |
-|---|---|
-| 用户纠正处理结果 | 记录学习条目（category: `correction`） |
-| 用户表达偏好 | 记录学习条目（category: `preference`） |
-| 处理素材失败或质量差 | 记录学习条目（category: `error`） |
-| 发现可复用的规律 | 记录学习条目（category: `pattern`） |
-| 用户说"查一下之前的教训" | 读取并展示相关学习记录 |
-| 处理完素材后 | 运行自检协议（见 `references/self-check-protocol.md`） |
-| `/lint` 运行时 | lint 自行读取 LEARNINGS.md，本 skill 不介入 |
+| 场景                     | 动作                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| 用户纠正处理结果         | 记录学习条目（category: `correction`）                 |
+| 用户表达偏好             | 记录学习条目（category: `preference`）                 |
+| 处理素材失败或质量差     | 记录学习条目（category: `error`）                      |
+| 发现可复用的规律         | 记录学习条目（category: `pattern`）                    |
+| 用户说"查一下之前的教训" | 读取并展示相关学习记录                                 |
+| 处理完素材后             | 运行自检协议（见 `references/self-check-protocol.md`） |
+| `/lint` 运行时           | lint 自行读取 LEARNINGS.md，本 skill 不介入            |
 
 ## 核心流程
 
@@ -80,6 +80,7 @@ AI 秘书的持续改进机制。把处理素材中犯的错、用户的纠正�
 处理完素材后运行 5 项快速检查。详见 `references/self-check-protocol.md`。
 
 自检不需要向用户展示过程。只在发现问题时：
+
 - 立即修复（如 frontmatter 格式错误）
 - 记录学习条目（如果是新发现的模式）
 

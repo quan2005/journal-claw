@@ -236,9 +236,7 @@ export function shouldRunDue(routine: AutomationRoutine, now: Date): boolean {
   const createdAt = parseRfc3339Local(routine.created_at)
   if (createdAt && createdAt > dueAt) return false
 
-  const lastRun = routine.last_run
-    ? parseRfc3339Local(routine.last_run.started_at)
-    : null
+  const lastRun = routine.last_run ? parseRfc3339Local(routine.last_run.started_at) : null
   return lastRun ? lastRun < dueAt : true
 }
 
@@ -253,8 +251,8 @@ export interface NextWaitOptions {
  */
 export function nextWaitMs(
   routines: readonly AutomationRoutine[],
- now: Date,
- opts: NextWaitOptions = {},
+  now: Date,
+  opts: NextWaitOptions = {},
 ): number {
   const inFlight = opts.inFlight ?? EMPTY_SET
   for (const routine of routines) {

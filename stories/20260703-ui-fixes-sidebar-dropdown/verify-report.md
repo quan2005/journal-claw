@@ -14,9 +14,9 @@ scope: >-
 
 ## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 空栏消除 | ✅ pass | 实现：`App.tsx:965-972` 新增 `needsLeftSidebar` 谓词，仅当 `activeCategory` 为 `journal`/`identity`/`topics` 时渲染左侧目录树栏（panel + divider）；`App.tsx:1097-1173` 将该列整体包裹在 `{needsLeftSidebar && (...)}` 中， fullscreen workbench 分类下整列不挂载。测试：`App.test.tsx:355-425` 新增 3 个测试覆盖 fullscreen 分类隐藏 sidebar、list 分类保留 sidebar、宽度记忆在来回切换后保持不变。 |
+| AC                | 结论    | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-1 空栏消除     | ✅ pass | 实现：`App.tsx:965-972` 新增 `needsLeftSidebar` 谓词，仅当 `activeCategory` 为 `journal`/`identity`/`topics` 时渲染左侧目录树栏（panel + divider）；`App.tsx:1097-1173` 将该列整体包裹在 `{needsLeftSidebar && (...)}` 中， fullscreen workbench 分类下整列不挂载。测试：`App.test.tsx:355-425` 新增 3 个测试覆盖 fullscreen 分类隐藏 sidebar、list 分类保留 sidebar、宽度记忆在来回切换后保持不变。                                                                                                               |
 | AC-2 下拉不被裁剪 | ✅ pass | 实现：`EngineSwitcher.tsx:62` 新增 `flipUp` 状态；`EngineSwitcher.tsx:84-107` 用 `useLayoutEffect` 测量 wrapper bottom 与 popover height，空间不足时设置 `flipUp`；`EngineSwitcher.tsx:180-183` 将 `is-up` class 绑定到 popover；`engine-switcher.css:110-115` 用 `.engine-switcher__popover.is-up { top: auto; bottom: calc(100% + 6px); }` 实现向上展开。测试：`EngineSwitcher.test.tsx:46-90` 提供 `mockGeometry` 并在 `EngineSwitcher.test.tsx:164-188` 新增两组测试覆盖「空间不足向上翻」与「空间充足向下」。 |
 
 ## 范围完整性（不少，对照 story.md 范围）
@@ -106,15 +106,15 @@ Round 1 对 AC-2 的验收结论为 pass，但验证仅覆盖了 **Chat 视图**
 
 ## AC-2 复验表
 
-| 检查项 | 结论 | 证据 |
-|---|---|---|
-| popover 挂载到 `document.body` | ✅ pass | `EngineSwitcher.tsx:180` `createPortal(popoverEl, document.body)`；测试 `EngineSwitcher.test.tsx:207-220` 断言 `popover.parentElement === document.body`。 |
-| popover 使用 `position: fixed` | ✅ pass | `engine-switcher.css:100` `position: fixed`；`EngineSwitcher.tsx:100-115` 通过 `useLayoutEffect` 计算视口 `top/left` 并写入 inline style；测试 `EngineSwitcher.test.tsx:177-188` 断言 `popover.style.position === 'fixed'`。 |
-| z-index 使用 `--workbench-menu-z` | ✅ pass | `engine-switcher.css:101` `z-index: var(--workbench-menu-z)`；Playwright 实测 `getComputedStyle(popover).zIndex === "1010"`，未硬编码 DESIGN token。 |
-| tab 按钮文本不折行 | ✅ pass | `engine-switcher.css:169` `.engine-switcher__seg-btn { white-space: nowrap }`；Playwright 实测两个 tab 按钮高度 25px、文本无换行符；截图 `ac2-workspace-after.png`、`ac2-chat-after.png` 中「内置 pi 引擎」「外部 Agent (CLI)」均单行显示。 |
-| 菜单在 Workspace 视图完整浮于中间栏之上 | ✅ pass | 截图 `ac2-workspace-after.png` 显示 popover 完整显示在技能卡片网格（中间栏）之上，无遮挡；Playwright 断言 popover rect 完全在 viewport 内且 `z-index=1010`。 |
-| 菜单在 Chat 视图完整可见 | ✅ pass | 截图 `ac2-chat-after.png` 显示 popover 完整可见；Playwright 断言 `position=fixed`、`parentTag=BODY`、rect 在 viewport 内。 |
-| 空间感知翻转 | ✅ pass | `EngineSwitcher.tsx:108-114` 计算 `spaceBelow` 与 popover 高度，空间不足时向上翻转；测试 `EngineSwitcher.test.tsx:177-197` 覆盖「空间不足向上翻」与「空间充足向下」两种场景。 |
+| 检查项                                  | 结论    | 证据                                                                                                                                                                                                                                        |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| popover 挂载到 `document.body`          | ✅ pass | `EngineSwitcher.tsx:180` `createPortal(popoverEl, document.body)`；测试 `EngineSwitcher.test.tsx:207-220` 断言 `popover.parentElement === document.body`。                                                                                  |
+| popover 使用 `position: fixed`          | ✅ pass | `engine-switcher.css:100` `position: fixed`；`EngineSwitcher.tsx:100-115` 通过 `useLayoutEffect` 计算视口 `top/left` 并写入 inline style；测试 `EngineSwitcher.test.tsx:177-188` 断言 `popover.style.position === 'fixed'`。                |
+| z-index 使用 `--workbench-menu-z`       | ✅ pass | `engine-switcher.css:101` `z-index: var(--workbench-menu-z)`；Playwright 实测 `getComputedStyle(popover).zIndex === "1010"`，未硬编码 DESIGN token。                                                                                        |
+| tab 按钮文本不折行                      | ✅ pass | `engine-switcher.css:169` `.engine-switcher__seg-btn { white-space: nowrap }`；Playwright 实测两个 tab 按钮高度 25px、文本无换行符；截图 `ac2-workspace-after.png`、`ac2-chat-after.png` 中「内置 pi 引擎」「外部 Agent (CLI)」均单行显示。 |
+| 菜单在 Workspace 视图完整浮于中间栏之上 | ✅ pass | 截图 `ac2-workspace-after.png` 显示 popover 完整显示在技能卡片网格（中间栏）之上，无遮挡；Playwright 断言 popover rect 完全在 viewport 内且 `z-index=1010`。                                                                                |
+| 菜单在 Chat 视图完整可见                | ✅ pass | 截图 `ac2-chat-after.png` 显示 popover 完整可见；Playwright 断言 `position=fixed`、`parentTag=BODY`、rect 在 viewport 内。                                                                                                                  |
+| 空间感知翻转                            | ✅ pass | `EngineSwitcher.tsx:108-114` 计算 `spaceBelow` 与 popover 高度，空间不足时向上翻转；测试 `EngineSwitcher.test.tsx:177-197` 覆盖「空间不足向上翻」与「空间充足向下」两种场景。                                                               |
 
 ## 方案核对结论
 
@@ -172,7 +172,7 @@ Playwright 全部检查项通过（`failCount: 0`）。
 
 ## 冗余（不重）
 
-AC-2  rework 仅由 `EngineSwitcher.tsx` + `engine-switcher.css` 一处实现，无重复代码。
+AC-2 rework 仅由 `EngineSwitcher.tsx` + `engine-switcher.css` 一处实现，无重复代码。
 
 ## 本轮结论
 

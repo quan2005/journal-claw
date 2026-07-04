@@ -33,6 +33,7 @@
 ## Task 1: Tests For Ideas Workbench Shell
 
 **Files:**
+
 - Create: `src/tests/IdeasWorkbench.test.tsx`
 - Test: `src/tests/IdeasWorkbench.test.tsx`
 
@@ -221,6 +222,7 @@ git commit -m "test: cover ideas workbench shell"
 ## Task 2: Workbench Shell Implementation
 
 **Files:**
+
 - Create: `src/components/IdeasWorkbench.tsx`
 - Modify: `src/components/TodoSidebar.tsx`
 - Test: `src/tests/IdeasWorkbench.test.tsx`
@@ -656,6 +658,7 @@ git commit -m "feat: add ideas workbench shell"
 ## Task 3: Row Actions And DetailView Routing Tests
 
 **Files:**
+
 - Modify: `src/tests/IdeasWorkbench.test.tsx`
 - Test: `src/tests/IdeasWorkbench.test.tsx`
 
@@ -664,56 +667,56 @@ git commit -m "feat: add ideas workbench shell"
 Append these tests inside the `describe('IdeasWorkbench shell', ...)` block in `src/tests/IdeasWorkbench.test.tsx`:
 
 ```tsx
-  it('edits idea text inline', async () => {
-    renderWithProviders(<IdeasWorkbench />)
+it('edits idea text inline', async () => {
+  renderWithProviders(<IdeasWorkbench />)
 
-    fireEvent.click(screen.getByRole('button', { name: '编辑：普通未完成想法' }))
-    fireEvent.change(screen.getByLabelText('编辑想法'), {
-      target: { value: '普通未完成想法更新版' },
-    })
-    await act(async () => {
-      fireEvent.keyDown(screen.getByLabelText('编辑想法'), { key: 'Enter' })
-    })
-
-    expect(mockState.todoContext.updateTodoText).toHaveBeenCalledWith(
-      3,
-      '普通未完成想法更新版',
-      false,
-    )
+  fireEvent.click(screen.getByRole('button', { name: '编辑：普通未完成想法' }))
+  fireEvent.change(screen.getByLabelText('编辑想法'), {
+    target: { value: '普通未完成想法更新版' },
+  })
+  await act(async () => {
+    fireEvent.keyDown(screen.getByLabelText('编辑想法'), { key: 'Enter' })
   })
 
-  it('toggles completion from the row control', async () => {
-    renderWithProviders(<IdeasWorkbench />)
+  expect(mockState.todoContext.updateTodoText).toHaveBeenCalledWith(
+    3,
+    '普通未完成想法更新版',
+    false,
+  )
+})
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '完成：普通未完成想法' }))
-    })
+it('toggles completion from the row control', async () => {
+  renderWithProviders(<IdeasWorkbench />)
 
-    expect(mockState.todoContext.toggleTodo).toHaveBeenCalledWith(3, true, false)
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: '完成：普通未完成想法' }))
   })
 
-  it('opens source and discussion callbacks from row actions', async () => {
-    const onNavigateToSource = vi.fn()
-    const onOpenConversation = vi.fn()
-    renderWithProviders(
-      <IdeasWorkbench
-        onNavigateToSource={onNavigateToSource}
-        onOpenConversation={onOpenConversation}
-      />,
-    )
+  expect(mockState.todoContext.toggleTodo).toHaveBeenCalledWith(3, true, false)
+})
 
-    fireEvent.click(screen.getByRole('button', { name: '打开来源：2605/31-设计记录.md' }))
-    expect(onNavigateToSource).toHaveBeenCalledWith('2605/31-设计记录.md')
+it('opens source and discussion callbacks from row actions', async () => {
+  const onNavigateToSource = vi.fn()
+  const onOpenConversation = vi.fn()
+  renderWithProviders(
+    <IdeasWorkbench
+      onNavigateToSource={onNavigateToSource}
+      onOpenConversation={onOpenConversation}
+    />,
+  )
 
-    fireEvent.click(screen.getByRole('button', { name: '继续探讨：已有会话的想法' }))
-    expect(onOpenConversation).toHaveBeenCalledWith({
-      mode: 'chat',
-      context: '已有会话的想法',
-      sessionId: 'session_1',
-      lineIndex: 1,
-      doneFile: false,
-    })
+  fireEvent.click(screen.getByRole('button', { name: '打开来源：2605/31-设计记录.md' }))
+  expect(onNavigateToSource).toHaveBeenCalledWith('2605/31-设计记录.md')
+
+  fireEvent.click(screen.getByRole('button', { name: '继续探讨：已有会话的想法' }))
+  expect(onOpenConversation).toHaveBeenCalledWith({
+    mode: 'chat',
+    context: '已有会话的想法',
+    sessionId: 'session_1',
+    lineIndex: 1,
+    doneFile: false,
   })
+})
 ```
 
 - [ ] **Step 2: Add DetailView routing test**
@@ -758,6 +761,7 @@ git commit -m "test: cover ideas workbench interactions"
 ## Task 4: App And DetailView Routing Implementation
 
 **Files:**
+
 - Modify: `src/components/DetailView.tsx`
 - Modify: `src/App.tsx`
 - Test: `src/tests/IdeasWorkbench.test.tsx`
@@ -796,14 +800,14 @@ Add the new props to the component parameter list:
 In `src/components/DetailView.tsx`, replace the whole `if (isIdeasMode) { ... }` branch with:
 
 ```tsx
-  if (isIdeasMode) {
-    return (
-      <IdeasWorkbench
-        onOpenConversation={onOpenIdeaConversation}
-        onNavigateToSource={onNavigateToIdeaSource}
-      />
-    )
-  }
+if (isIdeasMode) {
+  return (
+    <IdeasWorkbench
+      onOpenConversation={onOpenIdeaConversation}
+      onNavigateToSource={onNavigateToIdeaSource}
+    />
+  )
+}
 ```
 
 - [ ] **Step 3: Add App callbacks**
@@ -811,38 +815,35 @@ In `src/components/DetailView.tsx`, replace the whole `if (isIdeasMode) { ... }`
 In `src/App.tsx`, add this callback near the other `handle*` callbacks:
 
 ```tsx
-  const handleOpenIdeaConversation = useCallback(
-    (opts: { context: string; sessionId: string | null }) => {
-      if (opts.sessionId) {
-        openChatPanel(opts.sessionId)
-      } else {
-        openChatPanel(undefined, opts.context)
-      }
-    },
-    [openChatPanel],
-  )
+const handleOpenIdeaConversation = useCallback(
+  (opts: { context: string; sessionId: string | null }) => {
+    if (opts.sessionId) {
+      openChatPanel(opts.sessionId)
+    } else {
+      openChatPanel(undefined, opts.context)
+    }
+  },
+  [openChatPanel],
+)
 ```
 
 Add this source navigation callback near `handleAddToTodo`:
 
 ```tsx
-  const handleNavigateToIdeaSource = useCallback(
-    (filename: string) => {
-      window.dispatchEvent(
-        new CustomEvent('journal-entry-navigate', {
-          detail: { filename: filename.split('/').pop() ?? filename },
-        }),
-      )
-    },
-    [],
+const handleNavigateToIdeaSource = useCallback((filename: string) => {
+  window.dispatchEvent(
+    new CustomEvent('journal-entry-navigate', {
+      detail: { filename: filename.split('/').pop() ?? filename },
+    }),
   )
+}, [])
 ```
 
 Then pass both into `DetailView`:
 
 ```tsx
-              onOpenIdeaConversation={handleOpenIdeaConversation}
-              onNavigateToIdeaSource={handleNavigateToIdeaSource}
+onOpenIdeaConversation = { handleOpenIdeaConversation }
+onNavigateToIdeaSource = { handleNavigateToIdeaSource }
 ```
 
 - [ ] **Step 4: Run the tests and verify they pass**
@@ -865,6 +866,7 @@ git commit -m "feat: route ideas detail to workbench"
 ## Task 5: Context Menu And Destructive Actions
 
 **Files:**
+
 - Modify: `src/components/IdeasWorkbench.tsx`
 - Modify: `src/tests/IdeasWorkbench.test.tsx`
 - Test: `src/tests/IdeasWorkbench.test.tsx`
@@ -885,38 +887,38 @@ Object.defineProperty(navigator, 'clipboard', {
 Append this test to the workbench describe block:
 
 ```tsx
-  it('preserves right-click menu actions for copy, path, due clearing, and delete', async () => {
-    renderWithProviders(<IdeasWorkbench />)
+it('preserves right-click menu actions for copy, path, due clearing, and delete', async () => {
+  renderWithProviders(<IdeasWorkbench />)
 
-    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+  fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('menuitem', { name: '复制文本' }))
-    })
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('有截止日期的想法')
-
-    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
-    await act(async () => {
-      fireEvent.click(screen.getByRole('menuitem', { name: '清除截止日期' }))
-    })
-    expect(mockState.todoContext.setTodoDue).toHaveBeenCalledWith(2, null, false)
-
-    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
-    await act(async () => {
-      fireEvent.click(screen.getByRole('menuitem', { name: '设置路径…' }))
-    })
-    expect(mockState.todoContext.setTodoPath).toHaveBeenCalledWith(
-      2,
-      '~/Documents/journal/projects',
-      false,
-    )
-
-    fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
-    await act(async () => {
-      fireEvent.click(screen.getByRole('menuitem', { name: '删除' }))
-    })
-    expect(mockState.todoContext.deleteTodo).toHaveBeenCalledWith(2, false)
+  await act(async () => {
+    fireEvent.click(screen.getByRole('menuitem', { name: '复制文本' }))
   })
+  expect(navigator.clipboard.writeText).toHaveBeenCalledWith('有截止日期的想法')
+
+  fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+  await act(async () => {
+    fireEvent.click(screen.getByRole('menuitem', { name: '清除截止日期' }))
+  })
+  expect(mockState.todoContext.setTodoDue).toHaveBeenCalledWith(2, null, false)
+
+  fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+  await act(async () => {
+    fireEvent.click(screen.getByRole('menuitem', { name: '设置路径…' }))
+  })
+  expect(mockState.todoContext.setTodoPath).toHaveBeenCalledWith(
+    2,
+    '~/Documents/journal/projects',
+    false,
+  )
+
+  fireEvent.contextMenu(screen.getByRole('row', { name: '有截止日期的想法' }))
+  await act(async () => {
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除' }))
+  })
+  expect(mockState.todoContext.deleteTodo).toHaveBeenCalledWith(2, false)
+})
 ```
 
 - [ ] **Step 2: Run the tests and verify they fail**
@@ -950,25 +952,27 @@ interface IdeasContextMenuState {
 Add this state inside `IdeasWorkbench`:
 
 ```tsx
-  const [contextMenu, setContextMenu] = useState<IdeasContextMenuState | null>(null)
+const [contextMenu, setContextMenu] = useState<IdeasContextMenuState | null>(null)
 ```
 
 Pass `setContextMenu` into each row:
 
 ```tsx
-                onContextMenu={setContextMenu}
+onContextMenu = { setContextMenu }
 ```
 
 Add this menu after the list closing `</main>` in `IdeasWorkbench`:
 
 ```tsx
-      {contextMenu && (
-        <IdeasContextMenu
-          state={contextMenu}
-          onClose={() => setContextMenu(null)}
-          onOpenConversation={onOpenConversation}
-        />
-      )}
+{
+  contextMenu && (
+    <IdeasContextMenu
+      state={contextMenu}
+      onClose={() => setContextMenu(null)}
+      onOpenConversation={onOpenConversation}
+    />
+  )
+}
 ```
 
 Extend `IdeasRow` props:
@@ -1051,7 +1055,11 @@ function IdeasContextMenu({
           todoContext.removeTodoPath(item.line_index, item.done_file),
         )}
       <div className="ideas-workbench-menu-divider" />
-      {menuItem(t('deleteTodo'), () => todoContext.deleteTodo(item.line_index, item.done_file), true)}
+      {menuItem(
+        t('deleteTodo'),
+        () => todoContext.deleteTodo(item.line_index, item.done_file),
+        true,
+      )}
     </div>
   )
 }
@@ -1068,16 +1076,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 Add this effect after `contextMenu` state:
 
 ```tsx
-  useEffect(() => {
-    if (!contextMenu) return
-    const close = () => setContextMenu(null)
-    window.addEventListener('click', close)
-    window.addEventListener('keydown', close)
-    return () => {
-      window.removeEventListener('click', close)
-      window.removeEventListener('keydown', close)
-    }
-  }, [contextMenu])
+useEffect(() => {
+  if (!contextMenu) return
+  const close = () => setContextMenu(null)
+  window.addEventListener('click', close)
+  window.addEventListener('keydown', close)
+  return () => {
+    window.removeEventListener('click', close)
+    window.removeEventListener('keydown', close)
+  }
+}, [contextMenu])
 ```
 
 - [ ] **Step 5: Run tests and commit**
@@ -1100,6 +1108,7 @@ git commit -m "feat: add ideas workbench row actions"
 ## Task 6: CSS And Theme Contract
 
 **Files:**
+
 - Modify: `src/styles/globals.css`
 - Modify: `src/tests/light-theme-unit.test.ts`
 - Test: `src/tests/light-theme-unit.test.ts`
@@ -1352,7 +1361,9 @@ In `src/styles/globals.css`, add this block after the automation workbench CSS a
   width: 100%;
   min-height: 64px;
   display: grid;
-  grid-template-columns: 28px 28px minmax(180px, 1fr) minmax(78px, auto) minmax(120px, 0.45fr) minmax(86px, auto) 34px 34px;
+  grid-template-columns:
+    28px 28px minmax(180px, 1fr) minmax(78px, auto) minmax(120px, 0.45fr)
+    minmax(86px, auto) 34px 34px;
   gap: 10px;
   align-items: center;
   padding: 12px 14px;
@@ -1610,6 +1621,7 @@ git commit -m "style: add ideas workbench layout"
 ## Task 7: Build Verification And Visual Smoke
 
 **Files:**
+
 - No production file changes expected.
 
 - [ ] **Step 1: Run targeted tests**

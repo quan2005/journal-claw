@@ -2,11 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import {
-  fauxAssistantMessage,
-  fauxProvider,
-  fauxText,
-} from '@earendil-works/pi-ai'
+import { fauxAssistantMessage, fauxProvider, fauxText } from '@earendil-works/pi-ai'
 import { ConfigService, type EngineConfig } from '../config/service.js'
 import { AgentRunService } from '../runs/service.js'
 import { ConversationService } from '../conversation/service.js'
@@ -52,7 +48,7 @@ describe('AutomationService', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
- function makeService(providers: ReturnType<typeof fauxProvider>[]) {
+  function makeService(providers: ReturnType<typeof fauxProvider>[]) {
     const conversation = new ConversationService({
       workspaceRoot: workspace,
       configService: config,

@@ -37,6 +37,7 @@ related: []
 ## 成功标准（脊柱 Q4）
 
 做完后，**JournalClaw 桌面端用户** 会：
+
 - 用户切换到 Topics 分类后，在同一屏内看到文件树、Quick Start、Recently Viewed；右侧 Chat 面板默认收起，但可通过现有切换按钮一键展开。
 - 新建/导入/打开最近文件的操作路径从原来的「切换分类 → 寻找入口」缩短为「Workspace 内直接点击」。
 - 视觉上与提供的 Momo 截图在布局、字号、间距、圆角、图标气质上高度一致；浅色模式优先对齐截图，暗色模式使用谨迹暗色 token 保持同等可用性。
@@ -47,6 +48,7 @@ related: []
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — Workspace 作为 Topics 分类的新视图
+
 - **Given** 用户已打开 JournalClaw 桌面应用
 - **When** 用户从导航栏切换到 **Topics（专题）** 分类
 - **Then** 中间内容区渲染 Momo 风格 Workspace hub，而不是原有单文件详情视图
@@ -54,12 +56,14 @@ related: []
 - **And** 右侧 Chat 面板默认收起，但展开后比例与截图一致，无明显错位或闪烁
 
 ### AC-2 — 文件树与 Workspace 结构
+
 - **Given** 用户处于 Workspace 视图
 - **When** 页面加载完成
 - **Then** 文件树面板沿用现有 Topics 树形结构，文件夹可展开/折叠，文件项显示对应文件类型图标
 - **And** 顶部可显示「Workspace」标题与搜索/视图图标（如保留现有树则至少保持 Topics 导航可用）
 
 ### AC-3 — Quick Start 操作区
+
 - **Given** 用户处于 Workspace 视图
 - **When** 查看中间内容区顶部
 - **Then** 显示「Quick Start」标题
@@ -67,6 +71,7 @@ related: []
 - **And** 点击后触发对应本地状态反馈（如打开输入框/文件选择器占位），不调用真实后端
 
 ### AC-4 — Recently Viewed 列表
+
 - **Given** 用户处于 Workspace 视图
 - **When** 页面加载完成
 - **Then** 显示「Recently Viewed」标题与表头 Name / Contributors / Viewed
@@ -74,6 +79,7 @@ related: []
 - **And** 列表底部显示「Show more」可展开更多 mock 行
 
 ### AC-5 — 右侧 AI Chat 面板（Momo 风格 + 真实能力）
+
 - **Given** 用户处于 Workspace 视图且手动展开了右侧 Chat 面板
 - **When** 面板打开
 - **Then** 右侧面板渲染 Momo 风格的 `WorkspaceChatShell`，保留 agent 选择、历史会话选择、真实发送/取消/重试等核心能力
@@ -84,6 +90,7 @@ related: []
 - **And** 空状态显示纯文字问候「闫戍's momo」（无吉祥物），输入框、发送/取消按钮与截图视觉一致；不显示独立的 Continue 按钮
 
 ### AC-6 — 视觉还原度（浅色模式）
+
 - **Given** 用户在桌面端（≥1280px 宽度）查看 Workspace 视图
 - **When** 与 Momo 截图并排对比
 - **Then** 颜色仅使用谨迹设计 token（白/暖白/墨文字/信号橙），无第二 accent 色
@@ -92,6 +99,7 @@ related: []
 - **And** 各区块间距落在 8pt 网格上，无卡片套卡片装饰阴影
 
 ### AC-7 — 暗色主题可用性
+
 - **Given** 用户将谨迹切换到暗色主题
 - **When** 再次打开 Workspace 视图
 - **Then** 三栏布局、文件树、Quick Start、Recently Viewed、Chat 面板均使用暗色 token 正确渲染
@@ -131,14 +139,14 @@ related: []
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | 入口位置：Workspace 是否绑定到现有 Topics 分类？ | 是；点击 Topics 导航后默认显示 Workspace hub | 已确认 |
-| Q2 | 右侧 Chat 面板是否默认展开？ | 默认收起，与当前谨迹行为一致 | 已确认 |
-| Q3 | 右侧 Chat 空状态是否保留吉祥物？ | 不需要吉祥物，使用纯文字问候 | 已确认 |
-| Q4 | 是否只需要单次视觉原型验证，还是期望合并到主分支并长期维护？ | 直接嵌入 apps/web 代码库交付 | 已确认 |
-| Q5 | 颜色方案：严格像素级复刻 Momo，还是结构复刻 + 谨迹 token？ | 结构复刻，颜色/交互态走谨迹 token | 已确认 |
-| Q6 | 选中 Topics 文件后中间显示什么？ | 进入原有文件详情视图 | 已确认 |
+| #   | 问题                                                         | 当前默认值                                   | 状态   |
+| --- | ------------------------------------------------------------ | -------------------------------------------- | ------ |
+| Q1  | 入口位置：Workspace 是否绑定到现有 Topics 分类？             | 是；点击 Topics 导航后默认显示 Workspace hub | 已确认 |
+| Q2  | 右侧 Chat 面板是否默认展开？                                 | 默认收起，与当前谨迹行为一致                 | 已确认 |
+| Q3  | 右侧 Chat 空状态是否保留吉祥物？                             | 不需要吉祥物，使用纯文字问候                 | 已确认 |
+| Q4  | 是否只需要单次视觉原型验证，还是期望合并到主分支并长期维护？ | 直接嵌入 apps/web 代码库交付                 | 已确认 |
+| Q5  | 颜色方案：严格像素级复刻 Momo，还是结构复刻 + 谨迹 token？   | 结构复刻，颜色/交互态走谨迹 token            | 已确认 |
+| Q6  | 选中 Topics 文件后中间显示什么？                             | 进入原有文件详情视图                         | 已确认 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -151,14 +159,14 @@ related: []
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-07-01 | 可开发 | 意图层问题已全部确认，待用户最终 approved |
-| 6 | 2026-07-01 | 可验收 | 用户要求将真实 Chat 能力（agent/历史/发送/取消/继续）融入 Momo 风格右侧面板；story 与 design 已同步更新，进入第 6 轮 verification-gate |
-| 7 | 2026-07-01 | 可验收 | 用户截图反馈：历史会话应纳入顶部「New Chat」下拉框，引擎/模型/权限应放在输入框下方；已调整 UI 并同步契约，进入第 7 轮 verification-gate |
-| 8 | 2026-07-01 | 可验收 | 第 7 轮反馈 `workspace.css` 中 6 处圆角未走 token；已替换为 `--radius-sm/md/pill`，进入第 8 轮 verification-gate |
-| 9 | 2026-07-01 | 可验收 | 用户截图反馈：顶部「New Chat」图标需更换、工具调用 UI 需优化、输入框与选择器需融合、Continue 按钮需删除；已调整 UI 并同步契约，进入第 9 轮 verification-gate |
-| 10 | 2026-07-01 | 可验收 | 第 9 轮反馈 Continue 按钮契约文本未同步、App.tsx 仍传 `onContinue`；已更新 story/design、移除 `WorkspaceChatShellProps` 中的 `onContinue`、清理 `App.tsx` 传参，进入第 10 轮 verification-gate |
-| 11 | 2026-07-01 | 可验收 | 用户反馈：工具执行过程和结果需用单行胶囊包装、默认收起、点击展开；已实现 `ToolCapsule` 组件并同步契约，进入第 11 轮 verification-gate |
-| 12 | 2026-07-01 | 可验收 | 第 11 轮反馈 `workspace.css` 中部分间距未落在 4px 细粒度网格、空状态问候语需明确；已统一间距为 4 的倍数并在契约中明确问候语为「闫戍's momo」，进入第 12 轮 verification-gate |
-| 13 | 2026-07-01 | 可验收 | 第 12 轮反馈仍有 3 处间距/尺寸未落在 4px 网格（下拉偏移 6px、列表 padding 2px、TreeSidebar Workspace 头部 padding/按钮尺寸）；已修复，进入第 13 轮 verification-gate |
+| 轮次 | 日期       | Readiness | 主要缺口                                                                                                                                                                                       |
+| ---- | ---------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-07-01 | 可开发    | 意图层问题已全部确认，待用户最终 approved                                                                                                                                                      |
+| 6    | 2026-07-01 | 可验收    | 用户要求将真实 Chat 能力（agent/历史/发送/取消/继续）融入 Momo 风格右侧面板；story 与 design 已同步更新，进入第 6 轮 verification-gate                                                         |
+| 7    | 2026-07-01 | 可验收    | 用户截图反馈：历史会话应纳入顶部「New Chat」下拉框，引擎/模型/权限应放在输入框下方；已调整 UI 并同步契约，进入第 7 轮 verification-gate                                                        |
+| 8    | 2026-07-01 | 可验收    | 第 7 轮反馈 `workspace.css` 中 6 处圆角未走 token；已替换为 `--radius-sm/md/pill`，进入第 8 轮 verification-gate                                                                               |
+| 9    | 2026-07-01 | 可验收    | 用户截图反馈：顶部「New Chat」图标需更换、工具调用 UI 需优化、输入框与选择器需融合、Continue 按钮需删除；已调整 UI 并同步契约，进入第 9 轮 verification-gate                                   |
+| 10   | 2026-07-01 | 可验收    | 第 9 轮反馈 Continue 按钮契约文本未同步、App.tsx 仍传 `onContinue`；已更新 story/design、移除 `WorkspaceChatShellProps` 中的 `onContinue`、清理 `App.tsx` 传参，进入第 10 轮 verification-gate |
+| 11   | 2026-07-01 | 可验收    | 用户反馈：工具执行过程和结果需用单行胶囊包装、默认收起、点击展开；已实现 `ToolCapsule` 组件并同步契约，进入第 11 轮 verification-gate                                                          |
+| 12   | 2026-07-01 | 可验收    | 第 11 轮反馈 `workspace.css` 中部分间距未落在 4px 细粒度网格、空状态问候语需明确；已统一间距为 4 的倍数并在契约中明确问候语为「闫戍's momo」，进入第 12 轮 verification-gate                   |
+| 13   | 2026-07-01 | 可验收    | 第 12 轮反馈仍有 3 处间距/尺寸未落在 4px 网格（下拉偏移 6px、列表 padding 2px、TreeSidebar Workspace 头部 padding/按钮尺寸）；已修复，进入第 13 轮 verification-gate                           |

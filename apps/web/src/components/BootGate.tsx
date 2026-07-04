@@ -85,8 +85,7 @@ function BootLoading({ attempt }: { attempt: number }): ReactNode {
         justifyContent: 'center',
         gap: 18,
         background: 'var(--bg)',
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Noto Serif SC", serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Noto Serif SC", serif',
       }}
     >
       <div
@@ -135,8 +134,7 @@ function BootError({ onRetry }: { onRetry: () => void }): ReactNode {
         justifyContent: 'center',
         gap: 16,
         background: 'var(--bg)',
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Noto Serif SC", serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Noto Serif SC", serif',
         padding: 24,
       }}
     >

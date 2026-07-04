@@ -20,6 +20,7 @@
 ## AC 逐项核对
 
 ### AC-1 — skill 可被 AI 发现并引用 → **PASS**（含 1 处弱项）
+
 - **Then（何时用 opencode / 何时仍用 host Agent 工具）**：
   - 何时用 opencode：`.agents/skills/opencode-subagent/SKILL.md:12-16`（When to Use）明确列出三类场景。✓
   - 何时仍用 host Agent 工具：仅**隐式**——`SKILL.md:15`"host Agent/Task tool is unavailable, expensive..."与 `:18-21`"Do not use when"反推。**无独立的"何时仍用 host Agent 工具"正面表述**。弱项，不致命。
@@ -29,6 +30,7 @@
 - **结论**：PASS。建议补一句正面说明"何时仍用 host Agent 工具"以消除弱项。
 
 ### AC-2 — 标准化调用能成功跑通 → **PASS**（自证）
+
 - **Then（子 agent 独立会话读契约/跑命令/写报告）**：
   - 本次验收**即由该 skill 的脚本派发**（`opencode run --agent build -f <prompt.md>`，见脚本末段）。本 subAgent 正运行于独立会话，已读 story.md、跑 `ls/git/diff/rg` 取证，并将本报告写入指定路径。✓
   - 脚本经 `-f` 读取 `/tmp` 下的 prompt 文件成功（prompt 内容已注入本会话）。✓
@@ -38,6 +40,7 @@
 - **结论**：PASS。
 
 ### AC-3 — 不破坏现有门禁体系 → **PASS**
+
 - **Then（不删除/不修改现有 skill）**：
   - 三个既有 gate skill 均在且 mtime 为 `Jun 16`（早于本 story 的 Jul 1），未被触碰：
     - `.agents/skills/verification-gate/SKILL.md`（6729B, Jun 16 15:04）
@@ -49,6 +52,7 @@
 - **结论**：PASS。
 
 ### AC-4 — 错误处理与边界清晰 → **FAIL**
+
 - **Then（提供明确回退路径：重试 / 换 host Agent 工具 / 向用户报告）**：
   - 对全文检索 `fall back|fallback|retry|重试|回退|escalat|switch to` → **NO MATCH**（`rg` 实测）。
   - "向用户报告"：间接满足——脚本对"报告文件缺失"打印告警并 `exit 2`；Troubleshooting 表给出症状→动作。⚠️ 仅此一项。
@@ -63,13 +67,13 @@
 
 ## 越界 / 偏差清单
 
-| # | 类型 | 描述 | 证据 | 严重度 |
-|---|---|---|---|---|
-| D-1 | 范围错配 | 传入 scope 仅 story.md，不含交付物；系 script 调用方误把 story 路径当 scope 传入（script 第 3 位置参数为 scope） | 脚本 `SCOPE="${3:-}"`；本次 SCOPE 实际值=story 路径 | 中（影响可复现性） |
-| D-2 | 契约不一致 | story.md frontmatter `design: ./design.md` 指向不存在的文件 | `ls stories/.../design.md` → No such file | 低（prompt 已声明无 design） |
+| #   | 类型          | 描述                                                                                                                                                                                                                  | 证据                                                                              | 严重度                                              |
+| --- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------- |
+| D-1 | 范围错配      | 传入 scope 仅 story.md，不含交付物；系 script 调用方误把 story 路径当 scope 传入（script 第 3 位置参数为 scope）                                                                                                      | 脚本 `SCOPE="${3:-}"`；本次 SCOPE 实际值=story 路径                               | 中（影响可复现性）                                  |
+| D-2 | 契约不一致    | story.md frontmatter `design: ./design.md` 指向不存在的文件                                                                                                                                                           | `ls stories/.../design.md` → No such file                                         | 低（prompt 已声明无 design）                        |
 | D-3 | 重复/孤儿脚本 | `.opencode/opencode-subagent.sh`（旧，"验收 subAgent"，3164B, 21:41）与 skill 内脚本（新，"独立 subAgent"，2898B, 22:15）**内容不同**；SKILL.md Core Pattern 仅引用 skill 内副本，`.opencode/` 版沦为未被引用的旧拷贝 | `diff` 两脚本不一致；`SKILL.md:27` 指向 `.agents/skills/.../opencode-subagent.sh` | 低（Q2 默认"保留 .opencode 并由 skill 引用"未落实） |
-| D-4 | 自相矛盾 | 脚本把 prompt 写入 `/tmp/opencode-subagent-prompt-XXXXXX.md`，而 SKILL.md "Common Mistakes" 明禁 /tmp（针对输出，但规则表述未区分输入/输出，易误导） | 脚本 `mktemp /tmp/...`；`SKILL.md:56` | 低 |
-| D-5 | 健壮性回退 | skill 内脚本用 `set -eo pipefail`，丢了 `-u`；旧 `.opencode/` 版本是 `-euo pipefail` | `diff` line 2 | 极低 |
+| D-4 | 自相矛盾      | 脚本把 prompt 写入 `/tmp/opencode-subagent-prompt-XXXXXX.md`，而 SKILL.md "Common Mistakes" 明禁 /tmp（针对输出，但规则表述未区分输入/输出，易误导）                                                                  | 脚本 `mktemp /tmp/...`；`SKILL.md:56`                                             | 低                                                  |
+| D-5 | 健壮性回退    | skill 内脚本用 `set -eo pipefail`，丢了 `-u`；旧 `.opencode/` 版本是 `-euo pipefail`                                                                                                                                  | `diff` line 2                                                                     | 极低                                                |
 
 > 注：工作树存在大量与本 story 无关的未提交改动（apps/web、apps/daemon、docs 等），非本 story 产物，不计入越界。
 
@@ -77,12 +81,12 @@
 
 ## 待用户裁决项
 
-| # | 议题 | 两边代价 |
-|---|---|---|
-| R-1 | **AC-4 是否可接受现状**：当前仅有"症状→修复 + 失败即退出+报告"，缺"重试 / 换 host Agent 工具"显式决策流。 | 接受→AC-4 翻 PASS，但 skill 对"调用失败时下一步"指引不足；不接受→要求补一节 Fallback 决策流再复验。 |
-| R-2 | **范围错配 D-1 是否需修 script**：script 第 3 参数 scope 被调用方填成 story 路径。 | 修 script（校验 scope≠story 路径 / 必填）→ 杜绝复发；不修→依赖调用方自律。 |
-| R-3 | **story Q1-Q3 是否已正式裁定**：story 门禁记录 `story.md:114-116` 标"待澄清"，Q1-Q3 `:97-102` 标"待确认"，但已 approved 并实现。实现实际选择（Q1 覆盖三 gate / Q2 保留 .opencode / Q3 统一摘要）与默认值一致，但是否经用户确认未知。 | 视为已默许→继续；要求显式确认→回 story 补记录。 |
-| R-4 | **D-3 孤儿脚本处置**：`.opencode/opencode-subagent.sh` 旧版是否删除/对齐/保留为参考。 | 删除→清爽；保留→须对齐内容并由 SKILL.md 明确引用关系。 |
+| #   | 议题                                                                                                                                                                                                                                 | 两边代价                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| R-1 | **AC-4 是否可接受现状**：当前仅有"症状→修复 + 失败即退出+报告"，缺"重试 / 换 host Agent 工具"显式决策流。                                                                                                                            | 接受→AC-4 翻 PASS，但 skill 对"调用失败时下一步"指引不足；不接受→要求补一节 Fallback 决策流再复验。 |
+| R-2 | **范围错配 D-1 是否需修 script**：script 第 3 参数 scope 被调用方填成 story 路径。                                                                                                                                                   | 修 script（校验 scope≠story 路径 / 必填）→ 杜绝复发；不修→依赖调用方自律。                          |
+| R-3 | **story Q1-Q3 是否已正式裁定**：story 门禁记录 `story.md:114-116` 标"待澄清"，Q1-Q3 `:97-102` 标"待确认"，但已 approved 并实现。实现实际选择（Q1 覆盖三 gate / Q2 保留 .opencode / Q3 统一摘要）与默认值一致，但是否经用户确认未知。 | 视为已默许→继续；要求显式确认→回 story 补记录。                                                     |
+| R-4 | **D-3 孤儿脚本处置**：`.opencode/opencode-subagent.sh` 旧版是否删除/对齐/保留为参考。                                                                                                                                                | 删除→清爽；保留→须对齐内容并由 SKILL.md 明确引用关系。                                              |
 
 ---
 

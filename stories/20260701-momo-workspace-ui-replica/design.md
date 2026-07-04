@@ -8,6 +8,7 @@
 将现有 Topics（专题）分类的默认中心视图从「空/详情」替换为 **Workspace hub**：左侧沿用 `TreeSidebar` 展示 Topics 树，中间新增 `WorkspaceView` 组件，右侧复用现有 `RightPanel` Chat 面板。
 
 **核心决策：**
+
 - **不复刻独立应用**：直接嵌入 `apps/web`，复用谨迹的 NavRail、TreeSidebar、RightPanel、主题系统、设计 token。
 - **不新增导航图标**：Workspace 不是新 category，而是 `activeCategory === 'topics'` 时的中心视图。
 - **选中文件行为不变**：点击 Topics 树中的**文件**（`treeSelection.type === 'topic-file'`）仍进入原有 `DetailView`；选中文件夹或清空选择时回到 Workspace hub。
@@ -15,14 +16,14 @@
 
 ## 2. 组件拆分
 
-| 组件 | 路径 | 职责 |
-|---|---|---|
-| `WorkspaceView` | `apps/web/src/components/WorkspaceView.tsx` | 中心视图容器，组合以下子组件；Recently Viewed 优先使用真实 topic 文件，不足时补充 mock。 |
-| `WorkspaceHeader` | 同文件内部子组件 | 顶部标题栏：Workspace + 搜索/视图图标（占位）。 |
-| `QuickStart` | 同文件内部子组件 | New File / New Folder / Import 三个卡片。 |
-| `RecentlyViewed` | 同文件内部子组件 | 表格 + Show more。 |
-| `WorkspaceChatShell` | 同文件内部子组件 | Momo 风格 Chat 面板：顶部「New Chat」历史会话下拉框（聊天图标）、问候语/真实消息列表、融合输入框（内部包含引擎/模型/权限选择 chip）、发送/取消/重试；集成 `useAgentEngine` / `useAgentRun` / `useConversation` 的真实能力。 |
-| `SessionDropdown` | 同文件内部子组件 | 历史会话下拉：触发器显示聊天图标 +「New Chat」，下拉菜单内包含「新建对话」选项、搜索框、会话列表（切换/删除）。 |
+| 组件                 | 路径                                        | 职责                                                                                                                                                                                                                        |
+| -------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WorkspaceView`      | `apps/web/src/components/WorkspaceView.tsx` | 中心视图容器，组合以下子组件；Recently Viewed 优先使用真实 topic 文件，不足时补充 mock。                                                                                                                                    |
+| `WorkspaceHeader`    | 同文件内部子组件                            | 顶部标题栏：Workspace + 搜索/视图图标（占位）。                                                                                                                                                                             |
+| `QuickStart`         | 同文件内部子组件                            | New File / New Folder / Import 三个卡片。                                                                                                                                                                                   |
+| `RecentlyViewed`     | 同文件内部子组件                            | 表格 + Show more。                                                                                                                                                                                                          |
+| `WorkspaceChatShell` | 同文件内部子组件                            | Momo 风格 Chat 面板：顶部「New Chat」历史会话下拉框（聊天图标）、问候语/真实消息列表、融合输入框（内部包含引擎/模型/权限选择 chip）、发送/取消/重试；集成 `useAgentEngine` / `useAgentRun` / `useConversation` 的真实能力。 |
+| `SessionDropdown`    | 同文件内部子组件                            | 历史会话下拉：触发器显示聊天图标 +「New Chat」，下拉菜单内包含「新建对话」选项、搜索框、会话列表（切换/删除）。                                                                                                             |
 
 **为什么不拆成多个文件？** 本次为原型验证，子组件间无复用需求；单文件可减少扩散面，后续若其他视图复用再提取。
 
@@ -55,6 +56,7 @@
 复用现有 `RightPanel` 容器，但将内部的 `UnifiedChatShell` 替换为 Momo 风格的 `WorkspaceChatShell`。`App.tsx` 把 `useConversation` 提供的真实会话状态（`sessionId`、`messages`、`isStreaming`、`onSend`、`onCancel`、`onRetry` 等）注入 `WorkspaceChatShell`，从而在所有分类（含 Topics）下都保留真实 Chat 能力。
 
 `WorkspaceChatShell` 内部集成：
+
 - `useAgentEngine`：切换 built-in / CLI 引擎、选择 agent；
 - `useAgentRun`：当引擎为 CLI 时驱动外部 agent 的运行流；
 - `SessionDropdown`：顶部「New Chat」下拉框，展示历史会话并支持切换/删除/新建；
@@ -70,6 +72,7 @@
 `WorkspaceView` 接收 `onOpenRecent(path: string)`，当用户点击 Recently Viewed 中某一行时调用，由 `App.tsx` 负责导航到原有 `DetailView`。Quick Start 使用本地状态/mock 占位，不调用真实后端。
 
 `WorkspaceChatShell` 接收 `ConversationSlice`（来自 `useConversation`）以及：
+
 - `onNewChat?: () => void`：创建新会话；
 - `onSelectSession?: (id: string) => void`：切换到已有会话；
 - `activeSessionId?: string | null`：高亮当前会话。
@@ -110,16 +113,16 @@ interface WorkspaceFolder {
 
 ### 5.2 设计 token 消费
 
-| 视觉元素 | Token / 值 | 说明 |
-|---|---|---|
-| 背景 | `var(--bg)` / `var(--bg-secondary)` | 中心白底，文件树暖白底 |
-| 文字 | `var(--text-primary)` / `var(--text-secondary)` / `var(--text-tertiary)` | 主/次/三级文字 |
-| 边框 | `var(--divider)` | 1px 浅灰边框 |
-| 圆角 | `var(--radius-lg)` / `var(--radius-md)` | 卡片 8px，按钮 6px |
-| 阴影 | `var(--shadow-overlay)` | 仅用于浮层，卡片无阴影 |
-| 悬停/选中 | `var(--item-hover-bg)` / `var(--item-selected-bg)` | 复用谨迹列表项模式 |
-| 主按钮 | `var(--workbench-btn-primary-bg)` | Quick Start 卡片 hover 时可用 |
-| 聚焦环 | `var(--focus-ring)` | 所有可聚焦元素 |
+| 视觉元素  | Token / 值                                                               | 说明                          |
+| --------- | ------------------------------------------------------------------------ | ----------------------------- |
+| 背景      | `var(--bg)` / `var(--bg-secondary)`                                      | 中心白底，文件树暖白底        |
+| 文字      | `var(--text-primary)` / `var(--text-secondary)` / `var(--text-tertiary)` | 主/次/三级文字                |
+| 边框      | `var(--divider)`                                                         | 1px 浅灰边框                  |
+| 圆角      | `var(--radius-lg)` / `var(--radius-md)`                                  | 卡片 8px，按钮 6px            |
+| 阴影      | `var(--shadow-overlay)`                                                  | 仅用于浮层，卡片无阴影        |
+| 悬停/选中 | `var(--item-hover-bg)` / `var(--item-selected-bg)`                       | 复用谨迹列表项模式            |
+| 主按钮    | `var(--workbench-btn-primary-bg)`                                        | Quick Start 卡片 hover 时可用 |
+| 聚焦环    | `var(--focus-ring)`                                                      | 所有可聚焦元素                |
 
 ### 5.3 布局尺寸
 
@@ -133,6 +136,7 @@ interface WorkspaceFolder {
 ## 6. 暗色主题
 
 依赖 CSS 变量自动切换：
+
 - 背景/文字直接使用 `--bg`、`--text-primary` 等已有暗色变量。
 - 悬停态使用 `var(--item-hover-bg)` 的暗色定义（`rgba(255,255,255,0.04)`）。
 - 聚焦环使用 `--focus-ring` 暗色版（混入 `--bg` 后浓度自然降低）。
@@ -142,27 +146,27 @@ interface WorkspaceFolder {
 
 ## 7. 交互行为
 
-| 元素 | 行为 |
-|---|---|
-| New File / New Folder / Import | 点击后弹出临时占位提示（toast 或内联输入框），不调用 daemon。 |
-| Recently Viewed 行 | 点击后调用 `onSelectFile(path, true)`，进入原有 `DetailView`。 |
-| 文件树文件夹 | 沿用 `TreeSidebar` 展开/折叠行为。 |
-| 文件树文件 | 沿用现有行为，进入详情视图。 |
-| Chat 输入框 | 回车触发真实发送（built-in 走 `useConversation.onSend`，CLI 走 `useAgentRun.start`）；发送按钮在空输入/流式中禁用；流式时再次回车或点击变为取消。 |
-| 顶部「New Chat」下拉框 | 点击展开会话列表，可搜索、切换、删除已有会话；顶部「New Chat」选项创建新会话；左侧使用聊天图标。 |
-| 输入框内引擎 chip | 点击展开 `EngineSwitcher` 弹窗，切换 built-in / CLI 引擎及 agent。 |
-| 输入框内权限 chip | 仅在 CLI 引擎下显示，点击展开 `AuthModeToggle` 弹窗，切换授权模式。 |
-| 工具调用胶囊 | Assistant 消息中的 `tools` 默认以单行胶囊（图标 + 工具名 + 描述）收起展示；有 `output` 时胶囊可点击，点击后展开显示执行过程与结果；错误态使用危险色。 |
-| Show more | 展开更多 mock 行，仅前端状态。 |
+| 元素                           | 行为                                                                                                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New File / New Folder / Import | 点击后弹出临时占位提示（toast 或内联输入框），不调用 daemon。                                                                                         |
+| Recently Viewed 行             | 点击后调用 `onSelectFile(path, true)`，进入原有 `DetailView`。                                                                                        |
+| 文件树文件夹                   | 沿用 `TreeSidebar` 展开/折叠行为。                                                                                                                    |
+| 文件树文件                     | 沿用现有行为，进入详情视图。                                                                                                                          |
+| Chat 输入框                    | 回车触发真实发送（built-in 走 `useConversation.onSend`，CLI 走 `useAgentRun.start`）；发送按钮在空输入/流式中禁用；流式时再次回车或点击变为取消。     |
+| 顶部「New Chat」下拉框         | 点击展开会话列表，可搜索、切换、删除已有会话；顶部「New Chat」选项创建新会话；左侧使用聊天图标。                                                      |
+| 输入框内引擎 chip              | 点击展开 `EngineSwitcher` 弹窗，切换 built-in / CLI 引擎及 agent。                                                                                    |
+| 输入框内权限 chip              | 仅在 CLI 引擎下显示，点击展开 `AuthModeToggle` 弹窗，切换授权模式。                                                                                   |
+| 工具调用胶囊                   | Assistant 消息中的 `tools` 默认以单行胶囊（图标 + 工具名 + 描述）收起展示；有 `output` 时胶囊可点击，点击后展开显示执行过程与结果；错误态使用危险色。 |
+| Show more                      | 展开更多 mock 行，仅前端状态。                                                                                                                        |
 
 ## 8. 异常分支
 
-| 场景 | 处理 |
-|---|---|
-| Topics 数据为空 | 按 story 边界，Recently Viewed 优先真实文件、不足 5 条时补充 mock 数据，因此空 Topics 时仍展示 mock 列表，不显示单独空状态。 |
-| 暗色 token 缺失 | 若发现某 token 在暗色下对比度不足，优先使用 `color-mix` 派生，避免硬编码。 |
-| 右侧面板未展开 | Chat 占位不渲染，不影响 Workspace hub 使用。 |
-| 用户选中 topic 文件 | 中心自动切换为 `DetailView`，Workspace hub 隐藏。 |
+| 场景                | 处理                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Topics 数据为空     | 按 story 边界，Recently Viewed 优先真实文件、不足 5 条时补充 mock 数据，因此空 Topics 时仍展示 mock 列表，不显示单独空状态。 |
+| 暗色 token 缺失     | 若发现某 token 在暗色下对比度不足，优先使用 `color-mix` 派生，避免硬编码。                                                   |
+| 右侧面板未展开      | Chat 占位不渲染，不影响 Workspace hub 使用。                                                                                 |
+| 用户选中 topic 文件 | 中心自动切换为 `DetailView`，Workspace hub 隐藏。                                                                            |
 
 ## 9. 测试策略
 

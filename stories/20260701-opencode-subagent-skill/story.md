@@ -1,6 +1,6 @@
 ---
 id: STORY-20260701-opencode-subagent-skill
-title: "创建 opencode-subagent skill，指引 AI 使用 opencode CLI 作为独立 subagent 引擎"
+title: '创建 opencode-subagent skill，指引 AI 使用 opencode CLI 作为独立 subagent 引擎'
 status: verified
 source: gate
 level: L2
@@ -54,24 +54,28 @@ Journal 的门禁体系（requirements-gate / verification-gate / docs-maintenan
 ## 验收标准（Given-When-Then）
 
 ### AC-1 — skill 可被 AI 发现并引用
+
 - **Given** AI 在 Journal 仓库中收到需要 spawn 独立 subagent 的任务
 - **When** AI 查看 `.agents/skills/opencode-subagent/SKILL.md`
 - **Then** 该 skill 明确说明何时应使用 opencode subagent、何时仍用 host Agent 工具
 - **And** 提供可拷贝的调用模板（命令、参数、输入文件格式、输出路径约定）
 
 ### AC-2 — 标准化调用能成功跑通
+
 - **Given** 已安装 opencode CLI 且可联网/调用模型
 - **When** AI 按 skill 指引调用 opencode subagent 执行一次验收或文档检查任务
 - **Then** 子 agent 在独立会话中完成读取契约/代码、运行命令、写入报告
 - **And** 主对话能回收报告路径和 `result: pass/fail` 摘要
 
 ### AC-3 — 不破坏现有门禁体系
+
 - **Given** 现有 verification-gate / requirements-gate / docs-maintenance skill 已存在
 - **When** 新 skill 入仓
 - **Then** 不删除、不修改现有 skill 的默认流程
 - **And** 新 skill 仅作为"可选 subagent 后端"补充说明
 
 ### AC-4 — 错误处理与边界清晰
+
 - **Given** opencode subagent 调用失败（如文件不存在、权限被拒绝、模型不可用）
 - **When** AI 按 skill 指引处理
 - **Then** skill 提供明确的回退路径（重试、换 host Agent 工具、向用户报告）
@@ -94,11 +98,11 @@ Journal 的门禁体系（requirements-gate / verification-gate / docs-maintenan
 
 ## 待确认（意图层）
 
-| # | 问题 | 当前默认值 | 状态 |
-|---|---|---|---|
-| Q1 | 新 skill 是否只覆盖 verification-gate，还是同时覆盖 requirements-gate / docs-maintenance 的 subagent 调用？ | 同时覆盖三类门禁/文档任务的 opencode subagent 调用，提供通用模板 | 已确认 |
-| Q2 | 是否保留 `.opencode/opencode-subagent.sh` 作为参考实现，还是迁移到 skill 目录内？ | 实体放在 `.agents/skills/opencode-subagent/`，`.opencode/opencode-subagent.sh` 作为兼容软链保留 | 已确认 |
-| Q3 | 是否要求所有 opencode subagent 输出都必须包含 `result:` 和 `SUMMARY:`？ | 报告正文含 `result:` 行；最后一行必须是 `SUMMARY: result=... | fail=N | pending=N` | 已确认 |
+| #   | 问题                                                                                                        | 当前默认值                                                                                      | 状态   |
+| --- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------ | ---------- | ------ |
+| Q1  | 新 skill 是否只覆盖 verification-gate，还是同时覆盖 requirements-gate / docs-maintenance 的 subagent 调用？ | 同时覆盖三类门禁/文档任务的 opencode subagent 调用，提供通用模板                                | 已确认 |
+| Q2  | 是否保留 `.opencode/opencode-subagent.sh` 作为参考实现，还是迁移到 skill 目录内？                           | 实体放在 `.agents/skills/opencode-subagent/`，`.opencode/opencode-subagent.sh` 作为兼容软链保留 | 已确认 |
+| Q3  | 是否要求所有 opencode subagent 输出都必须包含 `result:` 和 `SUMMARY:`？                                     | 报告正文含 `result:` 行；最后一行必须是 `SUMMARY: result=...                                    | fail=N | pending=N` | 已确认 |
 
 ## INVEST 自检（输出闸记录）
 
@@ -111,6 +115,6 @@ Journal 的门禁体系（requirements-gate / verification-gate / docs-maintenan
 
 ## 门禁记录
 
-| 轮次 | 日期 | Readiness | 主要缺口 |
-|---|---|---|---|
-| 1 | 2026-07-01 | 待澄清 | 待用户确认 Q1-Q3 及 story 范围 |
+| 轮次 | 日期       | Readiness | 主要缺口                       |
+| ---- | ---------- | --------- | ------------------------------ |
+| 1    | 2026-07-01 | 待澄清    | 待用户确认 Q1-Q3 及 story 范围 |

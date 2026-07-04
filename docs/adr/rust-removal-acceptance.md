@@ -6,18 +6,18 @@
 
 ## 总结
 
-| Gate | 结论 | 证据 |
-|---|---|---|
-| A Host 与 Runtime | PASS | `apps/desktop` 是默认桌面宿主；root package 删除 Tauri script；`apps/web/src/lib/runtimeClient.ts` 固定 HTTP runtime；活跃源码无 `@tauri-apps` import |
-| B API Parity | PASS | `docs/adr/rust-api-parity.md` 记录 `blocked = 0`；旧 134 command 归为 replaced/retired |
-| C Agent Run 主路径 | PASS | daemon `runs/`, `engine/`, `conversation/` services 与 tests 通过；`cd apps/daemon && npx vitest run` 72 files / 446 tests passed |
-| D 三家 CLI adapter | PASS | daemon claude/codex/opencode defs 与 stream parser tests 通过 |
-| E ChangeSet 与恢复 | PASS | daemon changeset service/authorization tests 通过 |
-| F 自动沉淀 | PASS | daemon sediment service tests 通过 |
-| G 数据与文件迁移 | PASS | M8-b 不迁移 workspace 数据；builtin skills 从旧资源路径搬到 `apps/web/resources/workspace-template/.claude/skills`（63 files） |
-| H 测试矩阵 | PASS with known baseline | daemon vitest pass；web tsc pass；web vitest 保留既有 9 failed baseline；desktop tsc pass；daemon tsc pass |
-| I 真实任务验收 | PASS by prior M1-M7 evidence | 本次是删除收尾；M8-b 无新增用户工作流，依赖 M1-M7 已验收能力与本次 smoke/test |
-| J 回滚与发布 | PASS | `docs/adr/rust-removal-rollback.md` 与 `docs/adr/rust-removal-release-note.md` 已新增；release workflow 改为 Electron |
+| Gate               | 结论                         | 证据                                                                                                                                                  |
+| ------------------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A Host 与 Runtime  | PASS                         | `apps/desktop` 是默认桌面宿主；root package 删除 Tauri script；`apps/web/src/lib/runtimeClient.ts` 固定 HTTP runtime；活跃源码无 `@tauri-apps` import |
+| B API Parity       | PASS                         | `docs/adr/rust-api-parity.md` 记录 `blocked = 0`；旧 134 command 归为 replaced/retired                                                                |
+| C Agent Run 主路径 | PASS                         | daemon `runs/`, `engine/`, `conversation/` services 与 tests 通过；`cd apps/daemon && npx vitest run` 72 files / 446 tests passed                     |
+| D 三家 CLI adapter | PASS                         | daemon claude/codex/opencode defs 与 stream parser tests 通过                                                                                         |
+| E ChangeSet 与恢复 | PASS                         | daemon changeset service/authorization tests 通过                                                                                                     |
+| F 自动沉淀         | PASS                         | daemon sediment service tests 通过                                                                                                                    |
+| G 数据与文件迁移   | PASS                         | M8-b 不迁移 workspace 数据；builtin skills 从旧资源路径搬到 `apps/web/resources/workspace-template/.claude/skills`（63 files）                        |
+| H 测试矩阵         | PASS with known baseline     | daemon vitest pass；web tsc pass；web vitest 保留既有 9 failed baseline；desktop tsc pass；daemon tsc pass                                            |
+| I 真实任务验收     | PASS by prior M1-M7 evidence | 本次是删除收尾；M8-b 无新增用户工作流，依赖 M1-M7 已验收能力与本次 smoke/test                                                                         |
+| J 回滚与发布       | PASS                         | `docs/adr/rust-removal-rollback.md` 与 `docs/adr/rust-removal-release-note.md` 已新增；release workflow 改为 Electron                                 |
 
 ## 删除与依赖检查
 

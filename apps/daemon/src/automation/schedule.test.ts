@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { nextRunAfter, nextWaitMs, parseTime, shouldRunDue, validateSchedule } from './schedule.js'
 import type { AutomationRoutine, AutomationSchedule } from './types.js'
 
+// The schedule arithmetic mirrors the Rust implementation that ran in the
+// daemon process's local wall clock. Pin the test timezone to Hong Kong so
+// the assertions are stable regardless of the CI runner's default timezone.
+process.env.TZ = 'Asia/Hong_Kong'
+
 const HK = 'Asia/Hong_Kong'
 
 function daily(time: string): AutomationSchedule {

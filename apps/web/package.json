@@ -9,6 +9,7 @@
     "build": "tsc && bun run build:magicui && vite build",
     "build:magicui": "vite build --config magicui.vite.config.ts && bunx tailwindcss -i src/lib/sandbox/magicui/tailwind.css -o src/lib/sandbox/magicui/dist/magicui.bundle.css --minify",
     "preview": "vite preview",
+    "pretest": "bun run build:magicui",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

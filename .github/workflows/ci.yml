@@ -15,6 +15,7 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      - run: bun run --filter @journal/contracts build
       - run: node scripts/check-docs-consistency.mjs
       - run: bun run --filter @journal/web typecheck
       - run: bun run --filter @journal/web lint
@@ -35,6 +36,7 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      - run: bun run --filter @journal/contracts build
       - run: bun run --filter @journal/web typecheck
       - run: bun run --filter @journal/web test
       - run: bun run --filter @journal/contracts typecheck

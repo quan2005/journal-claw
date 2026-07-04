@@ -9,7 +9,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import type { AutomationRoutine, AutomationRun, RunManifest } from './types.js'
 
 /**
@@ -143,7 +143,7 @@ function writeJson(path: string, value: unknown): void {
 }
 
 function tempJsonPath(path: string): string {
-  const file = path.split('/').pop() ?? path
+  const file = basename(path)
   return join(dirname(path), `.${file}.${process.pid}.${randomUUID().slice(0, 8)}.tmp`)
 }
 

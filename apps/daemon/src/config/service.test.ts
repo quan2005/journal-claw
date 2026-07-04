@@ -32,7 +32,10 @@ describe('ConfigService', () => {
         ciphertext: expect.any(String),
       },
     })
-    expect(secretFileMode(join(dir, 'secret.key'))).toBe(0o600)
+    // Windows does not support Unix file permission bits; verify mode only on Unix.
+    if (process.platform !== 'win32') {
+      expect(secretFileMode(join(dir, 'secret.key'))).toBe(0o600)
+    }
   })
 
   it('returns null when API key is missing or cannot be decrypted', () => {

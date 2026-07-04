@@ -158,8 +158,8 @@ describe('ChangeSetService', () => {
       const svc = new ChangeSetService(ws)
       const snap = svc.snapshotWorkspace()
       expect(snap.files.has('a.md')).toBe(true)
-      expect(snap.files.has('sub/b.ts')).toBe(true)
-      expect(snap.files.has('.journal/workspace.json')).toBe(false)
+      expect(snap.files.has(join('sub', 'b.ts'))).toBe(true)
+      expect(snap.files.has(join('.journal', 'workspace.json'))).toBe(false)
     })
 
     it('captureSnapshotDiff records create/edit/remove as ChangeSets', () => {

@@ -13,6 +13,7 @@
 ### Task 1: Restore `StatGroup` And Lock The 61-Component Registry
 
 **Files:**
+
 - Modify: `src/components/mdx/display.tsx`
 - Modify: `src/components/mdx/index.ts`
 - Modify: `src/components/mdx/component-manifest.json`
@@ -28,6 +29,7 @@
 ### Task 2: Add Owned-MDX Registry And Coverage Validation
 
 **Files:**
+
 - Create: `scripts/validate-journal-mdx-examples.mjs`
 - Create: `src/tests/JournalMdxExamples.test.ts`
 
@@ -40,6 +42,7 @@
 ### Task 3: Rewrite Component Catalog, Recipes, And Family Routing Guides
 
 **Files:**
+
 - Rewrite: `.agents/skills/journal/references/component-catalog.md`
 - Rewrite: `.agents/skills/journal/references/component-recipes.md`
 - Rewrite: `.agents/skills/journal/references/templates/content-creation.md`
@@ -60,6 +63,7 @@
 ### Task 4: Rewrite Meeting, Work Report, And Project Examples
 
 **Files:**
+
 - Rewrite: `.agents/skills/journal/references/template-examples/meeting-collaboration/*.mdx`
 - Rewrite: `.agents/skills/journal/references/template-examples/work-reports/*.mdx`
 - Rewrite: `.agents/skills/journal/references/template-examples/project-docs/*.mdx`
@@ -73,6 +77,7 @@
 ### Task 5: Rewrite Research, Learning, And Personal Examples
 
 **Files:**
+
 - Rewrite: `.agents/skills/journal/references/template-examples/research-analysis/*.mdx`
 - Rewrite: `.agents/skills/journal/references/template-examples/learning-notes/*.mdx`
 - Rewrite: `.agents/skills/journal/references/template-examples/personal-journal/*.mdx`
@@ -86,6 +91,7 @@
 ### Task 6: Rewrite Technical, Content, And Operations Examples
 
 **Files:**
+
 - Rewrite: `.agents/skills/journal/references/template-examples/technical-docs/*.mdx`
 - Rewrite: `.agents/skills/journal/references/template-examples/content-creation/*.mdx`
 - Rewrite: `.agents/skills/journal/references/template-examples/hr-operations/*.mdx`
@@ -99,6 +105,7 @@
 ### Task 7: Rewrite Shared Examples And All Component Demos
 
 **Files:**
+
 - Rewrite: `.agents/skills/journal/references/examples/incident-review.mdx`
 - Rewrite: `.agents/skills/journal/references/examples/personal-review.mdx`
 - Rewrite: `.agents/skills/journal/references/examples/weekly-report.mdx`
@@ -115,6 +122,7 @@
 ### Task 8: Refactor The Handbook Generator To Consume Skill Examples
 
 **Files:**
+
 - Rewrite: `scripts/build-mdx-support-manual.mjs`
 
 - [ ] Replace embedded subtype template bodies with reads from `.agents/skills/journal/references/template-examples/`.
@@ -126,6 +134,7 @@
 ### Task 9: Compile Every Owned And Generated MDX File
 
 **Files:**
+
 - Modify: `src-tauri/src/mdx.rs`
 
 - [ ] Add or update a Rust test that compiles all 104 subtype examples, shared examples, and docs showcases through `compile_mdx_source`.
@@ -136,6 +145,7 @@
 ### Task 10: Final Product Verification
 
 **Files:**
+
 - No planned source changes.
 
 - [ ] Run `node scripts/validate-journal-mdx-examples.mjs`.

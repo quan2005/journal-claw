@@ -1,0 +1,60 @@
+---
+story: ./story.md
+design: ./design.md
+date: 2026-06-16
+round: 2
+result: pass
+scope: '第 2 轮仅核对本 story 相关范围：src/styles/globals.css 的 :root Journal page frame token；src/styles/markdown.css 的 .md-content / prose / mdx-content prose / pre-table-img 宽度与左对齐、hanging punctuation 规则；src/styles/mdx.css 的 .mdx-content 与 MDX prose/content/wide 宽度规则；src/styles/journal-blocks.css 的 prose/content/wide 三档；src/tests/light-theme-unit.test.ts、src/tests/MdxComponentDesign.test.ts、src/tests/journalBlockStyles.test.ts 中 Journal/MDX 宽度、左对齐、hanging punctuation 断言。'
+---
+
+# 验收报告 — MDX 预览宽屏阅读栏自适应
+
+## AC 核对（不漏 / 不偏 / 不倚，对照 story.md）
+
+| AC                        | 结论    | 证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 宽屏正文栏自适应展开 | ✅ pass | story 要求普通段落、标题、引用块在宽屏随可用宽度变宽，且不固定在窄栏（`story.md:51`-`story.md:55`）。实现把 `--journal-prose-max` 定义为响应式 `clamp(46rem, 72vw, 80rem)`，并保留 readable/content 分层（`src/styles/globals.css:162`-`src/styles/globals.css:165`）。`.md-content > :where(...)` 与 `.md-content.mdx-content > :where(...)` 对段落、列表、引用、标题等设置 `width: min(100%, var(--journal-prose-max))`、`max-width: var(--journal-prose-max)`、左对齐（`src/styles/markdown.css:16`-`src/styles/markdown.css:31`）；MDX prose 组件与 section 内正文同用该 token（`src/styles/mdx.css:29`-`src/styles/mdx.css:53`，`src/styles/mdx.css:1723`-`src/styles/mdx.css:1729`）。真实 CSS cascade 浏览器检查命令 `node --input-type=module -e ... chromium.launch({ channel: "chrome" })` 输出：宽屏 `frame=1200`，`heading=1152`，`para=1152`，`quote=1152`，`paraMaxWidth="1152px"`，`checks.wideProseGreaterThanOld46rem=true`。                                                                                                                                                                                                                                |
+| AC-2 窄屏与左对齐不回退   | ✅ pass | story 要求窄屏/普通窗口下标题、段落、引用块、符号开头行同一左边缘，且行首符号不向阅读栏外突出（`story.md:57`-`story.md:62`）。`.md-content` 为 `width: 100%`、`max-width: var(--journal-readable-max)`、`text-align: left`、`hanging-punctuation: none`（`src/styles/markdown.css:4`-`src/styles/markdown.css:12`）；正文块设置 `margin-left: 0`、`margin-right: auto`、`text-align: left`（`src/styles/markdown.css:16`-`src/styles/markdown.css:31`）。`.mdx-content` 同样为 `width: 100%`、`max-width: var(--journal-readable-max)`、`text-align: left`、`hanging-punctuation: none`（`src/styles/mdx.css:4`-`src/styles/mdx.css:21`）。浏览器检查输出：窄屏 `frame=342`，`heading=342`，`para=342`，`quote=342`，`paraMarginLeft="0px"`，`paraOverflow=false`，`quoteOverflow=false`，`checks.leftAligned=true`。行首符号防外突由 CSS 与测试断言覆盖：`hanging-punctuation: none`（`src/styles/markdown.css:12`，`src/styles/mdx.css:21`），测试断言见 `src/tests/light-theme-unit.test.ts:250`-`src/tests/light-theme-unit.test.ts:263` 与 `src/tests/MdxComponentDesign.test.ts:43`-`src/tests/MdxComponentDesign.test.ts:48`。                                         |
+| AC-3 复杂块仍使用可用宽度 | ✅ pass | story 要求代码块、表格、图片和复杂 MDX 组件继续使用可用宽度，不被正文上限压窄（`story.md:63`-`story.md:68`）。普通 markdown 的 `pre/table/img` 不套 prose 上限，设置 `max-width: 100%`（`src/styles/markdown.css:43`-`src/styles/markdown.css:46`）；代码块可横向滚动（`src/styles/markdown.css:110`-`src/styles/markdown.css:116`），表格 `width: 100%`（`src/styles/markdown.css:162`-`src/styles/markdown.css:166`），图片 `max-width: 100%`（`src/styles/markdown.css:208`-`src/styles/markdown.css:210`）。MDX 复杂组件集合 `.mdx-chart`、`.mdx-table-wrap`、`.mdx-image` 等为 `width: 100%; max-width: 100%`（`src/styles/mdx.css:55`-`src/styles/mdx.css:74`），表格与图片内部也保留全宽/不溢出规则（`src/styles/mdx.css:557`-`src/styles/mdx.css:564`，`src/styles/mdx.css:1060`-`src/styles/mdx.css:1065`）。journal block 三档保留 prose/content/wide（`src/styles/journal-blocks.css:1`-`src/styles/journal-blocks.css:18`）。浏览器检查输出：宽屏 `para=1152`，`pre=1200`，`table=1200`，`chart=1200`，`image=1200`，`blockProse=1152`，`blockContent=1200`，`blockWide=1200`，`checks.wideComplexBlocksGreaterThanProse=true`，`checks.journalBlockTiers=true`。 |
+
+不倚检查：命令 `rg -n -- "TODO|FIXME|stub|not implemented|throw new Error" src/styles/globals.css src/styles/markdown.css src/styles/mdx.css src/styles/journal-blocks.css src/tests/light-theme-unit.test.ts src/tests/MdxComponentDesign.test.ts src/tests/journalBlockStyles.test.ts` 退出码 1 且无输出，未发现本轮核对范围内的占位、stub 或静默未实现。
+
+## 范围完整性（不少，对照 story.md 范围）
+
+- ✅ 用户行为变化覆盖：story 要求宽屏正文栏自适应展开、减少右侧空白、仍保留最大可读宽度（`story.md:40`-`story.md:47`）。代码以 `--journal-prose-max: clamp(46rem, 72vw, 80rem)` 控制正文上限（`src/styles/globals.css:162`-`src/styles/globals.css:165`），以 `width: min(100%, var(--journal-prose-max))` 让正文随容器增长但不无限铺满（`src/styles/markdown.css:16`-`src/styles/markdown.css:31`，`src/styles/mdx.css:29`-`src/styles/mdx.css:53`）。浏览器检查的宽屏 `para=1152` 大于旧 46rem/736px，且仍小于 `frame=1200`。
+- ✅ 交棒清单覆盖：普通正文宽度 token 是 `--journal-prose-max`（`story.md:75`-`story.md:80`；`src/styles/globals.css:162`-`src/styles/globals.css:165`）；复杂 MDX 块继续全宽（`src/styles/mdx.css:55`-`src/styles/mdx.css:74`）；测试覆盖宽屏 token、左对齐、行首符号、复杂块分层（`src/tests/light-theme-unit.test.ts:223`-`src/tests/light-theme-unit.test.ts:263`，`src/tests/MdxComponentDesign.test.ts:15`-`src/tests/MdxComponentDesign.test.ts:23`，`src/tests/journalBlockStyles.test.ts:29`-`src/tests/journalBlockStyles.test.ts:32`）。
+
+## 方案落实（不偏，对照 design.md）
+
+- ✅ 方案 1：design 要求 `--journal-prose-max` 从固定窄宽度改为响应式宽度 token（`design.md:14`）；当前 token 为 `clamp(46rem, 72vw, 80rem)`（`src/styles/globals.css:162`-`src/styles/globals.css:165`）。
+- ✅ 方案 2：design 要求保留 `.md-content.mdx-content` 左对齐，避免回退到居中或符号悬挂（`design.md:15`）；当前 `.md-content` / `.md-content.mdx-content` / `.mdx-content` 均左对齐且 `hanging-punctuation: none`（`src/styles/markdown.css:4`-`src/styles/markdown.css:31`，`src/styles/mdx.css:4`-`src/styles/mdx.css:21`）。
+- ✅ 方案 3：design 要求保留代码块、表格、图片和复杂 MDX 组件全宽规则（`design.md:16`）；当前 markdown 复杂块与 MDX complex group 保留 `max-width: 100%` / `width: 100%`（`src/styles/markdown.css:43`-`src/styles/markdown.css:46`，`src/styles/markdown.css:110`-`src/styles/markdown.css:116`，`src/styles/markdown.css:162`-`src/styles/markdown.css:166`，`src/styles/markdown.css:208`-`src/styles/markdown.css:210`，`src/styles/mdx.css:55`-`src/styles/mdx.css:74`）。
+- ✅ 方案 4：design 要求更新样式契约测试，明确 `clamp(...)` 与 `hanging-punctuation: none`（`design.md:17`）；测试断言 `--journal-prose-max: clamp(46rem, 72vw, 80rem)`、不用 `ch`、markdown/mdx 左对齐、`hanging-punctuation: none`、复杂块宽度分层（`src/tests/light-theme-unit.test.ts:223`-`src/tests/light-theme-unit.test.ts:263`，`src/tests/MdxComponentDesign.test.ts:15`-`src/tests/MdxComponentDesign.test.ts:23`，`src/tests/MdxComponentDesign.test.ts:43`-`src/tests/MdxComponentDesign.test.ts:48`）。
+- ✅ 方案 5：design 要求在真实 CSS cascade 下检查宽屏正文大于旧 46rem、复杂块更宽、窄屏不溢出（`design.md:18`）。已用 Chrome headless 读取并按顺序注入 `globals.css`、`markdown.css`、`mdx.css`、`journal-blocks.css` 执行检查；输出 `checks.wideProseGreaterThanOld46rem=true`、`checks.wideComplexBlocksGreaterThanProse=true`、`checks.narrowNoOverflow=true`、`checks.leftAligned=true`、`checks.journalBlockTiers=true`。
+- ✅ NFR/依赖：design 风险要求使用 `clamp` 防止正文过宽、让 `.md-content` / `.mdx-content` / journal block prose 共享 token、复杂块不被误伤（`design.md:28`-`design.md:32`）。当前共享 token 仅在 `:root` 定义一次：命令 `rg -n -- "--journal-prose-max:|--journal-readable-max:|--journal-content-max:" src/styles/globals.css src/styles/markdown.css src/styles/mdx.css src/styles/journal-blocks.css` 输出仅 `src/styles/globals.css:163`、`src/styles/globals.css:164`、`src/styles/globals.css:165`；消费侧分别见 `src/styles/markdown.css:16`-`src/styles/markdown.css:31`、`src/styles/mdx.css:29`-`src/styles/mdx.css:74`、`src/styles/journal-blocks.css:1`-`src/styles/journal-blocks.css:18`。
+
+## 越界检查（不多，对照 story 非目标 + design 范围）
+
+- ✅ pass：story 明确不调整源码编辑模式、列表页卡片、聊天面板或非日志详情布局，不重做详情页信息架构，不新增可配置阅读宽度，不改变 MDX 组件语义（`story.md:69`-`story.md:73`）。本轮核对范围内的 story 相关改动均可归属到 AC 或 design 范围：Journal page frame token（`src/styles/globals.css:162`-`src/styles/globals.css:165`）、markdown/mdx prose 宽度与左对齐（`src/styles/markdown.css:4`-`src/styles/markdown.css:46`，`src/styles/mdx.css:4`-`src/styles/mdx.css:74`）、MDX specialized/journal block 三档宽度（`src/styles/mdx.css:1723`-`src/styles/mdx.css:1738`，`src/styles/journal-blocks.css:1`-`src/styles/journal-blocks.css:18`）、相关测试断言（`src/tests/light-theme-unit.test.ts:223`-`src/tests/light-theme-unit.test.ts:263`，`src/tests/MdxComponentDesign.test.ts:15`-`src/tests/MdxComponentDesign.test.ts:48`，`src/tests/journalBlockStyles.test.ts:29`-`src/tests/journalBlockStyles.test.ts:32`）。
+- ✅ 上一轮 fail 复核：上一轮唯一 fail / 待裁决项是 `src/styles/globals.css` 中 Ideas workbench / quick-add 样式被纳入核对范围而无法归属本 story（`verify-report.md:36`-`verify-report.md:39`，`verify-report.md:55`-`verify-report.md:59`）。本轮输入明确要求不要把同文件中 Ideas workbench / quick-add 的已有未提交改动计入本 story，因此该 fail 因范围圈定修正解除；本报告不修改、不归因、不清理这些范围外改动。
+- ⚪ 范围外提示（不计入本轮结论）：`git diff -- src/styles/markdown.css` 还显示若干非宽度相关的排版/radius 调整；本轮核对范围限定为 markdown 的宽度、左对齐与 hanging punctuation 相关规则，因此本报告不裁决这些范围外变更。
+
+## 冗余（不重，对照 story.md）
+
+- ✅ pass：未发现同一 AC 的多套并行宽度实现。宽度 token 只在 `src/styles/globals.css:163`-`src/styles/globals.css:165` 定义，markdown、mdx、journal-blocks 均消费同一套 prose/content/readable 分层（`src/styles/markdown.css:16`-`src/styles/markdown.css:46`，`src/styles/mdx.css:29`-`src/styles/mdx.css:74`，`src/styles/mdx.css:1723`-`src/styles/mdx.css:1738`，`src/styles/journal-blocks.css:1`-`src/styles/journal-blocks.css:18`）。
+
+## 测试与命令
+
+- ✅ `npx vitest run src/tests/light-theme-unit.test.ts -t "Journal content frame contract"`：`Test Files 1 passed (1)`，`Tests 5 passed | 38 skipped (43)`。
+- ✅ `npx vitest run src/tests/MdxComponentDesign.test.ts src/tests/journalBlockStyles.test.ts`：`Test Files 2 passed (2)`，`Tests 19 passed (19)`。
+- ✅ Chrome headless 真实 CSS cascade 检查：宽屏 `heading/para/quote=1152`、复杂块 `pre/table/chart/image=1200`，窄屏 `heading/para/quote=342` 且 `paraOverflow=false`、`quoteOverflow=false`，全部 checks 为 true。
+
+## 结论
+
+result: pass。
+
+六项标准均通过：AC 不漏，行为与 design 不偏，未发现占位/半成品，不存在本轮 story 相关越界，未发现重复实现，story 范围完整覆盖。上一轮 fail 项因本轮核对范围明确排除 Ideas workbench / quick-add 混杂改动而解除。
+
+## 待用户裁决
+
+无。

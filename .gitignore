@@ -35,4 +35,18 @@ src-tauri/binaries/
 src-tauri/resources/workspace-template/.claude/scripts/__pycache__/
 
 # Swift build artifacts
-src-tauri/swift-cli/.build/
+apps/web/src-tauri/swift-cli/.build/
+
+# Playwright e2e artifacts
+test-results/
+playwright-report/
+.playwright/
+.playwright-cli/
+
+# opencode local workspace (keep only the skill compatibility symlink)
+.opencode/*
+!.opencode/opencode-subagent.sh
+
+# Desktop runtime data
+apps/desktop/.journal-daemon-data/
+apps/desktop/.journal/

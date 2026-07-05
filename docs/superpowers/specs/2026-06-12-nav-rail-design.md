@@ -38,14 +38,14 @@ interface NavRailProps {
 
 ### 导航项分组
 
-| 组别 | 项目 | 图标 | 行为 |
-|------|------|------|------|
-| 内容类 | 日志 | book | 左树显示日志列表，中间显示 DetailView |
-| 内容类 | 想法 | lightbulb | 左树显示想法列表，中间显示 DetailView |
-| 内容类 | 记忆 | heart | 左树显示记忆列表，中间显示 DetailView |
-| 内容类 | 专题 | archive | 左树显示专题列表，中间显示 DetailView |
-| 工具类 | 自动化 | refresh | 左树隐藏或显示规则列表，中间替换为 AutomationWorkbench |
-| 工具类 | 技能 | bolt | 左树隐藏或显示技能列表，中间替换为 SkillsWorkbench |
+| 组别   | 项目   | 图标      | 行为                                                   |
+| ------ | ------ | --------- | ------------------------------------------------------ |
+| 内容类 | 日志   | book      | 左树显示日志列表，中间显示 DetailView                  |
+| 内容类 | 想法   | lightbulb | 左树显示想法列表，中间显示 DetailView                  |
+| 内容类 | 记忆   | heart     | 左树显示记忆列表，中间显示 DetailView                  |
+| 内容类 | 专题   | archive   | 左树显示专题列表，中间显示 DetailView                  |
+| 工具类 | 自动化 | refresh   | 左树隐藏或显示规则列表，中间替换为 AutomationWorkbench |
+| 工具类 | 技能   | bolt      | 左树隐藏或显示技能列表，中间替换为 SkillsWorkbench     |
 
 两组之间用 1px 分隔线分开。底部固定设置按钮。
 
@@ -116,6 +116,7 @@ const [activeCategory, setActiveCategory] = useState<Category>('journal')
 ## 主题适配
 
 NavRail 使用现有 CSS 变量，暗色/亮色主题自动适配：
+
 - `--bg-sidebar`：背景
 - `--border`：边框和分隔线
 - `--text`：默认图标色

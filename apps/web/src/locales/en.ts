@@ -1,0 +1,545 @@
+export const en = {
+  // App
+  appName: 'JournalClaw',
+  tagline: 'Every thought, worth keeping.',
+
+  // Sidebar tabs
+  profiles: 'Profiles',
+  journal: 'Journal',
+  files: 'Files',
+
+  // Right panel tabs
+  ideas: 'Ideas',
+  chat: 'Chat',
+  history: 'History',
+
+  // File tree
+  emptyFolder: 'Empty folder',
+  openExternal: 'Open with system app',
+  selectFileToPreview: 'Select a file to preview',
+  artifact_preview: 'Preview',
+  filterFiles: 'Filter files...',
+  noResults: 'No matching files',
+
+  // Settings nav
+  general: 'General',
+  aiEngine: 'Model',
+  permissions: 'Permissions',
+  plugins: 'Plugins',
+  about: 'About',
+  back: 'Back',
+  settings: 'Settings',
+
+  // CommandDock
+  pastePrompt: 'Paste notes, meeting minutes, or ideas',
+  aiArchiveHint: 'AI organizes for you · txt · md · pdf · docx · images',
+  noteOptional: 'Note (optional)',
+  pasteOrDrop: 'Paste text or drop files',
+  textareaPlaceholderFiles: 'Add a note…',
+  textareaPlaceholderText: 'Paste text here, or drop files (txt/md/pdf/docx…)',
+  cancel: 'Cancel',
+  submit: 'Submit',
+  submitted: 'Submitted — JournalClaw is processing…',
+  submitFailed: 'Submit failed',
+  openFileFailed: 'Unable to open file',
+  settingsTooltip: 'Settings (⌘,)',
+
+  // ErrorBoundary
+  somethingWentWrong: 'Something went wrong',
+  retry: 'Retry',
+
+  // AiStatusPill
+  processing: 'Processing…',
+  processingNamed: '{name} · Processing',
+  aiReady: 'JournalClaw ready',
+
+  // Panel dividers
+  collapseLeftSidebar: 'Collapse left sidebar',
+  expandLeftSidebar: 'Expand left sidebar',
+  collapseRightSidebar: 'Collapse right sidebar (⌘T)',
+  expandRightSidebar: 'Expand right sidebar (⌘T)',
+  pinRightPanel: 'Pin right panel (keep open on content switch)',
+  unpinRightPanel: 'Unpin right panel',
+
+  // Context menus (journal + identity)
+  referenceEntry: 'Reference',
+  visualDesignBook: 'Visual Design Book',
+  copyContent: 'Copy content',
+  copyFilePath: 'Copy file path',
+  copyFileName: 'Copy file name',
+  duplicate: 'Duplicate',
+  moveTo: 'Move To...',
+  openInEditor: 'Open in default editor',
+  showInFileManager: 'Show in File Manager',
+  delete: 'Delete',
+  mergeTo: 'Merge to…',
+
+  // Identity list
+  builtin: 'Built-in',
+  noProfiles: 'No profiles yet',
+  me: 'Me',
+
+  // IdentityDetail context menu
+  copySelected: 'Copy selected text',
+  copyMarkdown: 'Copy full text (Markdown)',
+  copied: 'Copied',
+  copy: 'Copy',
+
+  // DetailPanel (empty state)
+  startCapturing: 'Start capturing',
+  via: 'via',
+  pasteCard: 'Paste / Drop files',
+  pasteCardHint: 'Meeting notes, articles\nAI extracts the key information',
+  sampleCard: 'Create sample entry',
+  sampleCardHint: 'Generate a sample entry\nto see AI organizing in action',
+
+  // DetailPanel code block copy
+  findPrev: 'Previous (Shift+Enter)',
+  findNext: 'Next (Enter)',
+  closeFindBar: 'Close (Esc)',
+
+  // SoulView
+  aiPersonality: 'AI Personality',
+  aiPersonalityDesc: 'Define how JournalClaw organizes and understands your notes',
+  saving: 'Saving…',
+  autoSaved: 'Auto-saved',
+  saveFailed: 'Save failed, please retry',
+  save: 'Save',
+
+  // JournalList / MonthDivider
+  noEntries: 'No journal entries yet. Drop a file or paste text to start.',
+  weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  loadMore: 'Load more',
+  loadingMore: 'Loading…',
+  allLoaded: 'All entries loaded',
+
+  // ProcessingQueue
+  converting: 'Converting',
+  queued: 'Queued',
+  processingItem: 'Processing',
+  failed: 'Failed',
+  retryTooltip: 'Retry',
+  retryLabel: 'Retry',
+  closeTooltip: 'Close',
+  done: 'Done',
+  confirmCancel: 'Cancel?',
+  confirm: 'Confirm',
+  cancelTooltip: 'Cancel',
+
+  // AiLogModal
+  failedStatus: 'Failed',
+  completedStatus: 'Done',
+  waitingOutput: 'Waiting for output…',
+  stopProcessing: 'Stop processing',
+
+  // MergeIdentityDialog
+  mergeProfiles: 'Merge Profiles',
+  mergeFrom: 'Merge "{name}" into',
+  selectTarget: '— Select target profile —',
+  mergeMode: 'Merge mode',
+  fullMerge: 'Full merge',
+  fullMergeDesc: 'Merge tags, summary, and content into the target profile',
+  mergingDots: 'Merging…',
+  confirmMerge: 'Confirm merge',
+
+  // TodoSidebar
+  todo: 'Ideas',
+  itemCount: '{count} items',
+  addTodo: 'Add an idea…',
+  addTodoBtn: 'Add',
+  completedSection: 'Done · {count}',
+  clearDueDate: 'Clear due date',
+  setDueDate: 'Set due date',
+  copyText: 'Copy text',
+  deleteTodo: 'Delete',
+  exploreInDepth: 'Explore',
+  startDiscussion: 'Start discussion',
+  hasDiscussion: 'Has discussion',
+  clearExploreSession: 'Clear explore session',
+  setPath: 'Set path…',
+  removePath: 'Remove path',
+  pathGroupDefault: 'Default',
+  weekdaysFull: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  monthsFull: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+
+  // Settings: General
+  workspacePath: 'Workspace path',
+  workspaceDesc: 'Root directory for journals and materials',
+  browse: 'Browse…',
+  saveBtn: 'Save',
+  saved: 'Saved',
+  savingDots: 'Saving…',
+  saveFailedMsg: 'Save failed, please retry',
+  unsavedChanges: 'Unsaved changes',
+  generalSubtitle: 'Choose where JournalClaw keeps journals, raw materials, identities, and todos.',
+  workspaceFolder: 'Workspace folder',
+  workspaceSaveHint: 'Changing this path moves the app to another journal library.',
+
+  // Settings: AI Engine
+  aiEngineSection: 'Model',
+  aiEngineSubtitle:
+    'Choose the provider used for journal processing, conversations, and automation.',
+  providersTitle: 'Providers',
+  providerCount: '{count} providers',
+  providerDetails: 'Provider details',
+  providerDetailsHint: 'Edits here only affect the selected provider.',
+  activeProviderLabel: 'Active',
+  activeProviderHint: 'Used by journal processing, conversations, and automatic cleanup.',
+  configured: 'Configured',
+  notConfigured: 'Not configured',
+  apiKeyConfigured: 'API Key saved',
+  apiKeyMissing: 'API Key needed',
+  modelMissing: 'No model selected',
+  apiKeyHelp: 'Stored locally in this workspace configuration.',
+  baseUrlLabel: 'Base URL',
+  modelLabel: 'Model',
+  noProvidersTitle: 'No model provider yet',
+  noProvidersDesc: 'Add a provider so JournalClaw can organize journals and answer conversations.',
+  deleteProvider: 'Delete provider',
+  confirmDeleteProvider:
+    'Delete “{name}”? This removes the local API key but not the remote account.',
+  comingSoon: 'Coming soon',
+  inDevelopment: 'In development',
+  installOneLiner: 'One-click install',
+  requiresHomebrew: 'Requires Homebrew to be installed. Click to install, or run manually:',
+  installing: 'Installing {label}…',
+  leaveBlankDefault: 'Leave blank for default',
+  customEndpoint: 'Custom API endpoint, leave blank for default',
+  leaveBlankModel: 'Leave blank to pick from model list',
+  modelInputPlaceholder: 'Type or select a model…',
+  dashscopeKeyHint: 'OpenAI-compatible API Key',
+  customEndpointHint: 'Custom API endpoint, leave blank for default',
+  leaveBlankModelHint: 'Leave blank to use default model',
+  switchToSelect: 'Switch to list',
+  switchToManual: 'Manual input',
+  modelFetchFailed: 'Failed to fetch models',
+  refreshModels: 'Refresh',
+  loadingModels: 'Loading models…',
+  defaultModel: 'default',
+
+  // Settings: Permissions
+  permissionsSection: 'Permissions',
+  permissionsDesc:
+    'JournalClaw needs the following system permissions. Click "Check permissions" to view current status, or "Grant all" to authorize.',
+  checkPermissions: 'Check permissions',
+  rechecking: 'Re-check',
+  checking: 'Checking…',
+  grantAll: 'Grant all',
+  allGranted: 'All permissions granted',
+  clickToCheck: 'Click "Check permissions" to view authorization status',
+  statusGranted: 'Granted',
+  statusDenied: 'Denied',
+  statusRestricted: 'Restricted',
+  statusNotDetermined: 'Not granted',
+  statusUnknown: 'Unknown',
+  requestPermission: 'Request access',
+  openSystemSettings: 'Open System Settings',
+  failedToOpen: 'Could not open System Settings: {err}',
+  requestFailed: 'Request failed: {err}',
+  authError: 'Authorization error: {err}',
+
+  confirmDelete: 'Confirm delete',
+
+  // Settings: Plugins (skills)
+  pluginsSection: 'Skill Plugins',
+  pluginScopeProject: 'Project',
+  pluginScopeGlobal: 'Global',
+  noSkillsFound: 'No skills found',
+  noSkillsHint: 'Add skills to .claude/skills/ in your project or ~/.claude/skills/ globally',
+  skillsFavoriteEmptyHint: 'No favorites yet. Use the star on a skill card to keep it here.',
+  openSkillDir: 'Open directory',
+
+  // Settings: About
+  version: 'Version {version}',
+  addWeChat: 'Add on WeChat',
+  wechatQr: 'WeChat QR',
+  docs: 'Documentation',
+  docsUserGuide: 'User Guide',
+  docsDevGuide: 'Developer Guide',
+  docsDesign: 'Design System',
+  docsAi: 'AI Docs (llms.txt)',
+
+  // App (AI config warning)
+  aiNotConfigured: 'Model not configured',
+  goToSettings: 'Go to Settings →',
+
+  // App (identity assistant name)
+  assistantName: 'Assistant',
+  assistantDesc: 'Define how JournalClaw organizes and understands your notes',
+
+  // DetailPanel context menu + code block
+  addToTodo: 'Add to Ideas',
+
+  // IdentityDetail / SoulView editing
+  search: 'Search…',
+  replaceBtn: 'Replace',
+  replaceAll: 'Replace all',
+  replacePlaceholder: 'Replace with…',
+  reset: 'Reset',
+  edit: 'Edit',
+  resend: 'Resend',
+  pendingQueueHint: 'Will send after reply completes',
+  resetAssistantTitle: 'Reset Assistant',
+  confirmResetAssistant:
+    'Reset to default assistant settings? Current custom content will be overwritten.',
+
+  // App confirm dialog
+  confirmDeleteIdentity: 'Delete "{name}"\'s profile?',
+
+  // SectionAiEngine
+  qwenVendor: 'OpenAI Compatible',
+  getApiKey: 'Get API Key',
+
+  // Settings: Automation
+  automation: 'Auto Maintenance',
+  autoLintTitle: 'Auto journal maintenance',
+  autoLintDesc: 'Scan entries, fix references, annotate changes, update profiles',
+  frequency: 'Frequency',
+  freqDaily: 'Daily',
+  freqWeekly: 'Weekly',
+  freqMonthly: 'Monthly',
+  execTime: 'Run time',
+  minEntries: 'Min new entries',
+  skipIfInsufficient: 'skip if insufficient',
+  lastRun: 'Last run',
+  nextCheck: 'Next check',
+  currentNew: 'current new',
+  runNow: 'Run now',
+  lintRunning: 'Running…',
+  neverRun: 'Never run',
+  lintFailed: 'Last run failed',
+  entries: 'entries',
+  organized: 'organized',
+
+  // Settings: IM bridge
+  im: 'Third-party Tools',
+  thirdPartyTools: 'Third-party Tools',
+  // Settings: Feishu bridge
+  feishu: 'Feishu',
+  feishuTitle: 'Feishu IM Bridge',
+  feishuDesc: 'Receive messages from Feishu and process them as journal materials',
+  feishuEnable: 'Enable Feishu bridge',
+  feishuAppId: 'App ID',
+  feishuAppSecret: 'App Secret',
+  feishuAppIdPlaceholder: 'cli_xxxxxxxxxxxxxxxx',
+  feishuAppSecretPlaceholder: 'App secret from Feishu Open Platform',
+  feishuStatus: 'Status',
+  feishuStatusIdle: 'Disabled',
+  feishuStatusConnecting: 'Connecting…',
+  feishuStatusConnected: 'Connected',
+  feishuStatusError: 'Error',
+  feishuSave: 'Save',
+  feishuPermsTitle: 'Required permissions',
+  feishuPermMsg: 'Receive messages via WebSocket',
+  feishuPermSend: 'Send replies as bot',
+  feishuPermRead: 'Read message history',
+  feishuPermDrive: 'Export Feishu documents',
+
+  // Conversation dialog
+  conversationChat: 'Discuss',
+  conversationAgent: 'Chat',
+  conversationChatHint: 'Discuss the topic…',
+  conversationAgentHint: 'Ask me anything…',
+  conversationThinking: 'Thinking…',
+  conversationInputPlaceholder: 'Type a message…',
+  dropToAddFiles: 'Drop to add files',
+  addFile: 'Add file',
+  conversationSend: 'Send',
+  conversationStop: 'Stop',
+  scrollToBottom: 'Scroll to bottom',
+  sessionNewChat: 'New chat',
+  sessionSearchPlaceholder: 'Search chats',
+  sessionEmpty: 'No chats yet',
+  sessionTitle: 'Sessions',
+  close: 'close',
+  continue: 'Continue',
+  slashCommand: 'commands',
+  atMention: 'mention file',
+  rename: 'Rename',
+  sessionWebSearch: 'Web search',
+  sessionWebSearchQuery: 'Search: {query}',
+  timeToday: 'Today',
+  timeYesterday: 'Yesterday',
+  timeThisWeek: 'This week',
+  timeThisMonth: 'This month',
+  timeEarlier: 'Earlier',
+  timeLastYear: 'Over a year ago',
+
+  // Slash commands
+  slashSummarize: 'Summarize current entry',
+  slashTodos: 'Extract todos',
+  slashTranslate: 'Translate to English',
+  slashRewrite: 'Rewrite & polish',
+  slashTags: 'Generate tags',
+  providerLabel: 'Display Name',
+  protocolLabel: 'Protocol',
+  protocolHint:
+    'Anthropic for Claude models, OpenAI Compatible for other providers (DashScope, DeepSeek, etc.)',
+  addProvider: 'Add Provider',
+  customProvider: 'Custom Provider',
+
+  // Agent Run panel
+  agentRunTitle: 'Agent Run',
+  agentRunGoalLabel: 'Goal',
+  agentRunGoalPlaceholder: 'What should the agent do?',
+  agentRunAuthLabel: 'Authorization',
+  agentRunModeReadOnly: 'Read-only',
+  agentRunModeWorkspaceWrite: 'Workspace write',
+  agentRunModeFullAccess: 'Full access',
+  agentRunModeWideAudited: 'Wide (audited)',
+  agentRunStart: 'Start run',
+  // Agent Run — run status badge labels
+  agentRunStatusQueued: 'Queued',
+  agentRunStatusRunning: 'Running',
+  agentRunStatusDone: 'Done',
+  agentRunStatusFailed: 'Failed',
+  agentRunStatusCanceled: 'Canceled',
+  agentRunStatusNeedsConfirmation: 'Needs confirmation',
+  // Agent Run — stream section titles
+  agentRunSectionTimeline: 'Timeline',
+  agentRunSectionOutput: 'Output',
+  agentRunSectionFileChanges: 'File changes ({count})',
+  agentRunSectionSourcesRead: 'Sources read ({count})',
+  agentRunSectionArtifacts: 'Artifacts ({count})',
+  agentRunSectionMemory: 'Memory ({count})',
+  // Agent Run — timeline status event labels
+  agentRunEventStarted: 'Run started',
+  agentRunEventFinished: 'Run finished',
+  agentRunEventFailed: 'Run failed',
+  // Agent Run — memory kind labels
+  agentRunMemoryPref: 'Pref',
+  agentRunMemoryFact: 'Fact',
+  agentRunMemoryRule: 'Rule',
+  agentRunMemoryTool: 'Tool',
+  agentRunMemoryNote: 'Note',
+  // Agent Run — changeset operation labels
+  agentRunChangeOpCreate: 'Create',
+  agentRunChangeOpEdit: 'Edit',
+  agentRunChangeOpMove: 'Move',
+  agentRunChangeOpRemove: 'Remove',
+  // Agent Run — changeset status labels
+  agentRunChangeStatusApplied: 'Applied',
+  agentRunChangeStatusBlocked: 'Blocked',
+  agentRunChangeStatusFailed: 'Failed',
+  agentRunChangeStatusReverted: 'Reverted',
+  agentRunChangeStatusRecorded: 'Recorded',
+  // Agent Run — source binding kind labels
+  agentRunSourceKindRead: 'Read',
+  agentRunSourceKindReference: 'Reference',
+  agentRunSourceKindSearch: 'Search',
+  agentRunSourceKindCite: 'Cite',
+  // Agent Run — artifact type labels
+  agentRunArtifactTypeArticle: 'Article',
+  agentRunArtifactTypeOutline: 'Outline',
+  agentRunArtifactTypeReport: 'Report',
+  agentRunArtifactTypeSummary: 'Summary',
+  agentRunArtifactTypePlan: 'Plan',
+  agentRunArtifactTypeTodo: 'Todo',
+  agentRunArtifactTypeIndex: 'Index',
+  agentRunArtifactTypeCard: 'Card',
+  agentRunArtifactTypeNote: 'Note',
+
+  // Unified conversation panel — engine switcher (P2)
+  engineSwitcherLabel: 'Engine',
+  engineSwitcherBuiltin: 'Built-in pi engine',
+  engineSwitcherBuiltinShort: 'Built-in',
+  engineSwitcherCli: 'External Agent (CLI)',
+  engineSwitcherCliShort: 'External',
+  engineSwitcherModeLabel: 'Engine',
+  engineSwitcherAgentLabel: 'Agent',
+  engineSwitcherNoAgent: 'No agent selected',
+  engineSwitcherNoAgents: 'No external agents detected. Rescan or install one in Settings.',
+  engineSwitcherBuiltinHint: 'Converses via the built-in pi engine. No authorization needed.',
+  engineSwitcherModelDefault: 'Default',
+
+  // Automation template count
+  automationTemplateCount: '{shown} of {total}',
+
+  // Onboarding
+  'onboarding.welcome.title': 'Welcome to JournalClaw',
+  'onboarding.welcome.subtitle': 'Your meetings, documents, and ideas, distilled into journals.',
+  'onboarding.welcome.workspaceLabel': 'Workspace Path',
+  'onboarding.welcome.confirm': 'Confirm & Continue',
+  'onboarding.welcome.customPath': 'Custom Path...',
+  'onboarding.welcome.skip': 'Skip · Enter directly',
+  'onboarding.welcome.errorPermission':
+    'Cannot write to selected path. Please choose another directory.',
+  'onboarding.ai.title': 'Configure AI Engine',
+  'onboarding.ai.subtitle': 'Choose a model provider and enter your API key',
+  'onboarding.ai.providerLabel': 'Choose Provider',
+  'onboarding.ai.apiKeyLabel': 'API Key',
+  'onboarding.ai.testConnection': 'Test Connection',
+  'onboarding.ai.testing': 'Testing...',
+  'onboarding.ai.testSuccess': 'Connected · {latency}ms latency',
+  'onboarding.ai.testAuthFailed': 'Invalid API key. Please check and retry.',
+  'onboarding.ai.testNetworkError': 'Cannot connect. Check your network or proxy settings.',
+  'onboarding.ai.testQuotaExceeded': 'Insufficient balance. Please top up and retry.',
+  'onboarding.ai.testModelNotFound': 'Model not available. Check the model name.',
+  'onboarding.ai.confirm': 'Confirm & Continue',
+  'onboarding.ai.skip': 'Skip · Configure later',
+  'onboarding.capabilities.title': 'Start with JournalClaw',
+  'onboarding.capabilities.drop.title': 'Drop Files',
+  'onboarding.capabilities.drop.desc': 'Import files for AI analysis',
+  'onboarding.capabilities.drop.action': 'Drop files',
+  'onboarding.capabilities.paste.title': 'Paste Text',
+  'onboarding.capabilities.paste.desc': 'Quick capture & organize',
+  'onboarding.capabilities.paste.action': 'Paste text',
+  'onboarding.capabilities.skip': 'Skip · Enter app',
+  'onboarding.stepIndicator.workspace': 'Workspace',
+  'onboarding.stepIndicator.ai': 'AI Engine',
+  'onboarding.stepIndicator.start': 'Start',
+  'onboarding.emptyState.hint': 'Drop a file or paste some text to start',
+  'onboarding.provider.anthropic': 'Anthropic',
+  'onboarding.provider.deepseek': 'DeepSeek',
+  'onboarding.provider.ollama': 'Ollama (Local)',
+  'onboarding.provider.custom': 'Custom...',
+  resetOnboarding: 'Re-run Onboarding',
+  resetOnboardingDone: 'Reset. Restart app to see it.',
+
+  // Settings → Local Agent engines (P1: detect + display)
+  localAgents: 'Local Agent Engines',
+  localAgentsSubtitle:
+    'Auto-detects installed CLI coding agents (Claude Code / Codex / OpenCode) and shows availability, version, and sign-in status.',
+  rescan: 'Rescan',
+  rescanning: 'Detecting…',
+  agentAvailable: 'Available',
+  agentUnavailable: 'Unavailable',
+  agentVersionLabel: 'Version',
+  agentAuthStatus: 'Sign-in',
+  agentPathLabel: 'Path',
+  agentAuthOk: 'Signed in',
+  agentAuthMissing: 'Not signed in',
+  agentAuthUnknown: 'Sign-in unknown',
+  agentAuthNotProbed: '—',
+  agentInstall: 'Open install page',
+  agentDocs: 'Open docs',
+  agentSetEnv: 'Set binary path',
+  agentClearEnv: 'Clear override',
+  agentSetEnvHint:
+    'Set the {envKey} environment variable to your binary before launching JournalClaw, then rescan.',
+  agentClearEnvHint:
+    'Remove the {envKey} environment variable and restart JournalClaw, then rescan.',
+  localAgentsEmpty: 'No agents registered.',
+  localAgentsLoadFailed: 'Detection failed. Please retry.',
+  localAgentsSearchedDirs: 'Searched directories',
+  diagNotOnPath: '{name} ({bin}) was not found on your PATH.',
+  diagNotExecutable:
+    '{name} was found but is not executable. Restore its execute permission or choose a different binary, then rescan.',
+  diagShimBroken:
+    '{name} was found but could not be launched — its wrapper or shim points at a missing target.',
+  diagConfiguredBinInvalid:
+    "{name}'s configured binary ({envKey}) was not found or is not executable.",
+  diagAuthMissing: '{name} is installed but not authenticated.',
+  diagAuthUnknown: '{name} authentication status could not be verified.',
+
+  // Pre-existing keys left dangling after the Swift sidecar removal (M8-b).
+  // Re-added so t() resolves; the host surfaces referenced here still render.
+  voiceOnly: 'Voice only',
+  voiceOnlyDesc: 'Merge voice profile without touching the text fields.',
+  whisperCredit: 'Whisper speech recognition runs locally; model credits may apply.',
+  permSpeech: 'Speech Recognition',
+  permSpeechDesc: 'Required to transcribe audio materials on-device.',
+}
+
+export type Strings = typeof en

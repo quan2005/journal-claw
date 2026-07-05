@@ -8,19 +8,17 @@
 
 - [介绍](/docs/guide): JournalClaw 是什么，设计理念与核心工作流。
 - [安装与配置](/docs/guide/installation): 系统要求、下载安装、AI 引擎与工作区配置。
-- [快速上手](/docs/guide/quick-start): 5 分钟上手——录音、导入、对话、阅读。
-- [语音录音](/docs/guide/recording): 录音功能详解，Apple 原生 / WhisperKit / DashScope 三种引擎对比。
+- [快速上手](/docs/guide/quick-start): 5 分钟上手——导入、对话、阅读。
 - [素材导入](/docs/guide/materials): 文件拖入（PDF/DOCX/TXT/图片）与文字粘贴。
 - [AI 编译原理](/docs/guide/ai-compilation): 内置 LLM 引擎的增量编译管线、结构化输出格式。
 - [对话与 Agent](/docs/guide/conversation): 聊天模式与 Agent 模式的使用方法和最佳实践。
 - [时间线记忆](/docs/guide/timeline): 浏览、搜索、阅读知识条目，素材溯源。
 - [画像系统](/docs/guide/profiles): 建立人物/项目/概念画像，提升 AI 上下文精准度。
 - [待办事项](/docs/guide/todos): AI 自动识别行动项，手动创建，路径分组，Agent 深度探索。
-- [声纹档案](/docs/guide/speaker-profiles): 设备端说话人识别，与人物画像联动。
 - [技能插件](/docs/guide/skills): 通过 SKILL.md 扩展 AI 处理流程，自定义触发规则。
 - [飞书桥接](/docs/guide/feishu): WebSocket 连接飞书，实时接收消息作为知识素材。
 - [主题](/docs/guide/themes): 浅色/深色双主题，信号橙与暖白分层配色，设计纪律。
-- [设置面板](/docs/guide/settings): 九大设置区域完整参考。
+- [设置面板](/docs/guide/settings): 各设置区域完整参考。
 
 ## 开发者指南
 
@@ -28,7 +26,7 @@
 - [架构全景](/docs/dev/architecture): 数据流、IPC 通信模式、事件系统、前后端模块地图。
 - [环境搭建](/docs/dev/setup): 依赖安装、开发模式、测试、调试方法。
 - [前端开发](/docs/dev/frontend): React 组件、Hooks、IPC 调用规范、样式系统、国际化。
-- [后端开发](/docs/dev/backend): Rust 命令注册、LLM 引擎、音频管线、STT 引擎、AI 处理队列。
+- [后端开发](/docs/dev/backend): TypeScript daemon 路由、pi LLM 引擎、AI 处理队列。
 - [构建与发布](/docs/dev/building): 生产构建、代码签名、版本管理、CI/CD 流程。
 
 ## 设计系统

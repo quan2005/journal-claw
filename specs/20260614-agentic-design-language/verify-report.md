@@ -3,7 +3,7 @@ spec: ./spec.md
 date: 2026-06-14
 round: 1
 result: fail
-scope: "git diff HEAD -- globals.css / DESIGN.md / AGENTS.md / index.html / 16 inline-hex 文件 / 2 测试"
+scope: 'git diff HEAD -- globals.css / DESIGN.md / AGENTS.md / index.html / 16 inline-hex 文件 / 2 测试'
 note: 第 1 轮由独立 subAgent 产出（read-only，正文由主对话落盘）。发现的 4 项 fail 已在 round 2 修复前处置。
 ---
 
@@ -15,22 +15,22 @@ fail 项 4 + 待裁决 3，详见下表。主对话已据此修复（见 verify-
 
 ## AC 核对
 
-| AC | 结论 | 证据 |
-|---|---|---|
-| AC-1 | ❌ fail | 4 个令牌块 accent 已改 Agentic，但金橙残留：(a) `globals.css:2343-2358` 搜索高亮 `::highlight` 仍用 `rgba(200,147,59)`/`rgba(184,120,42)`；(b) `mermaidRuntime.ts:145-146` Gantt `sectionBkgColor2` 仍用金橙。 |
-| AC-2 | ✅ pass | `[data-theme='dark']`/`@media dark` 暗色 `#0f0f0f`/`#1c1c1e`，accent 提亮 `#ff7a33`。 |
-| AC-3 | ✅ pass | 4 块令牌值一致，`useTheme` 未改。 |
-| AC-4 | ✅ pass | `--md-*` 浅/暗全部 Agentic 化，橙标题、`#111827` 正文。 |
-| AC-5 | ✅ pass | `FileTypeIcon.tsx` 0 处 inline hex，全走 `var(--file-*)`。 |
-| AC-6 | ⚠️ 部分 fail | `chart-impl.tsx` 已用 Agentic 8 色序列；但 `mermaidRuntime.ts` Gantt 子图仍金橙（同 AC-1）。 |
-| AC-7 | ✅ pass | `grep "金橙\|墨水青\|档案册"` DESIGN.md/AGENTS.md 零命中。 |
-| AC-8 | ✅ pass | AGENTS.md「设计基调」已改 Agentic。 |
-| AC-9 | ✅ pass | skills-redesign spec §7 令牌映射已同步 `#FF5701` + system font。 |
-| AC-10 | ✅ pass | `npm run build` ✓ built in 5.40s。 |
-| AC-11 | ⚠️ 待裁决 | `npm test` 414/415，2 个失败经 `git stash` 证明 pre-existing（与本次无关）。 |
-| AC-12 | ❌ fail | mermaidRuntime 金橙残留、SectionVoice `rgba(200,147,58)` 残留、SectionSpeakers 独立 8 色板未对齐 Agentic 序列。 |
-| AC-13 | ✅ pass | hover/focus/transition 全 Agentic，150-160ms ease-out。 |
-| AC-14 | ❌ fail | `--record-btn-icon: #ffffff`（浅色），`#FF5701` 上白字对比度 ~2.95:1，低于 WCAG AA 4.5:1。spec §3 与 §8 R1 矛盾。 |
+| AC    | 结论         | 证据                                                                                                                                                                                                           |
+| ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1  | ❌ fail      | 4 个令牌块 accent 已改 Agentic，但金橙残留：(a) `globals.css:2343-2358` 搜索高亮 `::highlight` 仍用 `rgba(200,147,59)`/`rgba(184,120,42)`；(b) `mermaidRuntime.ts:145-146` Gantt `sectionBkgColor2` 仍用金橙。 |
+| AC-2  | ✅ pass      | `[data-theme='dark']`/`@media dark` 暗色 `#0f0f0f`/`#1c1c1e`，accent 提亮 `#ff7a33`。                                                                                                                          |
+| AC-3  | ✅ pass      | 4 块令牌值一致，`useTheme` 未改。                                                                                                                                                                              |
+| AC-4  | ✅ pass      | `--md-*` 浅/暗全部 Agentic 化，橙标题、`#111827` 正文。                                                                                                                                                        |
+| AC-5  | ✅ pass      | `FileTypeIcon.tsx` 0 处 inline hex，全走 `var(--file-*)`。                                                                                                                                                     |
+| AC-6  | ⚠️ 部分 fail | `chart-impl.tsx` 已用 Agentic 8 色序列；但 `mermaidRuntime.ts` Gantt 子图仍金橙（同 AC-1）。                                                                                                                   |
+| AC-7  | ✅ pass      | `grep "金橙\|墨水青\|档案册"` DESIGN.md/AGENTS.md 零命中。                                                                                                                                                     |
+| AC-8  | ✅ pass      | AGENTS.md「设计基调」已改 Agentic。                                                                                                                                                                            |
+| AC-9  | ✅ pass      | skills-redesign spec §7 令牌映射已同步 `#FF5701` + system font。                                                                                                                                               |
+| AC-10 | ✅ pass      | `npm run build` ✓ built in 5.40s。                                                                                                                                                                             |
+| AC-11 | ⚠️ 待裁决    | `npm test` 414/415，2 个失败经 `git stash` 证明 pre-existing（与本次无关）。                                                                                                                                   |
+| AC-12 | ❌ fail      | mermaidRuntime 金橙残留、SectionVoice `rgba(200,147,58)` 残留、SectionSpeakers 独立 8 色板未对齐 Agentic 序列。                                                                                                |
+| AC-13 | ✅ pass      | hover/focus/transition 全 Agentic，150-160ms ease-out。                                                                                                                                                        |
+| AC-14 | ❌ fail      | `--record-btn-icon: #ffffff`（浅色），`#FF5701` 上白字对比度 ~2.95:1，低于 WCAG AA 4.5:1。spec §3 与 §8 R1 矛盾。                                                                                              |
 
 ## 待用户裁决（3 项）
 

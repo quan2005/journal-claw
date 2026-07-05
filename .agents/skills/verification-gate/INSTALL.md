@@ -7,7 +7,7 @@
 与 requirements-gate 同一套哲学：hook 零判断、提醒不阻断、逻辑全在 prompt。但 PreToolUse 的机制与 UserPromptSubmit 有两处不同，导致 hook 命令形态有差异，特此说明：
 
 - **为什么 echo 的是 JSON 而不是纯文本**：官方文档明确，纯 stdout 进入模型上下文仅限 UserPromptSubmit / SessionStart 等少数事件；PreToolUse 的纯 stdout 只进 debug log。要让模型看到提醒，必须输出 `hookSpecificOutput.additionalContext` 的 JSON。
-- **为什么多了一行 `grep -q 'git commit'`**：hooks 的 matcher 只能按工具名匹配（这里是 `Bash`），不能按命令内容过滤。不加 grep 会对每一条 shell 命令注入提醒，上下文污染不可接受。这行 grep 是**路由**不是判断——"有没有未验收的 spec、要不要 spawn subAgent、是否放行"仍然 100% 由模型在技能内判断。
+- **为什么多了一行 `grep -q 'git commit'`**：hooks 的 matcher 只能按工具名匹配（这里是 `Bash`），不能按命令内容过滤。不加 grep 会对每一条 shell 命令注入提醒，上下文污染不可接受。这行 grep 是**路由**不是判断——"有没有未验收的 story、要不要 spawn subAgent、是否放行"仍然 100% 由模型在技能内判断。
 - **不阻断**：命令以 `|| true` 收尾，永远 exit 0。验收与否的最终决定权在用户（`[skip-gate]`）。
 
 ## 安装步骤
@@ -18,8 +18,13 @@
    ```json
    {
      "hooks": {
-       "UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "echo '[需求门禁] …'" } ] } ],
-       "PreToolUse":      [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "grep -q 'git commit' && echo '{…}' || true" } ] } ]
+       "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "echo '[需求门禁] …'" }] }],
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [{ "type": "command", "command": "grep -q 'git commit' && echo '{…}' || true" }]
+         }
+       ]
      }
    }
    ```
@@ -33,7 +38,7 @@
 
 ## 升级路径（按需）
 
-软门禁跑顺后若仍有"未验收先 commit"，可升级为硬门禁：hook 输出 `permissionDecision: "ask"`（弹确认）或 `"deny"`（阻断）。代价是 hook 需要真正的判断逻辑（检查是否存在未验收 spec），与"零逻辑"原则冲突，建议确有需要再做。
+软门禁跑顺后若仍有"未验收先 commit"，可升级为硬门禁：hook 输出 `permissionDecision: "ask"`（弹确认）或 `"deny"`（阻断）。代价是 hook 需要真正的判断逻辑（检查是否存在未验收 story），与"零逻辑"原则冲突，建议确有需要再做。
 
 ## 上下文成本
 

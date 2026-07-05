@@ -8,12 +8,12 @@ JournalClaw is a macOS desktop app — an AI-powered knowledge base for knowledg
 
 ## The Idea
 
-Andrej Karpathy [wrote about](https://karpathy.bearblog.dev/the-append-and-review-note/) a note-taking principle that resonates: *append first, review later*. The friction of organizing while capturing kills the thought. The value is in the review cycle, not the structure.
+Andrej Karpathy [wrote about](https://karpathy.bearblog.dev/the-append-and-review-note/) a note-taking principle that resonates: _append first, review later_. The friction of organizing while capturing kills the thought. The value is in the review cycle, not the structure.
 
-JournalClaw takes this to the extreme: **you never write a single note**. Recordings, documents, pasted text — all raw materials go into `raw/`, and the LLM incrementally compiles them into structured Markdown knowledge entries. Every new material triggers an update. You only do two things: feed it materials, and come back to read.
+JournalClaw takes this to the extreme: **you never write a single note**. Documents, pasted text — all raw materials go into `raw/`, and the LLM incrementally compiles them into structured Markdown knowledge entries. Every new material triggers an update. You only do two things: feed it materials, and come back to read.
 
 ```
-Raw materials (recordings / documents / text)
+Raw materials (documents / text)
   ↓  LLM incremental compilation
 Memory (timeline .md knowledge entries)
   ↓  Search + use
@@ -24,7 +24,6 @@ Your questions answered
 
 ![JournalClaw main UI](docs/images/screenshot-20260407-095213.png)
 
-- **Voice recording** — One click, noise reduction, silence removal, M4A output. AI transcribes and structures it.
 - **File import** — Drop PDF, DOCX, TXT. AI extracts, summarizes, files it.
 - **Paste text** — Meeting notes, web clips, rough ideas. Submit and move on.
 - **AI compilation** — Built-in LLM engine compiles raw materials into structured Markdown: title, tags, summary, body. Knowledge base updates automatically with each new input.
@@ -34,21 +33,19 @@ Your questions answered
 - **Profiles** — Build profiles for people, projects, and concepts to help AI understand context and connections with greater precision.
 - **Auto-lint** — Scheduled knowledge base maintenance: contradiction detection, orphan profile cleanup, concept extraction, and gap filling.
 - **Todos** — Capture action items from journal entries, organize by workspace path, set due dates, link to conversation sessions.
-- **Speaker profiles** — On-device speaker identification via Swift sidecar. Name the voices once; AI uses the names.
 - **Immersive reading** — Markdown rendering, code highlighting, left-list right-detail layout, paginated timeline loading.
 - **@-reference** — Right-click any entry or profile to insert an @-reference into the input dock.
 - **Skill plugins** — Extensible processing pipeline via `SKILL.md` files in workspace or global `~/.claude/skills/`.
 - **Feishu bridge** — Connect to Feishu (Lark) via WebSocket to receive messages and process them as journal materials.
 - **Multi-workspace** — Monthly archive, configurable workspace path.
 - **Light / Dark theme** — System-adaptive or manual. Signal orange (#FF5701) accent, warm-white layered surfaces.
-- **Voice engines** — Apple on-device (zero config, SpeechAnalyzer on macOS 26+), WhisperKit (on-device, offline), DashScope (cloud).
 - **Multi-vendor AI** — Supports Anthropic, Volcengine, Zhipu AI, and Alibaba DashScope as LLM providers.
 
 ## Quick Start
 
 1. Download the latest `.dmg` from [Releases](https://github.com/quan2005/journal/releases) and drag to Applications
 2. Open JournalClaw, configure an AI provider in Settings → AI Engine (Anthropic API key, or a Chinese provider)
-3. Set your workspace path in Settings, start recording or drop a file
+3. Set your workspace path in Settings, drop a file or paste text
 
 ## Roadmap
 
@@ -57,82 +54,64 @@ Your questions answered
 - [x] **Feishu bridge** — Receive Feishu messages as journal materials via WebSocket
 - [x] **Multi-vendor AI** — Anthropic, Volcengine, Zhipu, DashScope as LLM providers
 - [x] **Skill plugins** — Extensible processing pipeline via SKILL.md
-- [ ] **IM remote control** — Telegram / WeChat bot to trigger recordings and query journal from anywhere
+- [ ] **IM remote control** — Telegram / WeChat bot to submit materials and query journal from anywhere
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop framework | Tauri v2 |
-| Frontend | React 19 + TypeScript + Vite 7 |
-| Audio capture | cpal 0.17 |
-| Audio processing | nnnoiseless (denoising) + rubato (resampling) + afconvert (M4A) |
-| Speech-to-text | Apple SpeechAnalyzer / SFSpeechRecognizer (Swift sidecar), WhisperKit, DashScope |
-| AI engine | Built-in Anthropic Messages API client (Rust, supports multiple vendors) |
-| IM integration | Feishu WebSocket bridge |
-| Serialization | serde / serde_json |
+| Layer             | Technology                               |
+| ----------------- | ---------------------------------------- |
+| Desktop framework | Electron                                 |
+| Frontend          | React 19 + TypeScript + Vite 7           |
+| Backend           | TypeScript daemon (HTTP + SSE)           |
+| AI engine         | daemon pi built-in engine + CLI adapters |
+| File changes      | ChangeSet service                        |
+| Host capabilities | Electron preload host bridge             |
 
 ## Architecture
 
 ```
-User action (record / drop / paste / Feishu message)
-  → Frontend invoke() → src/lib/tauri.ts
-  → Rust command → workspace/yyMM/raw/ (raw materials)
-  → Built-in LLM engine (src-tauri/src/llm/) → Anthropic Messages API
-  → Writes workspace/yyMM/DD-title.md
-  → Emits journal-updated event
-  → Frontend useJournal hook reloads entries
+User action (drop / paste / Agent Run)
+  → React frontend → runtimeClient / hostBridge
+  → TypeScript daemon services (HTTP + SSE)
+  → workspace files / ChangeSet / AgentRunEvent
+  → frontend hooks subscribe to events and refresh views
 ```
 
 ```
-src/                     # Frontend
-  components/            # React components (30+)
-  hooks/                 # useJournal, useRecorder, useTheme, useIdentity, useTodos, useConversation
-  lib/tauri.ts           # All IPC calls (single entry point)
-  types.ts               # Shared types
-  contexts/              # I18nContext (zh/en)
-  settings/              # Settings panel (9 sections)
-src-tauri/src/           # Rust backend
-  main.rs                # Tauri setup, menu, 50+ invoke_handler commands
-  config.rs              # App config (vendors, ASR, Feishu, WhisperKit)
-  llm/                   # Built-in LLM engine (Anthropic Messages API, tool loop)
-  conversation.rs        # Chat/agent sessions with streaming
-  ai_processor.rs        # AI processing queue, event emission
-  recorder.rs            # Audio capture (cpal → WAV → M4A)
-  audio_pipeline.rs      # Audio preparation pipeline for AI
-  audio_process.rs       # Denoising / resampling / silence removal
-  transcription.rs       # STT (Apple / DashScope / WhisperKit)
-  journal.rs             # Journal entry scanning and YAML frontmatter parsing
-  identity.rs            # Profile management (people, projects, concepts)
-  speaker_profiles.rs    # On-device speaker identification
-  todos.rs               # Todo items with path grouping and due dates
-  auto_lint.rs           # Scheduled knowledge base maintenance
-  skills.rs              # Skill plugin discovery (SKILL.md)
-  feishu_bridge.rs       # Feishu WebSocket client
-  materials.rs           # File import and text paste handling
-  permissions.rs         # macOS microphone/speech permission checks
-  workspace.rs           # Workspace path helpers
-  workspace_settings.rs  # Per-workspace settings (theme, auto-lint)
+apps/web/src/            # React frontend
+  components/            # React components
+  hooks/                 # useJournal, useTheme, useIdentity, useTodos, useConversation
+  lib/runtimeClient.ts   # daemon runtime abstraction
+  lib/hostBridge.ts      # Electron host capabilities
+apps/daemon/src/         # TypeScript daemon
+  server.ts              # HTTP/SSE routes
+  engine/                # pi built-in engine
+  runs/                  # Agent Run lifecycle
+  changeset/             # file change records and recovery
+  journal/ todos/ topics/ identity/
+apps/desktop/src/        # Electron host
+  main.ts                # window and app lifecycle
+  daemon.ts              # daemon child-process lifecycle
+  hostIpc.ts             # preload IPC whitelist
 ```
 
 ## Development
 
-**Prerequisites:** Rust stable, Node.js 18+, macOS 12+ (macOS 26+ for SpeechAnalyzer)
+**Prerequisites:** Node.js 20+, bun 1.1+
 
 ```bash
-npm install
-npm run tauri dev        # Dev mode (Vite + Tauri hot reload)
+bun install
+npm run desktop:dev      # Dev mode (Vite + Electron)
 npm test                 # Frontend tests (vitest)
-cd src-tauri && cargo test   # Rust unit tests
+cd apps/daemon && bunx vitest run
+cd apps/desktop && bunx vitest run
 npm run test:e2e         # E2E tests (Playwright)
-npm run tauri build      # Build → src-tauri/target/release/bundle/
+npm run desktop:build    # Electron production build
 ```
-
-First run requires microphone permission: System Settings → Privacy & Security → Microphone.
 
 ## Documentation
 
-- [User Guide](docs/guide/quick-start.md) — installation, recording, import, conversation, timeline
+- [User Guide](docs/guide/quick-start.md) — installation, import, conversation, timeline
 - [Developer Guide](docs/dev/index.md) — environment setup, architecture, frontend/backend development, build & release
 - [Design System](docs/DESIGN.md) — colors, typography, components, layout, animation, structured tokens
 - [Architecture (ARCH.md)](docs/ARCH.md) — full architecture document

@@ -76,6 +76,7 @@ Do not modify:
 ## Task 1: Frontend Protocol Types
 
 **Files:**
+
 - Create: `src/shared/protocol/appEvent.ts`
 - Test: `src/shared/protocol/appEvent.test.ts`
 
@@ -216,7 +217,11 @@ const APP_EVENT_TYPES = new Set<AppEvent['type']>([
 export function isAppEvent(value: unknown): value is AppEvent {
   if (typeof value !== 'object' || value === null) return false
   const candidate = value as { v?: unknown; type?: unknown; data?: unknown }
-  return candidate.v === 1 && typeof candidate.type === 'string' && APP_EVENT_TYPES.has(candidate.type as AppEvent['type'])
+  return (
+    candidate.v === 1 &&
+    typeof candidate.type === 'string' &&
+    APP_EVENT_TYPES.has(candidate.type as AppEvent['type'])
+  )
 }
 ```
 
@@ -240,6 +245,7 @@ git commit -m "feat: add app event protocol types"
 ## Task 2: Frontend App Event Bus
 
 **Files:**
+
 - Create: `src/shared/events/appEventBus.ts`
 - Test: `src/shared/events/appEventBus.test.ts`
 
@@ -371,6 +377,7 @@ git commit -m "feat: add typed app event bus"
 ## Task 3: Pure Conversation Stream Reducer
 
 **Files:**
+
 - Create: `src/entities/conversation/streamReducer.ts`
 - Test: `src/entities/conversation/streamReducer.test.ts`
 
@@ -707,11 +714,15 @@ export function conversationStreamReducer(
       }))
     }
     case 'turn_finished':
-      return updateTurn(state, state.turns[state.turns.length - 1]?.turnId ?? 'unknown', (turn) => ({
-        ...turn,
-        status: 'finished',
-        stats: event.stats,
-      }))
+      return updateTurn(
+        state,
+        state.turns[state.turns.length - 1]?.turnId ?? 'unknown',
+        (turn) => ({
+          ...turn,
+          status: 'finished',
+          stats: event.stats,
+        }),
+      )
     case 'usage':
       return { ...state, usage: event.usage }
   }
@@ -738,6 +749,7 @@ git commit -m "feat: add pure conversation stream reducer"
 ## Task 4: Current Conversation Stream Compatibility Mapper
 
 **Files:**
+
 - Create: `src/entities/conversation/currentStreamMapper.ts`
 - Test: `src/entities/conversation/currentStreamMapper.test.ts`
 
@@ -924,6 +936,7 @@ git commit -m "feat: map current conversation stream events"
 ## Task 5: Rust Protocol DTOs
 
 **Files:**
+
 - Create: `src-tauri/src/protocol.rs`
 - Modify: `src-tauri/src/main.rs`
 
@@ -1182,6 +1195,7 @@ git commit -m "feat: add rust app event protocol"
 ## Task 6: Workspace Layout Module
 
 **Files:**
+
 - Create: `src-tauri/src/workspace_layout.rs`
 - Modify: `src-tauri/src/main.rs`
 
@@ -1345,6 +1359,7 @@ git commit -m "feat: define workspace layout contract"
 ## Task 7: Foundation Verification
 
 **Files:**
+
 - Verify only; no new files.
 
 - [ ] **Step 1: Run focused frontend tests**

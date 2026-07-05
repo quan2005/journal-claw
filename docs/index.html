@@ -336,11 +336,6 @@
     margin-bottom: 12px;
   }
 
-  .mock-speaker {
-    color: var(--accent);
-    font-weight: 500;
-  }
-
   /* ── Dock mock ────────────────────────────── */
   .mock-dock {
     border-top: 0.5px solid var(--divider);
@@ -351,7 +346,7 @@
     background: var(--bg);
   }
 
-  .mock-mic-btn {
+  .mock-import-btn {
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -362,17 +357,7 @@
     flex-shrink: 0;
   }
 
-  .mock-mic-btn.recording {
-    background: var(--red);
-    animation: pulse-rec 1.2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-rec {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255,55,95,0.3); }
-    50% { box-shadow: 0 0 0 8px rgba(255,55,95,0); }
-  }
-
-  .mock-mic-btn svg {
+  .mock-import-btn svg {
     width: 20px;
     height: 20px;
   }
@@ -425,27 +410,6 @@
     font-size: 11px;
     color: var(--accent);
     letter-spacing: 0.05em;
-  }
-
-  /* ── Waveform mock ────────────────────────── */
-  .mock-waveform {
-    display: flex;
-    align-items: center;
-    gap: 2.5px;
-    height: 22px;
-  }
-
-  .mock-waveform span {
-    width: 3px;
-    border-radius: 2px;
-    background: var(--red);
-    opacity: 0.9;
-    animation: wave 0.6s ease-in-out infinite alternate;
-  }
-
-  @keyframes wave {
-    from { transform: scaleY(0.3); }
-    to { transform: scaleY(1); }
   }
 
   /* ── Comparison table ─────────────────────── */
@@ -574,7 +538,7 @@
     color: var(--text-secondary);
   }
 
-  .mock-voice-badge {
+  .mock-profile-badge {
     font-size: 9px;
     padding: 2px 6px;
     border-radius: 3px;
@@ -753,7 +717,7 @@
   <div class="hero-badge">AI Knowledge Base for Knowledge Workers</div>
   <h1>每一次思考<br>都值得被<em>谨迹</em></h1>
   <p class="hero-sub">
-    录音、拖拽、粘贴——AI 自动编译成结构化知识条目。<br>
+    拖拽、粘贴、导入——AI 自动编译成结构化知识条目。<br>
     你只需要「喂」和「读」，知识自动复利。
   </p>
   <blockquote class="hero-quote">
@@ -770,7 +734,7 @@
   </div>
   <h2>增量编译，知识自动复利</h2>
   <p class="section-desc">
-    每次新素材进来，AI 不是简单索引，而是读取已有条目后决定——创建新条目，还是追加到已有条目。上午的会议录音和下午的 Slack 讨论，如果关于同一个决策，AI 会自动合并成一篇完整的记录。
+    每次新素材进来，AI 不是简单索引，而是读取已有条目后决定——创建新条目，还是追加到已有条目。上午的会议笔记和下午的 Slack 讨论，如果关于同一个决策，AI 会自动合并成一篇完整的记录。
   </p>
 
   <!-- UI Preview: 主界面 — 左侧列表 + 右侧详情 -->
@@ -823,7 +787,7 @@
         </div>
         <div class="mock-detail-body">
           <h3>背景</h3>
-          <p>团队在过去两周讨论了三种部署方案。本条目综合了 4月7日晨会录音 和 当日下午 Slack #product 频道的补充讨论。</p>
+          <p>团队在过去两周讨论了三种部署方案。本条目综合了 4月7日晨会笔记 和 当日下午 Slack #product 频道的补充讨论。</p>
           <h3>决策结论</h3>
           <p>采用混合部署：核心推理层云端部署，数据预处理层支持私有化。预计 Q3 完成第一阶段交付。</p>
           <h3>关键论点</h3>
@@ -833,9 +797,9 @@
       </div>
     </div>
     <div class="mock-dock">
-      <div class="mock-dock-input">粘贴文本、拖入文件，或点击麦克风录音...</div>
-      <div class="mock-mic-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+      <div class="mock-dock-input">粘贴文本、拖入文件，或选择文件导入...</div>
+      <div class="mock-import-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
     </div>
   </div>
@@ -849,10 +813,10 @@
   </div>
   <h2>零写作负担，你只需要「喂」</h2>
   <p class="section-desc">
-    三种输入方式，每一种都是零摩擦：一键录音、拖拽文件、粘贴文本。会后什么都不用做——5 分钟后打开谨迹，结构化的会议纪要已经在那里了。
+    三种输入方式，每一种都是零摩擦：拖拽文件、粘贴文本、导入文档。喂完什么都不用做——5 分钟后打开谨迹，结构化的知识条目已经在那里了。
   </p>
 
-  <!-- UI Preview: 录音中状态 + 处理队列 -->
+  <!-- UI Preview: 处理队列 -->
   <div class="app-preview">
     <div class="app-titlebar">
       <span class="traffic-dot red"></span>
@@ -860,7 +824,7 @@
       <span class="traffic-dot green"></span>
       <span class="titlebar-text" style="display:flex;align-items:center;justify-content:center;gap:8px">
         <span class="mock-spinner"></span>
-        <span>正在处理 产品评审录音.m4a</span>
+        <span>正在处理 产品评审纪要.md</span>
       </span>
       <span style="width:36px"></span>
     </div>
@@ -868,22 +832,9 @@
       <!-- Queue area -->
       <div class="mock-queue">
         <div class="mock-queue-item">
-          <div class="mock-waveform">
-            <span style="height:8px;animation-delay:0s"></span>
-            <span style="height:14px;animation-delay:0.08s"></span>
-            <span style="height:20px;animation-delay:0.16s"></span>
-            <span style="height:16px;animation-delay:0.24s"></span>
-            <span style="height:22px;animation-delay:0.32s"></span>
-            <span style="height:18px;animation-delay:0.4s"></span>
-            <span style="height:12px;animation-delay:0.48s"></span>
-            <span style="height:6px;animation-delay:0.56s"></span>
-          </div>
-          <span class="mock-queue-file" style="color:var(--red)">录音中 · 03:42</span>
-        </div>
-        <div class="mock-queue-item">
           <div class="mock-spinner"></div>
-          <span class="mock-queue-file">产品评审录音.m4a</span>
-          <span class="mock-queue-status">转写中...</span>
+          <span class="mock-queue-file">产品评审纪要.md</span>
+          <span class="mock-queue-status">处理中...</span>
         </div>
         <div class="mock-queue-item">
           <span style="width:14px;height:14px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:11px">◻</span>
@@ -896,16 +847,11 @@
           <span class="mock-queue-status" style="color:#28c840">完成</span>
         </div>
       </div>
-      <!-- Dock with recording state -->
+      <!-- Dock -->
       <div class="mock-dock">
-        <div class="mock-dock-input" style="border-color:rgba(255,55,95,0.3)">
-          <span style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--red)">● REC</span>
-            <span>添加备注（可选）...</span>
-          </span>
-        </div>
-        <div class="mock-mic-btn recording">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        <div class="mock-dock-input">拖入文件，或粘贴文本...</div>
+        <div class="mock-import-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
       </div>
     </div>
@@ -958,13 +904,10 @@
         <span style="font-size:10px;color:var(--text-tertiary);margin-left:auto">不可变原始素材</span>
       </div>
       <div class="mock-file-row file" style="padding-left:48px">
-        <span class="mock-file-icon">🎤</span> 产品评审录音.m4a
+        <span class="mock-file-icon">📝</span> 产品评审纪要.md
       </div>
       <div class="mock-file-row file" style="padding-left:48px">
         <span class="mock-file-icon">📄</span> 竞品分析报告.pdf
-      </div>
-      <div class="mock-file-row file" style="padding-left:48px">
-        <span class="mock-file-icon">📝</span> 产品评审录音.transcript.json
       </div>
       <div class="mock-file-row file" style="padding-left:24px;color:var(--text-primary);font-weight:500">
         <span class="mock-file-icon">📋</span> 07-AI平台产品决策记录.md
@@ -991,12 +934,12 @@
   <div class="section-pain">
     "Hitting a usage limit or ending a session often feels like a lobotomy for your project. You're forced to spend valuable tokens reconstructing context for the AI."
   </div>
-  <h2>画像系统 + 声纹识别 = 持久上下文</h2>
+  <h2>画像系统 = 持久上下文</h2>
   <p class="section-desc">
-    为每个人建立持久画像，关联声纹。AI 处理新素材时自动识别「谁说了什么」，并引用已有画像理解上下文。命名一次声纹，以后所有录音自动识别。
+    为每个人建立持久画像，关联身份与背景。AI 处理新素材时自动引用已有画像理解上下文——谁是决策者、谁负责什么、近期关注什么。命名一次，以后所有素材自动关联。
   </p>
 
-  <!-- UI Preview: Identity list + detail with speaker diarization -->
+  <!-- UI Preview: Identity list + detail with profile context -->
   <div class="app-preview">
     <div class="app-titlebar">
       <span class="traffic-dot red"></span>
@@ -1026,7 +969,7 @@
               <div class="mock-identity-name">张明远</div>
               <div class="mock-identity-role">产品总监</div>
             </div>
-            <span class="mock-voice-badge">声纹已绑定</span>
+            <span class="mock-profile-badge">画像已关联</span>
           </div>
           <div class="mock-identity-item">
             <div class="mock-avatar">李</div>
@@ -1034,7 +977,7 @@
               <div class="mock-identity-name">李思源</div>
               <div class="mock-identity-role">后端架构师</div>
             </div>
-            <span class="mock-voice-badge">声纹已绑定</span>
+            <span class="mock-profile-badge">画像已关联</span>
           </div>
           <div class="mock-identity-item">
             <div class="mock-avatar">王</div>
@@ -1066,7 +1009,7 @@
           <h3>近期关注</h3>
           <p>混合部署方案的成本模型、Q3 交付时间线、与竞品的差异化定位。</p>
           <h3>会议中的发言模式</h3>
-          <p style="color:var(--accent);font-size:12px;letter-spacing:0.05em;margin-bottom:4px">← 声纹自动识别，跨会议积累</p>
+          <p style="color:var(--accent);font-size:12px;letter-spacing:0.05em;margin-bottom:4px">← 画像自动关联，跨条目积累</p>
           <p>倾向于先提出质疑再寻求解决方案。在 4/7 晨会中对云端部署成本提出顾虑，在 4/5 评审中关注了用户迁移路径。</p>
         </div>
       </div>
@@ -1163,7 +1106,7 @@
 <section class="cta reveal">
   <h2>你捕获，AI 整理</h2>
   <p class="cta-sub">
-    录音 · 文件 · 文本 → AI 增量编译 → 时间线知识库<br>
+    文件 · 文本 · 文档 → AI 增量编译 → 时间线知识库<br>
     所有数据都是 Markdown，永远属于你。
   </p>
   <a href="https://github.com/quan2005/journal/releases" class="cta-btn">下载谨迹</a>

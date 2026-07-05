@@ -111,17 +111,17 @@ Core templates are complete structures. Variants are delta instructions: field a
 
 ### Family Coverage
 
-| Family | Core templates | Variants covered |
-|---|---|---|
-| Meeting collaboration | General meeting, decision/review, progress sync, interview/1:1, retrospective/incident | Daily standup, requirement review, technical review, design review, strategic decision, 1:1, customer visit, brainstorm, training share |
-| Work reports | Daily report, weekly report, monthly/quarterly report, OKR tracking, project progress report | Status report, performance review, executive summary, risk-focused report |
-| Project docs | Project plan, PRD, technical proposal, release checklist, project retrospective | Charter, user story, requirement pool, roadmap, test plan, milestone plan, changelog |
-| Research analysis | Market research, competitor analysis, data analysis, user research, risk assessment | SWOT, feasibility analysis, experiment report, business analysis |
-| Learning notes | Deep reading, book note, paper note, course/video note, knowledge card | Cornell note, Feynman note, concept explanation, problem solving, literature matrix, learning plan, flashcard |
-| Personal journal | Daily journal, review journal, goal/OKR, decision journal, personal plan | Morning/evening journal, emotion log, habit tracking, travel plan, purchase decision, family affairs |
-| Technical docs | Technical design, API doc, debug record, incident RCA, RFC/architecture doc | Deployment runbook, code review record, code snippet note, migration guide |
-| Content creation | Article draft, talk/PPT outline, social content plan, product copy, interview record | Press release, announcement, speaker notes, newsletter brief |
-| HR and operations | Interview record, performance review, SOP, event plan, customer profile, KPI tracking | Recruiting pipeline, customer success follow-up, support ticket, partner communication |
+| Family                | Core templates                                                                               | Variants covered                                                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Meeting collaboration | General meeting, decision/review, progress sync, interview/1:1, retrospective/incident       | Daily standup, requirement review, technical review, design review, strategic decision, 1:1, customer visit, brainstorm, training share |
+| Work reports          | Daily report, weekly report, monthly/quarterly report, OKR tracking, project progress report | Status report, performance review, executive summary, risk-focused report                                                               |
+| Project docs          | Project plan, PRD, technical proposal, release checklist, project retrospective              | Charter, user story, requirement pool, roadmap, test plan, milestone plan, changelog                                                    |
+| Research analysis     | Market research, competitor analysis, data analysis, user research, risk assessment          | SWOT, feasibility analysis, experiment report, business analysis                                                                        |
+| Learning notes        | Deep reading, book note, paper note, course/video note, knowledge card                       | Cornell note, Feynman note, concept explanation, problem solving, literature matrix, learning plan, flashcard                           |
+| Personal journal      | Daily journal, review journal, goal/OKR, decision journal, personal plan                     | Morning/evening journal, emotion log, habit tracking, travel plan, purchase decision, family affairs                                    |
+| Technical docs        | Technical design, API doc, debug record, incident RCA, RFC/architecture doc                  | Deployment runbook, code review record, code snippet note, migration guide                                                              |
+| Content creation      | Article draft, talk/PPT outline, social content plan, product copy, interview record         | Press release, announcement, speaker notes, newsletter brief                                                                            |
+| HR and operations     | Interview record, performance review, SOP, event plan, customer profile, KPI tracking        | Recruiting pipeline, customer success follow-up, support ticket, partner communication                                                  |
 
 ### Meeting Migration
 
@@ -154,18 +154,18 @@ New semantic components should be added only when they satisfy at least one crit
 
 ### Priority Components
 
-| Component | Purpose | Primary families |
-|---|---|---|
-| `ActionTable` | Action, owner, due date, source, status | Meeting, work reports, project docs, HR operations |
-| `DecisionRecord` / `DecisionList` | Problem, options, tradeoffs, final decision, owner | Meeting, project docs, technical docs, personal decisions |
-| `RiskMatrix` | Risk, likelihood, impact, severity, mitigation | Work reports, project docs, research, technical docs |
-| `SourceCard` / `ReferenceList` | Source materials, URLs, files, recordings, confidence | All families |
-| `Transcript` / `TimestampLink` | Readable transcript excerpts and media seek links | Meeting, learning, content creation, customer/user interviews |
-| `InsightCard` / `EvidenceCard` / `QuoteCard` | Separate insight, evidence, and source quote | Research, learning, content, interviews |
-| `ComparisonMatrix` / `OptionMatrix` | Structured comparison and option evaluation | Research, project, technical, personal purchase/decision |
-| `MilestoneTimeline` / `IncidentTimeline` | Project milestone and incident sequence | Project docs, technical docs, operations |
-| `RACI` | Responsible, accountable, consulted, informed | Project docs, HR operations |
-| `StatusBadge` | Compact semantic state label | Work reports, project docs, HR operations |
+| Component                                    | Purpose                                               | Primary families                                              |
+| -------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| `ActionTable`                                | Action, owner, due date, source, status               | Meeting, work reports, project docs, HR operations            |
+| `DecisionRecord` / `DecisionList`            | Problem, options, tradeoffs, final decision, owner    | Meeting, project docs, technical docs, personal decisions     |
+| `RiskMatrix`                                 | Risk, likelihood, impact, severity, mitigation        | Work reports, project docs, research, technical docs          |
+| `SourceCard` / `ReferenceList`               | Source materials, URLs, files, recordings, confidence | All families                                                  |
+| `Transcript` / `TimestampLink`               | Readable transcript excerpts and media seek links     | Meeting, learning, content creation, customer/user interviews |
+| `InsightCard` / `EvidenceCard` / `QuoteCard` | Separate insight, evidence, and source quote          | Research, learning, content, interviews                       |
+| `ComparisonMatrix` / `OptionMatrix`          | Structured comparison and option evaluation           | Research, project, technical, personal purchase/decision      |
+| `MilestoneTimeline` / `IncidentTimeline`     | Project milestone and incident sequence               | Project docs, technical docs, operations                      |
+| `RACI`                                       | Responsible, accountable, consulted, informed         | Project docs, HR operations                                   |
+| `StatusBadge`                                | Compact semantic state label                          | Work reports, project docs, HR operations                     |
 
 ### Light Interaction Rules
 
@@ -290,14 +290,14 @@ Use Playwright or the in-app browser to inspect screenshots for overlap, illegib
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Template library becomes too large for every prompt | Keep `SKILL.md` compact and require progressive reference loading |
-| AI overuses components | Put Markdown-first rules in `writing-rules.md` and family templates |
-| New semantic components duplicate existing components | Require each new component to map to repeated template needs |
-| Meeting migration breaks old behavior | Preserve the four current meeting structures inside journal before deleting meeting-minutes |
-| Personal templates dilute professional positioning | Keep visual treatment restrained and reuse the same source/action/evidence discipline |
-| Light interactions become hidden editing features | Forbid any component file mutation, todo mutation, or AI operation trigger |
+| Risk                                                  | Mitigation                                                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Template library becomes too large for every prompt   | Keep `SKILL.md` compact and require progressive reference loading                           |
+| AI overuses components                                | Put Markdown-first rules in `writing-rules.md` and family templates                         |
+| New semantic components duplicate existing components | Require each new component to map to repeated template needs                                |
+| Meeting migration breaks old behavior                 | Preserve the four current meeting structures inside journal before deleting meeting-minutes |
+| Personal templates dilute professional positioning    | Keep visual treatment restrained and reuse the same source/action/evidence discipline       |
+| Light interactions become hidden editing features     | Forbid any component file mutation, todo mutation, or AI operation trigger                  |
 
 ## Acceptance Criteria
 

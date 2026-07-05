@@ -1,536 +1,115 @@
-<!-- 由 docs-maintenance 技能维护：章节编号与标题固定，不新增不删除不重排；增量更新定位到章节 -->
+# JournalClaw Architecture — 唯一架构真相
 
-# 谨迹（JournalClaw）架构文档
+更新：2026-07-03（架构治理重规划 · tauri.ts shim 拆除）
 
-> last-modified: 2026-06-11
+## 总览
 
-## 1. 技术栈
-
-**Tauri v2 + React 19 + TypeScript + Rust** — macOS 桌面应用
-
-| 层 | 技术 |
-|---|---|
-| 桌面框架 | Tauri v2 |
-| 前端 | React 19 + TypeScript + Vite 7 |
-| 音频采集 | cpal 0.17 |
-| 音频处理 | nnnoiseless（降噪）+ rubato（重采样）+ afconvert（M4A） |
-| 语音转文字 | Apple SpeechAnalyzer / SFSpeechRecognizer（Swift sidecar）、WhisperKit、DashScope |
-| AI 引擎 | 内置 Anthropic Messages API 客户端（Rust，多供应商） |
-| IM 集成 | 飞书 WebSocket 桥接 |
-| 序列化 | serde / serde_json |
-
-两个 webview 窗口：主界面（`index.html`）、设置面板（`settings.html`）
-外部二进制：`journal-speech`（Swift sidecar，Apple SpeechRecognizer）
-
----
-
-## 2. 系统分层
+JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌面应用。
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  前端 (React 19 / TypeScript)          ~50 组件 · 13 Hooks       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────────┐  │
-│  │ UIContext │ │ I18nCtx  │ │ ToastCtx │ │  TodoContext      │  │
-│  └─────┬────┘ └──────────┘ └──────────┘ └───────────────────┘  │
-│        │                                                        │
-│  App.tsx (根布局)                                               │
-│  ├─ TitleBar        自定义标题栏                                │
-│  ├─ TreeSidebar     左侧树导航（日志/画像/主题）                │
-│  ├─ DetailView      中心内容区（MDX 渲染）                      │
-│  ├─ RightPanel      右侧面板（AI 聊天）                         │
-│  └─ SettingsPanel   设置覆盖层（React.lazy 懒加载）             │
-├──────────────────────────────────────────────────────────────────┤
-│  IPC 边界 — src/lib/tauri.ts                                    │
-│  100+ 类型化 invoke() 封装，组件禁止直接调用 invoke              │
-├──────────────────────────────────────────────────────────────────┤
-│  Rust 后端 (src-tauri/src/)            25 模块 · 78+ 命令       │
-│  ┌────────┐ ┌────────┐ ┌─────────┐ ┌────────────┐             │
-│  │ llm/   │ │ audio  │ │ storage │ │ integration│             │
-│  │ AI引擎 │ │ 管线   │ │ 文件系统│ │ 飞书桥接   │             │
-│  │ 14文件 │ │ 5引擎  │ │ 无数据库│ │ WebSocket  │             │
-│  └────────┘ └────────┘ └─────────┘ └────────────┘             │
-│  事件总线 → app.emit() → 前端 hooks listen() 自动刷新          │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ apps/web                                                     │
+│ React UI · hooks · runtimeClient · hostBridge                │
+└───────────────┬───────────────────────────┬──────────────────┘
+                │ HTTP/SSE                  │ preload 白名单
+                ▼                           ▼
+┌──────────────────────────────┐   ┌───────────────────────────┐
+│ apps/daemon                  │   │ apps/desktop               │
+│ HTTP + SSE business backend  │   │ Electron host              │
+│ services · Agent Run · pi    │   │ window/menu/daemon lifecycle│
+└──────────────┬───────────────┘   └───────────────────────────┘
+               │
+        packages/contracts（跨端契约类型，web 与 daemon 共同依赖）
 ```
 
----
-
-## 3. 核心设计决策
-
-| 决策 | 背景与选择 | 代价 |
-|---|---|---|
-| **文件系统即数据库** | 所有用户数据存为 Markdown + YAML frontmatter，无 SQLite/IndexedDB | 无全文索引，列表性能依赖文件系统扫描 |
-| **事件驱动同步** | Rust 后端 `emit()` 事件，前端 hooks 监听后 `refresh()`，不轮询 | 事件丢失时无补偿机制 |
-| **IPC 单一入口** | 所有 `invoke()` 集中在 `tauri.ts`，铁律执行 | 新命令须同步两处（Rust 注册 + TS 封装） |
-| **自定义 MDX 引擎** | 轻量解析器 0.5–5ms，替代 `@mdx-js/mdx`（500ms–2s） | 需自行维护解析器，不支持完整 MDX 规范 |
-| **无路由器** | 状态机导航：`view` + `treeSelection`，无 React Router | 无浏览器历史/URL 映射 |
-| **纯 Context 状态** | 无 Redux/Zustand，4 个 Context + 13 个 Hooks | 复杂状态交互需手动协调 |
-| **内联样式** | 无 CSS-in-JS / Tailwind，CSS 变量做主题 | 无类名复用，样式分散在组件中 |
-
----
-
-## 4. 前端架构
-
-### 组件树
-
-```
-main.tsx
-  I18nProvider
-    ToastProvider
-      UIProvider
-        TodoProvider
-          ErrorBoundary
-            App
-              TitleBar (38px)
-              OnboardingView (条件渲染)
-              SettingsPanel (position:absolute 覆盖层)
-              ┌─ 左栏 ──────────────────────────────────┐
-              │  TreeSidebar (文件树，可调宽)              │
-              │  设置按钮（固定底部）                       │
-              └──────────────────────────────────────────┘
-              │ 分割线 (7px，可拖拽) │
-              ┌─ 中栏 ──────────────────────────────────┐
-              │  DetailView                               │
-              │    journal → MDX/Markdown 渲染            │
-              │    identity → 画像内容                    │
-              │    topic-file → 代码/文本预览             │
-              │    ideas → TodoSidebar                    │
-              └──────────────────────────────────────────┘
-              │ 分割线 (7px，可拖拽) │
-              ┌─ 右栏 ──────────────────────────────────┐
-              │  RightPanel                               │
-              │    ChatPanel (AI 对话，76KB 大组件)       │
-              │      ├─ 会话标签页管理                     │
-              │      ├─ 消息列表（流式渲染）               │
-              │      ├─ @引用 / 图片附件 / 斜杠命令       │
-              │      └─ 工具调用展示                       │
-              └──────────────────────────────────────────┘
-```
-
-### Hooks 层
-
-| Hook | 职责 | IPC 关键调用 |
-|---|---|---|
-| `useJournal` | 按月分页加载日志，处理队列，监听 10+ 事件 | listMonths, listByMonths, enqueueWork |
-| `useConversation` | 多标签页 AI 会话管理，流式渲染 | create, send, cancel, close, retry |
-| `useRecorder` | 录音状态机：idle → recording → idle | startRecording, stopRecording |
-| `useTheme` | light/dark/system，workspace_settings 持久化 | get/set_workspace_theme |
-| `useIdentity` | 身份画像列表，事件监听刷新 | listIdentities |
-| `useTodos` | 待办 CRUD，事件监听刷新 | list, add, toggle, delete, setDue |
-| `usePinned` | 收藏条目 CRUD + 排序 | getPinnedItems, setPinnedItems |
-| `useTopics` | workspace 目录树浏览 | listTopicsDir |
-| `useOnboarding` | 首次引导向导状态 | getStatus, complete, setStep |
-| `useSmoothStream` | 流式文本打字动画 (requestAnimationFrame) | — |
-| `useEventCallback` | 稳定回调引用 | — |
-| `useDelayedAnimated` | 延迟 true→false 过渡 | — |
-| `useTextOverflow` | 文本溢出检测 (ResizeObserver) | — |
-
-### Contexts
-
-| Context | 管理的状态 |
-|---|---|
-| `UIContext` | view, selectedEntry, treeSelection, sidebarWidth, rightPanelOpen/Width, drag 状态 |
-| `I18nContext` | lang, t(key), s (原始字符串) |
-| `ToastContext` | showToast(level, message), 自动 4s 消失 |
-| `TodoContext` | useTodos() 的透传包装，避免 prop drilling |
-
-### MDX 渲染管线
-
-```
-content string
-  │
-  └─ stripFrontmatter()
-      │
-      ├─ .mdx 文件 → MdxRenderer
-      │     parseMdx() → MdxNode[] (0.5–5ms)
-      │       markdown 块 → ReactMarkdown + markdownComponents
-      │       component 块 → createElement(40+ 自定义组件)
-      │
-      ├─ >100KB → MarkdownRenderer (Marked + highlight.js + DOMPurify)
-      │
-      └─ 默认 → ReactMarkdown + markdownComponents
-```
-
-MDX 组件分 8 类（`src/components/mdx/`）：
-
-| 类别 | 组件 |
-|---|---|
-| Layout | Split, Columns, Column, Mockup, Placeholder, DeviceShowcase |
-| Display | ProsCons, Pros, Cons, Stat, StatGroup, Table, Timeline, TagList, Progress, Avatar, AvatarGroup |
-| Callout | Callout, Quote, RelatedEntry, RelatedIdentity |
-| Cards | Cards, Card, Options, Option, Kanban, Checklist, Counter, RatingBar, Stack |
-| Media | AudioCard, VideoCard, ImageViewer, FileCard |
-| Charts | BarChart, LineChart, PieChart, RadarChart (懒加载) |
-| Canvas | CanvasDiagram, Mermaid (懒加载) |
-| Typography | Section, Subtitle, Label, Divider, Grid, Col, Flow |
-
-### 设置面板
-
-`SettingsLayout.tsx` — 148px 左侧导航 + 滚动内容区，scroll-spy 自动追踪。
-
-| Section | 职责 |
-|---|---|
-| SectionGeneral | workspace 路径配置 |
-| SectionAiEngine | 多供应商 AI 引擎配置（协议/API Key/模型选择） |
-| SectionVoice | ASR 引擎选择 + WhisperKit 安装/下载 |
-| SectionPermissions | 麦克风/语音识别权限 |
-| SectionAutomation | auto-lint 配置（频率/时间/阈值） |
-| SectionPlugins | 技能列表 + 全局技能开关 |
-| SectionFeishu | 飞书集成配置 |
-| SectionAbout | 版本信息/重置引导/链接 |
-
----
-
-## 5. 后端架构
-
-### 模块依赖
-
-```
-main.rs (入口 · 120 命令注册 · 9 个 Managed State)
-│
-├── llm/ — AI 引擎 (14 文件，核心)
-│   ├── mod.rs             LlmEngine trait + 工厂函数
-│   ├── anthropic.rs       Anthropic Messages API (652 行)
-│   ├── openai_compat.rs   OpenAI 兼容层 (868 行)
-│   ├── tool_loop.rs       Agentic 循环 (60 轮上限)
-│   ├── prompt.rs          系统提示词组装
-│   ├── bash_tool.rs       Shell 工具
-│   ├── task_tool.rs       子代理工具
-│   ├── fs_tools/          10 种文件系统工具 (read/write/edit/glob/grep/...)
-│   ├── output_compress/   Bash 输出压缩
-│   ├── compact.rs         上下文窗口压缩 (>100K tokens)
-│   ├── retry.rs           指数退避重试 (8 次)
-│   ├── loop_detector.rs   循环检测 (重复/乒乓/无进展)
-│   ├── sse_parser.rs      SSE 流解析
-│   └── model_quirks.rs    供应商特定行为适配
-│
-├── conversation.rs (1997 行) — 会话系统
-│   chat/agent/observe 三模式
-│   多标签页 · 流式事件 (18 种) · 上下文注入 · 持久化
-│
-├── ai_processor.rs (1010 行) — AI 队列消费
-│   MPSC 单线程串行 · 取消支持 · panic 安全
-│   workspace .claude/ 初始化 (脚本 + 技能 + 提示词)
-│
-├── journal.rs (874 行) — 日志条目扫描/解析
-├── identity.rs (365 行) — 身份画像 CRUD
-├── todos.rs (942 行) — 待办事项 (GFM task list)
-│
-├── 录音管线
-│   recorder.rs (514 行)      cpal 采集 → WAV → M4A
-│   audio_pipeline.rs (189 行) 编排转写+AI处理
-│   transcription.rs          5 种 ASR 引擎
-│   audio_process.rs          降噪/重采样/静音移除
-│   speaker_profiles.rs       声纹识别
-│
-├── 辅助系统
-│   config.rs              应用配置 (v1→v2→v3 迁移)
-│   workspace_settings.rs  每 workspace 设置
-│   skills.rs              技能插件发现
-│   auto_lint.rs           定时知识库维护
-│   work_queue.rs          后台任务队列
-│   feishu_bridge.rs       飞书 WebSocket 桥接
-│   materials.rs           文件导入
-│   permissions.rs         macOS 权限管理
-│   onboarding.rs          首次引导
-│   topics.rs              目录树导航
-```
-
-### LLM 引擎
-
-**Trait 设计**
-
-```rust
-#[async_trait]
-pub trait LlmEngine: Send + Sync {
-    async fn chat_stream(
-        &self,
-        messages: &[Message],
-        tools: &[ToolDefinition],
-        system: &str,
-        event_tx: mpsc::UnboundedSender<StreamEvent>,
-    ) -> Result<AssistantResponse, LlmError>;
-}
-```
-
-**工厂函数** `create_engine_for_provider(api_key, base_url, model, protocol)`:
-- `"openai"` → `OpenAiCompatEngine`（所有非 Anthropic 供应商）
-- 其他 → `AnthropicEngine`
-
-**供应商适配**（`openai_compat.rs`）:
-- 消息格式转换：Anthropic 风格 ↔ OpenAI 风格
-- 供应商特定处理：DashScope 6MB 限制、Kimi `is_error` 拒绝、o1/o3 推理模型 `max_completion_tokens`
-- SSE 流转换：`reasoning_content` → ThinkingDelta
-
-**Agentic 循环**（`tool_loop.rs`）:
-1. 扫描可用技能
-2. 构建工具列表：bash + load_skill + 10 种 fs_tools
-3. 调用 LLM，收集流式事件
-4. `ToolUse` 停止时执行工具调用
-5. 循环检测：重复/乒乓/无进展，三级严重度（Warning/Block/Break）
-6. 最多 60 轮
-
-**系统提示词**（`prompt.rs`）组装：
-1. 环境信息（workspace 路径、macOS 版本、当前时间）
-2. 内置 agent 指令（编译时 `include_str!`）
-3. 用户 workspace/CLAUDE.md
-4. 最近 15 条日志摘要
-5. 可用技能列表
-6. 用户身份画像
-
-### 会话系统（conversation.rs）
-
-三种模式共享同一代码路径：
-- **Agent 模式**：通过 `ai_processor` / `work_queue`，调用 `tool_loop::run_agent()`
-- **Chat 模式**：通过 `conversation_*` 命令，独立的工具循环+前端事件流
-
-关键设计：
-- `ConversationStore`：Mutex<HashMap> 管理活跃会话
-- 模块级单例缓存：globalCache / globalStreamingSessions / globalPendingQueue
-- 持久化：`.sessions/{session_id}.json`
-- 上下文注入：context_files 限制 8K/文件、20K 总量
-- 异步标题生成：首轮交换后 LLM 生成 ≤8 字中文标题
-
-### AI 队列消费（ai_processor.rs）
-
-```
-素材入队 (mpsc::channel)
-  → 检查取消集
-  → 构建引擎 + 提示词
-  → tool_loop::run_agent()
-  → 创建日志条目 {day}-{title}.md
-  → emit journal-updated / todos-updated
-```
-
-Workspace 初始化（`ensure_workspace_dot_claude()`）：
-- 4 个 Shell 脚本：journal-create, recent-summaries, identity-create, fix-frontmatter
-- 6 个内置技能：ideate, identity-profiling, meeting-minutes, lint, self-improvement, visual-design-book
-
-### 文件系统工具（fs_tools/）
-
-10 种工具，全部沙箱化到 workspace：
-
-| 工具 | 功能 |
-|---|---|
-| read | 读取文件（分页 30K、行号、图片→base64） |
-| write | 创建新文件 |
-| edit | 字符串替换（上下文匹配防歧义） |
-| glob | 模式匹配文件查找 |
-| grep | 内容搜索 |
-| mkdir | 目录创建 |
-| move | 移动/重命名 |
-| copy | 复制 |
-| remove | 删除 |
-| stat | 文件元数据 |
-
-安全措施：`sandbox_resolve()` 验证路径、规范化防 `..` 逃逸、符号链接检查。
-
-### IPC 规模
-
-| 域 | 命令数 | 关键操作 |
-|---|---|---|
-| Conversation | 15 | create/send/cancel/close/inject/truncate/retry/list/rename/delete/load |
-| Todos | 10 | list/add/toggle/delete/setDue/setPath/removePath/setSessionId/updateText |
-| Settings | 12 | theme/autoLint/globalSkills/pinnedItems |
-| Workspace FS | 6 | listDir/duplicate/rename/move/delete |
-| Identity | 7 | list/get/save/delete/create/merge |
-| Journal | 7 | listMonths/listByMonth/listAll/paginated/getContent/delete |
-| Recording | 6 | list/start/stop/delete/play/reveal |
-| AI Processing | 6 | trigger/cancel/prompt/queue |
-| ASR/WhisperKit | 8 | config/install/download/model |
-| Materials | 5 | importFile/importText/importAudio/importImage |
-| Topics | 4 | listDir/create/delete/importFile |
-| Feishu | 3 | getConfig/setConfig/getStatus |
-| Permissions | 3 | check/request/openSettings |
-| **合计** | **~100+** | |
-
----
-
-## 6. 数据流
-
-### 文件系统数据模型
-
-```
-~/Documents/journal/              ← workspace 根目录
-├── 2603/                         ← 年月目录 (YYMM)
-│   ├── 28-AI平台产品会议纪要.md   ← 日志条目 (YAML frontmatter)
-│   ├── 15-dashboard.html         ← HTML 格式条目
-│   └── raw/                      ← 原始素材
-│       ├── rec-1402.m4a          ← 录音文件
-│       └── 28-paste-143022.txt   ← 粘贴文本
-├── identity/                     ← 身份画像
-│   ├── README.md                 ← "关于我" (自动创建)
-│   └── 广州-张三.md              ← {region}-{name}.md
-├── todos.md                      ← 待办 (GFM task list + HTML 注释元数据)
-├── todos.done.md                 ← 已完成待办
-├── .setting.json                 ← workspace 级设置
-├── .claude/                      ← AI 配置 (自动生成)
-│   ├── CLAUDE.md                 ← 系统提示词
-│   ├── scripts/                  ← Shell 脚本 (journal-create 等)
-│   └── skills/                   ← 技能插件
-└── .sessions/                    ← 会话持久化
-    └── {session-id}.json
-```
-
-### 元数据格式
-
-**日志条目** — YAML frontmatter：
-```yaml
----
-summary: 一句话摘要
-tags: [tag1, tag2]
----
-```
-
-**身份画像** — YAML frontmatter：
-```yaml
----
-summary: 人物描述
-tags: [tag]
-speaker_id: abc123
----
-```
-
-**待办事项** — GFM task list + HTML 注释：
-```markdown
-- [ ] 完成报告 <!-- due:2026-05-30 --> <!-- source:28-周会.md --> <!-- path:~/project -->
-- [x] 修复bug <!-- done:2026-05-28 -->
-```
-
-### 录音 → AI → 日志条目
-
-```
-用户点击录音
-  │
-  ▼ useRecorder.startRecording()
-  │ invoke('start_recording') → recorder.rs 启动采集
-  │ 录音中：emits 'audio-level' (~10次/秒)
-  │
-用户点击停止
-  │ invoke('stop_recording') → WAV → M4A 转换
-  │ emits 'recording-processing'
-  │ spawns audio_pipeline
-  │
-  ▼ 转写阶段
-  │ transcription.rs → ASR 引擎 (Apple/DashScope/WhisperKit/SiliconFlow/Zhipu)
-  │ emits 'transcription-progress'
-  │ 写入 raw/{day}-rec-{time}.md
-  │ emits 'audio-ai-material-ready'
-  │
-  ▼ 前端监听 → enqueueWork()
-  │ work_queue.rs 创建 WorkItem
-  │ emits 'work-queue-updated'
-  │
-  ▼ AI 队列消费 (串行)
-  │ ai_processor.rs 从 MPSC channel 取任务
-  │ emits 'ai-processing': "processing"
-  │ llm/tool_loop::run_agent() 执行：
-  │   读素材 → 构建提示词 → 调用 LLM → 使用文件工具写日志
-  │   创建 {day}-{title}.md (YAML frontmatter + Markdown)
-  │ emits 'ai-processing': "completed"
-  │ emits 'journal-updated' → 前端刷新列表
-  │ emits 'todos-updated'  → 前端刷新待办
-```
-
-### AI 会话
-
-```
-用户输入消息
-  │
-  ▼ useConversation.send()
-  │ 乐观更新：本地追加用户消息
-  │ conversationCreate() → conversation.rs 创建会话
-  │ conversationSend() → 异步任务启动
-  │
-  ▼ Rust 会话处理
-  │ 构建 system prompt（懒加载）
-  │ run_conversation_turn() → LLM API 调用
-  │ 流式 emit conversation-stream 事件
-  │ 工具调用：bash/fs_tools/task（子代理并行）
-  │ 循环检测 + 重试
-  │
-  ▼ 前端监听 conversation-stream
-  │ text_delta → 流式文本追加
-  │ thinking_delta → 思考块追加
-  │ tool_start/end → 工具调用展示
-  │ done → 完成标记，刷新标题
-  │
-  ▼ 持久化
-  │ 保存 .sessions/{id}.json
-  │ 异步生成标题（≤8 字中文）
-```
-
-### Rust → 前端事件
-
-| 事件名 | 来源模块 | 用途 |
-|---|---|---|
-| `ai-processing` | ai_processor | 处理状态（queued/processing/completed/failed） |
-| `ai-log` | ai_processor | AI 处理日志行 |
-| `journal-updated` | ai_processor, auto_lint | 日志条目变更 |
-| `todos-updated` | ai_processor | 待办变更 |
-| `recording-processed` | recorder | 录音处理完成 |
-| `recording-processing` | recorder | 录音正在处理 |
-| `recording-discarded` | recorder | 录音被丢弃 |
-| `audio-ai-material-ready` | audio_pipeline | 音频素材就绪 |
-| `audio-ai-material-failed` | audio_pipeline | 音频管线失败 |
-| `conversation-stream` | conversation | 会话流式数据（18 种子事件） |
-| `transcription-progress` | transcription | 转写进度 |
-| `speakers-updated` | speaker_profiles, transcription | 声纹档案变更 |
-| `identity-updated` | identity, speaker_profiles | 身份画像变更 |
-| `work-queue-updated` | work_queue | 工作队列变更 |
-| `feishu-status-changed` | feishu_bridge | 飞书连接状态 |
-| `feishu-config-changed` | config | 飞书配置变更 |
-| `auto-lint-status` | auto_lint | 自动整理状态 |
-| `audio-level` | recorder | 录音音量（~10次/秒） |
-| `open-settings` | main (菜单) | 打开设置面板 |
-| `open-settings-about` | main (菜单) | 打开关于页 |
-| `whisperkit-download-progress` | config | 模型下载进度 |
-| `engine-install-log` | config | 引擎安装日志 |
-
-### conversation-stream 子事件
-
-`text_delta`, `thinking_delta`, `tool_start`, `tool_end`, `web_search_result`, `done`, `error`, `loop_warning`, `truncated`, `compacted`, `user_inject`, `title`, `turn_start`, `usage`, `subtask_start`, `subtask_delta`, `subtask_end`
-
----
-
-## 7. 横切关注点
-
-### 国际化（i18n）
-
-- `I18nContext`：`detectLang()` 检测系统语言 → `useTranslation()` → `t(key)`
-- 支持中文（`zh.ts`）和英文（`en.ts`）
-- 所有用户可见字符串必须通过 `t()` 引用
-
-### 错误处理
-
-- Rust 侧：`anyhow::Result` + `thiserror` 自定义错误类型
-- 前端：`ErrorBoundary` 组件兜底，Toast 通知非致命错误
-- AI 队列：panic 安全（`catch_unwind`），单任务失败不阻塞队列
-
-### 权限管理
-
-- macOS 麦克风/语音识别权限检查（`permissions.rs` + `permissions_ffi.m` ObjC FFI）
-- 设置面板显示权限状态并引导授权
-
-### 主题系统
-
-- light/dark/system 三模式
-- 通过 `workspace_settings` Rust 命令持久化（不用 localStorage）
-- CSS 变量驱动，`data-theme` 属性切换
-
-### 安全
-
-- 文件系统工具沙箱化：`sandbox_resolve()` 验证路径，防止 `..` 逃逸
-- 符号链接检查
-- IPC 命令全部 type-safe
-
----
-
-## 8. 技术债与已知限制
-
-- **无全文搜索索引**：日志查找依赖文件系统 glob + grep，条目量大时性能下降
-- **单窗口多 webview 限制**：设置面板与主界面共享进程，状态同步靠事件而非共享内存
-- **conversation.rs 体积过大**：1997 行，承担了会话管理、流式处理、持久化等多职责，待拆分
-- **ChatPanel 组件体积**：76KB 单文件，包含会话标签、消息列表、输入等，待拆分子组件
-- **事件无确认机制**：`app.emit()` 是 fire-and-forget，极端情况下前端可能丢失更新
-- **macOS only**：Swift sidecar、AVFoundation、权限 FFI 均为 macOS 专用，跨平台需重写音频层
+## 依赖方向规则（硬性）
+
+| 规则                            | 允许                                           | 禁止（违反示例）                                     |
+| ------------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| web → daemon 只经 runtimeClient | `selectRuntimeClient().invoke('journal_list')` | 组件内 `fetch('http://localhost:4517/journal')`      |
+| web → Electron 只经 hostBridge  | `hostRevealInFileManager(p)`                   | 组件 import `electron` 或直接摸 `window.electronAPI` |
+| desktop 零业务语义              | 窗口/菜单/daemon 子进程/文件对话框             | 在 desktop main 里解析 journal 数据                  |
+| 契约类型只放 contracts          | web/daemon 都 import `@journal/contracts`      | daemon 里复制一份 `AgentRun` 类型                    |
+| 业务状态持久化在 daemon         | settings 经 `/settings`                        | 组件用 localStorage 存业务状态（面板宽度白名单除外） |
+
+新增业务能力路径：daemon service + route → runtimeClient 方法 → UI。新增宿主能力路径：Electron preload 白名单 → `hostBridge.ts` 包装 → UI。
+
+## 技术栈
+
+| 层         | 技术                                             |
+| ---------- | ------------------------------------------------ |
+| 桌面宿主   | Electron（electron-builder 打包）                |
+| Renderer   | React 19 + TypeScript + Vite                     |
+| Backend    | TypeScript daemon（Express HTTP + SSE）          |
+| Agent 引擎 | pi 内建引擎 + Claude/Codex/OpenCode CLI adapters |
+| 文件变更   | ChangeSet service                                |
+| 测试       | vitest + Playwright                              |
+
+## 前端边界
+
+| 入口           | 文件                                                        | 职责                            |
+| -------------- | ----------------------------------------------------------- | ------------------------------- |
+| Runtime client | `apps/web/src/lib/runtimeClient.ts`, `httpRuntimeClient.ts` | 业务 command 到 daemon HTTP/SSE |
+| Host bridge    | `apps/web/src/lib/hostBridge.ts`                            | Electron preload 白名单能力     |
+
+> 历史注记：`apps/web/src/lib/` 下的 `tauri.ts` 兼容 shim（保留旧 Tauri 函数名的转发层）已于 2026-07-03 拆除，调用方直接消费 runtimeClient / hostBridge。
+
+## Daemon
+
+`apps/daemon/src/server.ts` 是 HTTP/SSE 入口。业务服务按能力分目录：
+
+- `journal/`, `todos/`, `topics/`, `identity/`, `materials/`
+- `settings/`, `config/`, `workspace/`, `files/`, `permissions/`
+- `runs/`, `engine/`, `runtimes/`, `changeset/`, `sediment/`, `artifacts/`
+- `automation/`, `work_queue/`, `ai_processor/`, `event_log/`
+
+核心原则：
+
+- service 层保存业务语义，route 层只做协议适配。
+- 所有文件写入、移动、删除都生成 ChangeSet。
+- authorization mode 在 daemon 执行：`read_only`、`workspace_write`、`full_access`。
+- run events 统一为 `AgentRunEvent`，前端不感知 pi/CLI 原始事件格式。
+
+## Agent Run
+
+1. `POST /runs` 创建 run（engine=builtin|claude|codex|opencode）。
+2. daemon 选择 pi 内建引擎或 CLI adapter。
+3. `GET /runs/:id/events` SSE 输出事件，支持 cursor 恢复。
+4. `POST /runs/:id/cancel` 取消。
+5. run 完成后触发 artifact / memory / rule 沉淀。
+
+事件覆盖 run lifecycle、thinking/text delta、tool call/result、change proposed、artifact、sedimentation、finish/fail。
+
+### 对话面与引擎切换（P2）
+
+右侧面板是单一 **`UnifiedChatShell`**。顶栏 `EngineSwitcher` chip 在内置 pi 引擎与外部 CLI agent 间切换：
+
+- 内置 pi → `useConversation` → `/conversation`；外部 agent → `useAgentRun` → `POST /runs {engine:'cli', agentId, authorizationMode}`。
+- 渲染层融合：`ChatPanel` 常驻，CLI run 的 timeline/changeset 经 `RunStreamEntries` 作 `streamExtras` 注入同一对话流（数据数组不合并）。
+- composer 共享；引擎/agent 选择经 `useAgentEngine` → runtimeClient → daemon `/settings` 持久化。
+
+### 本地 Agent 检测（P1）
+
+`GET /agents` 返回本机受支持 CLI agent 的 `AgentInfo{available, version, authStatus, diagnostics[]}`，检测逻辑在 `apps/daemon/src/runtimes/`。`EngineSwitcher` 与设置页共同消费；不可用 agent 灰显附诊断。
+
+## Electron Host
+
+`apps/desktop`：main/preload 构建、daemon 子进程生命周期与日志转发、原生菜单与窗口、文件选择/系统打开/Reveal/dialog/zoom/theme/file drop。Preload 只暴露 `window.electronAPI` 白名单方法。
+
+启动时序（`src/startup.ts`）：窗口创建同步先行、daemon 并行启动互不阻塞；窗口 `show:false` + `ready-to-show`（3s 兜底）+ 主题感知背景色防白屏；renderer 侧 `BootGate` 以指数退避探测 daemon 就绪后进入正常界面。
+
+## 数据与恢复
+
+- workspace 既有 Markdown、topics、todos、identity、skills、conversation、automation 数据保持可读。
+- 新元数据写入跨平台路径，不把平台专属目录作为唯一真相。
+- 删除与恢复走 ChangeSet / 项目内恢复路径。
+- run summary、artifact index、memory/rules、JSONL event log 可导出备份。
+
+## 已下线能力
+
+音频/语音/转写（journal-speech、SpeechAnalyzer、WhisperKit、speaker profiles）与 Rust/Tauri 后端已于 M8-b（2026-06-27）删除。见 `docs/adr/rust-removal-release-note.md`。
+
+## 参考
+
+- 工程规范：`docs/CONVENTIONS.md` · 设计规范：`docs/DESIGN.md` · 产品北极星：`docs/final-state.md`
+- ADR：`docs/adr/rust-removal-roadmap.md` 等（只增不改）

@@ -38,6 +38,7 @@ package.json                  — +@mdx-js/mdx, recharts, mermaid
 ### Task 1: Install dependencies and configure CSP
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `src-tauri/tauri.conf.json`
 
@@ -46,6 +47,7 @@ package.json                  — +@mdx-js/mdx, recharts, mermaid
 ```bash
 npm install @mdx-js/mdx
 ```
+
 Expected: package added to `package.json` dependencies.
 
 - [ ] **Step 2: Add CSP unsafe-eval to tauri.conf.json**
@@ -69,6 +71,7 @@ Read `src-tauri/tauri.conf.json`. Replace the `"security"` block:
 ```bash
 npm run build
 ```
+
 Expected: Build succeeds with no CSP-related errors.
 
 - [ ] **Step 4: Commit**
@@ -83,6 +86,7 @@ git commit -m "feat: add @mdx-js/mdx dependency and CSP unsafe-eval for MDX runt
 ### Task 2: Rust — add .mdx extension support
 
 **Files:**
+
 - Modify: `src-tauri/src/journal.rs:170-184` (parse_entry_filename)
 - Modify: `src-tauri/src/journal.rs:541-568` (workspace_has_any_entry)
 
@@ -114,6 +118,7 @@ if fname.ends_with(".md") || fname.ends_with(".html") || fname.ends_with(".htm")
 ```bash
 cd src-tauri && cargo test
 ```
+
 Expected: all existing tests pass. The `parse_entry_filename_standard` test still passes (`.md` still works). The new `.mdx` variant is covered by the chain.
 
 - [ ] **Step 4: Add a unit test for .mdx filename parsing**
@@ -144,6 +149,7 @@ git commit -m "feat: add .mdx extension recognition in journal scanner"
 ### Task 3: Create MdxRenderer component
 
 **Files:**
+
 - Create: `src/components/MdxRenderer.tsx`
 - Create: `src/tests/MdxRenderer.test.tsx`
 
@@ -184,9 +190,7 @@ describe('MdxRenderer', () => {
 
   it('falls back to plain text on evaluate error', async () => {
     const { evaluate } = await import('@mdx-js/mdx')
-    ;(evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('MDX compile error'),
-    )
+    ;(evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('MDX compile error'))
 
     render(<MdxRenderer content="# Hello World" />)
     await waitFor(() => {
@@ -201,6 +205,7 @@ describe('MdxRenderer', () => {
 ```bash
 npx vitest run src/tests/MdxRenderer.test.tsx
 ```
+
 Expected: FAIL — module not found or component not rendered.
 
 - [ ] **Step 3: Implement MdxRenderer**
@@ -263,7 +268,9 @@ export function MdxRenderer({ content, entryPath }: Props) {
     }
 
     compile()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [content])
 
   const fallback = (
@@ -302,6 +309,7 @@ export function MdxRenderer({ content, entryPath }: Props) {
 ```bash
 npx vitest run src/tests/MdxRenderer.test.tsx
 ```
+
 Expected: PASS (2 tests pass).
 
 - [ ] **Step 5: Commit**
@@ -316,6 +324,7 @@ git commit -m "feat: add MdxRenderer with evaluate + ErrorBoundary + fallback"
 ### Task 4: Create component index and wire up MarkdownRenderer routing
 
 **Files:**
+
 - Create: `src/components/mdx/index.ts`
 - Modify: `src/components/MarkdownRenderer.tsx`
 
@@ -373,7 +382,17 @@ export { Divider } from './typography'
 
 // Component map for MDX evaluate
 import { Split, Columns, Column, Mockup, Placeholder } from './layout'
-import { ProsCons, Stat, StatGroup, Table, Timeline, TagList, Progress, Avatar, AvatarGroup } from './display'
+import {
+  ProsCons,
+  Stat,
+  StatGroup,
+  Table,
+  Timeline,
+  TagList,
+  Progress,
+  Avatar,
+  AvatarGroup,
+} from './display'
 import { Callout, Quote, RelatedEntry, RelatedIdentity } from './callout'
 import { Cards, Card, Options, Option, Kanban, Checklist, Counter, RatingBar } from './cards'
 import { AudioCard, VideoCard, ImageViewer, FileCard } from './media'
@@ -382,14 +401,45 @@ import { Mermaid } from './mermaid'
 import { Section, Subtitle, Label, Divider } from './typography'
 
 export const mdxComponents = {
-  Split, Columns, Column, Mockup, Placeholder,
-  ProsCons, Stat, StatGroup, Table, Timeline, TagList, Progress, Avatar, AvatarGroup,
-  Callout, Quote, RelatedEntry, RelatedIdentity,
-  Cards, Card, Options, Option, Kanban, Checklist, Counter, RatingBar,
-  AudioCard, VideoCard, ImageViewer, FileCard,
-  BarChart, LineChart, PieChart, RadarChart,
+  Split,
+  Columns,
+  Column,
+  Mockup,
+  Placeholder,
+  ProsCons,
+  Stat,
+  StatGroup,
+  Table,
+  Timeline,
+  TagList,
+  Progress,
+  Avatar,
+  AvatarGroup,
+  Callout,
+  Quote,
+  RelatedEntry,
+  RelatedIdentity,
+  Cards,
+  Card,
+  Options,
+  Option,
+  Kanban,
+  Checklist,
+  Counter,
+  RatingBar,
+  AudioCard,
+  VideoCard,
+  ImageViewer,
+  FileCard,
+  BarChart,
+  LineChart,
+  PieChart,
+  RadarChart,
   Mermaid,
-  Section, Subtitle, Label, Divider,
+  Section,
+  Subtitle,
+  Label,
+  Divider,
 }
 ```
 
@@ -414,7 +464,9 @@ export function Divider({ label }: { label?: string }) {
   if (!label) return <hr className="mdx-divider" />
   return (
     <div className="mdx-divider--labeled">
-      <hr /><span>{label}</span><hr />
+      <hr />
+      <span>{label}</span>
+      <hr />
     </div>
   )
 }
@@ -445,6 +497,7 @@ export function MarkdownRenderer({ content, entryPath }: MarkdownRendererProps) 
 ```bash
 npm run build
 ```
+
 Expected: tsc + vite build succeed. The stub components are in place.
 
 - [ ] **Step 5: Commit**
@@ -459,6 +512,7 @@ git commit -m "feat: add MDX component stubs and routing in MarkdownRenderer"
 ### Task 5: Implement typography components
 
 **Files:**
+
 - Modify: `src/components/mdx/typography.tsx` (replace stubs with real implementations)
 - Create: `src/styles/mdx.css` (shared MDX component styles)
 
@@ -565,7 +619,11 @@ import { Section, Subtitle, Label, Divider } from '../components/mdx/typography'
 
 describe('Typography components', () => {
   it('renders Section with children', () => {
-    render(<Section><p>content</p></Section>)
+    render(
+      <Section>
+        <p>content</p>
+      </Section>,
+    )
     expect(screen.getByText('content')).toBeTruthy()
   })
 
@@ -596,6 +654,7 @@ describe('Typography components', () => {
 ```bash
 npx vitest run src/tests/MdxRenderer.test.tsx
 ```
+
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -610,6 +669,7 @@ git commit -m "feat: implement MDX typography components"
 ### Task 6: Implement layout components
 
 **Files:**
+
 - Modify: `src/components/mdx/layout.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -626,7 +686,9 @@ Add to `src/styles/mdx.css`:
   margin: var(--space-4) 0;
 }
 @media (max-width: 600px) {
-  .mdx-split { grid-template-columns: 1fr; }
+  .mdx-split {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Columns */
@@ -635,9 +697,15 @@ Add to `src/styles/mdx.css`:
   gap: var(--space-4);
   margin: var(--space-4) 0;
 }
-.mdx-columns--2 { grid-template-columns: 1fr 1fr; }
-.mdx-columns--3 { grid-template-columns: 1fr 1fr 1fr; }
-.mdx-columns--4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.mdx-columns--2 {
+  grid-template-columns: 1fr 1fr;
+}
+.mdx-columns--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.mdx-columns--4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
 
 /* Mockup — framed preview */
 .mdx-mockup {
@@ -708,6 +776,7 @@ export function Placeholder({ children }: ChildrenProp) {
 ```bash
 npm run build
 ```
+
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -722,6 +791,7 @@ git commit -m "feat: implement MDX layout components (Split, Columns, Mockup, Pl
 ### Task 7: Implement display components
 
 **Files:**
+
 - Modify: `src/components/mdx/display.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -742,10 +812,22 @@ Add to `src/styles/mdx.css`:
   border-radius: 8px;
   padding: var(--space-4);
 }
-.mdx-pros { background: rgba(52, 199, 89, 0.08); }
-.mdx-cons { background: rgba(255, 59, 48, 0.06); }
-.mdx-pros h4 { color: #34c759; font-size: var(--text-sm); margin: 0 0 var(--space-2); }
-.mdx-cons h4 { color: #ff3b30; font-size: var(--text-sm); margin: 0 0 var(--space-2); }
+.mdx-pros {
+  background: rgba(52, 199, 89, 0.08);
+}
+.mdx-cons {
+  background: rgba(255, 59, 48, 0.06);
+}
+.mdx-pros h4 {
+  color: #34c759;
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-2);
+}
+.mdx-cons h4 {
+  color: #ff3b30;
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-2);
+}
 
 /* Stat */
 .mdx-stat {
@@ -767,8 +849,12 @@ Add to `src/styles/mdx.css`:
   font-size: var(--text-xs);
   margin-left: var(--space-1);
 }
-.mdx-stat-trend--up { color: #34c759; }
-.mdx-stat-trend--down { color: #ff3b30; }
+.mdx-stat-trend--up {
+  color: #34c759;
+}
+.mdx-stat-trend--down {
+  color: #ff3b30;
+}
 
 /* StatGroup */
 .mdx-stat-group {
@@ -891,8 +977,16 @@ Add to `src/styles/mdx.css`:
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
 }
-.mdx-avatar--sm { width: 24px; height: 24px; font-size: 0.65rem; }
-.mdx-avatar--lg { width: 40px; height: 40px; font-size: var(--text-base); }
+.mdx-avatar--sm {
+  width: 24px;
+  height: 24px;
+  font-size: 0.65rem;
+}
+.mdx-avatar--lg {
+  width: 40px;
+  height: 40px;
+  font-size: var(--text-base);
+}
 
 /* AvatarGroup */
 .mdx-avatar-group {
@@ -918,11 +1012,21 @@ export function ProsCons({ children }: ChildrenProp) {
 }
 
 export function Pros({ children }: { children: React.ReactNode }) {
-  return <div className="mdx-pros"><h4>Pros</h4><ul>{children}</ul></div>
+  return (
+    <div className="mdx-pros">
+      <h4>Pros</h4>
+      <ul>{children}</ul>
+    </div>
+  )
 }
 
 export function Cons({ children }: { children: React.ReactNode }) {
-  return <div className="mdx-cons"><h4>Cons</h4><ul>{children}</ul></div>
+  return (
+    <div className="mdx-cons">
+      <h4>Cons</h4>
+      <ul>{children}</ul>
+    </div>
+  )
 }
 
 // ── Stat ────────────────────────────────────────────────
@@ -960,22 +1064,24 @@ export function StatGroup({ children }: ChildrenProp) {
 
 // ── Table ───────────────────────────────────────────────
 
-export function Table({
-  headers,
-  rows,
-}: {
-  headers: string[]
-  rows: string[][]
-}) {
+export function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
     <div className="mdx-table-wrap">
       <table className="mdx-table">
         <thead>
-          <tr>{headers.map((h, i) => <th key={i}>{h}</th>)}</tr>
+          <tr>
+            {headers.map((h, i) => (
+              <th key={i}>{h}</th>
+            ))}
+          </tr>
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri}>{row.map((cell, ci) => <td key={ci}>{cell}</td>)}</tr>
+            <tr key={ri}>
+              {row.map((cell, ci) => (
+                <td key={ci}>{cell}</td>
+              ))}
+            </tr>
           ))}
         </tbody>
       </table>
@@ -985,11 +1091,7 @@ export function Table({
 
 // ── Timeline ────────────────────────────────────────────
 
-export function Timeline({
-  items,
-}: {
-  items: { time: string; title: string; desc?: string }[]
-}) {
+export function Timeline({ items }: { items: { time: string; title: string; desc?: string }[] }) {
   return (
     <div className="mdx-timeline">
       {items.map((item, i) => (
@@ -1008,7 +1110,11 @@ export function Timeline({
 export function TagList({ tags }: { tags: string[] }) {
   return (
     <div className="mdx-tag-list">
-      {tags.map((tag, i) => <span key={i} className="mdx-tag">{tag}</span>)}
+      {tags.map((tag, i) => (
+        <span key={i} className="mdx-tag">
+          {tag}
+        </span>
+      ))}
     </div>
   )
 }
@@ -1019,7 +1125,11 @@ export function Progress({ value, label }: { value: number; label?: string }) {
   const pct = Math.max(0, Math.min(100, value))
   return (
     <div className="mdx-progress">
-      {label && <div className="mdx-progress-label">{label} — {pct}%</div>}
+      {label && (
+        <div className="mdx-progress-label">
+          {label} — {pct}%
+        </div>
+      )}
       <div className="mdx-progress-bar">
         <div className="mdx-progress-fill" style={{ width: `${pct}%` }} />
       </div>
@@ -1037,13 +1147,7 @@ const initials = (name: string): string =>
     .join('')
     .toUpperCase()
 
-export function Avatar({
-  name,
-  size,
-}: {
-  name: string
-  size?: 'sm' | 'md' | 'lg'
-}) {
+export function Avatar({ name, size }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
   return (
     <span className={`mdx-avatar${size && size !== 'md' ? ` mdx-avatar--${size}` : ''}`}>
       {initials(name)}
@@ -1061,6 +1165,7 @@ export function AvatarGroup({ children }: ChildrenProp) {
 ```bash
 npm run build
 ```
+
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -1075,6 +1180,7 @@ git commit -m "feat: implement MDX display components (Stat, Table, Timeline, Ta
 ### Task 8: Implement callout, quote, and related link components
 
 **Files:**
+
 - Modify: `src/components/mdx/callout.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -1114,10 +1220,18 @@ Add to `src/styles/mdx.css`:
   letter-spacing: 0.03em;
   margin-bottom: var(--space-1);
 }
-.mdx-callout--info .mdx-callout-title { color: #0071e3; }
-.mdx-callout--warning .mdx-callout-title { color: #ff9f0a; }
-.mdx-callout--tip .mdx-callout-title { color: #34c759; }
-.mdx-callout--note .mdx-callout-title { color: var(--text-secondary, #6a7278); }
+.mdx-callout--info .mdx-callout-title {
+  color: #0071e3;
+}
+.mdx-callout--warning .mdx-callout-title {
+  color: #ff9f0a;
+}
+.mdx-callout--tip .mdx-callout-title {
+  color: #34c759;
+}
+.mdx-callout--note .mdx-callout-title {
+  color: var(--text-secondary, #6a7278);
+}
 
 /* Quote */
 .mdx-quote {
@@ -1185,58 +1299,28 @@ export function Callout({
   )
 }
 
-export function Quote({
-  text,
-  source,
-  url,
-}: {
-  text: string
-  source?: string
-  url?: string
-}) {
+export function Quote({ text, source, url }: { text: string; source?: string; url?: string }) {
   return (
     <blockquote className="mdx-quote">
       <p>{text}</p>
       {source && (
-        <div className="mdx-quote-source">
-          — {url ? <a href={url}>{source}</a> : source}
-        </div>
+        <div className="mdx-quote-source">— {url ? <a href={url}>{source}</a> : source}</div>
       )}
     </blockquote>
   )
 }
 
-export function RelatedEntry({
-  path,
-  label,
-}: {
-  path: string
-  label?: string
-}) {
+export function RelatedEntry({ path, label }: { path: string; label?: string }) {
   return (
-    <a
-      className="mdx-related-link"
-      data-md-link={path}
-      style={{ cursor: 'pointer' }}
-    >
+    <a className="mdx-related-link" data-md-link={path} style={{ cursor: 'pointer' }}>
       {label ?? path}
     </a>
   )
 }
 
-export function RelatedIdentity({
-  path,
-  label,
-}: {
-  path: string
-  label?: string
-}) {
+export function RelatedIdentity({ path, label }: { path: string; label?: string }) {
   return (
-    <a
-      className="mdx-related-link"
-      data-md-link={path}
-      style={{ cursor: 'pointer' }}
-    >
+    <a className="mdx-related-link" data-md-link={path} style={{ cursor: 'pointer' }}>
       {label ?? path}
     </a>
   )
@@ -1248,6 +1332,7 @@ export function RelatedIdentity({
 ```bash
 npm run build
 ```
+
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -1262,6 +1347,7 @@ git commit -m "feat: implement MDX callout, quote, and related link components"
 ### Task 9: Implement cards, options, kanban, checklist, counter, rating bar
 
 **Files:**
+
 - Modify: `src/components/mdx/cards.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -1431,8 +1517,12 @@ Add to `src/styles/mdx.css`:
 .mdx-rating-star {
   font-size: var(--text-base);
 }
-.mdx-rating-star--filled { color: var(--record-btn, #b8782a); }
-.mdx-rating-star--empty { color: var(--divider); }
+.mdx-rating-star--filled {
+  color: var(--record-btn, #b8782a);
+}
+.mdx-rating-star--empty {
+  color: var(--divider);
+}
 .mdx-rating-label {
   font-size: var(--text-xs);
   color: var(--text-secondary, #6a7278);
@@ -1517,7 +1607,11 @@ export function Kanban({
               {item.text}
               {item.tags && item.tags.length > 0 && (
                 <div className="mdx-tag-list">
-                  {item.tags.map((t, ti) => <span key={ti} className="mdx-tag">{t}</span>)}
+                  {item.tags.map((t, ti) => (
+                    <span key={ti} className="mdx-tag">
+                      {t}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
@@ -1530,16 +1624,14 @@ export function Kanban({
 
 // ── Checklist ───────────────────────────────────────────
 
-export function Checklist({
-  items,
-}: {
-  items: { text: string; checked?: boolean }[]
-}) {
+export function Checklist({ items }: { items: { text: string; checked?: boolean }[] }) {
   return (
     <ul className="mdx-checklist">
       {items.map((item, i) => (
         <li key={i} className="mdx-checklist-item">
-          <span className={`mdx-checklist-marker ${item.checked ? 'mdx-checklist-marker--checked' : 'mdx-checklist-marker--unchecked'}`}>
+          <span
+            className={`mdx-checklist-marker ${item.checked ? 'mdx-checklist-marker--checked' : 'mdx-checklist-marker--unchecked'}`}
+          >
             {item.checked ? '✓' : '○'}
           </span>
           <span>{item.text}</span>
@@ -1596,6 +1688,7 @@ export function RatingBar({
 ```bash
 npm run build
 ```
+
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -1610,6 +1703,7 @@ git commit -m "feat: implement MDX cards, options, kanban, checklist, counter, r
 ### Task 10: Implement media components
 
 **Files:**
+
 - Modify: `src/components/mdx/media.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -1741,13 +1835,7 @@ export function ImageViewer({
   )
 }
 
-export function FileCard({
-  path,
-  label,
-}: {
-  path: string
-  label?: string
-}) {
+export function FileCard({ path, label }: { path: string; label?: string }) {
   return (
     <a className="mdx-file-card" data-filepath={path} style={{ cursor: 'pointer' }}>
       <span className="mdx-file-icon">📄</span>
@@ -1762,6 +1850,7 @@ export function FileCard({
 ```bash
 npm run build
 ```
+
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -1776,6 +1865,7 @@ git commit -m "feat: implement MDX media components (AudioCard, VideoCard, Image
 ### Task 11: Implement chart components (lazy Recharts)
 
 **Files:**
+
 - Modify: `src/components/mdx/charts.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -1831,9 +1921,7 @@ function ChartFallback() {
   return <div className="mdx-chart" style={{ minHeight: 200 }} />
 }
 
-function createLazyChart(
-  importer: () => Promise<{ default: React.ComponentType<any> }>,
-) {
+function createLazyChart(importer: () => Promise<{ default: React.ComponentType<any> }>) {
   const LazyComponent = lazy(importer)
   return function ChartWrapper({ data, title, color }: ChartProps) {
     return (
@@ -1894,13 +1982,7 @@ interface ChartData {
 
 // ── BarChart ────────────────────────────────────────────
 
-export function BarChartImpl({
-  data,
-  color = amber,
-}: {
-  data: ChartData[]
-  color?: string
-}) {
+export function BarChartImpl({ data, color = amber }: { data: ChartData[]; color?: string }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <RechartsBar data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
@@ -1915,13 +1997,7 @@ export function BarChartImpl({
 
 // ── LineChart ───────────────────────────────────────────
 
-export function LineChartImpl({
-  data,
-  color = amber,
-}: {
-  data: ChartData[]
-  color?: string
-}) {
+export function LineChartImpl({ data, color = amber }: { data: ChartData[]; color?: string }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <RechartsLine data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
@@ -1942,12 +2018,7 @@ export function LineChartImpl({
 
 // ── PieChart ────────────────────────────────────────────
 
-export function PieChartImpl({
-  data,
-}: {
-  data: ChartData[]
-  color?: string
-}) {
+export function PieChartImpl({ data }: { data: ChartData[]; color?: string }) {
   const colors = [amber, amberLight, '#d4b878', '#8a6500', '#f5edd8']
   return (
     <ResponsiveContainer width="100%" height={240}>
@@ -1973,24 +2044,13 @@ export function PieChartImpl({
 
 // ── RadarChart ──────────────────────────────────────────
 
-export function RadarChartImpl({
-  data,
-  color = amber,
-}: {
-  data: ChartData[]
-  color?: string
-}) {
+export function RadarChartImpl({ data, color = amber }: { data: ChartData[]; color?: string }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <RechartsRadar data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
         <PolarGrid stroke={amberLight} />
         <PolarAngleAxis dataKey="label" tick={{ fontSize: 12 }} />
-        <Radar
-          dataKey="value"
-          stroke={color}
-          fill={color}
-          fillOpacity={0.2}
-        />
+        <Radar dataKey="value" stroke={color} fill={color} fillOpacity={0.2} />
       </RechartsRadar>
     </ResponsiveContainer>
   )
@@ -2002,6 +2062,7 @@ export function RadarChartImpl({
 ```bash
 npm run build
 ```
+
 Expected: PASS. Recharts is bundled as a separate chunk (lazy loaded).
 
 - [ ] **Step 6: Commit**
@@ -2016,6 +2077,7 @@ git commit -m "feat: implement MDX chart components with lazy Recharts"
 ### Task 12: Implement Mermaid component (lazy)
 
 **Files:**
+
 - Modify: `src/components/mdx/mermaid.tsx`
 - Modify: `src/styles/mdx.css`
 
@@ -2099,22 +2161,18 @@ export function Mermaid({ chart, caption }: Props) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e))
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [chart])
 
   return (
     <div className="mdx-mermaid">
-      {svg && (
-        <div dangerouslySetInnerHTML={{ __html: svg }} />
-      )}
+      {svg && <div dangerouslySetInnerHTML={{ __html: svg }} />}
       {error && (
-        <div style={{ color: '#ff3b30', fontSize: 'var(--text-xs)' }}>
-          Mermaid error: {error}
-        </div>
+        <div style={{ color: '#ff3b30', fontSize: 'var(--text-xs)' }}>Mermaid error: {error}</div>
       )}
-      {!svg && !error && (
-        <div style={{ minHeight: 200 }} />
-      )}
+      {!svg && !error && <div style={{ minHeight: 200 }} />}
       {caption && <div className="mdx-mermaid-caption">{caption}</div>}
     </div>
   )
@@ -2126,6 +2184,7 @@ export function Mermaid({ chart, caption }: Props) {
 ```bash
 npm run build
 ```
+
 Expected: PASS. Mermaid is bundled as a separate chunk.
 
 - [ ] **Step 5: Commit**
@@ -2140,6 +2199,7 @@ git commit -m "feat: implement MDX Mermaid diagram component with lazy loading"
 ### Task 13: Update AI prompt to document MDX components
 
 **Files:**
+
 - Modify: `src-tauri/resources/workspace-template/.claude/CLAUDE.md` (if it exists)
 - Or modify: `src-tauri/src/ai_processor.rs` (embedded prompt)
 
@@ -2156,7 +2216,6 @@ Read the existing template file. Append an MDX component reference section at th
 The content to add:
 
 ```markdown
-
 ## MDX Components (available in journal entries)
 
 When writing `.mdx` journal entries, you can use these components:
@@ -2184,6 +2243,7 @@ When writing `.mdx` journal entries, you can use these components:
 ```bash
 npm run build
 ```
+
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -2198,11 +2258,13 @@ git commit -m "feat: add MDX component reference to AI workspace template prompt
 ### Task 14: End-to-end smoke test
 
 **Files:**
+
 - Create: a test `.mdx` file in a test workspace
 
 - [ ] **Step 1: Create a test .mdx file for manual verification**
 
 Create a test file `test-journal.mdx` to verify the full pipeline works. Steps:
+
 1. Create a test workspace directory
 2. Create `2605/` subdirectory
 3. Write `01-test-mdx.mdx` with:
@@ -2216,7 +2278,7 @@ tags: [test]
 # MDX Component Test
 
 <Callout type="info" title="Test">
-This is an info callout rendered via MDX.
+  This is an info callout rendered via MDX.
 </Callout>
 
 <Columns cols={2}>
@@ -2231,7 +2293,12 @@ This is an info callout rendered via MDX.
 
 ## Column 2
 
-<Checklist items={[{text: "Item one", checked: true}, {text: "Item two", checked: false}]} />
+<Checklist
+  items={[
+    { text: 'Item one', checked: true },
+    { text: 'Item two', checked: false },
+  ]}
+/>
 
 </Column>
 </Columns>
@@ -2240,15 +2307,18 @@ This is an info callout rendered via MDX.
 
 <Quote text="This is a test quote" source="Test Runner" />
 
-<Timeline items={[
-  {time: "10:00", title: "Start", desc: "Begin test"},
-  {time: "10:15", title: "Complete", desc: "Test finished"}
-]} />
+<Timeline
+  items={[
+    { time: '10:00', title: 'Start', desc: 'Begin test' },
+    { time: '10:15', title: 'Complete', desc: 'Test finished' },
+  ]}
+/>
 ```
 
 - [ ] **Step 2: Load the file in the app**
 
 Run `npm run tauri dev` and verify that:
+
 - The `.mdx` file appears in the journal list
 - The frontmatter (summary, tags) is parsed correctly
 - The content renders with all components visible
@@ -2288,6 +2358,7 @@ git commit -m "test: add MDX smoke test fixtures"
 ## Self-Review
 
 ### Spec Coverage
+
 - ✅ .mdx file recognition (Task 2)
 - ✅ MDX runtime with evaluate (Task 3)
 - ✅ ErrorBoundary fallback (Task 3)
@@ -2298,11 +2369,13 @@ git commit -m "test: add MDX smoke test fixtures"
 - ✅ Rust journal.rs changes (Task 2)
 
 ### Placeholder Scan
+
 - No TBD, TODO, or "implement later"
 - All code steps include complete implementations
 - All commands have expected output
 
 ### Type Consistency
+
 - All component props match between index.ts re-exports and implementations
 - `mdxComponents` map in index.ts uses the same names as the export statements
 - `evaluate()` options pass both runtime and components via spread

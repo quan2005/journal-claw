@@ -19,7 +19,8 @@
    ```
 
    已有实体 CLAUDE.md 的仓库：先把内容并入 AGENTS.md，再删实体文件、建软链——人工执行，技能不删文件
-4. 验证：带 verified spec 的 `git commit` 应触发五问判断；普通命令零注入
+
+4. 验证：带 verified story 的 `git commit` 应触发五问判断；普通命令零注入
 
 ## 已知问题
 

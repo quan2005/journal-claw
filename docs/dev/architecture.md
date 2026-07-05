@@ -1,142 +1,66 @@
 ---
-title: 架构全景
-description: JournalClaw 的完整架构：从用户操作到 AI 编译的数据流，IPC 通信模式，事件系统。
+title: 开发架构
+description: JournalClaw 当前 Electron + TypeScript daemon 架构说明。
 ---
 
-# 架构全景
+# 开发架构
 
-## 核心数据流
-
-```
-用户操作（录音 / 拖文件 / 粘贴 / 飞书消息）
-  → Frontend invoke() → src/lib/tauri.ts（单一 IPC 入口）
-  → Rust 命令处理 → workspace/yyMM/raw/ 写入原始材料
-  → 内置 LLM 引擎（src-tauri/src/llm/）→ Anthropic Messages API
-  → 生成 workspace/yyMM/DD-title.md
-  → 发出 journal-updated 事件
-  → Frontend useJournal hook 重新加载条目
-```
-
-## IPC 通信模式
-
-谨迹遵循"单一入口"原则——所有前端到后端的调用都通过 `src/lib/tauri.ts` 封装：
+## 总览
 
 ```
-Frontend Components / Hooks
-  → lib/tauri.ts（单文件，所有 IPC 函数）
-  → Tauri invoke() 桥接
-  → Rust #[tauri::command]（main.rs 中的 50+ 命令）
-  → 业务逻辑模块
+apps/web (React)
+  -> runtimeClient / hostBridge
+  -> runtimeClient / httpRuntimeClient
+  -> apps/daemon (HTTP + SSE)
+
+apps/web hostBridge
+  -> Electron preload whitelist
+  -> apps/desktop main process
 ```
 
-新功能添加流程：
-1. 在 Rust 端实现命令 `#[tauri::command]`
-2. 在 `main.rs` 的 `invoke_handler` 中注册
-3. 在 `src/lib/tauri.ts` 中添加对应的封装函数
-4. 前端 hooks / components 中调用封装函数
+业务语义只放在 daemon。Electron host 只处理窗口、菜单、文件选择、系统打开、webview zoom/theme 与 daemon 子进程生命周期。
 
-## 事件系统
+## Runtime Client
 
-谨迹使用 Tauri 事件系统驱动前端更新：
+`apps/web/src/lib/runtimeClient.ts` 定义 `JournalRuntimeClient`：
 
-| 事件 | 触发时机 | 消费方 |
-|---|---|---|
-| `journal-updated` | 新知识条目写入 | `useJournal` hook 重新加载 |
-| `ai-processing-start` | AI 开始编译 | AI 状态标识更新 |
-| `ai-processing-done` | AI 编译完成 | 处理队列刷新 |
-| `feishu-message` | 飞书收到新消息 | 飞书桥接状态更新 |
-| `auto-lint-done` | 自动整理完成 | 画像列表刷新 |
+- `invoke(command, args)`：兼容旧 command 风格调用，实际映射到 daemon route。
+- `subscribe(event, handler)`：订阅 daemon SSE 事件，返回同步 unsubscribe。
 
-## Rust 模块地图
+历史注记：`apps/web/src/lib/tauri.ts` 兼容 shim 已于 2026-07-03 拆除，调用方直接消费 `runtimeClient` / `hostBridge`。
 
-```
-main.rs              # 应用入口，Tauri builder，菜单，命令注册
-config.rs            # AppConfig 结构体，序列化/反序列化
-llm/                 # LLM 引擎子模块
-  mod.rs             # Anthropic Messages API 客户端
-  tool_loop.rs       # Tool use 循环实现
-conversation.rs      # 会话管理，流式对话
-ai_processor.rs      # AI 处理队列（异步，FIFO）
-recorder.rs          # cpal 音频采集 → WAV
-audio_pipeline.rs    # 音频管线编排
-audio_process.rs     # 降噪、重采样、去静默
-transcription.rs     # STT 引擎抽象 + 三种实现
-journal.rs           # 扫描 yymm/DD-title.md，解析 frontmatter
-identity.rs          # 画像 CRUD + 关联
-speaker_profiles.rs  # 声纹注册 + 匹配
-todos.rs             # 待办 CRUD + 分组
-auto_lint.rs         # 定时任务：矛盾检测、清理、抽取
-skills.rs            # SKILL.md 发现 + 加载
-feishu_bridge.rs     # WebSocket 客户端
-materials.rs         # 文件导入（PDF/DOCX/TXT）+ 粘贴
-permissions.rs       # macOS 权限检查
-workspace.rs         # 路径工具：yyMM 生成、raw/ 定位
-workspace_settings.rs # 主题、自动整理配置
-```
+## Daemon
 
-## 前端模块地图
+`apps/daemon/src/server.ts` 暴露 HTTP/SSE routes。业务拆在 service 目录中：
 
-```
-App.tsx              # 根组件，布局结构
-components/          # 30+ React 组件
-  JournalList.tsx    # 左侧时间线列表
-  JournalDetail.tsx  # 右侧详情面板
-  CommandDock.tsx    # 底部命令栏
-  RecorderButton.tsx # 录音按钮
-  ConversationPane.tsx # 对话面板
-  ...
-hooks/
-  useJournal.ts      # 条目加载 + 事件订阅
-  useRecorder.ts     # 录音状态 + 控制
-  useTheme.ts        # 主题切换
-  useIdentity.ts     # 画像管理
-  useTodos.ts        # 待办管理
-  useConversation.ts # 对话状态 + 流式输出
-lib/tauri.ts         # 所有 IPC 调用封装
-contexts/I18nContext.tsx # 国际化
-settings/            # 9 个设置 Section 组件
-types.ts             # 共享 TypeScript 类型
-```
+- `journal/`, `todos/`, `topics/`, `identity/`, `materials/`
+- `settings/`, `config/`, `workspace/`, `files/`
+- `runs/`, `engine/`, `runtimes/`, `changeset/`, `sediment/`
+- `automation/`, `work_queue/`, `ai_processor/`
 
-## 数据格式
+## Electron Host
 
-### 知识条目（Markdown + Frontmatter）
+`apps/desktop` 负责：
 
-```markdown
----
-title: "标题"
-tags: ["tag1", "tag2"]
-date: 2025-05-07
-sources:
-  - type: recording
-    path: raw/20250507-143021.m4a
-summary: "摘要"
----
-正文内容...
-```
+- 创建窗口并加载 Vite/renderer。
+- 管理 daemon 子进程生命周期。
+- 暴露最小 preload API：Reveal、Open、Pick folder、dialog、zoom、theme、file drop。
 
-### 画像（JSON）
+Host API 入口是 `apps/web/src/lib/hostBridge.ts`；组件不得直接使用 raw Electron IPC。
 
-```json
-{
-  "id": "uuid",
-  "type": "person",
-  "name": "张三",
-  "aliases": ["老张"],
-  "role": "产品经理",
-  "relations": ["project:a-product"],
-  "notes": "..."
-}
-```
+## Agent Run
 
-### 工作区配置（JSON）
+Agent Run 是 AI 主路径：
 
-```json
-{
-  "theme": "system",
-  "auto_lint": {
-    "enabled": true,
-    "interval": "weekly"
-  }
-}
-```
+1. 前端通过 `agentRuns.ts` 或 runtime client 创建 run。
+2. daemon 在 `runs/` 中登记状态与事件。
+3. `engine/` 运行 pi 内建引擎，或 `runtimes/` 调用 CLI adapter。
+4. 事件以 SSE 推给前端，并落盘支持 cursor 恢复。
+5. 文件变更通过 ChangeSet 记录，可查看和恢复。
+
+## 数据约束
+
+- workspace 文件格式保持可读。
+- 新元数据写入跨平台 workspace 路径或用户配置目录。
+- 删除和恢复走 ChangeSet / 项目内恢复路径，不依赖系统回收站。
+- 默认 build/test 不依赖平台专属二进制。

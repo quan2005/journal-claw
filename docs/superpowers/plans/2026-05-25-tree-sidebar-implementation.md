@@ -13,6 +13,7 @@
 ### Task 1: 新增类型定义
 
 **Files:**
+
 - Modify: `src/types.ts`
 
 - [ ] **Step 1: 添加树节点类型**
@@ -21,7 +22,13 @@
 // 在 src/types.ts 末尾追加
 
 /** 树节点类型 */
-export type TreeNodeType = 'pinned-section' | 'identity' | 'journal' | 'journal-month' | 'topic' | 'topic-file'
+export type TreeNodeType =
+  | 'pinned-section'
+  | 'identity'
+  | 'journal'
+  | 'journal-month'
+  | 'topic'
+  | 'topic-file'
 
 /** 树中选中项的标识 —— 由 (type, path) 唯一确定 */
 export interface TreeSelection {
@@ -42,6 +49,7 @@ export interface PinnedItem {
 ```bash
 npx tsc --noEmit
 ```
+
 Expected: 无新增报错。
 
 ---
@@ -49,6 +57,7 @@ Expected: 无新增报错。
 ### Task 2: 后端 — 置顶持久化
 
 **Files:**
+
 - Create: `src-tauri/src/pinned.rs`
 - Modify: `src-tauri/src/main.rs` (register commands)
 - Modify: `src-tauri/src/config.rs` (PinnedConfig 读写)
@@ -104,6 +113,7 @@ pub fn set_pinned_items(app: tauri::AppHandle, items: Vec<PinnedItem>) -> Result
 - [ ] **Step 3: 在 main.rs 注册命令**
 
 在 `invoke_handler![]` 中添加：
+
 ```rust
 workspace_settings::get_pinned_items,
 workspace_settings::set_pinned_items,
@@ -114,6 +124,7 @@ workspace_settings::set_pinned_items,
 ```bash
 cd src-tauri && cargo check 2>&1 | tail -20
 ```
+
 Expected: 编译通过或仅 warnings。
 
 ---
@@ -121,6 +132,7 @@ Expected: 编译通过或仅 warnings。
 ### Task 3: 后端 — topics 目录管理
 
 **Files:**
+
 - Create: `src-tauri/src/topics.rs`
 - Modify: `src-tauri/src/main.rs` (register commands + mod)
 
@@ -239,6 +251,7 @@ cd src-tauri && cargo check 2>&1 | tail -20
 ### Task 4: 前端 — tauri.ts IPC 封装
 
 **Files:**
+
 - Modify: `src/lib/tauri.ts`
 
 - [ ] **Step 1: 添加 topics 和 pinned 的 IPC 封装**
@@ -273,8 +286,7 @@ export interface PinnedItem {
   order: number
 }
 
-export const getPinnedItems = (): Promise<PinnedItem[]> =>
-  invoke<PinnedItem[]>('get_pinned_items')
+export const getPinnedItems = (): Promise<PinnedItem[]> => invoke<PinnedItem[]>('get_pinned_items')
 
 export const setPinnedItems = (items: PinnedItem[]): Promise<void> =>
   invoke<void>('set_pinned_items', { items })
@@ -291,6 +303,7 @@ npx tsc --noEmit
 ### Task 5: usePinned hook
 
 **Files:**
+
 - Create: `src/hooks/usePinned.ts`
 
 - [ ] **Step 1: 创建 hook**
@@ -315,28 +328,39 @@ export function usePinned() {
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
-  const pin = useCallback(async (itemType: 'journal' | 'identity', path: string) => {
-    const updated = [...items, { type: itemType, path, order: items.length }]
-    await setPinnedItems(updated)
-    setItems(updated)
-  }, [items])
+  const pin = useCallback(
+    async (itemType: 'journal' | 'identity', path: string) => {
+      const updated = [...items, { type: itemType, path, order: items.length }]
+      await setPinnedItems(updated)
+      setItems(updated)
+    },
+    [items],
+  )
 
-  const unpin = useCallback(async (path: string) => {
-    const updated = items.filter(i => i.path !== path).map((item, i) => ({ ...item, order: i }))
-    await setPinnedItems(updated)
-    setItems(updated)
-  }, [items])
+  const unpin = useCallback(
+    async (path: string) => {
+      const updated = items.filter((i) => i.path !== path).map((item, i) => ({ ...item, order: i }))
+      await setPinnedItems(updated)
+      setItems(updated)
+    },
+    [items],
+  )
 
-  const reorder = useCallback(async (fromIndex: number, toIndex: number) => {
-    const updated = [...items]
-    const [moved] = updated.splice(fromIndex, 1)
-    updated.splice(toIndex, 0, moved)
-    const reordered = updated.map((item, i) => ({ ...item, order: i }))
-    await setPinnedItems(reordered)
-    setItems(reordered)
-  }, [items])
+  const reorder = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      const updated = [...items]
+      const [moved] = updated.splice(fromIndex, 1)
+      updated.splice(toIndex, 0, moved)
+      const reordered = updated.map((item, i) => ({ ...item, order: i }))
+      await setPinnedItems(reordered)
+      setItems(reordered)
+    },
+    [items],
+  )
 
   return { items, loading, pin, unpin, reorder, refresh }
 }
@@ -353,6 +377,7 @@ npx tsc --noEmit
 ### Task 6: useTopics hook
 
 **Files:**
+
 - Create: `src/hooks/useTopics.ts`
 
 - [ ] **Step 1: 创建 hook**
@@ -384,32 +409,35 @@ export function useTopics() {
     }
   }, [])
 
-  const toggleDir = useCallback(async (path: string) => {
-    const current = dirs.get(path)
-    if (current) {
-      setDirs(prev => {
-        const next = new Map(prev)
-        next.set(path, { ...current, expanded: !current.expanded })
-        return next
-      })
-    } else {
-      setDirs(prev => {
-        const next = new Map(prev)
-        next.set(path, { entries: [], expanded: true, loading: true })
-        return next
-      })
-      try {
-        const entries = await listTopicsDir(path)
-        setDirs(prev => {
+  const toggleDir = useCallback(
+    async (path: string) => {
+      const current = dirs.get(path)
+      if (current) {
+        setDirs((prev) => {
           const next = new Map(prev)
-          next.set(path, { entries, expanded: true, loading: false })
+          next.set(path, { ...current, expanded: !current.expanded })
           return next
         })
-      } catch (e) {
-        console.error('[useTopics] toggleDir failed:', e)
+      } else {
+        setDirs((prev) => {
+          const next = new Map(prev)
+          next.set(path, { entries: [], expanded: true, loading: true })
+          return next
+        })
+        try {
+          const entries = await listTopicsDir(path)
+          setDirs((prev) => {
+            const next = new Map(prev)
+            next.set(path, { entries, expanded: true, loading: false })
+            return next
+          })
+        } catch (e) {
+          console.error('[useTopics] toggleDir failed:', e)
+        }
       }
-    }
-  }, [dirs])
+    },
+    [dirs],
+  )
 
   return { dirs, loading, load, toggleDir }
 }
@@ -426,6 +454,7 @@ npx tsc --noEmit
 ### Task 7: TreeItem 组件
 
 **Files:**
+
 - Create: `src/components/TreeItem.tsx`
 
 - [ ] **Step 1: 创建统一树节点组件**
@@ -577,6 +606,7 @@ const actionBtnStyle: React.CSSProperties = {
 ### Task 8: MonthDivider 组件
 
 **Files:**
+
 - Create: `src/components/MonthDivider.tsx`
 
 - [ ] **Step 1: 创建月份分割线**
@@ -625,6 +655,7 @@ npx tsc --noEmit
 ### Task 9: TopicTree 组件
 
 **Files:**
+
 - Create: `src/components/TopicTree.tsx`
 
 - [ ] **Step 1: 创建递归专题树**
@@ -742,6 +773,7 @@ npx tsc --noEmit
 ### Task 10: TreeSidebar 容器组件
 
 **Files:**
+
 - Create: `src/components/TreeSidebar.tsx`
 
 - [ ] **Step 1: 创建 TreeSidebar**
@@ -990,6 +1022,7 @@ npx tsc --noEmit
 ### Task 11: App.tsx 集成
 
 **Files:**
+
 - Modify: `src/App.tsx`
 
 - [ ] **Step 1: 替换左侧栏渲染逻辑**
@@ -997,7 +1030,8 @@ npx tsc --noEmit
 将 App.tsx 中第 670–801 行（左侧栏 `<div>` 及 `SidebarTabs` + 三个 `display:none` 条件渲染区域）替换为 `TreeSidebar` 组件调用。
 
 具体操作：
-1. 移除 `import { SidebarTabs, type SidebarTab }` 
+
+1. 移除 `import { SidebarTabs, type SidebarTab }`
 2. 移除 `import { IdentityList, SOUL_PATH }`
 3. 移除 `import { FileTree }`
 4. 新增 `import { TreeSidebar } from './components/TreeSidebar'`
@@ -1009,8 +1043,10 @@ npx tsc --noEmit
 10. 左侧栏区域替换为：
 
 ```tsx
-{/* Left: Tree Sidebar */}
-<div
+{
+  /* Left: Tree Sidebar */
+}
+;<div
   style={{
     width: baseWidth,
     flexShrink: 0,
@@ -1035,13 +1071,22 @@ npx tsc --noEmit
       setRightPanelTab('chat')
       window.dispatchEvent(new CustomEvent('chat-append-text', { detail: `@${path}` }))
     }}
-    todayYearMonth={/* 当前年月，格式 "2605" */ }
+    todayYearMonth={/* 当前年月，格式 "2605" */}
     todayDay={/* 当前日，如 25 */}
   />
   {/* Settings button */}
   {view !== 'settings' && (
     <div style={{ borderTop: '0.5px solid var(--divider)', flexShrink: 0, padding: '6px 10px' }}>
-      <button onClick={() => setView('settings')} style={{ /* 保持原样 */ }}>...</button>
+      <button
+        onClick={() => setView('settings')}
+        style={
+          {
+            /* 保持原样 */
+          }
+        }
+      >
+        ...
+      </button>
     </div>
   )}
 </div>
@@ -1050,14 +1095,32 @@ npx tsc --noEmit
 11. 中栏区域：根据 `treeSelection.type` 切换显示 `DetailPanel` / `IdentityDetail` / `FilePreviewPanel`，不再依赖 `sidebarTab`。
 
 ```tsx
-{/* Center: Contextual detail */}
-<div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-  {(!treeSelection || treeSelection.type === 'journal' || treeSelection.type === 'pinned-section') && (
-    <div style={{ flex: 1, display: treeSelection?.type === 'journal' || treeSelection?.type === 'pinned-section' ? 'flex' : 'flex', flexDirection: 'column' }}>
+{
+  /* Center: Contextual detail */
+}
+;<div
+  style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+>
+  {(!treeSelection ||
+    treeSelection.type === 'journal' ||
+    treeSelection.type === 'pinned-section') && (
+    <div
+      style={{
+        flex: 1,
+        display:
+          treeSelection?.type === 'journal' || treeSelection?.type === 'pinned-section'
+            ? 'flex'
+            : 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <DetailPanel
-        entry={treeSelection?.type === 'journal' || treeSelection?.type === 'pinned-section'
-          ? entries.find(e => `${e.year_month}/${e.filename}` === treeSelection.path) ?? selectedEntry
-          : selectedEntry}
+        entry={
+          treeSelection?.type === 'journal' || treeSelection?.type === 'pinned-section'
+            ? (entries.find((e) => `${e.year_month}/${e.filename}` === treeSelection.path) ??
+              selectedEntry)
+            : selectedEntry
+        }
         entries={entries}
         onDeselect={handleDeselect}
         onRecord={handleRecord}
@@ -1071,14 +1134,19 @@ npx tsc --noEmit
   )}
   {treeSelection?.type === 'identity' && (
     <IdentityDetail
-      identity={allIdentities.find(i => i.path === treeSelection.path) ?? null}
+      identity={allIdentities.find((i) => i.path === treeSelection.path) ?? null}
       onRecord={handleRecord}
       onOpenDock={handleOpenChat}
     />
   )}
   {treeSelection?.type === 'topic-file' && (
     <FilePreviewPanel
-      file={{ path: treeSelection.path, name: treeSelection.path.split('/').pop() ?? '', is_dir: false, mtime_secs: 0 }}
+      file={{
+        path: treeSelection.path,
+        name: treeSelection.path.split('/').pop() ?? '',
+        is_dir: false,
+        mtime_secs: 0,
+      }}
     />
   )}
 </div>
@@ -1103,6 +1171,7 @@ const todayDay = today.getDate()
 ```bash
 npm run dev
 ```
+
 手动验证：左栏树形结构出现，点击条目可选中，中栏显示对应详情。
 
 ---
@@ -1110,6 +1179,7 @@ npm run dev
 ### Task 12: 移除旧组件 + 清理
 
 **Files:**
+
 - Remove: `src/components/SidebarTabs.tsx`
 - Remove: `src/components/IdentityList.tsx` （功能已迁移到 TreeSidebar）
 - Remove 或保留: `src/components/JournalList.tsx` （可能仍被其他视图使用，检查后决定）
@@ -1146,6 +1216,7 @@ npm run lint
 ### Task 13: 后端 — 流水分页支持
 
 **Files:**
+
 - Modify: `src-tauri/src/journal.rs`
 - Modify: `src-tauri/src/main.rs`
 
@@ -1200,12 +1271,16 @@ cd src-tauri && cargo check 2>&1 | tail -20
 ### Task 14: 前端 — 使用分页查询优化加载
 
 **Files:**
+
 - Modify: `src/lib/tauri.ts`
 
 - [ ] **Step 1: 添加 IPC 封装**
 
 ```typescript
-export const listJournalEntriesPaginated = (offset: number, limit: number): Promise<[JournalEntry[], number]> =>
+export const listJournalEntriesPaginated = (
+  offset: number,
+  limit: number,
+): Promise<[JournalEntry[], number]> =>
   invoke<[JournalEntry[], number]>('list_journal_entries_paginated', { offset, limit })
 ```
 
@@ -1224,6 +1299,7 @@ npm run tauri dev
 ```
 
 验证 checklist：
+
 - [ ] 四个分区均可折叠/展开
 - [ ] 置顶区显示钉选条目，@ 和 … 按钮 hover 出现
 - [ ] 画像区显示所有 identity，头像色块、行内标签、描述文字

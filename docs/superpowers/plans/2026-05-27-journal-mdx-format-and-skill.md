@@ -13,6 +13,7 @@
 ### Task 1: Update `journal-create` default template with MDX components
 
 **Files:**
+
 - Modify: `src-tauri/resources/workspace-template/.claude/scripts/journal-create:78-112`
 
 The default template in `journal-create` (used when no `refs/工作日记模版.md` exists) currently uses plain markdown. Replace it with a template that demonstrates MDX component usage.
@@ -106,6 +107,7 @@ git commit -m "feat: update journal-create default template to use MDX component
 ### Task 2: Create `journal` skill with MDX component guidance
 
 **Files:**
+
 - Create: `src-tauri/resources/workspace-template/.claude/skills/journal/SKILL.md`
 
 Create a new skill that teaches the AI how to write MDX journal entries. Standard Markdown syntax gets a brief summary; custom MDX components get a full catalog with usage examples.
@@ -114,7 +116,7 @@ Create a new skill that teaches the AI how to write MDX journal entries. Standar
 
 Create file `src-tauri/resources/workspace-template/.claude/skills/journal/SKILL.md`:
 
-```markdown
+````markdown
 ---
 name: journal
 description: "日志写作指南。用户说"写日志"、"整理成日志"、"帮我记一下"、"记录一下"、"写篇日志"时触发，或在新建/编辑日志条目时加载。提供 MDX 格式规范、标准 Markdown 语法速查、以及完整的自定义 MDX 组件目录和使用指引。"
@@ -124,11 +126,11 @@ description: "日志写作指南。用户说"写日志"、"整理成日志"、"�
 
 ## 契约
 
-| 维度 | 声明 |
-|---|---|
-| **reads** | `yyMM/raw/*`（原始素材）、`identity/*.md`（人物识别） |
-| **writes** | `yyMM/*.mdx`（日志条目） |
-| **depends** | `/meeting-minutes`（会议类素材） |
+| 维度        | 声明                                                  |
+| ----------- | ----------------------------------------------------- |
+| **reads**   | `yyMM/raw/*`（原始素材）、`identity/*.md`（人物识别） |
+| **writes**  | `yyMM/*.mdx`（日志条目）                              |
+| **depends** | `/meeting-minutes`（会议类素材）                      |
 
 ## 格式规范
 
@@ -141,6 +143,7 @@ summary: 结论先行。背景与约束补充。
 sources: [2604/raw/file.m4a]
 ---
 ```
+````
 
 - `summary` 要有一句话的实质性结论，不要写"讨论了若干议题"这种空话。
 - `tags` 用于分类检索，建议 1-3 个标签。
@@ -150,17 +153,17 @@ sources: [2604/raw/file.m4a]
 
 以下标准语法负责日志的**结构骨架**，足够应对 80% 的排版需求：
 
-| 语法 | 用途 |
-|---|---|
-| `# ## ### ####` | 标题层级，建议不超过 4 级 |
-| `**粗体**` `*斜体*` | 强调 |
-| `- 列表项` `1. 有序列表` | 列表 |
-| `> 引用` | 引用原文或外部观点 |
-| `| 表头 |` | 表格 |
-| ` ``` ` 代码块 | 代码、日志片段 |
-| `---` | 水平分隔线 |
-| `[文本](url)` | 链接 |
-| `![alt](url)` | 图片 |
+| 语法                     | 用途                      |
+| ------------------------ | ------------------------- | --- | ---- |
+| `# ## ### ####`          | 标题层级，建议不超过 4 级 |
+| `**粗体**` `*斜体*`      | 强调                      |
+| `- 列表项` `1. 有序列表` | 列表                      |
+| `> 引用`                 | 引用原文或外部观点        |
+| `                        | 表头                      | `   | 表格 |
+| ` ``` ` 代码块           | 代码、日志片段            |
+| `---`                    | 水平分隔线                |
+| `[文本](url)`            | 链接                      |
+| `![alt](url)`            | 图片                      |
 
 **原则：能用纯 Markdown 表达清楚的，不要用 MDX 组件。** 一条日志建议使用 1-3 个组件，每条都有明确的信息呈现目的。
 
@@ -192,6 +195,7 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
 
 ```mdx
 # 产品评审会议纪要
+
 <Subtitle>讨论了 Q2 路线图中三个关键决策，最终确定优先级排序</Subtitle>
 ```
 
@@ -224,6 +228,7 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
 <div>
 
 **方案 A**
+
 - 优点一
 - 优点二
 
@@ -231,6 +236,7 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
 <div>
 
 **方案 B**
+
 - 优点一
 - 优点二
 
@@ -244,15 +250,15 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
 
 ```mdx
 <Columns cols={3}>
-<Column>
-<Stat label="日志数" value={47} suffix="篇" />
-</Column>
-<Column>
-<Stat label="会议" value={12} suffix="场" />
-</Column>
-<Column>
-<Stat label="待办" value={8} suffix="项" />
-</Column>
+  <Column>
+    <Stat label="日志数" value={47} suffix="篇" />
+  </Column>
+  <Column>
+    <Stat label="会议" value={12} suffix="场" />
+  </Column>
+  <Column>
+    <Stat label="待办" value={8} suffix="项" />
+  </Column>
 </Columns>
 ```
 
@@ -414,15 +420,11 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
     },
     {
       title: '进行中',
-      items: [
-        { text: 'MDX 组件库', tags: ['P0'] },
-      ],
+      items: [{ text: 'MDX 组件库', tags: ['P0'] }],
     },
     {
       title: '已完成',
-      items: [
-        { text: 'CSP 安全配置', tags: ['基础设施'] },
-      ],
+      items: [{ text: 'CSP 安全配置', tags: ['基础设施'] }],
     },
   ]}
 />
@@ -492,27 +494,22 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
   写 .mdx 时优先用纯 Markdown 表达，只在必要时使用组件。
 </Callout>
 
-<Callout type="note">
-  note 类型无强调色，适合低调补充说明，不打断阅读节奏。
-</Callout>
+<Callout type="note">note 类型无强调色，适合低调补充说明，不打断阅读节奏。</Callout>
 ```
 
-| type | 用途 |
-|---|---|
-| `info` | 背景信息、上下文补充 |
+| type      | 用途                     |
+| --------- | ------------------------ |
+| `info`    | 背景信息、上下文补充     |
 | `warning` | 风险、注意事项、踩坑提醒 |
-| `tip` | 建议、最佳实践、技巧 |
-| `note` | 低调旁注，不打断节奏 |
+| `tip`     | 建议、最佳实践、技巧     |
+| `note`    | 低调旁注，不打断节奏     |
 
 ---
 
 **`<Quote text="..." source="..." url="...">`** — 引用
 
 ```mdx
-<Quote
-  text="简单是终极的复杂。"
-  source="达·芬奇"
-/>
+<Quote text="简单是终极的复杂。" source="达·芬奇" />
 
 <Quote
   text="好的设计是尽可能少的设计。"
@@ -715,6 +712,7 @@ Props: `density?: 'compact' | 'default' | 'relaxed'`（控制间距，默认 `'d
 交互：支持拖拽平移、Ctrl+滚轮缩放、双指捏合缩放。
 
 CanvasDiagram vs Mermaid 选型：
+
 - **Mermaid**：适合标准流程图、甘特图、时序图，声明式 DSL，布局由 Mermaid 引擎处理。
 - **CanvasDiagram**：适合需要精确控制节点关系的场景，数据驱动，自动布局。
 
@@ -735,6 +733,7 @@ CanvasDiagram vs Mermaid 选型：
 ```
 
 Props:
+
 - `model`: `'iphone-15-pro' | 'iphone-15' | 'generic'`（默认 `'iphone-15-pro'`）
 - `size`: `'sm' | 'md' | 'lg' | 'auto'`（默认 `'md'`，分别为 280/320/380/100% 宽）
 - `tone`: `'graphite' | 'titanium' | 'black'`（默认 `'graphite'`）
@@ -766,6 +765,7 @@ Props:
 ```
 
 Props:
+
 - `Grid`: `cols`（默认 12）、`gap`（默认 16，单位 px）、`stackBelow`（低于此宽度时堆叠）
 - `Col`: `span`: `1-12 | 'auto' | 'fill'`、`offset`: `0-11`
 
@@ -815,20 +815,22 @@ Props:
 4. **Callout 有明确目的**：info = 背景补充，warning = 风险提示，tip = 建议/最佳实践，note = 不打断节奏的旁注。
 5. **Mermaid 适合标准图**（流程图、时序图、甘特图）；**CanvasDiagram 适合自定义布局**的关系图。
 6. **Phone 只用于展示移动端效果**，不要滥用。配合 `density="compact"` 让内容自适应。
-```
+
+````
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add src-tauri/resources/workspace-template/.claude/skills/journal/SKILL.md
 git commit -m "feat: add journal skill with MDX component catalog and writing guide"
-```
+````
 
 ---
 
 ### Task 3: Update workspace `.claude/CLAUDE.md` to reference journal skill and trim inline component list
 
 **Files:**
+
 - Modify: `src-tauri/resources/workspace-template/.claude/CLAUDE.md:32-111`
 
 The current CLAUDE.md has a "Skill 触发规则" section (line 32) and an "MDX Components" section (lines 92-111). Add the journal skill to the trigger rules and simplify the inline component list, pointing to the skill for details.
@@ -877,18 +879,18 @@ With:
 
 ### 快速索引
 
-| 分类 | 组件 |
-|---|---|
-| 排版 | `Section` `Subtitle` `Label` `Divider` |
-| 布局 | `Split` `Columns` `Column` `Mockup` `Placeholder` `DeviceShowcase` |
+| 分类 | 组件                                                                                                       |
+| ---- | ---------------------------------------------------------------------------------------------------------- |
+| 排版 | `Section` `Subtitle` `Label` `Divider`                                                                     |
+| 布局 | `Split` `Columns` `Column` `Mockup` `Placeholder` `DeviceShowcase`                                         |
 | 展示 | `Stat` `StatGroup` `Table` `Timeline` `TagList` `Progress` `Avatar` `AvatarGroup` `ProsCons` `Pros` `Cons` |
-| 提示 | `Callout` `Quote` `RelatedEntry` `RelatedIdentity` |
-| 卡片 | `Cards` `Card` `Options` `Option` `Kanban` `Checklist` `Counter` `RatingBar` `Stack` |
-| 媒体 | `AudioCard` `VideoCard` `ImageViewer` `FileCard` |
-| 图表 | `BarChart` `LineChart` `PieChart` `RadarChart` |
-| 图示 | `Mermaid` `CanvasDiagram` |
-| 设备 | `Phone` |
-| 栅格 | `Grid` `Col` `Flow` |
+| 提示 | `Callout` `Quote` `RelatedEntry` `RelatedIdentity`                                                         |
+| 卡片 | `Cards` `Card` `Options` `Option` `Kanban` `Checklist` `Counter` `RatingBar` `Stack`                       |
+| 媒体 | `AudioCard` `VideoCard` `ImageViewer` `FileCard`                                                           |
+| 图表 | `BarChart` `LineChart` `PieChart` `RadarChart`                                                             |
+| 图示 | `Mermaid` `CanvasDiagram`                                                                                  |
+| 设备 | `Phone`                                                                                                    |
+| 栅格 | `Grid` `Col` `Flow`                                                                                        |
 
 ### 核心原则
 

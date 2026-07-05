@@ -13,6 +13,7 @@
 ### Task 1: Add `'ideas'` to TreeNodeType
 
 **Files:**
+
 - Modify: `src/types.ts:206-212`
 
 - [ ] **Step 1: Add `'ideas'` to the union type**
@@ -48,6 +49,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 2: Simplify RightPanel to chat-only
 
 **Files:**
+
 - Modify: `src/components/RightPanel.tsx` (entire file)
 
 - [ ] **Step 1: Rewrite RightPanel to remove tab system**
@@ -123,6 +125,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 3: Add ideas entry to TreeSidebar
 
 **Files:**
+
 - Modify: `src/components/TreeSidebar.tsx:13-26` (props interface)
 - Modify: `src/components/TreeSidebar.tsx:188-196` (component function signature)
 - Modify: `src/components/TreeSidebar.tsx:340-403` (render, before pinned section)
@@ -282,6 +285,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 4: Extend DetailView to handle ideas type
 
 **Files:**
+
 - Modify: `src/components/DetailView.tsx:26-47` (Props interface)
 - Modify: `src/components/DetailView.tsx:373-386` (component signature)
 - Modify: `src/components/DetailView.tsx:596-616` (computed values + empty state)
@@ -461,6 +465,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 5: Wire App.tsx with previousSelection, ideas routing, and updated RightPanel
 
 **Files:**
+
 - Modify: `src/App.tsx:34-37` (imports)
 - Modify: `src/App.tsx:80-83` (add previousSelection state)
 - Modify: `src/App.tsx:113-118` (remove rightPanelTab state)
@@ -537,27 +542,31 @@ Modify the `handleSelect` passed to TreeSidebar or add a wrapper. Since TreeSide
 
 ```typescript
 // src/App.tsx, insert before the return statement, near other callbacks
-const handleTreeSelect = useCallback((sel: TreeSelection) => {
-  // Clear previousSelection when user navigates to something else
-  if (sel.type !== 'ideas') {
-    setPreviousSelection(null)
-  }
-  // Toggle logic: if already selected, deselect
-  if (treeSelection?.type === sel.type && treeSelection?.path === sel.path) {
-    if (sel.type === 'ideas') {
-      setTreeSelection(previousSelection)
+const handleTreeSelect = useCallback(
+  (sel: TreeSelection) => {
+    // Clear previousSelection when user navigates to something else
+    if (sel.type !== 'ideas') {
       setPreviousSelection(null)
-    } else {
-      setTreeSelection(null)
-      setSelectedEntry(null)
     }
-  } else {
-    setTreeSelection(sel)
-  }
-}, [treeSelection, previousSelection])
+    // Toggle logic: if already selected, deselect
+    if (treeSelection?.type === sel.type && treeSelection?.path === sel.path) {
+      if (sel.type === 'ideas') {
+        setTreeSelection(previousSelection)
+        setPreviousSelection(null)
+      } else {
+        setTreeSelection(null)
+        setSelectedEntry(null)
+      }
+    } else {
+      setTreeSelection(sel)
+    }
+  },
+  [treeSelection, previousSelection],
+)
 ```
 
 Wait — TreeSidebar already has internal toggle logic via `handleSelect`. The existing `handleSelect` in TreeSidebar calls `onDeselect` if clicking the same item again, or `onSelect` otherwise. So the flow is:
+
 - TreeSidebar internal `handleSelect` checks if same item → calls `onDeselect`
 - Otherwise → calls `onSelect`
 
@@ -570,7 +579,7 @@ But we also need to ensure that when a non-ideas item is selected, `previousSele
 Actually, looking at the current App.tsx, `onSelect` is passed as `setTreeSelection` directly (line 667-668):
 
 ```typescript
-onSelect={setTreeSelection}
+onSelect = { setTreeSelection }
 ```
 
 We need to change this to a wrapper that also clears `previousSelection` and syncs `selectedEntry` for journal types. Let me look at the actual onSelect in TreeSidebar usage...
@@ -578,6 +587,7 @@ We need to change this to a wrapper that also clears `previousSelection` and syn
 Looking at App.tsx line 667: `onSelect={setTreeSelection}`
 
 And TreeSidebar internally:
+
 - `handleSelect` checks if same item → `onDeselect()` else `onSelect(sel)`
 
 So we need to wrap `onSelect` to also clear `previousSelection`. Let me update the plan.
@@ -783,6 +793,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 6: Clean up unused imports and final verification
 
 **Files:**
+
 - Modify: `src/App.tsx:36-37` (imports)
 
 - [ ] **Step 1: Remove unused RightPanelTab import**

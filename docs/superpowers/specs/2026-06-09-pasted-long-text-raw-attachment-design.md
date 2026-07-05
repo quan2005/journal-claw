@@ -34,4 +34,3 @@ call fails.
 
 Update the `ChatPanel` regression test to assert that long pasted text calls
 `importText` and that the sent attachment references the returned `raw/` path.
-

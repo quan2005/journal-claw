@@ -1,18 +1,18 @@
 ---
 id: SPEC-20260615-workbench-widescreen-align
-title: "想法 / 自动化宽屏适配对齐技能页（共享 1640 容器 + 统一边距）"
+title: '想法 / 自动化宽屏适配对齐技能页（共享 1640 容器 + 统一边距）'
 status: approved
 source: gate
 level: L2
 created: 2026-06-15
 related:
-  - src/components/SkillsWorkbench.tsx              # 参照标准（内联 maxWidth 1640 / padding 52 56 80 / margin 0 auto）
-  - src/components/IdeasWorkbench.tsx               # 受影响（CSS 驱动）
-  - src/components/AutomationWorkbench.tsx          # 受影响（CSS 驱动）
-  - src/styles/globals.css:157-170                  # --journal-workbench-max / page-top / page-bottom token
-  - src/styles/globals.css:618-736                  # automation-header / automation-body / automation-stack
-  - src/styles/globals.css:1220-1245                # .ideas-workbench 容器 + header/tabs/main 宽度
-  - src/tests/light-theme-unit.test.ts:231,262-276  # 断言 --journal-workbench-max=1120px + ideas/automation 框架规则
+  - src/components/SkillsWorkbench.tsx # 参照标准（内联 maxWidth 1640 / padding 52 56 80 / margin 0 auto）
+  - src/components/IdeasWorkbench.tsx # 受影响（CSS 驱动）
+  - src/components/AutomationWorkbench.tsx # 受影响（CSS 驱动）
+  - src/styles/globals.css:157-170 # --journal-workbench-max / page-top / page-bottom token
+  - src/styles/globals.css:618-736 # automation-header / automation-body / automation-stack
+  - src/styles/globals.css:1220-1245 # .ideas-workbench 容器 + header/tabs/main 宽度
+  - src/tests/light-theme-unit.test.ts:231,262-276 # 断言 --journal-workbench-max=1120px + ideas/automation 框架规则
 ---
 
 # 想法 / 自动化宽屏适配对齐技能页
@@ -25,19 +25,20 @@ related:
 
 三个工作台用了两套互不一致的宽屏容器约定：
 
-| 维度 | 技能（参照） | 想法 | 自动化 |
-|---|---|---|---|
+| 维度           | 技能（参照）                                                | 想法                                                                         | 自动化                                                                      |
+| -------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | 内容容器最大宽 | `maxWidth: 1640px`（内联）[证据: `SkillsWorkbench.tsx:622`] | `min(100%, 1120px)` via `--journal-workbench-max` [证据: `globals.css:1242`] | `min(100%, 1120px)` via `--journal-workbench-max` [证据: `globals.css:731`] |
-| 容器水平居中 | `margin: 0 auto` [证据: `SkillsWorkbench.tsx:622`] | `margin: 0 auto` ✅ | `margin: 0 auto` ✅（header 用 gutter 相加近似，stack 用 auto） |
-| 顶部 padding | `52px` [证据: `SkillsWorkbench.tsx:622`] | `44px` via `--journal-page-top` [证据: `globals.css:1234,159`] | header `44px` / body `24px`（双层）[证据: `globals.css:629,720`] |
-| 左右 padding | `56px`（固定）[证据: `SkillsWorkbench.tsx:622`] | `min(56px,5vw)` via `--journal-page-gutter` ✅ 更优 | 同想法 ✅ |
-| 底部 padding | `80px` [证据: `SkillsWorkbench.tsx:622`] | `34px` via `--journal-page-bottom` [证据: `globals.css:1234,160`] | `34px` via `--journal-page-bottom` [证据: `globals.css:720`] |
+| 容器水平居中   | `margin: 0 auto` [证据: `SkillsWorkbench.tsx:622`]          | `margin: 0 auto` ✅                                                          | `margin: 0 auto` ✅（header 用 gutter 相加近似，stack 用 auto）             |
+| 顶部 padding   | `52px` [证据: `SkillsWorkbench.tsx:622`]                    | `44px` via `--journal-page-top` [证据: `globals.css:1234,159`]               | header `44px` / body `24px`（双层）[证据: `globals.css:629,720`]            |
+| 左右 padding   | `56px`（固定）[证据: `SkillsWorkbench.tsx:622`]             | `min(56px,5vw)` via `--journal-page-gutter` ✅ 更优                          | 同想法 ✅                                                                   |
+| 底部 padding   | `80px` [证据: `SkillsWorkbench.tsx:622`]                    | `34px` via `--journal-page-bottom` [证据: `globals.css:1234,160`]            | `34px` via `--journal-page-bottom` [证据: `globals.css:720`]                |
 
 **可观察后果**：在 1920px 屏幕上，技能页内容区 1640px，想法/自动化仅 1120px —— 两侧各多出 ~260px 留白，视觉上三个 tab 切换时内容宽度「跳变」，且想法/自动化上下边距明显比技能紧凑（尤其底部 34 vs 80，列表底部贴着窗口边缘）。用户原话：「想法、自动化没有适配宽屏，整体边距和宽屏适配样式要求和技能保持一致」。
 
 **目标**：三个工作台在任意宽度 ≥1120px 的屏幕上，内容容器最大宽度、上下左右 padding 表现一致（视觉无跳变）；窄屏（<1040px）已有的响应式回退不回归。
 
 **非目标**：
+
 - 不改技能页 `SkillsWorkbench` 本身（它已是参照标准）。
 - 不改 detail view 的 readable-max / prose-max 排版约定 [证据: `globals.css:131-170`，detail 用 `--journal-readable-max`，不依赖 `--journal-workbench-max`]。
 - 不改 `--journal-page-gutter`（被 detail、markdown、mdx 多模块共享，且 `min(56px,5vw)` 的响应式特性比技能内联固定 56px 更优，保留）。
@@ -46,11 +47,11 @@ related:
 
 ## 2. 模糊性清除
 
-| 原文 | 类型 | 改写（进 AC） |
-|---|---|---|
-| 「整体边距…一致」 | 无度量 | 顶部/底部 padding 与技能页逐像素一致：top 52px、bottom 80px、左右用现有 gutter（`min(56px,5vw)`） |
-| 「宽屏适配样式…一致」 | 无边界 | 内容容器 `max-width` = 1640px（= 技能页），`margin: 0 auto` 居中；≥1640px 屏幕内容不再随窗口继续拉伸 |
-| 「和技能保持一致」 | 隐含假设：是否要把内联样式也改成 token | 不改技能实现；做法是把 token 调到与技能值一致，让想法/自动化通过 token 对齐。技能页未来也可迁 token，但不在本 spec 范围 |
+| 原文                  | 类型                                   | 改写（进 AC）                                                                                                           |
+| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 「整体边距…一致」     | 无度量                                 | 顶部/底部 padding 与技能页逐像素一致：top 52px、bottom 80px、左右用现有 gutter（`min(56px,5vw)`）                       |
+| 「宽屏适配样式…一致」 | 无边界                                 | 内容容器 `max-width` = 1640px（= 技能页），`margin: 0 auto` 居中；≥1640px 屏幕内容不再随窗口继续拉伸                    |
+| 「和技能保持一致」    | 隐含假设：是否要把内联样式也改成 token | 不改技能实现；做法是把 token 调到与技能值一致，让想法/自动化通过 token 对齐。技能页未来也可迁 token，但不在本 spec 范围 |
 
 ## 3. NFR 与影响面
 

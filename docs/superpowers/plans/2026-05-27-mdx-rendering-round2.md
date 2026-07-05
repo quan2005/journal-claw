@@ -12,23 +12,24 @@
 
 ## File Map
 
-| File | Change | Purpose |
-|---|---|---|
-| `src/components/mdx/mermaid.tsx` | Rewrite | Fix render pipeline, add DiagramFrame, error fallback, type detection |
-| `src/components/mdx/chart-impl.tsx` | Major edit | Add ChartFrame, useChartLayout, adaptive heights, empty/error states, donut PieChart |
-| `src/components/mdx/charts.tsx` | Edit | Wire ChartFrame into chart wrappers |
-| `src/components/mdx/device-mockups.tsx` | Rewrite | Pure-CSS iPhone 15 Pro with gradient shell, island, buttons |
-| `src/components/mdx/layout.tsx` | Edit | Add DeviceShowcase component |
-| `src/styles/mdx.css` | Major edit | Device v2 styles, ChartFrame styles, DiagramFrame styles, device-content density rules |
-| `src/components/mdx/index.ts` | Edit | Export new components |
-| `src/components/mdx/cards.tsx` | Edit | Card reads DeviceDensity context for auto-compact |
-| `src/components/mdx/display.tsx` | Edit | Stat/Progress read DeviceDensity context |
+| File                                    | Change     | Purpose                                                                                |
+| --------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| `src/components/mdx/mermaid.tsx`        | Rewrite    | Fix render pipeline, add DiagramFrame, error fallback, type detection                  |
+| `src/components/mdx/chart-impl.tsx`     | Major edit | Add ChartFrame, useChartLayout, adaptive heights, empty/error states, donut PieChart   |
+| `src/components/mdx/charts.tsx`         | Edit       | Wire ChartFrame into chart wrappers                                                    |
+| `src/components/mdx/device-mockups.tsx` | Rewrite    | Pure-CSS iPhone 15 Pro with gradient shell, island, buttons                            |
+| `src/components/mdx/layout.tsx`         | Edit       | Add DeviceShowcase component                                                           |
+| `src/styles/mdx.css`                    | Major edit | Device v2 styles, ChartFrame styles, DiagramFrame styles, device-content density rules |
+| `src/components/mdx/index.ts`           | Edit       | Export new components                                                                  |
+| `src/components/mdx/cards.tsx`          | Edit       | Card reads DeviceDensity context for auto-compact                                      |
+| `src/components/mdx/display.tsx`        | Edit       | Stat/Progress read DeviceDensity context                                               |
 
 ---
 
 ### Task 1: Fix Mermaid rendering pipeline + add error fallback
 
 **Files:**
+
 - Modify: `src/components/mdx/mermaid.tsx` (rewrite)
 - Modify: `src/styles/mdx.css` (DiagramFrame + Mermaid SVG styles)
 
@@ -50,8 +51,7 @@ interface Props {
 // ── Theme hook (unchanged from current) ─────────────────
 
 function useMermaidTheme() {
-  const resolve = () =>
-    document.documentElement.getAttribute('data-theme') === 'dark'
+  const resolve = () => document.documentElement.getAttribute('data-theme') === 'dark'
 
   const [isDark, setIsDark] = useState(resolve)
 
@@ -168,11 +168,15 @@ export function Mermaid({ chart, caption }: Props) {
         }
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [normalizedChart, themeVariables])
 
   return (
-    <div className={`mdx-diagram-frame${diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : ''}`}>
+    <div
+      className={`mdx-diagram-frame${diagramType === 'gantt' ? ' mdx-diagram-frame--gantt' : ''}`}
+    >
       <div className="mdx-diagram-body">
         {error ? (
           <div className="mdx-diagram-error">
@@ -184,12 +188,19 @@ export function Mermaid({ chart, caption }: Props) {
             </details>
           </div>
         ) : svg ? (
-          <div
-            className="mdx-mermaid-svg"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          <div className="mdx-mermaid-svg" dangerouslySetInnerHTML={{ __html: svg }} />
         ) : loading ? (
-          <div className="mdx-diagram-loading" style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>
+          <div
+            className="mdx-diagram-loading"
+            style={{
+              minHeight: 200,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-tertiary)',
+              fontSize: 'var(--text-xs)',
+            }}
+          >
             Rendering diagram...
           </div>
         ) : null}
@@ -317,6 +328,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 2: Add ChartFrame with ResizeObserver and adaptive height
 
 **Files:**
+
 - Modify: `src/components/mdx/chart-impl.tsx` (add ChartFrame, useChartLayout, useContainerWidth)
 - Modify: `src/components/mdx/charts.tsx` (wire ChartFrame into wrappers)
 - Modify: `src/styles/mdx.css` (ChartFrame styles, empty/error states)
@@ -371,7 +383,7 @@ function useChartLayout(type: ChartType, containerWidth: number, dataLength: num
       case 'bar':
         return Math.max(220, Math.min(Math.round(containerWidth * 0.32), 340))
       case 'line':
-        return Math.max(220, Math.min(Math.round(containerWidth * 0.30), 320))
+        return Math.max(220, Math.min(Math.round(containerWidth * 0.3), 320))
       case 'pie':
         return compact ? 300 : 340
       case 'radar':
@@ -520,9 +532,7 @@ function createLazyChart(
   return function ChartWrapper({ data, title, color }: ChartProps) {
     return (
       <ChartFrame title={title} type={type} dataLength={data?.length ?? 0}>
-        {(layout) => (
-          <LazyComponent data={data} color={color ?? defaultColor} layout={layout} />
-        )}
+        {(layout) => <LazyComponent data={data} color={color ?? defaultColor} layout={layout} />}
       </ChartFrame>
     )
   }
@@ -584,6 +594,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 3: Update BarChart and LineChart to use layout props
 
 **Files:**
+
 - Modify: `src/components/mdx/chart-impl.tsx`
 
 - [ ] **Step 1: Update BarChartImpl to accept layout prop**
@@ -721,6 +732,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 4: PieChart donut + legend and RadarChart adaptive radius
 
 **Files:**
+
 - Modify: `src/components/mdx/chart-impl.tsx`
 
 - [ ] **Step 1: Rewrite PieChartImpl as donut with legend**
@@ -758,7 +770,14 @@ export function PieChartImpl({
   const total = displayData.reduce((s, d) => s + d.value, 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: layout.compact ? 'column' : 'row', alignItems: 'center', gap: layout.compact ? 16 : 32 }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: layout.compact ? 'column' : 'row',
+        alignItems: 'center',
+        gap: layout.compact ? 16 : 32,
+      }}
+    >
       <div style={{ flex: layout.compact ? 'none' : '0 0 55%', minWidth: 0 }}>
         <ResponsiveContainer width="100%" height={layout.height}>
           <RechartsPie margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
@@ -784,17 +803,47 @@ export function PieChartImpl({
                 fontSize: 13,
                 color: t.isDark ? '#e8e8e8' : '#1c1c1e',
               }}
-              formatter={(value: number, name: string) => [`${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`, name]}
+              formatter={(value: number, name: string) => [
+                `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
+                name,
+              ]}
             />
           </RechartsPie>
         </ResponsiveContainer>
       </div>
-      <div style={{ flex: layout.compact ? 'none' : '0 0 auto', display: 'flex', flexDirection: layout.compact ? 'row' : 'column', flexWrap: 'wrap', gap: layout.compact ? 12 : 8 }}>
+      <div
+        style={{
+          flex: layout.compact ? 'none' : '0 0 auto',
+          display: 'flex',
+          flexDirection: layout.compact ? 'row' : 'column',
+          flexWrap: 'wrap',
+          gap: layout.compact ? 12 : 8,
+        }}
+      >
         {displayData.map((d, i) => (
-          <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: t.isDark ? '#a8acb4' : '#2a3038' }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: t.pieColors[i % t.pieColors.length], flexShrink: 0 }} />
+          <div
+            key={d.label}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              color: t.isDark ? '#a8acb4' : '#2a3038',
+            }}
+          >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 2,
+                background: t.pieColors[i % t.pieColors.length],
+                flexShrink: 0,
+              }}
+            />
             <span>{d.label}</span>
-            <span style={{ color: t.text, fontSize: 12 }}>{total > 0 ? Math.round((d.value / total) * 100) : 0}%</span>
+            <span style={{ color: t.text, fontSize: 12 }}>
+              {total > 0 ? Math.round((d.value / total) * 100) : 0}%
+            </span>
           </div>
         ))}
       </div>
@@ -843,12 +892,7 @@ export function RadarChartImpl({
             color: t.isDark ? '#e8e8e8' : '#1c1c1e',
           }}
         />
-        <Radar
-          dataKey="value"
-          stroke={color}
-          fill={color}
-          fillOpacity={0.18}
-        />
+        <Radar dataKey="value" stroke={color} fill={color} fillOpacity={0.18} />
       </RechartsRadar>
     </ResponsiveContainer>
   )
@@ -880,6 +924,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 5: Phone Mockup v2 — Pure CSS rebuild
 
 **Files:**
+
 - Modify: `src/components/mdx/device-mockups.tsx` (complete rewrite)
 - Modify: `src/styles/mdx.css` (replace device styles)
 
@@ -972,7 +1017,11 @@ export function Iphone({
 
           <div className="device-screen-v2">
             {/* Dynamic Island */}
-            {showIsland && <div className="device-island-v2">{showSpeaker && <div className="device-speaker-v2" />}</div>}
+            {showIsland && (
+              <div className="device-island-v2">
+                {showSpeaker && <div className="device-speaker-v2" />}
+              </div>
+            )}
 
             {/* Screen content */}
             <div
@@ -1025,8 +1074,7 @@ Find the existing `/* ── Device Mockups ── */` section (starts around li
   width: 100%;
   border-radius: 54px;
   padding: 10px;
-  background:
-    linear-gradient(145deg, #3a3a3a, #1f1f1f 45%, #0f0f0f);
+  background: linear-gradient(145deg, #3a3a3a, #1f1f1f 45%, #0f0f0f);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     inset 0 0 0 3px rgba(0, 0, 0, 0.45),
@@ -1036,14 +1084,12 @@ Find the existing `/* ── Device Mockups ── */` section (starts around li
 
 /* Dark mode frame — lighter gradient */
 [data-theme='dark'] .device-frame-v2 {
-  background:
-    linear-gradient(145deg, #4a4a4a, #2a2a2a 45%, #1a1a1a);
+  background: linear-gradient(145deg, #4a4a4a, #2a2a2a 45%, #1a1a1a);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .device-frame-v2 {
-    background:
-      linear-gradient(145deg, #4a4a4a, #2a2a2a 45%, #1a1a1a);
+    background: linear-gradient(145deg, #4a4a4a, #2a2a2a 45%, #1a1a1a);
   }
 }
 
@@ -1234,6 +1280,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 6: Add DeviceShowcase component
 
 **Files:**
+
 - Modify: `src/components/mdx/layout.tsx`
 - Modify: `src/components/mdx/index.ts`
 
@@ -1297,6 +1344,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 7: Demo MDX cleanup — use new component APIs
 
 **Files:**
+
 - Modify: `~/Documents/journal/2605/26-全组件展示-设计系统验证.mdx`
 
 - [ ] **Step 1: Update the MDX file to use DeviceShowcase and v2 Iphone**
@@ -1358,6 +1406,7 @@ Expected: successful build.
 
 Run: `npm run dev`
 Then open the demo MDX file in the app to verify:
+
 - Mermaid flowchart and gantt render (not just captions)
 - Charts adapt to container width
 - PieChart shows donut + legend

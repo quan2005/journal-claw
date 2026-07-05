@@ -1,15 +1,15 @@
 ---
 id: SPEC-20260615-workbench-layout-unification
-title: "三工作台布局统一 — 共享组件 + Token 消费 + 交互一致性"
+title: '三工作台布局统一 — 共享组件 + Token 消费 + 交互一致性'
 status: draft
 source: gate
 level: L2
 created: 2026-06-15
 related:
-  - specs/20260615-workbench-widescreen-align/spec.md  # 前置：容器宽度/padding 已对齐
-  - specs/20260614-skills-redesign/spec.md             # 技能页现状（inline style）
-  - specs/20260614-agentic-design-language/spec.md     # Agentic token 体系
-  - docs/DESIGN.md                                     # 设计规范
+  - specs/20260615-workbench-widescreen-align/spec.md # 前置：容器宽度/padding 已对齐
+  - specs/20260614-skills-redesign/spec.md # 技能页现状（inline style）
+  - specs/20260614-agentic-design-language/spec.md # Agentic token 体系
+  - docs/DESIGN.md # 设计规范
   - src/components/IdeasWorkbench.tsx
   - src/components/AutomationWorkbench.tsx
   - src/components/SkillsWorkbench.tsx
@@ -26,21 +26,21 @@ related:
 
 `specs/20260615-workbench-widescreen-align` 已对齐容器宽度和外边距（1640px / 52px / 80px），但**内部组件层**仍高度不一致：
 
-| 差异 | 想法 | 自动化 | 技能 |
-|------|------|--------|------|
-| 样式实现 | CSS class | CSS class | **inline style** [证据: SkillsWorkbench.tsx] |
-| Eyebrow 高度/字重 | 30px / 800 | 28px / 600 | 无固定高度 / 600 |
-| 标题字号 | 48px 固定 | 48px 固定 | clamp(44px,5vw,60px) |
-| Summary 字号 | 18px | 18px | 16px |
-| Button 高度 | 42px | 42px | 38px |
-| Button padding | 0 18px | 0 18px | 0 16px |
-| 列表项 hover | 背景变色 | 背景变色 | translateY(-2px)+shadow |
-| 空状态 | 虚线框+图标+文案 | 虚线框+图标+文案 | 纯灰色文字 |
-| Stats 数字字号 | --text-md (16px) | --text-md (16px) | --text-xl (24px) |
-| 色彩 token | --ideas-* 命名空间 | --automation-* 命名空间 | 直接用通用 token |
-| 响应式 | @media 1040/720px | @media 1040px | 无 |
-| 浮层 z-index | 1002 | 1000 | 80 |
-| 动效时长 | 160ms | 160ms | 240ms |
+| 差异              | 想法                | 自动化                   | 技能                                         |
+| ----------------- | ------------------- | ------------------------ | -------------------------------------------- |
+| 样式实现          | CSS class           | CSS class                | **inline style** [证据: SkillsWorkbench.tsx] |
+| Eyebrow 高度/字重 | 30px / 800          | 28px / 600               | 无固定高度 / 600                             |
+| 标题字号          | 48px 固定           | 48px 固定                | clamp(44px,5vw,60px)                         |
+| Summary 字号      | 18px                | 18px                     | 16px                                         |
+| Button 高度       | 42px                | 42px                     | 38px                                         |
+| Button padding    | 0 18px              | 0 18px                   | 0 16px                                       |
+| 列表项 hover      | 背景变色            | 背景变色                 | translateY(-2px)+shadow                      |
+| 空状态            | 虚线框+图标+文案    | 虚线框+图标+文案         | 纯灰色文字                                   |
+| Stats 数字字号    | --text-md (16px)    | --text-md (16px)         | --text-xl (24px)                             |
+| 色彩 token        | --ideas-\* 命名空间 | --automation-\* 命名空间 | 直接用通用 token                             |
+| 响应式            | @media 1040/720px   | @media 1040px            | 无                                           |
+| 浮层 z-index      | 1002                | 1000                     | 80                                           |
+| 动效时长          | 160ms               | 160ms                    | 240ms                                        |
 
 **目标**：建立一套三工作台共享的布局设计语言——统一 Header 规格、Button 规格、Stats 组件、空状态、交互反馈、token 命名，使切换时视觉无断裂感。
 
@@ -49,6 +49,7 @@ related:
 通过 {(1) 为技能页创建 CSS class 消除 inline style；(2) 新增共享 workbench token；(3) 统一 Header/Button/Stats/Empty 各层级的尺寸参数；(4) 统一 hover/动效/z-index}，影响 {三个工作台的视觉一致性体验}，预期 {切换 tab 时视觉语言连贯、无断裂，且不丢失各页面特有的功能交互}。
 
 **假设**：
+
 - 假设 A：统一 eyebrow/title/summary 参数后，三页信息密度可比——各页标题区占据的视觉比例相近。证伪：如果想法页列表行数因 header 变高而明显减少，需调整。
 - 假设 B：去掉技能卡片的 translateY 浮起效果后，卡片交互反馈仍清晰可感知。证伪：用户反馈觉得卡片 hover 无反应。
 - 假设 C：统一 z-index 为 1000 不会与应用其他浮层冲突 [证据: globals.css 搜索 z-index，最高层级为 toast 9999、titlebar 999]。
@@ -65,10 +66,10 @@ related:
 --workbench-eyebrow-radius: var(--radius-pill);
 --workbench-eyebrow-bg: color-mix(in srgb, var(--record-btn) 10%, var(--bg));
 --workbench-eyebrow-color: var(--record-btn);
---workbench-title-size: var(--journal-title-size);  /* 48px */
---workbench-title-weight: var(--journal-title-weight);  /* 800 */
+--workbench-title-size: var(--journal-title-size); /* 48px */
+--workbench-title-weight: var(--journal-title-weight); /* 800 */
 --workbench-title-color: var(--record-btn);
---workbench-summary-size: var(--journal-summary-size);  /* 18px */
+--workbench-summary-size: var(--journal-summary-size); /* 18px */
 --workbench-summary-color: var(--text-secondary);
 --workbench-header-gap: 24px;
 --workbench-btn-h: 40px;
@@ -79,8 +80,8 @@ related:
 --workbench-item-transition: 160ms var(--ease-out);
 --workbench-overlay-z: 1000;
 --workbench-menu-z: 1010;
---workbench-stats-number: var(--text-lg);  /* 18px */
---workbench-stats-label: var(--text-sm);   /* 14px */
+--workbench-stats-number: var(--text-lg); /* 18px */
+--workbench-stats-label: var(--text-sm); /* 14px */
 ```
 
 ### 3.2 技能页去 inline style（SkillsWorkbench.tsx + 新建 skills-workbench.css）
@@ -94,6 +95,7 @@ related:
 ### 3.4 统一 Button 规格
 
 三页的 primary/secondary button 统一：
+
 - min-height: `var(--workbench-btn-h)` (40px)
 - padding: `0 var(--workbench-btn-px)` (0 18px)
 - border-radius: `var(--workbench-btn-radius)`
@@ -102,6 +104,7 @@ related:
 ### 3.5 统一 Stats 组件
 
 三页统计格子统一：
+
 - 数字：`var(--workbench-stats-number)` + font-weight 700
 - 标签：`var(--workbench-stats-label)` + `var(--text-secondary)`
 - 分隔线：`border-inline-end: 1px solid var(--divider)`
@@ -110,6 +113,7 @@ related:
 ### 3.6 统一空状态
 
 三页统一为「虚线框 + accent 圆角图标 + 主文案 + 副文案」模式：
+
 - 容器：`border: 1px dashed var(--divider)`, `border-radius: var(--radius-lg)`, `min-height: 108px`, flex 居中
 - 图标：40px 圆角方块，bg = `--workbench-eyebrow-bg`, color = `--record-btn`
 - 主文案：`var(--text-sm)`, `var(--text-secondary)`
@@ -138,6 +142,7 @@ related:
 ### 3.10 技能页补响应式
 
 为 `.skills-workbench` 添加：
+
 - `@media (max-width: 1040px)`：header 从两列变为 stack
 - `@media (max-width: 720px)`：卡片网格变单列、padding 收紧
 
@@ -151,19 +156,19 @@ related:
 
 ## 5. NFR
 
-| 维度 | 评估 |
-|------|------|
-| 性能 | N/A——纯 CSS 改动，无运行时开销 |
-| 安全/权限 | N/A |
-| 数据隐私 | N/A |
-| 可靠性/降级 | N/A |
-| 可观测性 | N/A |
-| 回滚 | 单次 git revert 即可（CSS + TSX 改动） |
-| 兼容性 | 不破坏现有测试；需同步 light-theme-unit.test.ts 中与 workbench 相关的断言 |
-| 成本 | N/A |
-| 风控/滥用 | N/A |
-| 运营/客服 | N/A |
-| 多语言/地区 | N/A |
+| 维度        | 评估                                                                      |
+| ----------- | ------------------------------------------------------------------------- |
+| 性能        | N/A——纯 CSS 改动，无运行时开销                                            |
+| 安全/权限   | N/A                                                                       |
+| 数据隐私    | N/A                                                                       |
+| 可靠性/降级 | N/A                                                                       |
+| 可观测性    | N/A                                                                       |
+| 回滚        | 单次 git revert 即可（CSS + TSX 改动）                                    |
+| 兼容性      | 不破坏现有测试；需同步 light-theme-unit.test.ts 中与 workbench 相关的断言 |
+| 成本        | N/A                                                                       |
+| 风控/滥用   | N/A                                                                       |
+| 运营/客服   | N/A                                                                       |
+| 多语言/地区 | N/A                                                                       |
 
 ## 6. 依赖与影响面
 

@@ -1,0 +1,29 @@
+{
+  "name": "@journal/daemon",
+  "version": "0.16.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/cli.js",
+  "scripts": {
+    "prebuild": "bun run --filter @journal/contracts build",
+    "build": "tsc -p tsconfig.json",
+    "dev": "bun run build && node dist/cli.js --no-open",
+    "start": "bun run build && node dist/cli.js",
+    "pretypecheck": "bun run --filter @journal/contracts build",
+    "typecheck": "tsc --noEmit",
+    "pretest": "bun run --filter @journal/contracts build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "0.80.2",
+    "@earendil-works/pi-ai": "0.80.2",
+    "@journal/contracts": "workspace:*",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.19.0",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.0"
+  }
+}

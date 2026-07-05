@@ -224,9 +224,7 @@ settings.update
 All IPC responses use a structured result:
 
 ```ts
-type Result<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: AppError }
+type Result<T> = { ok: true; data: T } | { ok: false; error: AppError }
 
 type AppError = {
   code: string

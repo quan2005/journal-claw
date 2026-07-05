@@ -17,27 +17,26 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 
 > **你不需要写任何笔记。**
 
-录音、文档、文字粘贴——所有原始资料进入 `raw/`，LLM 增量编译为结构化的 Markdown 知识条目。每次新增资料，知识库自动更新。你要做的只有两件事：**扔资料进来，之后回来阅读**。
+文档、文字粘贴——所有原始资料进入 `raw/`，LLM 增量编译为结构化的 Markdown 知识条目。每次新增资料，知识库自动更新。你要做的只有两件事：**扔资料进来，之后回来阅读**。
 
 ## 核心工作流
 
 ```
-原始资料（录音 / 文档 / 文本）
+原始资料（文档 / 文本）
   ↓  LLM 增量编译
 记忆（时间线 .md 知识条目）
   ↓  检索 + 使用
 你的问题得到解答
 ```
 
-每次你录制一段语音、拖入一个文档、或粘贴一段文字，谨迹背后的 AI 引擎会自动：
+每次你拖入一个文档、或粘贴一段文字，谨迹背后的 AI 引擎会自动：
 
-1. 处理和转写原始资料（音频 → 文字，文档 → 结构化摘要）
+1. 处理原始资料（文档 → 结构化摘要）
 2. 增量编译为知识条目（标题、标签、摘要、正文）
 3. 沿时间线归档，关联源素材
 
 ## 主要功能
 
-- **语音录音** — 一键录音，自动降噪、去静默、转 M4A。AI 转写并结构化
 - **文件导入** — 拖入 PDF、DOCX、TXT，AI 提取、摘要、归档
 - **粘贴文字** — 会议摘要、网页内容、随手笔记，提交即走
 - **AI 编译** — 内置 LLM 引擎增量编译为结构化 Markdown
@@ -50,13 +49,12 @@ Andrej Karpathy [写过](https://karpathy.bearblog.dev/the-append-and-review-not
 
 ## 技术概要
 
-| 层面 | 技术 |
-|---|---|
-| 桌面框架 | Tauri v2 |
-| 前端 | React 19 + TypeScript + Vite 7 |
-| 后端 | Rust（50+ IPC 命令） |
-| AI 引擎 | 内置 Anthropic Messages API 客户端（支持多厂商） |
-| 语音转文字 | Apple SpeechAnalyzer / WhisperKit / DashScope |
+| 层面     | 技术                                            |
+| -------- | ----------------------------------------------- |
+| 桌面框架 | Electron                                        |
+| 前端     | React 19 + TypeScript + Vite 7                  |
+| 后端     | TypeScript daemon（HTTP + SSE）                 |
+| AI 引擎  | daemon pi 内建引擎 + CLI adapters（支持多厂商） |
 
 ## 接下来的步骤
 

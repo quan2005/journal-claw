@@ -1,6 +1,6 @@
 # JournalClaw（谨迹）
 
-> AI-powered knowledge base for macOS. You throw in raw materials (recordings, documents, pasted text), and the built-in LLM engine compiles them into structured Markdown knowledge entries on a timeline. Tauri v2 + React 19 + TypeScript + Rust.
+> AI-powered knowledge base for macOS. You throw in raw materials (documents, pasted text, images), and the built-in LLM engine compiles them into structured Markdown knowledge entries on a timeline. Electron + React 19 + TypeScript daemon + pi engine.
 
 This file indexes the project's documentation for Agent consumption. All paths are relative to the repository root. Append `.md` to doc site paths to get raw Markdown source.
 
@@ -8,19 +8,17 @@ This file indexes the project's documentation for Agent consumption. All paths a
 
 - [Introduction](docs/guide/index.md): What JournalClaw is, design philosophy, core workflow.
 - [Installation](docs/guide/installation.md): System requirements, download, AI engine and workspace configuration.
-- [Quick Start](docs/guide/quick-start.md): 5-minute onboarding — record, import, converse, read.
-- [Voice Recording](docs/guide/recording.md): Recording feature, Apple native / WhisperKit / DashScope engine comparison.
+- [Quick Start](docs/guide/quick-start.md): 5-minute onboarding — import, converse, read.
 - [Material Import](docs/guide/materials.md): File drop (PDF/DOCX/TXT/images) and text paste.
 - [AI Compilation](docs/guide/ai-compilation.md): Built-in LLM incremental compilation pipeline, structured output format.
 - [Conversation & Agent](docs/guide/conversation.md): Chat mode and Agent mode usage and best practices.
 - [Timeline Memory](docs/guide/timeline.md): Browse, search, read knowledge entries, source traceability.
 - [Profiles](docs/guide/profiles.md): People/project/concept profiles for AI context precision.
 - [Todos](docs/guide/todos.md): AI-detected action items, manual creation, path grouping, Agent exploration.
-- [Speaker Profiles](docs/guide/speaker-profiles.md): On-device speaker identification, linked to people profiles.
 - [Skill Plugins](docs/guide/skills.md): Extend AI processing via SKILL.md, custom trigger rules.
 - [Feishu Bridge](docs/guide/feishu.md): WebSocket connection to Feishu for real-time message intake.
 - [Themes](docs/guide/themes.md): Light/dark dual theme, signal orange accent, warm-white layered surfaces, design discipline.
-- [Settings](docs/guide/settings.md): Full reference for all nine settings sections.
+- [Settings](docs/guide/settings.md): Full reference for all settings sections.
 
 ## Developer Guide
 
@@ -28,7 +26,7 @@ This file indexes the project's documentation for Agent consumption. All paths a
 - [Architecture](docs/dev/architecture.md): Data flow, IPC patterns, event system, module map.
 - [Environment Setup](docs/dev/setup.md): Dependency installation, dev mode, testing, debugging.
 - [Frontend Development](docs/dev/frontend.md): React components, Hooks, IPC conventions, styling, i18n.
-- [Backend Development](docs/dev/backend.md): Rust commands, LLM engine, audio pipeline, STT, AI queue.
+- [Backend Development](docs/dev/backend.md): TypeScript daemon routes, pi LLM engine, AI processing queue.
 - [Build & Release](docs/dev/building.md): Production build, code signing, versioning, CI/CD.
 
 ## Design System
@@ -44,4 +42,3 @@ This file indexes the project's documentation for Agent consumption. All paths a
 
 - [Superpowers Plans](docs/superpowers/plans/): Implementation plans for feature development (historical, not authoritative).
 - [Superpowers Specs](docs/superpowers/specs/): Design specs for features (historical, not authoritative).
-- [MDX Examples](docs/superpowers/examples/): MDX component usage examples and showcases.

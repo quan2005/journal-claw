@@ -1,0 +1,29 @@
+{
+  "name": "@journal/desktop",
+  "version": "0.16.0",
+  "private": true,
+  "type": "module",
+  "description": "JournalClaw Electron host — window + menu + daemon lifecycle only (zero business semantics).",
+  "main": "dist/main.js",
+  "author": "JournalClaw",
+  "scripts": {
+    "build:daemon": "bun run --filter @journal/daemon build",
+    "build:main": "tsc -p tsconfig.json",
+    "dev:clean": "node scripts/clean-dev-ports.mjs",
+    "dev": "bun run dev:clean && bun run build:daemon && bun run build:main && concurrently -k -n web,app \"bun run --filter @journal/web dev\" \"wait-on http-get://localhost:1420 && electron .\"",
+    "start": "bun run build:daemon && bun run build:main && electron .",
+    "build": "bun run build:daemon && bun run build:main && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "concurrently": "^9.1.0",
+    "electron": "33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.0",
+    "wait-on": "^8.0.1"
+  }
+}

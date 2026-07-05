@@ -14,12 +14,12 @@
 
 This plan covers 10 improvements across 4 phases. Each phase is independently mergeable:
 
-| Phase | Tasks | Days | Dependencies |
-|-------|-------|------|-------------|
-| Phase 1: Quick Wins | 1–3 | 2–3 | None |
-| Phase 2: Foundation | 4–6 | 3–5 | Task 4 must precede Task 5 |
-| Phase 3: Structural Refactor | 7–8 | 5–8 | Phase 2 complete |
-| Phase 4: Defensive Engineering | 9–10 | 1–2 | None (can run in parallel with any phase) |
+| Phase                          | Tasks | Days | Dependencies                              |
+| ------------------------------ | ----- | ---- | ----------------------------------------- |
+| Phase 1: Quick Wins            | 1–3   | 2–3  | None                                      |
+| Phase 2: Foundation            | 4–6   | 3–5  | Task 4 must precede Task 5                |
+| Phase 3: Structural Refactor   | 7–8   | 5–8  | Phase 2 complete                          |
+| Phase 4: Defensive Engineering | 9–10  | 1–2  | None (can run in parallel with any phase) |
 
 ---
 
@@ -27,37 +27,37 @@ This plan covers 10 improvements across 4 phases. Each phase is independently me
 
 ### New Files (10 files)
 
-| File | Responsibility |
-|------|---------------|
-| `src-tauri/src/errors.rs` | Structured error taxonomy: `AiErrorCode`, `AiProcessingError` |
-| `src-tauri/src/digest.rs` | Content digest computation + dedup check |
-| `src-tauri/src/event_log.rs` | In-memory ring buffer for domain events + catch-up command |
-| `src/hooks/useEventSync.ts` | Frontend hook: subscribe + catch-up, replaces polling |
-| `src-tauri/src/ai_processor/plan.rs` | Pure planning function (no I/O) |
-| `src-tauri/src/ai_processor/execute.rs` | I/O execution layer |
-| `src-tauri/src/ai_processor/types.rs` | Shared types for plan/execute |
-| `src-tauri/src/ai_processor/mod.rs` | Re-exports, queue consumer, module root |
-| `src-tauri/src/pipeline/mod.rs` | Pipeline trait + runner |
-| `src-tauri/src/pipeline/stages.rs` | Concrete stage implementations |
-| `src-tauri/src/commands/mod.rs` | Domain-grouped command re-exports + uniqueness test |
+| File                                    | Responsibility                                                |
+| --------------------------------------- | ------------------------------------------------------------- |
+| `src-tauri/src/errors.rs`               | Structured error taxonomy: `AiErrorCode`, `AiProcessingError` |
+| `src-tauri/src/digest.rs`               | Content digest computation + dedup check                      |
+| `src-tauri/src/event_log.rs`            | In-memory ring buffer for domain events + catch-up command    |
+| `src/hooks/useEventSync.ts`             | Frontend hook: subscribe + catch-up, replaces polling         |
+| `src-tauri/src/ai_processor/plan.rs`    | Pure planning function (no I/O)                               |
+| `src-tauri/src/ai_processor/execute.rs` | I/O execution layer                                           |
+| `src-tauri/src/ai_processor/types.rs`   | Shared types for plan/execute                                 |
+| `src-tauri/src/ai_processor/mod.rs`     | Re-exports, queue consumer, module root                       |
+| `src-tauri/src/pipeline/mod.rs`         | Pipeline trait + runner                                       |
+| `src-tauri/src/pipeline/stages.rs`      | Concrete stage implementations                                |
+| `src-tauri/src/commands/mod.rs`         | Domain-grouped command re-exports + uniqueness test           |
 
 ### Modified Files (14 files)
 
-| File | What changes |
-|------|-------------|
-| `src-tauri/src/ai_processor.rs` → deleted | Split into `ai_processor/` module directory |
-| `src-tauri/src/main.rs` | Add `mod` declarations for new modules, update `invoke_handler` |
-| `src-tauri/src/lib.rs` | (currently empty, no changes expected) |
-| `src-tauri/Cargo.toml` | Add `sha2`, `specta`, `tauri-specta` dependencies |
-| `src-tauri/src/frontmatter.rs` | Add `parse_source_digest()` helper |
-| `src-tauri/src/llm/retry.rs` | Add `ProcessorRetryPolicy`, `decide_retry()`, `SideEffects` |
-| `src-tauri/src/llm/mod.rs` | Add `create_engine_for_provider()` factory (may already exist partially) |
-| `src/types.ts` | Add `AiProcessingError`, `DomainEvent` types (later replaced by specta) |
-| `src/lib/tauri.ts` | Add `get_events_since()` IPC wrapper |
-| `src/hooks/useIdentity.ts` | Replace with `useEventSync`-based refresh |
-| `src/hooks/useTodos.ts` | Replace with `useEventSync`-based refresh |
-| `src/components/ProcessingQueue.tsx` | Display structured error info + retry status |
-| `.github/workflows/ci.yml` | Add specta type-check step |
+| File                                      | What changes                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| `src-tauri/src/ai_processor.rs` → deleted | Split into `ai_processor/` module directory                              |
+| `src-tauri/src/main.rs`                   | Add `mod` declarations for new modules, update `invoke_handler`          |
+| `src-tauri/src/lib.rs`                    | (currently empty, no changes expected)                                   |
+| `src-tauri/Cargo.toml`                    | Add `sha2`, `specta`, `tauri-specta` dependencies                        |
+| `src-tauri/src/frontmatter.rs`            | Add `parse_source_digest()` helper                                       |
+| `src-tauri/src/llm/retry.rs`              | Add `ProcessorRetryPolicy`, `decide_retry()`, `SideEffects`              |
+| `src-tauri/src/llm/mod.rs`                | Add `create_engine_for_provider()` factory (may already exist partially) |
+| `src/types.ts`                            | Add `AiProcessingError`, `DomainEvent` types (later replaced by specta)  |
+| `src/lib/tauri.ts`                        | Add `get_events_since()` IPC wrapper                                     |
+| `src/hooks/useIdentity.ts`                | Replace with `useEventSync`-based refresh                                |
+| `src/hooks/useTodos.ts`                   | Replace with `useEventSync`-based refresh                                |
+| `src/components/ProcessingQueue.tsx`      | Display structured error info + retry status                             |
+| `.github/workflows/ci.yml`                | Add specta type-check step                                               |
 
 ---
 
@@ -72,6 +72,7 @@ No dependencies between these tasks. Can be implemented in parallel by separate 
 **Goal:** Replace `ProcessingUpdate.error: Option<String>` with structured `AiProcessingError` that carries error code, retryability, and user-action hints.
 
 **Files:**
+
 - Create: `src-tauri/src/errors.rs`
 - Modify: `src-tauri/src/ai_processor.rs:9-16` (ProcessingUpdate type)
 - Modify: `src-tauri/src/ai_processor.rs:590-630` (error emission in queue consumer)
@@ -449,13 +450,15 @@ In `src/components/ProcessingQueue.tsx`, wherever error is displayed, add struct
 // {item.error && <span className="...">{item.error}</span>}
 // Replace with:
 
-{item.structured_error ? (
-  <span className="error-text">
-    {item.structured_error.user_action || item.structured_error.message}
-  </span>
-) : item.error ? (
-  <span className="error-text">{item.error}</span>
-) : null}
+{
+  item.structured_error ? (
+    <span className="error-text">
+      {item.structured_error.user_action || item.structured_error.message}
+    </span>
+  ) : item.error ? (
+    <span className="error-text">{item.error}</span>
+  ) : null
+}
 ```
 
 - [ ] **Step 10: Build and test**
@@ -480,6 +483,7 @@ git commit -m "feat: add structured error taxonomy for AI processing"
 **Goal:** Compute a SHA-256 digest of material content + prompt version + model, store it in frontmatter, and skip re-processing when digest matches.
 
 **Files:**
+
 - Modify: `src-tauri/Cargo.toml` (add `sha2`)
 - Create: `src-tauri/src/digest.rs`
 - Modify: `src-tauri/src/frontmatter.rs` (add digest helpers)
@@ -771,6 +775,7 @@ git commit -m "feat: content digest deduplication for AI processing"
 **Goal:** Add a bounded in-memory event log in Rust that supports `get_events_since(seq)` so the frontend can catch up after missing events, eliminating the need for polling.
 
 **Files:**
+
 - Create: `src-tauri/src/event_log.rs`
 - Modify: `src-tauri/src/main.rs` (add `mod event_log;`, manage state, register command)
 - Modify: `src-tauri/src/ai_processor.rs` (record events to EventLog)
@@ -1041,10 +1046,7 @@ import type { DomainEvent } from '../types'
  * @param eventKind - Which event kinds to watch (e.g. 'todos-updated')
  * @param onEvent - Callback fired for each matching event (live or catch-up)
  */
-export function useEventSync(
-  eventKinds: string[],
-  onEvent: (payload: unknown) => void,
-) {
+export function useEventSync(eventKinds: string[], onEvent: (payload: unknown) => void) {
   const lastSeq = useRef<number>(0)
   const onEventRef = useRef(onEvent)
   onEventRef.current = onEvent
@@ -1275,6 +1277,7 @@ git commit -m "feat: event ring buffer with catch-up mechanism"
 **Goal:** Add retry logic to the `ai_processor` queue consumer that respects side-effect state — if the agent already wrote files or emitted events, don't retry.
 
 **Files:**
+
 - Modify: `src-tauri/src/llm/retry.rs` (add `ProcessorRetryPolicy`, `SideEffects`, `decide_retry`)
 - Modify: `src-tauri/src/ai_processor.rs:551-631` (wrap process_material in retry loop)
 - Modify: `src/components/ProcessingQueue.tsx` (show retry progress)
@@ -1569,6 +1572,7 @@ git commit -m "feat: processor-level retry with side-effect guards"
 **Goal:** Consolidate the engine creation path so that `conversation.rs` and `ai_processor.rs` never reference vendor-specific code.
 
 **Files:**
+
 - Modify: `src-tauri/src/llm/mod.rs` (verify/complete `create_engine_for_provider`)
 - Modify: `src-tauri/src/llm/openai_compat.rs` (verify StreamEvent alignment)
 - Create: `src-tauri/tests/llm_engine_test.rs` (integration test)
@@ -1672,6 +1676,7 @@ git commit -m "refactor: verify vendor-agnostic engine factory"
 **Goal:** Auto-generate TypeScript types from Rust structs so CI catches type drift.
 
 **Files:**
+
 - Modify: `src-tauri/Cargo.toml` (add `specta`, `tauri-specta`)
 - Modify: `src-tauri/src/main.rs` (register specta)
 - Create: `src/generated/bindings.ts` (auto-generated)
@@ -1692,6 +1697,7 @@ tauri-specta = { version = "2", features = ["derive", "typescript"] }
 Add `#[derive(specta::Type)]` to these structs/enums in their respective files:
 
 In `src-tauri/src/errors.rs`:
+
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 pub enum AiErrorCode { ... }
@@ -1701,6 +1707,7 @@ pub struct AiProcessingError { ... }
 ```
 
 In `src-tauri/src/event_log.rs`:
+
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, specta::Type)]
 pub enum EventKind { ... }
@@ -1710,6 +1717,7 @@ pub struct DomainEvent { ... }
 ```
 
 In `src-tauri/src/ai_processor.rs`:
+
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct ProcessingUpdate { ... }
@@ -1778,6 +1786,7 @@ git commit -m "feat: shared type contracts via specta"
 **Goal:** Extract `plan_processing()` as a pure function (no I/O) from `process_material_builtin`. The function returns a `ProcessingPlan` data structure that describes what will happen, without touching the filesystem or network.
 
 **Files:**
+
 - Create: `src-tauri/src/ai_processor/types.rs`
 - Create: `src-tauri/src/ai_processor/plan.rs`
 - Create: `src-tauri/src/ai_processor/execute.rs`
@@ -2150,6 +2159,7 @@ git commit -m "refactor: split ai_processor into plan (pure) + execute (I/O)"
 **Goal:** Define a `Pipeline` with composable `Stage` trait objects. Processing workflows (journal creation, auto-lint) compose from stages instead of procedural code.
 
 **Files:**
+
 - Create: `src-tauri/src/pipeline/mod.rs`
 - Create: `src-tauri/src/pipeline/stages.rs`
 - Modify: `src-tauri/src/main.rs` (add `mod pipeline;`)
@@ -2452,6 +2462,7 @@ No dependencies on Phase 2 or 3. Can run in parallel.
 **Goal:** Catch missing `.manage()` registrations at test time instead of runtime panics.
 
 **Files:**
+
 - Create: `src-tauri/tests/state_registration_test.rs`
 - Modify: `src-tauri/src/main.rs` (extract builder into testable function)
 
@@ -2559,6 +2570,7 @@ git commit -m "feat: compile-time state registration verification"
 **Goal:** Split the 130+ command flat list in `invoke_handler![]` into domain modules, with a test that catches duplicate command names.
 
 **Files:**
+
 - Create: `src-tauri/src/commands/mod.rs`
 - Create: `src-tauri/src/commands/journal.rs`
 - Create: `src-tauri/src/commands/recording.rs`
@@ -2689,14 +2701,14 @@ git commit -m "feat: domain-grouped command registration with duplicate guard"
 
 ## Success Criteria (Definition of Done)
 
-| # | Criterion | Verified by |
-|---|-----------|-------------|
-| 1 | `cargo test` 全绿 | CI |
-| 2 | `npm run build` 全绿，类型由 specta 生成 | CI |
-| 3 | 前端零 `setInterval` 轮询 | `grep -r setInterval src/hooks/` returns nothing |
-| 4 | AI 处理瞬态错误自动恢复 | 手动测试：断网 → 重连后自动完成 |
-| 5 | 重复素材导入被拦截 | 手动测试：拖入同一文件两次 → 第二次跳过 |
-| 6 | `main.rs` invoke_handler < 10 行 | `wc -l` |
-| 7 | 命令重名检测 | `cargo test commands::tests` |
-| 8 | 状态注册完整 | `cargo test state_registration_test` |
-| 9 | ai_processor plan 纯函数可测 | `cargo test ai_processor::plan::tests` |
+| #   | Criterion                                | Verified by                                      |
+| --- | ---------------------------------------- | ------------------------------------------------ |
+| 1   | `cargo test` 全绿                        | CI                                               |
+| 2   | `npm run build` 全绿，类型由 specta 生成 | CI                                               |
+| 3   | 前端零 `setInterval` 轮询                | `grep -r setInterval src/hooks/` returns nothing |
+| 4   | AI 处理瞬态错误自动恢复                  | 手动测试：断网 → 重连后自动完成                  |
+| 5   | 重复素材导入被拦截                       | 手动测试：拖入同一文件两次 → 第二次跳过          |
+| 6   | `main.rs` invoke_handler < 10 行         | `wc -l`                                          |
+| 7   | 命令重名检测                             | `cargo test commands::tests`                     |
+| 8   | 状态注册完整                             | `cargo test state_registration_test`             |
+| 9   | ai_processor plan 纯函数可测             | `cargo test ai_processor::plan::tests`           |

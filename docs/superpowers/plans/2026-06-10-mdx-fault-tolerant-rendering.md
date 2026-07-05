@@ -12,32 +12,33 @@
 
 ## File Structure
 
-| File | Responsibility |
-|---|---|
-| `src/lib/mdx/types.ts` | Shared types: `Block`, `CompiledBlock`, `BlockDegradation`, `ErrorTranslation` |
-| `src/lib/mdx/segmenter.ts` | Line-level state machine that splits MDX source into top-level blocks |
-| `src/lib/mdx/scopeManager.ts` | Extracts ESM declarations and link/footnote definitions from blocks |
-| `src/lib/mdx/blockCompiler.ts` | Compiles a single block via Tauri IPC with MDX → MD → source fallback |
-| `src/lib/mdx/errorTranslation.ts` | Maps raw error strings to friendly Chinese messages + fix hints |
-| `src/lib/mdx/cache.ts` | Block-level compilation cache (hash → compiled component) |
-| `src/lib/mdx/index.ts` | Pipeline orchestrator: segment → scope → compile → assemble |
-| `src/components/mdx/ErrorCard.tsx` | L2 error card (four-section layout) |
-| `src/components/mdx/DegradationBadge.tsx` | L1 corner badge (yellow, hover tooltip) |
-| `src/components/mdx/BlockErrorBoundary.tsx` | Per-block React ErrorBoundary with fallback to ErrorCard |
-| `src/components/mdx/BlockRenderer.tsx` | Renders one compiled block, wrapped in BlockErrorBoundary |
-| `src/components/MdxRenderer.tsx` | Refactored to use block pipeline (replaces current whole-file approach) |
-| `src/styles/mdx-errors.css` | Styles for error cards, badges, and degradation states |
-| `src/tests/mdx-segmenter.test.ts` | Unit tests for the segmenter state machine |
-| `src/tests/mdx-block-compiler.test.ts` | Unit tests for block compilation + fallback logic |
-| `src/tests/mdx-error-translation.test.ts` | Unit tests for error message translation |
-| `src/tests/mdx-scope-manager.test.ts` | Unit tests for scope extraction |
-| `src/tests/mdx-pipeline-integration.test.ts` | Integration test: full pipeline with intentional errors |
+| File                                         | Responsibility                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------------ |
+| `src/lib/mdx/types.ts`                       | Shared types: `Block`, `CompiledBlock`, `BlockDegradation`, `ErrorTranslation` |
+| `src/lib/mdx/segmenter.ts`                   | Line-level state machine that splits MDX source into top-level blocks          |
+| `src/lib/mdx/scopeManager.ts`                | Extracts ESM declarations and link/footnote definitions from blocks            |
+| `src/lib/mdx/blockCompiler.ts`               | Compiles a single block via Tauri IPC with MDX → MD → source fallback          |
+| `src/lib/mdx/errorTranslation.ts`            | Maps raw error strings to friendly Chinese messages + fix hints                |
+| `src/lib/mdx/cache.ts`                       | Block-level compilation cache (hash → compiled component)                      |
+| `src/lib/mdx/index.ts`                       | Pipeline orchestrator: segment → scope → compile → assemble                    |
+| `src/components/mdx/ErrorCard.tsx`           | L2 error card (four-section layout)                                            |
+| `src/components/mdx/DegradationBadge.tsx`    | L1 corner badge (yellow, hover tooltip)                                        |
+| `src/components/mdx/BlockErrorBoundary.tsx`  | Per-block React ErrorBoundary with fallback to ErrorCard                       |
+| `src/components/mdx/BlockRenderer.tsx`       | Renders one compiled block, wrapped in BlockErrorBoundary                      |
+| `src/components/MdxRenderer.tsx`             | Refactored to use block pipeline (replaces current whole-file approach)        |
+| `src/styles/mdx-errors.css`                  | Styles for error cards, badges, and degradation states                         |
+| `src/tests/mdx-segmenter.test.ts`            | Unit tests for the segmenter state machine                                     |
+| `src/tests/mdx-block-compiler.test.ts`       | Unit tests for block compilation + fallback logic                              |
+| `src/tests/mdx-error-translation.test.ts`    | Unit tests for error message translation                                       |
+| `src/tests/mdx-scope-manager.test.ts`        | Unit tests for scope extraction                                                |
+| `src/tests/mdx-pipeline-integration.test.ts` | Integration test: full pipeline with intentional errors                        |
 
 ---
 
 ## Task 1: Shared Types
 
 **Files:**
+
 - Create: `src/lib/mdx/types.ts`
 - Test: `src/tests/mdx-segmenter.test.ts` (initial file with type imports)
 
@@ -145,6 +146,7 @@ git commit -m "feat(mdx): add shared types for fault-tolerant rendering pipeline
 ## Task 2: Segmenter — Line-Level State Machine
 
 **Files:**
+
 - Create: `src/lib/mdx/segmenter.ts`
 - Modify: `src/tests/mdx-segmenter.test.ts`
 
@@ -152,7 +154,7 @@ The segmenter is O(n) over lines. It tracks fence state, JSX depth, and splits a
 
 - [ ] **Step 1: Write the failing tests**
 
-```typescript
+````typescript
 // src/tests/mdx-segmenter.test.ts
 import { describe, it, expect } from 'vitest'
 import { segmentMdx } from '../lib/mdx/segmenter'
@@ -183,7 +185,8 @@ describe('mdx segmenter', () => {
   })
 
   it('keeps JSX container components as a single block', () => {
-    const source = '<Tabs>\n  <Tab label="A">\n    Content A\n  </Tab>\n\n  <Tab label="B">\n    Content B\n  </Tab>\n</Tabs>'
+    const source =
+      '<Tabs>\n  <Tab label="A">\n    Content A\n  </Tab>\n\n  <Tab label="B">\n    Content B\n  </Tab>\n</Tabs>'
     const blocks = segmentMdx(source)
     expect(blocks).toHaveLength(1)
     expect(blocks[0].kind).toBe('jsx')
@@ -236,7 +239,7 @@ describe('mdx segmenter', () => {
     expect(blocks).toHaveLength(2)
   })
 })
-```
+````
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -322,7 +325,10 @@ export function segmentMdx(source: string): Block[] {
         if (!inFence) {
           inFence = true
           fenceMarker = fenceMatch[1][0].repeat(fenceMatch[1].length)
-        } else if (trimmed.startsWith(fenceMarker) && trimmed.slice(fenceMarker.length).trim() === '') {
+        } else if (
+          trimmed.startsWith(fenceMarker) &&
+          trimmed.slice(fenceMarker.length).trim() === ''
+        ) {
           inFence = false
           fenceMarker = ''
         }
@@ -457,6 +463,7 @@ git commit -m "feat(mdx): implement fault-tolerant block segmenter"
 ## Task 3: Error Translation Table
 
 **Files:**
+
 - Create: `src/lib/mdx/errorTranslation.ts`
 - Create: `src/tests/mdx-error-translation.test.ts`
 
@@ -619,6 +626,7 @@ git commit -m "feat(mdx): add error translation table for friendly Chinese messa
 ## Task 4: Scope Manager
 
 **Files:**
+
 - Create: `src/lib/mdx/scopeManager.ts`
 - Create: `src/tests/mdx-scope-manager.test.ts`
 
@@ -762,6 +770,7 @@ git commit -m "feat(mdx): add scope manager for cross-block dependency resolutio
 ## Task 5: Block Compiler with Fallback Chain
 
 **Files:**
+
 - Create: `src/lib/mdx/blockCompiler.ts`
 - Create: `src/lib/mdx/cache.ts`
 - Create: `src/tests/mdx-block-compiler.test.ts`
@@ -793,7 +802,7 @@ function makeBlock(source: string, kind: 'markdown' | 'jsx' | 'esm' = 'markdown'
 describe('mdx block compiler', () => {
   it('returns L0 when MDX compilation succeeds', async () => {
     mockCompileMdx.mockResolvedValue(
-      'import {jsx as _jsx} from "react/jsx-runtime"\nfunction MDXContent(){return _jsx("p",{children:"hi"})}\nexport default MDXContent'
+      'import {jsx as _jsx} from "react/jsx-runtime"\nfunction MDXContent(){return _jsx("p",{children:"hi"})}\nexport default MDXContent',
     )
     const result = await compileBlock(makeBlock('Hello world'), emptyScope)
     expect(result.level).toBe('L0')
@@ -1008,6 +1017,7 @@ git commit -m "feat(mdx): implement block compiler with MDX→MD→source fallba
 ## Task 6: Pipeline Orchestrator
 
 **Files:**
+
 - Create: `src/lib/mdx/index.ts`
 - Create: `src/tests/mdx-pipeline-integration.test.ts`
 
@@ -1118,7 +1128,11 @@ export async function compileMdxDocument(source: string): Promise<MdxDocumentRes
   }
 
   if (blocks.length === 0) {
-    return { blocks: [], scope: { esmBlocks: [], linkDefinitions: [], footnoteDefinitions: [] }, hasDegradation: false }
+    return {
+      blocks: [],
+      scope: { esmBlocks: [], linkDefinitions: [], footnoteDefinitions: [] },
+      hasDegradation: false,
+    }
   }
 
   // Step 2: Extract scope
@@ -1126,9 +1140,7 @@ export async function compileMdxDocument(source: string): Promise<MdxDocumentRes
 
   // Step 3: Compile each block (content blocks only; ESM blocks are scope-only)
   const contentBlocks = blocks.filter((b) => b.kind !== 'esm')
-  const compiledBlocks = await Promise.all(
-    contentBlocks.map((block) => compileBlock(block, scope))
-  )
+  const compiledBlocks = await Promise.all(contentBlocks.map((block) => compileBlock(block, scope)))
 
   const hasDegradation = compiledBlocks.some((b) => b.level !== 'L0')
 
@@ -1153,6 +1165,7 @@ git commit -m "feat(mdx): add pipeline orchestrator for block-isolated compilati
 ## Task 7: Error Card Component (L2 Visual)
 
 **Files:**
+
 - Create: `src/components/mdx/ErrorCard.tsx`
 - Create: `src/styles/mdx-errors.css`
 
@@ -1251,7 +1264,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
   background: var(--color-surface-error, #fff0f0);
 }
 
-[data-theme="dark"] .mdx-error-card {
+[data-theme='dark'] .mdx-error-card {
   background: var(--color-surface-error, #1f1315);
   border-color: var(--color-border-error, #822025);
 }
@@ -1266,7 +1279,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
   font-weight: 500;
 }
 
-[data-theme="dark"] .mdx-error-card-status {
+[data-theme='dark'] .mdx-error-card-status {
   background: var(--color-surface-error-subtle, #291415);
 }
 
@@ -1297,7 +1310,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
-[data-theme="dark"] .mdx-error-card-source {
+[data-theme='dark'] .mdx-error-card-source {
   background: var(--color-surface-code, #1a1a1a);
 }
 
@@ -1321,7 +1334,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
   padding: 0 12px;
 }
 
-[data-theme="dark"] .mdx-error-card-source-highlight {
+[data-theme='dark'] .mdx-error-card-source-highlight {
   background: var(--color-highlight-error, rgba(229, 72, 77, 0.15));
 }
 
@@ -1418,7 +1431,7 @@ export function ErrorCard({ block, error }: ErrorCardProps) {
   white-space: normal;
 }
 
-[data-theme="dark"] .mdx-degradation-tooltip {
+[data-theme='dark'] .mdx-degradation-tooltip {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -1466,6 +1479,7 @@ git commit -m "feat(mdx): add ErrorCard component and degradation styles"
 ## Task 8: DegradationBadge Component (L1 Visual)
 
 **Files:**
+
 - Create: `src/components/mdx/DegradationBadge.tsx`
 
 - [ ] **Step 1: Implement the badge component**
@@ -1528,6 +1542,7 @@ git commit -m "feat(mdx): add DegradationBadge for L1 degraded blocks"
 ## Task 9: Block Error Boundary
 
 **Files:**
+
 - Create: `src/components/mdx/BlockErrorBoundary.tsx`
 
 - [ ] **Step 1: Implement the per-block ErrorBoundary**
@@ -1587,6 +1602,7 @@ git commit -m "feat(mdx): add BlockErrorBoundary for runtime render failures"
 ## Task 10: BlockRenderer Component
 
 **Files:**
+
 - Create: `src/components/mdx/BlockRenderer.tsx`
 
 - [ ] **Step 1: Implement the block renderer**
@@ -1662,6 +1678,7 @@ git commit -m "feat(mdx): add BlockRenderer dispatching by degradation level"
 ## Task 11: Refactor MdxRenderer to Use Block Pipeline
 
 **Files:**
+
 - Modify: `src/components/MdxRenderer.tsx`
 
 This is the integration step. The existing `MdxRenderer` becomes a thin shell that delegates to the block pipeline. We preserve all existing behavior (click handling, loading states, component registry) while replacing the single-shot compilation with block-isolated compilation.
@@ -1671,6 +1688,7 @@ This is the integration step. The existing `MdxRenderer` becomes a thin shell th
 Replace the compilation logic in `MdxRenderer.tsx`. Keep the component registry (`wrapMdxComponents`, `withMissingComponentFallback`), click handler, and `MdxRuntimeProvider`. Replace the single `compileMdx` call with `compileMdxDocument`.
 
 The key changes:
+
 1. Replace `CompileState` with a blocks-based state
 2. Call `compileMdxDocument` instead of `compileMdx` directly
 3. Render blocks sequentially using `BlockRenderer`
@@ -1755,6 +1773,7 @@ git commit -m "refactor(mdx): integrate block-isolated pipeline into MdxRenderer
 ## Task 12: Import CSS and Wire Up Exports
 
 **Files:**
+
 - Modify: `src/App.tsx` (add CSS import)
 - Modify: `src/components/mdx/index.ts` (export new components)
 
@@ -1796,6 +1815,7 @@ git commit -m "feat(mdx): wire up error styles and component exports"
 ## Task 13: Manual Smoke Test & Edge Cases
 
 **Files:**
+
 - No new files — verification only
 
 - [ ] **Step 1: Run the full test suite**
@@ -1828,7 +1848,7 @@ tags: [test]
 This paragraph renders fine.
 
 <BrokenComponent
-  no closing tag
+no closing tag
 
 # This section should still render
 
@@ -1836,6 +1856,7 @@ And this text should be visible.
 ```
 
 Expected behavior:
+
 - "Good section" and first paragraph render normally (L0)
 - The broken component block shows an error card (L1 or L2)
 - "This section should still render" and its content render normally (L0)

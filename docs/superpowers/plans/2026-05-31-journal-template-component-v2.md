@@ -40,6 +40,7 @@ Create or modify these files:
 ### Task 1: Add Rust tests for journal skill install and meeting-minutes cleanup
 
 **Files:**
+
 - Modify: `src-tauri/src/ai_processor.rs`
 
 - [ ] **Step 1: Write the failing test**
@@ -104,6 +105,7 @@ git commit -m "test: cover journal skill installation"
 ### Task 2: Install journal reference files and remove meeting-minutes startup installation
 
 **Files:**
+
 - Modify: `src-tauri/src/ai_processor.rs`
 - Delete: `src-tauri/resources/workspace-template/.claude/skills/meeting-minutes/SKILL.md`
 - Delete: `src-tauri/resources/workspace-template/.claude/skills/meeting-minutes/references/templates/alignment.md`
@@ -290,6 +292,7 @@ git commit -m "feat: install journal skill references"
 ### Task 3: Create journal router skill and shared references
 
 **Files:**
+
 - Modify: `src-tauri/resources/workspace-template/.claude/skills/journal/SKILL.md`
 - Create: `src-tauri/resources/workspace-template/.claude/skills/journal/references/template-registry.md`
 - Create: `src-tauri/resources/workspace-template/.claude/skills/journal/references/writing-rules.md`
@@ -300,22 +303,22 @@ git commit -m "feat: install journal skill references"
 
 Replace `src-tauri/resources/workspace-template/.claude/skills/journal/SKILL.md` with:
 
-```markdown
+````markdown
 ---
 name: journal
-description: "统一笔记整理 skill。用户提交录音、粘贴文本、文件、网页素材、会议纪要、读书笔记、研究材料、工作汇报、技术记录、个人复盘，或说写日志/整理成日志/帮我记一下/记录一下时触发。先识别笔记家族和子类型，再按需加载 references 中的模板与组件规则，生成高质量 .mdx 日志。"
+description: '统一笔记整理 skill。用户提交录音、粘贴文本、文件、网页素材、会议纪要、读书笔记、研究材料、工作汇报、技术记录、个人复盘，或说写日志/整理成日志/帮我记一下/记录一下时触发。先识别笔记家族和子类型，再按需加载 references 中的模板与组件规则，生成高质量 .mdx 日志。'
 ---
 
 # Journal Skill
 
 ## Contract
 
-| Field | Rule |
-|---|---|
-| reads | `yyMM/raw/*`, existing `yyMM/*.mdx`, `identity/*.md`, `todos.md` when relevant |
-| writes | `yyMM/*.mdx`; `identity/*.md` only after loading `/identity-profiling` |
-| format | Markdown-first `.mdx` with YAML frontmatter |
-| references | load only the registry and the relevant family/template/component files |
+| Field      | Rule                                                                           |
+| ---------- | ------------------------------------------------------------------------------ |
+| reads      | `yyMM/raw/*`, existing `yyMM/*.mdx`, `identity/*.md`, `todos.md` when relevant |
+| writes     | `yyMM/*.mdx`; `identity/*.md` only after loading `/identity-profiling`         |
+| format     | Markdown-first `.mdx` with YAML frontmatter                                    |
+| references | load only the registry and the relevant family/template/component files        |
 
 ## Required Flow
 
@@ -330,17 +333,17 @@ description: "统一笔记整理 skill。用户提交录音、粘贴文本、文
 
 ## Families
 
-| Family | Reference |
-|---|---|
+| Family                | Reference                                       |
+| --------------------- | ----------------------------------------------- |
 | meeting-collaboration | `references/templates/meeting-collaboration.md` |
-| work-reports | `references/templates/work-reports.md` |
-| project-docs | `references/templates/project-docs.md` |
-| research-analysis | `references/templates/research-analysis.md` |
-| learning-notes | `references/templates/learning-notes.md` |
-| personal-journal | `references/templates/personal-journal.md` |
-| technical-docs | `references/templates/technical-docs.md` |
-| content-creation | `references/templates/content-creation.md` |
-| hr-operations | `references/templates/hr-operations.md` |
+| work-reports          | `references/templates/work-reports.md`          |
+| project-docs          | `references/templates/project-docs.md`          |
+| research-analysis     | `references/templates/research-analysis.md`     |
+| learning-notes        | `references/templates/learning-notes.md`        |
+| personal-journal      | `references/templates/personal-journal.md`      |
+| technical-docs        | `references/templates/technical-docs.md`        |
+| content-creation      | `references/templates/content-creation.md`      |
+| hr-operations         | `references/templates/hr-operations.md`         |
 
 ## Frontmatter
 
@@ -351,6 +354,7 @@ summary: 结论先行的一句话摘要
 sources: [2605/raw/source.txt]
 ---
 ```
+````
 
 Rules:
 
@@ -370,7 +374,8 @@ Forbidden:
 - embedded AI action buttons
 - mutating todos or note state from MDX components
 - decorative component use
-```
+
+````
 
 - [ ] **Step 2: Create template registry**
 
@@ -399,7 +404,7 @@ Classification rules:
 - If a meeting produces a technical decision, primary family stays `meeting-collaboration` unless the output should be a standalone technical design.
 - If a document is both project and report, choose `work-reports` for periodic status and `project-docs` for durable project specification.
 - If a learning note contains personal reflection, choose `learning-notes` unless the main purpose is a personal review.
-```
+````
 
 - [ ] **Step 3: Create writing rules**
 
@@ -455,29 +460,29 @@ Create `src-tauri/resources/workspace-template/.claude/skills/journal/references
 
 ## Existing Generic Components
 
-| Group | Components |
-|---|---|
-| Typography | `Section`, `Subtitle`, `Label`, `Divider` |
-| Layout | `Split`, `Columns`, `Column`, `Grid`, `Col`, `Flow`, `Stack` |
-| Display | `Stat`, `StatGroup`, `Table`, `Timeline`, `TagList`, `Progress`, `Avatar`, `AvatarGroup` |
-| Lists and cards | `Cards`, `Card`, `Options`, `Option`, `Kanban`, `Checklist`, `Counter`, `RatingBar` |
-| Context | `Callout`, `Quote`, `RelatedEntry`, `RelatedIdentity` |
+| Group              | Components                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typography         | `Section`, `Subtitle`, `Label`, `Divider`                                                                                                                     |
+| Layout             | `Split`, `Columns`, `Column`, `Grid`, `Col`, `Flow`, `Stack`                                                                                                  |
+| Display            | `Stat`, `StatGroup`, `Table`, `Timeline`, `TagList`, `Progress`, `Avatar`, `AvatarGroup`                                                                      |
+| Lists and cards    | `Cards`, `Card`, `Options`, `Option`, `Kanban`, `Checklist`, `Counter`, `RatingBar`                                                                           |
+| Context            | `Callout`, `Quote`, `RelatedEntry`, `RelatedIdentity`                                                                                                         |
 | Media and diagrams | `AudioCard`, `VideoCard`, `ImageViewer`, `FileCard`, `BarChart`, `LineChart`, `PieChart`, `RadarChart`, `Mermaid`, `CanvasDiagram`, `Phone`, `DeviceShowcase` |
 
 ## Semantic Components
 
-| Component | Use when |
-|---|---|
-| `ActionTable` | actions have owner, deadline, source, or status |
-| `DecisionRecord`, `DecisionList` | a note must preserve decision context and tradeoffs |
-| `RiskMatrix` | risks need likelihood, impact, severity, and mitigation |
-| `SourceCard`, `ReferenceList` | source traceability is important |
-| `Transcript`, `TimestampLink` | transcript excerpts or media timestamps matter |
-| `InsightCard`, `EvidenceCard`, `QuoteCard` | research, learning, interview, and evidence-heavy notes |
-| `ComparisonMatrix`, `OptionMatrix` | evaluating products, options, competitors, or technical approaches |
-| `MilestoneTimeline`, `IncidentTimeline` | project milestones or incidents need sequence |
-| `RACI` | project or operation roles must be explicit |
-| `StatusBadge` | compact state labels improve scanning |
+| Component                                  | Use when                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `ActionTable`                              | actions have owner, deadline, source, or status                    |
+| `DecisionRecord`, `DecisionList`           | a note must preserve decision context and tradeoffs                |
+| `RiskMatrix`                               | risks need likelihood, impact, severity, and mitigation            |
+| `SourceCard`, `ReferenceList`              | source traceability is important                                   |
+| `Transcript`, `TimestampLink`              | transcript excerpts or media timestamps matter                     |
+| `InsightCard`, `EvidenceCard`, `QuoteCard` | research, learning, interview, and evidence-heavy notes            |
+| `ComparisonMatrix`, `OptionMatrix`         | evaluating products, options, competitors, or technical approaches |
+| `MilestoneTimeline`, `IncidentTimeline`    | project milestones or incidents need sequence                      |
+| `RACI`                                     | project or operation roles must be explicit                        |
+| `StatusBadge`                              | compact state labels improve scanning                              |
 
 ## Rule
 
@@ -488,7 +493,7 @@ If a Markdown table is enough, use Markdown. Use semantic components when they p
 
 Create `src-tauri/resources/workspace-template/.claude/skills/journal/references/component-recipes.md`:
 
-```markdown
+````markdown
 # Component Recipes
 
 ## Decision Review
@@ -508,6 +513,7 @@ Use:
   rationale="企业客户审计需求已经进入本季度目标，短期实现成本可以接受。"
 />
 ```
+````
 
 ## Action Extraction
 
@@ -537,9 +543,7 @@ Use `IncidentTimeline` plus `RiskMatrix`.
 
 ```mdx
 <IncidentTimeline
-  items={[
-    { time: '10:12', title: '告警触发', impact: '导入任务排队时间超过 10 分钟' },
-  ]}
+  items={[{ time: '10:12', title: '告警触发', impact: '导入任务排队时间超过 10 分钟' }]}
 />
 ```
 
@@ -555,7 +559,8 @@ Use `ReferenceList` near the end when a note relies on multiple sources.
   ]}
 />
 ```
-```
+
+````
 
 - [ ] **Step 6: Run Rust test again**
 
@@ -563,7 +568,7 @@ Run:
 
 ```bash
 cd src-tauri && cargo test ensure_workspace_dot_claude_installs_journal_and_removes_meeting_minutes
-```
+````
 
 Expected: PASS after Tasks 2 and 3 are complete.
 
@@ -579,6 +584,7 @@ git commit -m "feat: add journal skill reference library"
 ### Task 4: Create the 9 family template files and examples
 
 **Files:**
+
 - Create: `src-tauri/resources/workspace-template/.claude/skills/journal/references/templates/meeting-collaboration.md`
 - Create: `src-tauri/resources/workspace-template/.claude/skills/journal/references/templates/work-reports.md`
 - Create: `src-tauri/resources/workspace-template/.claude/skills/journal/references/templates/project-docs.md`
@@ -612,37 +618,42 @@ The resulting file must contain these sections:
 ## Core Templates
 
 ### general-meeting
+
 Fields: background, participants, agenda, discussion by topic, aligned items, unresolved items, actions.
 Recommended components: `ActionTable`, `DecisionList`, `ReferenceList`.
 
 ### decision-review
+
 Fields: question, disagreement, positions, key evidence, turning point, decision, stability, actions.
 Recommended components: `DecisionRecord`, `OptionMatrix`, `ActionTable`, `QuoteCard`.
 
 ### progress-sync
+
 Fields: progress summary, status changes, blockers, next plan, actions, risk board.
 Recommended components: `ActionTable`, `RiskMatrix`, `StatusBadge`, `StatGroup`.
 
 ### interview-1on1
+
 Fields: person context, needs, pain points, quotes, signals, follow-up.
 Recommended components: `QuoteCard`, `EvidenceCard`, `ActionTable`.
 
 ### retrospective-incident
+
 Fields: goal, actual result, timeline, cause, impact, lessons, fixes.
 Recommended components: `IncidentTimeline`, `RiskMatrix`, `ActionTable`.
 
 ## Subtype Variants
 
-| Subtype | Apply changes |
-|---|---|
-| daily-standup | Use progress-sync; compress discussion; focus status changes and blockers |
+| Subtype            | Apply changes                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| daily-standup      | Use progress-sync; compress discussion; focus status changes and blockers                  |
 | requirement-review | Use decision-review; add requirement background, acceptance criteria, changed requirements |
-| technical-review | Use decision-review; add constraints, architecture options, migration risk |
-| design-review | Use decision-review; add design goal, feedback themes, screenshots when present |
-| strategic-decision | Use decision-review; emphasize resource allocation, decision stability, hidden risks |
-| customer-visit | Use interview-1on1; add customer profile, objections, buying signals |
-| brainstorm | Use general-meeting; group ideas by theme and mark selected next experiments |
-| training-share | Use learning style; extract concepts, examples, questions, and transferable methods |
+| technical-review   | Use decision-review; add constraints, architecture options, migration risk                 |
+| design-review      | Use decision-review; add design goal, feedback themes, screenshots when present            |
+| strategic-decision | Use decision-review; emphasize resource allocation, decision stability, hidden risks       |
+| customer-visit     | Use interview-1on1; add customer profile, objections, buying signals                       |
+| brainstorm         | Use general-meeting; group ideas by theme and mark selected next experiments               |
+| training-share     | Use learning style; extract concepts, examples, questions, and transferable methods        |
 
 ## Quality Rules
 
@@ -660,41 +671,49 @@ Use these exact family/core mappings:
 
 ```markdown
 # Work Reports Templates
+
 Core templates: daily-report, weekly-report, monthly-quarterly-report, okr-tracking, project-progress.
 Variants: status-report, performance-review, executive-summary, risk-focused-report.
 Recommended components: `StatGroup`, `Progress`, `ActionTable`, `RiskMatrix`, `StatusBadge`.
 
 # Project Docs Templates
+
 Core templates: project-plan, prd, technical-proposal, release-checklist, project-retrospective.
 Variants: charter, user-story, requirement-pool, roadmap, test-plan, milestone-plan, changelog.
 Recommended components: `MilestoneTimeline`, `RACI`, `DecisionList`, `RiskMatrix`, `ActionTable`.
 
 # Research Analysis Templates
+
 Core templates: market-research, competitor-analysis, data-analysis, user-research, risk-assessment.
 Variants: swot, feasibility-analysis, experiment-report, business-analysis.
 Recommended components: `InsightCard`, `EvidenceCard`, `ComparisonMatrix`, `RiskMatrix`, `BarChart`, `LineChart`.
 
 # Learning Notes Templates
+
 Core templates: deep-reading, book-note, paper-note, course-video-note, knowledge-card.
 Variants: cornell-note, feynman-note, concept-explanation, problem-solving, literature-matrix, learning-plan, flashcard.
 Recommended components: `QuoteCard`, `InsightCard`, `EvidenceCard`, `Transcript`, `ReferenceList`.
 
 # Personal Journal Templates
+
 Core templates: daily-journal, review-journal, goal-okr, decision-journal, personal-plan.
 Variants: morning-journal, evening-journal, emotion-log, habit-tracking, travel-plan, purchase-decision, family-affairs.
 Recommended components: `DecisionRecord`, `ComparisonMatrix`, `Progress`, `Checklist`, `ActionTable`.
 
 # Technical Docs Templates
+
 Core templates: technical-design, api-doc, debug-record, incident-rca, rfc-architecture.
 Variants: deployment-runbook, code-review, code-snippet, migration-guide.
 Recommended components: `DecisionRecord`, `IncidentTimeline`, `RiskMatrix`, `SourceCard`, `Mermaid`, `CanvasDiagram`.
 
 # Content Creation Templates
+
 Core templates: article-draft, talk-ppt-outline, social-content-plan, product-copy, interview-record.
 Variants: press-release, announcement, speaker-notes, newsletter-brief.
 Recommended components: `QuoteCard`, `ReferenceList`, `Checklist`, `Timeline`, `InsightCard`.
 
 # HR Operations Templates
+
 Core templates: recruiting-interview, performance-review, sop, event-plan, customer-profile, kpi-tracking.
 Variants: support-ticket, partner-communication, customer-success-followup.
 Recommended components: `RACI`, `StatusBadge`, `ActionTable`, `RiskMatrix`, `EvidenceCard`.
@@ -770,6 +789,7 @@ git commit -m "feat: add journal template families"
 ### Task 5: Mirror built-in journal skill into repo-local `.agents` and update prompt rules
 
 **Files:**
+
 - Modify: `.agents/skills/journal/**`
 - Delete: `.agents/skills/meeting-minutes/**`
 - Modify: `src-tauri/resources/workspace-template/.claude/CLAUDE.md`
@@ -837,6 +857,7 @@ git commit -m "refactor: merge meeting minutes into journal skill"
 ### Task 6: Add tests for semantic MDX components
 
 **Files:**
+
 - Create: `src/tests/MdxSemanticComponents.test.tsx`
 
 - [ ] **Step 1: Create failing component tests**
@@ -915,7 +936,17 @@ describe('semantic MDX components', () => {
   it('renders RACI and comparison matrices', () => {
     render(
       <>
-        <RACI rows={[{ work: '发布审批', responsible: '张三', accountable: '李四', consulted: '王五', informed: '团队' }]} />
+        <RACI
+          rows={[
+            {
+              work: '发布审批',
+              responsible: '张三',
+              accountable: '李四',
+              consulted: '王五',
+              informed: '团队',
+            },
+          ]}
+        />
         <ComparisonMatrix
           columns={['价格', '风险']}
           rows={[
@@ -934,7 +965,9 @@ describe('semantic MDX components', () => {
     render(
       <>
         <InsightCard title="导入进度需要更明确">用户关注处理是否卡住。</InsightCard>
-        <EvidenceCard title="访谈证据" source="用户访谈 03">3 位用户提到导入反馈不足。</EvidenceCard>
+        <EvidenceCard title="访谈证据" source="用户访谈 03">
+          3 位用户提到导入反馈不足。
+        </EvidenceCard>
       </>,
     )
 
@@ -945,9 +978,13 @@ describe('semantic MDX components', () => {
   it('renders references, transcript, and timestamp links', () => {
     render(
       <>
-        <ReferenceList sources={[{ path: '2605/raw/meeting.m4a', label: '会议录音', type: 'audio' }]} />
+        <ReferenceList
+          sources={[{ path: '2605/raw/meeting.m4a', label: '会议录音', type: 'audio' }]}
+        />
         <Transcript items={[{ speaker: '张三', time: '00:12', text: '这里需要先试点。' }]} />
-        <TimestampLink src="2605/raw/meeting.m4a" time="00:12">跳到 00:12</TimestampLink>
+        <TimestampLink src="2605/raw/meeting.m4a" time="00:12">
+          跳到 00:12
+        </TimestampLink>
       </>,
     )
 
@@ -958,7 +995,9 @@ describe('semantic MDX components', () => {
   })
 
   it('allows transcript details to expand and collapse', () => {
-    render(<Transcript items={[{ speaker: '张三', time: '00:12', text: '长转写内容' }]} collapsible />)
+    render(
+      <Transcript items={[{ speaker: '张三', time: '00:12', text: '长转写内容' }]} collapsible />,
+    )
     const details = screen.getByText('转写片段').closest('details')
     expect(details?.hasAttribute('open')).toBe(false)
     fireEvent.click(screen.getByText('转写片段'))
@@ -989,6 +1028,7 @@ git commit -m "test: cover journal v2 semantic components"
 ### Task 7: Implement semantic display components
 
 **Files:**
+
 - Create: `src/components/mdx/semantic.tsx`
 - Modify: `src/components/mdx/index.ts`
 - Modify: `src/styles/mdx.css`
@@ -1011,7 +1051,13 @@ export interface ActionItem {
   status?: ActionStatus
 }
 
-export function StatusBadge({ status, tone = 'neutral' }: { status: string; tone?: 'neutral' | 'success' | 'warning' | 'danger' }) {
+export function StatusBadge({
+  status,
+  tone = 'neutral',
+}: {
+  status: string
+  tone?: 'neutral' | 'success' | 'warning' | 'danger'
+}) {
   return <span className={`mdx-status-badge mdx-status-badge--${tone}`}>{status}</span>
 }
 
@@ -1075,7 +1121,11 @@ export function DecisionRecord({
   )
 }
 
-export function DecisionList({ decisions }: { decisions: React.ComponentProps<typeof DecisionRecord>[] }) {
+export function DecisionList({
+  decisions,
+}: {
+  decisions: React.ComponentProps<typeof DecisionRecord>[]
+}) {
   return (
     <div className="mdx-decision-list">
       {decisions.map((decision, index) => (
@@ -1128,7 +1178,13 @@ export const OptionMatrix = ComparisonMatrix
 export function RACI({
   rows,
 }: {
-  rows: { work: string; responsible?: string; accountable?: string; consulted?: string; informed?: string }[]
+  rows: {
+    work: string
+    responsible?: string
+    accountable?: string
+    consulted?: string
+    informed?: string
+  }[]
 }) {
   return (
     <Table
@@ -1144,7 +1200,11 @@ export function RACI({
   )
 }
 
-export function MilestoneTimeline({ items }: { items: { time: string; title: string; desc?: string }[] }) {
+export function MilestoneTimeline({
+  items,
+}: {
+  items: { time: string; title: string; desc?: string }[]
+}) {
   return (
     <div className="mdx-semantic-timeline">
       {items.map((item) => (
@@ -1158,7 +1218,11 @@ export function MilestoneTimeline({ items }: { items: { time: string; title: str
   )
 }
 
-export function IncidentTimeline({ items }: { items: { time: string; title: string; impact?: string; desc?: string }[] }) {
+export function IncidentTimeline({
+  items,
+}: {
+  items: { time: string; title: string; impact?: string; desc?: string }[]
+}) {
   return (
     <div className="mdx-semantic-timeline mdx-incident-timeline">
       {items.map((item) => (
@@ -1173,7 +1237,17 @@ export function IncidentTimeline({ items }: { items: { time: string; title: stri
   )
 }
 
-function SemanticCard({ className, title, meta, children }: { className: string; title: string; meta?: string; children: ReactNode }) {
+function SemanticCard({
+  className,
+  title,
+  meta,
+  children,
+}: {
+  className: string
+  title: string
+  meta?: string
+  children: ReactNode
+}) {
   return (
     <aside className={`mdx-semantic-card ${className}`}>
       <div className="mdx-semantic-card-title">{title}</div>
@@ -1184,11 +1258,27 @@ function SemanticCard({ className, title, meta, children }: { className: string;
 }
 
 export function InsightCard({ title, children }: { title: string; children: ReactNode }) {
-  return <SemanticCard className="mdx-insight-card" title={title}>{children}</SemanticCard>
+  return (
+    <SemanticCard className="mdx-insight-card" title={title}>
+      {children}
+    </SemanticCard>
+  )
 }
 
-export function EvidenceCard({ title, source, children }: { title: string; source?: string; children: ReactNode }) {
-  return <SemanticCard className="mdx-evidence-card" title={title} meta={source}>{children}</SemanticCard>
+export function EvidenceCard({
+  title,
+  source,
+  children,
+}: {
+  title: string
+  source?: string
+  children: ReactNode
+}) {
+  return (
+    <SemanticCard className="mdx-evidence-card" title={title} meta={source}>
+      {children}
+    </SemanticCard>
+  )
 }
 
 export function QuoteCard({ quote, source }: { quote: string; source?: string }) {
@@ -1260,9 +1350,15 @@ Append to `src/styles/mdx.css`:
   color: var(--text-secondary);
   background: var(--mdx-surface);
 }
-.mdx-status-badge--success { color: var(--status-success); }
-.mdx-status-badge--warning { color: var(--status-warning); }
-.mdx-status-badge--danger { color: var(--status-danger); }
+.mdx-status-badge--success {
+  color: var(--status-success);
+}
+.mdx-status-badge--warning {
+  color: var(--status-warning);
+}
+.mdx-status-badge--danger {
+  color: var(--status-danger);
+}
 
 .mdx-decision-record,
 .mdx-semantic-card {
@@ -1367,6 +1463,7 @@ git commit -m "feat: add semantic MDX components"
 ### Task 8: Implement source, transcript, timestamp, and copy interactions
 
 **Files:**
+
 - Create: `src/components/mdx/source.tsx`
 - Modify: `src/components/mdx/index.ts`
 - Modify: `src/components/MdxRenderer.tsx`
@@ -1448,7 +1545,9 @@ export function Transcript({
           <div className="mdx-transcript-meta">
             {item.speaker && <span>{item.speaker}</span>}
             {item.time && item.src ? (
-              <TimestampLink src={item.src} time={item.time}>{item.time}</TimestampLink>
+              <TimestampLink src={item.src} time={item.time}>
+                {item.time}
+              </TimestampLink>
             ) : item.time ? (
               <span>{item.time}</span>
             ) : null}
@@ -1496,25 +1595,25 @@ import { SourceCard, ReferenceList, Transcript, TimestampLink } from './source'
 In `MdxRenderer.tsx`, inside `handleClick`, immediately after the `if (!anchor) return` line, add:
 
 ```tsx
-      const mediaSrc = anchor.getAttribute('data-media-src')
-      const mediaTime = anchor.getAttribute('data-media-time')
-      if (mediaSrc && mediaTime) {
-        e.preventDefault()
-        const seconds = parseMediaTime(mediaTime)
-        const media = document.querySelector<HTMLMediaElement>(
-          `audio[src="${CSS.escape(mediaSrc)}"], video[src="${CSS.escape(mediaSrc)}"]`,
-        )
-        if (media) {
-          media.currentTime = seconds
-          void media.play().catch(() => undefined)
-        }
-        window.dispatchEvent(
-          new CustomEvent('mdx-media-seek', {
-            detail: { src: mediaSrc, time: mediaTime, seconds },
-          }),
-        )
-        return
-      }
+const mediaSrc = anchor.getAttribute('data-media-src')
+const mediaTime = anchor.getAttribute('data-media-time')
+if (mediaSrc && mediaTime) {
+  e.preventDefault()
+  const seconds = parseMediaTime(mediaTime)
+  const media = document.querySelector<HTMLMediaElement>(
+    `audio[src="${CSS.escape(mediaSrc)}"], video[src="${CSS.escape(mediaSrc)}"]`,
+  )
+  if (media) {
+    media.currentTime = seconds
+    void media.play().catch(() => undefined)
+  }
+  window.dispatchEvent(
+    new CustomEvent('mdx-media-seek', {
+      detail: { src: mediaSrc, time: mediaTime, seconds },
+    }),
+  )
+  return
+}
 ```
 
 Add this helper above the component:
@@ -1539,8 +1638,8 @@ In `src/tests/setup.ts`, ensure `CSS.escape` exists by extending the CSS mock:
 In `src/tests/MdxRenderer.test.tsx`, add this test to `describe('MdxRenderer', ...)`:
 
 ```tsx
-  it('dispatches media seek events from timestamp links', async () => {
-    const compiledTimestamp = `import { jsx as _jsx } from "react/jsx-runtime";
+it('dispatches media seek events from timestamp links', async () => {
+  const compiledTimestamp = `import { jsx as _jsx } from "react/jsx-runtime";
 function _createMdxContent(props) {
   const {TimestampLink} = props.components || {};
   return _jsx(TimestampLink, {src: "2605/raw/meeting.m4a", time: "00:12", children: "jump"});
@@ -1549,19 +1648,21 @@ function MDXContent(props = {}) {
   return _createMdxContent(props);
 }
 export default MDXContent;`
-    vi.mocked(compileMdx).mockResolvedValue(compiledTimestamp)
-    const handler = vi.fn()
-    window.addEventListener('mdx-media-seek', handler)
+  vi.mocked(compileMdx).mockResolvedValue(compiledTimestamp)
+  const handler = vi.fn()
+  window.addEventListener('mdx-media-seek', handler)
 
-    render(<MdxRenderer content="<TimestampLink src='2605/raw/meeting.m4a' time='00:12'>jump</TimestampLink>" />)
+  render(
+    <MdxRenderer content="<TimestampLink src='2605/raw/meeting.m4a' time='00:12'>jump</TimestampLink>" />,
+  )
 
-    await waitFor(() => screen.getByText('jump'))
-    screen.getByText('jump').click()
+  await waitFor(() => screen.getByText('jump'))
+  screen.getByText('jump').click()
 
-    expect(handler).toHaveBeenCalled()
-    expect(handler.mock.calls[0][0].detail.seconds).toBe(12)
-    window.removeEventListener('mdx-media-seek', handler)
-  })
+  expect(handler).toHaveBeenCalled()
+  expect(handler.mock.calls[0][0].detail.seconds).toBe(12)
+  window.removeEventListener('mdx-media-seek', handler)
+})
 ```
 
 - [ ] **Step 5: Add source CSS**
@@ -1660,6 +1761,7 @@ git commit -m "feat: add journal source and interaction MDX components"
 ### Task 9: Add showcase and replay samples
 
 **Files:**
+
 - Create: `docs/superpowers/examples/journal-v2-showcase.mdx`
 - Create: `docs/superpowers/examples/journal-v2-replay-samples.md`
 
@@ -1692,15 +1794,39 @@ sources: [2605/raw/showcase.txt]
 
 <ActionTable
   items={[
-    { action: '安装 journal references', owner: 'Agent', due: 'Task 2', source: 'plan', status: 'open' },
-    { action: '清理 meeting-minutes', owner: 'Agent', due: 'Task 5', source: 'plan', status: 'open' },
+    {
+      action: '安装 journal references',
+      owner: 'Agent',
+      due: 'Task 2',
+      source: 'plan',
+      status: 'open',
+    },
+    {
+      action: '清理 meeting-minutes',
+      owner: 'Agent',
+      due: 'Task 5',
+      source: 'plan',
+      status: 'open',
+    },
   ]}
 />
 
 <RiskMatrix
   risks={[
-    { risk: 'AI 过度使用组件', likelihood: 'medium', impact: 'medium', severity: 'P2', mitigation: 'Markdown-first writing rules' },
-    { risk: '模板库过大', likelihood: 'medium', impact: 'high', severity: 'P1', mitigation: 'Progressive reference loading' },
+    {
+      risk: 'AI 过度使用组件',
+      likelihood: 'medium',
+      impact: 'medium',
+      severity: 'P2',
+      mitigation: 'Markdown-first writing rules',
+    },
+    {
+      risk: '模板库过大',
+      likelihood: 'medium',
+      impact: 'high',
+      severity: 'P1',
+      mitigation: 'Progressive reference loading',
+    },
   ]}
 />
 
@@ -1714,7 +1840,12 @@ sources: [2605/raw/showcase.txt]
 <Transcript
   collapsible
   items={[
-    { speaker: '张三', time: '00:12', src: '2605/raw/meeting.m4a', text: '先把模板体系和组件体系一起设计，不要再分散维护。' },
+    {
+      speaker: '张三',
+      time: '00:12',
+      src: '2605/raw/meeting.m4a',
+      text: '先把模板体系和组件体系一起设计，不要再分散维护。',
+    },
   ]}
 />
 
@@ -1728,7 +1859,13 @@ sources: [2605/raw/showcase.txt]
 
 <RACI
   rows={[
-    { work: '模板 registry', responsible: 'Agent', accountable: '用户', consulted: '现有 skill', informed: '未来 UI' },
+    {
+      work: '模板 registry',
+      responsible: 'Agent',
+      accountable: '用户',
+      consulted: '现有 skill',
+      informed: '未来 UI',
+    },
   ]}
 />
 ```
@@ -1742,17 +1879,17 @@ Create `docs/superpowers/examples/journal-v2-replay-samples.md`:
 
 Use these samples to verify template selection. Each sample should be submitted as pasted text or raw material and checked against the expected family/subtype.
 
-| Expected family | Expected subtype | Sample prompt |
-|---|---|---|
-| meeting-collaboration | decision-review | "张三和李四评审权限方案，A 快但不支持审计，B 慢但支持企业客户，最后决定 B 先试点两周，张三周五前补方案。" |
-| work-reports | weekly-report | "本周完成录音转写接入，MDX 渲染仍有两个阻塞，下周重点是组件测试和深色模式。" |
-| project-docs | prd | "新需求：用户拖入 PDF 后自动生成摘要。目标用户是知识工作者，验收标准是能保留来源并生成待办。" |
-| research-analysis | competitor-analysis | "竞品 A 支持网页剪藏但没有本地语音，竞品 B 支持语音但导出弱。我们的机会是本地隐私和来源追踪。" |
-| learning-notes | book-note | "读《设计心理学》第一章，核心观点是可见性和反馈决定用户是否知道下一步怎么做。" |
-| personal-journal | decision-journal | "我在考虑买一台显示器，A 便宜但色准一般，B 贵但护眼和色彩更好，主要用于长时间阅读。" |
-| technical-docs | debug-record | "导入队列偶发卡住，日志显示 task completed 后没有 emit journal-updated，怀疑事件发送路径提前返回。" |
-| content-creation | talk-ppt-outline | "准备一个 20 分钟分享，主题是 AI 笔记模板系统，听众是产品和工程团队。" |
-| hr-operations | recruiting-interview | "候选人做过 Tauri 和 React 项目，系统设计强，但 Rust 实战不足，需要追加一次 pair 编程。" |
+| Expected family       | Expected subtype     | Sample prompt                                                                                             |
+| --------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| meeting-collaboration | decision-review      | "张三和李四评审权限方案，A 快但不支持审计，B 慢但支持企业客户，最后决定 B 先试点两周，张三周五前补方案。" |
+| work-reports          | weekly-report        | "本周完成录音转写接入，MDX 渲染仍有两个阻塞，下周重点是组件测试和深色模式。"                              |
+| project-docs          | prd                  | "新需求：用户拖入 PDF 后自动生成摘要。目标用户是知识工作者，验收标准是能保留来源并生成待办。"             |
+| research-analysis     | competitor-analysis  | "竞品 A 支持网页剪藏但没有本地语音，竞品 B 支持语音但导出弱。我们的机会是本地隐私和来源追踪。"            |
+| learning-notes        | book-note            | "读《设计心理学》第一章，核心观点是可见性和反馈决定用户是否知道下一步怎么做。"                            |
+| personal-journal      | decision-journal     | "我在考虑买一台显示器，A 便宜但色准一般，B 贵但护眼和色彩更好，主要用于长时间阅读。"                      |
+| technical-docs        | debug-record         | "导入队列偶发卡住，日志显示 task completed 后没有 emit journal-updated，怀疑事件发送路径提前返回。"       |
+| content-creation      | talk-ppt-outline     | "准备一个 20 分钟分享，主题是 AI 笔记模板系统，听众是产品和工程团队。"                                    |
+| hr-operations         | recruiting-interview | "候选人做过 Tauri 和 React 项目，系统设计强，但 Rust 实战不足，需要追加一次 pair 编程。"                  |
 ```
 
 - [ ] **Step 3: Run formatting check for docs**
@@ -1777,6 +1914,7 @@ git commit -m "docs: add journal v2 showcase and replay samples"
 ### Task 10: Full verification and final cleanup
 
 **Files:**
+
 - Modify only if verification finds issues.
 
 - [ ] **Step 1: Run frontend component tests**

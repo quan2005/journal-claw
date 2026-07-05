@@ -3,7 +3,7 @@ spec: ./spec.md
 date: 2026-06-15
 round: 1
 result: fail
-scope: "git diff HEAD，覆盖 spec 列出的核心文件 + 关联文件"
+scope: 'git diff HEAD，覆盖 spec 列出的核心文件 + 关联文件'
 ---
 
 # 验收报告 — 性能优化第 1+2 批（第 1 轮）
@@ -14,12 +14,12 @@ scope: "git diff HEAD，覆盖 spec 列出的核心文件 + 关联文件"
 
 ## Fail 项（4）
 
-| AC | 问题 | 位置 | 修复方向 |
-|---|---|---|---|
-| AC-7 | `TreeItem` 未 `React.memo` | `src/components/TreeItem.tsx:181` | `export const TreeItem = memo(...)` |
-| AC-16 | `MarkdownRenderer` 未 lazy | `src/components/ChatPanel.tsx:8` 静态 import | 改 `lazy(() => import(...))` + Suspense |
-| AC-17 | highlight.js 11 语言仍顶层静态 import + 注册 | `src/components/MarkdownRenderer.tsx:9-43` | 改代码块渲染时动态 `import()` |
-| AC-18 | katex.min.css 仍静态 import | `src/components/mdx/math.tsx:3` | 改动态 `import('katex/dist/katex.min.css')` |
+| AC    | 问题                                         | 位置                                         | 修复方向                                    |
+| ----- | -------------------------------------------- | -------------------------------------------- | ------------------------------------------- |
+| AC-7  | `TreeItem` 未 `React.memo`                   | `src/components/TreeItem.tsx:181`            | `export const TreeItem = memo(...)`         |
+| AC-16 | `MarkdownRenderer` 未 lazy                   | `src/components/ChatPanel.tsx:8` 静态 import | 改 `lazy(() => import(...))` + Suspense     |
+| AC-17 | highlight.js 11 语言仍顶层静态 import + 注册 | `src/components/MarkdownRenderer.tsx:9-43`   | 改代码块渲染时动态 `import()`               |
+| AC-18 | katex.min.css 仍静态 import                  | `src/components/mdx/math.tsx:3`              | 改动态 `import('katex/dist/katex.min.css')` |
 
 ## Pass 项（26）：AC-1,2,3,4,5,6,8,9,10,11,12,14,15,19,20,22,23,24,25,27,28,29,30,32,33 + AC-21(Tabler 部分)
 

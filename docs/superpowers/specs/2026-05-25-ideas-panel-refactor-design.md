@@ -90,13 +90,13 @@ Layout:
 
 ### Behavior
 
-| Action | Result |
-|---|---|
-| Click "想法" | Center shows todo list, entry highlights |
-| Click "想法" again | Deselect, restore previous journal/identity |
-| Escape key | Same as click again |
-| Select journal/identity | "想法" entry auto-deselects |
-| Cmd+T / Cmd+K | Toggle right panel (chat only) |
+| Action                  | Result                                      |
+| ----------------------- | ------------------------------------------- |
+| Click "想法"            | Center shows todo list, entry highlights    |
+| Click "想法" again      | Deselect, restore previous journal/identity |
+| Escape key              | Same as click again                         |
+| Select journal/identity | "想法" entry auto-deselects                 |
+| Cmd+T / Cmd+K           | Toggle right panel (chat only)              |
 
 ### Edge Cases
 

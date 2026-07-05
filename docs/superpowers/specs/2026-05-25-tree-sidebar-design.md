@@ -30,30 +30,30 @@
 
 ### 新增
 
-| 组件 | 职责 |
-|---|---|
-| `TreeSidebar.tsx` | 树形容器，管理四分区折叠状态、选中项、滚动 |
-| `TreeItem.tsx` | 统一树节点：头像/日期块 + 名称行 + 描述 + @/… 操作 |
-| `MonthDivider.tsx` | 流水月份分割线（纯文本左对齐） |
-| `PinnedSection.tsx` | 置顶分区，管理钉选列表与拖拽排序 |
-| `TopicTree.tsx` | 专题文件夹树，递归渲染 topics/ 目录 |
+| 组件                | 职责                                               |
+| ------------------- | -------------------------------------------------- |
+| `TreeSidebar.tsx`   | 树形容器，管理四分区折叠状态、选中项、滚动         |
+| `TreeItem.tsx`      | 统一树节点：头像/日期块 + 名称行 + 描述 + @/… 操作 |
+| `MonthDivider.tsx`  | 流水月份分割线（纯文本左对齐）                     |
+| `PinnedSection.tsx` | 置顶分区，管理钉选列表与拖拽排序                   |
+| `TopicTree.tsx`     | 专题文件夹树，递归渲染 topics/ 目录                |
 
 ### 移除
 
-| 组件 | 原因 |
-|---|---|
-| `SidebarTabs.tsx` | 标签切换被树形分区替代 |
-| `FileTree.tsx` | 功能合并到 TopicTree |
+| 组件               | 原因                            |
+| ------------------ | ------------------------------- |
+| `SidebarTabs.tsx`  | 标签切换被树形分区替代          |
+| `FileTree.tsx`     | 功能合并到 TopicTree            |
 | `IdentityList.tsx` | 功能合并到 TreeSidebar 画像分区 |
-| `JournalList.tsx` | 功能合并到 TreeSidebar 流水分区 |
+| `JournalList.tsx`  | 功能合并到 TreeSidebar 流水分区 |
 
 ### 修改
 
-| 文件 | 变更 |
-|---|---|
-| `App.tsx` | 移除 `sidebarTab` 状态；中栏内容由树选中项类型决定；移除 IdentityList/FileTree import |
-| `src/lib/tauri.ts` | 新增 topics 目录管理、置顶持久化、日志分页加载命令 |
-| `src/types.ts` | 新增 `TreeItemType`、`PinnedItem` 等类型 |
+| 文件               | 变更                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `App.tsx`          | 移除 `sidebarTab` 状态；中栏内容由树选中项类型决定；移除 IdentityList/FileTree import |
+| `src/lib/tauri.ts` | 新增 topics 目录管理、置顶持久化、日志分页加载命令                                    |
+| `src/types.ts`     | 新增 `TreeItemType`、`PinnedItem` 等类型                                              |
 
 ## 数据层
 
@@ -93,17 +93,17 @@ topics/
 
 ## 交互行为
 
-| 操作 | 行为 |
-|---|---|
-| 单击分区标题 | 折叠/展开该分区 |
-| 单击条目 | 中栏显示对应详情（日志→DetailPanel，画像→IdentityDetail，文件→FilePreviewPanel） |
-| 再次单击已选中条目 | 取消选中 |
-| Hover 条目 | 标题缩进，露出 @ 和 … 操作按钮 |
-| 点击 @ | 在探讨输入框中追加 `@path` 引用 |
-| 点击 … | 弹出上下文菜单（钉选/取消钉选/删除/在 Finder 中显示等） |
-| 右键条目 | 同上，弹出上下文菜单 |
-| 拖拽置顶条目 | 调整钉选排序 |
-| 拖入文件到专题文件夹 | 导入到对应 topics/ 子目录 |
+| 操作                 | 行为                                                                             |
+| -------------------- | -------------------------------------------------------------------------------- |
+| 单击分区标题         | 折叠/展开该分区                                                                  |
+| 单击条目             | 中栏显示对应详情（日志→DetailPanel，画像→IdentityDetail，文件→FilePreviewPanel） |
+| 再次单击已选中条目   | 取消选中                                                                         |
+| Hover 条目           | 标题缩进，露出 @ 和 … 操作按钮                                                   |
+| 点击 @               | 在探讨输入框中追加 `@path` 引用                                                  |
+| 点击 …               | 弹出上下文菜单（钉选/取消钉选/删除/在 Finder 中显示等）                          |
+| 右键条目             | 同上，弹出上下文菜单                                                             |
+| 拖拽置顶条目         | 调整钉选排序                                                                     |
+| 拖入文件到专题文件夹 | 导入到对应 topics/ 子目录                                                        |
 
 ## 视觉规范
 

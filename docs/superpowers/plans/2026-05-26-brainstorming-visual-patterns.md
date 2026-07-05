@@ -13,6 +13,7 @@
 ### Task 1: Add 7 CSS pattern groups to buildSrcdoc.ts
 
 **Files:**
+
 - Modify: `src/lib/sandbox/buildSrcdoc.ts` — insert after existing base element styles (after the `img` rule), before `</style>`
 
 - [ ] **Step 1: Add brainstorming CSS variable aliases to :root**
@@ -20,13 +21,13 @@
 Open `src/lib/sandbox/buildSrcdoc.ts`. In the `wrapFragment` function, inside the `:root { }` block, append these variable aliases after the existing `--font-mono` line:
 
 ```css
-      --bg-primary: var(--bg);
-      --bg-secondary: ${isDark ? '#1a1a1c' : '#ffffff'};
-      --bg-tertiary: ${isDark ? '#2a2a2e' : '#e5e5e7'};
-      --text-primary: var(--text);
-      --text-tertiary: var(--text-muted);
-      --success: #34c759;
-      --error: #ff3b30;
+--bg-primary: var(--bg);
+--bg-secondary: ${isDark ? '#1a1a1c': '#ffffff'};
+--bg-tertiary: ${isDark ? '#2a2a2e': '#e5e5e7'};
+--text-primary: var(--text);
+--text-tertiary: var(--text-muted);
+--success: #34c759;
+--error: #ff3b30;
 ```
 
 Note: `--bg-secondary` and `--bg-tertiary` use template literals (like existing `--bg`, `--text` etc.) since they differ per theme. The others are static aliases.
@@ -36,93 +37,210 @@ Note: `--bg-secondary` and `--bg-tertiary` use template literals (like existing 
 In the same `<style>` block, insert the following CSS block after the `img { max-width: 100%; height: auto; border-radius: 6px; }` line and before the closing `</style>` tag:
 
 ```css
-    /* ===== VISUAL PATTERNS (from brainstorming frame-template) ===== */
+/* ===== VISUAL PATTERNS (from brainstorming frame-template) ===== */
 
-    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem; }
-    .section { margin-bottom: 2rem; }
-    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+.section {
+  margin-bottom: 2rem;
+}
+.label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
 
-    /* Options (choice cards) */
-    .options { display: flex; flex-direction: column; gap: 0.75rem; margin: 1rem 0; }
-    .option {
-      background: var(--bg-secondary);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-    .option .letter {
-      background: var(--bg-tertiary);
-      color: var(--text-secondary);
-      width: 1.75rem; height: 1.75rem;
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
-    }
-    .option .content { flex: 1; }
-    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
-    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+/* Options (choice cards) */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.option {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.option .letter {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.option .content {
+  flex: 1;
+}
+.option .content h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.15rem;
+}
+.option .content p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0;
+}
 
-    /* Cards (visual grid) */
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1rem 0; }
-    .card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
-    .card-body { padding: 1rem; }
-    .card-body h3 { margin-bottom: 0.25rem; font-size: 0.95rem; }
-    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+/* Cards (visual grid) */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.card-image {
+  background: var(--bg-tertiary);
+  aspect-ratio: 16/10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-body {
+  padding: 1rem;
+}
+.card-body h3 {
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+.card-body p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
 
-    /* Mockup container */
-    .mockup {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-    }
-    .mockup-header {
-      background: var(--bg-tertiary);
-      padding: 0.5rem 1rem;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border);
-    }
-    .mockup-body { padding: 1.5rem; }
+/* Mockup container */
+.mockup {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.mockup-header {
+  background: var(--bg-tertiary);
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.mockup-body {
+  padding: 1.5rem;
+}
 
-    /* Split view (side-by-side) */
-    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0; }
-    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+/* Split view (side-by-side) */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+@media (max-width: 700px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
 
-    /* Pros/Cons */
-    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
-    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
-    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
-    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
-    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
-    .pros li, .cons li { margin-bottom: 0.25rem; }
+/* Pros/Cons */
+.pros-cons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.pros,
+.cons {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.pros h4 {
+  color: var(--success);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+.cons h4 {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+.pros ul,
+.cons ul {
+  margin-left: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.pros li,
+.cons li {
+  margin-bottom: 0.25rem;
+}
 
-    /* Placeholder */
-    .placeholder {
-      background: var(--bg-tertiary);
-      border: 2px dashed var(--border);
-      border-radius: 8px;
-      padding: 2rem;
-      text-align: center;
-      color: var(--text-tertiary);
-    }
+/* Placeholder */
+.placeholder {
+  background: var(--bg-tertiary);
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-tertiary);
+}
 
-    /* Inline mockup elements */
-    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; border-radius: 8px 8px 0 0; }
-    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
-    .mock-content { padding: 1.5rem; flex: 1; }
-    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; display: inline-block; }
-    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; font-size: 0.85rem; }
+/* Inline mockup elements */
+.mock-nav {
+  background: var(--accent);
+  color: white;
+  padding: 0.75rem 1rem;
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  border-radius: 8px 8px 0 0;
+}
+.mock-sidebar {
+  background: var(--bg-tertiary);
+  padding: 1rem;
+  min-width: 180px;
+}
+.mock-content {
+  padding: 1.5rem;
+  flex: 1;
+}
+.mock-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+.mock-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  width: 100%;
+  font-size: 0.85rem;
+}
 ```
 
 - [ ] **Step 3: Verify TypeScript compiles**
@@ -145,6 +263,7 @@ git -C /Users/yanwu/Projects/github/journal commit -m "feat: add brainstorming v
 ### Task 2: Add visual component quick-reference to AI system prompt
 
 **Files:**
+
 - Modify: `src-tauri/resources/workspace-template/.claude/CLAUDE.md` — insert after the "写作原则" section (after line 84)
 
 - [ ] **Step 1: Insert the visual components guide**
@@ -152,19 +271,18 @@ git -C /Users/yanwu/Projects/github/journal commit -m "feat: add brainstorming v
 Open `src-tauri/resources/workspace-template/.claude/CLAUDE.md`. After the last line of the "写作原则" section (after `- 复盘：突出目标、结果、原因、教训、改进。`), append:
 
 ```markdown
-
 ## 视觉组件速查
 
 正文可使用以下 CSS class 增强可读性。按场景选用，不滥用：
 
-| 场景 | 使用组件 | 示例 |
-|---|---|---|
-| 方案对比、选项罗列 | `.options` > `.option` > `.letter` + `.content` | 多个方案的 A/B/C 卡片 |
-| 关键结论、信息分块 | `.cards` > `.card` > `.card-body` | 每项关键洞察一张卡片 |
-| 设计稿、线框展示 | `.mockup` > `.mockup-header` + `.mockup-body` | 嵌在日志中的界面示意 |
-| 利弊权衡 | `.pros-cons` > `.pros` / `.cons` | 方案的优势与风险对比 |
-| 并排对比 | `.split` > 左 + 右 | 旧方案 vs 新方案 |
-| 页面布局示意 | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` | UI 结构讨论 |
+| 场景               | 使用组件                                                                     | 示例                  |
+| ------------------ | ---------------------------------------------------------------------------- | --------------------- |
+| 方案对比、选项罗列 | `.options` > `.option` > `.letter` + `.content`                              | 多个方案的 A/B/C 卡片 |
+| 关键结论、信息分块 | `.cards` > `.card` > `.card-body`                                            | 每项关键洞察一张卡片  |
+| 设计稿、线框展示   | `.mockup` > `.mockup-header` + `.mockup-body`                                | 嵌在日志中的界面示意  |
+| 利弊权衡           | `.pros-cons` > `.pros` / `.cons`                                             | 方案的优势与风险对比  |
+| 并排对比           | `.split` > 左 + 右                                                           | 旧方案 vs 新方案      |
+| 页面布局示意       | `.mock-nav`, `.mock-sidebar`, `.mock-content`, `.mock-button`, `.mock-input` | UI 结构讨论           |
 
 排版辅助：`.subtitle`（副标题）、`.section`（章节块）、`.label`（小标签）。
 
@@ -191,6 +309,7 @@ git -C /Users/yanwu/Projects/github/journal commit -m "docs: add visual componen
 ### Task 3: Add visual hints to meeting minutes templates
 
 **Files:**
+
 - Modify: `src-tauri/resources/workspace-template/.claude/skills/meeting-minutes/references/templates/alignment.md`
 - Modify: `src-tauri/resources/workspace-template/.claude/skills/meeting-minutes/references/templates/argumentation-chain.md`
 - Modify: `src-tauri/resources/workspace-template/.claude/skills/meeting-minutes/references/templates/progress-tracking.md`
@@ -264,6 +383,7 @@ const { buildSrcdoc } = require('./src/lib/sandbox/buildSrcdoc.ts');
 ```
 
 Since this is a TypeScript module without a direct Node runner, manual verification:
+
 - Open any `.html` journal entry in the app
 - Right-click the preview iframe → Inspect Element
 - In the `<style>` block, confirm these classes exist: `.cards`, `.options`, `.pros-cons`, `.mockup`, `.split`, `.placeholder`, `.mock-nav`

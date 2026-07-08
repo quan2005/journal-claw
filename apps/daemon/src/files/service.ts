@@ -315,6 +315,48 @@ export class FilesService {
     return { result: relPath, changeSet }
   }
 
+  createFile(
+    dirPath: string,
+    name: string,
+    mode: AuthorizationMode = 'workspace_write',
+  ): FileMutationResult<string> {
+    if (!name || name.includes('/') || name.includes('\\') || name === '.' || name === '..') {
+      throw new WorkspaceFsError('invalid_name', '文件名无效')
+    }
+    const dir = this.resolveExistingDir(dirPath)
+    const dest = join(dir, name)
+    this.assertWritableTarget(dest, mode)
+    if (existsSync(dest)) throw new WorkspaceFsError('target_exists', '同名文件已存在', 409)
+    const relPath = this.relativeFromRoot(dest)
+    const changeSet = this.recordWritableChange(relPath, 'create', mode, '')
+    if (changeSet.status !== 'applied') {
+      throw new WorkspaceFsError('write_blocked', '写入被权限策略拒绝', 403, { changeSet })
+    }
+    writeFileSync(dest, '')
+    return { result: relPath, changeSet }
+  }
+
+  createFolder(
+    dirPath: string,
+    name: string,
+    mode: AuthorizationMode = 'workspace_write',
+  ): FileMutationResult<string> {
+    if (!name || name.includes('/') || name.includes('\\') || name === '.' || name === '..') {
+      throw new WorkspaceFsError('invalid_name', '文件夹名无效')
+    }
+    const dir = this.resolveExistingDir(dirPath)
+    const dest = join(dir, name)
+    this.assertWritableTarget(dest, mode)
+    if (existsSync(dest)) throw new WorkspaceFsError('target_exists', '同名文件夹已存在', 409)
+    const relPath = this.relativeFromRoot(dest)
+    const changeSet = this.recordWritableChange(relPath, 'create', mode, '')
+    if (changeSet.status !== 'applied') {
+      throw new WorkspaceFsError('write_blocked', '写入被权限策略拒绝', 403, { changeSet })
+    }
+    mkdirSync(dest, { recursive: false })
+    return { result: relPath, changeSet }
+  }
+
   rename(
     relativePath: string,
     newName: string,

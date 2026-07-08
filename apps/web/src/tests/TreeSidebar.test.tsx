@@ -114,6 +114,7 @@ beforeEach(() => {
   rootEntries.current = []
   mockInvoke.mockImplementation((cmd: string) => {
     if (cmd === 'get_workspace_path') return Promise.resolve('/ws')
+    if (cmd === 'get_workspace_tree_sort') return Promise.resolve('name-asc')
     return Promise.resolve(undefined)
   })
 })
@@ -210,5 +211,38 @@ describe('TreeSidebar', () => {
     expect(screen.getByText('topics')).toBeTruthy()
     expect(screen.getByText('research')).toBeTruthy()
     expect(screen.getByText('README')).toBeTruthy()
+  })
+
+  // AC-10 · 键盘导航：ArrowDown 移动焦点到首个可见行，data-path 暴露焦点位置
+  it('moves focus down via ArrowDown and exposes it via data-path', () => {
+    rootEntries.current = [
+      { name: 'note.md', path: 'note.md', is_dir: false, created_secs: 0, mtime_secs: 0 },
+    ]
+
+    renderTreeSidebar({ category: 'topics' })
+
+    const tree = screen.getByRole('tree', { name: 'Workspace' })
+    tree.focus()
+    fireEvent.keyDown(tree, { key: 'ArrowDown' })
+
+    expect(document.activeElement?.getAttribute('data-path')).toBeTruthy()
+  })
+
+  it('opens sort menu and updates active sort strategy', () => {
+    renderTreeSidebar({ category: 'topics' })
+
+    const sortButton = screen.getByRole('button', { name: '排序' })
+    expect(sortButton.getAttribute('data-active-sort')).toBe('name-asc')
+
+    fireEvent.click(sortButton)
+
+    expect(screen.getByText('名称 A-Z')).toBeTruthy()
+    expect(screen.getByText('名称 Z-A')).toBeTruthy()
+    expect(screen.getByText('最近修改')).toBeTruthy()
+    expect(screen.getByText('类型优先')).toBeTruthy()
+    expect(screen.getByText('手动排序')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('名称 Z-A'))
+    expect(sortButton.getAttribute('data-active-sort')).toBe('name-desc')
   })
 })

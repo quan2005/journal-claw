@@ -137,6 +137,22 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         await this.updateSettings({ theme: args?.theme })
         return undefined as T
       }
+      case 'get_workspace_tree_sort': {
+        const settings = await this.getSettings()
+        return (settings.workspace_tree_sort ?? 'name-asc') as unknown as T
+      }
+      case 'set_workspace_tree_sort': {
+        await this.updateSettings({ workspace_tree_sort: args?.strategy })
+        return undefined as T
+      }
+      case 'get_workspace_tree_manual_order': {
+        const settings = await this.getSettings()
+        return (settings.workspace_tree_manual_order ?? {}) as unknown as T
+      }
+      case 'set_workspace_tree_manual_order': {
+        await this.updateSettings({ workspace_tree_manual_order: args?.order })
+        return undefined as T
+      }
       case 'get_agent_engine': {
         const settings = await this.getSettings()
         const engine = settings.agent_engine === 'cli' ? 'cli' : 'builtin'
@@ -569,6 +585,20 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
           '/files/duplicate',
           { relativePath: args?.relativePath },
           'daemon duplicate file',
+        )) as T
+      }
+      case 'workspace_create_file': {
+        return (await this.postJson(
+          '/files/create',
+          { dirPath: args?.dirPath, name: args?.name, kind: 'file' },
+          'daemon create file',
+        )) as T
+      }
+      case 'workspace_create_folder': {
+        return (await this.postJson(
+          '/files/create',
+          { dirPath: args?.dirPath, name: args?.name, kind: 'folder' },
+          'daemon create folder',
         )) as T
       }
       case 'workspace_rename_file': {

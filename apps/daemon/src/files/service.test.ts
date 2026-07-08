@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { ChangeSetService } from '../changeset/service.js'
@@ -136,5 +144,25 @@ describe('FilesService', () => {
     } finally {
       rmSync(outside, { recursive: true, force: true })
     }
+  })
+
+  it('creates a new empty file inside an existing directory and records a create ChangeSet', () => {
+    mkdirSync(join(ws, '专题'), { recursive: true })
+    const relPath = files.createFile('专题', 'notes.md').result
+    expect(relPath).toBe('专题/notes.md')
+    expect(readFileSync(join(ws, relPath), 'utf8')).toBe('')
+  })
+
+  it('creates a new folder inside an existing directory', () => {
+    mkdirSync(join(ws, '专题'), { recursive: true })
+    const relPath = files.createFolder('专题', '新建文件夹').result
+    expect(relPath).toBe('专题/新建文件夹')
+    expect(statSync(join(ws, relPath)).isDirectory()).toBe(true)
+  })
+
+  it('rejects creating a file that already exists', () => {
+    mkdirSync(join(ws, '专题'), { recursive: true })
+    files.createFile('专题', 'dup.md')
+    expect(() => files.createFile('专题', 'dup.md')).toThrowError(/已存在/)
   })
 })

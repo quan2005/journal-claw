@@ -13,6 +13,8 @@ export interface AutoLintConfig {
   min_entries: AutoLintMinEntries
 }
 
+export type WorkspaceTreeSort = 'name-asc' | 'name-desc' | 'mtime-desc' | 'type-first' | 'manual'
+
 export interface WorkspaceSettings {
   theme: Theme
   auto_lint: AutoLintConfig
@@ -20,6 +22,8 @@ export interface WorkspaceSettings {
   pinned?: unknown
   disabled_skills?: string[]
   enabled_global_skills?: string[]
+  workspace_tree_sort: WorkspaceTreeSort
+  workspace_tree_manual_order?: Record<string, string[]>
   [key: string]: unknown
 }
 
@@ -44,6 +48,7 @@ const DEFAULT_SETTINGS: WorkspaceSettings = {
     min_entries: 10,
   },
   global_skills_enabled: false,
+  workspace_tree_sort: 'name-asc',
 }
 
 export class SettingsService {
@@ -133,6 +138,10 @@ function normalizeSettings(
         : DEFAULT_SETTINGS.global_skills_enabled,
     disabled_skills: normalizeStringList(raw.disabled_skills),
     enabled_global_skills: normalizeStringList(raw.enabled_global_skills),
+    workspace_tree_sort: normalizeTreeSort(raw.workspace_tree_sort),
+    workspace_tree_manual_order: isRecord(raw.workspace_tree_manual_order)
+      ? (raw.workspace_tree_manual_order as Record<string, string[]>)
+      : undefined,
   }
 }
 
@@ -173,6 +182,20 @@ function normalizeStringList(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined
   const list = value.filter((item): item is string => typeof item === 'string')
   return list.length > 0 ? list : undefined
+}
+
+const VALID_TREE_SORTS: WorkspaceTreeSort[] = [
+  'name-asc',
+  'name-desc',
+  'mtime-desc',
+  'type-first',
+  'manual',
+]
+
+function normalizeTreeSort(value: unknown): WorkspaceTreeSort {
+  return VALID_TREE_SORTS.includes(value as WorkspaceTreeSort)
+    ? (value as WorkspaceTreeSort)
+    : 'name-asc'
 }
 
 function isValidTheme(value: unknown): value is Theme {

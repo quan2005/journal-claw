@@ -149,4 +149,26 @@ describe('SettingsService', () => {
     expect(settings.agent_engine).toBe('builtin')
     expect(settings.agent_id).toBe('codex')
   })
+
+  it('normalizes workspace_tree_sort with a valid default and rejects garbage values', () => {
+    const svc = new SettingsService(ws)
+    expect(svc.load().workspace_tree_sort).toBe('name-asc')
+
+    svc.update({ workspace_tree_sort: 'mtime-desc' })
+    expect(svc.load().workspace_tree_sort).toBe('mtime-desc')
+
+    writeFileSync(join(ws, '.setting.json'), JSON.stringify({ workspace_tree_sort: 'bogus' }))
+    expect(new SettingsService(ws).load().workspace_tree_sort).toBe('name-asc')
+  })
+
+  it('preserves workspace_tree_manual_order as an opaque per-directory map', () => {
+    const svc = new SettingsService(ws)
+    svc.update({
+      workspace_tree_manual_order: { '': ['b', 'a'], 专题: ['输出作品', '资产资源'] },
+    })
+    expect(svc.load().workspace_tree_manual_order).toEqual({
+      '': ['b', 'a'],
+      专题: ['输出作品', '资产资源'],
+    })
+  })
 })

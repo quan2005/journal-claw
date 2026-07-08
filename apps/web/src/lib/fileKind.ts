@@ -10,6 +10,7 @@ export type FileKind =
   | 'image'
   | 'html'
   | 'code'
+  | 'config'
   | 'csv'
   | 'archive'
   | 'other'
@@ -64,6 +65,11 @@ export function fileKindFromName(filename: string): FileKind {
       return 'html'
     case 'csv':
       return 'csv'
+    case 'json':
+    case 'yaml':
+    case 'yml':
+    case 'toml':
+      return 'config'
     case 'zip':
     case 'rar':
     case '7z':
@@ -77,11 +83,7 @@ export function fileKindFromName(filename: string): FileKind {
     case 'rs':
     case 'py':
     case 'css':
-    case 'json':
     case 'xml':
-    case 'yaml':
-    case 'yml':
-    case 'toml':
     case 'sh':
     case 'bash':
     case 'zsh':

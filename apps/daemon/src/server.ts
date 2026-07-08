@@ -1144,6 +1144,32 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       }
     })
 
+    app.post('/files/create', (req, res) => {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>
+        if (
+          typeof body.dirPath !== 'string' ||
+          typeof body.name !== 'string' ||
+          (body.kind !== 'file' && body.kind !== 'folder')
+        ) {
+          res.status(400).json({
+            error: {
+              code: 'invalid_create_request',
+              message: 'dirPath, name and kind are required',
+            },
+          })
+          return
+        }
+        const result =
+          body.kind === 'file'
+            ? filesService().createFile(body.dirPath, body.name)
+            : filesService().createFolder(body.dirPath, body.name)
+        res.json(result.result)
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
     app.post('/files/rename', (req, res) => {
       try {
         const body = (req.body ?? {}) as Record<string, unknown>

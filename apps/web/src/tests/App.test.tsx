@@ -117,6 +117,10 @@ function defaultInvoke(cmd: string, args?: Record<string, unknown>): unknown {
       return 'dark'
     case 'set_workspace_theme':
       return undefined
+    case 'get_workspace_tree_sort':
+      return 'name-asc'
+    case 'set_workspace_tree_sort':
+      return undefined
     case 'get_agent_engine':
       return { engine: 'builtin', agentId: null }
     case 'set_agent_engine':

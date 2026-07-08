@@ -148,7 +148,7 @@ describe('DetailView topic file rendering', () => {
       rerender(
         <DetailView
           type="topic-file"
-          file={{ name: 'other.bin', path: 'logs/other.bin', is_dir: false }}
+          file={{ name: 'other.bin', path: 'logs/other.bin', is_dir: false, mtime_secs: 0 }}
         />,
       )
       expect(await screen.findByRole('button', { name: '以纯文本查看' })).toBeTruthy()
@@ -163,7 +163,7 @@ describe('DetailView topic file rendering', () => {
       renderWithProviders(
         <DetailView
           type="topic-file"
-          file={{ name: 'notes.md', path: 'logs/notes.md', is_dir: false }}
+          file={{ name: 'notes.md', path: 'logs/notes.md', is_dir: false, mtime_secs: 0 }}
         />,
       )
       await screen.findByText('notes.md')

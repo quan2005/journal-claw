@@ -25,6 +25,8 @@ function renderTopicTree(
       entries={entries}
       dirs={dirs}
       selectedPath={selectedPath}
+      parentPath=""
+      sortStrategy="name-asc"
       onToggleDir={vi.fn()}
       onSelectFile={vi.fn()}
       onAt={vi.fn()}
@@ -161,5 +163,90 @@ describe('TopicTree', () => {
     renderTopicTree([topDir], dirs)
 
     expect(screen.getByText('deep note')).toBeTruthy()
+  })
+
+  // AC-4 · 展开的文件夹显示"打开"样式图标
+  it('shows the open-folder icon variant for an expanded directory', () => {
+    const dirs = new Map([['专题', { entries: [], expanded: true, loading: false }]])
+    renderTopicTree([topic('专题', true)], dirs)
+    expect(screen.getByLabelText('已展开的文件夹')).toBeTruthy()
+  })
+
+  // story 20260708-tree-create-rename · inline 编辑态
+  it('renders an inline input for the entry matching editingPath and commits on Enter', () => {
+    const onCommitEdit = vi.fn()
+    renderWithProviders(
+      <TopicTree
+        entries={[topic('note.md')]}
+        dirs={new Map()}
+        selectedPath={null}
+        parentPath=""
+        sortStrategy="name-asc"
+        editingPath="note.md"
+        onCommitEdit={onCommitEdit}
+        onToggleDir={vi.fn()}
+        onSelectFile={vi.fn()}
+        onAt={vi.fn()}
+        onMore={vi.fn()}
+      />,
+    )
+    const input = screen.getByDisplayValue('note.md') as HTMLInputElement
+    input.value = 'renamed.md'
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onCommitEdit).toHaveBeenCalledWith('note.md', 'renamed.md', false)
+  })
+
+  // story 20260708-workspace-tree-enhancements · AC-7 · 手动排序拖拽把手
+  it('shows a drag handle only when sortStrategy is manual', () => {
+    const { rerender } = renderWithProviders(
+      <TopicTree
+        entries={[topic('a.md'), topic('b.md')]}
+        dirs={new Map()}
+        selectedPath={null}
+        parentPath=""
+        sortStrategy="name-asc"
+        onToggleDir={vi.fn()}
+        onSelectFile={vi.fn()}
+        onAt={vi.fn()}
+        onMore={vi.fn()}
+      />,
+    )
+    expect(screen.queryAllByLabelText('拖拽排序')).toHaveLength(0)
+
+    rerender(
+      <TopicTree
+        entries={[topic('a.md'), topic('b.md')]}
+        dirs={new Map()}
+        selectedPath={null}
+        parentPath=""
+        sortStrategy="manual"
+        onToggleDir={vi.fn()}
+        onSelectFile={vi.fn()}
+        onAt={vi.fn()}
+        onMore={vi.fn()}
+      />,
+    )
+    expect(screen.getAllByLabelText('拖拽排序')).toHaveLength(2)
+  })
+
+  it('shows a child count badge next to an expanded folder with children', () => {
+    const dirs = new Map([
+      [
+        '专题',
+        {
+          entries: [topic('a.md'), topic('b.md'), topic('sub', true)],
+          expanded: true,
+          loading: false,
+        },
+      ],
+    ])
+    renderTopicTree([topic('专题', true)], dirs)
+    expect(screen.getByText('3')).toBeTruthy()
+  })
+
+  it('shows an empty-folder placeholder row when an expanded folder has no children', () => {
+    const dirs = new Map([['专题', { entries: [], expanded: true, loading: false }]])
+    renderTopicTree([topic('专题', true)], dirs)
+    expect(screen.getByText('空文件夹')).toBeTruthy()
   })
 })

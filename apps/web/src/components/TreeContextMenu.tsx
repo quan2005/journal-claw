@@ -22,6 +22,9 @@ interface TreeContextMenuProps {
   onDelete: (type: string, path: string) => void
   onArchive?: (path: string) => void
   onUnarchive?: (path: string) => void
+  onCreateFile?: (dirPath: string) => void
+  onCreateFolder?: (dirPath: string) => void
+  onRename?: (path: string) => void
 }
 
 type MenuItemDef =
@@ -43,6 +46,9 @@ export function TreeContextMenu({
   onDelete,
   onArchive,
   onUnarchive,
+  onCreateFile,
+  onCreateFolder,
+  onRename,
 }: TreeContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -113,6 +119,18 @@ export function TreeContextMenu({
     onUnarchive?.(path)
     onClose()
   }
+  function handleCreateFile() {
+    onCreateFile?.(path)
+    onClose()
+  }
+  function handleCreateFolder() {
+    onCreateFolder?.(path)
+    onClose()
+  }
+  function handleRename() {
+    onRename?.(path)
+    onClose()
+  }
   async function handleDelete() {
     onClose()
     const confirmed = await hostAsk(`确认删除「${name}」？`, {
@@ -128,6 +146,18 @@ export function TreeContextMenu({
   const showPin = itemType === 'topic-file' || itemType === 'topic-folder'
 
   const items: MenuItemDef[] = [
+    ...(itemType === 'topic-folder'
+      ? [
+          { type: 'action' as const, label: '新建文件', icon: 'file', onClick: handleCreateFile },
+          {
+            type: 'action' as const,
+            label: '新建文件夹',
+            icon: 'folder',
+            onClick: handleCreateFolder,
+          },
+          { type: 'divider' as const },
+        ]
+      : []),
     ...(showPin
       ? [
           {
@@ -139,6 +169,9 @@ export function TreeContextMenu({
         ]
       : []),
     { type: 'action', label: '复制路径', shortcut: '⌘C', icon: 'copy', onClick: copyPath },
+    ...(itemType === 'topic-file' || itemType === 'topic-folder'
+      ? [{ type: 'action' as const, label: '重命名', icon: 'edit', onClick: handleRename }]
+      : []),
     { type: 'divider' },
     { type: 'action', label: '在编辑器中打开', icon: 'edit', onClick: handleOpenInEditor },
     {
@@ -237,6 +270,7 @@ export function TreeContextMenu({
 // ── MenuIcon ────────────────────────────────────────────────────────────────────
 
 const iconPaths: Record<string, React.ReactNode> = {
+  file: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z M14 2v6h6" />,
   pin: <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />,
   copy: (
     <g>

@@ -8,7 +8,12 @@ import { TopicTree } from './TopicTree'
 import { TreeContextMenu, type TreeContextMenuState } from './TreeContextMenu'
 import { useTopics } from '../hooks/useTopics'
 import { usePinned } from '../hooks/usePinned'
+import { useTreeSort } from '../hooks/useTreeSort'
+import type { WorkspaceTreeSort } from '../hooks/useTreeSort'
 import { selectRuntimeClient } from '../lib/runtimeClient'
+import { hostAsk } from '../lib/hostBridge'
+import { sortEntries } from '../lib/sortTopics'
+import { filterCuration } from '../lib/topicCuration'
 
 const deleteJournalEntry = (path: string) =>
   selectRuntimeClient().invoke<void>('delete_journal_entry', { path })
@@ -26,7 +31,15 @@ const listTopicsDir = (relativePath: string) =>
     .invoke<TopicEntry[]>('list_workspace_dir', { relativePath })
     // 防御性过滤 dot 条目（AC-3，与 useTopics 保持一致）
     .then((entries) => entries.filter((e) => !e.name.startsWith('.')))
-import { Search, LayoutGrid } from 'lucide-react'
+import { Search, LayoutGrid, ArrowUpDown } from 'lucide-react'
+
+const SORT_LABELS: Record<WorkspaceTreeSort, string> = {
+  'name-asc': '名称 A-Z',
+  'name-desc': '名称 Z-A',
+  'mtime-desc': '最近修改',
+  'type-first': '类型优先',
+  manual: '手动排序',
+}
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -361,7 +374,13 @@ export function TreeSidebar({
   const [ctxMenu, setCtxMenu] = useState<TreeContextMenuState | null>(null)
   const { items: pinnedItems, pin, unpin, refresh: refreshPinned } = usePinned()
   const { dirs, loading: topicsLoading, load: loadTopics, toggleDir } = useTopics()
+  const { strategy: treeSort, setStrategy: setTreeSort, manualOrder, setManualOrderFor } =
+    useTreeSort()
+  const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [wsPath, setWsPath] = useState('')
+  const [editingPath, setEditingPath] = useState<string | null>(null)
+  const [pendingNew, setPendingNew] = useState<{ dirPath: string; isDir: boolean } | null>(null)
+  const [focusedPath, setFocusedPath] = useState<string | null>(null)
 
   // Independent state for pinned folder expansion (does not affect main TopicTree)
   const [pinnedExpanded, setPinnedExpanded] = useState<Set<string>>(() => new Set())
@@ -575,6 +594,136 @@ export function TreeSidebar({
     [entries, onDeselect, refreshPinned, loadTopics],
   )
 
+  const withPendingEntry = useCallback(
+    (entries: TopicEntry[], parentPath: string): TopicEntry[] => {
+      if (!pendingNew || pendingNew.dirPath !== parentPath) return entries
+      const placeholder: TopicEntry = {
+        name: '',
+        path: `${parentPath}/__pending__`,
+        is_dir: pendingNew.isDir,
+        mtime_secs: Date.now() / 1000,
+      }
+      return [...entries, placeholder]
+    },
+    [pendingNew],
+  )
+
+  const handleCreateFile = useCallback((dirPath: string) => {
+    setPendingNew({ dirPath, isDir: false })
+    setEditingPath(`${dirPath}/__pending__`)
+  }, [])
+  const handleCreateFolder = useCallback((dirPath: string) => {
+    setPendingNew({ dirPath, isDir: true })
+    setEditingPath(`${dirPath}/__pending__`)
+  }, [])
+  const handleCommitEdit = useCallback(
+    async (originalPath: string | null, newName: string, isDir: boolean) => {
+      void isDir
+      if (!newName) {
+        setEditingPath(null)
+        setPendingNew(null)
+        return
+      }
+      try {
+        if (pendingNew) {
+          const invokeName = pendingNew.isDir ? 'workspace_create_folder' : 'workspace_create_file'
+          await selectRuntimeClient().invoke(invokeName, {
+            dirPath: pendingNew.dirPath,
+            name: newName,
+          })
+        } else if (originalPath) {
+          await selectRuntimeClient().invoke('workspace_rename_file', {
+            relativePath: originalPath,
+            newName,
+          })
+        }
+        await loadTopics()
+      } catch (e) {
+        console.error('[TreeSidebar] create/rename failed:', e)
+        const message =
+          e instanceof Error && e.message.includes('target_exists')
+            ? `「${newName}」已存在，请换一个名称`
+            : '操作失败，请重试'
+        await hostAsk(message, { title: '操作失败', kind: 'error' })
+      } finally {
+        setEditingPath(null)
+        setPendingNew(null)
+      }
+    },
+    [pendingNew, loadTopics],
+  )
+  const handleCancelEdit = useCallback(() => {
+    setEditingPath(null)
+    setPendingNew(null)
+  }, [])
+  const handleRename = useCallback((path: string) => {
+    setEditingPath(path)
+  }, [])
+
+  function flattenVisible(entries: TopicEntry[], parentPath: string): TopicEntry[] {
+    const sorted = sortEntries(filterCuration(entries), treeSort, manualOrder[parentPath])
+    const out: TopicEntry[] = []
+    for (const e of sorted) {
+      out.push(e)
+      const child = dirs.get(e.path)
+      if (e.is_dir && child?.expanded) {
+        out.push(...flattenVisible(child.entries, e.path))
+      }
+    }
+    return out
+  }
+
+  function handleTreeKeyDown(e: React.KeyboardEvent) {
+    const visible = flattenVisible(dirs.get('')?.entries ?? [], '')
+    const idx = visible.findIndex((v) => v.path === focusedPath)
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const next = visible[Math.min(idx + 1, visible.length - 1)] ?? visible[0]
+      if (next) setFocusedPath(next.path)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const prev = visible[Math.max(idx - 1, 0)]
+      if (prev) setFocusedPath(prev.path)
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      const current = visible[idx]
+      if (current?.is_dir) {
+        const state = dirs.get(current.path)
+        if (!state?.expanded) {
+          toggleDir(current.path)
+        } else {
+          const child = flattenVisible(state.entries, current.path)[0]
+          if (child) setFocusedPath(child.path)
+        }
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      const current = visible[idx]
+      if (current?.is_dir && dirs.get(current.path)?.expanded) {
+        toggleDir(current.path)
+      } else {
+        const parentPath = current?.path.split('/').slice(0, -1).join('/') ?? ''
+        if (parentPath) setFocusedPath(parentPath)
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      const current = visible[idx]
+      if (!current) return
+      if (current.is_dir) {
+        toggleDir(current.path)
+      } else {
+        handleSelect({
+          type: 'topic-file',
+          path: current.path,
+          name: current.name,
+          created_secs: current.created_secs,
+          mtime_secs: current.mtime_secs,
+        })
+      }
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -619,6 +768,94 @@ export function TreeSidebar({
             >
               <Search size={16} strokeWidth={1.6} />
             </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                aria-label="排序"
+                data-active-sort={treeSort}
+                onClick={() => setSortMenuOpen((v) => !v)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--item-meta)',
+                  cursor: 'pointer',
+                }}
+              >
+                <ArrowUpDown size={16} strokeWidth={1.6} />
+              </button>
+              {sortMenuOpen && (
+                <div
+                  role="menu"
+                  style={{
+                    position: 'absolute',
+                    top: 32,
+                    right: 0,
+                    zIndex: 20,
+                    background: 'var(--context-menu-bg)',
+                    border: 'var(--border-menu)',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: 'var(--shadow-overlay)',
+                    minWidth: 140,
+                    padding: '4px 0',
+                  }}
+                >
+                  {(Object.keys(SORT_LABELS) as WorkspaceTreeSort[])
+                    .filter((key) => key !== 'manual')
+                    .map((key) => (
+                      <button
+                        key={key}
+                        role="menuitem"
+                        type="button"
+                        onClick={() => {
+                          setTreeSort(key)
+                          setSortMenuOpen(false)
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '6px 12px',
+                          background: key === treeSort ? 'var(--item-selected-bg)' : 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '0.8125rem',
+                          color: 'var(--item-text)',
+                        }}
+                      >
+                        {SORT_LABELS[key]}
+                      </button>
+                    ))}
+                  <div style={{ height: 0.5, background: 'var(--divider)', margin: '4px 8px' }} />
+                  <button
+                    role="menuitem"
+                    type="button"
+                    onClick={() => {
+                      setTreeSort('manual')
+                      setSortMenuOpen(false)
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '6px 12px',
+                      background: treeSort === 'manual' ? 'var(--item-selected-bg)' : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      color: 'var(--item-text)',
+                    }}
+                  >
+                    {SORT_LABELS.manual}
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               type="button"
               aria-label="View layout"
@@ -918,15 +1155,23 @@ export function TreeSidebar({
                             />
                             {isExpanded && children && (
                               <TopicTree
-                                entries={children}
+                                entries={withPendingEntry(children, topicEntry.path)}
                                 dirs={dirs}
                                 selectedPath={
                                   selected?.type === 'topic' || selected?.type === 'topic-file'
                                     ? selected.path
                                     : null
                                 }
-                                indent={1}
-                                onToggleDir={toggleDir}
+                                  indent={1}
+                                  parentPath={topicEntry.path}
+                                  sortStrategy={treeSort}
+                                  manualOrder={manualOrder}
+                                  editingPath={editingPath}
+                                  focusedPath={focusedPath}
+                                  onCommitEdit={handleCommitEdit}
+                                  onCancelEdit={handleCancelEdit}
+                                  onToggleDir={toggleDir}
+                                  onReorder={setManualOrderFor}
                                 onSelectFile={(entry) =>
                                   handleSelect({
                                     type: entry.is_dir ? 'topic' : 'topic-file',
@@ -1009,37 +1254,53 @@ export function TreeSidebar({
                       加载中...
                     </div>
                   ) : (
-                    <TopicTree
-                      entries={dirs.get('')?.entries ?? []}
-                      dirs={dirs}
-                      selectedPath={
-                        selected?.type === 'topic' || selected?.type === 'topic-file'
-                          ? selected.path
-                          : null
-                      }
-                      onToggleDir={toggleDir}
-                      onSelectFile={(entry) =>
-                        handleSelect({
-                          type: entry.is_dir ? 'topic' : 'topic-file',
-                          path: entry.path,
-                          name: entry.name,
-                          created_secs: entry.created_secs,
-                          mtime_secs: entry.mtime_secs,
-                        })
-                      }
-                      onAt={(path) => onAtRef(path)}
-                      onMore={(entry, x, y) =>
-                        handleMore(
-                          entry.is_dir ? 'topic-folder' : 'topic-file',
-                          entry.name,
-                          entry.path,
-                          pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
-                          x,
-                          y,
-                          wsPath ? `${wsPath}/${entry.path}` : undefined,
-                        )
-                      }
-                    />
+                    <div
+                      role="tree"
+                      aria-label="Workspace"
+                      tabIndex={0}
+                      onKeyDown={handleTreeKeyDown}
+                      style={{ outline: 'none' }}
+                    >
+                      <TopicTree
+                        entries={withPendingEntry(dirs.get('')?.entries ?? [], '')}
+                        dirs={dirs}
+                        selectedPath={
+                          selected?.type === 'topic' || selected?.type === 'topic-file'
+                            ? selected.path
+                            : null
+                        }
+                        parentPath=""
+                        sortStrategy={treeSort}
+                        manualOrder={manualOrder}
+                        editingPath={editingPath}
+                        focusedPath={focusedPath}
+                        onCommitEdit={handleCommitEdit}
+                        onCancelEdit={handleCancelEdit}
+                        onToggleDir={toggleDir}
+                        onReorder={setManualOrderFor}
+                        onSelectFile={(entry) =>
+                          handleSelect({
+                            type: entry.is_dir ? 'topic' : 'topic-file',
+                            path: entry.path,
+                            name: entry.name,
+                            created_secs: entry.created_secs,
+                            mtime_secs: entry.mtime_secs,
+                          })
+                        }
+                        onAt={(path) => onAtRef(path)}
+                        onMore={(entry, x, y) =>
+                          handleMore(
+                            entry.is_dir ? 'topic-folder' : 'topic-file',
+                            entry.name,
+                            entry.path,
+                            pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
+                            x,
+                            y,
+                            wsPath ? `${wsPath}/${entry.path}` : undefined,
+                          )
+                        }
+                      />
+                    </div>
                   )}
                 </>
               )}
@@ -1073,6 +1334,9 @@ export function TreeSidebar({
           onUnarchive={(path) => {
             unarchiveIdentity(path).then(() => setCtxMenu(null))
           }}
+          onCreateFile={handleCreateFile}
+          onCreateFolder={handleCreateFolder}
+          onRename={handleRename}
         />
       )}
     </div>

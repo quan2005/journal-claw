@@ -2,6 +2,8 @@
 import type { TopicEntry } from '../lib/apiTypes'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
 import { displayTopicName, filterCuration } from '../lib/topicCuration'
+import type { WorkspaceTreeSort } from '../lib/sortTopics'
+import { sortEntries } from '../lib/sortTopics'
 import { FileTypeIcon } from './FileTypeIcon'
 
 interface TopicTreeProps {
@@ -9,10 +11,18 @@ interface TopicTreeProps {
   dirs: Map<string, { entries: TopicEntry[]; expanded: boolean; loading: boolean }>
   selectedPath: string | null
   indent?: number
+  parentPath: string
+  sortStrategy: WorkspaceTreeSort
+  manualOrder?: Record<string, string[]>
+  editingPath?: string | null
+  focusedPath?: string | null
+  onCommitEdit?: (originalPath: string | null, newName: string, isDir: boolean) => void
+  onCancelEdit?: () => void
   onToggleDir: (path: string) => void
   onSelectFile: (entry: TopicEntry) => void
   onAt: (path: string) => void
   onMore: (entry: TopicEntry, x: number, y: number) => void
+  onReorder?: (parentPath: string, orderedNames: string[]) => void
 }
 
 export function TopicTree({
@@ -20,10 +30,18 @@ export function TopicTree({
   dirs,
   selectedPath,
   indent = 0,
+  parentPath,
+  sortStrategy,
+  manualOrder,
+  editingPath,
+  focusedPath,
+  onCommitEdit,
+  onCancelEdit,
   onToggleDir,
   onSelectFile,
   onAt,
   onMore,
+  onReorder,
 }: TopicTreeProps) {
   const actBtnStyle: React.CSSProperties = {
     width: 22,
@@ -41,20 +59,33 @@ export function TopicTree({
     fontFamily: 'inherit',
   }
 
-  return filterCuration(entries).map((entry) => {
+  const sorted = sortEntries(filterCuration(entries), sortStrategy, manualOrder?.[parentPath])
+
+  return sorted.map((entry) => {
     const isDir = entry.is_dir
     const childState = dirs.get(entry.path)
     const isExpanded = childState?.expanded ?? false
     const isLoading = childState?.loading ?? false
     const isSelected = entry.path === selectedPath
     const rowIndent = 8 + indent * 16
-    const iconKind = isDir ? 'folder' : fileTypeIconKindFromName(entry.name)
+    const iconKind = isDir
+      ? isExpanded
+        ? 'folder-open'
+        : 'folder'
+      : fileTypeIconKindFromName(entry.name)
     const displayName = displayTopicName(entry)
 
     return (
       <div key={entry.path}>
         <div
           className="tree-item-row"
+          role="treeitem"
+          data-path={entry.path}
+          aria-selected={isSelected}
+          tabIndex={-1}
+          ref={(el) => {
+            if (el && entry.path === focusedPath) el.focus()
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -67,6 +98,8 @@ export function TopicTree({
             overflow: 'hidden',
             background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
             color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
+            outline: entry.path === focusedPath ? 'var(--focus-ring)' : 'none',
+            outlineOffset: -1,
           }}
           onMouseEnter={(e) => {
             if (!isSelected)
@@ -81,6 +114,52 @@ export function TopicTree({
             onMore(entry, e.clientX, e.clientY)
           }}
         >
+          {/* Drag handle (manual sort only) */}
+          {sortStrategy === 'manual' && (
+            <span
+              aria-label="拖拽排序"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', entry.name)
+                e.stopPropagation()
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const draggedName = e.dataTransfer.getData('text/plain')
+                if (!draggedName || draggedName === entry.name) return
+                const names = sorted.map((it) => it.name)
+                const from = names.indexOf(draggedName)
+                const to = names.indexOf(entry.name)
+                if (from === -1 || to === -1) return
+                const next = [...names]
+                const [moved] = next.splice(from, 1)
+                next.splice(to, 0, moved)
+                onReorder?.(parentPath, next)
+              }}
+              style={{
+                width: 12,
+                height: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'grab',
+                color: 'var(--text-tertiary, #9CA3AF)',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+                <circle cx="2" cy="2" r="1" />
+                <circle cx="6" cy="2" r="1" />
+                <circle cx="2" cy="6" r="1" />
+                <circle cx="6" cy="6" r="1" />
+                <circle cx="2" cy="10" r="1" />
+                <circle cx="6" cy="10" r="1" />
+              </svg>
+            </span>
+          )}
+
           {/* Chevron or gap */}
           {isDir ? (
             <span
@@ -114,12 +193,45 @@ export function TopicTree({
           <FileTypeIcon kind={iconKind} selected={isSelected} />
 
           {/* Name */}
-          <span
-            style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}
-            title={displayName}
-          >
-            {displayName}
-          </span>
+          {entry.path === editingPath ? (
+            <input
+              autoFocus
+              defaultValue={entry.name}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter')
+                  onCommitEdit?.(entry.path, e.currentTarget.value.trim(), isDir)
+                if (e.key === 'Escape') onCancelEdit?.()
+              }}
+              onBlur={(e) => onCommitEdit?.(entry.path, e.currentTarget.value.trim(), isDir)}
+              style={{
+                flex: 1,
+                font: 'inherit',
+                color: 'inherit',
+                background: 'transparent',
+                border: '1px solid var(--record-btn)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0 4px',
+              }}
+            />
+          ) : (
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }} title={displayName}>
+              {displayName}
+            </span>
+          )}
+
+          {isDir && childState && childState.entries.length > 0 && (
+            <span
+              style={{
+                fontSize: '0.6875rem',
+                color: 'var(--text-tertiary, #9CA3AF)',
+                marginRight: 4,
+                flexShrink: 0,
+              }}
+            >
+              {childState.entries.length}
+            </span>
+          )}
 
           {/* Action buttons: @ and … */}
           <div
@@ -183,16 +295,37 @@ export function TopicTree({
             >
               加载中…
             </div>
+          ) : childState.entries.length === 0 ? (
+            <div
+              style={{
+                paddingLeft: rowIndent + 20,
+                color: 'var(--text-tertiary, #9CA3AF)',
+                fontSize: '0.75rem',
+                fontStyle: 'italic',
+                paddingTop: 4,
+                paddingBottom: 4,
+              }}
+            >
+              空文件夹
+            </div>
           ) : (
             <TopicTree
               entries={childState.entries}
               dirs={dirs}
               selectedPath={selectedPath}
               indent={indent + 1}
+              parentPath={entry.path}
+              sortStrategy={sortStrategy}
+              manualOrder={manualOrder}
+              editingPath={editingPath}
+              focusedPath={focusedPath}
+              onCommitEdit={onCommitEdit}
+              onCancelEdit={onCancelEdit}
               onToggleDir={onToggleDir}
               onSelectFile={onSelectFile}
               onAt={onAt}
               onMore={onMore}
+              onReorder={onReorder}
             />
           ))}
       </div>

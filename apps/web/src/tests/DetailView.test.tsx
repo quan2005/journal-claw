@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
 import { DetailView } from '../components/DetailView'
@@ -69,6 +69,28 @@ describe('DetailView topic file rendering', () => {
       }
       return undefined
     })
+  })
+
+  // story 20260708-tree-select-regression · AC-1
+  it('loads topic files by workspace-relative path without forcing a topics/ prefix', async () => {
+    renderWithProviders(
+      <DetailView
+        type="topic-file"
+        file={{
+          name: 'notes.md',
+          path: 'tmp_roundtable/notes.md',
+          is_dir: false,
+          created_secs: 1_714_435_200,
+          mtime_secs: 1_714_521_600,
+        }}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(mocks.invoke).toHaveBeenCalledWith('get_journal_entry_content', {
+        path: '/Users/yanwu/Documents/journal/tmp_roundtable/notes.md',
+      }),
+    )
   })
 
   it('renders html topic files with path, file metadata, preview/code toggle, and fullscreen control', async () => {
@@ -252,7 +274,7 @@ describe('DetailView topic file rendering', () => {
     )
 
     const copyButton = await screen.findByRole('button', {
-      name: '复制路径 topics/可视化一切/Deck.html',
+      name: '复制路径 可视化一切/Deck.html',
     })
     expect(copyButton.getAttribute('data-copied')).toBe('false')
 
@@ -260,9 +282,9 @@ describe('DetailView topic file rendering', () => {
       fireEvent.click(copyButton)
     })
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('topics/可视化一切/Deck.html')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('可视化一切/Deck.html')
     expect(copyButton.getAttribute('data-copied')).toBe('true')
-    expect(copyButton.getAttribute('aria-label')).toBe('已复制路径 topics/可视化一切/Deck.html')
+    expect(copyButton.getAttribute('aria-label')).toBe('已复制路径 可视化一切/Deck.html')
   })
 
   it('renders html journal entries with the same preview/code file controls', async () => {

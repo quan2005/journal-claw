@@ -246,7 +246,6 @@ export const TreeItem = memo(function TreeItem({
         cursor: 'pointer',
         position: 'relative' as const,
         background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
-        transition: 'background-color 0.15s var(--ease-out)',
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {

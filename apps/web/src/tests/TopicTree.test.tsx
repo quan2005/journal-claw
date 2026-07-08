@@ -89,6 +89,13 @@ describe('TopicTree', () => {
     expect(selectedRow.style.background).toBe('var(--item-selected-bg)')
   })
 
+  // story 20260708-tree-select-regression · AC-2 · 选中底色瞬时出现，无淡入过渡
+  it('does not animate row background changes', () => {
+    renderTopicTree([topic('user-note.md')])
+    const row = screen.getByText('user note').closest('.tree-item-row') as HTMLElement
+    expect(row.style.transition).not.toContain('background')
+  })
+
   // AC-1 · 基础设施文件被过滤
   it('hides infrastructure entries (assets dir, 00-index.md, *-readme.md) from the tree', () => {
     renderTopicTree([

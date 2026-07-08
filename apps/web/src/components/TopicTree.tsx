@@ -67,7 +67,6 @@ export function TopicTree({
             overflow: 'hidden',
             background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
             color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
-            transition: 'background-color 0.15s var(--ease-out)',
           }}
           onMouseEnter={(e) => {
             if (!isSelected)

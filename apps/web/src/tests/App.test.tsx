@@ -782,7 +782,7 @@ describe('App', () => {
     expect(screen.getByText('Guide.md')).toBeTruthy()
     expect(
       invokeCallsFor('get_journal_entry_content').filter(
-        (args) => args?.path === '/tmp/ws/topics/可视化一切/Guide.md',
+        (args) => args?.path === '/tmp/ws/可视化一切/Guide.md',
       ),
     ).toHaveLength(1)
   })

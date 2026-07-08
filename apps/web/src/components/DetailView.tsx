@@ -68,23 +68,17 @@ registerSourceLanguage('yml', yaml)
 registerSourceLanguage('markdown', markdownLang)
 registerSourceLanguage('md', markdownLang)
 
-function topicWorkspaceRelativePath(path: string): string {
-  return path.startsWith('topics/') ? path : `topics/${path}`
-}
-
+// 文件树根 = workspace 根（story 20260706）：topic-file 路径一律是 workspace
+// 相对路径（topics/ 只是普通文件夹），不再补 topics/ 前缀。
 function topicFileAbsolutePath(workspacePath: string, path: string): string {
   if (!path) return ''
   if (isAbsoluteFilePath(path)) return path
   if (!workspacePath) return ''
-  return `${workspacePath}/${topicWorkspaceRelativePath(path)}`
+  return `${workspacePath}/${path}`
 }
 
 function topicFileDisplayPath(workspacePath: string, path: string): string {
   if (!path) return ''
-  if (path.startsWith('topics/')) return path.slice('topics/'.length)
-  if (workspacePath && path.startsWith(`${workspacePath}/topics/`)) {
-    return path.slice(`${workspacePath}/topics/`.length)
-  }
   if (workspacePath && path.startsWith(`${workspacePath}/`)) {
     return path.slice(`${workspacePath}/`.length)
   }
@@ -92,13 +86,7 @@ function topicFileDisplayPath(workspacePath: string, path: string): string {
 }
 
 function topicFileCopyPath(workspacePath: string, path: string): string {
-  if (!path) return ''
-  if (path.startsWith('topics/')) return path
-  if (workspacePath && path.startsWith(`${workspacePath}/topics/`)) {
-    return path.slice(`${workspacePath}/`.length)
-  }
-  if (isAbsoluteFilePath(path)) return path
-  return topicWorkspaceRelativePath(path)
+  return topicFileDisplayPath(workspacePath, path)
 }
 
 type FileViewMode = 'preview' | 'code'

@@ -100,6 +100,9 @@ function defaultInvoke(cmd: string, args?: Record<string, unknown>): unknown {
       return []
     case 'list_topics_dir':
       return []
+    case 'list_workspace_dir':
+      // 文件树根 = workspace 根；默认返回空，单测可通过 invokeOverrides 覆写
+      return []
     case 'get_pinned_items':
       return []
     case 'set_pinned_items':
@@ -453,14 +456,16 @@ describe('App', () => {
   })
 
   it('loads topic files from the workspace topics directory', async () => {
-    invokeOverrides.set('list_topics_dir', [
-      {
-        name: 'guide.mdx',
-        path: 'guide.mdx',
-        is_dir: false,
-        mtime_secs: 1,
-      },
-    ])
+    invokeOverrides.set('list_workspace_dir', (args?: Record<string, unknown>) => {
+      const relativePath = (args?.relativePath as string) ?? ''
+      if (relativePath === '') {
+        return [{ name: 'topics', path: 'topics', is_dir: true, mtime_secs: 0 }]
+      }
+      if (relativePath === 'topics') {
+        return [{ name: 'guide.mdx', path: 'topics/guide.mdx', is_dir: false, mtime_secs: 1 }]
+      }
+      return []
+    })
 
     await act(async () => {
       renderApp()
@@ -469,6 +474,13 @@ describe('App', () => {
     // Switch to topics category via NavRail
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '专题' }))
+    })
+
+    // topics/ is now a normal subdirectory of workspace root — expand it first
+    await act(async () => {
+      fireEvent.click(screen.getByText('topics'))
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     const topicFile = await screen.findByText('guide')
@@ -488,14 +500,16 @@ describe('App', () => {
   })
 
   it('keeps an item selected when clicking it again', async () => {
-    invokeOverrides.set('list_topics_dir', [
-      {
-        name: 'guide.mdx',
-        path: 'guide.mdx',
-        is_dir: false,
-        mtime_secs: 1,
-      },
-    ])
+    invokeOverrides.set('list_workspace_dir', (args?: Record<string, unknown>) => {
+      const relativePath = (args?.relativePath as string) ?? ''
+      if (relativePath === '') {
+        return [{ name: 'topics', path: 'topics', is_dir: true, mtime_secs: 0 }]
+      }
+      if (relativePath === 'topics') {
+        return [{ name: 'guide.mdx', path: 'topics/guide.mdx', is_dir: false, mtime_secs: 1 }]
+      }
+      return []
+    })
     invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     await act(async () => {
@@ -507,6 +521,13 @@ describe('App', () => {
     // Switch to topics category via NavRail
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '专题' }))
+    })
+
+    // topics/ is now a normal subdirectory of workspace root — expand it first
+    await act(async () => {
+      fireEvent.click(screen.getByText('topics'))
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     const topicFile = await screen.findByText('guide')
@@ -529,14 +550,16 @@ describe('App', () => {
   })
 
   it('restores the last selected topic file after remounting', async () => {
-    invokeOverrides.set('list_topics_dir', [
-      {
-        name: 'guide.mdx',
-        path: 'guide.mdx',
-        is_dir: false,
-        mtime_secs: 1,
-      },
-    ])
+    invokeOverrides.set('list_workspace_dir', (args?: Record<string, unknown>) => {
+      const relativePath = (args?.relativePath as string) ?? ''
+      if (relativePath === '') {
+        return [{ name: 'topics', path: 'topics', is_dir: true, mtime_secs: 0 }]
+      }
+      if (relativePath === 'topics') {
+        return [{ name: 'guide.mdx', path: 'topics/guide.mdx', is_dir: false, mtime_secs: 1 }]
+      }
+      return []
+    })
     invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     let app = renderApp()
@@ -548,6 +571,13 @@ describe('App', () => {
     // Switch to topics category via NavRail
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '专题' }))
+    })
+
+    // topics/ is now a normal subdirectory of workspace root — expand it first
+    await act(async () => {
+      fireEvent.click(screen.getByText('topics'))
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     await act(async () => {
@@ -585,14 +615,16 @@ describe('App', () => {
     vi.useFakeTimers()
     invokeOverrides.set('list_available_months', ['2604'])
     invokeOverrides.set('list_journal_entries_by_months', [TEST_ENTRY])
-    invokeOverrides.set('list_topics_dir', [
-      {
-        name: 'guide.mdx',
-        path: 'guide.mdx',
-        is_dir: false,
-        mtime_secs: 1,
-      },
-    ])
+    invokeOverrides.set('list_workspace_dir', (args?: Record<string, unknown>) => {
+      const relativePath = (args?.relativePath as string) ?? ''
+      if (relativePath === '') {
+        return [{ name: 'topics', path: 'topics', is_dir: true, mtime_secs: 0 }]
+      }
+      if (relativePath === 'topics') {
+        return [{ name: 'guide.mdx', path: 'topics/guide.mdx', is_dir: false, mtime_secs: 1 }]
+      }
+      return []
+    })
     invokeOverrides.set('get_journal_entry_content', '# Guide')
 
     await act(async () => {
@@ -604,6 +636,13 @@ describe('App', () => {
     // Switch to topics category via NavRail
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '专题' }))
+    })
+
+    // topics/ is now a normal subdirectory of workspace root — expand it first
+    await act(async () => {
+      fireEvent.click(screen.getByText('topics'))
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     await act(async () => {

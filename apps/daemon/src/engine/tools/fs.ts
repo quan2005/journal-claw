@@ -169,7 +169,7 @@ function createDeleteFileTool(ctx: EngineToolContext): EngineAgentTool {
   return {
     name: 'delete_file',
     label: 'Delete File',
-    description: 'Move a file into .journal-trash through ChangeSetService so it can be reverted.',
+    description: 'Move a file into .journal/trash through ChangeSetService so it can be reverted.',
     parameters: schema({
       type: 'object',
       properties: { path: { type: 'string', description: 'Path to delete' } },
@@ -182,7 +182,7 @@ function createDeleteFileTool(ctx: EngineToolContext): EngineAgentTool {
       const abs = resolvePath(ctx.workspaceRoot, path)
       if (!existsSync(abs)) throw new Error(`path not found: ${path}`)
       const changeSet = recordChange(ctx, path, 'remove', undefined)
-      return textResult(`moved to .journal-trash: ${path}`, {
+      return textResult(`moved to .journal/trash: ${path}`, {
         kind: 'fs',
         operation: 'remove',
         path: normalizeWorkspaceRelative(ctx.workspaceRoot, abs),

@@ -40,6 +40,7 @@ import { ConversationService } from './conversation/service.js'
 import { AutomationService } from './automation/service.js'
 import { builtInTemplates } from './automation/templates.js'
 import { LocalCrudError } from './local/service.js'
+import { migrateWorkspaceLayout } from './workspace/migration.js'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
 
@@ -239,12 +240,35 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const artifactIndex = new ArtifactIndexService()
     const sedimentService = new SedimentationService(process.cwd())
     const sourceBindingService = new SourceBindingService()
-    const workspaceService = new WorkspaceService(process.cwd())
     const configService = opts.configService ?? new ConfigService()
-    const filesService = new FilesService(process.cwd(), changeSetService)
-    const workspaceRoot = (): string => configService.getWorkspacePath()
+    // Workspace disk-layout migration runs once per workspace root the first
+    // time the daemon touches it (story 20260706-workspace-disk-contract).
+    // Migration is idempotent; subsequent encounters short-circuit on the
+    // layoutVersion marker. Errors are logged but never break the request —
+    // a half-migrated workspace still serves reads from wherever files live.
+    const migratedRoots = new Set<string>()
+    const ensureWorkspaceMigrated = (root: string): void => {
+      if (migratedRoots.has(root)) return
+      try {
+        migrateWorkspaceLayout(root)
+      } catch (err) {
+        console.warn(
+          `[workspace migration] failed for ${root}:`,
+          err instanceof Error ? err.message : err,
+        )
+      }
+      migratedRoots.add(root)
+    }
+    const workspaceRoot = (): string => {
+      const root = configService.getWorkspacePath()
+      ensureWorkspaceMigrated(root)
+      return root
+    }
     const settingsService = (): SettingsService => new SettingsService(workspaceRoot())
+    const workspaceService = (): WorkspaceService => new WorkspaceService(workspaceRoot())
     const workspaceChangeSets = (): ChangeSetService => new ChangeSetService(workspaceRoot())
+    const filesService = (): FilesService =>
+      new FilesService(workspaceRoot(), workspaceChangeSets())
     const journalService = (): JournalService =>
       new JournalService(workspaceRoot(), workspaceChangeSets(), () => new Date(), {
         sampleEntryCreated: () => configService.getSampleEntryCreated(),
@@ -463,7 +487,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
 
     // GET /workspace/meta — workspace context boundary metadata (G15)
     app.get('/workspace/meta', (_req, res) => {
-      res.json(workspaceService.getMeta())
+      res.json(workspaceService().getMeta())
     })
 
     // PUT /workspace/meta — update workspace metadata (partial merge)
@@ -476,7 +500,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       if (Array.isArray(body.goals)) patch.goals = body.goals.filter((g) => typeof g === 'string')
       if (Array.isArray(body.activeSources))
         patch.activeSources = body.activeSources.filter((s) => typeof s === 'string')
-      res.json(workspaceService.updateMeta(patch))
+      res.json(workspaceService().updateMeta(patch))
     })
 
     // GET /settings — Rust-compatible workspace settings from <workspace>/.setting.json
@@ -1055,7 +1079,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       try {
         const relativePath =
           typeof req.query.relativePath === 'string' ? req.query.relativePath : ''
-        res.json(filesService.listWorkspaceDir(relativePath))
+        res.json(filesService().listWorkspaceDir(relativePath))
       } catch (err) {
         handleFsError(res, err)
       }
@@ -1067,7 +1091,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         const relativePath =
           typeof req.query.relativePath === 'string' ? req.query.relativePath : ''
         const query = typeof req.query.query === 'string' ? req.query.query : ''
-        res.json(filesService.listAtMentionCandidates(relativePath, query))
+        res.json(filesService().listAtMentionCandidates(relativePath, query))
       } catch (err) {
         handleFsError(res, err)
       }
@@ -1114,7 +1138,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
             .json({ error: { code: 'invalid_path', message: 'relativePath is required' } })
           return
         }
-        res.json(filesService.duplicate(body.relativePath).result)
+        res.json(filesService().duplicate(body.relativePath).result)
       } catch (err) {
         handleFsError(res, err)
       }
@@ -1132,7 +1156,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           })
           return
         }
-        res.json(filesService.rename(body.relativePath, body.newName).result)
+        res.json(filesService().rename(body.relativePath, body.newName).result)
       } catch (err) {
         handleFsError(res, err)
       }
@@ -1150,7 +1174,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           })
           return
         }
-        res.json(filesService.move(body.relativePath, body.destDir).result)
+        res.json(filesService().move(body.relativePath, body.destDir).result)
       } catch (err) {
         handleFsError(res, err)
       }
@@ -1170,7 +1194,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
             .json({ error: { code: 'invalid_path', message: 'relativePath is required' } })
           return
         }
-        filesService.delete(relativePath)
+        filesService().delete(relativePath)
         res.status(204).end()
       } catch (err) {
         handleFsError(res, err)
@@ -1186,7 +1210,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
             .json({ error: { code: 'invalid_path', message: 'relativePath is required' } })
           return
         }
-        filesService.delete(body.relativePath)
+        filesService().delete(body.relativePath)
         res.status(204).end()
       } catch (err) {
         handleFsError(res, err)
@@ -1200,7 +1224,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: 'goal is required' })
         return
       }
-      res.json(workspaceService.addGoal(goal.goal))
+      res.json(workspaceService().addGoal(goal.goal))
     })
 
     // POST /workspace/sources — mark a file as an active source
@@ -1210,7 +1234,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: 'source is required' })
         return
       }
-      res.json(workspaceService.addActiveSource(body.source))
+      res.json(workspaceService().addActiveSource(body.source))
     })
 
     // SSE event stream — 推送 mock 心跳事件，验证通道可用
@@ -1681,7 +1705,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       // state.
       const assembledPrompt = assembleContext(
         prompt,
-        workspaceService.getMeta(),
+        workspaceService().getMeta(),
         sedimentService.listDurable(),
       )
       // Snapshot the workspace BEFORE the run so its real file changes can be

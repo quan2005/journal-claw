@@ -2,8 +2,17 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { selectRuntimeClient } from '../lib/runtimeClient'
 import type { TopicEntry } from '../lib/apiTypes'
 
-const listTopicsDir = (relativePath: string): Promise<TopicEntry[]> =>
-  selectRuntimeClient().invoke<TopicEntry[]>('list_topics_dir', { relativePath })
+// 文件树根 = workspace 根（非 topics/ 白名单）。走通用文件列举路径，禁止直连 daemon URL。
+const listWorkspaceDir = (relativePath: string): Promise<TopicEntry[]> =>
+  selectRuntimeClient().invoke<TopicEntry[]>('list_workspace_dir', { relativePath })
+
+// 防御性过滤：daemon 侧已过滤 dot 条目，web 侧再兜一层（AC-3）。
+function filterDotEntries(entries: TopicEntry[]): TopicEntry[] {
+  return entries.filter((entry) => !entry.name.startsWith('.'))
+}
+
+const listDir = (relativePath: string): Promise<TopicEntry[]> =>
+  listWorkspaceDir(relativePath).then(filterDotEntries)
 
 const TOPICS_REFRESH_DEBOUNCE_MS = 250
 const TOPIC_EXPANDED_DIRS_STORAGE_KEY = 'journal_topics_expanded_dirs_v1'
@@ -66,13 +75,13 @@ export function useTopics() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const entries = await listTopicsDir('')
+      const entries = await listDir('')
       const next = new Map<string, DirState>([['', { entries, expanded: true, loading: false }]])
       const expandedDirs = loadExpandedTopicDirs()
       const loadedDirs = await Promise.all(
         expandedDirs.map(async (path) => {
           try {
-            return [path, await listTopicsDir(path)] as const
+            return [path, await listDir(path)] as const
           } catch (e) {
             console.error('[useTopics] restore expanded dir failed:', e)
             return null
@@ -100,7 +109,7 @@ export function useTopics() {
 
     try {
       const loaded = await Promise.all(
-        paths.map(async (path) => [path, await listTopicsDir(path)] as const),
+        paths.map(async (path) => [path, await listDir(path)] as const),
       )
 
       const latest = dirsRef.current
@@ -178,7 +187,7 @@ export function useTopics() {
           return next
         })
         try {
-          const entries = await listTopicsDir(path)
+          const entries = await listDir(path)
           setDirs((prev) => {
             const next = new Map(prev)
             next.set(path, { entries, expanded: true, loading: false })

@@ -30,7 +30,7 @@ describe('ai processor planning helpers', () => {
     expect(classifyMaterial('image.webp')).toBe('image')
     expect(classifyMaterial('data.csv')).toBe('other')
     expect(buildDefaultUserPrompt('/tmp/file.txt', '2606', '会议')).toBe(
-      '分析和处理 @2606/raw/file.txt 会议',
+      '分析和处理 @.journal/memory/2606/raw/file.txt 会议',
     )
     expect(promptLabel('帮我把今天所有的会议记录整理成日志条目，按重要程度排序')).toHaveLength(21)
     expect(computeSourceDigest(Buffer.from('hello'), 'v1', 'm')).toHaveLength(64)
@@ -41,11 +41,14 @@ describe('ai processor planning helpers', () => {
   it('detects duplicate source_digest in month entries', () => {
     const ws = fixture()
     try {
-      mkdirSync(join(ws, '2606'), { recursive: true })
-      const material = join(ws, '2606', 'raw.txt')
+      mkdirSync(join(ws, '.journal', 'memory', '2606'), { recursive: true })
+      const material = join(ws, '.journal', 'memory', '2606', 'raw.txt')
       writeFileSync(material, 'hello')
       const digest = computeSourceDigest(Buffer.from('hello'), 'v1', 'faux-model')
-      writeFileSync(join(ws, '2606', '01-old.md'), `---\nsource_digest: ${digest}\n---\n`)
+      writeFileSync(
+        join(ws, '.journal', 'memory', '2606', '01-old.md'),
+        `---\nsource_digest: ${digest}\n---\n`,
+      )
       expect(planProcessing(ws, material, '2606', null, null, 'faux-model')?.is_duplicate).toBe(
         true,
       )
@@ -71,10 +74,10 @@ describe('AiProcessorService', () => {
     const dir = fixture()
     try {
       const workspace = join(dir, 'workspace')
-      mkdirSync(join(workspace, '2606'), { recursive: true })
-      const material = join(workspace, '2606', 'raw.txt')
+      mkdirSync(join(workspace, '.journal', 'memory', '2606'), { recursive: true })
+      const material = join(workspace, '.journal', 'memory', '2606', 'raw.txt')
       writeFileSync(material, 'hello')
-      const entry = join(workspace, '2606', '27-test.md')
+      const entry = join(workspace, '.journal', 'memory', '2606', '27-test.md')
       writeFileSync(entry, '---\nsummary: test\n---\n\n# Test\n')
 
       const faux = fauxProvider({
@@ -123,11 +126,14 @@ describe('AiProcessorService', () => {
     const dir = fixture()
     try {
       const workspace = join(dir, 'workspace')
-      mkdirSync(join(workspace, '2606'), { recursive: true })
-      const material = join(workspace, '2606', 'raw.txt')
+      mkdirSync(join(workspace, '.journal', 'memory', '2606'), { recursive: true })
+      const material = join(workspace, '.journal', 'memory', '2606', 'raw.txt')
       writeFileSync(material, 'hello')
       const digest = computeSourceDigest(Buffer.from('hello'), 'v1', 'faux-model')
-      writeFileSync(join(workspace, '2606', '01-old.md'), `---\nsource_digest: ${digest}\n---\n`)
+      writeFileSync(
+        join(workspace, '.journal', 'memory', '2606', '01-old.md'),
+        `---\nsource_digest: ${digest}\n---\n`,
+      )
       const faux = fauxProvider({
         provider: 'faux',
         models: [{ id: 'faux-model', reasoning: false }],

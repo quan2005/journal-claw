@@ -198,7 +198,7 @@ describe('PiEngineService', () => {
     expect(toolResultText(result)).toContain('path escapes workspace root')
   })
 
-  it('delete_file moves into .journal-trash and can be reverted', async () => {
+  it('delete_file moves into .journal/trash and can be reverted', async () => {
     const faux = fauxProvider({
       provider: 'faux',
       models: [{ id: 'faux-model', reasoning: false }],
@@ -233,7 +233,7 @@ describe('PiEngineService', () => {
       operation: 'remove',
       status: 'applied',
     })
-    expect(changeSet?.beforePath).toContain('.journal-trash')
+    expect(changeSet?.beforePath).toContain('.journal/trash')
     expect(existsSync(changeSet!.beforePath!)).toBe(true)
 
     const reverted = changes.revertChangeSet(changeSet!.id)

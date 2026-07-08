@@ -25,9 +25,11 @@ describe('FilesService', () => {
     mkdirSync(join(ws, 'z-dir'))
     mkdirSync(join(ws, 'a-dir'))
     mkdirSync(join(ws, '.git'))
+    mkdirSync(join(ws, '.journal'))
     writeFileSync(join(ws, 'z.md'), 'z')
     writeFileSync(join(ws, 'a.md'), 'a')
     writeFileSync(join(ws, '.hidden.md'), 'hidden')
+    writeFileSync(join(ws, '.env'), 'env')
 
     expect(files.listWorkspaceDir('').map((entry) => [entry.name, entry.is_dir])).toEqual([
       ['z-dir', true],
@@ -37,10 +39,26 @@ describe('FilesService', () => {
     ])
   })
 
+  it('filters every dot-prefixed entry at root (AC-3: .journal stays hidden)', () => {
+    mkdirSync(join(ws, 'visible-dir'))
+    mkdirSync(join(ws, '.journal'))
+    mkdirSync(join(ws, '.git'))
+    mkdirSync(join(ws, '.cache'))
+    writeFileSync(join(ws, 'visible.md'), 'v')
+    writeFileSync(join(ws, '.dotfile'), 'd')
+    writeFileSync(join(ws, '.journal', 'workspace.json'), '{}')
+    writeFileSync(join(ws, '.git', 'config'), 'c')
+
+    const listed = files.listWorkspaceDir('')
+    const names = listed.map((entry) => entry.name)
+    expect(names).toEqual(['visible-dir', 'visible.md'])
+    expect(names.some((name) => name.startsWith('.'))).toBe(false)
+  })
+
   it('adds expert virtual directory and filters expert candidates by query', () => {
-    mkdirSync(join(ws, 'identity'))
+    mkdirSync(join(ws, '.journal', 'identity'), { recursive: true })
     writeFileSync(
-      join(ws, 'identity', 'cn-Alice.md'),
+      join(ws, '.journal', 'identity', 'cn-Alice.md'),
       '---\nsummary: "LLM researcher"\ntags: ["expert", "ai"]\naliases: ["ali"]\n---\n# Alice\n',
     )
 
@@ -54,7 +72,7 @@ describe('FilesService', () => {
 
   it('imports text to current raw directory and records a ChangeSet', () => {
     const { result, changeSet } = files.importText('hello')
-    expect(result.path).toMatch(/^\d{4}\/raw\/\d{2}-paste-\d{8}-\d{6}\.txt$/)
+    expect(result.path).toMatch(/^\.journal\/memory\/\d{4}\/raw\/\d{2}-paste-\d{8}-\d{6}\.txt$/)
     expect(readFileSync(join(ws, result.path), 'utf8')).toBe('hello')
     expect(changeSet.runId).toBe('fs-manual')
     expect(changeSet.operation).toBe('create')
@@ -110,8 +128,8 @@ describe('FilesService', () => {
     const outside = join(tmpdir(), `journal-import-outside-${Math.random().toString(36).slice(2)}`)
     mkdirSync(outside, { recursive: true })
     const ym = `${String(new Date().getFullYear()).slice(-2)}${String(new Date().getMonth() + 1).padStart(2, '0')}`
-    mkdirSync(join(ws, ym), { recursive: true })
-    symlinkSync(outside, join(ws, ym, 'raw'), 'dir')
+    mkdirSync(join(ws, '.journal', 'memory', ym), { recursive: true })
+    symlinkSync(outside, join(ws, '.journal', 'memory', ym, 'raw'), 'dir')
     try {
       expect(() => files.importText('blocked')).toThrow(/符号链接/)
       expect(changes.listChangeSets('fs-manual')).toHaveLength(0)

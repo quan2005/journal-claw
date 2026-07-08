@@ -16,6 +16,7 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 
 import type { AuthorizationMode, ChangeSet } from '@journal/contracts'
 import { isPathAllowed } from '../changeset/authorization.js'
 import { ChangeSetService } from '../changeset/service.js'
+import { identityDir, memoryMonthRawDir } from '../workspace/paths.js'
 
 export interface WorkspaceDirEntry {
   name: string
@@ -230,12 +231,12 @@ export class FilesService {
       throw new WorkspaceFsError('file_not_found', '文件不存在', 404)
     }
     const ym = currentYearMonth()
-    const raw = join(this.workspaceRoot, ym, 'raw')
+    const raw = memoryMonthRawDir(this.workspaceRoot, ym)
     const parsedExt = extname(source)
     const stem = basename(source, parsedExt)
     const filename = `${dayPrefix()}-${stem}-${hash8(source)}${parsedExt}`
     const dest = join(raw, filename)
-    const relPath = `${ym}/raw/${filename}`
+    const relPath = `.journal/memory/${ym}/raw/${filename}`
     const content = readFileSync(source)
     this.assertCreatableTarget(dest, mode)
     const changeSet = this.recordWritableChange(relPath, 'create', mode, content.toString('utf8'))
@@ -252,10 +253,10 @@ export class FilesService {
     mode: AuthorizationMode = 'workspace_write',
   ): FileMutationResult<ImportResult> {
     const ym = currentYearMonth()
-    const raw = join(this.workspaceRoot, ym, 'raw')
+    const raw = memoryMonthRawDir(this.workspaceRoot, ym)
     const filename = `${dayPrefix()}-paste-${timestamp()}.txt`
     const dest = join(raw, filename)
-    const relPath = `${ym}/raw/${filename}`
+    const relPath = `.journal/memory/${ym}/raw/${filename}`
     this.assertCreatableTarget(dest, mode)
     const changeSet = this.recordWritableChange(relPath, 'create', mode, text)
     if (changeSet.status !== 'applied') {
@@ -413,7 +414,7 @@ export class FilesService {
   }
 
   private listExpertIdentities(query: string): AtMentionCandidate[] {
-    const dir = join(this.workspaceRoot, 'identity')
+    const dir = identityDir(this.workspaceRoot)
     if (!existsSync(dir)) return []
     const candidates: AtMentionCandidate[] = []
     for (const entry of readdirSync(dir, { withFileTypes: true })) {

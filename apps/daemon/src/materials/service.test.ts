@@ -45,7 +45,7 @@ describe('MaterialsService', () => {
       const result = service.importText('hello')
       expect(result).toEqual({
         filename: '27-paste-20260627-010203.txt',
-        path: '2606/raw/27-paste-20260627-010203.txt',
+        path: '.journal/memory/2606/raw/27-paste-20260627-010203.txt',
         year_month: '2606',
       })
       expect(readFileSync(join(ws, result.path), 'utf8')).toBe('hello')

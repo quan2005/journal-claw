@@ -8,6 +8,7 @@ import type { ConfigService } from '../config/service.js'
 import type { AgentRunService } from '../runs/service.js'
 import type { SkillsService } from '../skills/service.js'
 import { executeBuiltinRun } from '../engine/run.js'
+import { memoryMonthDir, todosPath } from '../workspace/paths.js'
 
 export type ProcessingStatus = 'queued' | 'processing' | 'completed' | 'failed'
 export type MaterialType = 'audio' | 'text' | 'image' | 'other'
@@ -244,7 +245,7 @@ export class AiProcessorService {
       structured_error: null,
     })
     this.opts.events?.journalUpdated?.(task.yearMonth)
-    if (existsSync(join(this.workspaceRoot, 'todos.md'))) this.opts.events?.todosUpdated?.()
+    if (existsSync(todosPath(this.workspaceRoot))) this.opts.events?.todosUpdated?.()
     void finalText
   }
 
@@ -294,7 +295,7 @@ export function buildDefaultUserPrompt(
   note?: string | null,
 ): string {
   const suffix = note?.trim() ? ` ${note.trim()}` : ''
-  return `分析和处理 @${yearMonth}/raw/${basename(materialPath)}${suffix}`
+  return `分析和处理 @.journal/memory/${yearMonth}/raw/${basename(materialPath)}${suffix}`
 }
 
 export function computeSourceDigest(
@@ -381,7 +382,7 @@ function resolveProviderId(configService: ConfigService): string {
 }
 
 function hasExistingDigest(workspaceRoot: string, yearMonth: string, digest: string): boolean {
-  const monthDir = join(workspaceRoot, yearMonth)
+  const monthDir = memoryMonthDir(workspaceRoot, yearMonth)
   if (!existsSync(monthDir)) return false
   return readdirSync(monthDir, { withFileTypes: true }).some((entry) => {
     if (!entry.isFile() || !entry.name.endsWith('.md')) return false
@@ -407,7 +408,7 @@ function injectSourceDigest(
   digest: string,
   now: Date,
 ): void {
-  const monthDir = join(workspaceRoot, yearMonth)
+  const monthDir = memoryMonthDir(workspaceRoot, yearMonth)
   if (!existsSync(monthDir)) return
   const cutoff = now.getTime() - 30_000
   const newest = readdirSync(monthDir, { withFileTypes: true })

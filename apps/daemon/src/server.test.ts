@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { startDaemon } from './server.js'
+import { ConfigService } from './config/service.js'
 
 describe('daemon server', () => {
   it('responds to /health with ok status', async () => {
@@ -47,6 +51,42 @@ describe('daemon server', () => {
       expect(res.headers.get('access-control-allow-headers')).toContain('Content-Type')
     } finally {
       await handle.close()
+    }
+  })
+
+  it('GET /files lists the configured workspace root and triggers migration (AC-3)', async () => {
+    // 回归：filesService 曾绑定 process.cwd()，生产环境列错目录且跳过迁移。
+    const configDir = mkdtempSync(join(tmpdir(), 'jc-config-'))
+    const workspace = mkdtempSync(join(tmpdir(), 'jc-ws-'))
+    mkdirSync(join(workspace, 'topics'))
+    writeFileSync(join(workspace, 'notes.md'), '# notes\n')
+    const configService = new ConfigService({ configDir })
+    configService.setWorkspacePath(workspace)
+
+    const handle = await startDaemon({ port: 0, configService })
+    try {
+      const res = await fetch(`${handle.url}/files`)
+      expect(res.status).toBe(200)
+      const entries = (await res.json()) as Array<{ name: string }>
+      const names = entries.map((e) => e.name)
+      expect(names).toContain('topics')
+      expect(names).toContain('notes.md')
+      expect(names.some((n) => n.startsWith('.'))).toBe(false)
+      // 首次访问触发磁盘布局迁移
+      expect(existsSync(join(workspace, '.journal'))).toBe(true)
+
+      // 删除也走 workspace 根（回归：曾用 cwd 绑定的 ChangeSetService，204 却不删除）
+      const del = await fetch(`${handle.url}/files/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relativePath: 'notes.md' }),
+      })
+      expect(del.status).toBe(204)
+      expect(existsSync(join(workspace, 'notes.md'))).toBe(false)
+    } finally {
+      await handle.close()
+      rmSync(configDir, { recursive: true, force: true })
+      rmSync(workspace, { recursive: true, force: true })
     }
   })
 

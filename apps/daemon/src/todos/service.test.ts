@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -30,7 +30,9 @@ describe('TodosService', () => {
       const service = new TodosService(ws, new ChangeSetService(ws), () => new Date(2026, 5, 27))
       const added = service.add('hello\nworld', '2026-06-30', 's.md', 'p.md')
       expect(added.text).toBe('hello\nworld')
-      expect(readFileSync(join(ws, 'todos.md'), 'utf8')).toContain('<!-- text:hello%0Aworld -->')
+      expect(readFileSync(join(ws, '.journal', 'todos.md'), 'utf8')).toContain(
+        '<!-- text:hello%0Aworld -->',
+      )
 
       service.setSessionId(added.line_index, 'sid-1', false)
       service.updateText(added.line_index, 'next', false)
@@ -52,8 +54,9 @@ describe('TodosService', () => {
   it('lists todos.md items before todos.done.md items', () => {
     const ws = fixture()
     try {
-      writeFileSync(join(ws, 'todos.md'), '- [ ] active\n')
-      writeFileSync(join(ws, 'todos.done.md'), '- [x] old\n')
+      mkdirSync(join(ws, '.journal'), { recursive: true })
+      writeFileSync(join(ws, '.journal', 'todos.md'), '- [ ] active\n')
+      writeFileSync(join(ws, '.journal', 'todos.done.md'), '- [x] old\n')
       const service = new TodosService(ws, new ChangeSetService(ws))
       expect(service.list().map((item) => item.text)).toEqual(['active', 'old'])
     } finally {

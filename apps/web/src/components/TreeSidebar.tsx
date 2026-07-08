@@ -22,7 +22,10 @@ const archiveIdentity = (path: string) =>
 const unarchiveIdentity = (path: string) =>
   selectRuntimeClient().invoke<void>('unarchive_identity', { path })
 const listTopicsDir = (relativePath: string) =>
-  selectRuntimeClient().invoke<TopicEntry[]>('list_topics_dir', { relativePath })
+  selectRuntimeClient()
+    .invoke<TopicEntry[]>('list_workspace_dir', { relativePath })
+    // 防御性过滤 dot 条目（AC-3，与 useTopics 保持一致）
+    .then((entries) => entries.filter((e) => !e.name.startsWith('.')))
 import { Search, LayoutGrid } from 'lucide-react'
 
 // ── Props ──────────────────────────────────────────────────────────────────────
@@ -909,7 +912,7 @@ export function TreeSidebar({
                                   true,
                                   x,
                                   y,
-                                  wsPath ? `${wsPath}/topics/${topicEntry.path}` : undefined,
+                                  wsPath ? `${wsPath}/${topicEntry.path}` : undefined,
                                 )
                               }
                             />
@@ -944,7 +947,7 @@ export function TreeSidebar({
                                     ),
                                     x,
                                     y,
-                                    wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
+                                    wsPath ? `${wsPath}/${entry.path}` : undefined,
                                   )
                                 }
                               />
@@ -977,7 +980,7 @@ export function TreeSidebar({
                               true,
                               x,
                               y,
-                              wsPath ? `${wsPath}/topics/${topicEntry.path}` : undefined,
+                              wsPath ? `${wsPath}/${topicEntry.path}` : undefined,
                             )
                           }
                         />
@@ -1033,7 +1036,7 @@ export function TreeSidebar({
                           pinnedItems.some((p) => p.type === 'topic' && p.path === entry.path),
                           x,
                           y,
-                          wsPath ? `${wsPath}/topics/${entry.path}` : undefined,
+                          wsPath ? `${wsPath}/${entry.path}` : undefined,
                         )
                       }
                     />

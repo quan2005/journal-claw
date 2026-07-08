@@ -49,7 +49,7 @@ describe('IdentityService', () => {
       const service = new IdentityService(ws, new ChangeSetService(ws))
       service.list()
       writeFileSync(
-        join(ws, 'identity', '北京-李四.md'),
+        join(ws, '.journal', 'identity', '北京-李四.md'),
         '---\nsummary: "简介含\\"引号\\""\ntags:\n  - expert\naliases:\n  - 老李\nexpert_skill: "skill-a"\nspeaker_id: "spk-2"\narchived: true\n---\n\n# 李四\n',
       )
       expect(service.list().find((entry) => entry.name === '李四')).toMatchObject({
@@ -83,7 +83,7 @@ describe('IdentityService', () => {
     try {
       const service = new IdentityService(ws, new ChangeSetService(ws))
       service.list()
-      expect(() => service.delete(join(ws, 'identity', 'README.md'))).toThrow('不可删除')
+      expect(() => service.delete(join(ws, '.journal', 'identity', 'README.md'))).toThrow('不可删除')
     } finally {
       rmSync(ws, { recursive: true, force: true })
     }

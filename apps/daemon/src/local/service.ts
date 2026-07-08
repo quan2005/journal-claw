@@ -11,6 +11,7 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import type { AuthorizationMode, ChangeSet, ChangeSetOperation } from '@journal/contracts'
 import { isPathAllowed } from '../changeset/authorization.js'
 import { ChangeSetService } from '../changeset/service.js'
+import { memoryMonthRawDir } from '../workspace/paths.js'
 
 export class LocalCrudError extends Error {
   constructor(
@@ -79,7 +80,7 @@ export function createdDisplayTime(path: string): string {
 }
 
 export function ensureYearMonthDirs(workspaceRoot: string, yearMonth: string): void {
-  mkdirSync(resolve(workspaceRoot, yearMonth, 'raw'), { recursive: true })
+  mkdirSync(memoryMonthRawDir(workspaceRoot, yearMonth), { recursive: true })
 }
 
 export function stripSurroundingQuotes(input: string): string {

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { SettingsService } from '../settings/service.js'
+import { memoryDir } from '../workspace/paths.js'
 
 export interface AutoLintStatus {
   state: 'idle' | 'running' | 'never_run' | 'error'
@@ -78,11 +79,12 @@ export class AutoLintService {
   }
 
   private countJournalEntries(): number {
-    if (!existsSync(this.workspaceRoot)) return 0
+    const memory = memoryDir(this.workspaceRoot)
+    if (!existsSync(memory)) return 0
     let count = 0
-    for (const dirent of readdirSync(this.workspaceRoot, { withFileTypes: true })) {
+    for (const dirent of readdirSync(memory, { withFileTypes: true })) {
       if (!dirent.isDirectory() || !/^\d{4}$/.test(dirent.name)) continue
-      for (const file of readdirSync(join(this.workspaceRoot, dirent.name), {
+      for (const file of readdirSync(join(memory, dirent.name), {
         withFileTypes: true,
       })) {
         if (file.isFile() && /\.(md|html?)$/.test(file.name)) count += 1

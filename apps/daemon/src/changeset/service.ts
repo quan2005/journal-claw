@@ -5,10 +5,12 @@
  *   { id, runId, path, operation, beforeHash, afterHash, diffPreview, risk,
  *     authorizationMode, status }
  *
- * remove/move stash the original in `<workspace>/.journal-trash/<id>/` so a
- * revert restores it without touching the system Trash. ChangeSets are kept
- * in-memory keyed by runId (v1); the JSONL run log already captures the
- * change_proposed/change events for replay.
+ * remove/move stash the original in `<workspace>/.journal/trash/<id>/` so a
+ * revert restores it without touching the system Trash. Revert falls back to
+ * the pre-migration `.journal-trash/<id>/` location if the new path is gone —
+ * covers records captured before the workspace-disk-contract migration.
+ * ChangeSets are kept in-memory keyed by runId (v1); the JSONL run log
+ * already captures the change_proposed/change events for replay.
  */
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, mkdirSync, renameSync, existsSync, type Dirent } from 'node:fs'
@@ -20,6 +22,7 @@ import type {
   ChangeSetRisk,
 } from '@journal/contracts'
 import { isPathAllowed } from './authorization.js'
+import { legacyTrashDir, toLegacyTrashPath, trashDir } from '../workspace/paths.js'
 
 function sha256(data: string): string {
   return createHash('sha256').update(data, 'utf8').digest('hex')
@@ -44,14 +47,37 @@ export interface WorkspaceSnapshot {
   readonly files: ReadonlyMap<string, string>
 }
 
-/** Paths the snapshotter always ignores (daemon-private / VCS metadata). */
-const SNAPSHOT_IGNORE = new Set([
-  '.journal',
-  '.journal-trash',
-  '.journal-daemon-data',
+/**
+ * Top-level entries the snapshot always skips (VCS metadata, daemon-private
+ * data, the pre-migration trash). The `.journal/` tree itself is walked so
+ * that system-managed files moved there (todos, memory, identity) remain
+ * tracked — see `isSnapshotJournalChildIgnored` for the inner exclusions.
+ */
+const SNAPSHOT_IGNORE_TOP = new Set([
   '.git',
   'node_modules',
+  '.journal-daemon-data',
+  '.journal-trash',
 ])
+
+/**
+ * Inside `.journal/`, skip the volatile system subtrees — run logs, the
+ * trash stash, the artifact index, and the workspace meta file. Everything
+ * else (memory/, todos.md, todos.done.md, identity/) is tracked so Agent
+ * edits to system-managed user content are still caught by snapshot diffs.
+ */
+const SNAPSHOT_IGNORE_JOURNAL_CHILDREN = new Set(['runs', 'trash', 'index'])
+const SNAPSHOT_IGNORE_JOURNAL_FILES = new Set(['workspace.json'])
+
+function isSnapshotIgnored(relParts: string[]): boolean {
+  const top = relParts[0]
+  if (SNAPSHOT_IGNORE_TOP.has(top)) return true
+  if (top === '.journal') {
+    if (relParts.length === 2 && SNAPSHOT_IGNORE_JOURNAL_FILES.has(relParts[1])) return true
+    if (relParts.length >= 2 && SNAPSHOT_IGNORE_JOURNAL_CHILDREN.has(relParts[1])) return true
+  }
+  return false
+}
 
 /** Minimal unified-diff-style preview: before/after content summary. */
 function diffPreview(operation: ChangeSetOperation, before?: string, after?: string): string {
@@ -114,9 +140,9 @@ export class ChangeSetService {
     // operation mutates the filesystem (the caller is expected to perform the
     // actual fs change after recordChangeSet returns; here we just snapshot).
     if ((input.operation === 'remove' || input.operation === 'move') && existsSync(abs)) {
-      const trashDir = join(this.workspaceRoot, '.journal-trash', id)
-      mkdirSync(trashDir, { recursive: true })
-      const stashed = join(trashDir, basename(abs))
+      const itemTrashDir = join(trashDir(this.workspaceRoot), id)
+      mkdirSync(itemTrashDir, { recursive: true })
+      const stashed = join(itemTrashDir, basename(abs))
       renameSync(abs, stashed)
       beforePath = stashed
     }
@@ -162,11 +188,21 @@ export class ChangeSetService {
   revertChangeSet(id: string): ChangeSet | undefined {
     const cs = this.getChangeSet(id)
     if (!cs) return undefined
-    if (cs.operation === 'remove' && cs.beforePath && existsSync(cs.beforePath)) {
-      const target = resolve(this.workspaceRoot, cs.path)
-      mkdirSync(dirname(target), { recursive: true })
-      renameSync(cs.beforePath, target)
-      cs.status = 'reverted'
+    if (cs.operation === 'remove' && cs.beforePath) {
+      // Prefer the post-migration stash location; fall back to the legacy
+      // .journal-trash/<id>/ layout for records captured before the
+      // workspace-disk-contract migration.
+      let stash = cs.beforePath
+      if (!existsSync(stash)) {
+        const legacy = toLegacyTrashPath(cs.beforePath, this.workspaceRoot)
+        if (legacy !== cs.beforePath && existsSync(legacy)) stash = legacy
+      }
+      if (existsSync(stash)) {
+        const target = resolve(this.workspaceRoot, cs.path)
+        mkdirSync(dirname(target), { recursive: true })
+        renameSync(stash, target)
+        cs.status = 'reverted'
+      }
     }
     return cs
   }
@@ -192,16 +228,17 @@ export class ChangeSetService {
         return
       }
       for (const entry of entries) {
-        const name = entry.name
-        if (SNAPSHOT_IGNORE.has(name)) continue
-        const full = join(dir, name)
+        const full = join(dir, entry.name)
+        const rel = relative(root, full)
+        if (rel.startsWith('..')) continue
+        const relParts = rel.split(/[\\/]/)
+        if (isSnapshotIgnored(relParts)) continue
         try {
           if (entry.isDirectory()) {
             walk(full)
           } else if (entry.isFile()) {
-            const rel = relative(root, full)
             const h = hashFile(full)
-            if (h) files.set(rel, h)
+            if (h) files.set(rel.split(/[\\/]/).join('/'), h)
           }
         } catch {
           continue

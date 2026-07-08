@@ -9,8 +9,8 @@ import { AutoLintService } from './service.js'
 describe('AutoLintService', () => {
   it('counts new journal entries and writes trigger checkpoint', () => {
     const workspace = mkdtempSync(join(tmpdir(), 'journal-auto-lint-'))
-    mkdirSync(join(workspace, '2606'), { recursive: true })
-    writeFileSync(join(workspace, '2606', '01-a.md'), 'a')
+    mkdirSync(join(workspace, '.journal', 'memory', '2606'), { recursive: true })
+    writeFileSync(join(workspace, '.journal', 'memory', '2606', '01-a.md'), 'a')
     const settings = new SettingsService(workspace)
     settings.update({
       auto_lint: { enabled: true, frequency: 'daily', time: '03:00', min_entries: 10 },

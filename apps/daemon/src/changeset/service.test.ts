@@ -47,7 +47,7 @@ describe('ChangeSetService', () => {
     expect(cs.status).toBe('blocked')
   })
 
-  it('remove stashes the file in .journal-trash and is reversible', () => {
+  it('remove stashes the file in .journal/trash and is reversible', () => {
     const note = join(ws, 'gone.md')
     writeFileSync(note, 'content')
     const svc = new ChangeSetService(ws)
@@ -105,8 +105,8 @@ describe('ChangeSetService', () => {
       expect(readFileSync(note, 'utf8')).toBe('keep me')
       // no trash stash was created
       expect(cs.beforePath).toBeUndefined()
-      // no .journal-trash directory was created for this op
-      expect(existsSync(join(ws, '.journal-trash', cs.id))).toBe(false)
+      // no .journal/trash directory was created for this op
+      expect(existsSync(join(ws, '.journal', 'trash', cs.id))).toBe(false)
     })
 
     it('read_only create/edit do not touch the filesystem', () => {
@@ -149,17 +149,30 @@ describe('ChangeSetService', () => {
   })
 
   describe('workspace snapshot diff', () => {
-    it('snapshotWorkspace hashes files, ignoring .journal / node_modules / .git', () => {
+    it('snapshotWorkspace hashes files, ignoring .journal/runs|trash|workspace.json + .git/node_modules', () => {
       writeFileSync(join(ws, 'a.md'), 'aaa')
       mkdirSync(join(ws, 'sub'), { recursive: true })
       writeFileSync(join(ws, 'sub', 'b.ts'), 'bbb')
       mkdirSync(join(ws, '.journal'), { recursive: true })
       writeFileSync(join(ws, '.journal', 'workspace.json'), '{}')
+      // post-migration system content inside .journal/ stays tracked
+      writeFileSync(join(ws, '.journal', 'todos.md'), '- [ ] x')
+      mkdirSync(join(ws, '.journal', 'memory', '2606'), { recursive: true })
+      writeFileSync(join(ws, '.journal', 'memory', '2606', '01-x.md'), 'entry')
+      // .journal/runs/ and .journal/trash/ stay excluded
+      mkdirSync(join(ws, '.journal', 'runs', 'r1'), { recursive: true })
+      writeFileSync(join(ws, '.journal', 'runs', 'r1', 'summary.md'), 's')
+      mkdirSync(join(ws, '.journal', 'trash', 'cs-1'), { recursive: true })
+      writeFileSync(join(ws, '.journal', 'trash', 'cs-1', 'gone.md'), 'g')
       const svc = new ChangeSetService(ws)
       const snap = svc.snapshotWorkspace()
       expect(snap.files.has('a.md')).toBe(true)
       expect(snap.files.has(join('sub', 'b.ts'))).toBe(true)
       expect(snap.files.has(join('.journal', 'workspace.json'))).toBe(false)
+      expect(snap.files.has(join('.journal', 'todos.md'))).toBe(true)
+      expect(snap.files.has(join('.journal', 'memory', '2606', '01-x.md'))).toBe(true)
+      expect(snap.files.has(join('.journal', 'runs', 'r1', 'summary.md'))).toBe(false)
+      expect(snap.files.has(join('.journal', 'trash', 'cs-1', 'gone.md'))).toBe(false)
     })
 
     it('captureSnapshotDiff records create/edit/remove as ChangeSets', () => {

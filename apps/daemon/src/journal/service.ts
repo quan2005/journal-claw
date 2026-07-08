@@ -19,6 +19,7 @@ import {
   stripSurroundingQuotes,
   writeTracked,
 } from '../local/service.js'
+import { memoryDir, memoryMonthDir } from '../workspace/paths.js'
 
 export interface RawMaterial {
   filename: string
@@ -59,15 +60,16 @@ export class JournalService {
   ) {}
 
   listMonths(): string[] {
-    if (!existsSync(this.workspaceRoot)) return []
-    return readdirSync(this.workspaceRoot, { withFileTypes: true })
+    const dir = memoryDir(this.workspaceRoot)
+    if (!existsSync(dir)) return []
+    return readdirSync(dir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory() && /^\d{4}$/.test(entry.name))
       .map((entry) => entry.name)
       .sort((a, b) => b.localeCompare(a))
   }
 
   list(yearMonth: string): JournalEntry[] {
-    const dir = join(this.workspaceRoot, yearMonth)
+    const dir = memoryMonthDir(this.workspaceRoot, yearMonth)
     if (!existsSync(dir)) return []
     return readdirSync(dir, { withFileTypes: true })
       .filter((entry) => entry.isFile())
@@ -126,7 +128,7 @@ export class JournalService {
   private writeSampleEntry(yearMonth: string, day: number): string {
     ensureYearMonthDirs(this.workspaceRoot, yearMonth)
     const filename = `${dayPrefix(new Date(2000, 0, day))}-产品评审示例.html`
-    const path = join(this.workspaceRoot, yearMonth, filename)
+    const path = join(memoryMonthDir(this.workspaceRoot, yearMonth), filename)
     if (!existsSync(path)) {
       writeTracked(this.changeSetService, this.workspaceRoot, RUN_ID, path, sampleEntryContent())
     }
@@ -135,7 +137,7 @@ export class JournalService {
 
   private hasAnyEntry(): boolean {
     return this.listMonths().some((month) =>
-      readdirSync(join(this.workspaceRoot, month), { withFileTypes: true }).some(
+      readdirSync(memoryMonthDir(this.workspaceRoot, month), { withFileTypes: true }).some(
         (entry) => entry.isFile() && parseEntryFilename(entry.name) !== null,
       ),
     )

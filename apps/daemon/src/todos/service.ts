@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { ChangeSetService } from '../changeset/service.js'
 import { writeTracked } from '../local/service.js'
+import { todosDonePath, todosPath as workspaceTodosPath } from '../workspace/paths.js'
 
 export interface TodoItem {
   text: string
@@ -146,11 +146,11 @@ export class TodosService {
   }
 
   private todosPath(): string {
-    return join(this.workspaceRoot, 'todos.md')
+    return workspaceTodosPath(this.workspaceRoot)
   }
 
   private donePath(): string {
-    return join(this.workspaceRoot, 'todos.done.md')
+    return todosDonePath(this.workspaceRoot)
   }
 
   private readTodos(): string {

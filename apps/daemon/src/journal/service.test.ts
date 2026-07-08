@@ -21,14 +21,14 @@ describe('JournalService', () => {
     try {
       const service = new JournalService(ws, new ChangeSetService(ws))
       writeFileSync(join(ws, 'note.txt'), '')
-      mkdirSync(join(ws, '2605'), { recursive: true })
-      mkdirSync(join(ws, '2606'), { recursive: true })
+      mkdirSync(join(ws, '.journal', 'memory', '2605'), { recursive: true })
+      mkdirSync(join(ws, '.journal', 'memory', '2606'), { recursive: true })
       writeFileSync(
-        join(ws, '2606', '27-会议.md'),
+        join(ws, '.journal', 'memory', '2606', '27-会议.md'),
         '---\nsummary: "\\"摘要\\""\ntags:\n  - a\n  - "b"\nsources:\n  - 2606/raw/a.txt\n---\n正文',
       )
       writeFileSync(
-        join(ws, '2605', '03-page.html'),
+        join(ws, '.journal', 'memory', '2605', '03-page.html'),
         '<!--\ntags: 示例, 产品\nsummary: HTML 摘要\nsources: 2605/raw/a.txt\n-->\n<h1>x</h1>',
       )
 

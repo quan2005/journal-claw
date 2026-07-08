@@ -137,7 +137,7 @@ function buildManifest(
 ): RunManifest {
   const filesChanged = [...changed.created, ...changed.modified, ...changed.deleted].sort()
   const entriesCreated = changed.created.filter(isJournalEntryPath)
-  const todosChanged = filesChanged.filter((p) => p === 'todos.md' || p === 'done.md')
+  const todosChanged = filesChanged.filter(isTodosPath)
   const identitiesChanged = filesChanged.filter((p) => p.startsWith('identities/'))
   return {
     summary: summarizeText(title, assistantText),
@@ -188,9 +188,29 @@ function collectFilesRead(messages: LoadedMessage[]): string[] {
 
 function isJournalEntryPath(path: string): boolean {
   const parts = path.split('/')
-  if (parts.length !== 2) return false
-  const [month, file] = parts
-  return /^\d{4}$/.test(month) && file.endsWith('.md')
+  // Legacy layout: <YYMM>/<file>.md
+  if (parts.length === 2 && /^\d{4}$/.test(parts[0]) && parts[1].endsWith('.md')) return true
+  // Current layout: .journal/memory/<YYMM>/<file>.md
+  if (
+    parts.length === 4 &&
+    parts[0] === '.journal' &&
+    parts[1] === 'memory' &&
+    /^\d{4}$/.test(parts[2]) &&
+    parts[3].endsWith('.md')
+  ) {
+    return true
+  }
+  return false
+}
+
+function isTodosPath(path: string): boolean {
+  return (
+    path === 'todos.md' ||
+    path === 'done.md' ||
+    path === '.journal/todos.md' ||
+    path === '.journal/todos.done.md' ||
+    path === '.journal/done.md'
+  )
 }
 
 export function diffSnapshots(

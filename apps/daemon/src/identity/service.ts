@@ -15,6 +15,7 @@ import {
   writeTracked,
   yamlEscape,
 } from '../local/service.js'
+import { identityDir as workspaceIdentityDir } from '../workspace/paths.js'
 
 export interface IdentityEntry {
   filename: string
@@ -169,7 +170,7 @@ export class IdentityService {
   }
 
   private dir(): string {
-    return join(this.workspaceRoot, 'identity')
+    return workspaceIdentityDir(this.workspaceRoot)
   }
 }
 

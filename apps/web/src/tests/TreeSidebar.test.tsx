@@ -3,6 +3,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import { TreeSidebar } from '../components/TreeSidebar'
 import type { IdentityEntry, JournalEntry, TreeSelection } from '../types'
+import type { TopicEntry } from '../lib/apiTypes'
 import type { Category } from '../contexts/UIContext'
 
 vi.mock('../hooks/usePinned', () => ({
@@ -14,9 +15,12 @@ vi.mock('../hooks/usePinned', () => ({
   }),
 }))
 
+// hoisted mutable holder so individual tests can inject root entries
+const { rootEntries } = vi.hoisted(() => ({ rootEntries: { current: [] as TopicEntry[] } }))
+
 vi.mock('../hooks/useTopics', () => ({
   useTopics: () => ({
-    dirs: new Map([['', { entries: [], expanded: true, loading: false }]]),
+    dirs: new Map([['', { entries: rootEntries.current, expanded: true, loading: false }]]),
     loading: false,
     load: vi.fn(),
     toggleDir: vi.fn(),
@@ -107,6 +111,7 @@ beforeEach(() => {
     writable: true,
   })
   vi.clearAllMocks()
+  rootEntries.current = []
   mockInvoke.mockImplementation((cmd: string) => {
     if (cmd === 'get_workspace_path') return Promise.resolve('/ws')
     return Promise.resolve(undefined)
@@ -188,5 +193,22 @@ describe('TreeSidebar', () => {
       .join('\n')
 
     expect(injectedCss).toContain('.tree-month-header:hover .tree-month-label')
+  })
+
+  // AC-3 · 根展示非 topics 内容、dot 条目不显示
+  it('renders workspace-root entries including non-topics content and hides dot entries', () => {
+    // 仿真实 useTopics 行为：传给组件的 root entries 已经过 dot 过滤
+    rootEntries.current = [
+      { name: 'topics', path: 'topics', is_dir: true, created_secs: 0, mtime_secs: 1 },
+      { name: 'research', path: 'research', is_dir: true, created_secs: 0, mtime_secs: 2 },
+      { name: 'README.md', path: 'README.md', is_dir: false, created_secs: 0, mtime_secs: 3 },
+    ]
+
+    renderTreeSidebar({ category: 'topics' })
+
+    // topics 之外的内容也可见
+    expect(screen.getByText('topics')).toBeTruthy()
+    expect(screen.getByText('research')).toBeTruthy()
+    expect(screen.getByText('README')).toBeTruthy()
   })
 })

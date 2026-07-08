@@ -62,6 +62,31 @@
 
 ---
 
+## 0.2 Workspace 磁盘契约（✅ 已定 · 用户 2026-07-06 拍板，迁移 story 待批）
+
+原则一句话：**根目录属于用户，`.journal/` 属于系统**。UI 文件树展示规则退化为最朴素的"隐藏 dotfile"——workspace 根下所有非 `.` 开头的文件/目录默认全展示，不再有 topics 白名单容器。
+
+```
+<workspace>/
+  ├── （用户区：所有非 . 开头内容，用户自由组织，产品零干预）
+  │     topics/ 保留为普通用户文件夹（不再有特殊语义）
+  └── .journal/              ← 唯一系统命名空间，不进 UI 文件树
+        workspace.json
+        runs/                （run summary 等）
+        memory/YYMM/         ← 日期日志目录从根迁入（用户定调：YYMM 即 memory 数据）
+        todos.md + todos.done.md  ← 从根迁入（放弃 Finder 直接编辑，走 App UI）
+        identity/            ← 画像从根迁入
+        trash/               ← 收编原 .journal-trash
+```
+
+已拍板的三个决策（2026-07-06）：
+
+1. **topics/ 保留不动**——变成普通用户文件夹，零迁移，产品不再对它有特殊语义；UI 根从 `topics/` 扩大到整个 workspace。
+2. **YYMM/ 日期目录迁入 `.journal/memory/`**——用户明确：日期文件就是 memory 数据，属系统管理。
+3. **todos.md/todos.done.md 迁入 `.journal/`**——接受不能在 Finder/外部编辑器直接改的副作用。
+
+迁移要求：旧 workspace 打开时自动搬迁（旧路径兼容读取 + 一次性迁移），由独立 story 落地。
+
 ## 0.1 任务拆解原则（✅ 已定）
 
 每个子目标必须：

@@ -10,6 +10,7 @@ import {
   timestamp,
   writeTracked,
 } from '../local/service.js'
+import { memoryMonthRawDir } from '../workspace/paths.js'
 
 export interface ImportResult {
   path: string
@@ -30,7 +31,7 @@ export class MaterialsService {
     if (!existsSync(srcPath)) throw new LocalCrudError('file_not_found', '文件不存在', 404)
     const ym = currentYearMonth(this.now())
     ensureYearMonthDirs(this.workspaceRoot, ym)
-    const raw = join(this.workspaceRoot, ym, 'raw')
+    const raw = memoryMonthRawDir(this.workspaceRoot, ym)
     const ext = extname(srcPath)
     const stem = basename(srcPath, ext)
     const filename = `${dayPrefix(this.now())}-${stem}-${hash8(srcPath)}${ext}`
@@ -46,9 +47,9 @@ export class MaterialsService {
     const ym = currentYearMonth(this.now())
     ensureYearMonthDirs(this.workspaceRoot, ym)
     const filename = `${dayPrefix(this.now())}-paste-${timestamp(this.now())}.txt`
-    const dest = join(this.workspaceRoot, ym, 'raw', filename)
+    const dest = join(memoryMonthRawDir(this.workspaceRoot, ym), filename)
     writeTracked(this.changeSetService, this.workspaceRoot, RUN_ID, dest, text)
-    return { path: `${ym}/raw/${filename}`, filename, year_month: ym }
+    return { path: `.journal/memory/${ym}/raw/${filename}`, filename, year_month: ym }
   }
 
   importTextTemp(text: string): ImportResult {

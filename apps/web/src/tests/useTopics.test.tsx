@@ -9,7 +9,7 @@ const eventListeners = vi.hoisted(() => new Map<string, Set<EventCallback>>())
 const { listTopicsDirMock, invokeMock } = vi.hoisted(() => {
   const listTopicsDirMock = vi.fn()
   const invokeMock = vi.fn((cmd: string, args?: Record<string, unknown>) => {
-    if (cmd === 'list_topics_dir') {
+    if (cmd === 'list_workspace_dir') {
       return listTopicsDirMock(args?.relativePath ?? '')
     }
     return undefined
@@ -245,5 +245,49 @@ describe('useTopics', () => {
 
     expect(listTopicsDirMock).toHaveBeenCalledWith('manual')
     expect(screen.getByText('manual:manual/guide.mdx')).toBeTruthy()
+  })
+
+  // AC-3 · 根展示非 topics 内容、dot 条目不显示
+  it('lists the workspace root (not just topics/) and surfaces non-topics entries', async () => {
+    listTopicsDirMock.mockResolvedValue([
+      { name: 'topics', path: 'topics', is_dir: true, mtime_secs: 1 },
+      { name: 'research', path: 'research', is_dir: true, mtime_secs: 2 },
+      { name: 'README.md', path: 'README.md', is_dir: false, mtime_secs: 3 },
+    ])
+
+    render(<TopicsProbe />)
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    // 根列举走 list_workspace_dir，且 topics 之外的内容也可见
+    expect(listTopicsDirMock).toHaveBeenCalledWith('')
+    expect(screen.getByText('topics')).toBeTruthy()
+    expect(screen.getByText('research')).toBeTruthy()
+    expect(screen.getByText('README.md')).toBeTruthy()
+  })
+
+  // AC-3 · 防御性过滤 dot 条目（daemon 已过滤，web 侧再兜一层）
+  it('hides dot entries (e.g. .journal, .gitignore) from the tree', async () => {
+    listTopicsDirMock.mockResolvedValue([
+      { name: '.journal', path: '.journal', is_dir: true, mtime_secs: 1 },
+      { name: '.gitignore', path: '.gitignore', is_dir: false, mtime_secs: 1 },
+      { name: 'notes.md', path: 'notes.md', is_dir: false, mtime_secs: 2 },
+    ])
+
+    render(<TopicsProbe />)
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByText('notes.md')).toBeTruthy()
+    expect(screen.queryByText('.journal')).toBeNull()
+    expect(screen.queryByText('.gitignore')).toBeNull()
   })
 })

@@ -84,7 +84,7 @@ expect(enqueueWork).toHaveBeenCalledWith({
 ## 风险与观察
 
 1. **脏工作树（非本 story 责任，已在交棒清单标注）**：工作树含大量与本 story 无关的既有改动，超出 design 的 Agent A/B/C 范围：`apps/web/src/App.tsx`、`DetailView.tsx`、`IdeasWorkbench.tsx`、`MergeIdentityDialog.tsx`、`useAgentRun.ts`、`styles/globals.css`、`apps/desktop/src/daemon.ts`、`apps/desktop/tests/daemon.test.ts`、`apps/web/e2e/`（untracked）、`playwright.config.ts`（untracked）、`apps/web/src/tests/{HistoryFloatingButton,SandboxPreview,light-theme-unit}.test.*`、`.gitignore`、根 `package.json`。这些属 story 交棒清单 Q6「脏工作树」项，本 story 未覆盖、也未污染。验收时已严格隔离，仅评判 story 范围内文件。
-2. **AC-2 历史命中（允许保留）**：`docs/ARCH.md:97`、`docs/dev/setup.md:14`、`docs/superpowers/{specs,plans}/*` 出现 `WhisperKit/SpeechAnalyzer/语音转写` 字样，均为「已删除/不需要/历史规格」陈述或历史 spec/plan，非当前能力宣传，按 design「ADR/release note 等历史/迁移说明允许保留」判 pass。
+2. **AC-2 历史命中（允许保留）**：`docs/ARCH.md:97`、`docs/dev/setup.md:14`、`stories/_archive/superpowers/{specs,plans}/*` 出现 `WhisperKit/SpeechAnalyzer/语音转写` 字样，均为「已删除/不需要/历史规格」陈述或历史 spec/plan，非当前能力宣传，按 design「ADR/release note 等历史/迁移说明允许保留」判 pass。
 3. **测试名残留（非 AC 违反）**：失败用例名 `...enqueues in Rust` 含 `Rust` 字样；仅为测试描述字符串，不构成用户可见能力宣传或 AC 违反，建议但非必须改名。
 4. **GAN 成对 \*-test 阶段不可验证**：AC-5 的 Generator/Discriminator 成对（A-test/B-test/C-test）为过程性约定，仓内无其独立产物；本 Agent D 仅能保证最终独立验收层严格按证据判定。未发现与协议矛盾的迹象，故 AC-5 判 pass。
 5. **越界检查**：本 story 范围内未新增业务能力，未恢复任何语音/MDX/Rust/Tauri 路径，未引入禁用依赖。

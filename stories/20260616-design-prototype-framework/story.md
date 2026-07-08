@@ -9,9 +9,9 @@ design: ./design.md
 related:
   - docs/DESIGN.md
   - docs/ARCH.md
-  - specs/20260615-design-system-unification/spec.md
-  - specs/20260615-workbench-layout-unification/spec.md
-  - docs/superpowers/mockups/
+  - stories/_archive/specs/20260615-design-system-unification/spec.md
+  - stories/_archive/specs/20260615-workbench-layout-unification/spec.md
+  - stories/_archive/superpowers/mockups/
 ---
 
 # 优化 DESIGN.md 并建立 JournalClaw 原型框架
@@ -24,9 +24,9 @@ JournalClaw 是面向知识工作者的 macOS 桌面日志应用，核心体验�
 
 `src/styles/globals.css` 已落地大部分设计 token，包括 `--font-display`、`--font-mono`、`--radius-*`、`--shadow-overlay`、`--border-menu`、`--focus-ring`、workbench 共享 token。[证据: src/styles/globals.css]
 
-历史设计系统统一已 verified，说明本次不应重新发明视觉语言，而应在既有 Agentic 体系上补齐“如何用 DESIGN.md 生成和迭代原型”的工作契约。[证据: specs/20260615-design-system-unification/spec.md]
+历史设计系统统一已 verified，说明本次不应重新发明视觉语言，而应在既有 Agentic 体系上补齐“如何用 DESIGN.md 生成和迭代原型”的工作契约。[证据: stories/_archive/specs/20260615-design-system-unification/spec.md]
 
-仓库已有 `docs/superpowers/mockups/` 存放 HTML mockup，但缺少一个可复用的原型框架入口、共享样式、示例页面和迭代说明，后续做原型容易各自开局、重复造轮子。[证据: docs/superpowers/mockups/]
+仓库已有 `stories/_archive/superpowers/mockups/` 存放 HTML mockup，但缺少一个可复用的原型框架入口、共享样式、示例页面和迭代说明，后续做原型容易各自开局、重复造轮子。[证据: stories/_archive/superpowers/mockups/]
 
 需求原文中的“深入了解”“优化”“原型框架”“方便后续迭代”属于范围与成功标准不够明确的表述。[推测] 默认将其收敛为：补强 DESIGN.md 的原型使用规则，并新增一个可直接复制/打开/扩展的 JournalClaw HTML 原型框架。
 
@@ -75,7 +75,7 @@ JournalClaw 是面向知识工作者的 macOS 桌面日志应用，核心体验�
 | #   | 问题                         | 当前默认值                                                                          | 状态   |
 | --- | ---------------------------- | ----------------------------------------------------------------------------------- | ------ |
 | Q1  | 原型框架默认面向哪种平台？   | **桌面应用优先**：围绕 macOS/Tauri 三栏工作流建立框架，窄屏只做可读降级             | 待确认 |
-| Q2  | 原型框架放在哪里？           | **`docs/superpowers/mockups/prototype-framework/`**：复用现有 mockup 资产与评审目录 | 待确认 |
+| Q2  | 原型框架放在哪里？           | **`stories/_archive/superpowers/mockups/prototype-framework/`**：复用现有 mockup 资产与评审目录 | 待确认 |
 | Q3  | 首版原型框架要覆盖多少页面？ | **1 个入口 + 2 个示例屏**：主工作台骨架、详情/对话阅读骨架                          | 待确认 |
 | Q4  | `docs/DESIGN.md` 优化幅度？  | **增量补强**：保留现有视觉规范，只新增/调整“原型迭代契约”相关章节                   | 待确认 |
 
@@ -86,7 +86,7 @@ JournalClaw 是面向知识工作者的 macOS 桌面日志应用，核心体验�
 - [ ] 确定从 `src/styles/globals.css` 复制哪些 token，如何避免与生产 token 漂移。
 - [ ] 确定原型框架是否需要通过浏览器自动截图/视口检查。
 - [ ] 确定文档检查、前端测试、格式化检查的最小验证命令。
-- [ ] 确定后续原型迭代与 `docs/superpowers/specs`、`stories`、`specs` 的引用关系。
+- [ ] 确定后续原型迭代与 `stories/_archive/superpowers/specs`、`stories`、`stories/_archive/specs` 的引用关系。
 
 ## 8. 门禁记录
 

@@ -58,7 +58,7 @@ verifier: Agent D (final independent verification · evidence-only · round 2)
 ## 风险与观察
 
 1. **脏工作树（非本 story 责任，已在 story 交棒清单 Q6 标注）**：工作树含大量与本 story 无关的既有改动（`App.tsx`、`DetailView.tsx`、`IdeasWorkbench.tsx`、`MergeIdentityDialog.tsx`、`useAgentRun.ts`、`styles/globals.css`、`apps/desktop/src/daemon.ts`、`apps/desktop/tests/daemon.test.ts`、`apps/web/e2e/` untracked、`playwright.config.ts` untracked、`HistoryFloatingButton/SandboxPreview/light-theme-unit` 测试、`.gitignore`、根 `package.json`）。本 story 未覆盖、也未污染；验收已严格隔离，仅评判 story 范围内文件。这些属后续独立故事范畴，不影响本 story 验收。
-2. **AC-2 历史命中（允许保留，与 round 1 一致）**：`docs/ARCH.md`、`docs/dev/setup.md`、`docs/superpowers/{specs,plans}/*` 出现 `WhisperKit/SpeechAnalyzer/语音转写` 字样，均为「已删除/不需要/历史规格」陈述或历史 spec/plan，按 design「ADR/release note 等历史/迁移说明允许保留」判 pass。
+2. **AC-2 历史命中（允许保留，与 round 1 一致）**：`docs/ARCH.md`、`docs/dev/setup.md`、`stories/_archive/superpowers/{specs,plans}/*` 出现 `WhisperKit/SpeechAnalyzer/语音转写` 字样，均为「已删除/不需要/历史规格」陈述或历史 spec/plan，按 design「ADR/release note 等历史/迁移说明允许保留」判 pass。
 3. **测试名残留（非 AC 违反）**：`useJournal.test.ts:131` 用例名 `...enqueues in Rust` 含 `Rust` 字样，仅为测试描述字符串，非用户可见能力宣传，建议但非必须改名。
 4. **基线叙述**：round 1 报告指出 design/AC-4 预设「9 个既有失败基线」与真实结果不符且仓内无基线记录。本轮 web test 实测 0 失败，已优于任何预设基线，AC-4「不得新增失败」自然满足。建议主对话后续按真实结果更新 story/design 叙述（非本验收阻塞项）。
 5. **GAN 成对 \*-test 阶段不可验证（与 round 1 一致）**：AC-5 的 Generator/Discriminator 成对（A-test/B-test/C-test）为过程性约定，仓内无独立产物；本 Agent D 仅保证最终独立验收层严格按证据判定，未发现与协议矛盾迹象。

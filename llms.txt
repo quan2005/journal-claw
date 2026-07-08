@@ -40,5 +40,5 @@ This file indexes the project's documentation for Agent consumption. All paths a
 
 ## Optional
 
-- [Superpowers Plans](docs/superpowers/plans/): Implementation plans for feature development (historical, not authoritative).
-- [Superpowers Specs](docs/superpowers/specs/): Design specs for features (historical, not authoritative).
+- [Superpowers Plans](stories/_archive/superpowers/plans/): Implementation plans for feature development (historical, archived, not authoritative).
+- [Superpowers Specs](stories/_archive/superpowers/specs/): Design specs for features (historical, archived, not authoritative).

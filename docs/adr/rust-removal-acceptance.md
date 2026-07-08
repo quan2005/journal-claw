@@ -70,7 +70,7 @@ does not import @tauri-apps/api/event
 全仓扫描仍会命中：
 
 - `pnpm-lock.yaml`：按要求未更新 lockfile。
-- `stories/`, `specs/`, `docs/superpowers/`, `repomix-output.xml`：历史/迁移/快照资料。
+- `stories/`, `stories/_archive/`（含归档的旧 `specs/`、`docs/superpowers/` plans/specs/mockups）：历史/迁移/快照资料。
 - `docs/adr/rust-removal-*`：本次迁移与回滚文档。
 
 ## 备注

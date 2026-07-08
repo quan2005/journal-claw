@@ -12,6 +12,8 @@
 | `docs/final-state.md` | 产品北极星、五个一等对象、状态地图                        |
 | `docs/adr/`           | 架构决策历史（只增不改）                                  |
 
+> **历史工作流产物已归档**：旧根目录 `specs/`、`docs/superpowers/`（plans / specs / mockups / examples）整体迁入 `stories/_archive/`，**只读、不再维护**，仅作历史回溯用。当前需求与设计走 `stories/<phase>/story.md` + `docs/*.md`。
+
 ## 产品一句话
 
 `journal` = **本地优先的个人 Agentic Knowledge Workspace**：文件是长期资产，Agent 是工作执行者，输出是核心结果。用户是知识工作者，核心任务是高效浏览 + 沉浸阅读。详见 `docs/final-state.md`。

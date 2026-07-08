@@ -37,6 +37,10 @@ src-tauri/resources/workspace-template/.claude/scripts/__pycache__/
 # Swift build artifacts
 apps/web/src-tauri/swift-cli/.build/
 
+# Process artifacts
+opencode-run-output*.log
+repomix-output.xml
+
 # Playwright e2e artifacts
 test-results/
 playwright-report/

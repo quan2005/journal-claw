@@ -11,7 +11,7 @@ related:
   - docs/guide/profiles.md
   - docs/guide/skills.md
   - docs/guide/conversation.md
-  - docs/superpowers/specs/2026-06-15-skill-loading-mechanism-design.md
+  - stories/_archive/superpowers/specs/2026-06-15-skill-loading-mechanism-design.md
   - src/components/AtMentionMenu.tsx
   - src/components/ChatPanel.tsx
   - src-tauri/src/identity.rs

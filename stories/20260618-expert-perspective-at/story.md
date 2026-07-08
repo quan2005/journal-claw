@@ -1,7 +1,13 @@
 ---
 id: STORY-20260618-expert-perspective-at
 title: '@ 专家视角对话机制'
-status: approved
+status: verified
+note: >-
+  r1-r4 verify-reports (2026-06-18) predate the Rust/Tauri → TS daemon
+  migration (M-series, verified) and reference deleted src-tauri/ paths;
+  their 2 pending items concern pre-existing app-wide file-open routing
+  unrelated to this round's diff. Re-verifying fresh against current
+  apps/web + apps/daemon implementation (2026-07-08).
 source: gate
 level: L3
 hypothesis_basis: intuition

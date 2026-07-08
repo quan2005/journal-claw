@@ -23,8 +23,15 @@ import type { ConfigService } from '../config/service.js'
 import { mapPiAgentEvent } from '../engine/events.js'
 import { buildPiSystemPrompt } from '../engine/run.js'
 import { PiEngineService } from '../engine/service.js'
+import type { IdentityService } from '../identity/service.js'
+import { parseSimpleFrontmatter } from '../local/service.js'
 import type { AgentRunService } from '../runs/service.js'
 import type { SkillsService } from '../skills/service.js'
+
+const EXPERT_MENTION_RE = /@(identities\/[^\s@]+\.md)/g
+// \b is ASCII-word-boundary only and does not fire around CJK text; use an
+// explicit lookahead for "end of mention" instead.
+const CLEAR_EXPERT_RE = /@清除专家(?=\s|@|$)/
 
 export interface ImageAttachment {
   media_type: string
@@ -73,6 +80,7 @@ export interface ConversationServiceOptions {
   providers?: Provider[]
   changeSetService?: ChangeSetService
   skillsService?: SkillsService
+  identityService?: IdentityService
   publishEvent?: (event: string, payload: unknown) => void
   now?: () => Date
   createAgent?: (engine: PiEngineService, sessionId: string, messages: AgentMessage[]) => Agent
@@ -94,6 +102,7 @@ interface ConversationSession {
   totalInputTokens: number
   totalOutputTokens: number
   pendingUserMessages: string[]
+  expertContexts: string[]
 }
 
 interface PersistedSessionV2 {
@@ -169,6 +178,7 @@ export class ConversationService {
   private readonly providers?: Provider[]
   private readonly changeSetService: ChangeSetService
   private readonly skillsService?: SkillsService
+  private readonly identityService?: IdentityService
   private readonly publishEvent: (event: string, payload: unknown) => void
   private readonly now: () => Date
   private readonly createAgentOverride?: (
@@ -185,6 +195,7 @@ export class ConversationService {
     this.providers = opts.providers
     this.changeSetService = opts.changeSetService ?? new ChangeSetService(opts.workspaceRoot)
     this.skillsService = opts.skillsService
+    this.identityService = opts.identityService
     this.publishEvent = opts.publishEvent ?? (() => {})
     this.now = opts.now ?? (() => new Date())
     this.createAgentOverride = opts.createAgent
@@ -206,6 +217,7 @@ export class ConversationService {
       elapsedSecs: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
+      expertContexts: [],
     })
     this.sessions.set(id, session)
     return id
@@ -228,7 +240,69 @@ export class ConversationService {
       }
     }
 
+    this.applyExpertMentions(session, message)
     this.runAgent(session, () => session.agent.prompt(message, toPiImages(images)))
+  }
+
+  /** Parses `@清除专家` and `@identities/*.md` mentions out of the outgoing
+   * user message, updates the session's expert context list, and recomputes
+   * the per-turn system prompt suffix (AC-1/AC-7 of expert-perspective-at).
+   * Stores contexts by identity *filename* — `AtMentionCandidate.path` (what
+   * the mention captures) is workspace-relative, while `IdentityEntry.path`
+   * (what `getContent()` needs) is an absolute filesystem path; filename is
+   * the stable key shared by both. */
+  private applyExpertMentions(session: ConversationSession, message: string): void {
+    if (!this.identityService) return
+
+    if (CLEAR_EXPERT_RE.test(message)) {
+      session.expertContexts = []
+    }
+
+    const mentioned = [...message.matchAll(EXPERT_MENTION_RE)].map((m) =>
+      m[1].replace(/^identities\//, ''),
+    )
+    if (mentioned.length > 0) {
+      const experts = new Set(
+        this.identityService
+          .list()
+          .filter((e) => e.is_expert)
+          .map((e) => e.filename),
+      )
+      for (const filename of mentioned) {
+        if (!experts.has(filename)) continue
+        session.expertContexts = session.expertContexts.filter((f) => f !== filename)
+        session.expertContexts.push(filename)
+      }
+    }
+
+    session.agent.state.systemPrompt = session.systemPrompt + this.expertSystemPromptSuffix(session)
+  }
+
+  /** Builds the dynamic system-prompt suffix for currently mounted expert
+   * contexts. Last-mentioned expert is the primary perspective; earlier ones
+   * are kept as secondary reference (mirrors pre-migration Rust behavior). */
+  private expertSystemPromptSuffix(session: ConversationSession): string {
+    if (session.expertContexts.length === 0 || !this.identityService) return ''
+    const entries = this.identityService.list()
+    const blocks = session.expertContexts.map((filename, index) => {
+      const entry = entries.find((e) => e.filename === filename)
+      if (!entry) return ''
+      let content = ''
+      try {
+        content = this.identityService!.getContent(entry.path)
+      } catch {
+        return ''
+      }
+      const { body } = parseSimpleFrontmatter(content)
+      const role = index === session.expertContexts.length - 1 ? '主视角' : '参考视角'
+      const skillHint = entry.expert_skill.trim()
+        ? `（如果关联 skill 为 "${entry.expert_skill.trim()}"，应先调用 load_skill 加载该 skill 获取完整视角；若无法加载，使用下方画像内容作为降级）\n\n`
+        : ''
+      return `### 专家（${role}）：${entry.name}\n\n${skillHint}${body.trim()}`
+    })
+    const joined = blocks.filter(Boolean).join('\n\n')
+    if (!joined) return ''
+    return `\n\n---\n\n以下是本轮对话需要采用的专家视角，请以其思考框架、关注点和追问方式回应，不要只是泛泛赞同：\n\n${joined}`
   }
 
   cancel(sessionId: string): void {
@@ -356,6 +430,9 @@ export class ConversationService {
       elapsedSecs: persisted.elapsed_secs ?? 0,
       totalInputTokens: persisted.total_input_tokens ?? 0,
       totalOutputTokens: persisted.total_output_tokens ?? 0,
+      expertContexts: (persisted.expert_contexts ?? []).filter(
+        (p): p is string => typeof p === 'string',
+      ),
     })
     this.sessions.set(sessionId, session)
     return messagesToDisplay(messages)
@@ -433,6 +510,7 @@ export class ConversationService {
     elapsedSecs: number
     totalInputTokens: number
     totalOutputTokens: number
+    expertContexts: string[]
   }): ConversationSession {
     const agent = this.createAgent(input.id, input.systemPrompt, input.messages)
     const session: ConversationSession = {
@@ -450,6 +528,10 @@ export class ConversationService {
       totalInputTokens: input.totalInputTokens,
       totalOutputTokens: input.totalOutputTokens,
       pendingUserMessages: [],
+      expertContexts: input.expertContexts,
+    }
+    if (input.expertContexts.length > 0) {
+      agent.state.systemPrompt = input.systemPrompt + this.expertSystemPromptSuffix(session)
     }
     this.subscribeAgent(session)
     return session
@@ -561,7 +643,7 @@ export class ConversationService {
       version: 2,
       messages: piMessagesToRust(session.agent.state.messages),
       system_prompt: session.systemPrompt,
-      expert_contexts: [],
+      expert_contexts: session.expertContexts,
       elapsed_secs: session.elapsedSecs,
       total_input_tokens: session.totalInputTokens,
       total_output_tokens: session.totalOutputTokens,

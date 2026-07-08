@@ -384,6 +384,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         providers: opts.builtinProviders,
         changeSetService: workspaceChangeSets(),
         skillsService: skillsService(),
+        identityService: identityService(),
         publishEvent,
       })
       conversationServices.set(root, created)

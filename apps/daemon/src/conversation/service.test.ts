@@ -4,7 +4,9 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Agent } from '@earendil-works/pi-agent-core'
 import { fauxAssistantMessage, fauxProvider, fauxText, type Context } from '@earendil-works/pi-ai'
+import { ChangeSetService } from '../changeset/service.js'
 import { ConfigService, type EngineConfig } from '../config/service.js'
+import { IdentityService } from '../identity/service.js'
 import { AgentRunService } from '../runs/service.js'
 import {
   ConversationService,
@@ -237,21 +239,89 @@ describe('ConversationService', () => {
     expect(service.list().map((summary) => summary.id)).toEqual(['rust_v1', 'rust_v2'])
   })
 
+  it('injects an @-mentioned expert identity into the per-turn system prompt', async () => {
+    mkdirSync(join(workspace, '.journal', 'identity'), { recursive: true })
+    writeFileSync(
+      join(workspace, '.journal', 'identity', 'AT-a-professor.md'),
+      '---\ntags: ["专家"]\n---\n\n犀利地挑战用户的每一个假设。',
+    )
+    const seenPrompts: string[] = []
+    const faux = fauxProvider({
+      provider: 'faux',
+      models: [{ id: 'faux-model', reasoning: false }],
+      tokenSize: { min: 64, max: 64 },
+    })
+    faux.setResponses([
+      () => fauxAssistantMessage([fauxText('first answer')]),
+      () => fauxAssistantMessage([fauxText('second answer')]),
+    ])
+    const identityService = new IdentityService(workspace, new ChangeSetService(workspace))
+    const service = makeService([faux.provider], undefined, identityService)
+    const id = service.create()
+
+    await service.send(id, '你觉得呢 @identities/AT-a-professor.md')
+    await service.waitForIdle(id)
+    seenPrompts.push(getSystemPrompt(service, id))
+
+    expect(seenPrompts[0]).toContain('犀利地挑战用户的每一个假设')
+    expect(seenPrompts[0]).toContain('主视角')
+
+    await service.send(id, '@清除专家 好的')
+    await service.waitForIdle(id)
+
+    expect(getSystemPrompt(service, id)).not.toContain('犀利地挑战用户的每一个假设')
+  })
+
+  it('hints load_skill for experts backed by an external skill', async () => {
+    mkdirSync(join(workspace, '.journal', 'identity'), { recursive: true })
+    writeFileSync(
+      join(workspace, '.journal', 'identity', 'AT-critic.md'),
+      '---\nexpert_skill: "james-bach-perspective"\n---\n\n简短兜底描述。',
+    )
+    const faux = fauxProvider({
+      provider: 'faux',
+      models: [{ id: 'faux-model', reasoning: false }],
+      tokenSize: { min: 64, max: 64 },
+    })
+    faux.setResponses([() => fauxAssistantMessage([fauxText('answer')])])
+    const identityService = new IdentityService(workspace, new ChangeSetService(workspace))
+    const service = makeService([faux.provider], undefined, identityService)
+    const id = service.create()
+
+    await service.send(id, '@identities/AT-critic.md 怎么看')
+    await service.waitForIdle(id)
+
+    const prompt = getSystemPrompt(service, id)
+    expect(prompt).toContain('load_skill')
+    expect(prompt).toContain('james-bach-perspective')
+    expect(prompt).toContain('简短兜底描述')
+  })
+
   function makeService(
     providers: ConversationServiceOptions['providers'],
     createAgent?: ConversationServiceOptions['createAgent'],
+    identityService?: ConversationServiceOptions['identityService'],
   ): ConversationService {
     return new ConversationService({
       workspaceRoot: workspace,
       configService: config,
       runService,
       providers,
+      identityService,
       publishEvent(event, payload) {
         if (event === 'conversation-stream') events.push(payload as ConversationStreamPayload)
       },
       createAgent,
       now: () => new Date('2026-06-27T00:00:00.000Z'),
     })
+  }
+
+  function getSystemPrompt(service: ConversationService, id: string): string {
+    return (
+      service as unknown as {
+        sessions: Map<string, { agent: { state: { systemPrompt: string } } }>
+      }
+    ).sessions.get(id)!.agent.state.systemPrompt
   }
 
   function firstRunId(): string {

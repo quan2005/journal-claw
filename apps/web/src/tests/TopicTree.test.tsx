@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from './setup'
 import { TopicTree } from '../components/TopicTree'
 import type { TopicEntry } from '../lib/apiTypes'
@@ -70,6 +70,23 @@ describe('TopicTree', () => {
     expect(screen.getByLabelText('代码文件')).toBeTruthy()
     expect(screen.getByLabelText('压缩包')).toBeTruthy()
     expect(screen.getByLabelText('文件')).toBeTruthy()
+  })
+
+  // story 20260708-tree-row-hover · AC-1/AC-2 · hover 底纹
+  it('shows hover background on unselected rows and keeps selected background', () => {
+    renderTopicTree([topic('user-note.md'), topic('picked.md')], new Map(), 'picked.md')
+
+    const unselectedRow = screen.getByText('user note').closest('.tree-item-row') as HTMLElement
+    fireEvent.mouseEnter(unselectedRow)
+    expect(unselectedRow.style.background).toBe('var(--item-hover-bg)')
+    fireEvent.mouseLeave(unselectedRow)
+    expect(unselectedRow.style.background).toBe('transparent')
+
+    const selectedRow = screen.getByText('picked').closest('.tree-item-row') as HTMLElement
+    fireEvent.mouseEnter(selectedRow)
+    expect(selectedRow.style.background).toBe('var(--item-selected-bg)')
+    fireEvent.mouseLeave(selectedRow)
+    expect(selectedRow.style.background).toBe('var(--item-selected-bg)')
   })
 
   // AC-1 · 基础设施文件被过滤

@@ -69,6 +69,13 @@ export function TopicTree({
             color: isSelected ? 'var(--item-selected-text)' : 'var(--item-text)',
             transition: 'background-color 0.15s var(--ease-out)',
           }}
+          onMouseEnter={(e) => {
+            if (!isSelected)
+              (e.currentTarget as HTMLDivElement).style.background = 'var(--item-hover-bg)'
+          }}
+          onMouseLeave={(e) => {
+            if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'
+          }}
           onClick={() => (isDir ? onToggleDir(entry.path) : onSelectFile(entry))}
           onContextMenu={(e) => {
             e.preventDefault()

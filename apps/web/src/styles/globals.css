@@ -1274,7 +1274,6 @@ body,
 }
 
 .ideas-workbench-header,
-.ideas-workbench-tabs,
 .ideas-workbench-main {
   width: min(100%, var(--journal-workbench-max));
   margin-left: auto;
@@ -1314,98 +1313,6 @@ body,
   font-size: var(--journal-summary-size);
   line-height: var(--journal-summary-line-height);
   overflow-wrap: anywhere;
-}
-
-.ideas-workbench-button {
-  min-height: var(--workbench-btn-h);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 var(--workbench-btn-px);
-  border: 1px solid var(--ideas-border);
-  border-radius: var(--workbench-btn-radius);
-  background: transparent;
-  color: var(--ideas-text-muted);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    border-color var(--workbench-item-transition),
-    background var(--workbench-item-transition);
-}
-
-.ideas-workbench-button:hover {
-  border-color: color-mix(in srgb, var(--record-btn) 34%, var(--ideas-border));
-  background: var(--ideas-surface-hover);
-  color: var(--ideas-text);
-}
-
-.ideas-workbench-button-primary {
-  min-height: var(--workbench-btn-h);
-  padding: 0 var(--workbench-btn-px);
-  border-color: var(--workbench-btn-primary-bg);
-  background: var(--workbench-btn-primary-bg);
-  color: var(--workbench-btn-primary-color);
-}
-
-.ideas-workbench-button-primary:hover {
-  border-color: var(--workbench-btn-primary-bg-hover);
-  background: var(--workbench-btn-primary-bg-hover);
-  color: var(--workbench-btn-primary-color);
-}
-
-.ideas-workbench-tabs {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
-  padding-bottom: var(--space-4);
-  margin-bottom: var(--space-5);
-  border-bottom: var(--border-menu);
-}
-
-.ideas-workbench-tabs-spacer {
-  flex: 1 1 auto;
-}
-
-.ideas-workbench-tab {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ideas-text-muted);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  cursor: pointer;
-}
-
-.ideas-workbench-tab.is-active {
-  color: var(--ideas-text);
-}
-
-.ideas-workbench-tab span {
-  min-width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ideas-text-muted) 12%, transparent);
-  color: var(--ideas-text-muted);
-  font-size: var(--text-xs);
-}
-
-.ideas-workbench-tab.is-active span {
-  background: color-mix(in srgb, var(--record-btn) 22%, transparent);
-  color: var(--record-btn);
 }
 
 .ideas-workbench-main {
@@ -1596,13 +1503,19 @@ body,
   border-radius: 6px;
   background: color-mix(in srgb, var(--bg) 32%, var(--ideas-surface));
   color: var(--ideas-text);
+  caret-color: var(--ideas-text);
   font-family: var(--font-body);
   font-size: var(--text-base);
 }
 
 .ideas-workbench-draft {
+  width: min(100%, var(--journal-workbench-max));
+  margin-left: auto;
+  margin-right: auto;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
+  gap: 8px;
   padding: 12px 14px;
 }
 
@@ -1614,10 +1527,27 @@ body,
   overflow: hidden;
 }
 
-.ideas-workbench-draft textarea:focus {
-  border-color: var(--record-btn);
-  outline: var(--focus-ring);
-  outline-offset: 1px;
+.ideas-workbench-draft-submit {
+  width: var(--workbench-btn-h);
+  height: var(--workbench-btn-h);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ideas-border);
+  border-radius: var(--workbench-btn-radius);
+  background: transparent;
+  color: var(--ideas-text-muted);
+  cursor: pointer;
+  transition:
+    border-color var(--workbench-item-transition),
+    background var(--workbench-item-transition);
+}
+
+.ideas-workbench-draft-submit:hover {
+  border-color: color-mix(in srgb, var(--record-btn) 34%, var(--ideas-border));
+  background: var(--ideas-surface-hover);
+  color: var(--ideas-text);
 }
 
 .ideas-workbench-edit-input:focus {

@@ -131,20 +131,15 @@ describe('IdeasWorkbench shell', () => {
     mockState.todoContext.loading = false
   })
 
-  it('renders the lightweight workbench header, filter tabs, create action, and default unfinished list', () => {
+  it('renders the lightweight workbench header without tabs, stats, or a create button', () => {
     const { container } = renderWithProviders(<IdeasWorkbench />)
 
     expect(screen.getByText('IDEAS')).toBeTruthy()
     expect(screen.getByRole('heading', { name: '想法' })).toBeTruthy()
     expect(container.querySelector('.ideas-workbench-stats')).toBeNull()
-    expect(screen.queryByLabelText('3 未完成')).toBeNull()
-    expect(screen.queryByLabelText('2 待探讨')).toBeNull()
-    expect(screen.queryByLabelText('1 有截止日期')).toBeNull()
-    expect(screen.getByRole('button', { name: '全部（未完成） 3' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '待探讨（未完成且未探讨） 2' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '有截止日期（未完成） 1' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '已完成 1' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '新建想法' })).toBeTruthy()
+    expect(container.querySelector('.ideas-workbench-tabs')).toBeNull()
+    expect(screen.queryByRole('button', { name: /全部（未完成）/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: '新建想法' })).toBeNull()
 
     expect(screen.getByText('已有会话的想法')).toBeTruthy()
     expect(screen.getByText('有截止日期的想法')).toBeTruthy()
@@ -152,54 +147,43 @@ describe('IdeasWorkbench shell', () => {
     expect(screen.queryByText('已完成想法')).toBeNull()
   })
 
-  it('filters rows from the tab bar', async () => {
-    renderWithProviders(<IdeasWorkbench />)
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '待探讨（未完成且未探讨） 2' }))
-    })
-
-    expect(screen.queryByText('已有会话的想法')).toBeNull()
-    expect(screen.getByText('有截止日期的想法')).toBeTruthy()
-    expect(screen.getByText('普通未完成想法')).toBeTruthy()
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '已完成 1' }))
-    })
-
-    expect(screen.getByText('已完成想法')).toBeTruthy()
-    expect(screen.queryByText('已有会话的想法')).toBeNull()
-  })
-
-  it('does not render a repeated section status bar above open or completed lists', async () => {
+  it('does not render a repeated section status bar above the list', () => {
     const { container } = renderWithProviders(<IdeasWorkbench />)
 
     expect(container.querySelector('.ideas-workbench-section-head')).toBeNull()
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '已完成 1' }))
-    })
-
-    expect(container.querySelector('.ideas-workbench-section-head')).toBeNull()
   })
 
-  it('adds a new idea from the top draft row', async () => {
+  it('adds a new idea from the always-visible bottom draft row', async () => {
     renderWithProviders(<IdeasWorkbench />)
 
-    fireEvent.click(screen.getByRole('button', { name: '新建想法' }))
+    expect(screen.getByLabelText('新想法内容')).toBeTruthy()
+
     fireEvent.change(screen.getByLabelText('新想法内容'), {
       target: { value: '新的轻工作台想法' },
     })
     await act(async () => {
-      fireEvent.keyDown(screen.getByLabelText('新想法内容'), { key: 'Enter' })
+      fireEvent.keyDown(screen.getByLabelText('新想法内容'), { key: 'Enter', shiftKey: true })
     })
     expect(mockState.todoContext.addTodo).not.toHaveBeenCalled()
 
     await act(async () => {
-      fireEvent.keyDown(screen.getByLabelText('新想法内容'), { key: 'Enter', metaKey: true })
+      fireEvent.keyDown(screen.getByLabelText('新想法内容'), { key: 'Enter' })
     })
 
     expect(mockState.todoContext.addTodo).toHaveBeenCalledWith('新的轻工作台想法')
+  })
+
+  it('adds a new idea via the submit button', async () => {
+    renderWithProviders(<IdeasWorkbench />)
+
+    fireEvent.change(screen.getByLabelText('新想法内容'), {
+      target: { value: '按钮提交的想法' },
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('添加想法'))
+    })
+
+    expect(mockState.todoContext.addTodo).toHaveBeenCalledWith('按钮提交的想法')
   })
 
   it('edits idea text inline', async () => {
@@ -460,6 +444,6 @@ describe('DetailView ideas route', () => {
     expect(screen.getByText('IDEAS')).toBeTruthy()
     expect(screen.getByRole('heading', { name: '想法' })).toBeTruthy()
     expect(screen.queryByLabelText('想法处理状态统计')).toBeNull()
-    expect(screen.getByRole('button', { name: '全部（未完成） 3' })).toBeTruthy()
+    expect(screen.getByLabelText('新想法内容')).toBeTruthy()
   })
 })

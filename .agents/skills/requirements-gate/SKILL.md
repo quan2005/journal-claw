@@ -1,6 +1,6 @@
 ---
 name: requirements-gate
-description: '需求门禁（Requirements Gate）——只要用户提出开发需求或变更请求（实现 / 新增 / 开发 / 加一个 / 修改 / 重构 / 优化 / 接入 / 修复 / add / implement / build / feature / fix），哪怕措辞很随意，且该任务还没有 status: approved 的 story.md，就必须在写任何代码之前使用本技能。不要因为需求看起来很简单而跳过。'
+description: '需求门禁（Requirements Gate）——只要用户提出开发需求或变更请求（实现 / 新增 / 开发 / 加一个 / 修改 / 重构 / 优化 / 接入 / 修复 / add / implement / build / feature / fix），哪怕措辞很随意，且该任务还没有 status: approved 或 in_progress 的 story.md，就必须在写任何代码之前使用本技能。不要因为需求看起来很简单而跳过。'
 ---
 
 # 需求门禁 Requirements Gate
@@ -47,7 +47,7 @@ PM 输入的五种典型翻车，本技能逐一设防（完整识别信号与�
 
 | 级别        | 适用                                                            | 脊柱与输出闸                                                                                                               |
 | ----------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **L0 跳过** | 非开发请求；已有 approved story 的延续；用户标注 `[skip-gate]`  | 忽略门禁                                                                                                                   |
+| **L0 跳过** | 非开发请求；已有 approved/in_progress story 的延续；用户标注 `[skip-gate]`  | 忽略门禁                                                                                                                   |
 | **L1 轻量** | 琐碎修复：typo、改文案、单行 bug、配置                          | 脊柱快速走（Q1/Q4/Q5 必答，Q2/Q3 可一句话带过）；输出闸照跑                                                                |
 | **L2 标准** | 常规新功能 / 功能变更                                           | 完整脊柱五问 + 输出闸                                                                                                      |
 | **L3 深度** | 触碰数据契约 / 权限 / 计费 / 对外 API / 不可逆迁移 / 跨团队指标 | 完整脊柱 + 多角色分派（`references/review-dimensions.md`）+ 输出闸。这些高风险维度属实现层，门禁只**识别并标记**到交棒清单 |
@@ -118,7 +118,8 @@ story 写作双重职责：**背景讲故事（人读友好）+ AC 用 GWT（机
 用户确认后 `status` 改为 `approved`。**approved 之前不写实现代码。** 随后：
 
 - 方案细化与开发：交 brainstorming 产出 design.md，再接 writing-plans（或 spec-kit `/plan`），把 story.md 与 design.md 路径写进计划首行
-- 开发完成后：commit 前由 **verification-gate** spawn 独立 subAgent，以 story 的 AC 与边界核对"做的是不是用户要的"、design 范围核对"有没有做多/偏"，产出 verify-report.md；通过后翻 `verified`
+- **进入实现（写代码/派发实现任务）前，`status` 由 `approved` 翻为 `in_progress`**：标记"已被认领、正在落地"，避免同一 approved story 被重复认领或误判为尚未开始。`in_progress` 期间仍可能产出多份中间态文档（design.md 修订、执行报告），story 主契约不因此再变
+- 开发完成后：commit 前由 **verification-gate** spawn 独立 subAgent，以 story 的 AC 与边界核对"做的是不是用户要的"、design 范围核对"有没有做多/偏"，产出 verify-report.md；通过后翻 `verified`。验收 fail 时 `status` 退回 `in_progress`（不是 `approved`），保留"已认领在修"的语义，修复后重新验收
 
 ## 端到端走查
 

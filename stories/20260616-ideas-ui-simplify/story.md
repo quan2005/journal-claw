@@ -1,6 +1,6 @@
 ---
 title: 简化想法工作台 UI
-status: approved
+status: verified
 level: L1
 created: 2026-06-16
 ---

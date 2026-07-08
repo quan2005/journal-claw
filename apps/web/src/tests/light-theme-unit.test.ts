@@ -259,9 +259,7 @@ describe('Journal content frame contract', () => {
 
   it('aligns ideas and automation workbenches to the shared workbench frame', () => {
     const ideasFrameRule =
-      css.match(
-        /\.ideas-workbench-header,\s*\.ideas-workbench-tabs,\s*\.ideas-workbench-main\s*\{[^}]*\}/,
-      )?.[0] ?? ''
+      css.match(/\.ideas-workbench-header,\s*\.ideas-workbench-main\s*\{[^}]*\}/)?.[0] ?? ''
     const automationHeaderRule = css.match(/\.automation-header\s*\{[^}]*\}/)?.[0] ?? ''
     const automationStackRule = css.match(/\.automation-stack\s*\{[^}]*\}/)?.[0] ?? ''
 
@@ -289,11 +287,10 @@ describe('Journal content frame contract', () => {
     expect(mdHeadingRule).toContain('color: var(--journal-title-color)')
   })
 
-  it('keeps the automation status bar contract while ideas relies on filter tabs', () => {
+  it('keeps the automation status bar contract; ideas workbench has no tabs/stats', () => {
     const statsRule = css.match(/\.automation-stats\s*\{[^}]*\}/)?.[0] ?? ''
     const statItemRule = css.match(/\.automation-stats span\s*\{[^}]*\}/)?.[0] ?? ''
     const statValueRule = css.match(/\.automation-stats strong\s*\{[^}]*\}/)?.[0] ?? ''
-    const ideasTabsRule = css.match(/\.ideas-workbench-tabs\s*\{[^}]*\}/)?.[0] ?? ''
 
     expect(statsRule).toContain('width: min(100%, 676px)')
     expect(statsRule).toContain('min-height: 50px')
@@ -301,8 +298,8 @@ describe('Journal content frame contract', () => {
     expect(statItemRule).toContain('justify-content: center')
     expect(statItemRule).toContain('padding: 0 20px')
     expect(statValueRule).toContain('font-size: var(--text-lg)')
-    expect(ideasTabsRule).toContain('border-bottom: var(--border-menu)')
     expect(css).not.toContain('.ideas-workbench-stats')
+    expect(css).not.toContain('.ideas-workbench-tabs')
   })
 })
 
@@ -312,7 +309,7 @@ describe('Ideas workbench surface contract', () => {
     expect(css).toContain('--ideas-surface:')
     expect(css).toContain('--ideas-text-muted:')
     expect(css).toContain('.ideas-workbench-row')
-    expect(css).toContain('.ideas-workbench-tabs-spacer')
+    expect(css).toContain('.ideas-workbench-draft')
   })
 
   it('keeps ideas workbench aligned with automation tokens instead of one-off palette colors', () => {

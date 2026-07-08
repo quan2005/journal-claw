@@ -1,6 +1,6 @@
 ---
 name: verification-gate
-description: "验收门禁（Verification Gate）——与 requirements-gate 成对的下游环节：需求门禁确保做对的东西，验收门禁确保做的东西是对的。开发完成、准备 git commit、或想宣称'做完了'之前，凡存在与本次改动相关、status: approved 但尚未 verified 的 story.md，必须使用本技能。注意：测试全部通过不等于验收通过——技术正确性归 verification-before-completion，需求符合度归本技能。"
+description: "验收门禁（Verification Gate）——与 requirements-gate 成对的下游环节：需求门禁确保做对的东西，验收门禁确保做的东西是对的。开发完成、准备 git commit、或想宣称'做完了'之前，凡存在与本次改动相关、status: approved 或 in_progress 但尚未 verified 的 story.md，必须使用本技能。注意：测试全部通过不等于验收通过——技术正确性归 verification-before-completion，需求符合度归本技能。"
 ---
 
 # 验收门禁 Verification Gate
@@ -37,17 +37,17 @@ story.md 是主契约（`status` 落在它上面），design.md 是其附属方�
 | 用户标注 `[skip-gate]` / `[跳过门禁]`                 | 放行，正常 commit                        |
 | 找不到与本次改动相关的 story.md                       | 放行（不是所有 commit 都对应一个 story） |
 | 相关 story 已 `status: verified` 且其后无新功能性改动 | 放行                                     |
-| 存在相关、`status: approved` 但未 verified 的 story   | **进入验收流程**                         |
+| 存在相关、`status: approved` 或 `in_progress` 但未 verified 的 story | **进入验收流程**           |
 
 ## 流程
 
 ### Step 1 — 定位契约
 
-用 `rga`（或 grep）在 `stories/` 及 brainstorming 输出目录中检索 `status: approved` 的 story.md，并核对开发计划首行引用的路径。找到 story 后，读其 frontmatter 的 `design` 字段定位配套 design.md。多个候选时以与本次 diff 实际相关者为准。
+用 `rga`（或 grep）在 `stories/` 及 brainstorming 输出目录中检索 `status: approved` 或 `status: in_progress` 的 story.md，并核对开发计划首行引用的路径。找到 story 后，读其 frontmatter 的 `design` 字段定位配套 design.md。多个候选时以与本次 diff 实际相关者为准。
 
 ### Step 2 — 圈定核对范围
 
-确定 subAgent 要看的改动：自 story 进入 approved 后的 git diff（含 staged 与 unstaged），或实现文件清单。**宁大勿小**——范围圈小了，"不多"（越界检查）就成了摆设。
+确定 subAgent 要看的改动：自 story 进入 approved/in_progress 后的 git diff（含 staged 与 unstaged），或实现文件清单。**宁大勿小**——范围圈小了，"不多"（越界检查）就成了摆设。
 
 ### Step 3 — spawn 独立验收 subAgent
 
@@ -75,7 +75,7 @@ subAgent 按 `references/six-criteria.md` 的六字标准逐项核对，产出�
 
 ```
 stories/20260610-xxx/
-├── story.md            # status: approved → verified（全过时）
+├── story.md            # status: approved → in_progress → verified（全过时）
 ├── design.md           # 方案契约（如有）
 ├── verify-report.md     # 第 1 轮
 └── verify-report-r2.md  # 第 2 轮（如有）

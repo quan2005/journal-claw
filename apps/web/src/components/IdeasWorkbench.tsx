@@ -60,23 +60,6 @@ export function ideaDueLabel(item: TodoItem) {
   return '无截止'
 }
 
-type IdeaStats = ReturnType<typeof getIdeaStats>
-
-const IDEAS_TABS: {
-  key: IdeasFilter
-  label: string
-  countFor: (stats: IdeaStats) => number
-}[] = [
-  { key: 'all', label: '全部（未完成）', countFor: (s) => s.open },
-  {
-    key: 'pendingDiscussion',
-    label: '待探讨（未完成且未探讨）',
-    countFor: (s) => s.pendingDiscussion,
-  },
-  { key: 'due', label: '有截止日期（未完成）', countFor: (s) => s.due },
-  { key: 'done', label: '已完成', countFor: (s) => s.done },
-]
-
 function resizeTextarea(element: HTMLTextAreaElement | null) {
   if (!element) return
   element.style.height = 'auto'
@@ -112,8 +95,6 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
   const { t } = useTranslation()
   const todoContext = useTodoContext()
   const [draftText, setDraftText] = useState('')
-  const [filter, setFilter] = useState<IdeasFilter>('all')
-  const [isCreating, setIsCreating] = useState(false)
   const [contextMenu, setContextMenu] = useState<IdeasContextMenuState | null>(null)
   const [datePicker, setDatePicker] = useState<IdeasContextMenuState | null>(null)
   const draftRef = useRef<HTMLTextAreaElement>(null)
@@ -133,11 +114,9 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
     resizeTextarea(draftRef.current)
   }, [draftText])
 
-  const stats = useMemo(() => getIdeaStats(todoContext.todos), [todoContext.todos])
-
   const visibleTodos = useMemo(
-    () => filterIdeas(todoContext.todos, filter),
-    [todoContext.todos, filter],
+    () => filterIdeas(todoContext.todos, 'all'),
+    [todoContext.todos],
   )
 
   const submitDraft = async () => {
@@ -145,7 +124,6 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
     if (!text) return
     await todoContext.addTodo(text)
     setDraftText('')
-    setIsCreating(false)
   }
 
   return (
@@ -153,60 +131,13 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
       <header className="ideas-workbench-header">
         <div className="ideas-workbench-eyebrow">IDEAS</div>
         <h2 className="ideas-workbench-title">{t('todo')}</h2>
-        <p className="ideas-workbench-summary">
-          捕捉阅读和会议中产生的下一步思考。按处理状态筛选，保持轻量扫描；需要推进时，再补上探讨状态或截止日期。
-        </p>
       </header>
-
-      <div className="ideas-workbench-tabs">
-        {IDEAS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`ideas-workbench-tab${filter === tab.key ? ' is-active' : ''}`}
-            aria-label={`${tab.label} ${tab.countFor(stats)}`}
-            aria-pressed={filter === tab.key}
-            onClick={() => setFilter(tab.key)}
-          >
-            {tab.label}
-            <span>{tab.countFor(stats)}</span>
-          </button>
-        ))}
-        <span className="ideas-workbench-tabs-spacer" aria-hidden="true" />
-        <button
-          type="button"
-          className="ideas-workbench-button ideas-workbench-button-primary"
-          onClick={() => setIsCreating(true)}
-        >
-          <Plus aria-hidden="true" size={16} strokeWidth={1.8} />
-          新建想法
-        </button>
-      </div>
+      <p className="ideas-workbench-summary">
+        捕捉阅读和会议中产生的下一步思考。需要推进时，再补上探讨状态或截止日期。
+      </p>
 
       <main className="ideas-workbench-main">
         <div className="ideas-workbench-list">
-          {isCreating && (
-            <div className="ideas-workbench-draft">
-              <textarea
-                ref={draftRef}
-                aria-label="新想法内容"
-                value={draftText}
-                rows={1}
-                placeholder={t('addTodo')}
-                autoFocus
-                onChange={(event) => {
-                  setDraftText(event.target.value)
-                  resizeTextarea(event.currentTarget)
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                    event.preventDefault()
-                    void submitDraft()
-                  }
-                }}
-              />
-            </div>
-          )}
           {todoContext.loading ? (
             <IdeasLoadingRows />
           ) : visibleTodos.length === 0 ? (
@@ -231,6 +162,34 @@ export function IdeasWorkbench({ onOpenConversation, onNavigateToSource }: Ideas
           )}
         </div>
       </main>
+
+      <div className="ideas-workbench-draft">
+        <textarea
+          ref={draftRef}
+          aria-label="新想法内容"
+          value={draftText}
+          rows={1}
+          placeholder={t('addTodo')}
+          onChange={(event) => {
+            setDraftText(event.target.value)
+            resizeTextarea(event.currentTarget)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault()
+              void submitDraft()
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="ideas-workbench-draft-submit"
+          aria-label="添加想法"
+          onClick={() => void submitDraft()}
+        >
+          <Plus aria-hidden="true" size={16} strokeWidth={1.8} />
+        </button>
+      </div>
 
       {contextMenu && (
         <IdeasContextMenu

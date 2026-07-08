@@ -1,12 +1,16 @@
 ---
-status: approved
+status: obsolete
 slug: mdx-component-hygiene
 title: MDX 组件库清洁与 AI 引导提示词对齐
 level: L2
 created: 2026-06-16
+superseded_by: stories/20260627-mdx-retire/story.md
+obsoleted: 2026-07-08
 ---
 
 # MDX 组件库清洁与 AI 引导提示词对齐
+
+> **已作废（2026-07-08）**：本 story 针对的 `apps/web/src/components/mdx/*` 组件库、`mdxComponents` 映射、`component-catalog.md`/`component-recipes.md` 提示词整个子系统，已在 `stories/20260627-mdx-retire/story.md`（`status: verified`）中被整体删除——项目彻底下线 MDX，改用纯 Markdown 渲染。本 story 的验收标准、范围与交棒清单全部依赖已不存在的实现对象，不再具备可执行性，故标记 `obsolete`，不落地实现。历史背景保留供追溯。
 
 ## 背景
 

@@ -1,7 +1,7 @@
 ---
 id: STORY-{YYYYMMDD}-{slug}
 title: ''
-status: draft # draft → clarifying → approved → verified
+status: draft # draft → clarifying → approved → in_progress → verified（或 approved/in_progress → obsolete：实现对象被后续变更淘汰，不再落地）
 source: gate # gate（门禁自产）| brainstorming（梳理反哺）
 level: L2 # L1 轻量 | L2 标准 | L3 深度
 hypothesis_basis: data # data（有数据支撑）| intuition（直觉，须注明验证方式）

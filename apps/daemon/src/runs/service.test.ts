@@ -56,16 +56,16 @@ describe('AgentRunService', () => {
       expect(a.sessionId).not.toBe(b.sessionId)
     })
 
-    it('stores the selected runtime adapter for audit and child-run listing', () => {
-      const parent = service.createRun({ goal: 'parent', mode: 'agent', agentId: 'claude' })
+    it('stores the agentId and lists child runs', () => {
+      const parent = service.createRun({ goal: 'parent', mode: 'agent' })
       const child = service.createRun({
         goal: 'child',
         mode: 'agent',
-        agentId: 'opencode',
+        agentId: 'builtin',
         parentRunId: parent.id,
       })
-      expect(child.agentId).toBe('opencode')
-      expect(service.listChildRuns(parent.id)[0].agentId).toBe('opencode')
+      expect(child.agentId).toBe('builtin')
+      expect(service.listChildRuns(parent.id)[0].agentId).toBe('builtin')
     })
   })
 

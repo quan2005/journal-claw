@@ -12,39 +12,9 @@ vi.mock('../hooks/useTopics', () => ({
   }),
 }))
 
-vi.mock('../hooks/useAgentEngine', () => ({
-  useAgentEngine: () => ({
-    engine: 'builtin',
-    agentId: null,
-    loading: false,
-    setEngine: vi.fn(),
-    setAgentId: vi.fn(),
-  }),
-}))
-
-vi.mock('../hooks/useAgentRun', () => ({
-  useAgentRun: () => ({
-    run: null,
-    timeline: [],
-    changeSets: [],
-    artifacts: [],
-    memory: [],
-    sources: [],
-    assistantText: '',
-    isRunning: false,
-    start: vi.fn(),
-  }),
-}))
-
-vi.mock('../lib/localAgents', () => ({
-  listLocalAgents: vi.fn().mockResolvedValue([]),
-}))
-
 vi.mock('../lib/runtimeClient', () => ({
   selectRuntimeClient: () => ({
     invoke: vi.fn((cmd: string) => {
-      if (cmd === 'get_engine_config')
-        return Promise.resolve({ providers: [], active_provider: '' })
       if (cmd === 'conversation_list') return Promise.resolve([])
       if (cmd === 'conversation_delete') return Promise.resolve(undefined)
       return Promise.resolve(undefined)

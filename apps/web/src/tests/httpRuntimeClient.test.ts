@@ -199,63 +199,6 @@ describe('HttpRuntimeClient', () => {
     })
   })
 
-  it('invoke maps agent engine reads to /settings (defaults to builtin)', async () => {
-    // Persisted CLI selection, then a config missing the keys (→ builtin/null).
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ agent_engine: 'cli', agent_id: 'codex', theme: 'system' }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ theme: 'system' }),
-      })
-    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
-    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
-
-    await expect(client.invoke('get_agent_engine')).resolves.toEqual({
-      engine: 'cli',
-      agentId: 'codex',
-    })
-    await expect(client.invoke('get_agent_engine')).resolves.toEqual({
-      engine: 'builtin',
-      agentId: null,
-    })
-
-    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/settings')
-    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings')
-  })
-
-  it('invoke maps agent engine writes to /settings as a partial patch', async () => {
-    // set_agent_engine writes only the provided key (engine or agentId) so
-    // switching the engine never clobbers a previously chosen agent id.
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ agent_engine: 'cli', agent_id: 'codex', theme: 'system' }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ agent_engine: 'cli', agent_id: 'claude', theme: 'system' }),
-      })
-    const { HttpRuntimeClient } = await import('../lib/runtimeClient')
-    const client = new HttpRuntimeClient({ baseUrl: 'http://127.0.0.1:1' })
-
-    await client.invoke('set_agent_engine', { engine: 'cli' })
-    await client.invoke('set_agent_engine', { agentId: 'claude' })
-
-    expect(mockFetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:1/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent_engine: 'cli' }),
-    })
-    expect(mockFetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:1/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent_id: 'claude' }),
-    })
-  })
-
   it('invoke maps workspace FS reads to /files routes', async () => {
     const entries = [{ name: 'notes', is_dir: true, path: 'notes', mtime_secs: 1 }]
     const candidates = [{ ...entries[0], kind: 'directory', tags: [] }]

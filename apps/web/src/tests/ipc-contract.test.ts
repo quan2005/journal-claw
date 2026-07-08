@@ -124,18 +124,6 @@ describe('Workspace settings', () => {
     expectBody(expectFetch('PUT', '/settings'), { theme: 'dark' })
   })
 
-  it('get/set agent_engine is a partial settings patch', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ agent_engine: 'cli', agent_id: 'codex' }))
-    await expect(client().invoke('get_agent_engine')).resolves.toEqual({
-      engine: 'cli',
-      agentId: 'codex',
-    })
-    await client().invoke('set_agent_engine', { engine: 'builtin' })
-    expectBody(expectFetch('PUT', '/settings'), { agent_engine: 'builtin' })
-    await client().invoke('set_agent_engine', { agentId: 'claude' })
-    expectBody(expectFetch('PUT', '/settings'), { agent_id: 'claude' })
-  })
-
   it('get/set_global_skills_enabled operate on /settings', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ global_skills_enabled: true }))
     await expect(client().invoke('get_global_skills_enabled')).resolves.toBe(true)

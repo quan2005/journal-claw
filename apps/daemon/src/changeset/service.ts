@@ -209,9 +209,9 @@ export class ChangeSetService {
 
   // ── before/after workspace snapshots ────────────────────────────────────
   // A run's real file changes are observed by diffing two snapshots of the
-  // workspace tree taken immediately before and after executeRun. This avoids
-  // intercepting the Coding Agent CLI's internals: the daemon owns the
-  // workspace boundary, so it can observe net effects. The diff is captured as
+  // workspace tree taken immediately before and after the builtin engine run.
+  // The daemon owns the workspace boundary, so it can observe net effects
+  // without intercepting the agent's internals. The diff is captured as
   // ChangeSets (create/edit/remove) tied to the run, respecting auth mode — a
   // read_only run produces no filesystem changes, so its diff is naturally
   // empty; under workspace_write only in-root changes are recorded.

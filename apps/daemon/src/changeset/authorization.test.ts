@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isPathAllowed, toClaudePermissionMode } from './authorization.js'
+import { isPathAllowed } from './authorization.js'
 
 const ROOT = '/tmp/jr-ws'
 
@@ -32,14 +32,5 @@ describe('authorization.isPathAllowed', () => {
 
   it('wide_with_audit allows everything', () => {
     expect(isPathAllowed('wide_with_audit', ROOT, '/anywhere').allowed).toBe(true)
-  })
-})
-
-describe('authorization.toClaudePermissionMode', () => {
-  it('maps each mode to the right claude --permission-mode', () => {
-    expect(toClaudePermissionMode('read_only')).toBe('plan')
-    expect(toClaudePermissionMode('workspace_write')).toBe('acceptEdits')
-    expect(toClaudePermissionMode('full_access')).toBe('bypassPermissions')
-    expect(toClaudePermissionMode('wide_with_audit')).toBe('bypassPermissions')
   })
 })

@@ -41,7 +41,7 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 | 桌面宿主   | Electron（electron-builder 打包）                |
 | Renderer   | React 19 + TypeScript + Vite                     |
 | Backend    | TypeScript daemon（Express HTTP + SSE）          |
-| Agent 引擎 | pi 内建引擎 + Claude/Codex/OpenCode CLI adapters |
+| Agent 引擎 | pi 内建引擎（唯一，外部 CLI adapter 已于 2026-07-08 移除） |
 | 文件变更   | ChangeSet service                                |
 | 测试       | vitest + Playwright                              |
 
@@ -72,8 +72,8 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 
 ## Agent Run
 
-1. `POST /runs` 创建 run（engine=builtin|claude|codex|opencode）。
-2. daemon 选择 pi 内建引擎或 CLI adapter。
+1. `POST /runs` 创建 run（engine 固定为 builtin，无其他可选值）。
+2. daemon 统一走 pi 内建引擎。
 3. `GET /runs/:id/events` SSE 输出事件，支持 cursor 恢复。
 4. `POST /runs/:id/cancel` 取消。
 5. run 完成后触发 artifact / memory / rule 沉淀。

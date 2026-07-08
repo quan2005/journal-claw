@@ -36,8 +36,7 @@ export function AuthModeToggle({ mode, onChange, disabled = false }: AuthModeTog
 
   const closeMenu = useCallback(() => setOpen(false), [])
 
-  // Close on outside pointerdown / Escape — mirrors EngineSwitcher's pattern
-  // (and open-design's SessionModeToggle) so a click elsewhere never leaves
+  // Close on outside pointerdown / Escape so a click elsewhere never leaves
   // the popover stranded open.
   useEffect(() => {
     if (!open) return

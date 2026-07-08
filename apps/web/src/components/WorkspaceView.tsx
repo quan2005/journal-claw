@@ -15,25 +15,16 @@ import {
   Trash2,
   Wrench,
 } from 'lucide-react'
-import type { AgentInfo } from '@journal/contracts'
 import { FileTypeIcon } from './FileTypeIcon'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
 import { useTopics } from '../hooks/useTopics'
-import { listLocalAgents } from '../lib/localAgents'
 import { selectRuntimeClient } from '../lib/runtimeClient'
-import type { TopicEntry, SessionSummary, EngineConfig } from '../lib/apiTypes'
+import type { TopicEntry, SessionSummary } from '../lib/apiTypes'
 
-const getEngineConfig = () => selectRuntimeClient().invoke<EngineConfig>('get_engine_config')
 const conversationList = () => selectRuntimeClient().invoke<SessionSummary[]>('conversation_list')
 const conversationDelete = (sessionId: string) =>
   selectRuntimeClient().invoke<void>('conversation_delete', { sessionId })
-import { useAgentEngine } from '../hooks/useAgentEngine'
-import { useAgentRun } from '../hooks/useAgentRun'
-import type { AuthorizationMode } from '../types/agentRun'
-import { EngineSwitcher } from './EngineSwitcher'
-import { AuthModeToggle } from './AuthModeToggle'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import { RunStreamEntries } from './AgentRunPanel'
 import { useTranslation } from '../contexts/I18nContext'
 import type { ConversationMessage } from '../types'
 import type { ConversationSlice } from './UnifiedChatShell'
@@ -587,55 +578,11 @@ export function WorkspaceChatShell({
   onSelectSession,
   activeSessionId,
 }: WorkspaceChatShellProps) {
-  const { t } = useTranslation()
-  const { engine, agentId, loading: engineLoading, setEngine, setAgentId } = useAgentEngine()
-  const agentRun = useAgentRun()
-  const [agents, setAgents] = useState<AgentInfo[]>([])
-  const [rescanning, setRescanning] = useState(false)
-  const [authMode, setAuthMode] = useState<AuthorizationMode>('workspace_write')
-  const [builtinModel, setBuiltinModel] = useState<string | null>(null)
-
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastInitialInputRef = useRef<string | undefined>(undefined)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  const isCli = engine === 'cli'
-
-  // Load detected agents and built-in model (mirrors UnifiedChatShell).
-  const refreshAgents = useCallback((rescan = false) => {
-    setRescanning(true)
-    listLocalAgents(rescan)
-      .then((next) => setAgents(next))
-      .catch(() => {})
-      .finally(() => setRescanning(false))
-  }, [])
-
-  useEffect(() => {
-    refreshAgents(false)
-  }, [refreshAgents])
-
-  useEffect(() => {
-    let cancelled = false
-    getEngineConfig()
-      .then((cfg) => {
-        if (cancelled) return
-        const active = cfg.providers?.find((p) => p.id === cfg.active_provider)
-        if (active?.model) setBuiltinModel(active.model)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (engine !== 'cli' || !agentId) return
-    if (agents.length === 0) return
-    const stillKnown = agents.some((a) => a.id === agentId)
-    if (!stillKnown) setAgentId(null)
-  }, [engine, agentId, agents, setAgentId])
 
   // Sync external initialInput into the textarea.
   useEffect(() => {
@@ -699,19 +646,8 @@ export function WorkspaceChatShell({
     const text = input.trim()
     if (!text) return
     setInput('')
-    if (!isCli) {
-      onSend(text)
-      return
-    }
-    if (agentRun.isRunning) return
-    void agentRun.start({
-      goal: text,
-      prompt: text,
-      engine: 'cli',
-      agentId: agentId ?? 'claude',
-      authorizationMode: authMode,
-    })
-  }, [input, isCli, agentRun, agentId, authMode, onSend])
+    onSend(text)
+  }, [input, onSend])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -735,11 +671,8 @@ export function WorkspaceChatShell({
     [handleSend, isStreaming, onCancel],
   )
 
-  const canSend = input.trim().length > 0 && !isStreaming && !agentRun.isRunning
+  const canSend = input.trim().length > 0 && !isStreaming
   const showEmpty = messages.length === 0 && pendingQueue.length === 0 && !isStreaming
-
-  // CLI run artifacts fused into the message scroll surface.
-  const hasRunOutput = isCli && (!!agentRun.run || agentRun.isRunning)
 
   return (
     <div className="workspace-chat">
@@ -772,21 +705,6 @@ export function WorkspaceChatShell({
                 onRetry={onRetry}
               />
             ))}
-            {hasRunOutput && (
-              <div className="workspace-chat__run">
-                <RunStreamEntries
-                  run={agentRun.run}
-                  timeline={agentRun.timeline}
-                  changeSets={agentRun.changeSets}
-                  artifacts={agentRun.artifacts}
-                  memory={agentRun.memory}
-                  sources={agentRun.sources}
-                  assistantText={agentRun.assistantText}
-                  isRunning={agentRun.isRunning}
-                  agentId={agentId}
-                />
-              </div>
-            )}
             {pendingQueue.length > 0 && (
               <div className="workspace-chat__pending">
                 {pendingQueue.map((item, idx) => (
@@ -814,11 +732,11 @@ export function WorkspaceChatShell({
             ref={textareaRef}
             className="workspace-chat__textarea"
             rows={1}
-            placeholder={isCli ? t('agentRunGoalPlaceholder') : 'Ask me anything'}
+            placeholder="Ask me anything"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming || agentRun.isRunning}
+            disabled={isStreaming}
           />
           <div className="workspace-chat__toolbar">
             <div className="workspace-chat__toolbar-left">
@@ -838,7 +756,7 @@ export function WorkspaceChatShell({
               >
                 <Mic size={16} strokeWidth={1.6} />
               </button>
-              {isStreaming || agentRun.isRunning ? (
+              {isStreaming ? (
                 <button
                   type="button"
                   className="workspace-chat__send workspace-chat__send--cancel"
@@ -859,20 +777,6 @@ export function WorkspaceChatShell({
                 </button>
               )}
             </div>
-          </div>
-          <div className="workspace-chat__footer">
-            <EngineSwitcher
-              engine={engine}
-              agentId={agentId}
-              agents={agents}
-              model={engine === 'builtin' ? builtinModel : null}
-              loading={engineLoading}
-              rescanning={rescanning}
-              onEngineChange={setEngine}
-              onAgentChange={(id) => setAgentId(id)}
-              onRescan={() => refreshAgents(true)}
-            />
-            {isCli && <AuthModeToggle mode={authMode} onChange={setAuthMode} />}
           </div>
         </div>
       </div>

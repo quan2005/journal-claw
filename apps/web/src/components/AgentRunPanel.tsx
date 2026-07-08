@@ -53,10 +53,9 @@ function statusLabel(status: string, t: TFn): string {
 
 export interface AgentRunPanelProps {
   /**
-   * Backend engine + agent id chosen by the top-bar engine switcher. Defaults
-   * to `cli` / `claude` so a standalone mount (e.g. the panel test) behaves
-   * exactly as before. When wired from the UnifiedChatShell these carry the
-   * user's persisted selection so POST /runs is created against the right agent.
+   * Backend engine + agent id. Only the built-in pi engine is supported now;
+   * both default to 'builtin' so a standalone mount (e.g. the panel test)
+   * behaves exactly as before.
    */
   engine?: RunEngine
   agentId?: string | null
@@ -77,7 +76,7 @@ export function authorizationModeLabel(m: AuthorizationMode, t: TFn): string {
   }
 }
 
-export function AgentRunPanel({ engine = 'cli', agentId }: AgentRunPanelProps) {
+export function AgentRunPanel({ engine = 'builtin', agentId }: AgentRunPanelProps) {
   const { t } = useTranslation()
   const modeLabel = (m: AuthorizationMode): string => authorizationModeLabel(m, t)
   const {
@@ -102,7 +101,7 @@ export function AgentRunPanel({ engine = 'cli', agentId }: AgentRunPanelProps) {
       goal: goal.trim(),
       prompt: goal.trim(),
       engine,
-      agentId: agentId ?? 'claude',
+      agentId: agentId ?? 'builtin',
       authorizationMode: mode,
     })
     setGoal('')
@@ -651,7 +650,7 @@ export function RunStreamEntries({
       <div style={runHeaderRowStyle}>
         <span style={statusBadge(statusColor)}>{statusLabelText}</span>
         {run && <span style={chipStyle}>{modeLabel(run.authorizationMode)}</span>}
-        {run && <span style={chipStyle}>{run.agentId ?? agentId ?? 'claude'}</span>}
+        {run && <span style={chipStyle}>{run.agentId ?? agentId ?? 'builtin'}</span>}
       </div>
 
       {run && <div style={goalStyle}>{run.goal}</div>}

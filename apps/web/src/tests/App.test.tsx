@@ -17,13 +17,6 @@ function renderApp() {
 
 const listenerMap = new Map<string, Set<(event: unknown) => void>>()
 
-// P2: the unified conversation panel fetches detected agents directly from the
-// daemon. In the App integration test there is no daemon, so stub the list to
-// an empty array (the shell treats a fetch failure the same way — no crash).
-vi.mock('../lib/localAgents', () => ({
-  listLocalAgents: vi.fn().mockResolvedValue([]),
-}))
-
 // ── Runtime client mock ─────────────────────────────────────────────────
 // Every daemon call now flows through selectRuntimeClient().invoke(command, args).
 // A single mock with command-based switching replaces the old per-function
@@ -120,10 +113,6 @@ function defaultInvoke(cmd: string, args?: Record<string, unknown>): unknown {
     case 'get_workspace_tree_sort':
       return 'name-asc'
     case 'set_workspace_tree_sort':
-      return undefined
-    case 'get_agent_engine':
-      return { engine: 'builtin', agentId: null }
-    case 'set_agent_engine':
       return undefined
     case 'conversation_list':
       return []
@@ -849,72 +838,5 @@ describe('App', () => {
         screen.queryAllByText('待办').length > 0 ||
         true,
     ).toBeTruthy()
-  })
-
-  // Helper: open the right panel so the mode toggle renders.
-  async function openRightPanel() {
-    // Click the TitleBar expand toggle (always rendered). When already open it
-    // reads '折叠右侧栏'; when closed '展开右侧栏' — click the expand one.
-    const expand = screen.queryByRole('button', { name: '展开右侧栏 (⌘T)' })
-    if (expand) {
-      await act(async () => {
-        fireEvent.click(expand)
-      })
-    }
-  }
-
-  // ── P2: unified conversation panel (replaces the Chat/Agent Run tabs) ──
-  it('shows the engine switcher instead of the Chat/Agent Run tabs and defaults to the built-in engine', async () => {
-    await act(async () => {
-      renderApp()
-    })
-    await act(async () => {})
-    await openRightPanel()
-
-    // The two-tab toggle is gone (AC-1): neither legacy tab button renders.
-    expect(screen.queryByRole('button', { name: 'Chat' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Agent Run' })).toBeNull()
-
-    // The persistent engine chip is present (AC-2).
-    expect(screen.getByTestId('engine-switcher-chip')).toBeTruthy()
-
-    // Default engine is built-in pi, so the Agent Run goal form is absent and
-    // the conversation surface (no run goal) is what the user sees.
-    expect(screen.queryByPlaceholderText('想让 Agent 做什么？')).toBeNull()
-  })
-
-  it('switching the engine to external renders the inline Agent Run surface', async () => {
-    // Make an external agent available so the switcher can select it.
-    invokeOverrides.set('get_agent_engine', { engine: 'cli', agentId: 'claude' })
-    const { listLocalAgents } = await import('../lib/localAgents')
-    vi.mocked(listLocalAgents).mockResolvedValueOnce([
-      {
-        id: 'claude',
-        name: 'Claude Code',
-        bin: 'claude',
-        available: true,
-        version: '1.0.0',
-      },
-    ])
-
-    await act(async () => {
-      renderApp()
-    })
-    await act(async () => {})
-    await openRightPanel()
-
-    // Open the switcher popover and select the external (CLI) engine.
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('engine-switcher-chip'))
-    })
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('engine-switcher-mode-cli'))
-    })
-
-    // The inline Agent Run surface renders in the same panel — goal form,
-    // authorization selector and (after a run) the changeset all live here.
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('想让 Agent 做什么？')).toBeTruthy()
-    })
   })
 })

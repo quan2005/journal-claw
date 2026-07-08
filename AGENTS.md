@@ -45,7 +45,7 @@ npm run lint && npm run format:check
 9. **单一信号橙 `#FF5701`** 是所有交互 accent 的唯一来源。→ `docs/DESIGN.md`
 10. **门禁流程**：需求门禁（story approved 才编码）→ 验收门禁（verify-report 通过才 commit）→ 文档维护。→ `docs/CONVENTIONS.md` §4
 11. **版本号由 release-please 管理，禁止手改**；Conventional Commits。→ `docs/CONVENTIONS.md` §6
-12. **AI 引擎**：daemon 内建 pi 引擎（`apps/daemon/src/engine/`）+ Claude/Codex/OpenCode CLI adapters。→ `docs/ARCH.md`
+12. **AI 引擎**：daemon 内建 pi 引擎（`apps/daemon/src/engine/`），唯一引擎，外部 CLI adapter 已移除。→ `docs/ARCH.md`
 
 ## 已下线能力
 

@@ -11,9 +11,6 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type { Provider } from '@earendil-works/pi-ai'
 import { AgentRunService } from './runs/service.js'
-import { getAgentDef } from './runtimes/registry.js'
-import { detectAgents } from './runtimes/detection.js'
-import { executeRun } from './runtimes/runner.js'
 import { executeBuiltinRun } from './engine/run.js'
 import { assembleContext } from './context/assemble.js'
 import { ChangeSetService } from './changeset/service.js'
@@ -406,7 +403,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     }
 
     // Per-run AbortControllers so POST /runs/:id/cancel can actually abort the
-    // running executeRun child (SIGTERM the spawned CLI), not just flip status.
+    // running builtin engine (signal the in-flight AbortSignal), not just flip status.
     const runAbortControllers = new Map<string, { abort: () => void }>()
 
     app.get('/health', (_req, res) => {
@@ -1691,18 +1688,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: `invalid mode: ${String(body.mode)}` })
         return
       }
-      const engine = body.engine === 'builtin' ? 'builtin' : 'cli'
-      const agentId =
-        engine === 'builtin'
-          ? 'builtin'
-          : typeof body.agentId === 'string' && body.agentId
-            ? body.agentId
-            : 'claude'
-      const def = engine === 'cli' ? getAgentDef(agentId) : undefined
-      if (engine === 'cli' && !def) {
-        res.status(400).json({ error: `unknown agent: ${agentId}` })
-        return
-      }
+      const agentId = 'builtin'
       const VALID_AUTH_MODES = new Set([
         'wide_with_audit',
         'read_only',
@@ -1720,11 +1706,10 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       res.status(201).json(run)
       // Fire-and-forget: spawn the agent and stream its events into the run.
       // The promise must never reject — an unhandled rejection would crash the
-      // daemon. executeRun already records run_failed on its known failure
-      // paths; this catch is a belt-and-suspenders guard for anything thrown
-      // synchronously before the inner Promise is constructed.
+      // daemon. executeBuiltinRun already records run_failed on its known
+      // failure paths; this catch is a belt-and-suspenders guard for anything
+      // thrown synchronously before the inner Promise is constructed.
       const prompt = typeof body.prompt === 'string' ? body.prompt : goal
-      const model = typeof body.model === 'string' && body.model ? body.model : null
       // G15+G14: assemble context before execution — the core loop's
       // "Agent 组装上下文" step. Wraps the user's goal with workspace
       // metadata (goals, active sources) and sedimented memory (preferences,
@@ -1736,51 +1721,38 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         sedimentService.listDurable(),
       )
       // Snapshot the workspace BEFORE the run so its real file changes can be
-      // captured as ChangeSets after it finishes (no CLI internals intercepted).
-      // Under read_only the CLI cannot write, so the diff is naturally empty.
-      const runChangeSetService = engine === 'builtin' ? workspaceChangeSets() : changeSetService
+      // captured as ChangeSets after it finishes. Under read_only the engine
+      // cannot write, so the diff is naturally empty.
+      const runChangeSetService = workspaceChangeSets()
       const beforeSnapshot = runChangeSetService.snapshotWorkspace()
-      // Register an AbortController for this run so cancel can SIGTERM the
-      // spawned child instead of merely flipping status.
+      // Register an AbortController for this run so cancel can abort the
+      // in-flight engine instead of merely flipping status.
       const abortController = new AbortController()
       runAbortControllers.set(run.id, abortController)
-      const execution =
-        engine === 'builtin'
-          ? executeBuiltinRun(
-              service,
-              configService,
-              {
-                runId: run.id,
-                prompt,
-                systemPrompt: assembledPrompt,
-                workspaceRoot: workspaceRoot(),
-                authorizationMode,
-              },
-              {
-                signal: abortController.signal,
-                changeSetService: runChangeSetService,
-                skillsService: skillsService(),
-              },
-            )
-          : executeRun(
-              service,
-              {
-                runId: run.id,
-                agentId,
-                prompt: assembledPrompt,
-                model,
-                authorizationMode,
-                cwd: workspaceRoot(),
-              },
-              { signal: abortController.signal },
-            )
+      const execution = executeBuiltinRun(
+        service,
+        configService,
+        {
+          runId: run.id,
+          prompt,
+          systemPrompt: assembledPrompt,
+          workspaceRoot: workspaceRoot(),
+          authorizationMode,
+        },
+        {
+          signal: abortController.signal,
+          changeSetService: runChangeSetService,
+          skillsService: skillsService(),
+        },
+      )
       execution
         .then((result) => {
           runAbortControllers.delete(run.id)
           // Capture real filesystem changes the Agent performed (create/edit/
           // remove) by diffing the post-run snapshot against the pre-run one.
-          // This is the feasible capture path that does not intercept CLI
-          // internals. Existing explicit ChangeSets are preserved.
+          // The daemon owns the workspace boundary, so it observes net effects
+          // without intercepting the engine's internals. Existing explicit
+          // ChangeSets are preserved.
           const afterSnapshot = runChangeSetService.snapshotWorkspace()
           runChangeSetService.captureSnapshotDiff(
             run.id,
@@ -1843,24 +1815,6 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         })
     })
 
-    // GET /agents — list registered CLI adapters with detection diagnostics.
-    // Probes each adapter (PATH resolution + version + optional auth) and
-    // returns the AgentInfo[] contract. `?rescan=1` bypasses the short-lived
-    // detection cache so the Settings "重新扫描" button always sees fresh state.
-    // The try/catch isolates registry / cache level exceptions (safeProbe
-    // already isolates per-adapter probe faults) into a JSON error envelope
-    // instead of letting Express emit a default 500 HTML page.
-    app.get('/agents', async (req, res) => {
-      try {
-        const forceRefresh = req.query.rescan === '1' || req.query.rescan === 'true'
-        const agents = await detectAgents({ forceRefresh })
-        res.json({ agents })
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        res.status(500).json({ error: 'agent detection failed', detail: message })
-      }
-    })
-
     // GET /runs/:id/events — SSE：先回放已有事件，再推送后续新增事件
     app.get('/runs/:id/events', (req, res) => {
       const runId = req.params.id
@@ -1895,9 +1849,9 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(404).json({ error: 'run not found' })
         return
       }
-      // Actually abort the running executeRun child: aborting the controller
-      // SIGTERMs the spawned CLI (see runner.ts), rather than only marking the
-      // status. A missing/already-aborted controller is a harmless no-op.
+      // Actually abort the running builtin engine: aborting the controller
+      // signals the in-flight AbortSignal rather than only marking the status.
+      // A missing/already-aborted controller is a harmless no-op.
       const controller = runAbortControllers.get(runId)
       if (controller) {
         try {
@@ -2027,21 +1981,32 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: 'goal is required' })
         return
       }
-      const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : 'claude'
-      const def = getAgentDef(agentId)
-      if (!def) {
-        res.status(400).json({ error: `unknown agent: ${agentId}` })
-        return
-      }
+      const agentId = 'builtin'
       const childRun = service.createRun({ goal, mode: 'agent', agentId, parentRunId: parentId })
       res.status(201).json(childRun)
       const prompt = typeof body.prompt === 'string' ? body.prompt : goal
       const childAbort = new AbortController()
       runAbortControllers.set(childRun.id, childAbort)
-      executeRun(
+      const assembledChildPrompt = assembleContext(
+        prompt,
+        workspaceService().getMeta(),
+        sedimentService.listDurable(),
+      )
+      executeBuiltinRun(
         service,
-        { runId: childRun.id, agentId, prompt, cwd: workspaceRoot() },
-        { signal: childAbort.signal },
+        configService,
+        {
+          runId: childRun.id,
+          prompt,
+          systemPrompt: assembledChildPrompt,
+          workspaceRoot: workspaceRoot(),
+          authorizationMode: childRun.authorizationMode,
+        },
+        {
+          signal: childAbort.signal,
+          changeSetService: workspaceChangeSets(),
+          skillsService: skillsService(),
+        },
       )
         .then((result) => {
           runAbortControllers.delete(childRun.id)

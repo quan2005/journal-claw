@@ -34,7 +34,7 @@ function baseUrl(): string {
 export interface CreateRunInput {
   goal: string
   mode?: 'chat' | 'agent' | 'observe'
-  /** Backend engine: `builtin` (pi) or `cli` (external agent). Defaults to `cli`. */
+  /** Backend engine. Only the built-in pi engine is supported. */
   engine?: RunEngine
   agentId?: string
   prompt?: string
@@ -43,15 +43,14 @@ export interface CreateRunInput {
 }
 
 export async function createRun(input: CreateRunInput): Promise<AgentRun> {
-  const engine: RunEngine = input.engine === 'builtin' ? 'builtin' : 'cli'
   const res = await fetch(`${baseUrl()}/runs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       goal: input.goal,
       mode: input.mode ?? 'agent',
-      engine,
-      agentId: input.agentId ?? 'claude',
+      engine: 'builtin',
+      agentId: 'builtin',
       prompt: input.prompt ?? input.goal,
       model: input.model,
       authorizationMode: input.authorizationMode,

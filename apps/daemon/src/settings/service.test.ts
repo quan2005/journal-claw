@@ -133,23 +133,6 @@ describe('SettingsService', () => {
     )
   })
 
-  // P2 unified conversation panel: the selected chat engine (built-in pi vs an
-  // external CLI agent) persists through the same generic unknown-field path.
-  // Verifies PUT /settings { agent_engine, agent_id } round-trips so the web
-  // useAgentEngine hook can restore the user's last choice across restarts.
-  it('persists the agent_engine and agent_id selection across partial updates', () => {
-    new SettingsService(ws).update({ agent_engine: 'cli', agent_id: 'codex' })
-    let settings = new SettingsService(ws).load()
-    expect(settings.agent_engine).toBe('cli')
-    expect(settings.agent_id).toBe('codex')
-
-    // Switching only the engine must not clobber the previously chosen agent.
-    new SettingsService(ws).update({ agent_engine: 'builtin' })
-    settings = new SettingsService(ws).load()
-    expect(settings.agent_engine).toBe('builtin')
-    expect(settings.agent_id).toBe('codex')
-  })
-
   it('normalizes workspace_tree_sort with a valid default and rejects garbage values', () => {
     const svc = new SettingsService(ws)
     expect(svc.load().workspace_tree_sort).toBe('name-asc')

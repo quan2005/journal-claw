@@ -467,19 +467,6 @@ export const zh: Strings = {
   agentRunArtifactTypeCard: '卡片',
   agentRunArtifactTypeNote: '笔记',
 
-  // Unified conversation panel — engine switcher (P2)
-  engineSwitcherLabel: '引擎',
-  engineSwitcherBuiltin: '内置 pi 引擎',
-  engineSwitcherBuiltinShort: '内置',
-  engineSwitcherCli: '外部 Agent (CLI)',
-  engineSwitcherCliShort: '外部',
-  engineSwitcherModeLabel: '引擎',
-  engineSwitcherAgentLabel: 'Agent',
-  engineSwitcherNoAgent: '未选择 Agent',
-  engineSwitcherNoAgents: '未检测到可用的外部 Agent，可重新扫描或在设置中安装。',
-  engineSwitcherBuiltinHint: '使用谨迹内置的 pi 引擎进行对话，无需授权。',
-  engineSwitcherModelDefault: '默认',
-
   // Automation template count
   automationTemplateCount: '共 {total} 个 · 当前 {shown}',
 
@@ -522,37 +509,6 @@ export const zh: Strings = {
   'onboarding.provider.custom': '自定义...',
   resetOnboarding: '重新运行引导',
   resetOnboardingDone: '已重置，重启应用后生效',
-
-  // Settings → Local Agent engines (P1: detect + display)
-  localAgents: '本地 Agent 引擎',
-  localAgentsSubtitle:
-    '自动检测本机已安装的 CLI coding agent（Claude Code / Codex / OpenCode），查看可用性、版本与登录状态。',
-  rescan: '重新扫描',
-  rescanning: '检测中…',
-  agentAvailable: '可用',
-  agentUnavailable: '不可用',
-  agentVersionLabel: '版本',
-  agentAuthStatus: '登录状态',
-  agentPathLabel: '路径',
-  agentAuthOk: '已登录',
-  agentAuthMissing: '未登录',
-  agentAuthUnknown: '登录状态未知',
-  agentAuthNotProbed: '—',
-  agentInstall: '前往安装',
-  agentDocs: '查看文档',
-  agentSetEnv: '设置二进制路径',
-  agentClearEnv: '清除覆盖',
-  agentSetEnvHint: '请在启动谨迹前设置环境变量 {envKey} 指向你的二进制，再重新扫描。',
-  agentClearEnvHint: '请删除环境变量 {envKey} 后重启谨迹，再重新扫描。',
-  localAgentsEmpty: '尚未注册任何 agent。',
-  localAgentsLoadFailed: '检测失败，请稍后重试。',
-  localAgentsSearchedDirs: '已查找的目录',
-  diagNotOnPath: '未在 PATH 上找到 {name}（{bin}）。',
-  diagNotExecutable: '找到 {name}，但该文件不可执行。请恢复其执行权限或更换二进制后重新扫描。',
-  diagShimBroken: '找到 {name}，但无法启动——其 wrapper/shim 指向的目标已丢失。',
-  diagConfiguredBinInvalid: '{name} 的配置二进制（{envKey}）未找到或不可执行。',
-  diagAuthMissing: '{name} 已安装但未登录。',
-  diagAuthUnknown: '无法确认 {name} 的登录状态。',
 
   // Swift sidebar 删除（M8-b）后遗留的悬空 key，补回以让 t() 可解析。
   voiceOnly: '仅语音',

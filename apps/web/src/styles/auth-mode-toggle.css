@@ -50,7 +50,7 @@
   cursor: default;
 }
 
-/* Signal-orange dot — the single accent cue (matches EngineSwitcher chip). */
+/* Signal-orange dot — the single accent cue. */
 .auth-mode-toggle__dot {
   width: 7px;
   height: 7px;

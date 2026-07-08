@@ -16,6 +16,8 @@ export const en = {
   // File tree
   emptyFolder: 'Empty folder',
   openExternal: 'Open with system app',
+  viewAsPlainText: 'View as plain text',
+  unknownFileTypeHint: 'Unrecognized file type',
   selectFileToPreview: 'Select a file to preview',
   artifact_preview: 'Preview',
   filterFiles: 'Filter files...',

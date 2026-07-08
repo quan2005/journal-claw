@@ -1109,6 +1109,8 @@ export const DetailView = React.memo(function DetailView({
   const [resetCooldown, setResetCooldown] = useState(false)
   const [fileViewMode, setFileViewMode] = useState<FileViewMode>('preview')
   const [fileFullscreen, setFileFullscreen] = useState(false)
+  // story 20260708-unknown-type-plaintext：会话内按文件记住"以纯文本查看"的选择
+  const [plainTextPaths, setPlainTextPaths] = useState<ReadonlySet<string>>(new Set())
 
   const bodyRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
@@ -1163,7 +1165,8 @@ export const DetailView = React.memo(function DetailView({
           kind === 'text' ||
           kind === 'html' ||
           kind === 'code' ||
-          kind === 'csv'
+          kind === 'csv' ||
+          (kind === 'other' && plainTextPaths.has(topicFilePath))
         ) {
           setLoading(true)
           getJournalEntryContent(absolutePath)
@@ -1198,6 +1201,7 @@ export const DetailView = React.memo(function DetailView({
     topicFileMtime,
     isSoul,
     workspacePath,
+    plainTextPaths,
   ])
 
   // ── Context menu ────────────────────────────────────────────────────────
@@ -1711,7 +1715,11 @@ export const DetailView = React.memo(function DetailView({
 
     if (loading) {
       const hasPreviewSourceToggle =
-        fileKind === 'markdown' || fileKind === 'text' || fileKind === 'html' || fileKind === 'csv'
+        fileKind === 'markdown' ||
+        fileKind === 'text' ||
+        fileKind === 'html' ||
+        fileKind === 'csv' ||
+        fileKind === 'other'
       return renderTopicFileShell(
         <div
           style={{
@@ -1827,8 +1835,23 @@ export const DetailView = React.memo(function DetailView({
       )
     }
 
-    // Other (unsupported) file type
-    if (fileKind === 'other' || fileKind === 'audio' || fileKind === 'docx') {
+    // Other (unsupported) file type — unrecognized ('other') files additionally
+    // offer an in-app plain-text view (story 20260708-unknown-type-plaintext)
+    if (
+      (fileKind === 'other' && !plainTextPaths.has(file.path)) ||
+      fileKind === 'audio' ||
+      fileKind === 'docx'
+    ) {
+      const actionButtonStyle: React.CSSProperties = {
+        fontSize: 'var(--text-sm)',
+        color: 'var(--segment-active-text)',
+        background: 'transparent',
+        border: '1px solid var(--divider)',
+        borderRadius: 6,
+        padding: '6px 16px',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-body)',
+      }
       return renderTopicFileShell(
         <div
           style={{
@@ -1843,28 +1866,32 @@ export const DetailView = React.memo(function DetailView({
           }}
         >
           <span style={{ fontSize: 'var(--text-base)' }}>{file.name}</span>
-          <button
-            onClick={() => hostOpenWithSystem(fileAbsolutePath)}
-            style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--segment-active-text)',
-              background: 'transparent',
-              border: '1px solid var(--divider)',
-              borderRadius: 6,
-              padding: '6px 16px',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            {getT()('openExternal')}
-          </button>
+          {fileKind === 'other' && (
+            <span style={{ fontSize: 'var(--text-sm)' }}>{getT()('unknownFileTypeHint')}</span>
+          )}
+          <div style={{ display: 'flex', gap: 12 }}>
+            {fileKind === 'other' && (
+              <button
+                onClick={() =>
+                  setPlainTextPaths((prev) => new Set(prev).add(file.path))
+                }
+                style={actionButtonStyle}
+              >
+                {getT()('viewAsPlainText')}
+              </button>
+            )}
+            <button onClick={() => hostOpenWithSystem(fileAbsolutePath)} style={actionButtonStyle}>
+              {getT()('openExternal')}
+            </button>
+          </div>
         </div>,
         false,
       )
     }
 
-    // Text file (plain text, not markdown)
-    if (fileKind === 'text' && content !== null) {
+    // Text file (plain text, not markdown) — also unrecognized files the user
+    // chose to view as plain text
+    if ((fileKind === 'text' || fileKind === 'other') && content !== null) {
       return renderTopicFileShell(
         <>
           {fileViewMode === 'preview' ? (

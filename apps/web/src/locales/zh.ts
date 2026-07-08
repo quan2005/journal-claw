@@ -18,6 +18,8 @@ export const zh: Strings = {
   // File tree
   emptyFolder: '空文件夹',
   openExternal: '用系统应用打开',
+  viewAsPlainText: '以纯文本查看',
+  unknownFileTypeHint: '无法识别的文件类型',
   selectFileToPreview: '选择文件以预览',
   artifact_preview: '预览',
   filterFiles: '搜索文件…',

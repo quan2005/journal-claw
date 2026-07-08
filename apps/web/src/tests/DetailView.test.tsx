@@ -93,6 +93,84 @@ describe('DetailView topic file rendering', () => {
     )
   })
 
+  // story 20260708-unknown-type-plaintext
+  describe('unknown file type plain-text option', () => {
+    const unknownFile = {
+      name: 'run.log',
+      path: 'logs/run.log',
+      is_dir: false,
+      created_secs: 1_714_435_200,
+      mtime_secs: 1_714_521_600,
+    }
+
+    // AC-1 · 提示面板：两个操作，不自动加载内容
+    it('offers plain-text and system-open choices without auto-loading content', async () => {
+      renderWithProviders(<DetailView type="topic-file" file={unknownFile} />)
+
+      expect(await screen.findByRole('button', { name: '以纯文本查看' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: '用系统应用打开' })).toBeTruthy()
+      expect(mocks.invoke).not.toHaveBeenCalledWith(
+        'get_journal_entry_content',
+        expect.anything(),
+      )
+    })
+
+    // AC-2 · 点击后以纯文本渲染
+    it('renders content as plain text after choosing plain-text view', async () => {
+      mocks.invoke.mockImplementation(async (cmd: string) => {
+        if (cmd === 'get_workspace_path') return '/Users/yanwu/Documents/journal'
+        if (cmd === 'get_journal_entry_content') return 'plain log line'
+        return undefined
+      })
+      renderWithProviders(<DetailView type="topic-file" file={unknownFile} />)
+
+      await act(async () => {
+        fireEvent.click(await screen.findByRole('button', { name: '以纯文本查看' }))
+      })
+
+      expect(await screen.findByText('plain log line')).toBeTruthy()
+    })
+
+    // AC-3 · 会话内按文件记忆，切走再切回不重复问
+    it('remembers the per-file choice when switching away and back', async () => {
+      mocks.invoke.mockImplementation(async (cmd: string) => {
+        if (cmd === 'get_workspace_path') return '/Users/yanwu/Documents/journal'
+        if (cmd === 'get_journal_entry_content') return 'plain log line'
+        return undefined
+      })
+      const { rerender } = renderWithProviders(<DetailView type="topic-file" file={unknownFile} />)
+
+      await act(async () => {
+        fireEvent.click(await screen.findByRole('button', { name: '以纯文本查看' }))
+      })
+      expect(await screen.findByText('plain log line')).toBeTruthy()
+
+      rerender(
+        <DetailView
+          type="topic-file"
+          file={{ name: 'other.bin', path: 'logs/other.bin', is_dir: false }}
+        />,
+      )
+      expect(await screen.findByRole('button', { name: '以纯文本查看' })).toBeTruthy()
+
+      rerender(<DetailView type="topic-file" file={unknownFile} />)
+      expect(await screen.findByText('plain log line')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: '以纯文本查看' })).toBeNull()
+    })
+
+    // AC-4 · 已识别类型不出现提示
+    it('does not show the plain-text prompt for recognized types', async () => {
+      renderWithProviders(
+        <DetailView
+          type="topic-file"
+          file={{ name: 'notes.md', path: 'logs/notes.md', is_dir: false }}
+        />,
+      )
+      await screen.findByText('notes.md')
+      expect(screen.queryByRole('button', { name: '以纯文本查看' })).toBeNull()
+    })
+  })
+
   it('renders html topic files with path, file metadata, preview/code toggle, and fullscreen control', async () => {
     const onNavigateToTopicPath = vi.fn()
 

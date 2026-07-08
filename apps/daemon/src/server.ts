@@ -60,6 +60,7 @@ export interface DaemonHandle {
 const VALID_MODES: ReadonlySet<AgentRunMode> = new Set(['chat', 'agent', 'observe'])
 const LOOPBACK_CORS_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS'
 const LOOPBACK_CORS_HEADERS = 'Content-Type, Authorization'
+const VALID_THINKING_LEVELS = new Set(['low', 'medium', 'high'])
 
 function isAllowedCorsOrigin(origin: string): boolean {
   if (origin === 'file://' || origin === 'null') return true
@@ -1420,6 +1421,13 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
           return
         }
         const images = Array.isArray(body.images) ? body.images : null
+        const composerSelection = {
+          providerId:
+            typeof body.providerId === 'string' && body.providerId ? body.providerId : undefined,
+          thinkingLevel: VALID_THINKING_LEVELS.has(body.thinkingLevel as string)
+            ? (body.thinkingLevel as 'low' | 'medium' | 'high')
+            : undefined,
+        }
         await conversationService().send(
           body.sessionId,
           body.message,
@@ -1430,6 +1438,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
               typeof (image as Record<string, unknown>).media_type === 'string' &&
               typeof (image as Record<string, unknown>).data === 'string',
           ) ?? null,
+          composerSelection,
         )
         res.status(204).end()
       } catch (err) {

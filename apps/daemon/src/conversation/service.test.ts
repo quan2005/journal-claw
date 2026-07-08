@@ -297,6 +297,82 @@ describe('ConversationService', () => {
     expect(prompt).toContain('简短兜底描述')
   })
 
+  it('applies a per-message model and thinking-level override to future agent turns', async () => {
+    config.setEngineConfig({
+      active_provider: 'faux',
+      providers: [
+        {
+          protocol: 'openai',
+          id: 'faux',
+          label: 'faux',
+          model: 'faux-model',
+          api_key: '',
+          base_url: 'http://localhost:0',
+        },
+        {
+          protocol: 'openai',
+          id: 'faux-2',
+          label: 'faux two',
+          model: 'faux-model-2',
+          api_key: '',
+          base_url: 'http://localhost:0',
+        },
+      ],
+    })
+    const fauxPrimary = fauxProvider({
+      provider: 'faux',
+      models: [{ id: 'faux-model', reasoning: false }],
+      tokenSize: { min: 64, max: 64 },
+    })
+    const fauxSecondary = fauxProvider({
+      provider: 'faux-2',
+      models: [{ id: 'faux-model-2', reasoning: false }],
+      tokenSize: { min: 64, max: 64 },
+    })
+    fauxSecondary.setResponses([() => fauxAssistantMessage([fauxText('switched answer')])])
+    const service = makeService([fauxPrimary.provider, fauxSecondary.provider])
+    const id = service.create()
+
+    await service.send(id, 'hello', null, { providerId: 'faux-2', thinkingLevel: 'high' })
+    await service.waitForIdle(id)
+
+    const session = (
+      service as unknown as {
+        sessions: Map<
+          string,
+          { agent: { state: { model: { id: string }; thinkingLevel: string } } }
+        >
+      }
+    ).sessions.get(id)!
+    expect(session.agent.state.model.id).toBe('faux-model-2')
+    expect(session.agent.state.thinkingLevel).toBe('high')
+    expect(service.getMessages(id).map((m) => [m.role, m.content])).toEqual([
+      ['user', 'hello'],
+      ['assistant', 'switched answer'],
+    ])
+  })
+
+  it('keeps the current model when the composer selection points at an unknown provider', async () => {
+    const faux = fauxProvider({
+      provider: 'faux',
+      models: [{ id: 'faux-model', reasoning: false }],
+      tokenSize: { min: 64, max: 64 },
+    })
+    faux.setResponses([() => fauxAssistantMessage([fauxText('fallback answer')])])
+    const service = makeService([faux.provider])
+    const id = service.create()
+
+    await service.send(id, 'hi', null, { providerId: 'does-not-exist' })
+    await service.waitForIdle(id)
+
+    const session = (
+      service as unknown as {
+        sessions: Map<string, { agent: { state: { model: { id: string } } } }>
+      }
+    ).sessions.get(id)!
+    expect(session.agent.state.model.id).toBe('faux-model')
+  })
+
   function makeService(
     providers: ConversationServiceOptions['providers'],
     createAgent?: ConversationServiceOptions['createAgent'],

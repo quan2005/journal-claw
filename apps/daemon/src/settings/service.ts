@@ -15,6 +15,8 @@ export interface AutoLintConfig {
 
 export type WorkspaceTreeSort = 'name-asc' | 'name-desc' | 'mtime-desc' | 'type-first' | 'manual'
 
+export type ComposerThinkingLevel = 'low' | 'medium' | 'high'
+
 export interface WorkspaceSettings {
   theme: Theme
   auto_lint: AutoLintConfig
@@ -24,6 +26,8 @@ export interface WorkspaceSettings {
   enabled_global_skills?: string[]
   workspace_tree_sort: WorkspaceTreeSort
   workspace_tree_manual_order?: Record<string, string[]>
+  composer_selected_provider_id?: string
+  composer_thinking_level: ComposerThinkingLevel
   [key: string]: unknown
 }
 
@@ -49,6 +53,7 @@ const DEFAULT_SETTINGS: WorkspaceSettings = {
   },
   global_skills_enabled: false,
   workspace_tree_sort: 'name-asc',
+  composer_thinking_level: 'medium',
 }
 
 export class SettingsService {
@@ -142,6 +147,11 @@ function normalizeSettings(
     workspace_tree_manual_order: isRecord(raw.workspace_tree_manual_order)
       ? (raw.workspace_tree_manual_order as Record<string, string[]>)
       : undefined,
+    composer_selected_provider_id:
+      typeof raw.composer_selected_provider_id === 'string' && raw.composer_selected_provider_id
+        ? raw.composer_selected_provider_id
+        : undefined,
+    composer_thinking_level: normalizeComposerThinkingLevel(raw.composer_thinking_level),
   }
 }
 
@@ -196,6 +206,14 @@ function normalizeTreeSort(value: unknown): WorkspaceTreeSort {
   return VALID_TREE_SORTS.includes(value as WorkspaceTreeSort)
     ? (value as WorkspaceTreeSort)
     : 'name-asc'
+}
+
+const VALID_COMPOSER_THINKING_LEVELS: ComposerThinkingLevel[] = ['low', 'medium', 'high']
+
+function normalizeComposerThinkingLevel(value: unknown): ComposerThinkingLevel {
+  return VALID_COMPOSER_THINKING_LEVELS.includes(value as ComposerThinkingLevel)
+    ? (value as ComposerThinkingLevel)
+    : 'medium'
 }
 
 function isValidTheme(value: unknown): value is Theme {

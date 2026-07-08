@@ -187,6 +187,7 @@ export class ConversationService {
     messages: AgentMessage[],
   ) => Agent
   private readonly maxContextMessages: number
+  private readonly piEngineService: PiEngineService
 
   constructor(opts: ConversationServiceOptions) {
     this.workspaceRoot = opts.workspaceRoot
@@ -200,6 +201,7 @@ export class ConversationService {
     this.now = opts.now ?? (() => new Date())
     this.createAgentOverride = opts.createAgent
     this.maxContextMessages = Math.max(1, opts.maxContextMessages ?? 120)
+    this.piEngineService = new PiEngineService(this.configService, { providers: this.providers })
   }
 
   create(context?: string | null, contextFiles?: string[] | null): string {
@@ -223,7 +225,12 @@ export class ConversationService {
     return id
   }
 
-  async send(sessionId: string, message: string, images?: ImageAttachment[] | null): Promise<void> {
+  async send(
+    sessionId: string,
+    message: string,
+    images?: ImageAttachment[] | null,
+    composerSelection?: { providerId?: string; thinkingLevel?: 'low' | 'medium' | 'high' },
+  ): Promise<void> {
     const session = this.requireSession(sessionId)
     if (session.agent.state.isStreaming) {
       session.agent.followUp(userMessage(message, images))
@@ -241,7 +248,27 @@ export class ConversationService {
     }
 
     this.applyExpertMentions(session, message)
+    this.applyComposerSelection(session, composerSelection)
     this.runAgent(session, () => session.agent.prompt(message, toPiImages(images)))
+  }
+
+  /** Applies a per-message model/thinking-level override to the session's
+   * agent state. Both `AgentState.model` and `AgentState.thinkingLevel` only
+   * affect *future* turns per pi-agent-core's contract, so this runs before
+   * every prompt/continue. Missing provider entries are silently skipped to
+   * keep the send path non-fatal (current model/thinkingLevel preserved). */
+  private applyComposerSelection(
+    session: ConversationSession,
+    selection?: { providerId?: string; thinkingLevel?: 'low' | 'medium' | 'high' },
+  ): void {
+    if (!selection) return
+    if (selection.providerId) {
+      const resolved = this.piEngineService?.resolveModelFor(selection.providerId)
+      if (resolved) session.agent.state.model = resolved.model
+    }
+    if (selection.thinkingLevel) {
+      session.agent.state.thinkingLevel = selection.thinkingLevel
+    }
   }
 
   /** Parses `@清除专家` and `@identities/*.md` mentions out of the outgoing

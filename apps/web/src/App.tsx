@@ -41,6 +41,7 @@ import type { Category } from './contexts/UIContext'
 import { NavRail } from './components/NavRail'
 import { useTodoContext } from './contexts/TodoContext'
 import { fileBasename, type JournalFileOpenDetail } from './lib/fileNavigation'
+import type { NavId } from './settings/navigation'
 import type { JournalEntry, QueueItem, IdentityEntry, TreeSelection } from './types'
 import { useTranslation } from './contexts/I18nContext'
 
@@ -463,6 +464,18 @@ export default function App() {
       setView('settings')
     })
     return () => off()
+  }, [setSettingsInitialSection, setView])
+
+  // Open settings to a specific section from in-page UI (e.g. "管理模型…" in
+  // the composer's model pill dropdown). Any component can dispatch this.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const section = (e as CustomEvent<{ section?: NavId }>).detail?.section
+      setSettingsInitialSection(section)
+      setView('settings')
+    }
+    window.addEventListener('open-settings-section', handler)
+    return () => window.removeEventListener('open-settings-section', handler)
   }, [setSettingsInitialSection, setView])
 
   // Open settings -> about section from host menu

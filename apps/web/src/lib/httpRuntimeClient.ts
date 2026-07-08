@@ -141,6 +141,23 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
         await this.updateSettings({ workspace_tree_sort: args?.strategy })
         return undefined as T
       }
+      case 'get_composer_selection': {
+        const settings = await this.getSettings()
+        return {
+          providerId:
+            typeof settings.composer_selected_provider_id === 'string'
+              ? settings.composer_selected_provider_id
+              : null,
+          thinkingLevel: settings.composer_thinking_level ?? 'medium',
+        } as unknown as T
+      }
+      case 'set_composer_selection': {
+        await this.updateSettings({
+          composer_selected_provider_id: args?.providerId,
+          composer_thinking_level: args?.thinkingLevel,
+        })
+        return undefined as T
+      }
       case 'get_workspace_tree_manual_order': {
         const settings = await this.getSettings()
         return (settings.workspace_tree_manual_order ?? {}) as unknown as T
@@ -649,7 +666,13 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
       case 'conversation_send': {
         await this.postJson(
           '/conversation/send',
-          { sessionId: args?.sessionId, message: args?.message, images: args?.images },
+          {
+            sessionId: args?.sessionId,
+            message: args?.message,
+            images: args?.images,
+            providerId: args?.providerId,
+            thinkingLevel: args?.thinkingLevel,
+          },
           'daemon conversation send',
         )
         return undefined as T

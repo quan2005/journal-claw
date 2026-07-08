@@ -15,11 +15,14 @@ const conversationSend = (
   sessionId: string,
   message: string,
   images?: ImageAttachment[],
+  composerSelection?: { providerId?: string | null; thinkingLevel?: 'low' | 'medium' | 'high' },
 ): Promise<void> =>
   selectRuntimeClient().invoke<void>('conversation_send', {
     sessionId,
     message,
     images: images ?? null,
+    providerId: composerSelection?.providerId ?? null,
+    thinkingLevel: composerSelection?.thinkingLevel ?? null,
   })
 
 const conversationCancel = (sessionId: string): Promise<void> =>
@@ -443,10 +446,21 @@ export function useConversation() {
                 ...prev,
                 { role: 'user' as const, content: merged },
               ])
-              conversationSend(sid, merged).catch((e) => {
-                console.error('[conversation] queue flush failed:', e)
-                setTabStreaming(sid, false)
-              })
+              selectRuntimeClient()
+                .invoke<{ providerId: string | null; thinkingLevel: 'low' | 'medium' | 'high' }>(
+                  'get_composer_selection',
+                )
+                .catch(() => ({ providerId: null, thinkingLevel: 'medium' as const }))
+                .then((selection) =>
+                  conversationSend(sid, merged, undefined, {
+                    providerId: selection.providerId ?? undefined,
+                    thinkingLevel: selection.thinkingLevel,
+                  }),
+                )
+                .catch((e) => {
+                  console.error('[conversation] queue flush failed:', e)
+                  setTabStreaming(sid, false)
+                })
             }
           }
           break
@@ -950,7 +964,15 @@ export function useConversation() {
       }
 
       try {
-        await conversationSend(realSid, text, images)
+        const selection = await selectRuntimeClient()
+          .invoke<{ providerId: string | null; thinkingLevel: 'low' | 'medium' | 'high' }>(
+            'get_composer_selection',
+          )
+          .catch(() => ({ providerId: null, thinkingLevel: 'medium' as const }))
+        await conversationSend(realSid, text, images, {
+          providerId: selection.providerId ?? undefined,
+          thinkingLevel: selection.thinkingLevel,
+        })
         return true
       } catch (e) {
         console.error('[conversation] send failed:', e)

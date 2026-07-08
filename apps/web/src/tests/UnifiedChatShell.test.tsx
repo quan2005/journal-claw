@@ -6,7 +6,7 @@ import type { ConversationMessage } from '../types'
 // ChatPanel is rendered for real (NOT mocked). Mock only the daemon /
 // host-bridge touches it pulls in so it renders cleanly under jsdom.
 const panelMocks = vi.hoisted(() => ({
-  invoke: vi.fn(),
+  invoke: vi.fn().mockResolvedValue({}),
   openFile: vi.fn(),
   openDialog: vi.fn(),
 }))

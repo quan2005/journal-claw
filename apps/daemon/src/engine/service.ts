@@ -75,17 +75,7 @@ export class PiEngineService {
 
   resolveEngine(): ResolvedPiEngine {
     const provider = this.resolveActiveProvider()
-    const models = createModels()
-    models.setProvider(anthropicProvider())
-    models.setProvider(openaiProvider())
-    for (const extraProvider of this.opts.providers ?? []) {
-      models.setProvider(extraProvider)
-    }
-
-    if (shouldRegisterOpenAICompatibleProvider(provider, models)) {
-      models.setProvider(createOpenAICompatibleProvider(provider))
-    }
-
+    const models = this.buildModels()
     const model = models.getModel(provider.id, provider.model)
     if (!model) {
       throw new PiEngineConfigError(
@@ -98,10 +88,48 @@ export class PiEngineService {
       models,
       provider,
       getApiKey: async (providerId) => {
-        if (providerId !== provider.id) return undefined
-        return this.resolveApiKey(provider)
+        const config = this.configService.getEngineConfig()
+        const entry = config.providers.find((p) => p.id === providerId)
+        if (!entry) return undefined
+        return this.resolveApiKey(entry)
       },
     }
+  }
+
+  /** Resolves a configured ProviderEntry (by id) into the live `Model` object
+   * used for future turns. Stateless: rebuilds a throwaway models registry on
+   * every call (provider count is single-digit, registration cost negligible).
+   * Returns null when the entry is missing/has no model, so callers can
+   * silently keep the current model instead of throwing. */
+  resolveModelFor(providerId: string): { model: Model<Api>; provider: ProviderEntry } | null {
+    const config = this.configService.getEngineConfig()
+    const provider = config.providers.find((p) => p.id === providerId)
+    if (!provider || !provider.model) return null
+    const models = this.buildModels()
+    const model = models.getModel(provider.id, provider.model)
+    if (!model) return null
+    return { model, provider }
+  }
+
+  /** Builds a MutableModels registry with every configured provider registered
+   * (built-in anthropic/openai once, opt-in extras, plus an OpenAI-compatible
+   * provider for each entry that still needs one). Registering all entries up
+   * front is what lets a mid-conversation model switch resolve to a provider
+   * the session's own stream registry also knows about. */
+  private buildModels(): MutableModels {
+    const config = this.configService.getEngineConfig()
+    const models = createModels()
+    models.setProvider(anthropicProvider())
+    models.setProvider(openaiProvider())
+    for (const extraProvider of this.opts.providers ?? []) {
+      models.setProvider(extraProvider)
+    }
+    for (const entry of config.providers) {
+      if (shouldRegisterOpenAICompatibleProvider(entry, models)) {
+        models.setProvider(createOpenAICompatibleProvider(entry))
+      }
+    }
+    return models
   }
 
   createAgent(): Agent {

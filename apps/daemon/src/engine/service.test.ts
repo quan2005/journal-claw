@@ -66,6 +66,72 @@ describe('PiEngineService', () => {
     await expect(engine.getApiKey?.('zhipu')).resolves.toBe('sk-zhipu')
   })
 
+  it('resolveModelFor resolves any configured provider entry and returns null for unknown ids', () => {
+    const config = new ConfigService({ configDir: dir })
+    config.setEngineConfig({
+      active_provider: 'primary',
+      providers: [
+        {
+          protocol: 'openai',
+          id: 'primary',
+          label: 'Primary',
+          model: 'primary-model',
+          api_key: 'sk-primary',
+          base_url: 'https://api.deepseek.com/v1',
+        },
+        {
+          protocol: 'openai',
+          id: 'secondary',
+          label: 'Secondary',
+          model: 'secondary-model',
+          api_key: 'sk-secondary',
+          base_url: 'https://open.bigmodel.cn/api/paas/v4',
+        },
+      ],
+    })
+
+    const service = new PiEngineService(config)
+
+    const primary = service.resolveModelFor('primary')
+    expect(primary?.model).toMatchObject({ id: 'primary-model', provider: 'primary' })
+
+    const secondary = service.resolveModelFor('secondary')
+    expect(secondary?.model).toMatchObject({ id: 'secondary-model', provider: 'secondary' })
+
+    expect(service.resolveModelFor('not-configured')).toBeNull()
+  })
+
+  it('getApiKey resolves the key for any configured provider, not only the active one', async () => {
+    const config = new ConfigService({ configDir: dir })
+    config.setEngineConfig({
+      active_provider: 'primary',
+      providers: [
+        {
+          protocol: 'openai',
+          id: 'primary',
+          label: 'Primary',
+          model: 'primary-model',
+          api_key: 'sk-primary',
+          base_url: 'https://api.deepseek.com/v1',
+        },
+        {
+          protocol: 'openai',
+          id: 'secondary',
+          label: 'Secondary',
+          model: 'secondary-model',
+          api_key: 'sk-secondary',
+          base_url: 'https://open.bigmodel.cn/api/paas/v4',
+        },
+      ],
+    })
+
+    const engine = new PiEngineService(config).resolveEngine()
+
+    await expect(engine.getApiKey?.('primary')).resolves.toBe('sk-primary')
+    await expect(engine.getApiKey?.('secondary')).resolves.toBe('sk-secondary')
+    await expect(engine.getApiKey?.('unknown')).resolves.toBeUndefined()
+  })
+
   it.each([
     ['volcengine', 'doubao-seed-1.6', 'https://ark.cn-beijing.volces.com/api/v3'],
     ['dashscope', 'qwen-max', 'https://dashscope.aliyuncs.com/compatible-mode/v1'],

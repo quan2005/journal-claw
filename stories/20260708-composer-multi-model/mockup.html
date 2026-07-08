@@ -1,0 +1,202 @@
+<title>Agent 输入框重设计 Mockup</title>
+<style>
+  :root {
+    --accent: #FF5701;
+    --accent-text: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F6F6F1;
+    --surface-3: #ECECE6;
+    --ink: #111827;
+    --ink-2: #6B7280;
+    --divider: #E5E7EB;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-pill: 999px;
+    --shadow-overlay: 0 8px 24px rgba(0,0,0,.12);
+    --focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #FF7A33; --accent-text: #FFF8F0;
+      --surface: #0F0F0F; --surface-2: #1C1C1E; --surface-3: #2C2C2E;
+      --ink: #E8E8E8; --ink-2: #9CA3AF; --divider: #1F2937;
+      --shadow-overlay: 0 8px 24px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --accent: #FF7A33; --accent-text: #FFF8F0;
+    --surface: #0F0F0F; --surface-2: #1C1C1E; --surface-3: #2C2C2E;
+    --ink: #E8E8E8; --ink-2: #9CA3AF; --divider: #1F2937;
+    --shadow-overlay: 0 8px 24px rgba(0,0,0,.5);
+  }
+  :root[data-theme="light"] {
+    --accent: #FF5701; --accent-text: #FFFFFF;
+    --surface: #FFFFFF; --surface-2: #F6F6F1; --surface-3: #ECECE6;
+    --ink: #111827; --ink-2: #6B7280; --divider: #E5E7EB;
+    --shadow-overlay: 0 8px 24px rgba(0,0,0,.12);
+  }
+
+  body {
+    background: var(--surface-2); color: var(--ink);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0; padding: 48px 24px; line-height: 1.6;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+  .panel-label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; }
+
+  /* ===== the composer ===== */
+  .agent-pane { background: var(--surface); border-radius: var(--radius-lg); padding: 16px; position: relative; }
+  .composer {
+    border: 1px solid var(--divider); border-radius: var(--radius-lg);
+    background: var(--surface); display: flex; flex-direction: column;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .composer:focus-within { border-color: var(--accent); box-shadow: var(--focus-ring); }
+  .composer textarea {
+    border: 0; outline: 0; resize: none; background: transparent; color: var(--ink);
+    font: inherit; font-size: 14px; padding: 14px 16px 6px; min-height: 52px;
+  }
+  .composer textarea::placeholder { color: var(--ink-2); }
+  .composer-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px;
+  }
+  .icon-btn {
+    width: 32px; height: 32px; display: grid; place-items: center;
+    border: 0; background: transparent; border-radius: var(--radius-md);
+    color: var(--ink-2); cursor: pointer; font-size: 15px;
+  }
+  .icon-btn:hover { background: var(--surface-3); color: var(--ink); }
+  .icon-btn:focus-visible, .pill:focus-visible, .send:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .spacer { flex: 1; }
+  .send {
+    width: 34px; height: 34px; border: 0; border-radius: var(--radius-md);
+    background: var(--accent); color: var(--accent-text); cursor: pointer;
+    display: grid; place-items: center; font-size: 15px;
+  }
+  .send:disabled { background: var(--surface-3); color: var(--ink-2); cursor: default; }
+
+  /* model pill */
+  .composer-row { position: relative; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--divider); border-radius: var(--radius-pill);
+    background: var(--surface-2); padding: 5px 12px; cursor: pointer;
+    font-size: 12px; color: var(--ink); max-width: 100%;
+  }
+  .pill:hover { background: var(--surface-3); }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+  .pill .provider { color: var(--ink-2); }
+  .pill .model { font-family: var(--mono); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill .caret { color: var(--ink-2); font-size: 9px; }
+
+  /* dropdown */
+  .menu {
+    position: absolute; bottom: calc(100% + 6px); left: 10px; z-index: 10;
+    min-width: 280px; background: var(--surface); border: 1px solid var(--divider);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay);
+    padding: 6px; display: none;
+  }
+  .menu.open { display: block; }
+  .menu .group { padding: 8px 10px 3px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+  .menu .item {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 7px 10px; border: 0; background: transparent; border-radius: var(--radius-md);
+    font-size: 13px; color: var(--ink); cursor: pointer; text-align: left;
+    font-family: var(--mono);
+  }
+  .menu .item:hover { background: var(--surface-2); }
+  .menu .item .check { width: 14px; color: var(--accent); font-weight: 700; flex: none; }
+  .menu .item .tag { margin-left: auto; font-family: inherit; font-size: 11px; color: var(--ink-2); }
+  .menu .divider { height: 1px; background: var(--divider); margin: 5px 4px; }
+
+  .note { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--divider); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .note b { color: var(--ink); }
+  .note ul { margin: 6px 0 0; padding-left: 18px; }
+  .note li { margin: 3px 0; }
+</style>
+
+<div class="wrap">
+  <div>
+    <h1>Agent 输入框重设计 — 交互 Mockup</h1>
+    <div class="sub">STORY-20260708-composer-multi-model · 点击模型 pill 试试切换 · 支持亮/暗主题</div>
+  </div>
+
+  <div>
+    <div class="panel-label">单行紧凑布局 · 附件 / 模型 pill / 发送同一行</div>
+    <div class="agent-pane">
+      <div class="composer">
+        <textarea placeholder="Ask me anything" rows="2"></textarea>
+        <div class="composer-row">
+          <button class="icon-btn" title="附件">📎</button>
+          <div class="menu" id="menu">
+            <div class="group">DeepSeek</div>
+            <button class="item" data-p="DeepSeek" data-m="deepseek-chat"><span class="check">✓</span>deepseek-chat<span class="tag">默认</span></button>
+            <button class="item" data-p="DeepSeek" data-m="deepseek-reasoner"><span class="check"></span>deepseek-reasoner</button>
+            <div class="divider"></div>
+            <div class="group">Anthropic</div>
+            <button class="item" data-p="Anthropic" data-m="claude-sonnet-5"><span class="check"></span>claude-sonnet-5</button>
+            <button class="item" data-p="Anthropic" data-m="claude-haiku-4-5"><span class="check"></span>claude-haiku-4-5</button>
+            <div class="divider"></div>
+            <div class="group">智谱</div>
+            <button class="item" data-p="智谱" data-m="glm-5.2"><span class="check"></span>glm-5.2</button>
+            <div class="divider"></div>
+            <button class="item" style="font-family:inherit;color:var(--ink-2)">⚙︎ 管理模型…（跳转设置）</button>
+          </div>
+          <button class="pill" id="pill" aria-haspopup="listbox">
+            <span class="dot"></span>
+            <span class="provider" id="pv">DeepSeek</span>
+            <span class="model" id="md">deepseek-chat</span>
+            <span class="caret">▼</span>
+          </button>
+          <div class="menu effort-menu" id="effortMenu" style="left:auto">
+            <button class="item" data-e="低" style="font-family:inherit"><span class="check"></span>低 · 快速响应</button>
+            <button class="item" data-e="中" style="font-family:inherit"><span class="check">✓</span>中 · 平衡</button>
+            <button class="item" data-e="高" style="font-family:inherit"><span class="check"></span>高 · 深入思考</button>
+          </div>
+          <button class="pill" id="effortPill" aria-haspopup="listbox" title="思考等级">
+            <span>🧠</span>
+            <span id="ef">中</span>
+            <span class="caret">▼</span>
+          </button>
+          <div class="spacer"></div>
+          <button class="send" title="发送">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>与参考截图的差异（待你拍板）：</b>
+    <ul>
+      <li><b>🎤 麦克风已去掉</b> — 语音能力 M8-b 已下线，不做。</li>
+      <li><b>📎 附件保留在左下</b> — 若现有附件能力则接入，否则本期也可去掉。</li>
+      <li><b>pill 结构简化为「● 厂商 · 模型名 ▾」</b> — 引擎收敛为内置唯一后，"内置 · 内置 pi 引擎"两段是冗余信息，只剩模型是有效选择维度。若你仍想保留引擎标识，可改回三段式。</li>
+      <li><b>单行紧凑布局</b>：📎、模型 pill、发送键同一行，比截图少一行、屏幕占用更小；pill 过长时自动省略号截断。</li>
+      <li><b>去掉外层边框</b>：仅保留输入框自身一层边框，无内外双边框。</li>
+      <li><b>新增思考等级 pill「🧠 低/中/高」</b>：与模型 pill 并排，同样下拉切换、下一条消息生效。</li>
+      <li>橙色仅用于：发送键、当前模型指示点、选中 ✓、聚焦环 — 遵守单一信号橙。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const pill = document.getElementById('pill'), menu = document.getElementById('menu');
+  const effortPill = document.getElementById('effortPill'), effortMenu = document.getElementById('effortMenu');
+  pill.addEventListener('click', e => { e.stopPropagation(); effortMenu.classList.remove('open'); menu.classList.toggle('open'); });
+  effortPill.addEventListener('click', e => { e.stopPropagation(); menu.classList.remove('open'); effortMenu.classList.toggle('open'); });
+  document.addEventListener('click', () => { menu.classList.remove('open'); effortMenu.classList.remove('open'); });
+  effortMenu.querySelectorAll('.item[data-e]').forEach(it => it.addEventListener('click', () => {
+    effortMenu.querySelectorAll('.check').forEach(c => c.textContent = '');
+    it.querySelector('.check').textContent = '✓';
+    document.getElementById('ef').textContent = it.dataset.e;
+  }));
+  menu.querySelectorAll('.item[data-m]').forEach(it => it.addEventListener('click', () => {
+    menu.querySelectorAll('.check').forEach(c => c.textContent = '');
+    it.querySelector('.check').textContent = '✓';
+    document.getElementById('pv').textContent = it.dataset.p;
+    document.getElementById('md').textContent = it.dataset.m;
+  }));
+</script>

@@ -26,13 +26,14 @@ function LazyMD({ content }: { content: string }) {
   )
 }
 import { useSmoothStream } from '../hooks/useSmoothStream'
+import { useComposerSelection, type ThinkingLevel } from '../hooks/useComposerSelection'
 import { hostOpenDialog, hostOpenWithSystem } from '../lib/hostBridge'
 import { FileAttachments } from './FileAttachments'
 import { fileKindFromName } from '../lib/fileKind'
 import { dispatchJournalFileOpen } from '../lib/fileNavigation'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
-import type { SessionStats, ImageAttachment, ImportResult } from '../lib/apiTypes'
+import type { SessionStats, ImageAttachment, ImportResult, EngineConfig } from '../lib/apiTypes'
 
 const importText = (text: string) =>
   selectRuntimeClient().invoke<ImportResult>('import_text', { text })
@@ -51,6 +52,23 @@ const CHAT_PANEL_DANGER_RING =
 const CHAT_PANEL_WARNING_RING =
   'inset 0 0 0 1px color-mix(in srgb, var(--status-warning) 22%, transparent)'
 const LONG_TEXT_ATTACHMENT_THRESHOLD = 300
+
+const THINKING_LEVEL_LABELS: Record<ThinkingLevel, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+}
+
+function groupProvidersByLabel<T extends { label: string }>(
+  providers: T[],
+): Array<{ label: string; entries: T[] }> {
+  const groups = new Map<string, T[]>()
+  for (const p of providers) {
+    if (!groups.has(p.label)) groups.set(p.label, [])
+    groups.get(p.label)!.push(p)
+  }
+  return [...groups.entries()].map(([label, entries]) => ({ label, entries }))
+}
 
 export interface ChatPanelProps {
   messages: ConversationMessage[]
@@ -73,13 +91,6 @@ export interface ChatPanelProps {
    * surface as the built-in pi chat. Undefined for the pure built-in path.
    */
   streamExtras?: ReactNode
-  /**
-   * Extra controls rendered in the COMPOSER EXTRAS ROW — a dedicated row
-   * BELOW the composer's bordered input box (P2 polish · AC-2). UnifiedChatShell
-   * injects the CLI authorization pill here so it no longer crowds the
-   * textarea. Undefined for the pure built-in path (no auth concept).
-   */
-  composerExtras?: ReactNode
   /** Overrides the textarea placeholder (CLI engine reuses this as the goal). */
   inputPlaceholder?: string
 }
@@ -99,7 +110,6 @@ export function ChatPanel({
   onRemovePendingItem,
   onContinue,
   streamExtras,
-  composerExtras,
   inputPlaceholder,
 }: ChatPanelProps) {
   const { t } = useTranslation()
@@ -121,6 +131,26 @@ export function ChatPanel({
   const [atQuery, setAtQuery] = useState('')
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Composer model/thinking pills (composer-multi-model story)
+  const { providerId, thinkingLevel, setProviderId, setThinkingLevel } = useComposerSelection()
+  const [openPillMenu, setOpenPillMenu] = useState<'model' | 'thinking' | null>(null)
+  const [engineConfig, setEngineConfig] = useState<EngineConfig | null>(null)
+
+  useEffect(() => {
+    selectRuntimeClient()
+      .invoke<EngineConfig>('get_engine_config')
+      .then((cfg) => setEngineConfig(cfg))
+      .catch(() => setEngineConfig(null))
+  }, [])
+
+  // Close the open pill menu when clicking elsewhere on the page.
+  useEffect(() => {
+    if (!openPillMenu) return
+    const close = () => setOpenPillMenu(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [openPillMenu])
 
   // Track if user has scrolled up
   const handleScroll = useCallback(() => {
@@ -720,10 +750,9 @@ export function ChatPanel({
           />
         )}
 
-        {/* Fused container — the bordered composer input box. The composerExtras
-         * slot (CLI authorization pill) now lives INSIDE this box, fused into the
-         * bottom toolbar row alongside add-file / stop / send, instead of on a
-         * separate row below the box. */}
+        {/* Fused container — the bordered composer input box. The model pill and
+         * thinking-level pill live INSIDE this box, fused into the bottom toolbar
+         * row alongside add-file / stop / send. */}
         <div
           data-testid="chat-composer-fused"
           style={{
@@ -922,10 +951,229 @@ export function ChatPanel({
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {/* composerExtras (CLI authorization pill) fused into the toolbar
-               * row, right-aligned before stop/send. Undefined for built-in pi
-               * → nothing renders here (AC-3). */}
-              {composerExtras}
+              {/* Model pill + thinking-level pill (composer-multi-model story).
+               * Both open upward as overlay menus; click-outside closes them. */}
+              {engineConfig && engineConfig.providers.length > 0 && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOpenPillMenu((v) => (v === 'model' ? null : 'model'))
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      border: '1px solid var(--dialog-inset-border)',
+                      borderRadius: 999,
+                      background: 'var(--detail-case-bg)',
+                      padding: '4px 10px',
+                      fontSize: 11,
+                      color: 'var(--item-text)',
+                      cursor: 'pointer',
+                      maxWidth: 160,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: 'var(--record-btn)',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ color: 'var(--item-meta)' }}>
+                      {(() => {
+                        const active = engineConfig.providers.find(
+                          (p) => p.id === (providerId ?? engineConfig.active_provider),
+                        )
+                        return active ? active.label : engineConfig.active_provider
+                      })()}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {(() => {
+                        const active = engineConfig.providers.find(
+                          (p) => p.id === (providerId ?? engineConfig.active_provider),
+                        )
+                        return active ? active.model : engineConfig.active_provider
+                      })()}
+                    </span>
+                    <span style={{ color: 'var(--item-meta)', fontSize: 9 }}>▼</span>
+                  </button>
+                  {openPillMenu === 'model' && (
+                    <div
+                      role="menu"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 6px)',
+                        left: 0,
+                        zIndex: 20,
+                        minWidth: 220,
+                        background: 'var(--detail-case-bg)',
+                        border: '1px solid var(--dialog-inset-border)',
+                        borderRadius: 8,
+                        boxShadow: 'var(--shadow-overlay)',
+                        padding: 6,
+                      }}
+                    >
+                      {groupProvidersByLabel(engineConfig.providers).map((group) => (
+                        <div key={group.label}>
+                          <div
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: 10,
+                              textTransform: 'uppercase',
+                              color: 'var(--item-meta)',
+                            }}
+                          >
+                            {group.label}
+                          </div>
+                          {group.entries.map((entry) => {
+                            const isSelected = entry.id === (providerId ?? engineConfig.active_provider)
+                            return (
+                              <button
+                                key={entry.id}
+                                role="menuitem"
+                                type="button"
+                                onClick={() => {
+                                  setProviderId(entry.id)
+                                  setOpenPillMenu(null)
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  width: '100%',
+                                  textAlign: 'left',
+                                  padding: '6px 8px',
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: 12,
+                                  border: 'none',
+                                  borderRadius: 6,
+                                  background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
+                                  color: 'var(--item-text)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <span style={{ width: 14, color: 'var(--record-btn)', flexShrink: 0 }}>
+                                  {isSelected ? '✓' : ''}
+                                </span>
+                                {entry.model}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ))}
+                      <div style={{ height: 1, background: 'var(--dialog-inset-border)', margin: '4px 0' }} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenPillMenu(null)
+                          window.dispatchEvent(
+                            new CustomEvent('open-settings-section', { detail: { section: 'ai' } }),
+                          )
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '6px 8px',
+                          fontSize: 12,
+                          border: 'none',
+                          borderRadius: 6,
+                          background: 'transparent',
+                          color: 'var(--item-meta)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ⚙︎ 管理模型…
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setOpenPillMenu((v) => (v === 'thinking' ? null : 'thinking'))
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    border: '1px solid var(--dialog-inset-border)',
+                    borderRadius: 999,
+                    background: 'var(--detail-case-bg)',
+                    padding: '4px 10px',
+                    fontSize: 11,
+                    color: 'var(--item-text)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>🧠</span>
+                  <span>{THINKING_LEVEL_LABELS[thinkingLevel]}</span>
+                  <span style={{ color: 'var(--item-meta)', fontSize: 9 }}>▼</span>
+                </button>
+                {openPillMenu === 'thinking' && (
+                  <div
+                    role="menu"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      bottom: 'calc(100% + 6px)',
+                      right: 0,
+                      zIndex: 20,
+                      minWidth: 140,
+                      background: 'var(--detail-case-bg)',
+                      border: '1px solid var(--dialog-inset-border)',
+                      borderRadius: 8,
+                      boxShadow: 'var(--shadow-overlay)',
+                      padding: 6,
+                    }}
+                  >
+                    {(['low', 'medium', 'high'] as const).map((level) => (
+                      <button
+                        key={level}
+                        role="menuitem"
+                        type="button"
+                        onClick={() => {
+                          setThinkingLevel(level)
+                          setOpenPillMenu(null)
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '6px 8px',
+                          fontSize: 12,
+                          border: 'none',
+                          borderRadius: 6,
+                          background:
+                            level === thinkingLevel ? 'var(--item-selected-bg)' : 'transparent',
+                          color: 'var(--item-text)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {THINKING_LEVEL_LABELS[level]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {isStreaming && (
                 <button

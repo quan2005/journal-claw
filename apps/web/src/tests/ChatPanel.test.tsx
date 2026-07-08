@@ -52,8 +52,39 @@ describe('ChatPanel', () => {
           year_month: '2606',
         }
       }
+      if (cmd === 'get_composer_selection') {
+        return { providerId: null, thinkingLevel: 'medium' }
+      }
+      if (cmd === 'get_engine_config') {
+        return {
+          active_provider: 'deepseek',
+          providers: [
+            { protocol: 'openai', id: 'deepseek', label: 'DeepSeek', model: 'deepseek-chat', api_key: '', base_url: '' },
+            { protocol: 'openai', id: 'deepseek-r', label: 'DeepSeek', model: 'deepseek-reasoner', api_key: '', base_url: '' },
+            { protocol: 'openai', id: 'zhipu', label: '智谱', model: 'glm-5.2', api_key: '', base_url: '' },
+          ],
+        }
+      }
       return undefined
     })
+  })
+
+  it('groups the model pill dropdown by vendor label, not protocol, and offers a manage-models link', async () => {
+    renderChatPanel()
+
+    const pillButton = await screen.findByText('deepseek-chat')
+    fireEvent.click(pillButton.closest('button')!)
+
+    // Two DeepSeek entries share one "DeepSeek" group heading (not "openai").
+    expect(screen.getAllByText('DeepSeek')).toHaveLength(2) // pill label + group heading
+    expect(screen.getByText('智谱')).toBeTruthy()
+    expect(screen.queryByText('openai')).toBeNull()
+
+    const openSettings = vi.fn()
+    window.addEventListener('open-settings-section', openSettings)
+    fireEvent.click(screen.getByText('⚙︎ 管理模型…'))
+    expect(openSettings).toHaveBeenCalled()
+    window.removeEventListener('open-settings-section', openSettings)
   })
 
   it('saves pasted long text to raw and sends the imported attachment path', async () => {

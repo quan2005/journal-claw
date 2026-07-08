@@ -154,4 +154,33 @@ describe('SettingsService', () => {
       专题: ['输出作品', '资产资源'],
     })
   })
+
+  it('defaults composer_thinking_level to medium and persists composer selection', () => {
+    const svc = new SettingsService(ws)
+    expect(svc.load().composer_thinking_level).toBe('medium')
+    expect(svc.load().composer_selected_provider_id).toBeUndefined()
+
+    svc.update({
+      composer_selected_provider_id: 'deepseek',
+      composer_thinking_level: 'high',
+    })
+    expect(svc.load()).toMatchObject({
+      composer_selected_provider_id: 'deepseek',
+      composer_thinking_level: 'high',
+    })
+  })
+
+  it('normalizes invalid composer_thinking_level back to medium and drops empty provider ids', () => {
+    writeFileSync(
+      join(ws, '.setting.json'),
+      JSON.stringify({
+        composer_thinking_level: 'extreme',
+        composer_selected_provider_id: '',
+      }),
+      'utf8',
+    )
+    const settings = new SettingsService(ws).load()
+    expect(settings.composer_thinking_level).toBe('medium')
+    expect(settings.composer_selected_provider_id).toBeUndefined()
+  })
 })

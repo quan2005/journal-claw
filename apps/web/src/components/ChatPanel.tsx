@@ -26,7 +26,7 @@ function LazyMD({ content }: { content: string }) {
   )
 }
 import { useSmoothStream } from '../hooks/useSmoothStream'
-import { useComposerSelection, type ThinkingLevel } from '../hooks/useComposerSelection'
+import { useComposerSelection } from '../hooks/useComposerSelection'
 import { hostOpenDialog, hostOpenWithSystem } from '../lib/hostBridge'
 import { FileAttachments } from './FileAttachments'
 import { fileKindFromName } from '../lib/fileKind'
@@ -34,6 +34,7 @@ import { dispatchJournalFileOpen } from '../lib/fileNavigation'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { AtMentionMenu } from './AtMentionMenu'
 import type { SessionStats, ImageAttachment, ImportResult, EngineConfig } from '../lib/apiTypes'
+import { groupProvidersByLabel, activePillModelId, THINKING_LEVEL_LABELS } from '../lib/composerPills'
 
 const importText = (text: string) =>
   selectRuntimeClient().invoke<ImportResult>('import_text', { text })
@@ -52,39 +53,6 @@ const CHAT_PANEL_WARNING_RING =
   'inset 0 0 0 1px color-mix(in srgb, var(--status-warning) 22%, transparent)'
 const LONG_TEXT_ATTACHMENT_THRESHOLD = 300
 
-const THINKING_LEVEL_LABELS: Record<ThinkingLevel, string> = {
-  low: '低',
-  medium: '中',
-  high: '高',
-}
-
-function groupProvidersByLabel<T extends { label: string }>(
-  providers: T[],
-): Array<{ label: string; entries: T[] }> {
-  const groups = new Map<string, T[]>()
-  for (const p of providers) {
-    if (!groups.has(p.label)) groups.set(p.label, [])
-    groups.get(p.label)!.push(p)
-  }
-  return [...groups.entries()].map(([label, entries]) => ({ label, entries }))
-}
-
-/** Resolves the model id shown in the composer pill: the persisted
- * `composer_selected_model_id` when it still belongs to the active provider,
- * otherwise the active provider's first configured model. Keeps the pill in
- * sync with the credential list even if a model was removed in settings. */
-function activePillModelId(
-  engineConfig: EngineConfig,
-  providerId: string | null,
-  modelId: string | null,
-): string {
-  const active = engineConfig.providers.find(
-    (p) => p.id === (providerId ?? engineConfig.active_provider),
-  )
-  if (!active || active.models.length === 0) return engineConfig.active_provider
-  if (modelId && active.models.includes(modelId)) return modelId
-  return active.models[0]
-}
 
 export interface ChatPanelProps {
   messages: ConversationMessage[]

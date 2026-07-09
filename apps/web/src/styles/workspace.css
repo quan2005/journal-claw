@@ -539,6 +539,130 @@
   background: var(--item-hover-bg);
 }
 
+/* Model / thinking-level pills (composer-multi-model): the live composer's
+ * only entry point for per-message model + reasoning-effort overrides. */
+.workspace-chat__pill-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.workspace-chat__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-pill);
+  background: var(--detail-case-bg);
+  color: var(--item-text);
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  max-width: 220px;
+}
+
+.workspace-chat__pill:hover {
+  background: var(--item-hover-bg);
+}
+
+.workspace-chat__pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--record-btn);
+  flex-shrink: 0;
+}
+
+.workspace-chat__pill-label {
+  color: var(--item-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-chat__pill-model {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-chat__pill-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 220px;
+  max-width: 320px;
+  background: var(--bg);
+  border: var(--border-menu);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  padding: 6px;
+}
+
+.workspace-chat__pill-menu-group {
+  padding: 4px 8px 2px;
+  font-size: 10px;
+  color: var(--item-meta);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.workspace-chat__pill-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--item-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.workspace-chat__pill-menu-item:hover {
+  background: var(--item-hover-bg);
+}
+
+.workspace-chat__pill-menu-item[data-selected='true'] {
+  background: var(--item-selected-bg);
+}
+
+.workspace-chat__pill-menu-check {
+  width: 14px;
+  flex-shrink: 0;
+  color: var(--record-btn);
+}
+
+.workspace-chat__pill-menu-divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 4px 0;
+}
+
+.workspace-chat__pill-menu-manage {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--item-meta);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.workspace-chat__pill-menu-manage:hover {
+  background: var(--item-hover-bg);
+}
+
 .workspace-chat__footer {
   display: flex;
   align-items: center;

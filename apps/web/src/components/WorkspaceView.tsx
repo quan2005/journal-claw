@@ -19,7 +19,9 @@ import { FileTypeIcon } from './FileTypeIcon'
 import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
 import { useTopics } from '../hooks/useTopics'
 import { selectRuntimeClient } from '../lib/runtimeClient'
-import type { TopicEntry, SessionSummary } from '../lib/apiTypes'
+import type { TopicEntry, SessionSummary, EngineConfig } from '../lib/apiTypes'
+import { useComposerSelection } from '../hooks/useComposerSelection'
+import { groupProvidersByLabel, activePillModelId, THINKING_LEVEL_LABELS } from '../lib/composerPills'
 
 const conversationList = () => selectRuntimeClient().invoke<SessionSummary[]>('conversation_list')
 const conversationDelete = (sessionId: string) =>
@@ -584,6 +586,28 @@ export function WorkspaceChatShell({
   const lastInitialInputRef = useRef<string | undefined>(undefined)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Model / thinking-level pills (composer-multi-model): this is the composer
+  // actually rendered by the app, so the pills live here rather than on the
+  // unmounted ChatPanel/UnifiedChatShell tree.
+  const [engineConfig, setEngineConfig] = useState<EngineConfig | null>(null)
+  const { providerId, modelId, thinkingLevel, setSelection, setThinkingLevel } =
+    useComposerSelection()
+  const [openPillMenu, setOpenPillMenu] = useState<'model' | 'effort' | null>(null)
+
+  useEffect(() => {
+    selectRuntimeClient()
+      .invoke<EngineConfig>('get_engine_config')
+      .then((cfg) => setEngineConfig(cfg))
+      .catch(() => setEngineConfig(null))
+  }, [])
+
+  useEffect(() => {
+    if (!openPillMenu) return
+    const close = () => setOpenPillMenu(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [openPillMenu])
+
   // Sync external initialInput into the textarea.
   useEffect(() => {
     if (initialInput && initialInput !== lastInitialInputRef.current) {
@@ -747,6 +771,128 @@ export function WorkspaceChatShell({
               >
                 <Paperclip size={16} strokeWidth={1.6} />
               </button>
+              {engineConfig && engineConfig.providers.length > 0 && (
+                <div className="workspace-chat__pill-group">
+                  <button
+                    type="button"
+                    className="workspace-chat__pill"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOpenPillMenu((v) => (v === 'model' ? null : 'model'))
+                    }}
+                  >
+                    <span className="workspace-chat__pill-dot" />
+                    <span className="workspace-chat__pill-label">
+                      {(() => {
+                        const active = engineConfig.providers.find(
+                          (p) => p.id === (providerId ?? engineConfig.active_provider),
+                        )
+                        return active ? active.label : engineConfig.active_provider
+                      })()}
+                    </span>
+                    <span className="workspace-chat__pill-label">·</span>
+                    <span
+                      className="workspace-chat__pill-model"
+                      title={activePillModelId(engineConfig, providerId, modelId)}
+                    >
+                      {activePillModelId(engineConfig, providerId, modelId)}
+                    </span>
+                  </button>
+                  {openPillMenu === 'model' && (
+                    <div
+                      role="menu"
+                      className="workspace-chat__pill-menu"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {groupProvidersByLabel(engineConfig.providers).map((group) => {
+                        const modelRows = group.entries.flatMap((entry) =>
+                          entry.models.map((model) => ({ entry, model })),
+                        )
+                        if (modelRows.length === 0) return null
+                        return (
+                          <div key={group.label}>
+                            <div className="workspace-chat__pill-menu-group">{group.label}</div>
+                            {modelRows.map(({ entry, model }) => {
+                              const isSelected =
+                                entry.id === (providerId ?? engineConfig.active_provider) &&
+                                model === activePillModelId(engineConfig, providerId, modelId)
+                              return (
+                                <button
+                                  key={`${entry.id}:${model}`}
+                                  type="button"
+                                  className="workspace-chat__pill-menu-item"
+                                  data-selected={isSelected || undefined}
+                                  onClick={() => {
+                                    setSelection(entry.id, model)
+                                    setOpenPillMenu(null)
+                                  }}
+                                >
+                                  <span className="workspace-chat__pill-menu-check">
+                                    {isSelected ? '✓' : ''}
+                                  </span>
+                                  {model}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )
+                      })}
+                      <div className="workspace-chat__pill-menu-divider" />
+                      <button
+                        type="button"
+                        className="workspace-chat__pill-menu-manage"
+                        onClick={() => {
+                          setOpenPillMenu(null)
+                          window.dispatchEvent(
+                            new CustomEvent('open-settings-section', { detail: { section: 'ai' } }),
+                          )
+                        }}
+                      >
+                        管理模型…
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {engineConfig && engineConfig.providers.length > 0 && (
+                <div className="workspace-chat__pill-group">
+                  <button
+                    type="button"
+                    className="workspace-chat__pill"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOpenPillMenu((v) => (v === 'effort' ? null : 'effort'))
+                    }}
+                  >
+                    🧠 {THINKING_LEVEL_LABELS[thinkingLevel]}
+                  </button>
+                  {openPillMenu === 'effort' && (
+                    <div
+                      role="menu"
+                      className="workspace-chat__pill-menu"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {(['low', 'medium', 'high'] as const).map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          className="workspace-chat__pill-menu-item"
+                          data-selected={level === thinkingLevel || undefined}
+                          onClick={() => {
+                            setThinkingLevel(level)
+                            setOpenPillMenu(null)
+                          }}
+                        >
+                          <span className="workspace-chat__pill-menu-check">
+                            {level === thinkingLevel ? '✓' : ''}
+                          </span>
+                          {THINKING_LEVEL_LABELS[level]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="workspace-chat__toolbar-right">
               <button

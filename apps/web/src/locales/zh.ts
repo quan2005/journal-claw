@@ -274,7 +274,7 @@ export const zh: Strings = {
   pluginScopeProject: '项目',
   pluginScopeGlobal: '全局',
   noSkillsFound: '未发现技能插件',
-  noSkillsHint: '在项目 .claude/skills/ 或全局 ~/.claude/skills/ 目录中添加技能',
+  noSkillsHint: '在项目 .agents/skills/ 或全局 ~/.agent/skills/ 目录中添加技能',
   skillsFavoriteEmptyHint: '还没有收藏。点击技能卡片上的星标即可固定到这里。',
   openSkillDir: '打开目录',
 

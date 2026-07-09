@@ -1,7 +1,7 @@
 ---
 id: STORY-20260708-rename-topic-to-workspace
 title: 界面文案「专题」统一更名为「工作空间」
-status: approved # draft → clarifying → approved → verified
+status: verified # draft → clarifying → approved → in_progress → verified
 source: gate
 level: L1
 hypothesis_basis: data # 产品命名已定，界面未跟上
@@ -58,7 +58,7 @@ related: [STORY-20260708-fix-breadcrumb-path]
 
 ## 交棒清单（移交 design.md 的实现层问题）
 
-- [ ] 清点 26 处命中中哪些是用户可见文案、哪些是测试断言/内部标识，测试随文案同步更新
+- [x] 清点 26 处命中中哪些是用户可见文案、哪些是测试断言/内部标识，测试随文案同步更新（用户可见文案 4 处已改；测试 fixture 中作为示例数据的"专题"字样不影响 AC，按 Won't 不强制清理）
 
 ## 待确认（意图层）
 

@@ -5,6 +5,10 @@
  * todos.md, identity/, .journal-trash/) alongside user content. This migrates
  * them under `.journal/` so the root belongs to the user.
  *
+ * v3 (story 20260708-remove-claude-branding): renames the workspace-level
+ * system prompt `CLAUDE.md` → `AGENTS.md` and lint-state dir `.claude/` →
+ * `.agent/` to drop the Claude Code brand.
+ *
  * Guarantees (design.md §2):
  *   - Idempotent: `.journal/workspace.json#layoutVersion >= 2` short-circuits.
  *   - Resumable: each item moves only if source exists and target does not;
@@ -26,7 +30,7 @@ import {
   workspaceMetaPath,
 } from './paths.js'
 
-export const WORKSPACE_LAYOUT_VERSION = 2
+export const WORKSPACE_LAYOUT_VERSION = 3
 
 interface WorkspaceJson {
   layoutVersion?: unknown
@@ -47,6 +51,10 @@ export function migrateWorkspaceLayout(root: string): void {
   migrateOne(join(root, 'todos.done.md'), todosDonePath(root))
   migrateOne(join(root, 'identity'), identityDir(root))
   migrateOne(join(root, '.journal-trash'), trashDir(root))
+  // v3: drop Claude Code brand — rename workspace-level system prompt and
+  // lint-state dir (story 20260708-remove-claude-branding).
+  migrateOne(join(root, 'CLAUDE.md'), join(root, 'AGENTS.md'))
+  migrateOne(join(root, '.claude'), join(root, '.agent'))
 
   writeLayoutVersion(root, WORKSPACE_LAYOUT_VERSION)
 }

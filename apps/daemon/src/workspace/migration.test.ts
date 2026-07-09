@@ -167,4 +167,46 @@ describe('migrateWorkspaceLayout', () => {
     expect(existsSync(join(ws, 'user-notes.md'))).toBe(true)
     expect(existsSync(memoryDir(ws))).toBe(false)
   })
+
+  // v3 — drop Claude Code brand (story 20260708-remove-claude-branding)
+
+  it('renames legacy CLAUDE.md to AGENTS.md (v3)', () => {
+    writeFileSync(join(ws, 'CLAUDE.md'), 'system prompt')
+
+    migrateWorkspaceLayout(ws)
+
+    expect(existsSync(join(ws, 'CLAUDE.md'))).toBe(false)
+    expect(readFileSync(join(ws, 'AGENTS.md'), 'utf8')).toBe('system prompt')
+  })
+
+  it('renames legacy .claude/ lint-state dir to .agent/ (v3)', () => {
+    mkdirSync(join(ws, '.claude'), { recursive: true })
+    writeFileSync(join(ws, '.claude', 'last-lint.json'), '{"last_run":"now"}')
+
+    migrateWorkspaceLayout(ws)
+
+    expect(existsSync(join(ws, '.claude'))).toBe(false)
+    expect(readFileSync(join(ws, '.agent', 'last-lint.json'), 'utf8')).toBe(
+      '{"last_run":"now"}',
+    )
+  })
+
+  it('does not overwrite AGENTS.md when CLAUDE.md also exists (v3 target conflict)', () => {
+    writeFileSync(join(ws, 'CLAUDE.md'), 'old prompt')
+    writeFileSync(join(ws, 'AGENTS.md'), 'new prompt')
+
+    const warnings: string[] = []
+    const originalWarn = console.warn
+    console.warn = (msg: string) => warnings.push(msg)
+    try {
+      migrateWorkspaceLayout(ws)
+    } finally {
+      console.warn = originalWarn
+    }
+
+    // Both preserved — neither overwritten.
+    expect(readFileSync(join(ws, 'CLAUDE.md'), 'utf8')).toBe('old prompt')
+    expect(readFileSync(join(ws, 'AGENTS.md'), 'utf8')).toBe('new prompt')
+    expect(warnings.some((msg) => msg.includes('skipping'))).toBe(true)
+  })
 })

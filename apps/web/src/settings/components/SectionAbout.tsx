@@ -202,7 +202,7 @@ export default function SectionAbout() {
                 letterSpacing: '0.02em',
               }}
             >
-              macOS · Electron · React · TypeScript · Claude
+              macOS · Electron · React · TypeScript · Anthropic API
             </div>
             <button
               onClick={async () => {

@@ -76,7 +76,7 @@ export class SkillsService {
   openSkillsDir(scope: string): void {
     const dir =
       scope === 'global'
-        ? join(this.homeDir, '.claude', 'skills')
+        ? join(this.homeDir, '.agent', 'skills')
         : join(this.workspaceRoot, '.agents', 'skills')
     mkdirSync(dir, { recursive: true })
     openWithSystem(dir)
@@ -85,7 +85,7 @@ export class SkillsService {
   openSkillDir(scope: string, dirName: string): void {
     const base =
       scope === 'global'
-        ? join(this.homeDir, '.claude', 'skills')
+        ? join(this.homeDir, '.agent', 'skills')
         : join(this.workspaceRoot, '.agents', 'skills')
     const target = join(base, dirName)
     if (!existsSync(target)) throw new Error(`skill directory not found: ${target}`)
@@ -94,14 +94,14 @@ export class SkillsService {
 
   private scanBuiltinSkills(): SkillInfo[] {
     return this.scanSkillsDir(
-      join(this.repoRoot, 'apps', 'web', 'resources', 'workspace-template', '.claude', 'skills'),
+      join(this.repoRoot, 'apps', 'web', 'resources', 'workspace-template', '.agent', 'skills'),
       'builtin',
     ).filter((skill) => !DEV_SKILLS.has(skill.dir_name))
   }
 
   private scanGlobalSkillsExtended(): SkillInfo[] {
-    const all = this.scanSkillsDir(join(this.homeDir, '.claude', 'skills'), 'global')
-    const cache = join(this.homeDir, '.claude', 'plugins', 'cache')
+    const all = this.scanSkillsDir(join(this.homeDir, '.agent', 'skills'), 'global')
+    const cache = join(this.homeDir, '.agent', 'plugins', 'cache')
     if (!existsSync(cache)) return all
 
     for (const publisher of readDirs(cache)) {
@@ -156,7 +156,7 @@ export class SkillsService {
         'web',
         'resources',
         'workspace-template',
-        '.claude',
+        '.agent',
         'skills',
         dirName,
         'SKILL.md',
@@ -167,12 +167,12 @@ export class SkillsService {
     if (scope === 'global') {
       const parts = dirName.split('/')
       if (parts.length === 3) {
-        const pluginDir = join(this.homeDir, '.claude', 'plugins', 'cache', parts[0], parts[1])
+        const pluginDir = join(this.homeDir, '.agent', 'plugins', 'cache', parts[0], parts[1])
         const latest = readDirs(pluginDir).sort((a, b) => b.localeCompare(a))[0]
         if (!latest) throw new Error(`no version found for plugin: ${dirName}`)
         return join(pluginDir, latest, 'skills', parts[2], 'SKILL.md')
       }
-      return join(this.homeDir, '.claude', 'skills', dirName, 'SKILL.md')
+      return join(this.homeDir, '.agent', 'skills', dirName, 'SKILL.md')
     }
     throw new Error(`unknown scope: ${scope}`)
   }

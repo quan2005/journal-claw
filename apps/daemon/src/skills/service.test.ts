@@ -37,7 +37,7 @@ describe('SkillsService', () => {
   it('enables global skills through enabled_global_skills', () => {
     const workspace = mkdtempSync(join(tmpdir(), 'journal-skills-ws-'))
     const home = mkdtempSync(join(tmpdir(), 'journal-skills-home-'))
-    const skillDir = join(home, '.claude', 'skills', 'global-demo')
+    const skillDir = join(home, '.agent', 'skills', 'global-demo')
     mkdirSync(skillDir, { recursive: true })
     writeFileSync(join(skillDir, 'SKILL.md'), '---\nname: Global Demo\n---\n')
     const service = new SkillsService(workspace, new SettingsService(workspace), workspace, home)

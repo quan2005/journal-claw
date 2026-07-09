@@ -45,7 +45,7 @@ export class AutoLintService {
     this.running = true
     try {
       const total = this.countJournalEntries()
-      const dir = join(this.workspaceRoot, '.claude')
+      const dir = join(this.workspaceRoot, '.agent')
       mkdirSync(dir, { recursive: true })
       writeFileSync(
         join(dir, 'last-lint.json'),
@@ -67,7 +67,7 @@ export class AutoLintService {
 
   private readLastLint(): LastLint | null {
     for (const filename of ['last-lint.json', 'last-dream.json']) {
-      const path = join(this.workspaceRoot, '.claude', filename)
+      const path = join(this.workspaceRoot, '.agent', filename)
       if (!existsSync(path)) continue
       try {
         return JSON.parse(readFileSync(path, 'utf8')) as LastLint

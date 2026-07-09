@@ -19,7 +19,7 @@ describe('AutoLintService', () => {
 
     expect(service.getStatus()).toMatchObject({ state: 'never_run', current_new_entries: 1 })
     service.triggerLintNow()
-    expect(existsSync(join(workspace, '.claude', 'last-lint.json'))).toBe(true)
+    expect(existsSync(join(workspace, '.agent', 'last-lint.json'))).toBe(true)
     expect(service.getStatus()).toMatchObject({ state: 'idle', current_new_entries: 0 })
   })
 })

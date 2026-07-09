@@ -248,7 +248,7 @@ export const en = {
   pluginScopeProject: 'Project',
   pluginScopeGlobal: 'Global',
   noSkillsFound: 'No skills found',
-  noSkillsHint: 'Add skills to .claude/skills/ in your project or ~/.claude/skills/ globally',
+  noSkillsHint: 'Add skills to .agents/skills/ in your project or ~/.agent/skills/ globally',
   skillsFavoriteEmptyHint: 'No favorites yet. Use the star on a skill card to keep it here.',
   openSkillDir: 'Open directory',
 

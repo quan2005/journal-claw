@@ -27,6 +27,7 @@ import { TopicsService } from './topics/service.js'
 import { IdentityService } from './identity/service.js'
 import { MaterialsService } from './materials/service.js'
 import { SkillsService } from './skills/service.js'
+import { migrateGlobalAgentDir } from './skills/globalMigration.js'
 import { OnboardingService } from './onboarding/service.js'
 import { PermissionsService } from './permissions/service.js'
 import { AutoLintService } from './auto_lint/service.js'
@@ -39,6 +40,7 @@ import { builtInTemplates } from './automation/templates.js'
 import { LocalCrudError } from './local/service.js'
 import { migrateWorkspaceLayout } from './workspace/migration.js'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import type { AgentRunEvent, AgentRunMode } from '@journal/contracts'
 
 export interface DaemonOptions {
@@ -239,6 +241,18 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     const sedimentService = new SedimentationService(process.cwd())
     const sourceBindingService = new SourceBindingService()
     const configService = opts.configService ?? new ConfigService()
+    // One-shot global (home) migration: ~/.claude/{skills,plugins/cache} →
+    // ~/.agent/{...} (story 20260708-remove-claude-branding). Idempotent; runs
+    // once per daemon start, independent of any workspace, before any skills
+    // service is constructed.
+    try {
+      migrateGlobalAgentDir(homedir())
+    } catch (err) {
+      console.warn(
+        '[global agent-dir migration] failed:',
+        err instanceof Error ? err.message : err,
+      )
+    }
     // Workspace disk-layout migration runs once per workspace root the first
     // time the daemon touches it (story 20260706-workspace-disk-contract).
     // Migration is idempotent; subsequent encounters short-circuit on the
@@ -1371,7 +1385,7 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
     })
 
     app.get('/ai-processing/workspace-prompt', (_req, res) => {
-      const promptPath = `${workspaceRoot()}/CLAUDE.md`
+      const promptPath = `${workspaceRoot()}/AGENTS.md`
       res
         .type('text/plain')
         .send(existsSync(promptPath) ? readFileSync(promptPath, 'utf8') : defaultWorkspacePrompt())
@@ -1383,13 +1397,13 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         res.status(400).json({ error: 'content is required' })
         return
       }
-      writeFileSync(`${workspaceRoot()}/CLAUDE.md`, body.content, 'utf8')
+      writeFileSync(`${workspaceRoot()}/AGENTS.md`, body.content, 'utf8')
       res.status(204).end()
     })
 
     app.post('/ai-processing/workspace-prompt/reset', (_req, res) => {
       const content = defaultWorkspacePrompt()
-      writeFileSync(`${workspaceRoot()}/CLAUDE.md`, content, 'utf8')
+      writeFileSync(`${workspaceRoot()}/AGENTS.md`, content, 'utf8')
       res.type('text/plain').send(content)
     })
 

@@ -191,6 +191,9 @@ describe('DetailView topic file rendering', () => {
     const topicButton = await screen.findByRole('button', { name: '定位到专题 可视化一切' })
     expect(topicButton).toBeTruthy()
     expect(screen.getByText('Deck.html')).toBeTruthy()
+    // AC-1 (fix-breadcrumb-path): breadcrumb has no bogus "专题" prefix segment
+    // ahead of the real path — only real path segments are visible content.
+    expect(screen.queryByText('专题')).toBeNull()
     expect(screen.queryByText(/创建于/)).toBeNull()
     expect(screen.queryByText(/修改于/)).toBeNull()
     expect(screen.getByLabelText(/最后修改/)).toBeTruthy()

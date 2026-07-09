@@ -423,12 +423,13 @@ function FileViewShell({
               fontSize: 'var(--text-sm)',
             }}
           >
-            <span style={{ flexShrink: 0, color: 'var(--duration-text)' }}>{rootLabel}</span>
-            {segments.map((segment) => (
+            {segments.map((segment, index) => (
               <React.Fragment key={segment.path}>
-                <span aria-hidden="true" style={{ color: 'var(--duration-text)', opacity: 0.7 }}>
-                  /
-                </span>
+                {index > 0 && (
+                  <span aria-hidden="true" style={{ color: 'var(--duration-text)', opacity: 0.7 }}>
+                    /
+                  </span>
+                )}
                 <button
                   type="button"
                   aria-label={

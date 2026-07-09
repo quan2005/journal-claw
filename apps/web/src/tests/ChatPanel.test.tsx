@@ -53,15 +53,14 @@ describe('ChatPanel', () => {
         }
       }
       if (cmd === 'get_composer_selection') {
-        return { providerId: null, thinkingLevel: 'medium' }
+        return { providerId: null, modelId: null, thinkingLevel: 'medium' }
       }
       if (cmd === 'get_engine_config') {
         return {
           active_provider: 'deepseek',
           providers: [
-            { protocol: 'openai', id: 'deepseek', label: 'DeepSeek', model: 'deepseek-chat', api_key: '', base_url: '' },
-            { protocol: 'openai', id: 'deepseek-r', label: 'DeepSeek', model: 'deepseek-reasoner', api_key: '', base_url: '' },
-            { protocol: 'openai', id: 'zhipu', label: '智谱', model: 'glm-5.2', api_key: '', base_url: '' },
+            { protocol: 'openai', id: 'deepseek', label: 'DeepSeek', models: ['deepseek-chat', 'deepseek-reasoner'], api_key: '', base_url: '' },
+            { protocol: 'openai', id: 'zhipu', label: '智谱', models: ['glm-5.2'], api_key: '', base_url: '' },
           ],
         }
       }

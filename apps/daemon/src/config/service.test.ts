@@ -62,7 +62,7 @@ describe('ConfigService', () => {
           label: 'DeepSeek',
           api_key: '',
           base_url: 'https://api.deepseek.com/v1',
-          model: 'deepseek-chat',
+          models: ['deepseek-chat'],
         },
       ],
     }
@@ -85,11 +85,69 @@ describe('ConfigService', () => {
             label: 'DeepSeek',
             api_key: '',
             base_url: '',
-            model: '',
+            models: [],
           },
         ],
       }),
     ).toThrow(/invalid active_provider/)
+  })
+
+  it('migrates a legacy single `model` field into the `models` array on read', () => {
+    writeFileSync(
+      join(dir, 'config.json'),
+      JSON.stringify({
+        engine_config: {
+          active_provider: 'deepseek',
+          providers: [
+            {
+              protocol: 'openai',
+              id: 'deepseek',
+              label: 'DeepSeek',
+              api_key: '',
+              base_url: 'https://api.deepseek.com/v1',
+              model: 'deepseek-chat',
+            },
+          ],
+        },
+      }),
+    )
+    const service = new ConfigService({ configDir: dir })
+    const cfg = service.getEngineConfig()
+    expect(cfg.providers[0].models).toEqual(['deepseek-chat'])
+    // The legacy scalar field is no longer surfaced on the normalized entry.
+    expect((cfg.providers[0] as unknown as { model?: unknown }).model).toBeUndefined()
+  })
+
+  it('preserves an existing `models` array and falls back to empty when neither field is present', () => {
+    writeFileSync(
+      join(dir, 'config.json'),
+      JSON.stringify({
+        engine_config: {
+          active_provider: 'deepseek',
+          providers: [
+            {
+              protocol: 'openai',
+              id: 'deepseek',
+              label: 'DeepSeek',
+              api_key: '',
+              base_url: '',
+              models: ['deepseek-chat', 'deepseek-reasoner'],
+            },
+            {
+              protocol: 'openai',
+              id: 'empty',
+              label: 'Empty',
+              api_key: '',
+              base_url: '',
+            },
+          ],
+        },
+      }),
+    )
+    const service = new ConfigService({ configDir: dir })
+    const cfg = service.getEngineConfig()
+    expect(cfg.providers[0].models).toEqual(['deepseek-chat', 'deepseek-reasoner'])
+    expect(cfg.providers[1].models).toEqual([])
   })
 
   it('migrates workspace_path from legacy Rust config without modifying it', () => {

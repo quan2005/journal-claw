@@ -23,7 +23,7 @@ describe('SectionAiEngine', () => {
               label: 'Anthropic',
               api_key: 'sk-ant-test-key',
               base_url: '',
-              model: '',
+              models: [],
             },
           ],
         })
@@ -61,7 +61,7 @@ describe('SectionAiEngine', () => {
               label: 'Anthropic',
               api_key: 'sk-ant-test',
               base_url: '',
-              model: '',
+              models: [],
             },
           ],
         },

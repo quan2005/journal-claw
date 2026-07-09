@@ -170,7 +170,7 @@ function configWithFaux(dir: string): ConfigService {
         label: 'Faux',
         api_key: '',
         base_url: '',
-        model: 'faux-model',
+        models: ['faux-model'],
       },
     ],
   } satisfies EngineConfig)

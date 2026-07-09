@@ -229,7 +229,11 @@ export class ConversationService {
     sessionId: string,
     message: string,
     images?: ImageAttachment[] | null,
-    composerSelection?: { providerId?: string; thinkingLevel?: 'low' | 'medium' | 'high' },
+    composerSelection?: {
+      providerId?: string
+      modelId?: string
+      thinkingLevel?: 'low' | 'medium' | 'high'
+    },
   ): Promise<void> {
     const session = this.requireSession(sessionId)
     if (session.agent.state.isStreaming) {
@@ -255,15 +259,27 @@ export class ConversationService {
   /** Applies a per-message model/thinking-level override to the session's
    * agent state. Both `AgentState.model` and `AgentState.thinkingLevel` only
    * affect *future* turns per pi-agent-core's contract, so this runs before
-   * every prompt/continue. Missing provider entries are silently skipped to
-   * keep the send path non-fatal (current model/thinkingLevel preserved). */
+   * every prompt/continue. When `providerId` is set the resolved model is
+   * picked by `(providerId, modelId)`; if `modelId` is absent the provider's
+   * first configured model is used as a fallback (never silently skip the
+   * whole override — otherwise selecting a model in the UI but not landing on
+   * it would be a fresh "selected but ineffective" bug). Missing entries are
+   * silently skipped to keep the send path non-fatal (current
+   * model/thinkingLevel preserved). */
   private applyComposerSelection(
     session: ConversationSession,
-    selection?: { providerId?: string; thinkingLevel?: 'low' | 'medium' | 'high' },
+    selection?: {
+      providerId?: string
+      modelId?: string
+      thinkingLevel?: 'low' | 'medium' | 'high'
+    },
   ): void {
     if (!selection) return
     if (selection.providerId) {
-      const resolved = this.piEngineService?.resolveModelFor(selection.providerId)
+      const resolved = this.piEngineService?.resolveModelFor(
+        selection.providerId,
+        selection.modelId,
+      )
       if (resolved) session.agent.state.model = resolved.model
     }
     if (selection.thinkingLevel) {

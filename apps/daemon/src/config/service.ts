@@ -9,7 +9,7 @@ export interface ProviderEntry {
   label: string
   api_key: string
   base_url: string
-  model: string
+  models: string[]
 }
 
 export interface EngineConfig {
@@ -293,13 +293,26 @@ function normalizeProvider(value: unknown, index: number, strict: boolean): Prov
     if (strict) throw invalid(`providers.${index}`, value)
     return emptyProvider()
   }
+  // One-shot migration: a legacy config.json written before the one-to-many
+  // rework carries a single `model: string` field. When `models` is absent but
+  // a non-empty legacy `model` is present, lift it into `models: [model]` so
+  // existing users keep their configuration after upgrade.
+  const rawModels = value.models
+  let models: string[]
+  if (Array.isArray(rawModels)) {
+    models = rawModels.filter((m): m is string => typeof m === 'string')
+  } else if (typeof value.model === 'string' && value.model) {
+    models = [value.model]
+  } else {
+    models = []
+  }
   const provider: ProviderEntry = {
     protocol: stringField(value.protocol, 'openai', `providers.${index}.protocol`, strict),
     id: stringField(value.id, '', `providers.${index}.id`, strict),
     label: stringField(value.label, '', `providers.${index}.label`, strict),
     api_key: stringField(value.api_key, '', `providers.${index}.api_key`, strict),
     base_url: stringField(value.base_url, '', `providers.${index}.base_url`, strict),
-    model: stringField(value.model, '', `providers.${index}.model`, strict),
+    models,
   }
   return provider
 }
@@ -311,7 +324,7 @@ function stringField(value: unknown, fallback: string, field: string, strict: bo
 }
 
 function emptyProvider(): ProviderEntry {
-  return { protocol: 'openai', id: '', label: '', api_key: '', base_url: '', model: '' }
+  return { protocol: 'openai', id: '', label: '', api_key: '', base_url: '', models: [] }
 }
 
 function defaultConfigDir(): string {

@@ -58,7 +58,7 @@ export interface ProviderEntry {
   label: string
   api_key: string
   base_url: string
-  model: string
+  models: string[]
 }
 
 export interface EngineConfig {

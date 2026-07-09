@@ -1455,6 +1455,8 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
         const composerSelection = {
           providerId:
             typeof body.providerId === 'string' && body.providerId ? body.providerId : undefined,
+          modelId:
+            typeof body.modelId === 'string' && body.modelId ? body.modelId : undefined,
           thinkingLevel: VALID_THINKING_LEVELS.has(body.thinkingLevel as string)
             ? (body.thinkingLevel as 'low' | 'medium' | 'high')
             : undefined,

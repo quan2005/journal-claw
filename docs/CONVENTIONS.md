@@ -46,13 +46,13 @@ npm run desktop:build
 ## 4. 流程门禁
 
 1. **需求门禁**：新开发需求进入编码前，经 `.agents/skills/requirements-gate` 产出 `story.md` 并由用户确认 `status: approved`。
-2. **验收门禁**：commit 前，相关 approved 未 verified 的 story 须经 `.agents/skills/verification-gate` 由独立 subAgent 验收产出 `verify-report.md`，通过后翻 `verified`。
+2. **验收门禁**：commit 前，相关 approved 未 verified 的 story 须经 `.agents/skills/verification-gate` 验收产出 `verify-report.md`，通过后翻 `verified`。**验收必须由 codex 独立执行**（`codex exec --cd <repo> "<验收任务：逐条核对 story AC 与三类边界，基于真实运行/渲染证据>"`），实现方（无论哪个执行器）不得自验通过；codex 报告中任一 AC 未过即打回，story 翻回 `in_progress` 并在门禁记录写明缺口。
 3. **文档维护**：commit 前，若改动影响架构/设计/约定或用户可感知行为，经 `.agents/skills/docs-maintenance` 同步 AGENTS.md / ARCH.md / DESIGN.md / README / llms.txt。
 4. 标注 `[skip-gate]`、非开发消息、已批准任务延续不受 1 约束。
 
 ## 5. 分工模式（Leader 模式）
 
-Claude 规划拆解与终审；opencode 执行代码任务（`opencode run --model glm/glm-5.2 --dangerously-skip-permissions`，必须显式 `--model`）；kimi 可作独立验收者。破坏性/不可逆操作（push、删库、对外发布）先经用户确认。
+Claude 规划拆解与终审；opencode 执行代码任务（`opencode run --model glm/glm-5.2 --dangerously-skip-permissions`，必须显式 `--model`）；**codex 是唯一的验收执行者**（见 §4.2），kimi 可作补充评审但不能替代 codex 验收。破坏性/不可逆操作（push、删库、对外发布）先经用户确认。
 
 ## 6. 版本管理
 

@@ -120,7 +120,7 @@ export default function OnboardingView({ defaultWorkspacePath, onComplete }: Pro
           if (active.protocol) setProtocol(active.protocol)
           if (active.api_key) setApiKey(active.api_key)
           if (active.base_url) setBaseUrl(active.base_url)
-          if (active.model) setModel(active.model)
+          if (active.models[0]) setModel(active.models[0])
           const preset = BUILTIN_PRESETS.find(
             (bp) =>
               bp.id === active!.id ||
@@ -223,7 +223,7 @@ export default function OnboardingView({ defaultWorkspacePath, onComplete }: Pro
       existing.protocol = protocol
       existing.api_key = apiKey
       existing.base_url = baseUrl
-      existing.model = model
+      existing.models = model ? [model] : []
       cfg.active_provider = existing.id
     } else if (preset) {
       const duplicate = cfg.providers.find((p) => p.base_url === preset.defaultBaseUrl)
@@ -231,7 +231,7 @@ export default function OnboardingView({ defaultWorkspacePath, onComplete }: Pro
         duplicate.protocol = protocol
         duplicate.api_key = apiKey
         duplicate.base_url = baseUrl
-        duplicate.model = model
+        duplicate.models = model ? [model] : []
         cfg.active_provider = duplicate.id
       } else {
         cfg.providers.push({
@@ -240,7 +240,7 @@ export default function OnboardingView({ defaultWorkspacePath, onComplete }: Pro
           label: preset.label,
           api_key: apiKey,
           base_url: baseUrl,
-          model,
+          models: model ? [model] : [],
         })
         cfg.active_provider = preset.id
       }

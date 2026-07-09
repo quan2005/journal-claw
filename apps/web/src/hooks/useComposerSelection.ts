@@ -5,6 +5,7 @@ export type ThinkingLevel = 'low' | 'medium' | 'high'
 
 export interface ComposerSelection {
   providerId: string | null
+  modelId: string | null
   thinkingLevel: ThinkingLevel
 }
 
@@ -14,11 +15,13 @@ const getComposerSelection = (): Promise<ComposerSelection> =>
 const setComposerSelectionRemote = (selection: ComposerSelection): Promise<void> =>
   selectRuntimeClient().invoke<void>('set_composer_selection', {
     providerId: selection.providerId,
+    modelId: selection.modelId,
     thinkingLevel: selection.thinkingLevel,
   })
 
 export function useComposerSelection() {
   const [providerId, setProviderIdState] = useState<string | null>(null)
+  const [modelId, setModelIdState] = useState<string | null>(null)
   const [thinkingLevel, setThinkingLevelState] = useState<ThinkingLevel>('medium')
   const [loading, setLoading] = useState(true)
 
@@ -28,11 +31,13 @@ export function useComposerSelection() {
       .then((saved) => {
         if (cancelled) return
         setProviderIdState(saved.providerId ?? null)
+        setModelIdState(saved.modelId ?? null)
         setThinkingLevelState(saved.thinkingLevel ?? 'medium')
       })
       .catch(() => {
         if (!cancelled) {
           setProviderIdState(null)
+          setModelIdState(null)
           setThinkingLevelState('medium')
         }
       })
@@ -44,15 +49,23 @@ export function useComposerSelection() {
     }
   }, [])
 
-  function setProviderId(next: string) {
-    setProviderIdState(next)
-    setComposerSelectionRemote({ providerId: next, thinkingLevel }).catch(console.error)
+  /** Switch the active credential + model together. Provider and model ids are
+   * always written in the same request so a switch can never leave a stale
+   * model paired with a new provider. */
+  function setSelection(provider: string, model: string) {
+    setProviderIdState(provider)
+    setModelIdState(model)
+    setComposerSelectionRemote({
+      providerId: provider,
+      modelId: model,
+      thinkingLevel,
+    }).catch(console.error)
   }
 
   function setThinkingLevel(next: ThinkingLevel) {
     setThinkingLevelState(next)
-    setComposerSelectionRemote({ providerId, thinkingLevel: next }).catch(console.error)
+    setComposerSelectionRemote({ providerId, modelId, thinkingLevel: next }).catch(console.error)
   }
 
-  return { providerId, thinkingLevel, setProviderId, setThinkingLevel, loading }
+  return { providerId, modelId, thinkingLevel, setSelection, setThinkingLevel, loading }
 }

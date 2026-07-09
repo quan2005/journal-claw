@@ -305,7 +305,7 @@ describe('ConversationService', () => {
           protocol: 'openai',
           id: 'faux',
           label: 'faux',
-          model: 'faux-model',
+          models: ['faux-model'],
           api_key: '',
           base_url: 'http://localhost:0',
         },
@@ -313,7 +313,7 @@ describe('ConversationService', () => {
           protocol: 'openai',
           id: 'faux-2',
           label: 'faux two',
-          model: 'faux-model-2',
+          models: ['faux-model-2'],
           api_key: '',
           base_url: 'http://localhost:0',
         },
@@ -333,7 +333,11 @@ describe('ConversationService', () => {
     const service = makeService([fauxPrimary.provider, fauxSecondary.provider])
     const id = service.create()
 
-    await service.send(id, 'hello', null, { providerId: 'faux-2', thinkingLevel: 'high' })
+    await service.send(id, 'hello', null, {
+      providerId: 'faux-2',
+      modelId: 'faux-model-2',
+      thinkingLevel: 'high',
+    })
     await service.waitForIdle(id)
 
     const session = (
@@ -350,6 +354,43 @@ describe('ConversationService', () => {
       ['user', 'hello'],
       ['assistant', 'switched answer'],
     ])
+  })
+
+  it('falls back to the provider models[0] when providerId is set but modelId is omitted', async () => {
+    config.setEngineConfig({
+      active_provider: 'faux',
+      providers: [
+        {
+          protocol: 'openai',
+          id: 'faux',
+          label: 'faux',
+          models: ['faux-model', 'faux-other'],
+          api_key: '',
+          base_url: 'http://localhost:0',
+        },
+      ],
+    })
+    const faux = fauxProvider({
+      provider: 'faux',
+      models: [
+        { id: 'faux-model', reasoning: false },
+        { id: 'faux-other', reasoning: false },
+      ],
+      tokenSize: { min: 64, max: 64 },
+    })
+    faux.setResponses([() => fauxAssistantMessage([fauxText('first model answer')])])
+    const service = makeService([faux.provider])
+    const id = service.create()
+
+    await service.send(id, 'hi', null, { providerId: 'faux' })
+    await service.waitForIdle(id)
+
+    const session = (
+      service as unknown as {
+        sessions: Map<string, { agent: { state: { model: { id: string } } } }>
+      }
+    ).sessions.get(id)!
+    expect(session.agent.state.model.id).toBe('faux-model')
   })
 
   it('keeps the current model when the composer selection points at an unknown provider', async () => {
@@ -445,7 +486,7 @@ function engineConfig(provider: string, model: string): EngineConfig {
         protocol: 'openai',
         id: provider,
         label: provider,
-        model,
+        models: [model],
         api_key: '',
         base_url: 'http://localhost:0',
       },

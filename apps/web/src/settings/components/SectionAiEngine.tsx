@@ -98,57 +98,63 @@ function isEngineConfigEqual(a: EngineConfig, b: EngineConfig) {
       pa.protocol !== pb.protocol ||
       pa.label !== pb.label ||
       pa.api_key !== pb.api_key ||
-      pa.base_url !== pb.base_url ||
-      pa.model !== pb.model
+      pa.base_url !== pb.base_url
     )
       return false
+    if (pa.models.length !== pb.models.length) return false
+    for (let j = 0; j < pa.models.length; j++) {
+      if (pa.models[j] !== pb.models[j]) return false
+    }
   }
   return true
 }
 
-function ModelSelect({
+function ModelListManager({
   providerId,
   apiKey,
   baseUrl,
   protocol,
-  value,
-  onChange,
+  models,
+  onAdd,
+  onRemove,
   onSaveStatusReset,
 }: {
   providerId: string
   apiKey: string
   baseUrl: string
   protocol: string
-  value: string
-  onChange: (model: string) => void
+  models: string[]
+  onAdd: (model: string) => void
+  onRemove: (model: string) => void
   onSaveStatusReset: () => void
 }) {
   const { t } = useTranslation()
-  const [models, setModels] = useState<string[]>([])
+  const [candidates, setCandidates] = useState<string[]>([])
   const [fetching, setFetching] = useState(false)
   const [open, setOpen] = useState(false)
+  const [customInput, setCustomInput] = useState('')
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const fetchModels = useCallback(() => {
     if (!apiKey?.trim()) {
-      setModels([])
+      setCandidates([])
       return
     }
     setFetching(true)
     listModels(providerId, apiKey, baseUrl, protocol)
       .then((list) => {
-        setModels(list)
+        setCandidates(list)
         setFetching(false)
       })
       .catch(() => {
-        setModels([])
+        setCandidates([])
         setFetching(false)
       })
   }, [providerId, apiKey, baseUrl, protocol])
 
   useEffect(() => {
     if (!apiKey?.trim()) {
-      setModels([])
+      setCandidates([])
       return
     }
     const timer = setTimeout(fetchModels, 500)
@@ -165,31 +171,94 @@ function ModelSelect({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const filtered = value
-    ? models.filter((m) => m.toLowerCase().includes(value.toLowerCase()))
-    : models
-  const showDropdown = open && (fetching || filtered.length > 0)
+  const addModel = (model: string) => {
+    const trimmed = model.trim()
+    if (!trimmed) return
+    onAdd(trimmed)
+    onSaveStatusReset()
+    setCustomInput('')
+    setOpen(false)
+  }
+
+  // Suggested models: from the daemon probe, minus the ones already configured.
+  const suggested = candidates.filter((m) => !models.includes(m))
+  const filteredSuggestions = customInput
+    ? suggested.filter((m) => m.toLowerCase().includes(customInput.toLowerCase()))
+    : suggested
+  const showDropdown = open && (fetching || filteredSuggestions.length > 0 || customInput.trim().length > 0)
 
   return (
     <div>
       <label style={labelStyle}>{t('modelLabel')}</label>
+      <div style={{ marginBottom: 8 }}>
+        {models.length === 0 ? (
+          <div
+            style={{
+              border: '1px dashed var(--divider)',
+              borderRadius: 6,
+              padding: '8px 10px',
+              fontSize: 12,
+              color: 'var(--duration-text)',
+            }}
+          >
+            {t('leaveBlankModel')}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {models.map((m) => (
+              <span
+                key={m}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--divider)',
+                  borderRadius: 999,
+                  padding: '3px 8px 3px 10px',
+                  fontSize: 12,
+                  color: 'var(--item-text)',
+                  fontFamily: 'ui-monospace, monospace',
+                }}
+              >
+                {m}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRemove(m)
+                    onSaveStatusReset()
+                  }}
+                  aria-label={t('confirmDeleteProvider', { name: m })}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--item-meta)',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'inline-flex',
+                    lineHeight: 1,
+                    fontSize: 14,
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div ref={wrapperRef} style={{ position: 'relative' }}>
-        <input
-          style={inputStyle}
-          placeholder={t('modelInputPlaceholder')}
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value)
-            onSaveStatusReset()
-            setOpen(true)
+        <button
+          type="button"
+          onClick={() => {
+            setOpen((v) => !v)
+            if (apiKey?.trim() && candidates.length === 0) fetchModels()
           }}
-          onFocus={() => {
-            if (models.length > 0 || apiKey?.trim()) setOpen(true)
-          }}
-        />
+          style={mutedButtonStyle}
+        >
+          <Plus size={13} /> {t('addProvider')}
+        </button>
         {showDropdown && (
           <div
             style={{
@@ -198,14 +267,31 @@ function ModelSelect({
               left: 0,
               right: 0,
               marginTop: 2,
-              maxHeight: 200,
+              maxHeight: 240,
               overflowY: 'auto',
               background: 'var(--detail-case-bg)',
               border: '1px solid var(--divider)',
               borderRadius: 6,
               zIndex: 10,
+              padding: 4,
             }}
           >
+            <input
+              style={inputStyle}
+              placeholder={t('modelInputPlaceholder')}
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addModel(customInput)
+                }
+              }}
+              autoFocus
+            />
             {fetching ? (
               <div
                 style={{
@@ -231,18 +317,14 @@ function ModelSelect({
                 {t('loadingModels')}
               </div>
             ) : (
-              filtered.map((m) => (
+              filteredSuggestions.map((m) => (
                 <div
                   key={m}
-                  onClick={() => {
-                    onChange(m)
-                    onSaveStatusReset()
-                    setOpen(false)
-                  }}
+                  onClick={() => addModel(m)}
                   style={{
                     padding: '6px 10px',
                     fontSize: 13,
-                    color: m === value ? 'var(--record-btn)' : 'var(--item-text)',
+                    color: 'var(--item-text)',
                     cursor: 'pointer',
                     fontFamily: 'ui-monospace, monospace',
                   }}
@@ -256,6 +338,27 @@ function ModelSelect({
                   {m}
                 </div>
               ))
+            )}
+            {customInput.trim() && !candidates.includes(customInput.trim()) && (
+              <div
+                onClick={() => addModel(customInput)}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: 13,
+                  color: 'var(--record-btn)',
+                  cursor: 'pointer',
+                  borderTop: '1px solid var(--divider)',
+                  marginTop: 2,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--divider)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                + “{customInput.trim()}”
+              </div>
             )}
           </div>
         )}
@@ -373,7 +476,10 @@ export default function SectionAiEngine() {
   const activeProvider = cfg.providers.find((p) => p.id === cfg.active_provider)
   const preset = presetForProvider(activeProvider)
 
-  const setProviderField = (field: keyof ProviderEntry, value: string) => {
+  const setProviderField = (
+    field: 'protocol' | 'id' | 'label' | 'api_key' | 'base_url',
+    value: string,
+  ) => {
     setCfg((prev) => ({
       ...prev,
       providers: prev.providers.map((p) =>
@@ -381,6 +487,26 @@ export default function SectionAiEngine() {
       ),
     }))
     setSaveStatus('idle')
+  }
+
+  const addProviderModel = (model: string) => {
+    setCfg((prev) => ({
+      ...prev,
+      providers: prev.providers.map((p) =>
+        p.id === prev.active_provider && !p.models.includes(model)
+          ? { ...p, models: [...p.models, model] }
+          : p,
+      ),
+    }))
+  }
+
+  const removeProviderModel = (model: string) => {
+    setCfg((prev) => ({
+      ...prev,
+      providers: prev.providers.map((p) =>
+        p.id === prev.active_provider ? { ...p, models: p.models.filter((m) => m !== model) } : p,
+      ),
+    }))
   }
 
   const addProvider = (presetId?: string) => {
@@ -391,7 +517,11 @@ export default function SectionAiEngine() {
       label: bp?.label ?? t('customProvider'),
       api_key: '',
       base_url: bp?.defaultBaseUrl ?? '',
-      model: bp?.defaultModel ?? '',
+      // Seed the credential with the preset's default model when available so
+      // adding "DeepSeek" still lands on deepseek-chat out of the box; the user
+      // can then append more models under the same credential without
+      // re-entering the API key.
+      models: bp?.defaultModel ? [bp.defaultModel] : [],
     }
     setCfg((prev) => ({
       ...prev,
@@ -573,9 +703,9 @@ export default function SectionAiEngine() {
                           {hasApiKey ? t('configured') : t('notConfigured')}
                         </ProviderChip>
                         <ProviderChip>{protocolLabel(p.protocol)}</ProviderChip>
-                        {p.model ? (
+                        {p.models.length > 0 ? (
                           <span
-                            title={p.model}
+                            title={p.models.join(', ')}
                             style={{
                               minWidth: 0,
                               maxWidth: '100%',
@@ -587,7 +717,7 @@ export default function SectionAiEngine() {
                               fontFamily: 'ui-monospace, monospace',
                             }}
                           >
-                            {p.model}
+                            {p.models.length === 1 ? p.models[0] : `${p.models.length} models`}
                           </span>
                         ) : (
                           <ProviderChip tone="warning">{t('modelMissing')}</ProviderChip>
@@ -656,10 +786,15 @@ export default function SectionAiEngine() {
                     {activeProvider.api_key.trim() ? t('apiKeyConfigured') : t('apiKeyMissing')}
                   </ProviderChip>
                   <ProviderChip>{protocolLabel(activeProvider.protocol)}</ProviderChip>
-                  {activeProvider.model ? (
-                    <ProviderChip>{activeProvider.model}</ProviderChip>
+                  {activeProvider.models.length > 0 ? (
+                    activeProvider.models.slice(0, 3).map((m) => (
+                      <ProviderChip key={m}>{m}</ProviderChip>
+                    ))
                   ) : (
                     <ProviderChip tone="warning">{t('modelMissing')}</ProviderChip>
+                  )}
+                  {activeProvider.models.length > 3 && (
+                    <ProviderChip>+{activeProvider.models.length - 3}</ProviderChip>
                   )}
                 </div>
 
@@ -762,13 +897,14 @@ export default function SectionAiEngine() {
                   </div>
 
                   <div>
-                    <ModelSelect
+                    <ModelListManager
                       providerId={activeProvider.id}
                       apiKey={activeProvider.api_key}
                       baseUrl={activeProvider.base_url}
                       protocol={activeProvider.protocol || 'openai'}
-                      value={activeProvider.model}
-                      onChange={(model) => setProviderField('model', model)}
+                      models={activeProvider.models}
+                      onAdd={addProviderModel}
+                      onRemove={removeProviderModel}
                       onSaveStatusReset={() => setSaveStatus('idle')}
                     />
                   </div>

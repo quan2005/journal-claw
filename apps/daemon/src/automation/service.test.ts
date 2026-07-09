@@ -19,7 +19,7 @@ function engineConfig(provider: string, model: string): EngineConfig {
         protocol: 'openai',
         id: provider,
         label: provider,
-        model,
+        models: [model],
         api_key: '',
         base_url: 'http://localhost:0',
       },

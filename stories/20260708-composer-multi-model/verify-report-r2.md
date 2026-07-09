@@ -1,151 +1,114 @@
----
-story: ./story.md
-design: ./design.md
-round: 2
-date: 2026-07-08
-verifier: independent-subagent
-result: pass
----
+result: fail
 
-# Verify Report (R2) — STORY-20260708-composer-multi-model
+# STORY-20260708-composer-multi-model R2 验收报告
 
-> 独立 subAgent 第 2 轮验收。结论仅基于 story.md / design.md 契约与指定范围内的代码取证，不接受实现者自述。
-> 本轮重点核对 R1 的 2 条 FAIL（AC-2 / AC-5）及 6 项偏差（D1–D6）是否收敛。
+验收基准：
+- `stories/20260708-composer-multi-model/story.md` AC-1~AC-6 与三类 Won't。
+- `stories/20260708-composer-multi-model/design.md` 顶部 R2 返工方案；下方 R1 “不需要 schema 改动”结论按契约视为已作废。
 
-## 取证命令与结果
+## AC-1 — 设置中配置多厂商多模型
 
-| 命令                                                            | 结果                          |
-| --------------------------------------------------------------- | ----------------------------- |
-| `vitest run src/engine/service.test.ts` (daemon)               | 1 file passed                 |
-| `vitest run src/conversation/service.test.ts` (daemon)         | 1 file passed（含 2 条 composer） |
-| `vitest run src/settings/service.test.ts` (daemon)             | 1 file passed（含 2 条 composer） |
-| `vitest run` (daemon, 三文件合计)                              | 30 tests passed               |
-| `vitest run` (web, 全量)                                       | 55 files / 392 tests passed   |
-| `vitest run src/tests/useComposerSelection.test.tsx src/tests/ChatPanel.test.tsx` | 7 tests passed |
-| `tsc --noEmit` (daemon)                                        | 无错误                        |
-| `tsc --noEmit` (web)                                           | 无错误                        |
+结论：pass
 
-## R1 偏差收敛追踪
+证据：
+- schema 已改为一份凭证下的 `models: string[]`：`apps/daemon/src/config/service.ts:6-13`。
+- 旧 `model` 字段迁移为 `models: [model]`，已有配置不丢：`apps/daemon/src/config/service.ts:300-308`；测试 `apps/daemon/src/config/service.test.ts:95-119` 覆盖旧字段迁移，`apps/daemon/src/config/service.test.ts:121-151` 覆盖保留多模型数组。
+- 设置页“追加模型”函数只改当前 provider 的 `models` 数组，不触碰 `api_key`：`apps/web/src/settings/components/SectionAiEngine.tsx:492-501`。API key 只由 `setProviderField('api_key', ...)` 更新：`apps/web/src/settings/components/SectionAiEngine.tsx:479-490`、`apps/web/src/settings/components/SectionAiEngine.tsx:852-861`。
+- 同一凭证多模型共用 provider 注册与同一 api key 解析：`PiEngineService.buildModels()` 遍历 provider entry 注册 provider：`apps/daemon/src/engine/service.ts:128-141`；`resolveModelFor(providerId, modelId)` 校验 `modelId` 属于该 provider 的 `models`：`apps/daemon/src/engine/service.ts:108-120`；`getApiKey` 按 provider id 找同一条 `ProviderEntry` 并解析其 `api_key`：`apps/daemon/src/engine/service.ts:91-96`、`apps/daemon/src/engine/service.ts:209-212`。
+- 最小单测已覆盖一份 DeepSeek 凭证下 `deepseek-chat` 与 `deepseek-reasoner` 两个模型：`apps/daemon/src/engine/service.test.ts:104-139`；同时覆盖任意 provider key 解析：`apps/daemon/src/engine/service.test.ts:141-170`。
 
-| #   | R1 描述                                                       | R2 状态 | R2 证据                                                                 |
-| --- | ------------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
-| D1  | 模型下拉按 `protocol` 分组（应为厂商 `label`）                | **已修** | `ChatPanel.tsx:62-71` `groupProvidersByLabel()`；`:1030` 调用；测试 `ChatPanel.test.tsx:72-88` 断言 `queryByText('openai')` 为 null |
-| D2  | 下拉末尾缺"管理模型…"跳转设置                                 | **已修** | `ChatPanel.tsx:1078-1101` 按钮 dispatch `open-settings-section`；`App.tsx:471-479` 监听；测试 `ChatPanel.test.tsx:83-87` 验证事件触发 |
-| D3  | pill 仅 `{model}`，缺 `● {label} · {model}`                  | **已修** | `ChatPanel.tsx:978-1011` 渲染 dot + provider label + model + caret ▼   |
-| D4  | 选中项用背景色，缺 `✓`                                        | **已修** | `ChatPanel.tsx:1069-1071` `{isSelected ? '✓' : ''}`，橙色 `--record-btn` |
-| D5  | 发送键 `background:none` vs mockup 填充橙底                   | **未改** | `ChatPanel.tsx:1196-1225` 仍 `background:'none'` + 橙色描边图标        |
-| D6  | 思考 pill `🧠 中` 合并字符串，缺 caret                        | **已修** | `ChatPanel.tsx:1127-1129` 拆为 `<span>🧠</span>` + 等级 + caret ▼ 三段 |
+## AC-2 — 输入框内切换模型
 
-**结论：6 项偏差中 5 项已修复（D1–D4、D6），仅 D5（发送键填充风格）保留。**
+结论：pass
 
-## AC 逐条核对
+证据：
+- ChatPanel 模型 pill 展示当前 provider label 与 model id：`apps/web/src/components/ChatPanel.tsx:996-1026`。
+- 下拉菜单按 `provider.label` 分组：`apps/web/src/components/ChatPanel.tsx:62-71`、`apps/web/src/components/ChatPanel.tsx:1045-1063`。
+- 组内将同一凭证的 `entry.models` 展开为多行 `(provider, modelId)`：`apps/web/src/components/ChatPanel.tsx:1045-1050`；点击行调用 `setSelection(entry.id, model)`：`apps/web/src/components/ChatPanel.tsx:1064-1077`。
+- 测试以 `DeepSeek` 一条 provider、两个 models 验证菜单分组和模型项渲染：`apps/web/src/tests/ChatPanel.test.tsx:55-66`、`apps/web/src/tests/ChatPanel.test.tsx:71-87`。
 
-### AC-1 — 设置中配置多厂商多模型 → **PASS**
+## AC-3 — 切换后下一条消息立即生效
 
-- design.md 声明 AC-1 复用现有 `EngineConfig { active_provider, providers: ProviderEntry[] }`，不改 schema。
-- `git diff --stat` 确认 `config/service.ts`、`SectionAiEngine.tsx` 未在本故事改动范围内。
-- `engine/service.ts:119-133` `buildModels()` 遍历 `config.providers` 全部记录注册。
+结论：pass
 
-### AC-2 — 输入框内切换模型 → **PASS**
+证据：
+- `useComposerSelection.setSelection()` 将 provider/model 成对持久化：`apps/web/src/hooks/useComposerSelection.ts:52-63`。
+- `useConversation.send()` 在发送前读取 `get_composer_selection` 并把 `providerId/modelId/thinkingLevel` 传入 `conversationSend`：`apps/web/src/hooks/useConversation.ts:978-994`。
+- HTTP client 把三元组写入 `/conversation/send` body：`apps/web/src/lib/httpRuntimeClient.ts:674-686`；daemon route 解析三元组后传给 `ConversationService.send()`：`apps/daemon/src/server.ts:1447-1475`。
+- `ConversationService.send()` 在 `runAgent` 前调用 `applyComposerSelection`：`apps/daemon/src/conversation/service.ts:254-256`；后者用 `(providerId, modelId)` 覆盖 `session.agent.state.model`，并写入 `thinkingLevel`：`apps/daemon/src/conversation/service.ts:269-287`。
+- 单测覆盖 per-message model/thinking 覆盖：`apps/daemon/src/conversation/service.test.ts:300-352`；覆盖 providerId 有、modelId 省略时回退 `models[0]`：`apps/daemon/src/conversation/service.test.ts:359-395`。
 
-| 子项                            | 证据                                                                 | 判定 |
-| ------------------------------- | -------------------------------------------------------------------- | ---- |
-| pill 点击展开下拉               | `ChatPanel.tsx:958-963` `openPillMenu` state                         | ✅   |
-| 选中后 pill 立即更新            | `ChatPanel.tsx:1049-1052` `setProviderId(entry.id)` 即时 React state | ✅   |
-| **列表按厂商分组**              | `groupProvidersByLabel()`（`:62-71`），按 `ProviderEntry.label` 分组；测试 `ChatPanel.test.tsx:78-81` 断言 DeepSeek/智谱 成组、`openai` 不出现 | ✅ |
-| 选中项显示 `✓`                  | `ChatPanel.tsx:1069-1071` `{isSelected ? '✓' : ''}`                  | ✅   |
-| 末尾"管理模型…"跳转设置         | `ChatPanel.tsx:1078-1101` dispatch `open-settings-section`；`App.tsx:471-479` 监听切到 settings；测试 `:83-87` 验证 | ✅ |
-| pill = `● {label} · {model} ▾` | `ChatPanel.tsx:978-1011` dot + label + model + caret ▼              | ✅   |
+## AC-4 — 默认模型 = 上次选择
 
-> 分组语义核实：`ProviderEntry.label`（`config/service.ts:9`）为厂商显示名（如 "DeepSeek"/"智谱"），同一厂商多条模型记录共享 label → 自然成组，与 mockup 的 DeepSeek/Anthropic/智谱 分组一致。
+结论：pass
 
-### AC-3 — 切换后下一条消息立即生效 → **PASS**
+证据：
+- settings schema 新增 `composer_selected_provider_id`、`composer_selected_model_id`、`composer_thinking_level`：`apps/daemon/src/settings/service.ts:20-32`。
+- HTTP client 的 `get_composer_selection` 返回 provider/model/thinking 三元组，`set_composer_selection` 一次性写入 provider/model/thinking：`apps/web/src/lib/httpRuntimeClient.ts:144-167`。
+- `useComposerSelection()` mount 时读取持久化选择并更新本地状态：`apps/web/src/hooks/useComposerSelection.ts:28-50`。
+- 测试覆盖读取上次 provider/model/thinking：`apps/web/src/tests/useComposerSelection.test.tsx:21-30`；覆盖 provider/model 成对持久化：`apps/web/src/tests/useComposerSelection.test.tsx:42-58`。
 
-- `conversation/service.ts:251` `applyComposerSelection(session, composerSelection)` 在 `runAgent`（`:252`）之前执行。
-- `conversation/service.ts:265-271`：`providerId` 命中 → `session.agent.state.model = resolved.model`；`thinkingLevel` 直接赋值。
-- 测试 `conversation/service.test.ts:300-353` 端到端：send `{ providerId:'faux-2', thinkingLevel:'high' }` → `model.id==='faux-model-2'` 且 `thinkingLevel==='high'`，响应来自 secondary provider。
-- 测试 `:355-374`：未知 providerId 静默保留当前 model。✓
+## AC-5 — 输入框整体重设计落地
 
-### AC-4 — 默认模型 = 上次选择 → **PASS**
+结论：fail
 
-- `settings/service.ts:29-30` 字段 `composer_selected_provider_id?` / `composer_thinking_level`。
-- `settings/service.ts:150-154, 211-217` 归一化：非法 thinkingLevel 兜底 `'medium'`；空 provider_id → `undefined`。
-- `useComposerSelection.ts:25-45` mount 读 `get_composer_selection`；`:47-55` set 立即乐观更新 + 异步持久化。
-- `ChatPanel.tsx:989-992, 1043` pill 回退 `providerId ?? engineConfig.active_provider`。
-- 测试 `useComposerSelection.test.tsx` 4 条全过（mount 读、失败兜底、setProviderId 持久化、setThinkingLevel 持久化）；`settings/service.test.ts:158-184` 默认值 + 持久化 + 非法值归一化。
+通过部分：
+- 输入框是单个 fused composer 容器：`apps/web/src/components/ChatPanel.tsx:771-790`。
+- textarea 自身无边框，焦点/边框由外层容器承担：`apps/web/src/components/ChatPanel.tsx:906-933`。
+- 底部工具条包含附件按钮、模型 pill、思考等级 pill、发送键，同在一行：`apps/web/src/components/ChatPanel.tsx:935-1253`。
+- 单一信号橙主要通过 `var(--record-btn)` 出现在焦点边框、拖拽边框、模型圆点、选中勾、发送键：`apps/web/src/components/ChatPanel.tsx:777-785`、`apps/web/src/components/ChatPanel.tsx:996-1003`、`apps/web/src/components/ChatPanel.tsx:1094-1096`、`apps/web/src/components/ChatPanel.tsx:1222-1235`。
 
-### AC-5 — 输入框整体重设计落地 → **PASS（含 1 项待裁决）**
+失败点：
+- `docs/DESIGN.md` 明确要求结构化 token 强制消费，禁止组件硬编码圆角、边框、聚焦环数值：`docs/DESIGN.md:179-187`、`docs/DESIGN.md:248-264`。
+- ChatPanel composer 仍硬编码圆角与聚焦环浓度：`borderRadius: 12`、`CHAT_PANEL_HIGHLIGHT_RING = color-mix(... 22% ...)`，见 `apps/web/src/components/ChatPanel.tsx:48-50`、`apps/web/src/components/ChatPanel.tsx:777-788`；pill/menu 也有 `borderRadius: 999`、`borderRadius: 8` 等硬编码：`apps/web/src/components/ChatPanel.tsx:986-989`、`apps/web/src/components/ChatPanel.tsx:1038-1041`、`apps/web/src/components/ChatPanel.tsx:1144-1147`、`apps/web/src/components/ChatPanel.tsx:1167-1170`。
+- 因 AC-5 明确要求“遵循 docs/DESIGN.md 结构化 token”，上述偏差构成 AC-5 未完全通过。
 
-**结构层面（契约"Then"明确列项，全部满足）：**
+## AC-6 — 思考等级切换
 
-| 子项                                        | 证据                                              | 判定 |
-| ------------------------------------------- | ------------------------------------------------- | ---- |
-| 多行输入区                                  | `ChatPanel.tsx:889-915` `<textarea>`              | ✅   |
-| 单行紧凑操作行                              | `ChatPanel.tsx:918-924` toolbar flex row          | ✅   |
-| 附件 / 模型 pill / 思考 pill / 发送 同行    | `ChatPanel.tsx:926-1226`                          | ✅   |
-| 无内外双边框                                | 外层 `<div style={{padding}}>` 无 border；fused container 单 border | ✅ |
-| 聚焦态边框 + 聚焦环在容器                   | `ChatPanel.tsx:767` `CHAT_PANEL_HIGHLIGHT_RING`   | ✅   |
-| textarea 无独立边框                         | `ChatPanel.tsx:903` `border:'none'`               | ✅   |
+结论：pass
 
-**token 合规（契约"And"：遵循结构化 token + 单一信号橙）：**
+证据：
+- ChatPanel 渲染思考等级 pill，显示低/中/高：`apps/web/src/components/ChatPanel.tsx:56-60`、`apps/web/src/components/ChatPanel.tsx:1133-1156`。
+- 下拉菜单三档单选，点击调用 `setThinkingLevel(level)` 并关闭菜单：`apps/web/src/components/ChatPanel.tsx:1157-1201`。
+- `useComposerSelection.setThinkingLevel()` 立即持久化当前 provider/model 与新 thinking：`apps/web/src/hooks/useComposerSelection.ts:65-68`。
+- 发送链路把 thinkingLevel 传到 daemon，并在 `applyComposerSelection` 写入 `session.agent.state.thinkingLevel`：`apps/web/src/hooks/useConversation.ts:978-994`、`apps/daemon/src/server.ts:1455-1475`、`apps/daemon/src/conversation/service.ts:285-287`。
+- 测试覆盖 thinking 读取与持久化：`apps/web/src/tests/useComposerSelection.test.tsx:61-80`；daemon conversation 测试覆盖发送前应用 `thinkingLevel: high`：`apps/daemon/src/conversation/service.test.ts:300-352`。
 
-- 全部走 CSS 变量（`--record-btn` / `--dialog-inset-border` / `--detail-case-bg` / `--item-meta` 等），无硬编码色值。
-- 信号橙 `--record-btn` 仅出现在：模型指示圆点（`:983`）、选中 `✓`（`:1069`）、聚焦环（`:767`）、发送键图标色（`:1208`）。✓
+## 越界/偏差清单
 
-**唯一保留偏差（D5，R1 已标 ⚠️ 低危 + P3 待裁决）：**
+- 偏差：AC-5 的结构化 token 要求未完全满足，存在硬编码圆角与聚焦环浓度；见 AC-5 失败点。
+- 未发现新增语音输入功能；ChatPanel 工具条只有附件按钮、模型 pill、思考 pill、停止/发送按钮，未实现麦克风输入：`apps/web/src/components/ChatPanel.tsx:944-969`、`apps/web/src/components/ChatPanel.tsx:971-1253`。
+- 未发现自动模型路由、计费统计、模型能力对比展示。
+- 未发现发送中途换模型逻辑；流式过程中 `ConversationService.send()` 对已 streaming 会话走 follow-up 分支并直接 return，不应用新的 composer selection：`apps/daemon/src/conversation/service.ts:238-244`，符合“仅影响下一条消息/不做发送中途换模型”的边界。
 
-| 项 | mockup.html | 实现 | 说明 |
-| -- | ----------- | ---- | ---- |
-| 发送键 | `.send { background: var(--accent); color: var(--accent-text); }` 填充橙底白图标 | `background:'none'` + `color:'var(--record-btn)'` 描边图标（`:1196-1225`） | R1 P3 建议保留（与 codebase 其他发送键风格一致）；本轮未被改动，视为开发者默许接受 |
+## 运行验证
 
-> 判定依据：AC-5 的"Then"明确列出的结构项全部满足；"And"的 token/信号橙合规满足。发送键填充风格属未列出的渲染细节，R1 已分类为低危并建议可接受。故判 PASS，D5 列入待用户裁决。
+```text
+cd apps/daemon && bunx vitest run src/config/service.test.ts src/engine/service.test.ts src/conversation/service.test.ts src/settings/service.test.ts src/server.test.ts src/ai_processor/service.test.ts
+Test Files  6 passed (6)
+Tests       55 passed (55)
+Duration    829ms
+```
 
-### AC-6 — 思考等级切换 → **PASS**
+```text
+cd apps/daemon && bunx tsc --noEmit
+exit code 0, no output
+```
 
-- `ChatPanel.tsx:1107-1176` 思考 pill 独立下拉，三档单选，`openPillMenu==='thinking'` 与 model pill 互斥。
-- `ChatPanel.tsx:148-153` click-outside 关闭。
-- `useComposerSelection.ts:52-55` `setThinkingLevel` 持久化。
-- `server.ts:63` `VALID_THINKING_LEVELS = new Set(['low','medium','high'])` 校验。
-- `conversation/service.ts:269-271` 赋值 `agent.state.thinkingLevel`。
-- pill 三段式 `🧠 + 等级 + ▼`（`:1127-1129`），与 mockup 一致（D6 已修）。
-- 测试 `conversation/service.test.ts:336-348` 验证 `thinkingLevel==='high'` 生效。✓
+```text
+cd apps/web && bunx vitest run
+Test Files  55 passed (55)
+Tests       394 passed (394)
+Duration    18.87s
+```
 
-## 三类边界（Won't）核对
-
-| Won't 项                                | 核对                                                                      | 判定 |
-| --------------------------------------- | ------------------------------------------------------------------------- | ---- |
-| 不做语音输入                            | 无 🎤 / voice / speech 相关代码                                           | ✅   |
-| 不做发送中途换模型                      | `applyComposerSelection` 仅在 `send()` 内、`prompt()` 前执行              | ✅   |
-| 不做模型自动路由                        | 全程手动选                                                                | ✅   |
-| 不做计费统计 / 能力对比                 | 无相关代码                                                                | ✅   |
-| 不改输入框以外对话区域                  | diff 集中在 ChatPanel.tsx 输入框区域 + daemon 三文件 + httpRuntimeClient | ✅   |
-| 不碰 SectionAiEngine.tsx / EngineConfig | 未在改动范围                                                              | ✅   |
-
-## 越界 / 偏差清单
-
-| #   | 类型 | 位置                       | 描述                                                                 | 严重度 |
-| --- | ---- | -------------------------- | -------------------------------------------------------------------- | ------ |
-| D5  | 偏差 | `ChatPanel.tsx:1196-1225` | 发送键 `background:'none'` 描边图标，mockup 为填充橙底白图标         | 低     |
-
-（R1 的 D1–D4、D6 已全部修复，无新增越界。）
+```text
+cd apps/web && bunx tsc --noEmit
+exit code 0, no output
+```
 
 ## 待用户裁决项
 
-| #   | 问题                                                                       | 建议                                                                       |
-| --- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| P1  | 发送键视觉：描边橙图标 vs mockup 填充橙底白图标（R1 P3 延续，未改动）     | 当前实现与 codebase 其他发送键一致，可接受；若要严格对齐 mockup 再开微调任务 |
+- 无。AC-5 是契约内明确要求，不作为待裁决项放行。
 
-## 不漏 / 不重 / 不偏 / 不倚 / 不多 / 不少 自检
-
-- **不漏**：AC-1~AC-6 全部核对；R1 的 6 项偏差逐项追踪收敛。✓
-- **不重**：`useComposerSelection` 为 composer 状态唯一 hook；`resolveModelFor` 为模型解析唯一入口；`groupProvidersByLabel` 取代了旧的 `groupProvidersByProtocol`（grep 确认全仓仅一处定义 + 一处调用）。✓
-- **不偏**：后端改动落在 design.md 指定的 daemon 三文件（engine/conversation/settings + server 路由）；前端落在 ChatPanel + useComposerSelection + httpRuntimeClient + App 事件监听。✓
-- **不倚**：每条 AC 独立取证（文件:行 + 测试断言），D5 未修如实记录不放过也不夸大。✓
-- **不多**：无超出 story/design 范围的额外功能。✓
-- **不少**：design.md 5 项改动（buildModels 全量注册、resolveModelFor、getApiKey 通用化、settings KV、httpRuntimeClient get/set_composer_selection、conversation_send 透传、输入框重设计）均已落地。✓
-
-## P1 裁定（2026-07-08，主对话）
-
-**保留描边风格，不改为 mockup 的填充橙底。** 理由：R1/R2 均确认当前发送键的描边+橙色图标风格与谨迹现有代码库其余发送键的既定视觉语言一致；mockup.html 是交互结构参照（AC-5 明确要求"Then"里的布局项，已全部满足），不是逐像素规格。为这一个按钮单独改成填充橙底，会制造与应用内其他发送键的视觉不一致，违反 `docs/DESIGN.md` 的视觉一致性铁律，得不偿失。pending 清零。
-
-SUMMARY: result=pass | fail=0 | pending=0（P1 裁定为保留现状，理由见上，不违反 AC-5）
+SUMMARY: result=fail | fail=1 | pending=0

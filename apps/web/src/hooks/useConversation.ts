@@ -15,13 +15,18 @@ const conversationSend = (
   sessionId: string,
   message: string,
   images?: ImageAttachment[],
-  composerSelection?: { providerId?: string | null; thinkingLevel?: 'low' | 'medium' | 'high' },
+  composerSelection?: {
+    providerId?: string | null
+    modelId?: string | null
+    thinkingLevel?: 'low' | 'medium' | 'high'
+  },
 ): Promise<void> =>
   selectRuntimeClient().invoke<void>('conversation_send', {
     sessionId,
     message,
     images: images ?? null,
     providerId: composerSelection?.providerId ?? null,
+    modelId: composerSelection?.modelId ?? null,
     thinkingLevel: composerSelection?.thinkingLevel ?? null,
   })
 
@@ -447,13 +452,20 @@ export function useConversation() {
                 { role: 'user' as const, content: merged },
               ])
               selectRuntimeClient()
-                .invoke<{ providerId: string | null; thinkingLevel: 'low' | 'medium' | 'high' }>(
-                  'get_composer_selection',
-                )
-                .catch(() => ({ providerId: null, thinkingLevel: 'medium' as const }))
+                .invoke<{
+                  providerId: string | null
+                  modelId: string | null
+                  thinkingLevel: 'low' | 'medium' | 'high'
+                }>('get_composer_selection')
+                .catch(() => ({
+                  providerId: null,
+                  modelId: null,
+                  thinkingLevel: 'medium' as const,
+                }))
                 .then((selection) =>
                   conversationSend(sid, merged, undefined, {
                     providerId: selection.providerId ?? undefined,
+                    modelId: selection.modelId ?? undefined,
                     thinkingLevel: selection.thinkingLevel,
                   }),
                 )
@@ -965,12 +977,19 @@ export function useConversation() {
 
       try {
         const selection = await selectRuntimeClient()
-          .invoke<{ providerId: string | null; thinkingLevel: 'low' | 'medium' | 'high' }>(
-            'get_composer_selection',
-          )
-          .catch(() => ({ providerId: null, thinkingLevel: 'medium' as const }))
+          .invoke<{
+            providerId: string | null
+            modelId: string | null
+            thinkingLevel: 'low' | 'medium' | 'high'
+          }>('get_composer_selection')
+          .catch(() => ({
+            providerId: null,
+            modelId: null,
+            thinkingLevel: 'medium' as const,
+          }))
         await conversationSend(realSid, text, images, {
           providerId: selection.providerId ?? undefined,
+          modelId: selection.modelId ?? undefined,
           thinkingLevel: selection.thinkingLevel,
         })
         return true

@@ -45,7 +45,7 @@ describe('config HTTP routes', () => {
           label: 'DeepSeek',
           api_key: '',
           base_url: '',
-          model: '',
+          models: [],
         },
       ],
     }

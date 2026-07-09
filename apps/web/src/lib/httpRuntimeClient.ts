@@ -148,12 +148,19 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
             typeof settings.composer_selected_provider_id === 'string'
               ? settings.composer_selected_provider_id
               : null,
+          modelId:
+            typeof settings.composer_selected_model_id === 'string'
+              ? settings.composer_selected_model_id
+              : null,
           thinkingLevel: settings.composer_thinking_level ?? 'medium',
         } as unknown as T
       }
       case 'set_composer_selection': {
+        // provider/model ids are written together in one request so a switch
+        // can never leave a stale model id paired with a new provider id.
         await this.updateSettings({
           composer_selected_provider_id: args?.providerId,
+          composer_selected_model_id: args?.modelId,
           composer_thinking_level: args?.thinkingLevel,
         })
         return undefined as T
@@ -672,6 +679,7 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
             message: args?.message,
             images: args?.images,
             providerId: args?.providerId,
+            modelId: args?.modelId,
             thinkingLevel: args?.thinkingLevel,
           },
           'daemon conversation send',

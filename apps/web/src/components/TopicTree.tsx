@@ -188,14 +188,11 @@ export function TopicTree({
             <span style={{ width: 10, flexShrink: 0 }} />
           )}
 
-          {isDir ? (
-            // AC-1 (folder-no-icon): folders show no icon — the chevron already
-            // identifies them. Reserve the same width so file rows' names still
-            // start at the same x-position (AC-2: alignment stays intact).
-            <span style={{ width: 18, minWidth: 18, flexShrink: 0 }} />
-          ) : (
-            <FileTypeIcon kind={iconKind!} selected={isSelected} />
-          )}
+          {/* AC-1 (folder-no-icon): folders show no icon — the chevron already
+              identifies them, so the name sits flush against it. AC-2: file rows
+              keep their icon slot, so within a level, folder names start further
+              left than file names by design (chevron+gap vs chevron+gap+icon). */}
+          {isDir ? null : <FileTypeIcon kind={iconKind!} selected={isSelected} />}
 
           {/* Name */}
           {entry.path === editingPath ? (

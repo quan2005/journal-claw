@@ -27,6 +27,7 @@ export interface WorkspaceSettings {
   workspace_tree_sort: WorkspaceTreeSort
   workspace_tree_manual_order?: Record<string, string[]>
   composer_selected_provider_id?: string
+  composer_selected_model_id?: string
   composer_thinking_level: ComposerThinkingLevel
   [key: string]: unknown
 }
@@ -148,8 +149,13 @@ function normalizeSettings(
       ? (raw.workspace_tree_manual_order as Record<string, string[]>)
       : undefined,
     composer_selected_provider_id:
-      typeof raw.composer_selected_provider_id === 'string' && raw.composer_selected_provider_id
+      typeof raw.composer_selected_provider_id === 'string' &&
+      raw.composer_selected_provider_id
         ? raw.composer_selected_provider_id
+        : undefined,
+    composer_selected_model_id:
+      typeof raw.composer_selected_model_id === 'string' && raw.composer_selected_model_id
+        ? raw.composer_selected_model_id
         : undefined,
     composer_thinking_level: normalizeComposerThinkingLevel(raw.composer_thinking_level),
   }

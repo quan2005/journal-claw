@@ -159,13 +159,16 @@ describe('SettingsService', () => {
     const svc = new SettingsService(ws)
     expect(svc.load().composer_thinking_level).toBe('medium')
     expect(svc.load().composer_selected_provider_id).toBeUndefined()
+    expect(svc.load().composer_selected_model_id).toBeUndefined()
 
     svc.update({
       composer_selected_provider_id: 'deepseek',
+      composer_selected_model_id: 'deepseek-reasoner',
       composer_thinking_level: 'high',
     })
     expect(svc.load()).toMatchObject({
       composer_selected_provider_id: 'deepseek',
+      composer_selected_model_id: 'deepseek-reasoner',
       composer_thinking_level: 'high',
     })
   })
@@ -182,5 +185,19 @@ describe('SettingsService', () => {
     const settings = new SettingsService(ws).load()
     expect(settings.composer_thinking_level).toBe('medium')
     expect(settings.composer_selected_provider_id).toBeUndefined()
+  })
+
+  it('drops empty composer_selected_model_id during normalization', () => {
+    writeFileSync(
+      join(ws, '.setting.json'),
+      JSON.stringify({
+        composer_selected_provider_id: 'deepseek',
+        composer_selected_model_id: '',
+      }),
+      'utf8',
+    )
+    const settings = new SettingsService(ws).load()
+    expect(settings.composer_selected_provider_id).toBe('deepseek')
+    expect(settings.composer_selected_model_id).toBeUndefined()
   })
 })

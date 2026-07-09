@@ -6,11 +6,69 @@ created: 2026-07-08
 
 # Design: Agent 输入框重设计 + 多厂商多模型按需切换
 
-## 已确认可复用的现状（读代码核实，AC-1 基本已满足，不需要 schema 改动）
+## R2 返工（2026-07-09）：AC-1 判定被推翻，补充一对多 schema 改动
+
+轮次 2 的 codex 独立验收判定 AC-1 未达成：R1 版本本节曾主张"`ProviderEntry` 已支持多模型，加多条记录即可"，但这在真实配置下等价于"一个厂商条目=一个模型"——配 `deepseek-chat` + `deepseek-reasoner` 两个模型，需要整份复制厂商记录（重复 `protocol`/`api_key`/`base_url`，只有 `id`/`model`/`label` 不同），UI 也要求重填一遍 API key。这不是"一份凭证下管理模型列表"，是"伪装成模型列表的凭证复制"。以下是修正后的正确方案，**取代**本文件下方"已确认可复用的现状"小节的结论——该小节的"不需要 schema 改动"判断作废。
+
+### 新 schema：凭证（credential）与模型（model）一对多
+
+`apps/daemon/src/config/service.ts`：
+
+```ts
+export interface ProviderEntry {
+  protocol: string
+  id: string        // 凭证 id，全局唯一
+  label: string      // 凭证显示名，如 "DeepSeek"
+  api_key: string
+  base_url: string
+  models: string[]   // 该凭证下的模型 id 列表，如 ["deepseek-chat", "deepseek-reasoner"]
+}
+```
+
+`model: string` 字段整体替换为 `models: string[]`（破坏性 schema 变更，本项目未发布 GA、无需兼容旧配置的"软迁移"，但仍要写一次性迁移：`normalizeProvider` 读到旧字段 `model`（非空字符串）而无 `models` 时，转成 `models: [oldModel]`，保证已有用户的 `config.json` 升级后不丢配置）。
+
+`resolveModelFor` 签名扩展为按 `(providerId, modelId)` 二元定位：
+
+```ts
+resolveModelFor(providerId: string, modelId: string): { model: Model<Api>; provider: ProviderEntry } | null
+```
+
+内部：`config.providers.find(p => p.id === providerId)` 找到后，校验 `modelId` 在 `provider.models` 内，再 `models.getModel(provider.id, modelId)`（`MutableModels` 的注册键仍是 `(providerId, modelId)` 二元组，`buildModels()` 需要按 `provider.models` 逐个注册而非单个 `provider.model`）。
+
+`resolveEngine()` 的默认模型（会话创建时用）取 `provider.models[0]`（`active_provider` 对应记录的第一个模型），找不到则沿用现有的 `PiEngineConfigError`。
+
+`ConversationService.applyComposerSelection` 的覆盖参数从 `{ providerId }` 扩展为 `{ providerId, modelId }`（两者都要传，只传 `providerId` 时用该 provider 的第一个模型作为回退，不静默跳过——否则 UI 选中某个模型后仍可能命中另一个模型，构成新的"选了但没生效"bug）。
+
+### `SectionAiEngine.tsx` UI 改动（本次必须动）
+
+现有"添加供应商"表单（`AddProviderMenu`/`addProvider`）改为两级操作：
+
+1. **添加凭证**：填 `protocol`/`label`/`api_key`/`base_url` 一次，创建时 `models: []`（或从 `listModels()` 探测结果里预选一个）。
+2. **凭证下管理模型列表**：每条凭证展开后有一个模型子列表（chips 或行），"+ 添加模型"从 `listModels(engine, apiKey, baseUrl, protocol)` 返回的候选里多选/输入自定义 id 追加进 `models` 数组，每个模型旁一个删除按钮（删到 0 个模型时凭证仍保留，只是暂不可用于对话，不强制级联删除凭证）。
+3. 删除凭证＝删除整条 `ProviderEntry`（级联删除其下全部模型），沿用现状。
+
+不引入新的顶层设置项/路由，改动限于这一个文件内的表单结构与 `EngineConfig` 读写逻辑。
+
+### Pill 菜单分组改动
+
+`ChatPanel.tsx` 模型 pill 下拉：按 `provider.label` 分组（不变），组内列出 `provider.models` 每一项（新增的一层循环，之前是"组内只有一条，等于组=模型"）。选中态存储从 `providerId` 扩展为 `{ providerId, modelId }`，pill 文案 `● {label} · {modelId}`。
+
+### `composer_selected_provider_id` 持久化字段改名/扩展
+
+`apps/daemon/src/settings/service.ts`：新增 `composer_selected_model_id?: string` 字段（与 `composer_selected_provider_id` 成对持久化，二者必须同时写入/同时读出，不允许出现"provider 已换、model 还是旧的"这种半更新态）。`httpRuntimeClient.ts` 的 `get/set_composer_selection` 返回/接收 `{ providerId, modelId, thinkingLevel }` 三元组。
+
+### 迁移与向后兼容验证要点（codex 复验时须覆盖）
+
+- 一个已有 `model: "gpt-4o"` 字段、无 `models` 字段的旧 `config.json`，启动后自动迁移为 `models: ["gpt-4o"]`，原有对话不受影响。
+- 真实场景回归：配置一个 DeepSeek 凭证，添加 `deepseek-chat`、`deepseek-reasoner` 两个模型，**不重新输入 API key**，pill 菜单里两个模型分别可选、发消息后 `applyComposerSelection` 命中对应 `modelId`。这是本轮返工要堵的洞，必须用真实配置走一遍，不能只看代码里有没有 UI 组件。
+
+---
+
+## 已确认可复用的现状（R1，结论已被上方 R2 推翻，仅保留存档）
 
 `apps/daemon/src/config/service.ts` 的 `EngineConfig { active_provider: string; providers: ProviderEntry[] }` **已经**支持多厂商多模型：`ProviderEntry { protocol, id, label, api_key, base_url, model }` 每条记录一个厂商的一个模型，`id` 全局唯一。想配同一厂商的多个模型，就加多条 `protocol` 相同但 `id`/`model` 不同的记录。`apps/web/src/settings/components/SectionAiEngine.tsx`（960 行）已经有完整的"添加供应商/模型"UI（`addProvider`/`AddProviderMenu`/删除/编辑），重启应用后配置仍在（持久化在 `config.json`）。
 
-**结论：AC-1 已实现，本次不用碰 `SectionAiEngine.tsx` 或 `EngineConfig` schema。** 本故事真正要做的是 AC-2～AC-6：输入框上的"选择哪条已配置记录用于下一条消息"+ 视觉重设计 + 思考等级。
+**（作废）结论：AC-1 已实现，本次不用碰 `SectionAiEngine.tsx` 或 `EngineConfig` schema。** 本故事真正要做的是 AC-2～AC-6：输入框上的"选择哪条已配置记录用于下一条消息"+ 视觉重设计 + 思考等级。
 
 ## 核心机制：per-turn 动态切换模型/思考等级（框架原生支持，已核实）
 

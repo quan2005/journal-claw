@@ -76,10 +76,11 @@ export class PiEngineService {
   resolveEngine(): ResolvedPiEngine {
     const provider = this.resolveActiveProvider()
     const models = this.buildModels()
-    const model = models.getModel(provider.id, provider.model)
+    const defaultModelId = provider.models[0]
+    const model = defaultModelId ? models.getModel(provider.id, defaultModelId) : undefined
     if (!model) {
       throw new PiEngineConfigError(
-        `model not found for provider ${provider.id}: ${provider.model || '(empty)'}`,
+        `model not found for provider ${provider.id}: ${defaultModelId || '(empty)'}`,
       )
     }
 
@@ -96,17 +97,25 @@ export class PiEngineService {
     }
   }
 
-  /** Resolves a configured ProviderEntry (by id) into the live `Model` object
-   * used for future turns. Stateless: rebuilds a throwaway models registry on
-   * every call (provider count is single-digit, registration cost negligible).
-   * Returns null when the entry is missing/has no model, so callers can
-   * silently keep the current model instead of throwing. */
-  resolveModelFor(providerId: string): { model: Model<Api>; provider: ProviderEntry } | null {
+  /** Resolves a configured ProviderEntry (by id) plus a specific model id into
+   * the live `Model` object used for future turns. Stateless: rebuilds a
+   * throwaway models registry on every call (provider count is single-digit,
+   * registration cost negligible). When `modelId` is omitted the provider's
+   * first configured model is used as a fallback so that selecting just a
+   * credential still lands on a concrete model instead of silently no-op'ing.
+   * Returns null when the entry/model is missing so callers can keep the
+   * current model instead of throwing. */
+  resolveModelFor(
+    providerId: string,
+    modelId?: string,
+  ): { model: Model<Api>; provider: ProviderEntry } | null {
     const config = this.configService.getEngineConfig()
     const provider = config.providers.find((p) => p.id === providerId)
-    if (!provider || !provider.model) return null
+    if (!provider) return null
+    const effectiveModelId = modelId && modelId.length > 0 ? modelId : provider.models[0]
+    if (!effectiveModelId || !provider.models.includes(effectiveModelId)) return null
     const models = this.buildModels()
-    const model = models.getModel(provider.id, provider.model)
+    const model = models.getModel(provider.id, effectiveModelId)
     if (!model) return null
     return { model, provider }
   }
@@ -191,8 +200,8 @@ export class PiEngineService {
     if (!provider) {
       throw new PiEngineConfigError(`active provider not configured: ${config.active_provider}`)
     }
-    if (!provider.model) {
-      throw new PiEngineConfigError(`model is required for provider ${provider.id}`)
+    if (provider.models.length === 0) {
+      throw new PiEngineConfigError(`at least one model is required for provider ${provider.id}`)
     }
     return provider
   }
@@ -266,7 +275,9 @@ function shouldRegisterOpenAICompatibleProvider(
   provider: ProviderEntry,
   models: MutableModels,
 ): boolean {
-  if (models.getModel(provider.id, provider.model)) return false
+  // A provider entry is already registered when any of its model ids resolves.
+  // (Registration happens once per credential with all its models in one shot.)
+  if (provider.models.some((modelId) => models.getModel(provider.id, modelId))) return false
   if (OPENAI_COMPATIBLE_VENDORS.has(provider.id)) return true
   if (DEFAULT_OPENAI_COMPATIBLE_BASE_URL[provider.id]) return true
   if (
@@ -282,7 +293,9 @@ function shouldRegisterOpenAICompatibleProvider(
 
 function createOpenAICompatibleProvider(provider: ProviderEntry): Provider<'openai-completions'> {
   const baseUrl = resolveOpenAICompatibleBaseUrl(provider)
-  const model = createOpenAICompatibleModel(provider, baseUrl)
+  const modelDefs = provider.models.map((modelId) =>
+    createOpenAICompatibleModel(provider, baseUrl, modelId),
+  )
   return createProvider({
     id: provider.id,
     name: provider.label || provider.id,
@@ -296,7 +309,7 @@ function createOpenAICompatibleProvider(provider: ProviderEntry): Provider<'open
         },
       },
     },
-    models: [model],
+    models: modelDefs,
     api: openAICompletionsApi(),
   })
 }
@@ -304,10 +317,11 @@ function createOpenAICompatibleProvider(provider: ProviderEntry): Provider<'open
 function createOpenAICompatibleModel(
   provider: ProviderEntry,
   baseUrl: string,
+  modelId: string,
 ): Model<'openai-completions'> {
   return {
-    id: provider.model,
-    name: provider.model,
+    id: modelId,
+    name: modelId,
     api: 'openai-completions',
     provider: provider.id,
     baseUrl,

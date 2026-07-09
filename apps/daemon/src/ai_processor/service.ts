@@ -374,7 +374,7 @@ export function promptLabel(prompt: string): string {
 function resolveModelForDigest(configService: ConfigService): string {
   const config = configService.getEngineConfig()
   const provider = config.providers.find((entry) => entry.id === config.active_provider)
-  return provider?.model || 'unknown-model'
+  return provider?.models[0] || 'unknown-model'
 }
 
 function resolveProviderId(configService: ConfigService): string {

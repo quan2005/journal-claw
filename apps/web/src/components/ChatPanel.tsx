@@ -45,8 +45,7 @@ interface ImageAtt {
 }
 import { TOOL_ICON_PATHS } from './ToolIcons'
 
-const CHAT_PANEL_HIGHLIGHT_RING =
-  'inset 0 0 0 1px color-mix(in srgb, var(--record-btn) 22%, transparent)'
+const CHAT_PANEL_HIGHLIGHT_RING = 'inset 0 0 0 1px var(--focus-ring)'
 const CHAT_PANEL_DANGER_RING =
   'inset 0 0 0 1px color-mix(in srgb, var(--status-danger) 22%, transparent)'
 const CHAT_PANEL_WARNING_RING =
@@ -68,6 +67,23 @@ function groupProvidersByLabel<T extends { label: string }>(
     groups.get(p.label)!.push(p)
   }
   return [...groups.entries()].map(([label, entries]) => ({ label, entries }))
+}
+
+/** Resolves the model id shown in the composer pill: the persisted
+ * `composer_selected_model_id` when it still belongs to the active provider,
+ * otherwise the active provider's first configured model. Keeps the pill in
+ * sync with the credential list even if a model was removed in settings. */
+function activePillModelId(
+  engineConfig: EngineConfig,
+  providerId: string | null,
+  modelId: string | null,
+): string {
+  const active = engineConfig.providers.find(
+    (p) => p.id === (providerId ?? engineConfig.active_provider),
+  )
+  if (!active || active.models.length === 0) return engineConfig.active_provider
+  if (modelId && active.models.includes(modelId)) return modelId
+  return active.models[0]
 }
 
 export interface ChatPanelProps {
@@ -133,7 +149,8 @@ export function ChatPanel({
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Composer model/thinking pills (composer-multi-model story)
-  const { providerId, thinkingLevel, setProviderId, setThinkingLevel } = useComposerSelection()
+  const { providerId, modelId, thinkingLevel, setSelection, setThinkingLevel } =
+    useComposerSelection()
   const [openPillMenu, setOpenPillMenu] = useState<'model' | 'thinking' | null>(null)
   const [engineConfig, setEngineConfig] = useState<EngineConfig | null>(null)
 
@@ -761,7 +778,7 @@ export function ChatPanel({
               : focused
                 ? '1px solid var(--record-btn)'
                 : '1px solid var(--dialog-inset-border)',
-            borderRadius: 12,
+            borderRadius: 'var(--radius-lg)',
             background: dragOver ? 'var(--item-hover-bg)' : 'var(--detail-case-bg)',
             backgroundClip: 'padding-box',
             boxShadow: focused || dragOver ? CHAT_PANEL_HIGHLIGHT_RING : 'none',
@@ -966,13 +983,13 @@ export function ChatPanel({
                       alignItems: 'center',
                       gap: 6,
                       border: '1px solid var(--dialog-inset-border)',
-                      borderRadius: 999,
+                      borderRadius: 'var(--radius-pill)',
                       background: 'var(--detail-case-bg)',
                       padding: '4px 10px',
                       fontSize: 11,
                       color: 'var(--item-text)',
                       cursor: 'pointer',
-                      maxWidth: 160,
+                      maxWidth: 200,
                     }}
                   >
                     <span
@@ -984,7 +1001,7 @@ export function ChatPanel({
                         flexShrink: 0,
                       }}
                     />
-                    <span style={{ color: 'var(--item-meta)' }}>
+                    <span style={{ color: 'var(--item-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {(() => {
                         const active = engineConfig.providers.find(
                           (p) => p.id === (providerId ?? engineConfig.active_provider),
@@ -992,7 +1009,9 @@ export function ChatPanel({
                         return active ? active.label : engineConfig.active_provider
                       })()}
                     </span>
+                    <span style={{ color: 'var(--item-meta)' }}>·</span>
                     <span
+                      title={activePillModelId(engineConfig, providerId, modelId)}
                       style={{
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 600,
@@ -1001,12 +1020,7 @@ export function ChatPanel({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {(() => {
-                        const active = engineConfig.providers.find(
-                          (p) => p.id === (providerId ?? engineConfig.active_provider),
-                        )
-                        return active ? active.model : engineConfig.active_provider
-                      })()}
+                      {activePillModelId(engineConfig, providerId, modelId)}
                     </span>
                     <span style={{ color: 'var(--item-meta)', fontSize: 9 }}>▼</span>
                   </button>
@@ -1019,62 +1033,73 @@ export function ChatPanel({
                         bottom: 'calc(100% + 6px)',
                         left: 0,
                         zIndex: 20,
-                        minWidth: 220,
+                        minWidth: 240,
                         background: 'var(--detail-case-bg)',
                         border: '1px solid var(--dialog-inset-border)',
-                        borderRadius: 8,
+                        borderRadius: 'var(--radius-lg)',
                         boxShadow: 'var(--shadow-overlay)',
                         padding: 6,
                       }}
                     >
-                      {groupProvidersByLabel(engineConfig.providers).map((group) => (
-                        <div key={group.label}>
-                          <div
-                            style={{
-                              padding: '4px 8px',
-                              fontSize: 10,
-                              textTransform: 'uppercase',
-                              color: 'var(--item-meta)',
-                            }}
-                          >
-                            {group.label}
+                      {groupProvidersByLabel(engineConfig.providers).map((group) => {
+                        // A credential may carry several models; list every
+                        // (provider, modelId) pair as its own selectable entry.
+                        const modelRows = group.entries.flatMap((entry) =>
+                          entry.models.map((model) => ({ entry, model })),
+                        )
+                        if (modelRows.length === 0) return null
+                        return (
+                          <div key={group.label}>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: 10,
+                                textTransform: 'uppercase',
+                                color: 'var(--item-meta)',
+                              }}
+                            >
+                              {group.label}
+                            </div>
+                            {modelRows.map(({ entry, model }) => {
+                              const isSelected =
+                                entry.id === (providerId ?? engineConfig.active_provider) &&
+                                model ===
+                                  activePillModelId(engineConfig, providerId, modelId)
+                              return (
+                                <button
+                                  key={`${entry.id}:${model}`}
+                                  role="menuitem"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelection(entry.id, model)
+                                    setOpenPillMenu(null)
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    padding: '6px 8px',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 12,
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
+                                    color: 'var(--item-text)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <span style={{ width: 14, color: 'var(--record-btn)', flexShrink: 0 }}>
+                                    {isSelected ? '✓' : ''}
+                                  </span>
+                                  {model}
+                                </button>
+                              )
+                            })}
                           </div>
-                          {group.entries.map((entry) => {
-                            const isSelected = entry.id === (providerId ?? engineConfig.active_provider)
-                            return (
-                              <button
-                                key={entry.id}
-                                role="menuitem"
-                                type="button"
-                                onClick={() => {
-                                  setProviderId(entry.id)
-                                  setOpenPillMenu(null)
-                                }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  width: '100%',
-                                  textAlign: 'left',
-                                  padding: '6px 8px',
-                                  fontFamily: 'var(--font-mono)',
-                                  fontSize: 12,
-                                  border: 'none',
-                                  borderRadius: 6,
-                                  background: isSelected ? 'var(--item-selected-bg)' : 'transparent',
-                                  color: 'var(--item-text)',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <span style={{ width: 14, color: 'var(--record-btn)', flexShrink: 0 }}>
-                                  {isSelected ? '✓' : ''}
-                                </span>
-                                {entry.model}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      ))}
+                        )
+                      })}
                       <div style={{ height: 1, background: 'var(--dialog-inset-border)', margin: '4px 0' }} />
                       <button
                         type="button"
@@ -1091,7 +1116,7 @@ export function ChatPanel({
                           padding: '6px 8px',
                           fontSize: 12,
                           border: 'none',
-                          borderRadius: 6,
+                          borderRadius: 'var(--radius-sm)',
                           background: 'transparent',
                           color: 'var(--item-meta)',
                           cursor: 'pointer',
@@ -1116,7 +1141,7 @@ export function ChatPanel({
                     alignItems: 'center',
                     gap: 4,
                     border: '1px solid var(--dialog-inset-border)',
-                    borderRadius: 999,
+                    borderRadius: 'var(--radius-pill)',
                     background: 'var(--detail-case-bg)',
                     padding: '4px 10px',
                     fontSize: 11,
@@ -1140,7 +1165,7 @@ export function ChatPanel({
                       minWidth: 140,
                       background: 'var(--detail-case-bg)',
                       border: '1px solid var(--dialog-inset-border)',
-                      borderRadius: 8,
+                      borderRadius: 'var(--radius-lg)',
                       boxShadow: 'var(--shadow-overlay)',
                       padding: 6,
                     }}
@@ -1161,7 +1186,7 @@ export function ChatPanel({
                           padding: '6px 8px',
                           fontSize: 12,
                           border: 'none',
-                          borderRadius: 6,
+                          borderRadius: 'var(--radius-sm)',
                           background:
                             level === thinkingLevel ? 'var(--item-selected-bg)' : 'transparent',
                           color: 'var(--item-text)',

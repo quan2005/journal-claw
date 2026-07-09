@@ -75,7 +75,7 @@ describe('PiEngineService', () => {
           protocol: 'openai',
           id: 'primary',
           label: 'Primary',
-          model: 'primary-model',
+          models: ['primary-model'],
           api_key: 'sk-primary',
           base_url: 'https://api.deepseek.com/v1',
         },
@@ -83,7 +83,7 @@ describe('PiEngineService', () => {
           protocol: 'openai',
           id: 'secondary',
           label: 'Secondary',
-          model: 'secondary-model',
+          models: ['secondary-model'],
           api_key: 'sk-secondary',
           base_url: 'https://open.bigmodel.cn/api/paas/v4',
         },
@@ -92,13 +92,50 @@ describe('PiEngineService', () => {
 
     const service = new PiEngineService(config)
 
-    const primary = service.resolveModelFor('primary')
+    const primary = service.resolveModelFor('primary', 'primary-model')
     expect(primary?.model).toMatchObject({ id: 'primary-model', provider: 'primary' })
 
-    const secondary = service.resolveModelFor('secondary')
+    const secondary = service.resolveModelFor('secondary', 'secondary-model')
     expect(secondary?.model).toMatchObject({ id: 'secondary-model', provider: 'secondary' })
 
-    expect(service.resolveModelFor('not-configured')).toBeNull()
+    expect(service.resolveModelFor('not-configured', 'whatever')).toBeNull()
+  })
+
+  it('resolveModelFor resolves both models under one credential and falls back to models[0]', () => {
+    const config = new ConfigService({ configDir: dir })
+    config.setEngineConfig({
+      active_provider: 'deepseek',
+      providers: [
+        {
+          protocol: 'openai',
+          id: 'deepseek',
+          label: 'DeepSeek',
+          models: ['deepseek-chat', 'deepseek-reasoner'],
+          api_key: 'sk-deepseek',
+          base_url: 'https://api.deepseek.com/v1',
+        },
+      ],
+    })
+
+    const service = new PiEngineService(config)
+
+    const chat = service.resolveModelFor('deepseek', 'deepseek-chat')
+    expect(chat?.model).toMatchObject({ id: 'deepseek-chat', provider: 'deepseek' })
+
+    const reasoner = service.resolveModelFor('deepseek', 'deepseek-reasoner')
+    expect(reasoner?.model).toMatchObject({ id: 'deepseek-reasoner', provider: 'deepseek' })
+
+    // The two resolved models must be distinct objects (the whole point of the
+    // one-to-many rework: one credential, two selectable models).
+    expect(chat?.model).not.toBe(reasoner?.model)
+
+    // Omitting modelId falls back to the credential's first model.
+    const fallback = service.resolveModelFor('deepseek')
+    expect(fallback?.model).toMatchObject({ id: 'deepseek-chat', provider: 'deepseek' })
+
+    // A modelId that is not in the credential's list resolves to null (the
+    // override is dropped rather than silently routing to another model).
+    expect(service.resolveModelFor('deepseek', 'not-a-listed-model')).toBeNull()
   })
 
   it('getApiKey resolves the key for any configured provider, not only the active one', async () => {
@@ -110,7 +147,7 @@ describe('PiEngineService', () => {
           protocol: 'openai',
           id: 'primary',
           label: 'Primary',
-          model: 'primary-model',
+          models: ['primary-model'],
           api_key: 'sk-primary',
           base_url: 'https://api.deepseek.com/v1',
         },
@@ -118,7 +155,7 @@ describe('PiEngineService', () => {
           protocol: 'openai',
           id: 'secondary',
           label: 'Secondary',
-          model: 'secondary-model',
+          models: ['secondary-model'],
           api_key: 'sk-secondary',
           base_url: 'https://open.bigmodel.cn/api/paas/v4',
         },
@@ -326,7 +363,7 @@ function engineConfig(
         label: provider,
         api_key: '',
         base_url: '',
-        model,
+        models: [model],
         ...overrides,
       },
     ],

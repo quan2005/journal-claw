@@ -19,6 +19,15 @@ import { runStartup } from './startup.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
+// Dev-mode branding (AC-1): packaged builds get productName/icon from
+// electron-builder.yml automatically, but `npm run desktop:dev` runs the
+// unpackaged Electron binary, which shows its own name/icon unless we set
+// them explicitly. Must run before app.whenReady() to take effect on macOS.
+app.setName('JournalClaw')
+if (!app.isPackaged && process.platform === 'darwin') {
+  app.dock?.setIcon(join(__dirname, '..', 'build', 'icon.png'))
+}
+
 // ── D0: perf instrumentation ─────────────────────────────────────────────
 // Captured at module load (≈ process start) so every mark is a relative ms.
 const bootStart = Date.now()

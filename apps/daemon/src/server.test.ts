@@ -90,6 +90,35 @@ describe('daemon server', () => {
     }
   })
 
+  it('GET /files/content-binary streams bytes with the right Content-Type (fix-image-preview)', async () => {
+    const configDir = mkdtempSync(join(tmpdir(), 'jc-config-'))
+    const workspace = mkdtempSync(join(tmpdir(), 'jc-ws-'))
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    writeFileSync(join(workspace, 'photo.png'), png)
+    const configService = new ConfigService({ configDir })
+    configService.setWorkspacePath(workspace)
+
+    const handle = await startDaemon({ port: 0, configService })
+    try {
+      const res = await fetch(
+        `${handle.url}/files/content-binary?relativePath=${encodeURIComponent('photo.png')}`,
+      )
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toBe('image/png')
+      const bytes = Buffer.from(await res.arrayBuffer())
+      expect(bytes.equals(png)).toBe(true)
+
+      const missing = await fetch(
+        `${handle.url}/files/content-binary?relativePath=${encodeURIComponent('missing.png')}`,
+      )
+      expect(missing.status).toBe(404)
+    } finally {
+      await handle.close()
+      rmSync(configDir, { recursive: true, force: true })
+      rmSync(workspace, { recursive: true, force: true })
+    }
+  })
+
   it('does not grant CORS access to non-loopback origins', async () => {
     const handle = await startDaemon({ port: 0 })
     try {

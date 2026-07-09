@@ -23,6 +23,9 @@ export interface WorkspaceDirEntry {
   is_dir: boolean
   path: string
   mtime_secs: number
+  /** Compact-folders: joined chain (e.g. "a/b/c") when this directory is the
+   * terminal of a single-child chain. Absent when no compaction happened. */
+  display_name?: string
 }
 
 export type AtMentionKind = 'file' | 'directory' | 'expert'
@@ -165,7 +168,20 @@ export class FilesService {
     private readonly runId = DEFAULT_RUN_ID,
   ) {}
 
-  listWorkspaceDir(relativePath = ''): WorkspaceDirEntry[] {
+  /** Reads a workspace file as raw bytes with a MIME type inferred from its
+   * extension (images/PDF preview — AC-1/AC-2 of fix-image-preview). Electron's
+   * renderer runs at an http:// origin, so `file://` src URLs are blocked by
+   * the browser's cross-origin policy; the daemon streaming the bytes over
+   * HTTP is the fix. */
+  getBinaryContent(relativePath: string): { data: Buffer; mimeType: string } {
+    const source = this.resolveExistingFile(relativePath)
+    return { data: readFileSync(source), mimeType: mimeTypeFromExtension(source) }
+  }
+
+  listWorkspaceDir(
+    relativePath = '',
+    opts: { compact?: boolean } = {},
+  ): WorkspaceDirEntry[] {
     const target = this.resolveExistingDir(relativePath)
     let entries: Dirent[]
     try {
@@ -174,22 +190,65 @@ export class FilesService {
       throw new WorkspaceFsError('read_dir_failed', String(err), 500)
     }
 
-    return entries
+    const result = entries
       .filter((entry) => !entry.name.startsWith('.'))
       .map((entry) => {
         const entryPath = join(target, entry.name)
+        const isDir = statSync(entryPath).isDirectory()
         const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name
-        return {
+        const base: WorkspaceDirEntry = {
           name: entry.name,
-          is_dir: statSync(entryPath).isDirectory(),
+          is_dir: isDir,
           path: relPath,
           mtime_secs: mtimeSecs(entryPath),
         }
+        if (opts.compact && isDir) {
+          const chain = this.compactChain(entryPath, [entry.name])
+          if (chain.length >= 2) {
+            const terminalRel = chain
+              .reduce<string>((acc, part) => (acc ? `${acc}/${part}` : part), relativePath)
+            base.display_name = chain.join('/')
+            base.name = chain[chain.length - 1]
+            base.path = terminalRel
+          }
+        }
+        return base
       })
       .sort((a, b) => {
         if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1
         return b.name.localeCompare(a.name)
       })
+
+    return result
+  }
+
+  /**
+   * Compact-folders: walk down a single-child directory chain, returning the
+   * list of directory names from the start to the terminal (inclusive). Stops
+   * when a level has zero or >1 visible entries, or its only entry is a file,
+   * or the depth limit is hit, or a read error occurs. Returns at least the
+   * starting name.
+   */
+  private compactChain(startAbsDir: string, initial: string[]): string[] {
+    const chain = [...initial]
+    const MAX_DEPTH = 50
+    let current = startAbsDir
+    while (chain.length < initial.length + MAX_DEPTH) {
+      let children: Dirent[]
+      try {
+        children = readdirSync(current, { withFileTypes: true }).filter(
+          (d) => !d.name.startsWith('.'),
+        )
+      } catch {
+        break
+      }
+      if (children.length !== 1) break
+      const only = children[0]
+      if (!only.isDirectory()) break
+      chain.push(only.name)
+      current = join(current, only.name)
+    }
+    return chain
   }
 
   listAtMentionCandidates(relativePath = '', query = ''): AtMentionCandidate[] {
@@ -606,4 +665,20 @@ export class FilesService {
       return ''
     }
   }
+}
+
+const MIME_TYPES_BY_EXTENSION: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  bmp: 'image/bmp',
+  pdf: 'application/pdf',
+}
+
+function mimeTypeFromExtension(path: string): string {
+  const ext = extname(path).slice(1).toLowerCase()
+  return MIME_TYPES_BY_EXTENSION[ext] ?? 'application/octet-stream'
 }

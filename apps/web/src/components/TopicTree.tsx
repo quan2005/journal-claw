@@ -68,11 +68,9 @@ export function TopicTree({
     const isLoading = childState?.loading ?? false
     const isSelected = entry.path === selectedPath
     const rowIndent = 8 + indent * 16
-    const iconKind = isDir
-      ? isExpanded
-        ? 'folder-open'
-        : 'folder'
-      : fileTypeIconKindFromName(entry.name)
+    // folder-no-icon: folders render no icon at all, so no folder/folder-open
+    // kind is needed here — only file rows resolve a FileTypeIcon kind.
+    const iconKind = isDir ? undefined : fileTypeIconKindFromName(entry.name)
     const displayName = displayTopicName(entry)
 
     return (
@@ -190,7 +188,14 @@ export function TopicTree({
             <span style={{ width: 10, flexShrink: 0 }} />
           )}
 
-          <FileTypeIcon kind={iconKind} selected={isSelected} />
+          {isDir ? (
+            // AC-1 (folder-no-icon): folders show no icon — the chevron already
+            // identifies them. Reserve the same width so file rows' names still
+            // start at the same x-position (AC-2: alignment stays intact).
+            <span style={{ width: 18, minWidth: 18, flexShrink: 0 }} />
+          ) : (
+            <FileTypeIcon kind={iconKind!} selected={isSelected} />
+          )}
 
           {/* Name */}
           {entry.path === editingPath ? (

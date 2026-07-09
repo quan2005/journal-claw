@@ -15,7 +15,7 @@ describe('NavRail', () => {
     expect(screen.getByRole('button', { name: /想法/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /自动化/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /技能/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /专题/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /工作空间/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /画像/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /流水/i })).toBeTruthy()
   })

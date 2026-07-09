@@ -122,7 +122,7 @@ beforeEach(() => {
 describe('TreeSidebar', () => {
   it('renders browse panes as bare lists', () => {
     const topics = renderTreeSidebar({ category: 'topics' })
-    expect(screen.getByRole('button', { name: '折叠专题' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '折叠工作空间' })).toBeTruthy()
     topics.unmount()
 
     const profiles = renderTreeSidebar({ category: 'identity' })

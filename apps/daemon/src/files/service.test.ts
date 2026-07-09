@@ -102,6 +102,30 @@ describe('FilesService', () => {
     expect(readFileSync(join(ws, moved), 'utf8')).toBe('hello')
   })
 
+  it('reads binary content with a MIME type inferred from the extension (fix-image-preview)', () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    writeFileSync(join(ws, 'photo.png'), png)
+    writeFileSync(join(ws, 'notes.svg'), '<svg></svg>')
+    writeFileSync(join(ws, 'archive.bin'), 'unknown-binary')
+
+    const image = files.getBinaryContent('photo.png')
+    expect(image.mimeType).toBe('image/png')
+    expect(image.data.equals(png)).toBe(true)
+
+    expect(files.getBinaryContent('notes.svg').mimeType).toBe('image/svg+xml')
+    expect(files.getBinaryContent('archive.bin').mimeType).toBe('application/octet-stream')
+  })
+
+  it('throws a 404 WorkspaceFsError for a missing binary file', () => {
+    expect(() => files.getBinaryContent('missing.png')).toThrowError(WorkspaceFsError)
+    try {
+      files.getBinaryContent('missing.png')
+    } catch (err) {
+      expect(err).toBeInstanceOf(WorkspaceFsError)
+      expect((err as WorkspaceFsError).status).toBe(404)
+    }
+  })
+
   it('deletes through ChangeSetService trash and can revert', () => {
     writeFileSync(join(ws, 'gone.md'), 'content')
     const { changeSet } = files.delete('gone.md')
@@ -164,5 +188,57 @@ describe('FilesService', () => {
     mkdirSync(join(ws, '专题'), { recursive: true })
     files.createFile('专题', 'dup.md')
     expect(() => files.createFile('专题', 'dup.md')).toThrowError(/已存在/)
+  })
+
+  it('compacts a single-child directory chain into one entry (AC-1)', () => {
+    mkdirSync(join(ws, 'a', 'b', 'c'), { recursive: true })
+    writeFileSync(join(ws, 'a', 'b', 'c', 'note.md'), 'hi')
+
+    const entries = files.listWorkspaceDir('', { compact: true })
+    const chain = entries.find((e) => e.name === 'c')
+    expect(chain).toBeTruthy()
+    expect(chain!.display_name).toBe('a/b/c')
+    expect(chain!.path).toBe('a/b/c')
+
+    const nonCompact = files.listWorkspaceDir('', { compact: false })
+    expect(nonCompact.find((e) => e.name === 'a')!.display_name).toBeUndefined()
+  })
+
+  it('breaks the chain when a directory has more than one entry (AC-2)', () => {
+    mkdirSync(join(ws, 'a', 'b'), { recursive: true })
+    writeFileSync(join(ws, 'a', 'sibling.md'), 'x')
+    writeFileSync(join(ws, 'a', 'b', 'note.md'), 'hi')
+
+    const entries = files.listWorkspaceDir('', { compact: true })
+    const a = entries.find((e) => e.name === 'a')
+    expect(a).toBeTruthy()
+    expect(a!.display_name).toBeUndefined()
+    expect(a!.path).toBe('a')
+  })
+
+  it('recomputes the chain after a new sibling appears (AC-3)', () => {
+    mkdirSync(join(ws, 'a', 'b'), { recursive: true })
+    writeFileSync(join(ws, 'a', 'b', 'note.md'), 'hi')
+
+    const before = files.listWorkspaceDir('', { compact: true })
+    expect(before.find((e) => e.name === 'b')!.display_name).toBe('a/b')
+
+    writeFileSync(join(ws, 'a', 'another.md'), 'x')
+
+    const after = files.listWorkspaceDir('', { compact: true })
+    const a = after.find((e) => e.name === 'a')
+    expect(a!.display_name).toBeUndefined()
+    expect(a!.path).toBe('a')
+  })
+
+  it('keeps listAtMentionCandidates unaffected by compact (no chain merge)', () => {
+    mkdirSync(join(ws, 'a', 'b', 'c'), { recursive: true })
+    writeFileSync(join(ws, 'a', 'b', 'c', 'note.md'), 'hi')
+
+    const candidates = files.listAtMentionCandidates('', '')
+    const top = candidates.find((c) => c.name === 'a')
+    expect(top).toBeTruthy()
+    expect(top!.display_name).toBeUndefined()
+    expect(top!.path).toBe('a')
   })
 })

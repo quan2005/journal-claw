@@ -11,7 +11,7 @@ import { Spinner } from './Spinner'
 import { IdeasWorkbench, type IdeaConversationRequest } from './IdeasWorkbench'
 import { FindBar } from './FindBar'
 import { createTranslator, detectLang } from '../lib/i18n'
-import { hostAsk, hostConvertFileSrc, hostOpenWithSystem } from '../lib/hostBridge'
+import { hostAsk, hostOpenWithSystem } from '../lib/hostBridge'
 import { SandboxPreview } from './SandboxPreview'
 import { ArrowLeft, Check, Code2, Copy, Eye, Maximize2, Minimize2 } from 'lucide-react'
 import { isAbsoluteFilePath } from '../lib/fileNavigation'
@@ -253,6 +253,62 @@ function parseFilePreviewMetadata(content: string): FilePreviewMetadataData | nu
 
   if (!summary && tags.length === 0 && sources.length === 0) return null
   return { summary: summary || undefined, tags, sources }
+}
+
+/** AC-3 (fix-image-preview): shows a clear "无法预览" state instead of an
+ * infinite spinner or a broken-image icon when the file fails to decode. */
+function ImagePreview({ src, fileName }: { src: string; fileName: string }) {
+  const [failed, setFailed] = useState(false)
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--detail-bg)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+        }}
+      >
+        {failed ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              color: 'var(--item-meta)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            <span>无法预览此图片</span>
+            <span style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>{fileName}</span>
+          </div>
+        ) : (
+          <img
+            src={src}
+            alt={fileName}
+            onError={() => setFailed(true)}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+              borderRadius: 4,
+            }}
+          />
+        )}
+      </div>
+    </div>
+  )
 }
 
 function ReturnButton({ label, onClick }: { label: string; onClick: () => void }) {
@@ -1661,9 +1717,9 @@ export const DetailView = React.memo(function DetailView({
                 lineHeight: 1.6,
               }}
             >
-              在左侧选择一个专题文件夹或文档进行阅读。
+              在左侧选择一个工作空间文件夹或文档进行阅读。
               <br />
-              <span style={{ opacity: 0.6 }}>专题是围绕特定主题组织的笔记和资料集合。</span>
+              <span style={{ opacity: 0.6 }}>工作空间是围绕特定主题组织的笔记和资料集合。</span>
             </div>
           </div>
         )}
@@ -1696,7 +1752,7 @@ export const DetailView = React.memo(function DetailView({
       showSourceFind = false,
     ) => (
       <FileViewShell
-        rootLabel="专题"
+        rootLabel="工作空间"
         file={file}
         displayPath={topicFileDisplayPath(workspacePath, file.path)}
         copyPath={topicFileCopyPath(workspacePath, file.path)}
@@ -1739,45 +1795,18 @@ export const DetailView = React.memo(function DetailView({
 
     // Image
     if (fileKind === 'image') {
-      const src = hostConvertFileSrc(fileAbsolutePath)
+      const src = selectRuntimeClient().getWorkspaceFileUrl(file.path)
       return renderTopicFileShell(
-        <div
-          style={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'var(--detail-bg)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 24,
-            }}
-          >
-            <img
-              src={src}
-              alt={file.name}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                borderRadius: 4,
-              }}
-            />
-          </div>
-        </div>,
+        <ImagePreview src={src} fileName={file.name} />,
         false,
       )
     }
 
     // PDF
     if (fileKind === 'pdf') {
-      const src = hostConvertFileSrc(fileAbsolutePath)
+      // Same root cause as the image branch above (fix-image-preview): a
+      // file:// src is blocked by the http:// renderer origin.
+      const src = selectRuntimeClient().getWorkspaceFileUrl(file.path)
       return renderTopicFileShell(
         <div
           style={{

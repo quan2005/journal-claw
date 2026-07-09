@@ -384,7 +384,7 @@ describe('App', () => {
     })
     await act(async () => {})
 
-    for (const label of ['专题', '画像', '流水']) {
+    for (const label of ['工作空间', '画像', '流水']) {
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: label }))
       })
@@ -466,7 +466,7 @@ describe('App', () => {
 
     // Switch to topics category via NavRail
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '专题' }))
+      fireEvent.click(screen.getByRole('button', { name: '工作空间' }))
     })
 
     // topics/ is now a normal subdirectory of workspace root — expand it first
@@ -513,7 +513,7 @@ describe('App', () => {
 
     // Switch to topics category via NavRail
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '专题' }))
+      fireEvent.click(screen.getByRole('button', { name: '工作空间' }))
     })
 
     // topics/ is now a normal subdirectory of workspace root — expand it first
@@ -563,7 +563,7 @@ describe('App', () => {
 
     // Switch to topics category via NavRail
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '专题' }))
+      fireEvent.click(screen.getByRole('button', { name: '工作空间' }))
     })
 
     // topics/ is now a normal subdirectory of workspace root — expand it first
@@ -628,7 +628,7 @@ describe('App', () => {
 
     // Switch to topics category via NavRail
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '专题' }))
+      fireEvent.click(screen.getByRole('button', { name: '工作空间' }))
     })
 
     // topics/ is now a normal subdirectory of workspace root — expand it first
@@ -763,7 +763,7 @@ describe('App', () => {
       await Promise.resolve()
     })
 
-    const topicButton = await screen.findByRole('button', { name: '定位到专题 可视化一切' })
+    const topicButton = await screen.findByRole('button', { name: '定位到工作空间 可视化一切' })
     expect(screen.getByText('Guide.md')).toBeTruthy()
 
     await act(async () => {

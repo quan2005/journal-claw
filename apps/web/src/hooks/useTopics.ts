@@ -4,7 +4,10 @@ import type { TopicEntry } from '../lib/apiTypes'
 
 // 文件树根 = workspace 根（非 topics/ 白名单）。走通用文件列举路径，禁止直连 daemon URL。
 const listWorkspaceDir = (relativePath: string): Promise<TopicEntry[]> =>
-  selectRuntimeClient().invoke<TopicEntry[]>('list_workspace_dir', { relativePath })
+  selectRuntimeClient().invoke<TopicEntry[]>('list_workspace_dir', {
+    relativePath,
+    compact: true,
+  })
 
 // 防御性过滤：daemon 侧已过滤 dot 条目，web 侧再兜一层（AC-3）。
 function filterDotEntries(entries: TopicEntry[]): TopicEntry[] {

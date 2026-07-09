@@ -17,6 +17,7 @@ vi.mock('../lib/runtimeClient', () => ({
   selectRuntimeClient: () => ({
     invoke: mocks.invoke,
     subscribe: () => () => {},
+    getWorkspaceFileUrl: (relativePath: string) => `mock://files/${relativePath}`,
   }),
 }))
 
@@ -188,7 +189,7 @@ describe('DetailView topic file rendering', () => {
       />,
     )
 
-    const topicButton = await screen.findByRole('button', { name: '定位到专题 可视化一切' })
+    const topicButton = await screen.findByRole('button', { name: '定位到工作空间 可视化一切' })
     expect(topicButton).toBeTruthy()
     expect(screen.getByText('Deck.html')).toBeTruthy()
     // AC-1 (fix-breadcrumb-path): breadcrumb has no bogus "专题" prefix segment
@@ -605,5 +606,33 @@ describe('DetailView topic file rendering', () => {
 
     expect(screen.getByRole('button', { name: '源码' }).getAttribute('aria-pressed')).toBe('true')
     expectSourceViewToContain('<main><h1>Deck</h1></main>')
+  })
+
+  // story 20260708-fix-image-preview · AC-1/AC-3
+  describe('image file preview', () => {
+    const imageFile = {
+      name: 'photo.png',
+      path: 'assets/photo.png',
+      is_dir: false,
+      created_secs: 1_714_435_200,
+      mtime_secs: 1_714_521_600,
+    }
+
+    it('renders the image via the daemon-backed URL (not a file:// src)', async () => {
+      renderWithProviders(<DetailView type="topic-file" file={imageFile} />)
+
+      const img = (await screen.findByAltText('photo.png')) as HTMLImageElement
+      expect(img.src).toBe('mock://files/assets/photo.png')
+    })
+
+    it('shows a clear "无法预览" state when the image fails to decode', async () => {
+      renderWithProviders(<DetailView type="topic-file" file={imageFile} />)
+
+      const img = (await screen.findByAltText('photo.png')) as HTMLImageElement
+      fireEvent.error(img)
+
+      expect(await screen.findByText('无法预览此图片')).toBeTruthy()
+      expect(screen.queryByAltText('photo.png')).toBeNull()
+    })
   })
 })

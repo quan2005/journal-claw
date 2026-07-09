@@ -16,6 +16,10 @@ export type JournalRuntimeClient = {
   subscribe<T>(event: string, handler: (payload: T) => void): () => void
   /** Lightweight daemon reachability probe (GET /health). Boot-time only. */
   health(): Promise<boolean>
+  /** Synchronous <img src>/<iframe src>-ready URL for a workspace-relative
+   * file's raw bytes (images, PDF). Synchronous because it's a pure URL
+   * build, not a fetch — see GET /files/content-binary. */
+  getWorkspaceFileUrl(relativePath: string): string
 }
 
 /** Runtime selection is retained as a compatibility shim for older call sites. */

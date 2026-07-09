@@ -24,7 +24,7 @@ const FULLSCREEN_ITEMS: NavItem[] = [
 
 // 列表类（需要侧栏）
 const LIST_ITEMS: NavItem[] = [
-  { id: 'topics', label: '专题', icon: Archive },
+  { id: 'topics', label: '工作空间', icon: Archive },
   { id: 'identity', label: '画像', icon: Users },
   { id: 'journal', label: '流水', icon: ScrollText },
 ]

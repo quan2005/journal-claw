@@ -56,7 +56,8 @@ describe('TopicTree', () => {
       topic('unknown.bin'),
     ])
 
-    expect(screen.getByLabelText('文件夹')).toBeTruthy()
+    // folder-no-icon: folders show no icon (AC-1), so no '文件夹' aria-label
+    expect(screen.queryByLabelText('文件夹')).toBeNull()
     expect(screen.getByLabelText('MDX 文件')).toBeTruthy()
     expect(screen.getAllByLabelText('Markdown 文件')).toHaveLength(1)
     expect(screen.getByLabelText('文本文件')).toBeTruthy()
@@ -117,8 +118,8 @@ describe('TopicTree', () => {
     expect(screen.queryByText('00 index')).toBeNull()
     expect(screen.queryByText('me export readme')).toBeNull()
     expect(screen.queryByText('TOPIC README')).toBeNull()
-    // assets 目录被过滤，仅「研究材料」是文件夹
-    expect(screen.getAllByLabelText('文件夹')).toHaveLength(1)
+    // assets 目录被过滤：只应看到 user-note.md 和 研究材料 两行，assets 不在列表里
+    expect(screen.queryByText('assets')).toBeNull()
   })
 
   // AC-2 · frontmatter title 优先，无 title 回退到可读化文件名
@@ -165,11 +166,13 @@ describe('TopicTree', () => {
     expect(screen.getByText('deep note')).toBeTruthy()
   })
 
-  // AC-4 · 展开的文件夹显示"打开"样式图标
-  it('shows the open-folder icon variant for an expanded directory', () => {
+  // story 20260708-folder-no-icon · AC-1: folders show no icon, expanded or not
+  it('shows no folder icon whether collapsed or expanded', () => {
     const dirs = new Map([['专题', { entries: [], expanded: true, loading: false }]])
     renderTopicTree([topic('专题', true)], dirs)
-    expect(screen.getByLabelText('已展开的文件夹')).toBeTruthy()
+    expect(screen.queryByLabelText('文件夹')).toBeNull()
+    expect(screen.queryByLabelText('已展开的文件夹')).toBeNull()
+    expect(screen.getByText('专题')).toBeTruthy()
   })
 
   // story 20260708-tree-create-rename · inline 编辑态

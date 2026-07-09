@@ -276,8 +276,9 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
       }
       case 'list_workspace_dir': {
         const relativePath = typeof args?.relativePath === 'string' ? args.relativePath : ''
+        const compactParam = args?.compact === true ? '&compact=true' : ''
         return (await this.getJson(
-          `/files?relativePath=${encodeURIComponent(relativePath)}`,
+          `/files?relativePath=${encodeURIComponent(relativePath)}${compactParam}`,
           'daemon files',
         )) as T
       }
@@ -967,6 +968,10 @@ export class HttpRuntimeClient implements JournalRuntimeClient {
     } catch {
       return false
     }
+  }
+
+  getWorkspaceFileUrl(relativePath: string): string {
+    return `${this.baseUrl}/files/content-binary?relativePath=${encodeURIComponent(relativePath)}`
   }
 
   subscribe<T>(event: string, handler: (payload: T) => void): () => void {

@@ -19,6 +19,8 @@ export interface TopicEntry {
   mtime_secs: number
   /** frontmatter title for .md/.mdx notes (parsed daemon-side); absent otherwise. */
   title?: string
+  /** Compact-folders: joined chain label (e.g. "a/b/c"); absent when no compaction. */
+  display_name?: string
 }
 
 // ── Conversation ────────────────────────────────────────────

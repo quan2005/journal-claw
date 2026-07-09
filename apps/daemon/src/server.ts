@@ -1078,7 +1078,24 @@ export function startDaemon(opts: DaemonOptions): Promise<DaemonHandle> {
       try {
         const relativePath =
           typeof req.query.relativePath === 'string' ? req.query.relativePath : ''
-        res.json(filesService().listWorkspaceDir(relativePath))
+        const compact = req.query.compact === 'true'
+        res.json(filesService().listWorkspaceDir(relativePath, { compact }))
+      } catch (err) {
+        handleFsError(res, err)
+      }
+    })
+
+    // GET /files/content-binary — raw bytes for image/PDF preview (fix-image-preview).
+    // The Electron renderer runs at an http:// origin in dev, so `file://` <img
+    // src> URLs are blocked by the browser; streaming bytes over HTTP fixes it
+    // for both dev and packaged builds.
+    app.get('/files/content-binary', (req, res) => {
+      try {
+        const relativePath =
+          typeof req.query.relativePath === 'string' ? req.query.relativePath : ''
+        const { data, mimeType } = filesService().getBinaryContent(relativePath)
+        res.setHeader('Cache-Control', 'no-store')
+        res.type(mimeType).send(data)
       } catch (err) {
         handleFsError(res, err)
       }

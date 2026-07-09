@@ -1238,7 +1238,7 @@ export function TreeSidebar({
               <SectionHeader
                 collapsed={isCollapsed('topics')}
                 onToggle={() => toggleSection('topics')}
-                label="专题"
+                label="工作空间"
                 icon={<TopicIcon />}
               />
               {!isCollapsed('topics') && (

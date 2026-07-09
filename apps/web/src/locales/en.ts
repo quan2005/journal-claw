@@ -379,6 +379,7 @@ export const en = {
   protocolHint:
     'Anthropic for Claude models, OpenAI Compatible for other providers (DashScope, DeepSeek, etc.)',
   addProvider: 'Add Provider',
+  addModel: 'Add Model',
   customProvider: 'Custom Provider',
 
   // Agent Run panel

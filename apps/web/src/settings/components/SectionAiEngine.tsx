@@ -185,7 +185,10 @@ function ModelListManager({
   const filteredSuggestions = customInput
     ? suggested.filter((m) => m.toLowerCase().includes(customInput.toLowerCase()))
     : suggested
-  const showDropdown = open && (fetching || filteredSuggestions.length > 0 || customInput.trim().length > 0)
+  // Always show the panel once opened (not just when suggestions/fetching/typed
+  // text exist) — the manual model-id input lives inside it, so gating on
+  // "something to show" trapped users with no visible way to type a model.
+  const showDropdown = open
 
   return (
     <div>
@@ -257,7 +260,7 @@ function ModelListManager({
           }}
           style={mutedButtonStyle}
         >
-          <Plus size={13} /> {t('addProvider')}
+          <Plus size={13} /> {t('addModel')}
         </button>
         {showDropdown && (
           <div

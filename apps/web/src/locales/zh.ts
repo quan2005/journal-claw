@@ -404,6 +404,7 @@ export const zh: Strings = {
   protocolHint:
     'Anthropic 协议用于 Claude 模型，OpenAI 兼容协议用于其他供应商（百炼、DeepSeek 等）',
   addProvider: '添加供应商',
+  addModel: '添加模型',
   customProvider: '自定义供应商',
 
   // Agent Run panel

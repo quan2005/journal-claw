@@ -70,4 +70,38 @@ describe('SectionAiEngine', () => {
 
     expect(await screen.findByText('已保存')).toBeTruthy()
   })
+
+  it('lets the user add a custom model even when no suggestions are available', async () => {
+    // Regression test: list_models resolves to [] here (as it always does in
+    // production today, since the daemon has no matching route), so the
+    // dropdown must still render the manual model-id input rather than
+    // staying hidden with nothing to show.
+    render(<SectionAiEngine />)
+
+    await screen.findByPlaceholderText('sk-ant-…')
+
+    const addModelButton = screen.getByRole('button', { name: '添加模型' })
+    fireEvent.click(addModelButton)
+
+    const modelInput = await screen.findByPlaceholderText(/model|模型/i)
+    fireEvent.change(modelInput, { target: { value: 'claude-test-model' } })
+    fireEvent.keyDown(modelInput, { key: 'Enter' })
+
+    expect((await screen.findAllByText('claude-test-model')).length).toBeGreaterThan(0)
+
+    const saveButton = screen.getByRole('button', { name: '保存' }) as HTMLButtonElement
+    expect(saveButton.disabled).toBe(false)
+    fireEvent.click(saveButton)
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'set_engine_config',
+        expect.objectContaining({
+          config: expect.objectContaining({
+            providers: [expect.objectContaining({ models: ['claude-test-model'] })],
+          }),
+        }),
+      )
+    })
+  })
 })

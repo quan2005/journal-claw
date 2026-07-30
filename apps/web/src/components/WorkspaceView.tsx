@@ -21,7 +21,11 @@ import { useTopics } from '../hooks/useTopics'
 import { selectRuntimeClient } from '../lib/runtimeClient'
 import type { TopicEntry, SessionSummary, EngineConfig } from '../lib/apiTypes'
 import { useComposerSelection } from '../hooks/useComposerSelection'
-import { groupProvidersByLabel, activePillModelId, THINKING_LEVEL_LABELS } from '../lib/composerPills'
+import {
+  groupProvidersByLabel,
+  activePillModelId,
+  THINKING_LEVEL_LABELS,
+} from '../lib/composerPills'
 
 const conversationList = () => selectRuntimeClient().invoke<SessionSummary[]>('conversation_list')
 const conversationDelete = (sessionId: string) =>
@@ -718,7 +722,7 @@ export function WorkspaceChatShell({
 
       <div className="workspace-chat__body" ref={scrollRef}>
         {showEmpty ? (
-          <div className="workspace-chat__greeting">闫戍&apos;s momo</div>
+          <div className="workspace-chat__greeting">您的谨迹</div>
         ) : (
           <div className="workspace-chat__messages" aria-live="polite">
             {messages.map((msg, idx) => (

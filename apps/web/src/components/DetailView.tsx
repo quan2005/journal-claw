@@ -898,7 +898,6 @@ export interface DetailViewProps {
 
   // Shared callbacks (all optional)
   onDeselect?: () => void
-  onOpenDock?: () => void
   onSelectSample?: () => void
   onAddToTodo?: (text: string, source: string) => void
   onProcess?: (entry: JournalEntry) => void
@@ -1147,7 +1146,6 @@ export const DetailView = React.memo(function DetailView({
   identity,
   file,
   onDeselect,
-  onOpenDock,
   onSelectSample,
   onAddToTodo,
   onProcess,
@@ -1416,7 +1414,8 @@ export const DetailView = React.memo(function DetailView({
 
   if (!hasSelection) {
     const isEmpty = isJournalMode && entries.length === 0
-    const showJournalCards = isJournalMode && (category === 'journal' || !category)
+    const showJournalSample =
+      isJournalMode && (category === 'journal' || !category) && isEmpty && Boolean(onSelectSample)
     const showIdentityHint = category === 'identity'
     const showTopicsHint = category === 'topics'
 
@@ -1454,7 +1453,7 @@ export const DetailView = React.memo(function DetailView({
         </span>
 
         {/* ── Journal empty state ──────────────────────────────────────── */}
-        {showJournalCards && (
+        {showJournalSample && (
           <div
             style={{
               position: 'relative',
@@ -1478,162 +1477,80 @@ export const DetailView = React.memo(function DetailView({
             >
               通过以下方式开始记录
             </div>
-            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-              {/* 粘贴卡片 */}
-              {onOpenDock && (
-                <button
-                  onClick={onOpenDock}
-                  style={{
-                    flex: 1,
-                    background: 'var(--detail-case-bg)',
-                    border: '1px solid var(--divider)',
-                    borderRadius: 10,
-                    padding: '16px 12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s, background 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--item-meta)'
-                    ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
-                  }}
-                  onMouseLeave={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
-                    ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'var(--detail-case-bg)'
-                  }}
+            <button
+              onClick={onSelectSample}
+              style={{
+                flex: 1,
+                background: 'var(--detail-case-bg)',
+                border: '1px dashed var(--divider)',
+                borderStyle: 'dashed',
+                borderRadius: 10,
+                padding: '16px 12px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'opacity 0.15s, background 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--record-btn)'
+                ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
+                ;(e.currentTarget as HTMLButtonElement).style.background =
+                  'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
+                ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
+                ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--detail-case-bg)'
+              }}
+            >
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: 'var(--item-icon-bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px',
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--item-meta)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: 'var(--item-icon-bg)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 8px',
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--item-meta)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--item-text)',
-                      fontWeight: 'var(--font-semibold)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    粘贴 / 拖文件
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--item-meta)',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    会议记录、日记
-                    <br />
-                    AI 自动提炼关键信息
-                  </div>
-                </button>
-              )}
-
-              {/* 创建示例卡片：只在工作目录为空时显示 */}
-              {isEmpty && onSelectSample && (
-                <button
-                  onClick={onSelectSample}
-                  style={{
-                    flex: 1,
-                    background: 'var(--detail-case-bg)',
-                    border: '1px dashed var(--divider)',
-                    borderStyle: 'dashed',
-                    borderRadius: 10,
-                    padding: '16px 12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s, background 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--record-btn)'
-                    ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'solid'
-                    ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'color-mix(in srgb, var(--item-hover-bg) 30%, transparent)'
-                  }}
-                  onMouseLeave={(e) => {
-                    ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--divider)'
-                    ;(e.currentTarget as HTMLButtonElement).style.borderStyle = 'dashed'
-                    ;(e.currentTarget as HTMLButtonElement).style.background =
-                      'var(--detail-case-bg)'
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: 'var(--item-icon-bg)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 8px',
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--item-meta)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z" />
-                      <line x1="9" y1="21" x2="15" y2="21" />
-                      <line x1="10" y1="17" x2="14" y2="17" />
-                    </svg>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--item-text)',
-                      fontWeight: 'var(--font-semibold)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    创建示例条目
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--item-meta)',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    生成一条示例
-                    <br />
-                    了解 AI 整理效果
-                  </div>
-                </button>
-              )}
-            </div>
+                  <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 8H9c-1-2-4-4-4-8a7 7 0 0 1 7-7z" />
+                  <line x1="9" y1="21" x2="15" y2="21" />
+                  <line x1="10" y1="17" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--item-text)',
+                  fontWeight: 'var(--font-semibold)',
+                  marginBottom: 4,
+                }}
+              >
+                创建示例条目
+              </div>
+              <div
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--item-meta)',
+                  lineHeight: 1.6,
+                }}
+              >
+                生成一条示例
+                <br />
+                了解 AI 整理效果
+              </div>
+            </button>
           </div>
         )}
 
@@ -1796,10 +1713,7 @@ export const DetailView = React.memo(function DetailView({
     // Image
     if (fileKind === 'image') {
       const src = selectRuntimeClient().getWorkspaceFileUrl(file.path)
-      return renderTopicFileShell(
-        <ImagePreview src={src} fileName={file.name} />,
-        false,
-      )
+      return renderTopicFileShell(<ImagePreview src={src} fileName={file.name} />, false)
     }
 
     // PDF
@@ -1902,9 +1816,7 @@ export const DetailView = React.memo(function DetailView({
           <div style={{ display: 'flex', gap: 12 }}>
             {fileKind === 'other' && (
               <button
-                onClick={() =>
-                  setPlainTextPaths((prev) => new Set(prev).add(file.path))
-                }
+                onClick={() => setPlainTextPaths((prev) => new Set(prev).add(file.path))}
                 style={actionButtonStyle}
               >
                 {getT()('viewAsPlainText')}

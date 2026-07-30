@@ -1,7 +1,23 @@
+import type { ComponentType } from 'react'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from './setup'
-import { DetailView } from '../components/DetailView'
+import { DetailView, type DetailViewProps } from '../components/DetailView'
+
+const JOURNAL_ENTRY = {
+  filename: '30-test.md',
+  path: '/ws/2607/30-test.md',
+  title: '测试日志',
+  summary: '测试摘要',
+  tags: [],
+  sources: [],
+  year_month: '2607',
+  day: 30,
+  created_time: '10:00',
+  created_at_secs: 0,
+  mtime_secs: 0,
+  materials: [],
+}
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
@@ -46,6 +62,49 @@ sources: ["../../Projects/github/journal/.agents/skills/journal/references/templ
 # customer-profile
 
 <Subtitle>HR 与运营 family / customer-profile template.</Subtitle>`
+
+describe('DetailView journal unselected state', () => {
+  beforeEach(() => {
+    mocks.invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'get_workspace_path') return '/Users/yanwu/Documents/journal'
+      return undefined
+    })
+  })
+
+  it('renders no capture card or orphan heading when the journal has entries', () => {
+    const LegacyDetailView = DetailView as unknown as ComponentType<
+      DetailViewProps & { onOpenDock: () => void }
+    >
+
+    renderWithProviders(
+      <LegacyDetailView type="journal" entries={[JOURNAL_ENTRY]} onOpenDock={vi.fn()} />,
+    )
+
+    expect(screen.queryByRole('button', { name: /粘贴 \/ 拖文件/ })).toBeNull()
+    expect(screen.queryByText('通过以下方式开始记录')).toBeNull()
+  })
+
+  it('keeps the sample-entry action for an empty journal without the paste card', () => {
+    const onSelectSample = vi.fn()
+    const LegacyDetailView = DetailView as unknown as ComponentType<
+      DetailViewProps & { onOpenDock: () => void }
+    >
+
+    renderWithProviders(
+      <LegacyDetailView
+        type="journal"
+        entries={[]}
+        onSelectSample={onSelectSample}
+        onOpenDock={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /粘贴 \/ 拖文件/ })).toBeNull()
+    expect(screen.getByText('通过以下方式开始记录')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /创建示例条目/ }))
+    expect(onSelectSample).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('DetailView topic file rendering', () => {
   beforeEach(() => {
@@ -110,10 +169,7 @@ describe('DetailView topic file rendering', () => {
 
       expect(await screen.findByRole('button', { name: '以纯文本查看' })).toBeTruthy()
       expect(screen.getByRole('button', { name: '用系统应用打开' })).toBeTruthy()
-      expect(mocks.invoke).not.toHaveBeenCalledWith(
-        'get_journal_entry_content',
-        expect.anything(),
-      )
+      expect(mocks.invoke).not.toHaveBeenCalledWith('get_journal_entry_content', expect.anything())
     })
 
     // AC-2 · 点击后以纯文本渲染

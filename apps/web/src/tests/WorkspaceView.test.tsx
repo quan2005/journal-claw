@@ -78,11 +78,12 @@ describe('WorkspaceView', () => {
 })
 
 describe('WorkspaceChatShell', () => {
-  it('renders greeting and input', async () => {
+  it('renders the JournalClaw greeting and input', async () => {
     renderWithProviders(<WorkspaceChatShell {...chatShellProps} />)
     await waitFor(() => {
-      expect(screen.getByText("闫戍's momo")).toBeTruthy()
+      expect(screen.getByText('您的谨迹')).toBeTruthy()
     })
+    expect(screen.queryByText("闫戍's momo")).toBeNull()
     expect(screen.getByPlaceholderText(/Ask me anything/i)).toBeTruthy()
   })
 

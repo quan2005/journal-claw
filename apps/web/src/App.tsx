@@ -7,13 +7,10 @@ import {
   lazy,
   Suspense,
   type ComponentProps,
-  type CSSProperties,
 } from 'react'
 
 import { selectRuntimeClient } from './lib/runtimeClient'
 import { subscribeHostEvent, setHostZoom, onHostFileDrop } from './lib/hostBridge'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-
 import { TitleBar } from './components/TitleBar'
 import { TreeSidebar } from './components/TreeSidebar'
 const DetailView = lazy(() =>
@@ -87,30 +84,6 @@ const HIDE_RIGHT_PANEL_BELOW = 960
 const HIDE_LEFT_SIDEBAR_BELOW = 720
 const SIDEBAR_PANEL_TRANSITION =
   'width 220ms var(--ease-out), opacity 160ms var(--ease-out), border-color 160ms var(--ease-out)'
-const PANEL_TOGGLE_TOP = 'clamp(88px, 12vh, 120px)'
-
-function sidebarToggleStyle(): CSSProperties {
-  return {
-    ['--panel-toggle-top' as string]: PANEL_TOGGLE_TOP,
-    position: 'absolute',
-    top: 'var(--panel-toggle-top)',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    zIndex: 3,
-    width: 22,
-    height: 34,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '0.5px solid var(--divider)',
-    borderRadius: 'var(--radius-pill)',
-    background: 'var(--sidebar-bg)',
-    color: 'var(--item-meta)',
-    cursor: 'pointer',
-    padding: 0,
-    boxShadow: 'var(--shadow-overlay)',
-  } as CSSProperties
-}
 
 interface DetailReturnTarget {
   selection: TreeSelection
@@ -747,10 +720,6 @@ export default function App() {
     setRightPanelOpen,
   ])
 
-  const handleOpenChat = useCallback(() => {
-    setRightPanelOpen(true)
-  }, [setRightPanelOpen])
-
   // Open chat panel when skill "/" button is clicked from SkillsWorkbench
   useEffect(() => {
     const handler = () => {
@@ -1166,22 +1135,7 @@ export default function App() {
                 userSelect: 'none' as const,
                 cursor: leftSidebarOpen ? 'col-resize' : 'default',
               }}
-            >
-              <button
-                type="button"
-                aria-label={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
-                title={leftSidebarOpen ? t('collapseLeftSidebar') : t('expandLeftSidebar')}
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={() => setLeftSidebarOpen((prev) => !prev)}
-                style={sidebarToggleStyle()}
-              >
-                {leftSidebarOpen ? (
-                  <ChevronLeft size={15} strokeWidth={1.8} />
-                ) : (
-                  <ChevronRight size={15} strokeWidth={1.8} />
-                )}
-              </button>
-            </div>
+            />
           </>
         )}
 
@@ -1225,7 +1179,6 @@ export default function App() {
                 identity={detailIdentity}
                 file={detailFile}
                 onDeselect={handleDeselect}
-                onOpenDock={handleOpenChat}
                 onSelectSample={handleSelectSample}
                 onAddToTodo={handleAddToTodo}
                 onProcess={handleProcessEntry}
@@ -1257,22 +1210,7 @@ export default function App() {
             cursor: rightPanelOpen ? 'col-resize' : 'default',
             transition: 'background-color 0.15s var(--ease-out)',
           }}
-        >
-          <button
-            type="button"
-            aria-label={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
-            title={rightPanelOpen ? t('collapseRightSidebar') : t('expandRightSidebar')}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => setRightPanelOpen((prev) => !prev)}
-            style={sidebarToggleStyle()}
-          >
-            {rightPanelOpen ? (
-              <ChevronRight size={15} strokeWidth={1.8} />
-            ) : (
-              <ChevronLeft size={15} strokeWidth={1.8} />
-            )}
-          </button>
-        </div>
+        />
         <div
           className="app-sidebar-panel"
           data-sidebar-panel="right"

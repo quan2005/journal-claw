@@ -44,7 +44,7 @@
 - 删除“粘贴 / 拖文件”按钮。
 - 工作区非空时，中央未选中态只保留现有水印，不渲染孤立的“通过以下方式开始记录”标题。
 - 工作区为空且存在示例回调时，继续显示“通过以下方式开始记录”和“创建示例条目”按钮。
-- `onOpenDock` 若仅被该卡片消费，则从 `DetailView` 接口和 `App` 调用处一并移除；`handleOpenChat` 以及其他打开右侧对话区的路径保留。
+- `onOpenDock` 仅被该卡片消费，因此从 `DetailView` 接口和 `App` 调用处一并移除；只包装该 prop 的 `handleOpenChat` 同步删除。真正承载会话打开行为的 `openChatPanel`、快捷键和其他业务唤起路径保留。
 
 ### WorkspaceChatShell 空会话
 

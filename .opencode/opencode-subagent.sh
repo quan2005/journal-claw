@@ -1,1 +1,0 @@
-../.agents/skills/opencode-subagent/opencode-subagent.sh

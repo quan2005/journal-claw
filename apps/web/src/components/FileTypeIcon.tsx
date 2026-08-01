@@ -6,6 +6,7 @@ interface FileTypeIconProps {
   size?: number
   selected?: boolean
   decorative?: boolean
+  variant?: 'glyph-tile'
 }
 
 const ICON_LABELS: Record<FileTypeIconKind, string> = {
@@ -33,6 +34,12 @@ const FOLDER_PALETTE = {
   fg: 'var(--file-default)',
   bg: 'color-mix(in srgb, var(--file-default) 13%, transparent)',
   border: 'color-mix(in srgb, var(--file-default) 28%, transparent)',
+}
+
+const HTML_TILE_PALETTE = {
+  fg: 'var(--file-html)',
+  bg: 'color-mix(in srgb, var(--file-html) 13%, transparent)',
+  border: 'color-mix(in srgb, var(--file-html) 26%, transparent)',
 }
 
 const ICON_PALETTES: Record<FileTypeIconKind, { fg: string; bg: string; border: string }> = {
@@ -257,9 +264,50 @@ export function FileTypeIcon({
   size = 18,
   selected = false,
   decorative = false,
+  variant,
 }: FileTypeIconProps) {
-  const palette = ICON_PALETTES[kind]
+  const palette =
+    variant === 'glyph-tile' && kind === 'html' ? HTML_TILE_PALETTE : ICON_PALETTES[kind]
   const label = fileTypeIconLabel(kind)
+
+  if (variant === 'glyph-tile') {
+    const foreground = selected ? 'var(--item-selected-text)' : palette.fg
+    const background = selected
+      ? 'color-mix(in srgb, var(--item-selected-text) 12%, transparent)'
+      : palette.bg
+    const border = selected
+      ? '1px solid color-mix(in srgb, var(--item-selected-text) 28%, transparent)'
+      : `1px solid ${palette.border}`
+    const tileStyle: CSSProperties = {
+      width: size,
+      height: size,
+      minWidth: size,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      border,
+      borderRadius: 'var(--radius-sm)',
+      color: foreground,
+      background,
+      userSelect: 'none',
+    }
+
+    return (
+      <span
+        role={decorative ? undefined : 'img'}
+        aria-label={decorative ? undefined : label}
+        aria-hidden={decorative ? true : undefined}
+        title={decorative ? undefined : label}
+        data-file-kind={kind}
+        data-file-icon-variant={variant}
+        style={tileStyle}
+      >
+        <VectorGlyph kind={kind} />
+      </span>
+    )
+  }
+
   const style: CSSProperties = {
     width: size,
     height: size,

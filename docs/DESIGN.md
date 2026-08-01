@@ -183,7 +183,7 @@ spacing:
 - **圆角**：`--radius-sm`（6px，徽章/小控件）、`--radius-md`（6px，输入框）、`--radius-lg`（8px，菜单/对话框/卡片）、`--radius-pill`（999px，胶囊）。
 - **浮层阴影**：`--shadow-overlay`（浅色 `0 4px 12px rgba(0,0,0,0.15)` / 暗色 `0 4px 12px rgba(0,0,0,0.5)`）——浮层（菜单、对话框、Toast）的唯一阴影值，禁止 `0 24px 80px` 等装饰性深阴影。
 - **菜单边框**：`--border-menu`（`1px solid var(--divider)`）——上下文菜单、对话框的统一边框，禁止 0.5px 等不一致粗细。
-- **聚焦环**：`--focus-ring`（`2px solid color-mix(in srgb, var(--record-btn) 55%, var(--bg))`）——所有 `:focus-visible` 必须用此 token，禁止 `outline: none` 或各自硬编码浓度（22%/60% 等）。
+- **聚焦环颜色**：`--focus-ring`（浅色 `color-mix(in srgb, var(--record-btn) 55%, var(--bg))`，暗色提高到 60%）——新建或本次修改的 `:focus-visible` 使用统一的 `2px solid var(--focus-ring)`，禁止 `outline: none`、省略 style/width，或各自硬编码浓度。
 - **主操作按钮**：`--workbench-btn-primary-bg`（= `--record-btn`）/ `--workbench-btn-primary-bg-hover`（= `--record-btn-hover`）/ `--workbench-btn-primary-color`（`#fff`）——所有 Hub 页主操作（新建技能/想法/自动化等）的实心橙按钮统一消费此组 token，禁止各页硬编码填充色（曾出现技能页浅珊瑚、想法/自动化深 ghost 的不一致）。交互橙永远走 `--record-btn`，**不要**用 `--accent`（已重定义为危险红 `#DC2626`，非交互色）。
 
 > **暗色二级文字对比下限。** 暗色主题正文副文本（`--text-secondary`）≥ 4.5:1，元信息/提示文本（`--text-tertiary`/`--muted-text`/`--muted-icon`，当前 `#747b86`）≥ 3:1（相对其所在表面背景）。低于此阈值的灰度需上调，不得让「上次成功/失败」等关键状态文本沉到不可读。
@@ -195,6 +195,18 @@ spacing:
 - **默认：** 透明背景。主文字 14px 字重 400。元信息（日期、标签）次要色。
 - **悬停：** 背景切换为 `#FFF7F1`（浅色）/ `rgba(255,255,255,0.04)`（暗色）。
 - **选中：** 背景 `#FFEDD9`（浅色，橙软底）/ `rgba(255,122,51,0.14)`（暗色）。文字切换为橙色系。
+
+### 工作空间文件树
+
+工作空间主树与置顶树共享同一套视觉和交互规则；修改其中一处时必须同步验证另一处。
+
+- **标题区：** 只显示“个人空间”和始终可见的排序按钮。未实现的搜索、布局切换以及重复的 `Workspace` / “工作空间”分组标题不得出现。
+- **几何节奏：** 行高与相邻行中心间距均为 34px；每级缩进增量 10px；行内边距 7px；marker 为 16px，marker 与名称间距 5px。上述值集中在工作空间树 token 中消费，目录展开/折叠不得改变同级名称列。
+- **目录：** 只用 12px chevron glyph（置于 16px marker 槽内）表达目录与展开状态，不显示文件 glyph、文件夹图标或子项统计数字。竖向引导线随子树显隐和长度同步更新。
+- **文件：** 使用 **B · Glyph Tile**——16px 圆润色块承载 72% 简洁 glyph，并按 Markdown、MDX、HTML、图片、PDF、配置、代码等已支持类型使用稳定语义色。Glyph Tile 仅用于工作空间主树与置顶树，其他 `FileTypeIcon` 调用保持默认主题。
+- **选中：** 消费 `--item-selected-bg` / `--item-selected-text` 与 `--radius-pill`，形成横贯可用侧栏宽度、与行高一致的完整信号橙软底胶囊；不得增加左侧选中条。
+- **尾部操作：** 行在 hover、selected 或 `:focus-visible` 时，依次显示“更多（…）”和“引用（@）”；按钮必须可点击且不能触发行本身的打开/选择行为。
+- **键盘与主题：** 主树和置顶树都保留方向键、Enter、展开/折叠及 roving tabindex；所有焦点使用 `2px solid var(--focus-ring)`。浅色与暗色主题保持同一几何结构，文字、chevron、引导线、glyph 和操作按钮均须可辨。
 
 ### AI 状态标记
 
@@ -245,8 +257,8 @@ spacing:
 - **该** 对所有非循环过渡使用 `cubic-bezier(0.16, 1, 0.3, 1)`（ease-out-quart），150–250ms。循环动画（呼吸/脉冲/shimmer/省略号等无限循环对称动画）豁免，可用 `ease-in-out`。
 - **该** 实现 `prefers-reduced-motion` 回退——降级为即时透明度渐变。
 - **该** 将语义色（成功绿/警告黄/危险红/信息蓝）仅用于状态徽章、callout、文件类型图标。
-- **该** 消费结构化 token（`--radius-*`/`--shadow-overlay`/`--border-menu`/`--focus-ring`），禁止组件硬编码圆角/阴影/边框/聚焦环数值。
-- **该** 所有 `:focus-visible` 使用 `--focus-ring` token，保证聚焦环粗细与浓度统一。
+- **该** 消费结构化 token（`--radius-*`/`--shadow-overlay`/`--border-menu`/`--focus-ring`），禁止组件硬编码圆角/阴影/边框或聚焦环颜色。
+- **该** 新建或本次修改的 `:focus-visible` 使用 `2px solid var(--focus-ring)`，保证聚焦环粗细、样式与浓度统一。
 
 ### 不该做：
 
@@ -261,4 +273,4 @@ spacing:
 - **不该** 在代码/技术语义之外使用 JetBrains Mono。
 - **不该** 把所有东西都包进卡片里。大多数东西不需要容器。
 - **不该** 把模态框当作首选方案——先穷尽内联和渐进式替代方案。
-- **不该** 各自硬编码聚焦环——`outline: none` 或浓度各异的 `color-mix` 都是违规，必须用 `--focus-ring`。
+- **不该** 在新建或本次修改的组件中各自硬编码聚焦环——`outline: none`、省略 style/width 或浓度各异的 `color-mix` 都是违规，必须使用 `2px solid var(--focus-ring)`。`globals.css`、`workspace.css`、`onboarding.css` 与 `nav-rail.css` 中仍存在 `outline: var(--focus-ring)` 的历史兼容写法，应由独立治理任务统一迁移，不在局部视觉 story 中顺带改写。

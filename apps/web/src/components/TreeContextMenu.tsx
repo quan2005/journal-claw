@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { hostAsk, hostOpenWithSystem, hostRevealInFileManager } from '../lib/hostBridge'
+import {
+  hostAsk,
+  hostConfirm,
+  hostOpenWithSystem,
+  hostRevealInFileManager,
+} from '../lib/hostBridge'
 
 export interface TreeContextMenuState {
   x: number
@@ -133,7 +138,8 @@ export function TreeContextMenu({
   }
   async function handleDelete() {
     onClose()
-    const confirmed = await hostAsk(`确认删除「${name}」？`, {
+    const confirm = itemType === 'topic-file' || itemType === 'topic-folder' ? hostConfirm : hostAsk
+    const confirmed = await confirm(`确认删除「${name}」？`, {
       title: '删除确认',
       kind: 'warning',
     })

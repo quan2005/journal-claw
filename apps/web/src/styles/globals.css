@@ -276,6 +276,7 @@
   --file-pdf: #dc2626;
   --file-docx: #2563eb;
   --file-markdown: #6b7280;
+  --file-html: #d97706;
   --file-audio: #7c3aed;
   --file-image: #16a34a;
   --file-default: #6b7280;
@@ -456,6 +457,7 @@
     --file-pdf: #f87171;
     --file-docx: #60a5fa;
     --file-markdown: #9ca3af;
+    --file-html: #fbbf24;
     --file-audio: #c4b5fd;
     --file-image: #4ade80;
     --file-default: #9ca3af;
@@ -610,6 +612,7 @@
   --file-pdf: #f87171;
   --file-docx: #60a5fa;
   --file-markdown: #9ca3af;
+  --file-html: #fbbf24;
   --file-audio: #c4b5fd;
   --file-image: #4ade80;
   --file-default: #9ca3af;
@@ -2084,6 +2087,7 @@ body,
   --file-pdf: #dc2626;
   --file-docx: #2563eb;
   --file-markdown: #6b7280;
+  --file-html: #d97706;
   --file-audio: #7c3aed;
   --file-image: #16a34a;
   --file-default: #6b7280;

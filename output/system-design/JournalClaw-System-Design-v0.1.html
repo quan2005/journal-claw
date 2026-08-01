@@ -1,0 +1,1505 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JournalClaw 本地个人 Agentic Workspace System Design v0.1">
+  <link rel="icon" href="data:,">
+  <title>JournalClaw · System Design v0.1</title>
+  <style>
+    :root {
+      --ink: #102c46;
+      --ink-soft: #536b82;
+      --accent: #2f658f;
+      --accent-pale: #d9eaf6;
+      --paper: #ffffff;
+      --wash: #f3f7fa;
+      --line: #dbe4eb;
+      --orange: #ff5701;
+      --green: #16745b;
+      --yellow: #8a6300;
+      --red: #a23b3b;
+      --shadow: 0 18px 50px rgba(16, 44, 70, 0.09);
+      --serif: Georgia, "Noto Serif SC", "Songti SC", serif;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--wash);
+      font: 15px/1.75 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--orange); }
+
+    .cover {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: clamp(42px, 8vw, 112px);
+      background:
+        radial-gradient(circle at 82% 16%, rgba(217, 234, 246, 0.82), transparent 28%),
+        linear-gradient(135deg, #fff 0%, #f8fbfd 66%, #eef5f9 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .cover-main { align-self: center; max-width: 980px; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #647d94;
+      font-size: clamp(28px, 4vw, 54px);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+    }
+    .cover h1 {
+      max-width: 1050px;
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(42px, 6.2vw, 84px);
+      line-height: 1.04;
+      letter-spacing: -0.055em;
+    }
+    .cover h1 span { display: block; color: var(--accent); font-weight: 500; }
+    .north-star {
+      max-width: 870px;
+      margin: 34px 0 0;
+      color: var(--ink-soft);
+      font: 23px/1.5 var(--serif);
+    }
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 28px;
+      margin-top: 64px;
+      padding-top: 28px;
+      border-top: 1px solid var(--line);
+    }
+    .cover-meta dt {
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .cover-meta dd { margin: 6px 0 0; font-size: 14px; }
+    .scope-card {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      margin-top: 4px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+    }
+    .scope-card strong, .scope-card span { padding: 11px 14px; }
+    .scope-card strong { background: var(--accent-pale); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(210px, 260px) minmax(0, 880px);
+      gap: clamp(38px, 6vw, 88px);
+      justify-content: center;
+      padding: 74px clamp(22px, 5vw, 72px) 120px;
+    }
+    .toc {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 18px 0 18px 18px;
+      border-left: 2px solid var(--accent-pale);
+    }
+    .toc-label {
+      margin-bottom: 12px;
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .toc a {
+      display: block;
+      margin: 5px 0;
+      color: var(--ink-soft);
+      font-size: 12px;
+      line-height: 1.45;
+      text-decoration: none;
+    }
+    .toc a:hover, .toc a.active { color: var(--orange); }
+
+    article {
+      min-width: 0;
+      padding: clamp(26px, 5vw, 72px);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      margin: 88px 0 26px;
+      padding-top: 18px;
+      border-top: 2px solid var(--ink);
+      font-size: clamp(28px, 3.4vw, 42px);
+      line-height: 1.2;
+      letter-spacing: -.035em;
+    }
+    article > h2:first-child { margin-top: 0; }
+    h3 {
+      margin: 48px 0 16px;
+      color: var(--accent);
+      font-size: 22px;
+      line-height: 1.3;
+      letter-spacing: -.018em;
+    }
+    h4 { margin: 32px 0 12px; font-size: 17px; }
+    .heading-anchor { color: inherit; text-decoration: none; }
+    p { margin: 12px 0 18px; }
+    strong { color: #0d2942; }
+    blockquote {
+      margin: 28px 0;
+      padding: 22px 26px;
+      color: var(--ink);
+      background: linear-gradient(90deg, var(--accent-pale), #eff7fb);
+      border-left: 4px solid var(--accent);
+      font: 20px/1.55 var(--serif);
+    }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: 6px 0; }
+    hr { margin: 64px 0; border: 0; border-top: 1px solid var(--line); }
+    code {
+      padding: .12em .36em;
+      color: #173f5f;
+      background: #eef4f7;
+      border-radius: 4px;
+      font: .9em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    pre:not(.mermaid) {
+      overflow-x: auto;
+      margin: 24px 0;
+      padding: 20px 22px;
+      color: #eaf2f7;
+      background: #102c46;
+      border-radius: 8px;
+    }
+    pre:not(.mermaid) code { padding: 0; color: inherit; background: transparent; }
+    .mermaid {
+      overflow-x: auto;
+      margin: 30px 0;
+      padding: 22px;
+      background: #fbfdfe;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      margin: 24px 0 34px;
+      border-collapse: collapse;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    th, td {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--ink); background: var(--accent-pale); font-weight: 750; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .status {
+      display: inline-block;
+      margin-right: 4px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      vertical-align: .1em;
+    }
+    .status-现状 { color: #2d5877; background: #dcecf6; }
+    .status-决策 { color: #fff; background: var(--ink); }
+    .status-提案 { color: #705100; background: #fff0bd; }
+    .status-开放 { color: #8f2d2d; background: #ffe1df; }
+    .doc-footer {
+      max-width: 880px;
+      margin: 0 auto 60px;
+      padding: 0 24px;
+      color: var(--ink-soft);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .cover { min-height: auto; padding: 54px 28px; }
+      .cover-main { padding: 56px 0; }
+      .cover-meta { grid-template-columns: 1fr; gap: 16px; }
+      .scope-card { grid-template-columns: 1fr; }
+      .layout { display: block; padding: 0; }
+      .toc { display: none; }
+      article { padding: 48px 24px 80px; box-shadow: none; }
+      table { display: block; overflow-x: auto; white-space: normal; }
+      h2 { margin-top: 64px; }
+    }
+
+    @media print {
+      @page { size: A4; margin: 18mm 16mm 20mm; }
+      body { background: #fff; font-size: 10.5pt; }
+      .cover { min-height: 260mm; padding: 30mm 14mm 18mm; page-break-after: always; }
+      .cover h1 { font-size: 42pt; }
+      .layout { display: block; padding: 0; }
+      .toc { display: none; }
+      article { padding: 0; box-shadow: none; }
+      h2 { page-break-before: always; margin-top: 0; }
+      article > h2:first-child { page-break-before: avoid; }
+      h2, h3 { page-break-after: avoid; }
+      table, blockquote, pre { page-break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+      .doc-footer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="cover">
+    <div class="cover-main">
+      <p class="eyebrow">JournalClaw</p>
+      <h1>本地个人 Agentic Workspace <span>System Design v0.1</span></h1>
+      <p class="north-star">本地文件资产 → 有界上下文 → 窄职责 Agent → 可恢复执行 → 用户确认变更 → 可追溯产物</p>
+    </div>
+    <dl class="cover-meta">
+      <div><dt>Status</dt><dd>Draft / 待共同决策</dd></div>
+      <div><dt>Owner</dt><dd>Yanwu</dd></div>
+      <div><dt>Last updated</dt><dd>2026-07-30</dd></div>
+      <div class="scope-card"><strong>Scope</strong><span>仅本地 Desktop、单用户、个人效率；从当前实现渐进迁移，不做大爆炸重写</span></div>
+    </dl>
+  </header>
+
+  <main class="layout">
+    <nav class="toc" aria-label="文档目录">
+      <div class="toc-label">Contents</div>
+      <a href="#如何阅读这份文档" data-section="如何阅读这份文档">如何阅读这份文档</a>
+<a href="#1-摘要" data-section="1-摘要">1. 摘要</a>
+<a href="#2-goals-and-non-goals" data-section="2-goals-and-non-goals">2. Goals and Non-Goals</a>
+<a href="#3-background-and-problem-statement" data-section="3-background-and-problem-statement">3. Background and Problem Statement</a>
+<a href="#4-proposed-architecture" data-section="4-proposed-architecture">4. Proposed Architecture</a>
+<a href="#5-request-lifecycle" data-section="5-request-lifecycle">5. Request Lifecycle</a>
+<a href="#6-api-and-data-contracts" data-section="6-api-and-data-contracts">6. API and Data Contracts</a>
+<a href="#7-consistency-idempotency-and-replay" data-section="7-consistency-idempotency-and-replay">7. Consistency, Idempotency, and Replay</a>
+<a href="#8-security-and-privacy-considerations" data-section="8-security-and-privacy-considerations">8. Security and Privacy Considerations</a>
+<a href="#9-operational-readiness" data-section="9-operational-readiness">9. Operational Readiness</a>
+<a href="#10-alternatives-considered" data-section="10-alternatives-considered">10. Alternatives Considered</a>
+<a href="#11-open-questions" data-section="11-open-questions">11. Open Questions</a>
+<a href="#12-decision-and-next-steps" data-section="12-decision-and-next-steps">12. Decision and Next Steps</a>
+<a href="#appendix-a-moxt-能力的本地化取舍" data-section="appendix-a-moxt-能力的本地化取舍">Appendix A · Moxt 能力的本地化取舍</a>
+<a href="#appendix-b-当前代码证据索引" data-section="appendix-b-当前代码证据索引">Appendix B · 当前代码证据索引</a>
+<a href="#appendix-c-文档治理" data-section="appendix-c-文档治理">Appendix C · 文档治理</a>
+    </nav>
+    <article><h2 id="如何阅读这份文档"><a class="heading-anchor" href="#如何阅读这份文档" aria-label="Link to section">如何阅读这份文档</a></h2>
+<p>文中使用四种标签，避免把愿景误写成事实：</p>
+<ul>
+<li><span class="status status-现状">现状</span>：已由当前仓库代码或权威文档验证。</li>
+<li><span class="status status-决策">决策</span>：建议成为后续实现必须遵守的架构约束。</li>
+<li><span class="status status-提案">提案</span>：方向明确，但实现选型或指标仍需验证。</li>
+<li><span class="status status-开放">开放</span>：需要 Yanwu 参与拍板，不能由实现者擅自决定。</li>
+</ul>
+<p>这不是一次性“终局蓝图”。它是后续每个 story、ADR、实现与验收共同使用的决策基线。只有 <code>[决策]</code> 且进入权威文档或 ADR 的内容，才对代码具有约束力。</p>
+<hr>
+<h2 id="1-摘要"><a class="heading-anchor" href="#1-摘要" aria-label="Link to section">1. 摘要</a></h2>
+<p>JournalClaw 不应复刻 Moxt 的团队、云协作和商业平台，而应吸收其真正有效的因果链：</p>
+<blockquote>
+<p><strong>本地文件资产 → 有界上下文 → 窄职责 Agent → 可恢复执行 → 用户确认变更 → 可追溯产物</strong></p>
+</blockquote>
+<p>产品的核心不是聊天，也不是功能导航，而是一条可被验证的个人工作闭环：</p>
+<ol>
+<li>用户选择一个本地 Workspace 与明确的 Context Scope；</li>
+<li>用户描述目标，系统形成可检查的 Work Spec；</li>
+<li>Agent 在受限工具和预算内执行，Run 全程可见、可暂停、可恢复；</li>
+<li>所有文件变更先形成 ChangeSet，由用户审阅后应用；</li>
+<li>结果以 Artifact 落到明确路径，并能追溯 Sources、Run、工具与变更；</li>
+<li>经用户确认的经验沉淀为 Rule / Memory / Playbook，供下一次复用。</li>
+</ol>
+<p><strong>[决策] 架构形态继续采用本地模块化单体：</strong></p>
+<ul>
+<li>Electron 只负责可信桌面宿主能力；</li>
+<li>React Renderer 只负责呈现与交互；</li>
+<li>TypeScript Daemon 承担全部业务用例、领域规则、授权与持久化；</li>
+<li><code>packages/contracts</code> 是跨进程契约唯一来源；</li>
+<li>用户文件是长期资产，<code>.journal/</code> 是系统状态唯一命名空间；</li>
+<li>AI 引擎是可替换的基础设施适配器，不能定义业务对象。</li>
+</ul>
+<p><strong>[决策] 迁移不以“重写完成”为成功，而以可信的纵向闭环逐段替换。</strong> 第一条纵向闭环是：</p>
+<p><code>Workspace → Context Manifest → Run → ChangeSet Review → Artifact → Activity → 冷启动恢复</code></p>
+<hr>
+<h2 id="2-goals-and-non-goals"><a class="heading-anchor" href="#2-goals-and-non-goals" aria-label="Link to section">2. Goals and Non-Goals</a></h2>
+<table>
+<thead>
+<tr>
+<th>Goals</th>
+<th>Non-goals</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>G1. 让一次个人任务从上下文选择到产物落盘全程可见、可审、可恢复</td>
+<td>NG1. 不做多租户、组织、席位、邀请、团队 RBAC</td>
+</tr>
+<tr>
+<td>G2. 五个一等对象在同一 Workspace 内可持久化、冷启动恢复、导出与追溯</td>
+<td>NG2. 不做云端实时协同、公共可编辑分享或评论线程</td>
+</tr>
+<tr>
+<td>G3. 文件写入、外部动作和敏感工具默认最小权限，并有明确 Human Gate</td>
+<td>NG3. 不把 MiniApp 云数据库、部署与登录平台作为核心能力</td>
+</tr>
+<tr>
+<td>G4. 业务边界由代码结构、契约与自动化测试共同强制，不再依赖口头约定</td>
+<td>NG4. 不以多 Agent 数量、角色拟人化或组织模拟作为产品目标</td>
+</tr>
+<tr>
+<td>G5. 每个阶段都能独立交付用户价值、回滚且不破坏现有主路径</td>
+<td>NG5. 不为追求“架构纯度”一次性替换 Electron、React、TS daemon 或 pi</td>
+</tr>
+<tr>
+<td>G6. 本地数据可备份、迁移、重建索引，升级失败不损坏用户文件</td>
+<td>NG6. 不把营销站、模板市场、Credits、国际化纳入本轮架构</td>
+</tr>
+<tr>
+<td>G7. 维护者从一个入口两跳内找到唯一规则，并能发现代码/文档漂移</td>
+<td>NG7. 不在第一阶段接入 Browser Operator 或任意默认外部写自动化</td>
+</tr>
+</tbody></table>
+<h3 id="21-成功指标"><a class="heading-anchor" href="#21-成功指标" aria-label="Link to section">2.1 成功指标</a></h3>
+<p>以下均为 <span class="status status-提案">提案</span>，需在 M0 建立基线后调整：</p>
+<ul>
+<li>主闭环任务的“首次执行成功并得到可用 Artifact”比例 ≥ 90%。</li>
+<li>已批准 ChangeSet 在进程崩溃或应用重启后不丢失，恢复演练通过率 100%。</li>
+<li>任一 Artifact 可在 3 次交互内反查 Source、Run、ChangeSet 与 Activity。</li>
+<li><code>workspace_write</code> 模式下，越界写入的自动化测试阻断率 100%。</li>
+<li>daemon 重启后，Run / Artifact / Source / Memory / ChangeSet 的恢复验收通过率 100%。</li>
+<li>后续连续 10 个 story 的架构门禁一次通过率 ≥ 80%。</li>
+</ul>
+<hr>
+<h2 id="3-background-and-problem-statement"><a class="heading-anchor" href="#3-background-and-problem-statement" aria-label="Link to section">3. Background and Problem Statement</a></h2>
+<h3 id="31-值得保留的现有资产"><a class="heading-anchor" href="#31-值得保留的现有资产" aria-label="Link to section">3.1 值得保留的现有资产</a></h3>
+<p><span class="status status-现状">现状</span> 当前产品北极星仍然正确：本地优先、文件是长期资产、Agent 是执行者、输出是核心结果。以下资产应保留：</p>
+<ul>
+<li>Electron Host / React Renderer / TypeScript Daemon 三层拆分；</li>
+<li>业务能力经 <code>runtimeClient</code>、宿主能力经 <code>hostBridge</code> 的双入口原则；</li>
+<li>desktop 零业务语义、preload 白名单、<code>contextIsolation</code>、<code>nodeIntegration: false</code> 与 sandbox；</li>
+<li><code>.journal/</code> 作为系统命名空间的目标；</li>
+<li>pi 引擎适配、统一 <code>AgentRunEvent</code>、daemon-owned tools；</li>
+<li>ChangeSet、授权模式、可恢复删除等信任概念；</li>
+<li><code>Sources → Run → Artifact / Memory / ChangeSet</code> 的 provenance 方向；</li>
+<li><code>packages/contracts</code> 作为跨端契约唯一来源；</li>
+<li>vitest / Playwright、ESLint 架构护栏、story / verification / docs gates。</li>
+</ul>
+<h3 id="32-当前腐化不是代码太多而是边界失去执行力"><a class="heading-anchor" href="#32-当前腐化不是代码太多而是边界失去执行力" aria-label="Link to section">3.2 当前腐化不是“代码太多”，而是边界失去执行力</a></h3>
+<p><strong>[现状] 仓库审计发现：</strong></p>
+<table>
+<thead>
+<tr>
+<th>严重度</th>
+<th>腐化信号</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>P0</td>
+<td><code>workspace_write</code> 下 bash 没有可靠路径约束，也不会逐操作生成 ChangeSet</td>
+<td>Agent 可越界写入，授权语义失真</td>
+</tr>
+<tr>
+<td>P0</td>
+<td>Run 执行与 ChangeSet 查询/回滚使用不同 service 实例</td>
+<td>UI 可能看不到真实变更，也无法可靠回滚</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>Run 元数据、SourceBinding、Artifact、Memory、ChangeSet 多数仅存在内存 Map</td>
+<td>重启后“一等对象”消失，JSONL 也无法直接恢复</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>daemon 全局单例、workspace 缓存和按请求创建 service 三种生命周期混用</td>
+<td>跨 Workspace 泄漏、错误路径写入和状态不一致</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>AgentRun 绕过统一 runtime client，前端还复制一份 contracts 类型</td>
+<td>双客户端、双契约源，后续修改必然漂移</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>docs/ARCH.md</code> 同时写“CLI 已删除”和“CLI EngineSwitcher 仍存在”</td>
+<td>权威文档无法再作为事实入口</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>状态散落于 <code>.journal/</code>、<code>.setting.json</code>、<code>.conversations/</code>、<code>.Codex/</code>、<code>.work_queue.json</code>、<code>.journal-daemon-data/</code></td>
+<td>备份、迁移、导出和恢复无法形成单一契约</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>server.ts</code> 约 2096 行，<code>httpRuntimeClient.ts</code> 约 1053 行，<code>App.tsx</code> 约 1402 行</td>
+<td>route/UI 入口承载编排语义，模块规则难以强制</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>固定端口 daemon 只有健康检查，无每次启动的实例身份</td>
+<td>Electron 可能误连旧进程，本地其他进程也可调用业务 API</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>产品导航对象与“五个一等对象”形成双重产品本体</td>
+<td>用户心智、领域模型和代码模块无法对齐</td>
+</tr>
+</tbody></table>
+<h3 id="33-问题定义"><a class="heading-anchor" href="#33-问题定义" aria-label="Link to section">3.3 问题定义</a></h3>
+<p>过去的治理主要完成了技术栈迁移和文档整理，但没有把以下三件事同时闭环：</p>
+<ol>
+<li><strong>业务本体闭环</strong>：用户到底围绕哪些对象工作，导航、状态与持久化是否一致；</li>
+<li><strong>信任闭环</strong>：Agent 看了什么、为什么这样做、改了什么、能否恢复；</li>
+<li><strong>治理闭环</strong>：架构规则能否由依赖、契约、测试和迁移机制自动执行。</li>
+</ol>
+<p>如果继续在当前边界上叠加功能，新增能力会同时复制到 route switch、HTTP client switch、前端状态、内存 service 和文档，维护成本呈乘法增长。</p>
+<h3 id="34-架构北极星与三条不变量"><a class="heading-anchor" href="#34-架构北极星与三条不变量" aria-label="Link to section">3.4 架构北极星与三条不变量</a></h3>
+<blockquote>
+<p><strong>北极星：让个人把一个真实目标交给本地 Agent，得到位于正确路径、可审阅、可追溯、可复用的结果。</strong></p>
+</blockquote>
+<p><strong>[决策] 三条不变量：</strong></p>
+<ol>
+<li><strong>资产不变量</strong>：用户内容以普通文件为长期资产；系统索引可以重建，不能成为唯一内容真相。</li>
+<li><strong>执行不变量</strong>：任何副作用都必须由 daemon 在明确 Workspace、Capability、Authorization 与 ChangeSet/Activity 上下文中执行。</li>
+<li><strong>证据不变量</strong>：每个被接受的 Artifact、Memory 和外部动作都必须能反查输入来源、Run、执行版本与用户关口。</li>
+</ol>
+<hr>
+<h2 id="4-proposed-architecture"><a class="heading-anchor" href="#4-proposed-architecture" aria-label="Link to section">4. Proposed Architecture</a></h2>
+<h3 id="41-业务架构一个核心循环而不是一组页面"><a class="heading-anchor" href="#41-业务架构一个核心循环而不是一组页面" aria-label="Link to section">4.1 业务架构：一个核心循环，而不是一组页面</a></h3>
+<pre class="mermaid">flowchart LR
+    A[选择 Workspace] --&gt; B[建立 Context Scope]
+    B --&gt; C[定义 Outcome / Work Spec]
+    C --&gt; D[执行 Run]
+    D --&gt; E{Human Gate}
+    E --&gt;|批准| F[应用 ChangeSet]
+    E --&gt;|退回| D
+    E --&gt;|拒绝| X[取消并保留 Activity]
+    F --&gt; G[接受 Artifact]
+    G --&gt; H[沉淀 Rule / Memory / Playbook]
+    H --&gt; B
+</pre>
+<p>这个循环映射为六个用户阶段：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>用户要回答的问题</th>
+<th>系统责任</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Context</td>
+<td>这次 Agent 可以看什么？</td>
+<td>显式范围、来源、版本、预算</td>
+</tr>
+<tr>
+<td>Intent</td>
+<td>我最终要得到什么？</td>
+<td>Work Spec、完成条件、输出路径</td>
+</tr>
+<tr>
+<td>Execute</td>
+<td>它正在做什么、卡在哪里？</td>
+<td>Run、工具、进度、等待原因</td>
+</tr>
+<tr>
+<td>Review</td>
+<td>它准备改什么？</td>
+<td>ChangeSet、diff、风险、审批</td>
+</tr>
+<tr>
+<td>Result</td>
+<td>最终结果在哪里、是否可用？</td>
+<td>Artifact、验证、版本、引用</td>
+</tr>
+<tr>
+<td>Learn</td>
+<td>下次怎样少解释一次？</td>
+<td>Rule / Memory / Playbook 的确认、修剪与复用</td>
+</tr>
+</tbody></table>
+<h3 id="42-核心业务对象"><a class="heading-anchor" href="#42-核心业务对象" aria-label="Link to section">4.2 核心业务对象</a></h3>
+<p><strong>[决策] 保留当前五个一等对象，但补齐三个“信任原语”和两个“复用对象”。</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>对象</th>
+<th>核心职责</th>
+<th>Source of truth</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>核心</td>
+<td>Workspace</td>
+<td>一个本地工作边界，包含目标、根路径与系统状态</td>
+<td>Workspace 根 + <code>.journal/workspace.json</code></td>
+</tr>
+<tr>
+<td>核心</td>
+<td>Source / Context Manifest</td>
+<td>某次 Run 实际可见和实际使用的文件、版本与片段</td>
+<td>Run 冻结的 manifest</td>
+</tr>
+<tr>
+<td>核心</td>
+<td>Run</td>
+<td>一次可恢复、可取消、有预算的执行</td>
+<td>durable Run repository + event log</td>
+</tr>
+<tr>
+<td>核心</td>
+<td>Artifact</td>
+<td>用户可消费、可接受、可替换的最终结果</td>
+<td>用户文件 + artifact metadata</td>
+</tr>
+<tr>
+<td>核心</td>
+<td>Rule / Memory</td>
+<td>经审阅、带证据、可过期的长期上下文</td>
+<td><code>.journal/memory/</code> + metadata</td>
+</tr>
+<tr>
+<td>信任</td>
+<td>ChangeSet</td>
+<td>一组待审或已应用的文件变更与恢复材料</td>
+<td>durable ChangeSet repository</td>
+</tr>
+<tr>
+<td>信任</td>
+<td>Activity</td>
+<td>用户、Agent、工具与系统发生过的状态变化</td>
+<td>append-only activity/event log</td>
+</tr>
+<tr>
+<td>信任</td>
+<td>Capability Grant</td>
+<td>主体在范围、时间与动作上的最小权限</td>
+<td>policy + per-run snapshot</td>
+</tr>
+<tr>
+<td>复用</td>
+<td>Agent Profile</td>
+<td>一个窄职责 Agent 的 Goal、Rules、Skills、Memory policy、Tools</td>
+<td>versioned profile</td>
+</tr>
+<tr>
+<td>复用</td>
+<td>Playbook</td>
+<td>可重复运行的步骤、输入、完成条件、审批点和失败策略</td>
+<td>versioned playbook</td>
+</tr>
+</tbody></table>
+<p><strong>[决策] Journal、Todo、Identity、Skill、Automation 不再与核心对象平行竞争：</strong></p>
+<ul>
+<li>Journal 是用户文件/Memory 的时间视图；</li>
+<li>Todo 是 Work Spec / Playbook Step 的轻量视图；</li>
+<li>Identity 是个人 Agent Profile 与偏好的管理视图；</li>
+<li>Skill 是 Agent Profile 可引用的能力包；</li>
+<li>Automation 是 Playbook 的触发方式；</li>
+<li>Conversation 是 Intent 与 Run 的交互界面，不是长期结果的默认容器。</li>
+</ul>
+<h3 id="43-能力分层"><a class="heading-anchor" href="#43-能力分层" aria-label="Link to section">4.3 能力分层</a></h3>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>能力</th>
+<th>进入条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>L0 可信地基</td>
+<td>Workspace、Files、Version、Context Manifest、Run、ChangeSet、Artifact、Activity、Recovery</td>
+<td>没有它就不开放自动化</td>
+</tr>
+<tr>
+<td>L1 个人 Agent</td>
+<td>Agent Profile、Rules、Memory Review、Skills、模型与预算策略</td>
+<td>L0 可追溯、可恢复</td>
+</tr>
+<tr>
+<td>L2 可复用工作</td>
+<td>Work Spec、Playbook、Human Gate、Checkpoint、按需运行</td>
+<td>单次主闭环稳定</td>
+</tr>
+<tr>
+<td>L3 持续运行</td>
+<td>Local Schedule、on-wake catch-up、有限 Integration、通知</td>
+<td>幂等、重试、暂停与审计完成</td>
+</tr>
+<tr>
+<td>延后</td>
+<td>多 Agent 编排、Browser Operator、MiniApp、广泛连接器</td>
+<td>只有真实个人场景连续验证后才立项</td>
+</tr>
+</tbody></table>
+<h3 id="44-技术架构本地模块化单体"><a class="heading-anchor" href="#44-技术架构本地模块化单体" aria-label="Link to section">4.4 技术架构：本地模块化单体</a></h3>
+<pre class="mermaid">flowchart TB
+    subgraph Desktop[Electron Host · 可信宿主]
+      WIN[Window / Menu / Dialog / Reveal]
+      LIFE[Daemon lifecycle / instance token]
+      BRIDGE[Versioned preload bridge]
+    end
+
+    subgraph Renderer[React Renderer · 非特权呈现]
+      UI[Views / Panels]
+      APP[UI application state]
+      CLIENT[Typed runtime client]
+    end
+
+    subgraph Daemon[TypeScript Daemon · 唯一业务入口]
+      API[HTTP/SSE adapters]
+      UC[Application use cases]
+      DOMAIN[Domain modules]
+      POLICY[Authorization / Capability / Human Gate]
+      RUNTIME[Agent runtime / Tools / Context assembly]
+      REPO[Repositories / Migration / Recovery]
+    end
+
+    subgraph LocalData[Local data]
+      FILES[User files]
+      SYS[.journal system state]
+      CFG[App config + secret refs]
+    end
+
+    UI --&gt; APP --&gt; CLIENT --&gt; API
+    BRIDGE --&gt; CLIENT
+    WIN &lt;--&gt; BRIDGE
+    LIFE --&gt; API
+    API --&gt; UC
+    UC --&gt; DOMAIN
+    UC --&gt; POLICY
+    UC --&gt; RUNTIME
+    DOMAIN --&gt; REPO
+    POLICY --&gt; REPO
+    RUNTIME --&gt; REPO
+    REPO --&gt; FILES
+    REPO --&gt; SYS
+    RUNTIME --&gt; CFG
+</pre>
+<h3 id="45-依赖方向"><a class="heading-anchor" href="#45-依赖方向" aria-label="Link to section">4.5 依赖方向</a></h3>
+<p><strong>[决策] 依赖只能从外向内：</strong></p>
+<p><code>UI / API adapters → application use cases → domain → ports</code></p>
+<p><code>infrastructure adapters → domain ports</code></p>
+<p>领域层不得 import Electron、Express、React、pi、文件系统具体实现或某个模型 SDK。</p>
+<p><strong>[决策] 三个 composition root：</strong></p>
+<ol>
+<li><code>apps/desktop</code>：构造窗口、preload bridge 与 daemon 进程；</li>
+<li><code>apps/web</code>：构造 typed runtime client 和 UI；</li>
+<li><code>apps/daemon</code>：按 Workspace 构造唯一 <code>WorkspaceRuntime</code>，内部拥有同生命周期的 repositories、services、policy 和 run coordinator。</li>
+</ol>
+<p>任何业务服务不得用 <code>process.cwd()</code> 猜 Workspace；任何 Workspace 数据不得放在 daemon 全局单例。</p>
+<h3 id="46-daemon-目标模块"><a class="heading-anchor" href="#46-daemon-目标模块" aria-label="Link to section">4.6 Daemon 目标模块</a></h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Responsibility</th>
+<th>Primary storage</th>
+<th>Failure behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Workspace Runtime Registry</td>
+<td>打开、切换、关闭 Workspace；保证 service/repository 同生命周期</td>
+<td>app config + workspace manifest</td>
+<td>打开失败则拒绝业务命令，不回退到 cwd</td>
+</tr>
+<tr>
+<td>Context Service</td>
+<td>生成并冻结 Context Manifest，记录来源版本与预算</td>
+<td><code>.journal/runs/&lt;id&gt;/context.json</code></td>
+<td>缺失或越界来源时 fail closed</td>
+</tr>
+<tr>
+<td>Run Coordinator</td>
+<td>创建、恢复、取消 Run；驱动状态机与事件</td>
+<td>run repository + JSONL events</td>
+<td>可重放；未知状态进入 recovery_required</td>
+</tr>
+<tr>
+<td>Policy &amp; Capability Service</td>
+<td>授权路径、工具、网络、预算和 Human Gate</td>
+<td>policy snapshot + activity</td>
+<td>无法判定时拒绝，不静默放行</td>
+</tr>
+<tr>
+<td>Change Service</td>
+<td>先记录 intent，再执行文件变更，支持回滚与对账</td>
+<td>changes repository + recovery stash</td>
+<td>部分失败进入 needs_recovery，禁止假成功</td>
+</tr>
+<tr>
+<td>Artifact Service</td>
+<td>接受、索引、验证、替换 Artifact</td>
+<td>用户文件 + artifact metadata</td>
+<td>元数据可从文件/Run 重建</td>
+</tr>
+<tr>
+<td>Memory Service</td>
+<td>提议、审阅、过期、修剪、引用长期记忆</td>
+<td><code>.journal/memory/</code> + metadata</td>
+<td>未审阅记忆不进入 durable context</td>
+</tr>
+<tr>
+<td>Playbook Service</td>
+<td>管理版本化 Work Spec、Steps、Gates、失败策略</td>
+<td><code>.journal/playbooks/</code></td>
+<td>旧 Run 固定使用启动时版本</td>
+</tr>
+<tr>
+<td>Activity Service</td>
+<td>记录 actor、动作、原因、版本、结果和错误</td>
+<td>append-only event log</td>
+<td>写入失败则阻止关键副作用</td>
+</tr>
+<tr>
+<td>Integration Adapters</td>
+<td>模型、受限网络或未来外部系统连接</td>
+<td>secret refs + adapter config</td>
+<td>超时/重试受预算约束，默认不执行外部写</td>
+</tr>
+</tbody></table>
+<h3 id="47-数据架构"><a class="heading-anchor" href="#47-数据架构" aria-label="Link to section">4.7 数据架构</a></h3>
+<p><strong>[决策] 数据按“可读资产、系统账本、可重建索引、设备配置”分层：</strong></p>
+<pre><code class="language-text">&lt;workspace&gt;/
+├── &lt;用户目录与文件&gt;                 # canonical user content
+└── .journal/
+    ├── workspace.json               # 版本化 workspace manifest
+    ├── runs/&lt;run-id&gt;/
+    │   ├── manifest.json             # Run 固定输入、版本、预算、profile/playbook 版本
+    │   ├── context.json              # 实际上下文清单与 digest
+    │   └── events.jsonl              # append-only 执行证据
+    ├── changes/&lt;changeset-id&gt;/       # intent、diff、备份与恢复状态
+    ├── memory/                       # 经审阅的长期记忆与规则
+    ├── profiles/                     # Agent Profile
+    ├── playbooks/                    # 可复用工作定义
+    ├── activity/                     # append-only activity segments
+    ├── index/                        # 可删除、可重建的派生索引
+    ├── trash/                        # 可恢复删除
+    └── schema.json                   # disk schema version / migration history
+</code></pre>
+<p><strong>[提案] 事务性元数据可引入单文件 SQLite System Store，但不立即替换现有 JSONL。</strong></p>
+<ul>
+<li>用户文件仍是长期资产；</li>
+<li>Run events / Activity 仍保留可导出、可重放的 append-only 表达；</li>
+<li>SQLite 只承担对象索引、状态、幂等键、引用关系和迁移账本；</li>
+<li>实现前先验证 Electron 打包、跨平台原生依赖、备份与损坏恢复；</li>
+<li>若供应链或打包风险不可接受，先用版本化 JSON repositories 实现同一 port。</li>
+</ul>
+<p>SQLite 官方文档说明事务可提供原子提交，即使操作系统崩溃或断电也能保持“全部发生或全部不发生”的语义；这适合本地系统元数据，但不能让跨数据库与普通文件的写入天然成为一个事务，因此仍需要 intent log 与 reconciliation。<br>参考：<a href="https://www.sqlite.org/atomiccommit.html">SQLite Atomic Commit</a>。</p>
+<h3 id="48-context-architecture"><a class="heading-anchor" href="#48-context-architecture" aria-label="Link to section">4.8 Context Architecture</a></h3>
+<p><strong>[决策] Context 不是“搜索结果堆叠”，而是一份可审计的 Manifest。</strong></p>
+<p>每次 Run 按固定顺序装配：</p>
+<ol>
+<li>系统安全不变量与工具能力；</li>
+<li>Workspace 目标和范围；</li>
+<li>Agent Profile 的 Goal / Rules / Skill refs；</li>
+<li>当前 Work Spec / Playbook version；</li>
+<li>用户显式选择的文件与片段；</li>
+<li>检索补充的候选来源；</li>
+<li>经审阅且未过期的 Memory；</li>
+<li>当前消息与附件。</li>
+</ol>
+<p>Context Manifest 至少记录：路径、内容 digest、选入原因、来源类型、版本/mtime、字符或 token 预算、是否显式选择。Run 启动后冻结 Manifest；中途文件变化以新事件显式记录，不静默替换输入。</p>
+<hr>
+<h2 id="5-request-lifecycle"><a class="heading-anchor" href="#5-request-lifecycle" aria-label="Link to section">5. Request Lifecycle</a></h2>
+<h3 id="51-交互任务主生命周期"><a class="heading-anchor" href="#51-交互任务主生命周期" aria-label="Link to section">5.1 交互任务主生命周期</a></h3>
+<pre class="mermaid">sequenceDiagram
+    actor U as User
+    participant UI as Renderer
+    participant D as Daemon
+    participant P as Policy
+    participant R as Agent Runtime
+    participant S as System Store
+    participant F as Files
+
+    U-&gt;&gt;UI: 选择 Scope + 描述 Outcome
+    UI-&gt;&gt;D: POST /v1/runs (requestId, expectedWorkspaceVersion)
+    D-&gt;&gt;P: 验证 capability / path / budget
+    D-&gt;&gt;S: 写入 Run manifest + queued event
+    D-&gt;&gt;R: 以冻结 Context Manifest 执行
+    R-&gt;&gt;D: 标准化 tool / text / proposal events
+    D-&gt;&gt;S: 先持久化事件，再通过 SSE 推送
+    R-&gt;&gt;D: 提交 Proposed ChangeSet
+    D-&gt;&gt;S: 保存 intent、diff、risk
+    D--&gt;&gt;UI: waiting_for_human
+    U-&gt;&gt;UI: 批准 / 退回 / 拒绝
+    UI-&gt;&gt;D: POST /v1/changesets/:id/decision
+    D-&gt;&gt;P: 再次检查版本与权限
+    D-&gt;&gt;S: 标记 applying
+    D-&gt;&gt;F: 应用变更
+    D-&gt;&gt;S: 写 applied + Artifact + Activity
+    D--&gt;&gt;UI: completed
+</pre>
+<h3 id="52-run-状态机"><a class="heading-anchor" href="#52-run-状态机" aria-label="Link to section">5.2 Run 状态机</a></h3>
+<p><span class="status status-提案">提案</span></p>
+<pre><code class="language-text">queued
+  → preparing
+  → running
+  → waiting_for_human
+  → applying
+  → completed
+
+任一非终态 → failed | cancelled
+异常恢复态 → recovery_required → running | failed | cancelled
+</code></pre>
+<p>规则：</p>
+<ul>
+<li>状态迁移只能由 Run Coordinator 执行；</li>
+<li>每次迁移先写 durable event，再通知 UI；</li>
+<li><code>waiting_for_human</code> 必须携带明确 decision schema；</li>
+<li>终态不可反向修改；重试创建新 attempt，并保留 parent run；</li>
+<li>取消只保证停止未来动作，已完成的副作用通过补偿或 ChangeSet revert 处理。</li>
+</ul>
+<h3 id="53-changeset-状态机"><a class="heading-anchor" href="#53-changeset-状态机" aria-label="Link to section">5.3 ChangeSet 状态机</a></h3>
+<pre><code class="language-text">proposed → approved → applying → applied → reverted
+        ↘ rejected
+approved/applying → failed → needs_recovery → applied | reverted
+</code></pre>
+<p>文件 mutation 顺序：</p>
+<ol>
+<li>解析并规范化目标路径；</li>
+<li>在 daemon 依据真实路径检查 Workspace 边界；</li>
+<li>计算 expected version / digest；</li>
+<li>写入 intent、before snapshot 与 Activity；</li>
+<li>获得 Human Gate（若策略要求）；</li>
+<li>使用临时文件或恢复材料执行；</li>
+<li>校验结果 digest；</li>
+<li>写入 applied event 与 Artifact reference；</li>
+<li>崩溃后由 reconciliation 扫描非终态 ChangeSet。</li>
+</ol>
+<p><strong>[决策] bash 不能继承模糊的 <code>workspace_write</code>。</strong> 第一阶段应默认禁用任意 shell 写入；后续若保留 shell，只能通过受控工作目录、命令能力清单、OS sandbox 或等价强约束执行。无法解析的复合命令不得因“看起来在 workspace 内”而放行。</p>
+<h3 id="54-automation-生命周期"><a class="heading-anchor" href="#54-automation-生命周期" aria-label="Link to section">5.4 Automation 生命周期</a></h3>
+<p>Automation 只是 Playbook 的触发器：</p>
+<p><code>scheduled / event / on-wake → dedupe → Run → Human Gate → result</code></p>
+<p>必须具备：幂等键、错过执行策略、最大重试、退避、超时、暂停、下一次运行时间、失败队列和人工接管。L0-L2 未稳定前，不开放默认外部写 Automation。</p>
+<hr>
+<h2 id="6-api-and-data-contracts"><a class="heading-anchor" href="#6-api-and-data-contracts" aria-label="Link to section">6. API and Data Contracts</a></h2>
+<h3 id="61-api-边界"><a class="heading-anchor" href="#61-api-边界" aria-label="Link to section">6.1 API 边界</a></h3>
+<p><span class="status status-决策">决策</span></p>
+<ul>
+<li>Renderer 业务请求只经 <code>JournalRuntimeClient</code>；</li>
+<li>Host 能力只经版本化 <code>hostBridge</code>；</li>
+<li>AgentRun 不再维护独立 <code>fetch/EventSource</code> 客户端；</li>
+<li>API 以 <code>/v1</code> 明确版本；</li>
+<li>HTTP 负责 command/query，SSE 只负责可恢复事件流；</li>
+<li>所有 payload、error、event 在 <code>packages/contracts</code> 定义并运行时校验；</li>
+<li>TypeScript 类型不能替代不可信边界的运行时验证。</li>
+</ul>
+<p>建议的最小 API：</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/v1/workspaces/open</code></td>
+<td>打开并验证 Workspace，返回 instance/workspace version</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/v1/workspaces/current</code></td>
+<td>获取当前 Workspace 与健康状态</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/v1/runs</code></td>
+<td>创建 Run，要求 requestId、scope、outcome、authorization</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/v1/runs/:id</code></td>
+<td>获取可恢复状态与当前 version</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/v1/runs/:id/events?after=</code></td>
+<td>SSE cursor resume</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/v1/runs/:id/cancel</code></td>
+<td>幂等取消</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/v1/runs/:id/changesets</code></td>
+<td>查询与该 Run 同 repository 的变更</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/v1/changesets/:id/decision</code></td>
+<td>approve / reject / request_changes</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/v1/changesets/:id/revert</code></td>
+<td>受策略保护的回滚</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/v1/artifacts/:id</code></td>
+<td>Artifact 与 provenance</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/v1/memory/:id/review</code></td>
+<td>accept / edit / reject / expire</td>
+</tr>
+</tbody></table>
+<h3 id="62-command-envelope"><a class="heading-anchor" href="#62-command-envelope" aria-label="Link to section">6.2 Command Envelope</a></h3>
+<pre><code class="language-json">{
+  &quot;requestId&quot;: &quot;stable-id&quot;,
+  &quot;workspaceId&quot;: &quot;stable-id&quot;,
+  &quot;expectedWorkspaceVersion&quot;: 12,
+  &quot;actor&quot;: { &quot;type&quot;: &quot;user&quot;, &quot;id&quot;: &quot;local-owner&quot; },
+  &quot;payload&quot;: {},
+  &quot;client&quot;: { &quot;contractVersion&quot;: &quot;1&quot;, &quot;appVersion&quot;: &quot;0.x&quot; }
+}
+</code></pre>
+<h3 id="63-event-envelope"><a class="heading-anchor" href="#63-event-envelope" aria-label="Link to section">6.3 Event Envelope</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eventId</td>
+<td>string</td>
+<td>Yes</td>
+<td>Workspace 内单调可排序的事件标识</td>
+</tr>
+<tr>
+<td>runId</td>
+<td>string</td>
+<td>Conditional</td>
+<td>Run 相关事件必填</td>
+</tr>
+<tr>
+<td>sequence</td>
+<td>integer</td>
+<td>Yes</td>
+<td>同一 stream 内严格递增</td>
+</tr>
+<tr>
+<td>occurredAt</td>
+<td>ISO timestamp</td>
+<td>Yes</td>
+<td>事件发生时间</td>
+</tr>
+<tr>
+<td>actor</td>
+<td>User / Agent / Tool / System</td>
+<td>Yes</td>
+<td>发起主体</td>
+</tr>
+<tr>
+<td>type</td>
+<td>versioned string</td>
+<td>Yes</td>
+<td>事件类型，不复用旧类型改变语义</td>
+</tr>
+<tr>
+<td>schemaVersion</td>
+<td>integer</td>
+<td>Yes</td>
+<td>payload schema 版本</td>
+</tr>
+<tr>
+<td>causationId</td>
+<td>string</td>
+<td>No</td>
+<td>直接原因</td>
+</tr>
+<tr>
+<td>correlationId</td>
+<td>string</td>
+<td>Yes</td>
+<td>一次用户目标的相关链</td>
+</tr>
+<tr>
+<td>payload</td>
+<td>object</td>
+<td>Yes</td>
+<td>经运行时校验的事件数据</td>
+</tr>
+<tr>
+<td>redaction</td>
+<td>object</td>
+<td>No</td>
+<td>敏感字段已裁剪说明</td>
+</tr>
+</tbody></table>
+<p>JSON Schema Draft 2020-12 提供版本化结构和验证语义，可作为跨进程与落盘 payload 的契约格式；TypeScript 类型从 schema 生成或与 schema 做一致性检查，避免再次形成双真相。<br>参考：<a href="https://json-schema.org/draft/2020-12">JSON Schema Draft 2020-12</a>。</p>
+<h3 id="64-contract-guarantees"><a class="heading-anchor" href="#64-contract-guarantees" aria-label="Link to section">6.4 Contract guarantees</a></h3>
+<ul>
+<li>关键副作用前，authorization snapshot、intent 和相关 event 必须已经持久化；</li>
+<li>command 以 <code>requestId</code> 幂等，重复请求返回同一结果或明确冲突；</li>
+<li>更新以 <code>expectedVersion</code> 防止静默覆盖；</li>
+<li>Run 固定记录 app、contract、profile、playbook、model、tool 与 context 版本；</li>
+<li>event log 是审计与恢复证据，派生 UI 状态不是 source of truth；</li>
+<li>Artifact 内容的长期真相是用户文件，metadata/index 可以重建；</li>
+<li>未知 schema version 必须 fail closed 或进入兼容读取，不得误解释。</li>
+</ul>
+<p>TypeScript 官方 Project References 可把大型 TS 程序拆成更小的逻辑项目并强化模块分组；是否采用项目引用应在模块边界稳定后验证构建与编辑器成本，而不是先制造更多配置。<br>参考：<a href="https://www.typescriptlang.org/docs/handbook/project-references">TypeScript Project References</a>。</p>
+<hr>
+<h2 id="7-consistency-idempotency-and-replay"><a class="heading-anchor" href="#7-consistency-idempotency-and-replay" aria-label="Link to section">7. Consistency, Idempotency, and Replay</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Expected behavior</th>
+<th>Reasoning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>重复创建 Run</td>
+<td>同一 requestId 返回同一 Run</td>
+<td>防止 UI 重试制造重复成本和副作用</td>
+</tr>
+<tr>
+<td>daemon 在应用文件前崩溃</td>
+<td>ChangeSet 保持 approved/applying，重启后对账</td>
+<td>intent 已写，不能假装完成</td>
+</tr>
+<tr>
+<td>daemon 在文件已写、状态未写时崩溃</td>
+<td>用 digest/snapshot 判断 applied 或回滚，进入 recovery_required</td>
+<td>文件与系统账本无法天然同事务</td>
+</tr>
+<tr>
+<td>SSE 断线重连</td>
+<td>客户端携带 last eventId，从下一事件恢复</td>
+<td>UI 不依赖内存流</td>
+</tr>
+<tr>
+<td>Workspace 文件在 Run 中途变化</td>
+<td>原 Run 继续使用冻结版本或进入显式冲突</td>
+<td>防止行为在中途静默变化</td>
+</tr>
+<tr>
+<td>Playbook / Profile 被修改</td>
+<td>已启动 Run 使用 manifest 中固定版本</td>
+<td>可重放、可解释</td>
+</tr>
+<tr>
+<td>外部动作超时</td>
+<td>先查询幂等结果，再决定重试；不能盲重放</td>
+<td>超时不代表未执行</td>
+</tr>
+<tr>
+<td>索引损坏</td>
+<td>从用户文件、manifest、events 重建</td>
+<td>派生索引不是长期真相</td>
+</tr>
+</tbody></table>
+<p><strong>[决策] 不宣称跨普通文件与 System Store 的强原子事务。</strong> 使用 intent log、digest、幂等键与 reconciliation 提供可恢复的一致性。</p>
+<hr>
+<h2 id="8-security-and-privacy-considerations"><a class="heading-anchor" href="#8-security-and-privacy-considerations" aria-label="Link to section">8. Security and Privacy Considerations</a></h2>
+<h3 id="81-electron-边界"><a class="heading-anchor" href="#81-electron-边界" aria-label="Link to section">8.1 Electron 边界</a></h3>
+<p><span class="status status-决策">决策</span></p>
+<ul>
+<li>Renderer 保持 <code>nodeIntegration: false</code>、<code>contextIsolation: true</code>、sandbox；</li>
+<li>preload 只暴露逐项、可验证、版本化的方法，不暴露 raw IPC；</li>
+<li>校验所有 IPC sender，限制导航、新窗口与外部链接；</li>
+<li>采用严格 CSP，远程内容不进入拥有宿主能力的 Renderer；</li>
+<li>Markdown / HTML 预览视为不可信内容，保持 sanitization 与隔离；</li>
+<li>Electron 保持在受支持的稳定版本升级路径上。</li>
+</ul>
+<p>Electron 官方明确建议启用 context isolation、进程 sandbox、限制导航和新窗口、验证 IPC sender，并避免向不可信内容暴露 Electron API。<br>参考：<a href="https://www.electronjs.org/docs/latest/tutorial/security">Electron Security Checklist</a>、<a href="https://www.electronjs.org/docs/latest/tutorial/context-isolation">Context Isolation</a>。</p>
+<h3 id="82-daemon-实例身份"><a class="heading-anchor" href="#82-daemon-实例身份" aria-label="Link to section">8.2 Daemon 实例身份</a></h3>
+<p><span class="status status-提案">提案</span></p>
+<ul>
+<li>desktop 每次启动 daemon 时生成短期 instance token；</li>
+<li>daemon 只监听 loopback，但不能把 loopback/CORS 当身份验证；</li>
+<li><code>/health</code> 返回 instanceId、contractVersion 和 workspace-neutral 状态；</li>
+<li>renderer 的 typed client 从受控启动握手获得 base URL 与 token；</li>
+<li>Electron 只有在 instanceId 匹配时才认为 daemon 已就绪；</li>
+<li>固定端口可保留开发体验，生产优先使用动态端口或端口占用时安全失败。</li>
+</ul>
+<h3 id="83-路径工具与网络"><a class="heading-anchor" href="#83-路径工具与网络" aria-label="Link to section">8.3 路径、工具与网络</a></h3>
+<ul>
+<li>canonicalize 后再做 Workspace 边界判断，拒绝 symlink escape 与 <code>..</code>；</li>
+<li>权限以 capability 表达：read paths、write paths、network origins、tool actions、budget、expiry；</li>
+<li><code>read_only</code> / <code>workspace_write</code> / <code>full_access</code> 只是用户预设，执行时必须展开为具体 capability；</li>
+<li>删除、越界写、外发、支付、凭证、权限变化必须进入 Human Gate；</li>
+<li>凭证只以 secret reference 进入 Run，绝不写进 prompt、event 或普通日志；</li>
+<li>外部内容带 trust label，不能因为位于 Workspace 就自动成为指令。</li>
+</ul>
+<h3 id="84-隐私"><a class="heading-anchor" href="#84-隐私" aria-label="Link to section">8.4 隐私</a></h3>
+<ul>
+<li>默认不发送与任务无关的文件；</li>
+<li>Context Manifest 让用户看到即将发给模型的来源范围；</li>
+<li>日志默认裁剪文件正文、prompt、secret 和工具返回中的敏感数据；</li>
+<li>本地模型与远程模型使用同一 provenance/authorization 语义；</li>
+<li>提供按 Run 查看“发送给哪个模型、哪些来源、多少用量”的能力；</li>
+<li>删除语义覆盖 user file、system metadata、cache、recovery stash 与导出副本说明。</li>
+</ul>
+<hr>
+<h2 id="9-operational-readiness"><a class="heading-anchor" href="#9-operational-readiness" aria-label="Link to section">9. Operational Readiness</a></h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>SLO / Alert（提案）</th>
+<th>Owner</th>
+<th>Launch gate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Desktop 启动成功率</td>
+<td>≥ 99.5%；错误必须区分 Electron、daemon、workspace migration</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>Daemon ready time</td>
+<td>参考设备 p95 ≤ 3s，且 instanceId 正确</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>业务 API latency</td>
+<td>排除 AI/大文件任务后 p95 ≤ 200ms</td>
+<td>Maintainer</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Run event durability</td>
+<td>已推送事件 100% 可在重启后读取</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>ChangeSet recovery</td>
+<td>故障注入后 100% 进入 applied / reverted / recovery_required 明确状态</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>越界写阻断</td>
+<td>安全测试 100% 阻断</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>索引重建</td>
+<td>可从 canonical files + events 重建，且引用完整性检查通过</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>文档漂移</td>
+<td>CI 检测不存在模块、重复契约与历史能力回潮</td>
+<td>Maintainer</td>
+<td>Required</td>
+</tr>
+</tbody></table>
+<h3 id="91-日志与诊断"><a class="heading-anchor" href="#91-日志与诊断" aria-label="Link to section">9.1 日志与诊断</a></h3>
+<ul>
+<li>结构化日志至少含 instanceId、workspaceId、correlationId、runId、component、severity；</li>
+<li>默认滚动与容量上限，不能无限增长；</li>
+<li>用户可一键导出脱敏诊断包；</li>
+<li>UI 错误提供稳定 error code、用户动作与可恢复建议；</li>
+<li>开发日志和用户 Activity 分离，不能互相代替。</li>
+</ul>
+<h3 id="92-migration"><a class="heading-anchor" href="#92-migration" aria-label="Link to section">9.2 Migration</a></h3>
+<p>所有磁盘迁移必须：</p>
+<ol>
+<li>检查 schema version；</li>
+<li>创建可验证备份；</li>
+<li>幂等执行；</li>
+<li>保留未知字段；</li>
+<li>验证对象数量、digest 与引用完整性；</li>
+<li>失败时回滚或停在明确 recovery 状态；</li>
+<li>记录 migration Activity；</li>
+<li>在至少一个版本周期内双读旧格式、只写新格式，随后显式删除兼容层。</li>
+</ol>
+<p>兼容层必须有 owner、移除条件和最晚删除 milestone；“先留着”不是长期状态。</p>
+<h3 id="93-backup-and-recovery"><a class="heading-anchor" href="#93-backup-and-recovery" aria-label="Link to section">9.3 Backup and Recovery</a></h3>
+<ul>
+<li>用户文件继续兼容 Git、Time Machine 或普通目录备份；</li>
+<li><code>.journal/</code> 必须被纳入 Workspace 导出；</li>
+<li>app config 与 secret 不混入 Workspace 导出；</li>
+<li>提供 <code>verify workspace</code>：schema、event sequence、dangling refs、orphan changes、index rebuild；</li>
+<li>发布前进行 kill -9、断电等价故障注入、磁盘写失败、端口冲突与旧版本升级测试。</li>
+</ul>
+<hr>
+<h2 id="10-alternatives-considered"><a class="heading-anchor" href="#10-alternatives-considered" aria-label="Link to section">10. Alternatives Considered</a></h2>
+<table>
+<thead>
+<tr>
+<th>Alternative</th>
+<th>Why it was considered</th>
+<th>Why it was not selected</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>大爆炸重写</td>
+<td>可一次得到“干净目录”</td>
+<td>无法证明业务行为等价，迁移和回滚风险过大，也会暂停真实用户价值</td>
+</tr>
+<tr>
+<td>继续按页面/功能修补</td>
+<td>单次改动看起来快</td>
+<td>双客户端、内存对象和超大入口会持续放大每项功能的维护成本</td>
+</tr>
+<tr>
+<td>完整复刻 Moxt</td>
+<td>能得到宏大的能力地图</td>
+<td>团队、多租户、MiniApp、云分享与 Credits 不服务本地单用户核心任务</td>
+</tr>
+<tr>
+<td>纯文件、拒绝任何系统数据库</td>
+<td>可读、可移植、供应链简单</td>
+<td>幂等、引用、状态机和跨对象查询会重复自研事务语义；仍保留为适配器备选</td>
+</tr>
+<tr>
+<td>全部状态放 SQLite</td>
+<td>事务与查询简单</td>
+<td>会把用户资产锁进内部数据库，损害本地优先与可恢复性</td>
+</tr>
+<tr>
+<td>微服务 / 多 daemon</td>
+<td>隔离看起来更强</td>
+<td>单用户本地产品不需要分布式复杂度；先用模块化单体和进程边界</td>
+</tr>
+<tr>
+<td>让 Agent 直接写文件</td>
+<td>交互快</td>
+<td>无 Human Gate、版本冲突、恢复与审计，无法形成可信工作系统</td>
+</tr>
+<tr>
+<td>先做多 Agent / Board</td>
+<td>视觉上接近 AI 团队</td>
+<td>在单 Run、Context、ChangeSet 未稳定前只会增加管理熵</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="11-open-questions"><a class="heading-anchor" href="#11-open-questions" aria-label="Link to section">11. Open Questions</a></h2>
+<p>以下问题按决策顺序排列，不要求一次答完。</p>
+<h3 id="q1-产品首页的唯一主对象是什么"><a class="heading-anchor" href="#q1-产品首页的唯一主对象是什么" aria-label="Link to section">Q1 · 产品首页的唯一主对象是什么？</a></h3>
+<p><strong>[开放] 推荐：Workspace。</strong> 进入一个 Workspace 后，用户围绕 Context、Run 与 Artifact 工作；Ideas、Automation、Skills、Identity 退为 Workspace 内视图或设置，而不是并列产品。</p>
+<h3 id="q2-用户内容与系统内容的视觉边界有多强"><a class="heading-anchor" href="#q2-用户内容与系统内容的视觉边界有多强" aria-label="Link to section">Q2 · 用户内容与系统内容的视觉边界有多强？</a></h3>
+<p><span class="status status-开放">开放</span> <code>.journal/</code> 默认隐藏，还是以“系统记录”只读入口展示？推荐默认隐藏文件结构，但在产品中提供 Activity、Memory、Recovery 与 Export 的可解释入口。</p>
+<h3 id="q3-第一条高频真实任务是什么"><a class="heading-anchor" href="#q3-第一条高频真实任务是什么" aria-label="Link to section">Q3 · 第一条高频真实任务是什么？</a></h3>
+<p><span class="status status-开放">开放</span> 必须选一个用户每周真实发生的任务作为 M1 纵向闭环，例如：</p>
+<ul>
+<li>阅读资料 → 形成结构化研究报告；</li>
+<li>整理项目文件 → 生成行动计划并更新文档；</li>
+<li>从会议/想法 → 生成可执行任务与产物。</li>
+</ul>
+<p>没有这个锚点，架构会再次退化成抽象能力清单。</p>
+<h3 id="q4-sqlite-是否进入目标实现"><a class="heading-anchor" href="#q4-sqlite-是否进入目标实现" aria-label="Link to section">Q4 · SQLite 是否进入目标实现？</a></h3>
+<p><strong>[开放] 推荐先定义 <code>SystemStore</code> port，再做一周以内的 packaging/recovery spike。</strong> 决策标准：跨平台打包、崩溃恢复、备份、性能、供应链维护成本，不以“数据库更专业”为理由。</p>
+<h3 id="q5-shell-的产品定位是什么"><a class="heading-anchor" href="#q5-shell-的产品定位是什么" aria-label="Link to section">Q5 · Shell 的产品定位是什么？</a></h3>
+<p><strong>[开放] 推荐默认不向内置 Agent 暴露任意 shell。</strong> 优先提供可授权、可审计的结构化 tools；确有代码任务时，以独立高风险 capability 和更强 sandbox 启用。</p>
+<h3 id="q6-远程模型与本地模型的默认策略"><a class="heading-anchor" href="#q6-远程模型与本地模型的默认策略" aria-label="Link to section">Q6 · 远程模型与本地模型的默认策略？</a></h3>
+<p><span class="status status-开放">开放</span> 需要决定隐私默认值、模型选择入口、Context 预览与成本预算；架构上二者共享同一 Run / provenance / capability 契约。</p>
+<h3 id="q7-何时删除历史兼容数据路径"><a class="heading-anchor" href="#q7-何时删除历史兼容数据路径" aria-label="Link to section">Q7 · 何时删除历史兼容数据路径？</a></h3>
+<p><span class="status status-开放">开放</span> 推荐在新 disk schema 完成双读、单写、验证和至少一次真实升级后删除；每条兼容路径单独列 migration story。</p>
+<hr>
+<h2 id="12-decision-and-next-steps"><a class="heading-anchor" href="#12-decision-and-next-steps" aria-label="Link to section">12. Decision and Next Steps</a></h2>
+<h3 id="121-推荐决策"><a class="heading-anchor" href="#121-推荐决策" aria-label="Link to section">12.1 推荐决策</a></h3>
+<p>批准本 v0.1 作为“讨论基线”，但暂不把所有提案写入 <code>docs/ARCH.md</code>。先共同拍板 Q1–Q3，再进入 Requirements Gate，为第一条纵向闭环建立 approved story。</p>
+<h3 id="122-渐进路线"><a class="heading-anchor" href="#122-渐进路线" aria-label="Link to section">12.2 渐进路线</a></h3>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Deliverable</th>
+<th>Exit criteria</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M0 · 事实与护栏</td>
+<td>当前状态地图、关键路径 characterization tests、安全热修 story、架构决策清单</td>
+<td>主路径可重复；P0 风险有独立 approved story；文档只描述现状</td>
+</tr>
+<tr>
+<td>M1 · Trustworthy Run</td>
+<td><code>Workspace → Context Manifest → Run → ChangeSet Review → Artifact → Activity</code> 纵向闭环</td>
+<td>desktop 真实运行；越界写被阻断；重启后对象可恢复；用户接受一个真实 Artifact</td>
+</tr>
+<tr>
+<td>M2 · Workspace Runtime</td>
+<td>唯一 workspace composition root、durable repositories、<code>.journal/</code> schema 与 migration</td>
+<td>无业务 service 使用 cwd；跨 workspace 隔离测试；备份/重建通过</td>
+</tr>
+<tr>
+<td>M3 · Personal Agent</td>
+<td>窄职责 Agent Profile、Rule/Memory review、Context budget/provenance</td>
+<td>Memory 可接受/编辑/拒绝/过期；Run 固定 profile version</td>
+</tr>
+<tr>
+<td>M4 · Reusable Work</td>
+<td>Work Spec / Playbook / Checkpoint / Human Gate</td>
+<td>一次成功任务可保存并再次运行；失败可恢复且不重复副作用</td>
+</tr>
+<tr>
+<td>M5 · Local Automation</td>
+<td>schedule/on-wake、幂等、重试、暂停、通知</td>
+<td>错过执行、崩溃恢复、人工接管验收通过</td>
+</tr>
+<tr>
+<td>M6 · Selective Extensions</td>
+<td>由真实需求倒逼的 Integration、派生视图或多 Agent</td>
+<td>每项扩展有独立业务证据，不破坏 L0 信任闭环</td>
+</tr>
+</tbody></table>
+<h3 id="123-m0-的具体交付顺序"><a class="heading-anchor" href="#123-m0-的具体交付顺序" aria-label="Link to section">12.3 M0 的具体交付顺序</a></h3>
+<ol>
+<li>选择并记录第一条高频任务；</li>
+<li>为该任务录制当前主路径与故障路径 characterization tests；</li>
+<li>单独立项修复 bash 越权与 ChangeSet 实例错配；</li>
+<li>建立 Workspace Runtime composition root 的最小接口；</li>
+<li>把 AgentRun 收回统一 runtime client 和 contracts；</li>
+<li>为 Run / Artifact / Source / Memory / ChangeSet 定义 durable repository port；</li>
+<li>决定 disk schema 与 SystemStore adapter；</li>
+<li>只有被 M1 触达的 route/client/UI 才按垂直切片拆分；</li>
+<li>M1 验收后再更新 <code>docs/ARCH.md</code> 为新事实。</li>
+</ol>
+<h3 id="124-每个后续-story-的强制问题"><a class="heading-anchor" href="#124-每个后续-story-的强制问题" aria-label="Link to section">12.4 每个后续 story 的强制问题</a></h3>
+<ul>
+<li>它服务哪个核心对象和哪个用户阶段？</li>
+<li>Source of truth 是什么？能否冷启动恢复？</li>
+<li>输入 Context、权限、预算和版本在哪里冻结？</li>
+<li>副作用如何授权、记录、回滚或补偿？</li>
+<li>用户如何看到进度、失败、等待与结果？</li>
+<li>Artifact 如何追溯 Source / Run / ChangeSet？</li>
+<li>迁移、兼容层和删除条件是什么？</li>
+<li>哪个自动化测试能让边界违反立即变红？</li>
+</ul>
+<hr>
+<h2 id="appendix-a-moxt-能力的本地化取舍"><a class="heading-anchor" href="#appendix-a-moxt-能力的本地化取舍" aria-label="Link to section">Appendix A · Moxt 能力的本地化取舍</a></h2>
+<table>
+<thead>
+<tr>
+<th>Moxt 机制</th>
+<th>JournalClaw 取舍</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Workspace / Team Space</td>
+<td>收敛为单用户本地 Workspace + Context Scope</td>
+</tr>
+<tr>
+<td>AI Teammates</td>
+<td>少量窄职责 Agent Profile，不模拟组织</td>
+</tr>
+<tr>
+<td>Workflow / Agent Board</td>
+<td>轻量 Playbook + Run Queue，只回答“做什么、卡在哪、等我决定什么”</td>
+</tr>
+<tr>
+<td>Comments / Mentions</td>
+<td>文件批注、纠正和委派，不做多人线程</td>
+</tr>
+<tr>
+<td>Automation</td>
+<td>本机 schedule / on-wake，默认有人类关口</td>
+</tr>
+<tr>
+<td>Integrations</td>
+<td>少量高价值、最小权限、凭证不进模型上下文</td>
+</tr>
+<tr>
+<td>MiniApp</td>
+<td>先做本地文件/结构化数据的派生视图，不建云低代码平台</td>
+</tr>
+<tr>
+<td>Public Share</td>
+<td>导出静态快照或文件包，不做匿名可编辑链接</td>
+</tr>
+<tr>
+<td>Usage / Credits</td>
+<td>本地模型、工具、token 与预算账本，不做充值体系</td>
+</tr>
+<tr>
+<td>Hub / Templates</td>
+<td>延后；先让一次真实任务保存为 Playbook</td>
+</tr>
+</tbody></table>
+<h2 id="appendix-b-当前代码证据索引"><a class="heading-anchor" href="#appendix-b-当前代码证据索引" aria-label="Link to section">Appendix B · 当前代码证据索引</a></h2>
+<ul>
+<li><code>docs/final-state.md</code>：产品北极星、五个一等对象、磁盘契约与已知债；</li>
+<li><code>docs/ARCH.md</code>：当前三层架构与依赖规则，同时存在 CLI 能力自相矛盾；</li>
+<li><code>apps/daemon/src/server.ts</code>：daemon composition、route 与 Run 编排集中点；</li>
+<li><code>apps/daemon/src/engine/service.ts</code>、<code>tools/bash.ts</code>：授权 hook 与 shell 风险；</li>
+<li><code>apps/daemon/src/runs/</code>：Run 内存状态与 JSONL event store；</li>
+<li><code>apps/daemon/src/changeset/</code>：ChangeSet 记录、回滚与实例内 registry；</li>
+<li><code>apps/daemon/src/sources/</code>、<code>artifacts/</code>、<code>sediment/</code>：一等对象的内存实现；</li>
+<li><code>apps/web/src/lib/httpRuntimeClient.ts</code>、<code>agentRuns.ts</code>：双客户端链路；</li>
+<li><code>packages/contracts/src/</code> 与 <code>apps/web/src/types/agentRun.ts</code>：重复契约；</li>
+<li><code>apps/desktop/src/</code>：Electron lifecycle、preload 与 host IPC。</li>
+</ul>
+<h2 id="appendix-c-文档治理"><a class="heading-anchor" href="#appendix-c-文档治理" aria-label="Link to section">Appendix C · 文档治理</a></h2>
+<p>当本设计中的某项提案被批准并实现：</p>
+<ol>
+<li>story 记录用户问题、AC 与不做项；</li>
+<li>design/ADR 记录选择、替代方案与迁移；</li>
+<li>contracts / tests 强制边界；</li>
+<li>验收通过后，<code>docs/ARCH.md</code> 只更新为“当前事实”；</li>
+<li>本文保留为决策过程，不与 <code>docs/ARCH.md</code> 争夺当前真相；</li>
+<li>历史兼容说明到期后归档，不长期堆在主架构文档。</li>
+</ol>
+</article>
+  </main>
+
+  <footer class="doc-footer">JournalClaw System Design v0.1 · Draft for collaborative decisions</footer>
+
+  <script type="module">
+    const links = [...document.querySelectorAll('.toc a')]
+    const sections = links.map((link) => document.getElementById(link.dataset.section)).filter(Boolean)
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        links.forEach((link) => link.classList.toggle('active', link.dataset.section === entry.target.id))
+      }
+    }, { rootMargin: '-20% 0px -70% 0px' })
+    sections.forEach((section) => observer.observe(section))
+  </script>
+  <script type="module">
+    try {
+      const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        securityLevel: 'strict',
+        themeVariables: {
+          primaryColor: '#d9eaf6',
+          primaryTextColor: '#102c46',
+          primaryBorderColor: '#2f658f',
+          lineColor: '#536b82',
+          secondaryColor: '#f3f7fa',
+          tertiaryColor: '#ffffff',
+          fontFamily: 'Inter, PingFang SC, sans-serif'
+        }
+      })
+      await mermaid.run({ querySelector: '.mermaid' })
+    } catch (error) {
+      console.info('Mermaid unavailable; source diagrams remain readable.', error)
+    }
+  </script>
+</body>
+</html>

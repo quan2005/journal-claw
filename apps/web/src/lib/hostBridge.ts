@@ -149,9 +149,17 @@ export async function hostOpenWithSystem(path: string): Promise<void> {
   }
 }
 
-/** Show a native confirm dialog; returns true on confirm. false without a native host. */
+/** Show a native confirm dialog; returns false when no native host exists. */
 export async function hostAsk(message: string, options?: HostAskOptions): Promise<boolean> {
   return (await getElectronHost()?.ask(message, options)) ?? false
+}
+
+/** Confirm an explicit Web-capable operation, falling back to window.confirm in plain Web. */
+export async function hostConfirm(message: string, options?: HostAskOptions): Promise<boolean> {
+  const electron = getElectronHost()
+  if (electron) return electron.ask(message, options)
+  if (typeof window !== 'undefined') return window.confirm(message)
+  return false
 }
 
 /**

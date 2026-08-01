@@ -1,8 +1,43 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import * as path from 'node:path'
 import { renderWithProviders } from './setup'
 import { TopicTree } from '../components/TopicTree'
 import type { TopicEntry } from '../lib/apiTypes'
+
+declare const __dirname: string
+
+const workspaceTreeCss = readFileSync(
+  (path as unknown as { resolve: (...segments: string[]) => string }).resolve(
+    __dirname,
+    '../styles/workspace-tree.css',
+  ),
+  'utf-8',
+)
+
+let workspaceTreeCssInstalled = false
+
+function installWorkspaceTreeCss() {
+  if (workspaceTreeCssInstalled) return
+  const style = document.createElement('style')
+  style.textContent = workspaceTreeCss
+  document.head.appendChild(style)
+  workspaceTreeCssInstalled = true
+}
+
+function getWorkspaceTreeRule(selectorFragment: string): CSSStyleRule {
+  const stylesheet = [...document.head.querySelectorAll('style')].find((style) =>
+    style.textContent?.includes('.workspace-tree'),
+  )?.sheet
+  const rule = [...(stylesheet?.cssRules ?? [])].find(
+    (candidate): candidate is CSSStyleRule =>
+      candidate instanceof CSSStyleRule && candidate.selectorText.includes(selectorFragment),
+  )
+
+  if (!rule) throw new Error(`Missing workspace tree CSS rule: ${selectorFragment}`)
+  return rule
+}
 
 function topic(name: string, isDir = false, extra: Partial<TopicEntry> = {}): TopicEntry {
   return {
@@ -20,22 +55,71 @@ function renderTopicTree(
   dirs: Map<string, { entries: TopicEntry[]; expanded: boolean; loading: boolean }> = new Map(),
   selectedPath: string | null = null,
 ) {
+  installWorkspaceTreeCss()
   return renderWithProviders(
-    <TopicTree
-      entries={entries}
-      dirs={dirs}
-      selectedPath={selectedPath}
-      parentPath=""
-      sortStrategy="name-asc"
-      onToggleDir={vi.fn()}
-      onSelectFile={vi.fn()}
-      onAt={vi.fn()}
-      onMore={vi.fn()}
-    />,
+    <div className="workspace-tree">
+      <TopicTree
+        entries={entries}
+        dirs={dirs}
+        selectedPath={selectedPath}
+        parentPath=""
+        sortStrategy="name-asc"
+        onToggleDir={vi.fn()}
+        onSelectFile={vi.fn()}
+        onAt={vi.fn()}
+        onMore={vi.fn()}
+      />
+    </div>,
   )
 }
 
 describe('TopicTree', () => {
+  it('uses shared rows with aligned recursive depths, guide wrappers, and ordered actions', () => {
+    const rootFolder = topic('root-folder', true, { name: '根目录', path: 'root-folder' })
+    const rootFile = topic('root.md', false, { path: 'root.md' })
+    const levelOneFolder = topic('level-one', true, {
+      name: '一级目录',
+      path: 'root-folder/level-one',
+    })
+    const levelTwoFile = topic('page.html', false, { path: 'root-folder/level-one/page.html' })
+    const dirs = new Map([
+      [rootFolder.path, { entries: [levelOneFolder], expanded: true, loading: false }],
+      [levelOneFolder.path, { entries: [levelTwoFile], expanded: true, loading: false }],
+    ])
+
+    renderTopicTree([rootFolder, rootFile], dirs)
+
+    const rootFolderRow = screen.getByText('根目录').closest('[role="treeitem"]') as HTMLElement
+    const rootFileRow = screen.getByText('root').closest('[role="treeitem"]') as HTMLElement
+    const levelOneFolderRow = screen
+      .getByText('一级目录')
+      .closest('[role="treeitem"]') as HTMLElement
+    const levelTwoFileRow = screen
+      .getByText('page.html')
+      .closest('[role="treeitem"]') as HTMLElement
+
+    expect(rootFolderRow.getAttribute('data-depth')).toBe('0')
+    expect(rootFileRow.getAttribute('data-depth')).toBe('0')
+    expect(levelOneFolderRow.getAttribute('data-depth')).toBe('1')
+    expect(levelTwoFileRow.getAttribute('data-depth')).toBe('2')
+    const childWrappers = screen.getAllByTestId('workspace-tree-children')
+    expect(childWrappers).toHaveLength(2)
+    expect(childWrappers.map((wrapper) => wrapper.getAttribute('data-workspace-depth'))).toEqual([
+      '0',
+      '1',
+    ])
+    expect(
+      childWrappers.map((wrapper) => wrapper.style.getPropertyValue('--workspace-tree-depth')),
+    ).toEqual(['0', '1'])
+    expect(rootFolderRow.querySelector('[data-workspace-marker]')).toBeTruthy()
+    expect(rootFileRow.querySelector('[data-workspace-marker]')).toBeTruthy()
+    expect(
+      within(rootFileRow.querySelector('[data-workspace-actions]') as HTMLElement)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual(['更多', '引用'])
+  })
+
   it('labels topic icons by folder and file type', () => {
     renderTopicTree([
       topic('研究材料', true),
@@ -76,20 +160,24 @@ describe('TopicTree', () => {
   })
 
   // story 20260708-tree-row-hover · AC-1/AC-2 · hover 底纹
-  it('shows hover background on unselected rows and keeps selected background', () => {
+  // jsdom cannot calculate :hover; Task 5 Playwright covers the visual state in a real browser.
+  it('uses scoped stylesheet rules for hover and selected backgrounds without conflating them', () => {
     renderTopicTree([topic('user-note.md'), topic('picked.md')], new Map(), 'picked.md')
 
     const unselectedRow = screen.getByText('user note').closest('.tree-item-row') as HTMLElement
-    fireEvent.mouseEnter(unselectedRow)
-    expect(unselectedRow.style.background).toBe('var(--item-hover-bg)')
-    fireEvent.mouseLeave(unselectedRow)
-    expect(unselectedRow.style.background).toBe('transparent')
+    expect(unselectedRow.classList.contains('workspace-tree-row')).toBe(true)
+    expect(unselectedRow.getAttribute('aria-selected')).toBe('false')
 
     const selectedRow = screen.getByText('picked').closest('.tree-item-row') as HTMLElement
-    fireEvent.mouseEnter(selectedRow)
-    expect(selectedRow.style.background).toBe('var(--item-selected-bg)')
-    fireEvent.mouseLeave(selectedRow)
-    expect(selectedRow.style.background).toBe('var(--item-selected-bg)')
+    expect(selectedRow.classList.contains('workspace-tree-row')).toBe(true)
+    expect(selectedRow.getAttribute('aria-selected')).toBe('true')
+
+    const hoverRule = getWorkspaceTreeRule('.workspace-tree .workspace-tree-row:hover')
+    const selectedRule = getWorkspaceTreeRule('.workspace-tree .workspace-tree-row[aria-selected')
+    expect(hoverRule.style.background).toBeTruthy()
+    expect(selectedRule.style.background).toBeTruthy()
+    expect(hoverRule.style.background).not.toBe(selectedRule.style.background)
+    expect(getComputedStyle(selectedRow).background).toBe(selectedRule.style.background)
   })
 
   // story 20260708-tree-select-regression · AC-2 · 选中底色瞬时出现，无淡入过渡
@@ -232,7 +320,7 @@ describe('TopicTree', () => {
     expect(screen.getAllByLabelText('拖拽排序')).toHaveLength(2)
   })
 
-  it('shows a child count badge next to an expanded folder with children', () => {
+  it('does not show a child count for an expanded folder with children', () => {
     const dirs = new Map([
       [
         '专题',
@@ -244,12 +332,49 @@ describe('TopicTree', () => {
       ],
     ])
     renderTopicTree([topic('专题', true)], dirs)
-    expect(screen.getByText('3')).toBeTruthy()
+    expect(document.querySelector('.workspace-tree-child-count')).toBeNull()
+    expect(screen.queryByText('3')).toBeNull()
   })
 
   it('shows an empty-folder placeholder row when an expanded folder has no children', () => {
     const dirs = new Map([['专题', { entries: [], expanded: true, loading: false }]])
     renderTopicTree([topic('专题', true)], dirs)
-    expect(screen.getByText('空文件夹')).toBeTruthy()
+    const placeholder = screen.getByText('空文件夹')
+    expect(placeholder.getAttribute('data-workspace-depth')).toBe('0')
+    expect(placeholder.style.getPropertyValue('--workspace-tree-depth')).toBe('0')
+  })
+
+  it('shows a loading placeholder at the expanded directory depth', () => {
+    const dirs = new Map([['专题', { entries: [], expanded: true, loading: true }]])
+    renderTopicTree([topic('专题', true)], dirs)
+
+    const placeholder = screen.getByText('加载中…')
+    expect(placeholder.getAttribute('data-workspace-depth')).toBe('0')
+    expect(placeholder.style.getPropertyValue('--workspace-tree-depth')).toBe('0')
+  })
+
+  it('keeps recursive loading and empty placeholders at their real depths', () => {
+    const root = topic('root', true, { path: 'root' })
+    const loadingDirectory = topic('loading', true, { path: 'root/loading' })
+    const levelOneDirectory = topic('level-one', true, { path: 'root/level-one' })
+    const emptyDirectory = topic('empty', true, { path: 'root/level-one/empty' })
+    const dirs = new Map([
+      [
+        root.path,
+        { entries: [loadingDirectory, levelOneDirectory], expanded: true, loading: false },
+      ],
+      [loadingDirectory.path, { entries: [], expanded: true, loading: true }],
+      [levelOneDirectory.path, { entries: [emptyDirectory], expanded: true, loading: false }],
+      [emptyDirectory.path, { entries: [], expanded: true, loading: false }],
+    ])
+
+    renderTopicTree([root], dirs)
+
+    const loadingPlaceholder = screen.getByText('加载中…')
+    const emptyPlaceholder = screen.getByText('空文件夹')
+    expect(loadingPlaceholder.getAttribute('data-workspace-depth')).toBe('1')
+    expect(loadingPlaceholder.style.getPropertyValue('--workspace-tree-depth')).toBe('1')
+    expect(emptyPlaceholder.getAttribute('data-workspace-depth')).toBe('2')
+    expect(emptyPlaceholder.style.getPropertyValue('--workspace-tree-depth')).toBe('2')
   })
 })

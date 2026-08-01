@@ -3,8 +3,7 @@ import type { JournalEntry, IdentityEntry } from '../types'
 import type { TopicEntry } from '../lib/apiTypes'
 import { pickDisplayTags } from '../lib/tags'
 import { useTextOverflow } from '../hooks/useTextOverflow'
-import { fileTypeIconKindFromName } from '../lib/fileTypeIconKind'
-import { FileTypeIcon } from './FileTypeIcon'
+import { WorkspaceTreeRow } from './WorkspaceTreeRow'
 
 // ── Hover CSS for action buttons ───────────────────────────────────────────────
 // Inline styles can't express :hover, so we inject a minimal <style> once.
@@ -36,6 +35,9 @@ interface TreeItemProps {
   entry?: JournalEntry
   topicEntry?: TopicEntry
   indent?: number
+  expanded?: boolean
+  focused?: boolean
+  withinWorkspaceTree?: boolean
   isToday?: boolean
   isSelected: boolean
   onClick: () => void
@@ -71,11 +73,9 @@ function getDisplayName(
   itemType: TreeItemProps['itemType'],
   identity?: IdentityEntry,
   entry?: JournalEntry,
-  topicEntry?: TopicEntry,
 ): string {
   if (itemType === 'identity' && identity) return identity.name
   if (itemType === 'journal' && entry) return entry.title
-  if (itemType === 'topic-file' && topicEntry) return topicEntry.name
   return ''
 }
 
@@ -95,35 +95,13 @@ function ItemBlock({
   itemType,
   identity,
   entry,
-  topicEntry,
   isToday,
-  isSelected,
 }: {
   itemType: TreeItemProps['itemType']
   identity?: IdentityEntry
   entry?: JournalEntry
-  topicEntry?: TopicEntry
   isToday?: boolean
-  isSelected: boolean
 }) {
-  if (itemType === 'topic-file' && topicEntry) {
-    const iconKind = topicEntry.is_dir ? 'folder' : fileTypeIconKindFromName(topicEntry.name)
-    return (
-      <div
-        style={{
-          width: 20,
-          height: 20,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <FileTypeIcon kind={iconKind} selected={isSelected} />
-      </div>
-    )
-  }
-
   // Journal: day number block
   if (itemType === 'journal' && entry) {
     const isTodayBlock = isToday === true
@@ -184,6 +162,9 @@ export const TreeItem = memo(function TreeItem({
   entry,
   topicEntry,
   indent = 0,
+  expanded,
+  focused = false,
+  withinWorkspaceTree = false,
   isToday,
   isSelected,
   onClick,
@@ -194,7 +175,7 @@ export const TreeItem = memo(function TreeItem({
   const tags = getDisplayTags(itemType, identity, entry)
   const visibleTags = itemType === 'journal' ? tags.slice(0, 1) : tags
   const hiddenTagCount = itemType === 'journal' ? tags.length - visibleTags.length : 0
-  const displayName = getDisplayName(itemType, identity, entry, topicEntry)
+  const displayName = getDisplayName(itemType, identity, entry)
   const description = getDescription(itemType, identity, entry)
   const ref = useRef<HTMLDivElement>(null)
   const [titleRef, titleOverflow] = useTextOverflow<HTMLDivElement>()
@@ -213,6 +194,23 @@ export const TreeItem = memo(function TreeItem({
       }
     }
   }, [isSelected])
+
+  if (itemType === 'topic-file' && topicEntry) {
+    const row = (
+      <WorkspaceTreeRow
+        entry={topicEntry}
+        depth={indent}
+        expanded={expanded}
+        selected={isSelected}
+        focused={focused}
+        onActivate={onClick}
+        onAt={onAt}
+        onMore={onMore}
+      />
+    )
+
+    return withinWorkspaceTree ? row : <div className="workspace-tree">{row}</div>
+  }
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -283,14 +281,7 @@ export const TreeItem = memo(function TreeItem({
         }}
       >
         {/* Block (identity initial / journal date / topic icon) */}
-        <ItemBlock
-          itemType={itemType}
-          identity={identity}
-          entry={entry}
-          topicEntry={topicEntry}
-          isToday={isToday}
-          isSelected={isSelected}
-        />
+        <ItemBlock itemType={itemType} identity={identity} entry={entry} isToday={isToday} />
 
         {/* Name / Title — shrinks only after tags are hidden */}
         <div

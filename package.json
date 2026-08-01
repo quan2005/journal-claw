@@ -1,7 +1,7 @@
 {
   "name": "journal",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.17.0",
   "type": "module",
   "description": "JournalClaw — 本地优先的个人 Agentic Knowledge Workspace",
   "scripts": {

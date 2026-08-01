@@ -12,7 +12,7 @@
 | `docs/final-state.md` | 产品北极星、五个一等对象、状态地图                        |
 | `docs/adr/`           | 架构决策历史（只增不改）                                  |
 
-> **历史工作流产物已归档**：旧根目录 `specs/`、`docs/superpowers/`（plans / specs / mockups / examples）整体迁入 `stories/_archive/`，**只读、不再维护**，仅作历史回溯用。当前需求与设计走 `stories/<phase>/story.md` + `docs/*.md`。
+> **历史工作流产物已归档**：旧根目录 `specs/` 与原 docs/superpowers 文档区（plans / specs / mockups / examples）整体迁入 `stories/_archive/`，**只读、不再维护**，仅作历史回溯用。当前需求与设计走 `stories/<phase>/story.md` + `docs/*.md`。
 
 ## 产品一句话
 
@@ -21,11 +21,11 @@
 ## 常用命令速查
 
 ```bash
-npm run desktop:dev     # Vite + Electron
-npm run dev             # 仅前端 (localhost:1420)
-npm test                # 全 workspace vitest
-npm run build           # tsc + vite build
-npm run lint && npm run format:check
+bun run desktop:dev     # Vite + Electron
+bun run dev             # 仅前端 (localhost:1420)
+bun run test            # 全 workspace vitest
+bun run build           # tsc + vite build
+bun run lint && bun run format:check
 ```
 
 完整命令与单测/e2e 用法见 `docs/CONVENTIONS.md` §1。
@@ -36,16 +36,15 @@ npm run lint && npm run format:check
 
 1. **Runtime 单一入口**：业务能力走 `runtimeClient` → daemon HTTP/SSE；宿主能力走 `hostBridge.ts` → Electron preload 白名单。组件禁止直连 daemon URL、raw Electron IPC。→ `docs/ARCH.md`
 2. **desktop 零业务语义**：Electron 宿主只管窗口/菜单/daemon 生命周期/宿主能力。→ `docs/ARCH.md`
-3. **文件写入走 ChangeSet**；authorization mode 在 daemon 执行。→ `docs/ARCH.md`
+3. **Agent 修改用户资产走 ChangeSet**；用户、系统与迁移写入不得绕过 daemon 的受控入口。→ `docs/ARCH.md`
 4. **Theme 经 daemon 持久化**，不用 localStorage（面板宽度除外）。→ `docs/ARCH.md`
 5. **结构化 token 强制消费**（圆角/阴影/边框/聚焦环/字体三栈），禁止硬编码。→ `docs/DESIGN.md` §5
 6. **视觉一致性**：`JournalList` ↔ `IdentityList`、`DetailPanel` ↔ `IdentityDetail` 同步修改。→ `docs/DESIGN.md`
 7. **视觉修复验证真实渲染链**（`.md-content` + 真实 CSS cascade），先写红测试。→ `docs/CONVENTIONS.md` §3
 8. **视觉需求优先 HTML mockup 澄清**，不用文字/ASCII 描述。
 9. **单一信号橙 `#FF5701`** 是所有交互 accent 的唯一来源。→ `docs/DESIGN.md`
-10. **门禁流程**：需求门禁（story approved 才编码）→ 验收门禁（verify-report 通过才 commit）→ 文档维护。→ `docs/CONVENTIONS.md` §4
-11. **版本号由 release-please 管理，禁止手改**；Conventional Commits。→ `docs/CONVENTIONS.md` §6
-12. **AI 引擎**：daemon 内建 pi 引擎（`apps/daemon/src/engine/`），唯一引擎，外部 CLI adapter 已移除。→ `docs/ARCH.md`
+10. **版本号由 release-please 管理，禁止手改**；保持 0.x，兼容变更升 patch，breaking 升 minor。→ `docs/CONVENTIONS.md` §6
+11. **AI 引擎**：daemon 内建 pi 引擎（`apps/daemon/src/engine/`），唯一引擎，外部 CLI adapter 已移除。→ `docs/ARCH.md`
 
 ## 已下线能力
 

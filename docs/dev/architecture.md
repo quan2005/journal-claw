@@ -27,7 +27,7 @@ apps/web hostBridge
 - `invoke(command, args)`：兼容旧 command 风格调用，实际映射到 daemon route。
 - `subscribe(event, handler)`：订阅 daemon SSE 事件，返回同步 unsubscribe。
 
-历史注记：`apps/web/src/lib/tauri.ts` 兼容 shim 已于 2026-07-03 拆除，调用方直接消费 `runtimeClient` / `hostBridge`。
+历史注记：Web 的 Tauri 兼容 shim 已于 2026-07-03 拆除，调用方直接消费 `runtimeClient` / `hostBridge`。
 
 ## Daemon
 
@@ -35,7 +35,7 @@ apps/web hostBridge
 
 - `journal/`, `todos/`, `topics/`, `identity/`, `materials/`
 - `settings/`, `config/`, `workspace/`, `files/`
-- `runs/`, `engine/`, `runtimes/`, `changeset/`, `sediment/`
+- `runs/`, `engine/`, `changeset/`, `sediment/`
 - `automation/`, `work_queue/`, `ai_processor/`
 
 ## Electron Host
@@ -54,7 +54,7 @@ Agent Run 是 AI 主路径：
 
 1. 前端通过 `agentRuns.ts` 或 runtime client 创建 run。
 2. daemon 在 `runs/` 中登记状态与事件。
-3. `engine/` 运行 pi 内建引擎，或 `runtimes/` 调用 CLI adapter。
+3. `engine/` 运行 daemon 内建的唯一 pi 引擎。
 4. 事件以 SSE 推给前端，并落盘支持 cursor 恢复。
 5. 文件变更通过 ChangeSet 记录，可查看和恢复。
 

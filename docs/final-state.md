@@ -1,8 +1,6 @@
 # 最终状态 · 协作锚点
 
-> 用途：这是编排者（Claude）与用户**异步协作**讨论「journal 最终是什么样、现在到了哪」的锚点文档。
-> 它反映 **2026-06-27 M8-b 终局** 的真实状态，不再是规划态。
-> 你可以随时直接在这里批注、改、否决；每次讨论后我会更新它。
+> 用途：这是 JournalClaw 的产品北极星与五个一等对象定义。2026-06-27 M8-b 的施工状态和决策只作历史快照；当前实现以 `docs/ARCH.md` 为唯一架构真相。
 
 最后更新：2026-06-27（M8-b 终局）· 编排者：Claude
 
@@ -37,7 +35,7 @@
 | **Workspace**    | 当前知识工作的上下文边界（项目/专题/写作任务/研究问题）           | ✅ `WorkspaceMeta` 契约 + `WorkspaceService`（name/type/goals/activeSources）+ `GET/PUT /workspace/meta`；上下文组装（`assembleContext`）已注入 prompt                                          | 前端无 meta 编辑 UI；只读展示                                        |
 | **Sources**      | 本地文件/网页摘录/会议记录/旧笔记，Agent 的证据来源               | ✅ `SourceBinding` 契约 + `SourceBindingService`（`captureFromRun` 从 tool_call 推断 read/search 绑定）+ `ChangeSet`（可追踪/可恢复）+ `GET /runs/:id/sources`                                  | 仅 run 完成后自动推断，无用户手动声明入口；前端 Sources section 只读 |
 | **Artifacts**    | Agent 产出（文章/提纲/报告/卡片/总结/方案/待办/索引）             | ✅ `Artifact` 契约 + `ArtifactIndexService`（`captureFromRun` 解析产物进 index）+ `GET /runs/:id/artifacts` + `/artifacts?type=`                                                                | 前端 Artifacts section 只读，无独立浏览器/管理面板                   |
-| **Runs**         | Agent 每次执行的过程记录（用了哪些资料/步骤/改了哪些文件/为什么） | ✅ 全链路：`AgentRun`/`AgentRunEvent` 契约 + `AgentRunService`（创建/流式/取消/JSONL 回放/子任务委托）+ `POST /runs engine=builtin\|claude\|codex` + SSE；前端 Agent Run 面板 ✅                | `useAgentRun` 缺专门测试；冷启动回放/列表化未做                      |
+| **Runs**         | Agent 每次执行的过程记录（用了哪些资料/步骤/改了哪些文件/为什么） | ✅ 全链路：`AgentRun`/`AgentRunEvent` 契约 + `AgentRunService`（创建/流式/取消/JSONL 回放/子任务委托）+ builtin pi engine + SSE；前端 Agent Run 面板 ✅                                         | `useAgentRun` 缺专门测试；冷启动回放/列表化未做                      |
 | **Rules/Memory** | 用户偏好/写作风格/项目背景/长期事实/禁用规则                      | ✅ `MemoryRecord` 契约 + `SedimentationService`（run 完成自动沉淀 summary + preference/project_fact/writing_rule/tool_rule，每条带 sourceRunId + evidence）+ `GET /runs/:id/memory` + `/memory` | 前端 Memory section 只读，无 reject/edit UI                          |
 
 ### 右侧面板 = Agent Run 面板（不是 Chat）
@@ -56,7 +54,7 @@
 
 ### 能力底盘（M8-b 终局）
 
-内建 Agent 引擎采用 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT、纯 TS、可嵌入），运行在 `apps/daemon/src/engine/`。pi 提供 agentic 循环 / 多轮 session / `transformContext` / 多 vendor（anthropic、openai 原生；volcengine、zhipu、dashscope 走 OpenAI-compatible baseURL）/ `beforeToolCall`·`afterToolCall` 授权钩子。daemon 工具（bash / fs 经 ChangeSet / subtask）经授权门接入 pi。CLI adapter（claude/codex）保留作 Agent Team 委派路径。
+内建 Agent 引擎采用 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT、纯 TS、可嵌入），运行在 `apps/daemon/src/engine/`。pi 提供 agentic 循环 / 多轮 session / `transformContext` / 多 vendor（anthropic、openai 原生；volcengine、zhipu、dashscope 走 OpenAI-compatible baseURL）/ `beforeToolCall`·`afterToolCall` 授权钩子。daemon 工具（bash / fs 经 ChangeSet / subtask）经授权门接入 pi。外部 CLI engine/adapter 已于 2026-07-08 删除。
 
 > 历史注记：早期规划曾以 Rust `llm/tool_loop.rs` 作为迁移底盘。Rust 后端已于 M8-b（2026-06-27）整体删除，该迁移路径不再适用；pi 内建引擎替代了从零移植 tool loop 的方案（见 §3 决策 1）。
 
@@ -109,7 +107,7 @@ React UI（apps/web）
 TypeScript Daemon（apps/daemon）
   ├─ journal / todos / topics / identity / materials（本地数据 CRUD）
   ├─ settings / config / workspace / files / permissions（地基）
-  ├─ runs + engine（pi 内建引擎）+ runtimes（CLI adapter registry）
+  ├─ runs + engine（pi 唯一内建引擎）
   ├─ changeset / artifacts / sediment（文件变更 / 产物 / 沉淀）
   ├─ automation / work_queue / ai_processor / conversation
   └─ skills / event_log / onboarding
@@ -119,7 +117,7 @@ Host Bridge（apps/web/src/lib/hostBridge.ts）
   └─ Electron preload 白名单能力
 ```
 
-**事实**：Tauri shell / Rust 后端 / Swift sidecar 已删除（M7 + M8-b，2026-06-27）。桌面宿主固定为 Electron，业务后端固定为 TypeScript daemon，Agent 引擎固定为 pi 内建引擎（+ CLI adapter 委派）。前端通过 `runtimeClient`（业务）与 `hostBridge.ts`（宿主能力）两类入口访问能力，组件不得直接接触 raw Electron IPC 或 daemon URL。
+**事实**：Tauri shell / Rust 后端 / Swift sidecar 已删除（M7 + M8-b，2026-06-27）。桌面宿主固定为 Electron，业务后端固定为 TypeScript daemon，Agent 引擎固定为唯一的 pi 内建引擎。前端通过 `runtimeClient`（业务）与 `hostBridge.ts`（宿主能力）两类入口访问能力，组件不得直接接触 raw Electron IPC 或 daemon URL。
 
 ---
 
@@ -156,7 +154,7 @@ Rust 后端退出按 9 个阶段推进（详见 `docs/adr/rust-removal-roadmap.m
 
 ### ✅ 决策 1 · LLM 引擎（原 D-引擎，用户 2026-06-27 定为 A′）
 
-采用第三方 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT、纯 TS、可嵌入）作 daemon 内建引擎，替代从零移植 Rust `tool_loop.rs`。pi 覆盖 agentic 循环 / 多轮 session / transformContext / 多 vendor（含 OpenAI-compatible baseURL → volcengine/zhipu/dashscope）/ before-afterToolCall 授权钩子。CLI adapter 保留作 Agent Team 委派。国产三家 chat+tool_call 配置面已就绪，真实 vendor 验证由用户自测。
+采用第三方 [`pi`](https://github.com/earendil-works/pi)（`pi-agent-core` + `pi-ai`，MIT、纯 TS、可嵌入）作 daemon 内建引擎，替代从零移植 Rust `tool_loop.rs`。pi 覆盖 agentic 循环 / 多轮 session / transformContext / 多 vendor（含 OpenAI-compatible baseURL → volcengine/zhipu/dashscope）/ before-afterToolCall 授权钩子。历史 CLI adapter 决策已被 2026-07-08 的删除 story 取代。
 
 ### ✅ 决策 2 · API key 存储
 
@@ -181,6 +179,8 @@ Express + 纯 tsc 构建 + node-pty + vitest。入口 `cli.ts`，类型共享 `p
 ### ✅ 原 D3 · CLI adapter 首批深度（已定：深）
 
 首批 claude / codex / opencode 三家做到 detect + version + authProbe + listModels + 真实 spawn run + 事件流解析；pi 内建引擎为默认 engine。
+
+> 后续状态：该历史能力已于 2026-07-08 删除，不再属于当前架构。
 
 ### ✅ 原 D4 · 三档授权语义（已定）
 
@@ -259,7 +259,7 @@ TS daemon 覆盖全部用户可见能力后删除 Rust。桌面宿主迁移到 E
 - M8-b：删除 `apps/web/` 下的 `src-tauri/` 目录 + `@tauri-apps/*` 依赖，默认 runtime 固定为 daemon HTTP/SSE + Electron host bridge。
 - MDX 下线：删除 MDX 渲染链，日志详情改纯 Markdown。
 
-**M8-b 后技术栈定型**：Electron（host）+ React 19（renderer）+ TypeScript daemon（Express HTTP/SSE backend）+ pi 内建引擎（+ CLI adapter 委派）+ ChangeSet（文件变更）+ electron-builder（打包）+ vitest/Playwright（测试）。
+**当前技术栈**：Electron（host）+ React 19（renderer）+ TypeScript daemon（Express HTTP/SSE backend）+ pi 唯一内建引擎 + ChangeSet（Agent 文件变更）+ electron-builder（打包）+ vitest/Playwright（测试）。
 
 ### 参考
 

@@ -11,8 +11,11 @@
     "build": "bun run --filter '*' build",
     "test": "bun run --filter '*' test",
     "test:e2e": "bun run --filter @journal/web test:e2e",
+    "policy:test": "node --test scripts/tests/*.test.mjs",
+    "policy:version": "node scripts/version-policy.mjs",
     "lint": "bun run --filter '*' lint",
-    "format:check": "bunx prettier --check \"**/*.{ts,tsx,md}\"",
+    "format:check": "node scripts/check-format-baseline.mjs",
+    "format:strict": "bunx prettier --check \"**/*.{ts,tsx,md}\"",
     "format": "bunx prettier --write \"**/*.{ts,tsx,md}\"",
     "daemon:dev": "bun run --filter @journal/daemon dev",
     "postinstall": "lefthook install && node scripts/fix-electron.mjs"

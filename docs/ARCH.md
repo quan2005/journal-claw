@@ -1,6 +1,6 @@
 # JournalClaw Architecture — 唯一架构真相
 
-更新：2026-07-03（架构治理重规划 · tauri.ts shim 拆除）
+更新：2026-08-01（维护治理 Phase 0 · 外部 CLI engine 退休状态同步）
 
 ## 总览
 
@@ -36,14 +36,14 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 
 ## 技术栈
 
-| 层         | 技术                                             |
-| ---------- | ------------------------------------------------ |
-| 桌面宿主   | Electron（electron-builder 打包）                |
-| Renderer   | React 19 + TypeScript + Vite                     |
-| Backend    | TypeScript daemon（Express HTTP + SSE）          |
+| 层         | 技术                                                       |
+| ---------- | ---------------------------------------------------------- |
+| 桌面宿主   | Electron（electron-builder 打包）                          |
+| Renderer   | React 19 + TypeScript + Vite                               |
+| Backend    | TypeScript daemon（Express HTTP + SSE）                    |
 | Agent 引擎 | pi 内建引擎（唯一，外部 CLI adapter 已于 2026-07-08 移除） |
-| 文件变更   | ChangeSet service                                |
-| 测试       | vitest + Playwright                              |
+| 文件变更   | ChangeSet service                                          |
+| 测试       | vitest + Playwright                                        |
 
 ## 前端边界
 
@@ -60,15 +60,15 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 
 - `journal/`, `todos/`, `topics/`, `identity/`, `materials/`
 - `settings/`, `config/`, `workspace/`, `files/`, `permissions/`
-- `runs/`, `engine/`, `runtimes/`, `changeset/`, `sediment/`, `artifacts/`
+- `runs/`, `engine/`, `changeset/`, `sediment/`, `artifacts/`
 - `automation/`, `work_queue/`, `ai_processor/`, `event_log/`
 
 核心原则：
 
 - service 层保存业务语义，route 层只做协议适配。
-- 所有文件写入、移动、删除都生成 ChangeSet。
+- Agent 对用户资产的写入、移动、删除走 ChangeSet；其他写入必须保留在 daemon 的受控 service/store 内，不得从 route、组件或 Electron handler 直接写用户资产。用户直改、系统元数据和迁移的分级通道由维护治理 Phase 1 固化。
 - authorization mode 在 daemon 执行：`read_only`、`workspace_write`、`full_access`。
-- run events 统一为 `AgentRunEvent`，前端不感知 pi/CLI 原始事件格式。
+- run events 统一为 `AgentRunEvent`，前端不感知引擎内部原始事件格式。
 
 ## Agent Run
 
@@ -80,17 +80,11 @@ JournalClaw 是 **Electron + React 19 + TypeScript daemon** 的本地优先桌�
 
 事件覆盖 run lifecycle、thinking/text delta、tool call/result、change proposed、artifact、sedimentation、finish/fail。
 
-### 对话面与引擎切换（P2）
+### 对话面
 
-右侧面板是单一 **`UnifiedChatShell`**。顶栏 `EngineSwitcher` chip 在内置 pi 引擎与外部 CLI agent 间切换：
+右侧面板使用统一的对话 shell 和 composer。所有对话与 run 都由 daemon 内建 pi 引擎执行，经 runtimeClient 使用 HTTP/SSE；renderer 只消费统一事件和用户可见状态。
 
-- 内置 pi → `useConversation` → `/conversation`；外部 agent → `useAgentRun` → `POST /runs {engine:'cli', agentId, authorizationMode}`。
-- 渲染层融合：`ChatPanel` 常驻，CLI run 的 timeline/changeset 经 `RunStreamEntries` 作 `streamExtras` 注入同一对话流（数据数组不合并）。
-- composer 共享；引擎/agent 选择经 `useAgentEngine` → runtimeClient → daemon `/settings` 持久化。
-
-### 本地 Agent 检测（P1）
-
-`GET /agents` 返回本机受支持 CLI agent 的 `AgentInfo{available, version, authStatus, diagnostics[]}`，检测逻辑在 `apps/daemon/src/runtimes/`。`EngineSwitcher` 与设置页共同消费；不可用 agent 灰显附诊断。
+> 历史注记：外部 CLI engine/adapter、本地 Agent 检测和 EngineSwitcher 已于 2026-07-08 删除，见 `stories/20260708-remove-cli-engines/story.md`。
 
 ## Electron Host
 

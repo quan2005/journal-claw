@@ -15,7 +15,7 @@ description: JournalClaw 的开发指南入口，涵盖项目架构、环境搭�
 | 前端       | React 19 + TypeScript + Vite 7  |
 | 样式       | 纯 CSS（CSS 变量 + tokens）     |
 | 后端       | TypeScript daemon（HTTP + SSE） |
-| Agent 引擎 | pi 内建引擎 + CLI adapters      |
+| Agent 引擎 | daemon 内建 pi 引擎（唯一引擎） |
 | 本地文件   | daemon services + ChangeSet     |
 | 测试       | vitest + Playwright             |
 

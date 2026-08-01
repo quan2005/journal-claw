@@ -1,73 +1,121 @@
 #!/usr/bin/env node
-// check-docs-consistency.mjs — AC-2 长效化（WS-3）
-//
-// 扫描核心文档（AGENTS.md、docs/ARCH.md、docs/CONVENTIONS.md、docs/final-state.md）
-// 中反引号包裹的仓库相对路径（apps/ packages/ docs/ scripts/ 开头），验证文件真实存在。
-// 任一缺失 → 打印清单并以非零退出，阻断 CI。零依赖，仅用 Node 内建 fs/path/url。
+// Validate literal repository paths referenced by current authority documents.
+// Globs are examples rather than literal paths and are intentionally skipped.
 
-import { readFileSync, existsSync } from 'node:fs'
-import { resolve, dirname, relative } from 'node:path'
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+export const AUTHORITY_DOCS = [
+  'AGENTS.md',
+  'docs/ARCH.md',
+  'docs/CONVENTIONS.md',
+  'docs/final-state.md',
+]
 
-// 被扫描的文档（相对仓库根）。新增核心文档时在此登记。
-const DOCS = ['AGENTS.md', 'docs/ARCH.md', 'docs/CONVENTIONS.md', 'docs/final-state.md']
+const BACKTICK_PATH = /`((?:apps|packages|docs|scripts|stories|\.github|\.agents)\/[^\s`]+)`/g
 
-// 仅承认这些前缀为仓库内路径，避免误判片段（如 `apps/web` 而非 `apps/web/src/...`）。
-const PATH_PREFIXES = ['apps/', 'packages/', 'docs/', 'scripts/']
-
-// 反引号包裹的路径：`<前缀>...`。路径内不含空白与反引号。
-const BACKTICK_PATH = /`((?:apps|packages|docs|scripts)\/[^\s`]+)`/g
-
-function stripTrailingPunct(p) {
-  // 路径末尾偶有句号/冒号被一并包进反引号（少见），统一去掉。
-  return p.replace(/[.:,;]+$/, '')
+function stripTrailingPunctuation(path) {
+  return path.replace(/[.:,;]+$/, '')
 }
 
-function isGlobPattern(p) {
-  // 含通配符的不是字面文件路径（如 `apps/*`、`docs/adr/*`），无法也无需校验存在性。
-  return /[*?[\]]/.test(p)
+function isGlobPattern(path) {
+  return /[*?[\]]/.test(path)
 }
 
-const missing = []
-const checked = new Set()
+function isPathTemplate(path) {
+  return /<[^<>]+>/.test(path)
+}
 
-for (const doc of DOCS) {
-  const abs = resolve(repoRoot, doc)
-  if (!existsSync(abs)) {
-    console.error(`[check-docs-consistency] 文档自身不存在：${doc}`)
-    process.exit(1)
-  }
-  const text = readFileSync(abs, 'utf8')
-  for (const match of text.matchAll(BACKTICK_PATH)) {
-    const raw = stripTrailingPunct(match[1])
-    if (checked.has(raw)) continue
-    checked.add(raw)
-    // 仅校验显式前缀（matchAll 已保证，双重保险）。
-    if (!PATH_PREFIXES.some((pre) => raw.startsWith(pre))) continue
-    if (isGlobPattern(raw)) continue
-    const target = resolve(repoRoot, raw)
-    if (!existsSync(target)) {
-      missing.push({ doc, ref: raw })
+export function checkDocsConsistency({ repoRoot, docs }) {
+  const issues = []
+  const absoluteRepoRoot = resolve(repoRoot)
+  const documents = docs ?? discoverCurrentDocs(absoluteRepoRoot)
+
+  for (const doc of documents) {
+    const absoluteDoc = resolve(absoluteRepoRoot, doc)
+    if (!existsSync(absoluteDoc)) {
+      issues.push({ doc, ref: doc, reason: 'authority document missing' })
+      continue
+    }
+
+    const text = readFileSync(absoluteDoc, 'utf8')
+    const checkedInDocument = new Set()
+    for (const match of text.matchAll(BACKTICK_PATH)) {
+      const referencedPath = stripTrailingPunctuation(match[1])
+      if (
+        checkedInDocument.has(referencedPath) ||
+        isGlobPattern(referencedPath) ||
+        isPathTemplate(referencedPath)
+      ) {
+        continue
+      }
+      checkedInDocument.add(referencedPath)
+
+      const target = resolve(absoluteRepoRoot, referencedPath)
+      const targetFromRoot = relative(absoluteRepoRoot, target)
+      const isOutsideRoot =
+        targetFromRoot === '..' ||
+        targetFromRoot.startsWith(`..${sep}`) ||
+        isAbsolute(targetFromRoot)
+      if (isOutsideRoot) {
+        issues.push({ doc, ref: referencedPath, reason: 'outside repository root' })
+      } else if (!existsSync(target)) {
+        issues.push({ doc, ref: referencedPath, reason: 'missing' })
+      }
     }
   }
+
+  return issues
 }
 
-if (missing.length > 0) {
-  console.error(
-    `\n[check-docs-consistency] 发现 ${missing.length} 处文档引用指向不存在的文件：\n`,
-  )
-  for (const { doc, ref } of missing) {
-    const rel = relative(repoRoot, resolve(repoRoot, doc))
-    console.error(`  ✗ ${rel}\n      → ${ref}`)
+export function discoverCurrentDocs(repoRoot) {
+  const docsRoot = resolve(repoRoot, 'docs')
+  if (!existsSync(docsRoot)) return [...AUTHORITY_DOCS]
+
+  const discovered = []
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const absolutePath = join(directory, entry.name)
+      const repoPath = relative(repoRoot, absolutePath).replaceAll('\\', '/')
+      if (entry.isDirectory()) {
+        if (repoPath === 'docs/adr') continue
+        visit(absolutePath)
+      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+        discovered.push(repoPath)
+      }
+    }
   }
-  console.error(
-    '\n修复：更正路径，或移除/更新引用（docs/ARCH.md 是架构唯一真相，优先核对）。',
-  )
-  process.exit(1)
+  visit(docsRoot)
+
+  return [...new Set([...AUTHORITY_DOCS, ...discovered])].sort()
 }
 
-console.log(
-  `[check-docs-consistency] OK — 已校验 ${checked.size} 个反引号路径，全部存在。`,
-)
+function runCli() {
+  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+  const issues = checkDocsConsistency({ repoRoot })
+  if (issues.length === 0) {
+    console.log('[check-docs-consistency] OK — current document paths exist.')
+    return
+  }
+
+  console.error(`\n[check-docs-consistency] 发现 ${issues.length} 处文档引用指向不存在的文件：\n`)
+  for (const { doc, ref, reason } of issues) {
+    console.error(`  ✗ ${relative(repoRoot, resolve(repoRoot, doc))}\n      → ${ref} (${reason})`)
+  }
+  console.error('\n修复：更正路径，或移除已经失效的当前状态声明。')
+  process.exitCode = 1
+}
+
+function isMainModule() {
+  if (!process.argv[1]) return false
+  try {
+    return realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+if (isMainModule()) {
+  runCli()
+}

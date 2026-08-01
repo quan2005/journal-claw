@@ -1,9 +1,18 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Existing release-please tag to build and upload'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Existing release-please tag to rebuild and upload'
+        required: true
+        type: string
 
 jobs:
   release:
@@ -12,16 +21,57 @@ jobs:
       contents: write
 
     steps:
+      - name: Validate release tag input
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          if [[ ! "$TAG_NAME" =~ ^v0\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid pre-1.0 release tag: $TAG_NAME" >&2
+            exit 1
+          fi
+
+      - name: Verify release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json tagName --jq '.tagName'
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: refs/tags/${{ inputs.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Validate release policy
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          bun run policy:test
+          bun run policy:version -- --tag "$TAG_NAME"
+          node scripts/check-docs-consistency.mjs
+          bun run format:check
+
+      - name: Run workspace quality gates
+        run: |
+          bun run --filter @journal/contracts build
+          bun run --filter @journal/web typecheck
+          bun run --filter @journal/web lint
+          bun run --filter @journal/web test
+          bun run --filter @journal/contracts typecheck
+          bun run --filter @journal/contracts test
+          bun run --filter @journal/daemon typecheck
+          bun run --filter @journal/daemon test
+          bun run --filter @journal/desktop typecheck
+          bun run --filter @journal/desktop test
 
       - name: Build web renderer
         run: bun run --filter @journal/web build
@@ -32,11 +82,15 @@ jobs:
       - name: Build Electron app
         run: bun run --filter @journal/desktop build
 
-      - name: Upload release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: apps/desktop/release/*.dmg
+      - name: Verify release assets
+        run: |
+          if ! find apps/desktop/release -maxdepth 1 -name '*.dmg' -print -quit | grep -q .; then
+            echo 'No DMG release asset was produced' >&2
+            exit 1
+          fi
+
+      - name: Upload release assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: gh release upload "$TAG_NAME" apps/desktop/release/*.dmg --clobber

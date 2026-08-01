@@ -25,53 +25,55 @@ bun install
 
 ```bash
 # 桌面开发：Vite + Electron
-npm run desktop:dev
+bun run desktop:dev
 
 # 仅前端：Vite at localhost:1420
-npm run dev
+bun run dev
 
 # daemon CLI
-npm run daemon:dev
+bun run daemon:dev
 ```
 
-`npm run desktop:dev` 会先构建 Electron main/preload，再并行启动 Vite 与 Electron。业务 API 由 daemon 提供，Electron 只负责宿主能力。
+`bun run desktop:dev` 会先构建 Electron main/preload，再并行启动 Vite 与 Electron。业务 API 由 daemon 提供，Electron 只负责宿主能力。
 
 ## 运行测试
 
 ```bash
-# 前端测试
-npm test
-npm run test:watch
+# 全 workspace 测试
+bun run test
+
+# 前端 watch
+bun run --filter @journal/web test:watch
 
 # daemon 测试
-cd apps/daemon && bunx vitest run
+bun run --filter @journal/daemon test
 
 # desktop 测试
-cd apps/desktop && bunx vitest run
+bun run --filter @journal/desktop test
 
 # E2E 测试
-npm run test:e2e
+bun run test:e2e
 ```
 
 ## 代码检查
 
 ```bash
-npm run lint
-npm run format:check
-cd apps/web && bunx tsc --noEmit
-cd apps/daemon && bunx tsc --noEmit
-cd apps/desktop && bunx tsc --noEmit
+bun run lint
+bun run format:check
+bun run --filter @journal/web typecheck
+bun run --filter @journal/daemon typecheck
+bun run --filter @journal/desktop typecheck
 ```
 
 ## 调试
 
 ### 前端
 
-Electron DevTools 与普通浏览器 DevTools 均可调试 Vite 页面。UI 调试优先使用 `npm run dev`，宿主能力调试使用 `npm run desktop:dev`。
+Electron DevTools 与普通浏览器 DevTools 均可调试 Vite 页面。UI 调试优先使用 `bun run dev`，宿主能力调试使用 `bun run desktop:dev`。
 
 ### Daemon
 
-daemon 是普通 Node.js 进程。routes 在 `apps/daemon/src/server.ts`，业务逻辑在各 service 目录。可通过 vitest 单测或 `npm run daemon:dev` 调试。
+daemon 是普通 Node.js 进程。routes 在 `apps/daemon/src/server.ts`，业务逻辑在各 service 目录。可通过 vitest 单测或 `bun run daemon:dev` 调试。
 
 ### Electron Host
 

@@ -10,16 +10,22 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
-      - run: bun run --filter @journal/contracts build
+      - run: bun run policy:test
+      - run: bun run policy:version
       - run: node scripts/check-docs-consistency.mjs
+      - run: bun run --filter @journal/contracts build
       - run: bun run --filter @journal/web typecheck
       - run: bun run --filter @journal/web lint
       - run: bun run format:check
+        env:
+          FORMAT_BASELINE_REF: ${{ github.event.pull_request.base.sha }}
       - run: bun run --filter @journal/web test
       - run: bun run --filter @journal/contracts typecheck
       - run: bun run --filter @journal/contracts test
@@ -31,8 +37,8 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
